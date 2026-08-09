@@ -392,7 +392,7 @@ describe('ContentCalendar', () => {
     expect(onEventDrop).not.toHaveBeenCalled();
   });
 
-  it('renders the status badge alongside a truncatable title', async () => {
+  it('renders compact channel indicators and status beside a truncatable title', async () => {
     const item = makeItem();
 
     render(
@@ -402,6 +402,10 @@ describe('ContentCalendar', () => {
         onDatesChange={vi.fn()}
         getEventColor={() => '#8b5cf6'}
         getEventBadge={() => ({ label: 'Failed', tone: 'danger' })}
+        getEventIndicators={() => [
+          { label: 'Instagram', shortLabel: 'IG' },
+          { label: 'LinkedIn', shortLabel: 'LI' },
+        ]}
       />,
     );
 
@@ -418,6 +422,14 @@ describe('ContentCalendar', () => {
     expect(node.querySelector('.gen-calendar-event-title')?.textContent).toBe(
       'Launch note',
     );
+
+    const indicators = node.querySelector('.gen-calendar-event-indicators');
+    expect(indicators?.textContent).toBe('IG+1');
+    expect(indicators).toHaveAttribute(
+      'aria-label',
+      'Channels: Instagram, LinkedIn',
+    );
+    expect(indicators).toHaveAttribute('title', 'Instagram, LinkedIn');
 
     const badge = node.querySelector('.gen-calendar-event-badge');
     expect(badge?.textContent).toBe('Failed');

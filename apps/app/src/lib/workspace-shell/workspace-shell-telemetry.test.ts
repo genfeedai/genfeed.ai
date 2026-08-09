@@ -56,7 +56,6 @@ describe('workspace shell telemetry privacy contract', () => {
       deviceClass: 'mobile',
       durationMs: 420,
       routeClass: 'product',
-      shellMode: 'conversation',
     });
     captureWorkspaceShellError('scope', 'scope_sync_failed');
 

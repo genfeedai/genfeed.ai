@@ -8,10 +8,6 @@ export interface TopbarProps {
   isSidebarCollapsed?: boolean;
   /** Toggle desktop sidebar collapsed state */
   onSidebarToggle?: () => void;
-  /** Whether the agent panel is collapsed */
-  isAgentCollapsed?: boolean;
-  /** Toggle agent panel visibility */
-  onAgentToggle?: () => void;
   /** Product app context for breadcrumb fallback labels (not switcher active state). */
   currentApp?: AppContext;
   /** Organization slug for tenant-scoped topbar controls */

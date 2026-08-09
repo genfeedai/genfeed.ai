@@ -1,9 +1,11 @@
 import {
+  BullMQConnectionProfile,
   buildBullMQConnection,
   buildIoRedisClientOptions,
   parseRedisConnection,
   parseRedisConnectionForWorkload,
   RedisWorkload,
+  resolveBullMQWorkerConnectionProfile,
 } from '@libs/redis/redis-connection.utils';
 import { describe, expect, it } from 'vitest';
 
@@ -13,7 +15,7 @@ function envAccessor(env: Record<string, string | boolean | number>) {
 }
 
 describe('redis connection utilities', () => {
-  it('builds lazy BullMQ options without startup version checks', () => {
+  it('builds a fail-fast BullMQ producer connection by default', () => {
     const config = {
       host: 'redis.internal',
       password: 'secret',
@@ -36,7 +38,50 @@ describe('redis connection utilities', () => {
       skipVersionCheck: true,
       tls: {},
     });
-    expect(connection.retryStrategy()).toBeNull();
+    expect(connection.retryStrategy(1)).toBeNull();
+  });
+
+  it.each([
+    {
+      environment: { isProduction: true, isStaging: false },
+      expected: BullMQConnectionProfile.WORKER,
+      name: 'production',
+    },
+    {
+      environment: { isProduction: false, isStaging: true },
+      expected: BullMQConnectionProfile.WORKER,
+      name: 'staging',
+    },
+    {
+      environment: { isProduction: false, isStaging: false },
+      expected: BullMQConnectionProfile.PRODUCER,
+      name: 'development or test',
+    },
+  ])(
+    'selects the $expected profile for $name workers',
+    ({ environment, expected }) => {
+      expect(resolveBullMQWorkerConnectionProfile(environment)).toBe(expected);
+    },
+  );
+
+  it('builds a production worker connection that retries indefinitely with bounded backoff', () => {
+    const connection = buildBullMQConnection(
+      {
+        host: 'redis.internal',
+        port: 6379,
+        tls: false,
+        url: 'redis://redis.internal:6379',
+      },
+      BullMQConnectionProfile.WORKER,
+    );
+
+    expect(connection).toMatchObject({
+      enableOfflineQueue: true,
+      maxRetriesPerRequest: null,
+    });
+    expect(connection.retryStrategy(1)).toBe(1_000);
+    expect(connection.retryStrategy(8)).toBe(Math.exp(8));
+    expect(connection.retryStrategy(100)).toBe(20_000);
   });
 
   it('enables TLS when the URL uses rediss', () => {

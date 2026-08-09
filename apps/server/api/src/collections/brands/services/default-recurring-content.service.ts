@@ -1,10 +1,13 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 // Prisma error codes used for race-condition handling.
 // P2034 — serialization failure (SQLSTATE 40001): the Serializable transaction
@@ -36,8 +39,13 @@ export type DefaultRecurringContentStatus = {
 
 type ExistingDefaultRecurringWorkflow = {
   id: string;
-  isScheduleEnabled: boolean | null;
   metadata: unknown;
+};
+
+type DefaultRecurringScheduleConfig = {
+  cronExpression: string;
+  isEnabled: boolean;
+  timezone: string;
 };
 
 type EnsureDefaultRecurringContentParams = {
@@ -46,6 +54,10 @@ type EnsureDefaultRecurringContentParams = {
   organizationId: string;
   origin: 'brand-create' | 'empty-state' | 'manual' | 'onboarding' | 'system';
   userId: string;
+};
+
+type UpdateDefaultRecurringScheduleOptions = {
+  isSchedulerRequired?: boolean;
 };
 
 const DEFAULT_RECURRING_SCHEDULE = '0 8 * * *';
@@ -62,6 +74,7 @@ export class DefaultRecurringContentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async getStatus(
@@ -164,7 +177,7 @@ export class DefaultRecurringContentService {
     const existingWorkflows = (await this.prisma.workflow.findMany({
       // Deterministic ordering so the "first per type" picked below is stable.
       orderBy: { createdAt: 'desc' },
-      select: { id: true, isScheduleEnabled: true, metadata: true },
+      select: { id: true, metadata: true },
       where: scopedWhere(params.organizationId, { brandId: params.brandId }),
     })) as ExistingDefaultRecurringWorkflow[];
 
@@ -184,14 +197,6 @@ export class DefaultRecurringContentService {
     for (const contentType of DEFAULT_RECURRING_TYPES) {
       const existing = existingByType.get(contentType);
       if (existing) {
-        if (!existing.isScheduleEnabled) {
-          // Guard isDeleted so a soft-deleted row is never accidentally
-          // re-enabled by the fast-path update.
-          await this.prisma.workflow.update({
-            data: { isScheduleEnabled: true },
-            where: { id: existing.id, isDeleted: false },
-          });
-        }
         continue;
       }
 
@@ -210,6 +215,13 @@ export class DefaultRecurringContentService {
       });
     }
 
+    await this.updateScheduleFromAgentConfig(
+      params.organizationId,
+      params.brandId,
+      (brand as unknown as Record<string, unknown>).agentConfig,
+      { isSchedulerRequired: false },
+    );
+
     if (params.includeStatus === false) {
       return {
         isConfigured: true,
@@ -218,6 +230,65 @@ export class DefaultRecurringContentService {
     }
 
     return await this.getStatus(params.organizationId, params.brandId);
+  }
+
+  async updateScheduleFromAgentConfig(
+    organizationId: string,
+    brandId: string,
+    agentConfig: unknown,
+    options: UpdateDefaultRecurringScheduleOptions = {},
+  ): Promise<void> {
+    const scheduleConfig = this.resolveScheduleConfig(agentConfig);
+    const workflowSchedulerService =
+      await this.resolveWorkflowSchedulerService();
+    if (!workflowSchedulerService && options.isSchedulerRequired !== false) {
+      throw new Error('Workflow scheduler service is unavailable');
+    }
+    const workflows = await this.prisma.workflow.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, metadata: true },
+      // defaultRecurringBrandId is written only by this service, never by
+      // client-supplied workflow payloads — scoping on it keeps this sweep off
+      // user-authored workflows whose free-form metadata happens to resemble a
+      // default-recurring marker.
+      where: scopedWhere(organizationId, {
+        brandId,
+        defaultRecurringBrandId: brandId,
+      }),
+    });
+
+    for (const workflow of workflows) {
+      const contentType = this.readWorkflowContentType(
+        workflow.metadata as Record<string, unknown> | undefined,
+      );
+      if (!contentType) {
+        continue;
+      }
+
+      if (workflowSchedulerService) {
+        await workflowSchedulerService.updateSchedule(
+          workflow.id,
+          scheduleConfig.cronExpression,
+          scheduleConfig.timezone,
+          scheduleConfig.isEnabled,
+        );
+      } else {
+        // Degraded path: schedule columns are written without BullMQ
+        // registration; WorkflowSchedulerService.onModuleInit reconciles them
+        // on the next API boot.
+        this.logger.warn(
+          `${this.logContext} scheduler unavailable; wrote schedule columns for workflow ${workflow.id} without BullMQ registration`,
+        );
+        await this.prisma.workflow.update({
+          data: {
+            isScheduleEnabled: scheduleConfig.isEnabled,
+            schedule: scheduleConfig.cronExpression,
+            timezone: scheduleConfig.timezone,
+          },
+          where: scopedWhere(organizationId, { id: workflow.id }),
+        });
+      }
+    }
   }
 
   /**
@@ -281,7 +352,7 @@ export class DefaultRecurringContentService {
             // instead of a relation-level one, so concurrent writes to
             // workflows rows in other organizations no longer cause false P2034s.
             const existing = await tx.workflow.findFirst({
-              select: { id: true, isScheduleEnabled: true },
+              select: { id: true },
               where: scopedWhere(params.organizationId, {
                 brandId: params.brandId,
                 metadata: {
@@ -292,12 +363,6 @@ export class DefaultRecurringContentService {
             });
 
             if (existing) {
-              if (!existing.isScheduleEnabled) {
-                await tx.workflow.update({
-                  data: { isScheduleEnabled: true },
-                  where: { id: existing.id, isDeleted: false },
-                });
-              }
               return;
             }
 
@@ -378,17 +443,7 @@ export class DefaultRecurringContentService {
       params.brand.id ?? (params.brand as Record<string, unknown>).id,
     );
     const brandRecord = params.brand as unknown as Record<string, unknown>;
-    const agentConfig = brandRecord.agentConfig as
-      | Record<string, unknown>
-      | undefined;
-    const schedule = agentConfig?.schedule as
-      | Record<string, unknown>
-      | undefined;
-    const timezone =
-      (typeof schedule?.timezone === 'string'
-        ? schedule.timezone.trim()
-        : '') || 'UTC';
-    const cronSchedule = DEFAULT_RECURRING_SCHEDULE;
+    const scheduleConfig = this.resolveScheduleConfig(brandRecord.agentConfig);
 
     const workflowLabel = this.buildWorkflowLabel(
       params.brand.label as unknown as string,
@@ -396,8 +451,8 @@ export class DefaultRecurringContentService {
     );
     const workflowDescription = this.buildWorkflowDescription(
       params.contentType,
-      cronSchedule,
-      timezone,
+      scheduleConfig.cronExpression,
+      scheduleConfig.timezone,
     );
     const workflow = await params.tx.workflow.create({
       data: {
@@ -413,7 +468,7 @@ export class DefaultRecurringContentService {
         executionCount: 0,
         inputVariables: [] as never,
         isDeleted: false,
-        isScheduleEnabled: true,
+        isScheduleEnabled: scheduleConfig.isEnabled,
         label: workflowLabel,
         metadata: {
           createdFrom: 'system',
@@ -433,7 +488,7 @@ export class DefaultRecurringContentService {
                 brandLabel: params.brand.label as unknown as string,
                 contentType: params.contentType,
                 credentialId: params.credentialId ?? undefined,
-                timezone,
+                timezone: scheduleConfig.timezone,
               }),
               label: this.buildNodeLabel(params.contentType),
             },
@@ -444,10 +499,10 @@ export class DefaultRecurringContentService {
         ] as never,
         organizationId: params.organizationId,
         progress: 0,
-        schedule: cronSchedule,
+        schedule: scheduleConfig.cronExpression,
         status: WorkflowStatus.ACTIVE,
         steps: [] as never,
-        timezone,
+        timezone: scheduleConfig.timezone,
         userId: params.userId,
       },
     });
@@ -552,6 +607,62 @@ export class DefaultRecurringContentService {
       `Schedule: ${schedule}`,
       `Timezone: ${timezone}`,
     ].join('\n');
+  }
+
+  private resolveScheduleConfig(
+    agentConfig: unknown,
+  ): DefaultRecurringScheduleConfig {
+    const config =
+      agentConfig !== null && typeof agentConfig === 'object'
+        ? (agentConfig as Record<string, unknown>)
+        : {};
+    const schedule =
+      config.schedule !== null && typeof config.schedule === 'object'
+        ? (config.schedule as Record<string, unknown>)
+        : {};
+    const configuredCron =
+      typeof schedule.cronExpression === 'string'
+        ? schedule.cronExpression.trim()
+        : '';
+
+    return {
+      cronExpression: this.isValidCronExpression(configuredCron)
+        ? configuredCron
+        : DEFAULT_RECURRING_SCHEDULE,
+      isEnabled:
+        typeof schedule.enabled === 'boolean' ? schedule.enabled : true,
+      timezone:
+        (typeof schedule.timezone === 'string'
+          ? schedule.timezone.trim()
+          : '') || 'UTC',
+    };
+  }
+
+  private isValidCronExpression(cronExpression: string): boolean {
+    if (!cronExpression) {
+      return false;
+    }
+
+    try {
+      computeNextRunAtOrThrow(cronExpression, 'UTC');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async resolveWorkflowSchedulerService(): Promise<WorkflowSchedulerService | null> {
+    try {
+      // Deferred import: a top-level value import of the scheduler closes the
+      // brands -> workflows -> newsletters -> brands module cycle and crashes
+      // API bootstrap ("Cannot access 'BrandsService' before initialization").
+      const { WorkflowSchedulerService: schedulerServiceClass } = await import(
+        '@api/collections/workflows/services/workflow-scheduler.service'
+      );
+      return this.moduleRef.get(schedulerServiceClass, { strict: false });
+    } catch {
+      return null;
+    }
   }
 
   private readWorkflowContentType(
