@@ -47,6 +47,15 @@ describe('formatAgentError', () => {
     );
   });
 
+  it('maps bare Generation failed: 500 to connection-interrupted (local API reload)', () => {
+    expect(formatAgentError('Generation failed: 500').title).toBe(
+      'Connection interrupted',
+    );
+    expect(formatAgentError('Generation failed: 502').summary).toMatch(
+      /server error mid-request/i,
+    );
+  });
+
   it('classifies local API / proxy connection failures', () => {
     expect(formatAgentError('connect ECONNREFUSED 127.0.0.1:4635').title).toBe(
       'Connection interrupted',

@@ -78,6 +78,18 @@ const CONFIG_PATTERNS: Array<{
       'Confirm the API is up (https://api.genfeed.localhost/v1/health), then retry the message.',
   },
   {
+    // Tool wrappers often surface bare "Generation failed: 500" when the local
+    // API dies mid-request (nest-fast-dev rebuild). Prefer connection copy over
+    // a vague "provider unavailable" reading.
+    match:
+      /generation failed:\s*5\d{2}\b|failed with status\s*5\d{2}\b|:\s*5\d{2}\s*$/i,
+    title: 'Connection interrupted',
+    summary:
+      'The API returned a server error mid-request — often a local reload.',
+    recovery:
+      'Wait for the API to finish restarting, then retry. Avoid generating while the backend is rebuilding.',
+  },
+  {
     match: /401|unauthorized|invalid.*api.?key|invalid token/i,
     title: 'Provider authentication failed',
     summary: 'The model provider rejected the credentials for this request.',

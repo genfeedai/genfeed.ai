@@ -1,10 +1,11 @@
 'use client';
 
+import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Check, CircleAlert, Clipboard } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 interface AgentErrorMessageProps {
   className?: string;
@@ -16,9 +17,19 @@ export function AgentErrorMessage({
   message,
 }: AgentErrorMessageProps): ReactElement {
   const [isCopied, setIsCopied] = useState(false);
+  const formatted = useMemo(() => formatAgentError(message), [message]);
+  const displayMessage = useMemo(() => {
+    const parts = [formatted.title, formatted.summary];
+    if (formatted.recovery) {
+      parts.push(formatted.recovery);
+    }
+    return parts.join(' ');
+  }, [formatted]);
 
   const copyError = useCallback(async () => {
     try {
+      // Copy the original tool/provider string so an agent can debug it;
+      // display stays human-readable.
       await navigator.clipboard.writeText(message);
       setIsCopied(true);
       window.setTimeout(() => setIsCopied(false), 1500);
@@ -37,7 +48,7 @@ export function AgentErrorMessage({
     >
       <CircleAlert className="mt-0.5 size-4 shrink-0" />
       <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">
-        {message}
+        {displayMessage}
       </span>
       <Button
         ariaLabel={isCopied ? 'Error copied' : 'Copy error'}

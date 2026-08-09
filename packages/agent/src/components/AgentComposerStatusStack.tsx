@@ -108,7 +108,9 @@ export function AgentComposerStatusStack({
   return (
     <div
       aria-label="Conversation status and pending input"
-      className="max-h-[60dvh] space-y-2 overflow-y-auto pb-2"
+      // Cap height so status cards scroll instead of growing into the
+      // overflow-hidden workspace canvas and clipping during reconnect thrash.
+      className="max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain pb-2"
       role="region"
     >
       {pendingInputRequest ? (
@@ -185,12 +187,12 @@ export function AgentComposerStatusStack({
           aria-live="polite"
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
+            'flex min-w-0 items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
           )}
           role="status"
         >
           <SignalZero className="size-4 shrink-0 text-warning" aria-hidden />
-          <p className="min-w-0 font-medium text-warning">
+          <p className="min-w-0 break-words font-medium text-warning">
             {socketConnectionState === 'offline'
               ? 'Offline. Your draft is safe; sending is paused.'
               : socketConnectionState === 'connecting'
