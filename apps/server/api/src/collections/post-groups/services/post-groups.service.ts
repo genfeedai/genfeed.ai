@@ -606,7 +606,7 @@ export class PostGroupsService {
           tx,
         );
       } else {
-        await tx.post.update({
+        await tx.post.updateMany({
           data: {
             ...targetMutation,
             ...(input.error !== undefined && {
@@ -615,7 +615,7 @@ export class PostGroupsService {
                 : Prisma.JsonNull,
             }),
           },
-          where: { id: existing.id },
+          where: scopedWhere(organizationId, { id: existing.id }),
         });
       }
 

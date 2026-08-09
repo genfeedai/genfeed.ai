@@ -1673,44 +1673,12 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "4632f63fee33a5b8f8b8",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "f72d74fd96cc32fb5dcd",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "1dba90019f5aa6e3280e",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "postGroup",
       "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
       "fingerprint": "33203e14613e7db90134",
       "method": "update",
       "model": "PostGroup",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "0c8d9dcd7291e00aa4bb",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "postGroup",

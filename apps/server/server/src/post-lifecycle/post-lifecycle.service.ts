@@ -287,10 +287,7 @@ export class PostLifecycleService {
     });
 
     const persisted = await transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
     if (!persisted) {
       throw new PostLifecycleTargetNotFoundException(input.postId);
@@ -338,10 +335,7 @@ export class PostLifecycleService {
     }
 
     return transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
   }
 
