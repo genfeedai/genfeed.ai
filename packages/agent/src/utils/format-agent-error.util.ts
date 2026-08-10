@@ -123,12 +123,19 @@ function scrubSecrets(text: string): string {
 }
 
 function extractSafeContext(text: string): string | null {
-  const firstLine = text.split(/\r?\n/, 1)[0]?.trim();
-  if (!firstLine || !/^Failed at:\s*[^\r\n]+$/i.test(firstLine)) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
+  const failedAt = lines.find((line) => /^Failed at:\s*[^\r\n]+$/i.test(line));
+  if (!failedAt) {
     return null;
   }
 
-  return scrubSecrets(firstLine).slice(0, 160);
+  const retryHint = lines.find((line) =>
+    /^This step can be retried\.$/i.test(line),
+  );
+  return scrubSecrets([failedAt, retryHint].filter(Boolean).join('\n')).slice(
+    0,
+    160,
+  );
 }
 
 export function formatAgentError(

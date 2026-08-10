@@ -145,7 +145,7 @@ describe('ClipWorkflowRunCard', () => {
 
     expect(
       await screen.findByText(
-        'Configure saved avatar and voice defaults or enter explicit IDs before generating clips.',
+        /Configure saved avatar and voice defaults or enter explicit IDs before generating clips\./,
       ),
     ).toBeInTheDocument();
     expect(apiService.createPromptEffect).not.toHaveBeenCalled();

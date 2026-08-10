@@ -65,12 +65,19 @@ describe('AgentErrorMessage', () => {
 
   it('keeps trusted step context while hiding classified provider details', () => {
     render(
-      <AgentErrorMessage message={'Failed at: Generate Clip\nGPU timeout'} />,
+      <AgentErrorMessage
+        message={
+          'Failed at: Generate Clip\nGPU timeout\nThis step can be retried.'
+        }
+      />,
     );
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Failed at: Generate Clip',
     );
     expect(screen.getByRole('alert')).not.toHaveTextContent('GPU timeout');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This step can be retried.',
+    );
   });
 });

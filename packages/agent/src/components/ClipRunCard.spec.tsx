@@ -168,7 +168,8 @@ describe('ClipRunCard', () => {
     render(<ClipRunCard state={state} />);
 
     expect(screen.getByText(/Failed at: Generate Clip/)).toBeDefined();
-    expect(screen.getByText(/GPU timeout/)).toBeDefined();
+    expect(screen.getByText(/Connection interrupted/)).toBeDefined();
+    expect(screen.queryByText(/GPU timeout/)).toBeNull();
     expect(screen.getByText(/This step can be retried\./)).toBeDefined();
   });
 
