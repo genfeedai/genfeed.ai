@@ -173,6 +173,44 @@ describe('CacheService', () => {
     });
   });
 
+  describe('claimOnce', () => {
+    it('reports a first claim', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+
+      await expect(
+        service.claimOnce('delivery:1', 3600, ['webhook:replicate']),
+      ).resolves.toBe('claimed');
+      expect(mockRedisClient.set).toHaveBeenCalledWith(
+        'delivery:1',
+        '1',
+        'EX',
+        3600,
+        'NX',
+      );
+      expect(cacheTagsService.setTags).toHaveBeenCalledWith('delivery:1', [
+        'webhook:replicate',
+      ]);
+    });
+
+    it('reports a repeat claim as a duplicate', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
+
+      await expect(service.claimOnce('delivery:1', 3600)).resolves.toBe(
+        'duplicate',
+      );
+      expect(cacheTagsService.setTags).not.toHaveBeenCalled();
+    });
+
+    it('distinguishes a failed command from a duplicate', async () => {
+      (mockRedisClient.set as vi.Mock).mockRejectedValue(new Error('boom'));
+
+      await expect(service.claimOnce('delivery:1', 3600)).resolves.toBe(
+        'unavailable',
+      );
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
   describe('when the cache client is not ready', () => {
     // A command issued while ioredis is disconnected sits in its offline queue
     // and never settles, so these must short-circuit rather than reach the
@@ -204,6 +242,15 @@ describe('CacheService', () => {
 
     it('refuses to acquire a lock it cannot hold', async () => {
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+      expect(mockRedisClient.set).not.toHaveBeenCalled();
+    });
+
+    it('reports a claim as unavailable rather than duplicate', async () => {
+      // Idempotency callers fail open on `unavailable`; reporting `duplicate`
+      // here would drop every inbound event for the length of the outage.
+      await expect(service.claimOnce('delivery:1', 3600)).resolves.toBe(
+        'unavailable',
+      );
       expect(mockRedisClient.set).not.toHaveBeenCalled();
     });
 

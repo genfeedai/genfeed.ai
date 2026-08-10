@@ -4,6 +4,7 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
+import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -39,6 +40,7 @@ export class ReplicateWebhookController {
     private readonly websocketService: NotificationsPublisherService,
     private readonly modelRegistrationService: ModelRegistrationService,
     private readonly generationWebhookHandler: ReplicateGenerationWebhookHandler,
+    private readonly verificationService: ReplicateWebhookVerificationService,
   ) {}
 
   /**
@@ -83,11 +85,25 @@ export class ReplicateWebhookController {
    * This includes all database operations, S3 uploads, and notifications.
    */
   private async processWebhookAsync(
-    payload: ReplicateWebhookPayload,
+    signedPayload: ReplicateWebhookPayload,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      // A valid signature is not proof of origin here: Replicate's signing key
+      // is account-scoped and cannot be rotated, so status and output are
+      // re-derived from Replicate's own record before anything acts on them.
+      const payload =
+        await this.verificationService.resolveTrustedPayload(signedPayload);
+
+      if (!payload) {
+        this.loggerService.warn(
+          `${url} untrusted payload deferred for Replicate reconciliation`,
+          { predictionId: signedPayload.id },
+        );
+        return;
+      }
+
       // Prefer checking by externalId first: if a training exists for this id, handle training flow
       const existingTraining = await this.trainingsService.findOne({
         externalId: payload.id,
@@ -277,8 +293,19 @@ export class ReplicateWebhookController {
       // Step 1: Validate webhook signature (synchronous, required)
       await this.validateWebhookSignature(request, payload);
 
-      // Step 2: Return success response immediately
-      // Step 3: Process webhook payload asynchronously after response is sent
+      // Step 2: Suppress replays of an already-handled delivery. Must run
+      // before the 200, otherwise a captured callback replayed concurrently
+      // would be processed twice.
+      const isReplay = await this.verificationService.isReplay(
+        request.headers['webhook-id'],
+      );
+
+      if (isReplay) {
+        return { detail: 'Webhook already processed' };
+      }
+
+      // Step 3: Return success response immediately
+      // Step 4: Process webhook payload asynchronously after response is sent
       setImmediate(() => {
         this.processWebhookAsync(payload).catch((error: unknown) => {
           this.loggerService.error(`${url} async processing failed`, {

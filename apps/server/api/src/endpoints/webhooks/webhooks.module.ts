@@ -40,6 +40,7 @@ import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
+import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
@@ -53,6 +54,7 @@ import { TransactionModule } from '@api/helpers/utils/transaction/transaction.mo
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -94,6 +96,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
+    forwardRef(() => ReplicateModule),
     forwardRef(() => RolesModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => StripeModule),
@@ -123,6 +126,7 @@ import { forwardRef, Module } from '@nestjs/common';
     PostProcessingOrchestratorService,
     ReplicateGenerationWebhookHandler,
     ReplicateWebhookService,
+    ReplicateWebhookVerificationService,
     VercelWebhookService,
     WebhooksService,
   ],
