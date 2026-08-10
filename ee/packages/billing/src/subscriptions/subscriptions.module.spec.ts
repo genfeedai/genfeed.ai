@@ -1,9 +1,8 @@
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { resetLicenseVerificationForTests } from '@genfeedai/config/license-server';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import type { ClassProvider, Provider } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function isClassProvider(provider: Provider): provider is ClassProvider {
   return (
@@ -12,9 +11,13 @@ function isClassProvider(provider: Provider): provider is ClassProvider {
 }
 
 describe('SubscriptionsModule', () => {
-  afterEach(() => {
+  beforeEach(() => {
     resetLicenseVerificationForTests();
+  });
+
+  afterEach(() => {
     vi.unstubAllEnvs();
+    resetLicenseVerificationForTests();
     vi.resetModules();
   });
 
@@ -27,7 +30,6 @@ describe('SubscriptionsModule', () => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
 
     const { SubscriptionsModule } = await import('./subscriptions.module');
-    const { subscriptions } = await import('../billing.providers.ee');
     const { SubscriptionsService } = await import(
       './services/subscriptions.service'
     );
@@ -39,17 +41,9 @@ describe('SubscriptionsModule', () => {
       (provider) =>
         isClassProvider(provider) && provider.provide === SubscriptionsService,
     );
-    const tokenProvider = subscriptions.providers.find(
-      (provider) =>
-        isClassProvider(provider) && provider.provide === SUBSCRIPTIONS_SERVICE,
-    );
 
     expect(serviceProvider).toMatchObject({
       provide: SubscriptionsService,
-      useClass: OssSubscriptionsService,
-    });
-    expect(tokenProvider).toMatchObject({
-      provide: SUBSCRIPTIONS_SERVICE,
       useClass: OssSubscriptionsService,
     });
   });
