@@ -120,7 +120,7 @@ jobs:
     # publish) skip it — the same commit was already secret-scanned on push to master.
     if: needs.trust.outputs.is-trusted == 'true' && github.event_name != 'release'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -136,7 +136,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -179,7 +179,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -225,6 +225,24 @@ jobs:
         run: bun run check:agent-tool-dispatch
       - name: Agent Tool Dispatch Guard Tests
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-agent-tool-dispatch.test.ts
+      # `uses:` refs cannot read a version from anywhere — GitHub resolves them
+      # before expressions exist — so an action version is duplicated across
+      # every workflow and composite action by force, and `deps:update` never
+      # sees any of it. This holds the only property that can be held: one tag
+      # version per action, repository-wide. Wired directly rather than through
+      # check:architecture, which does not run in this job.
+      - name: GitHub Action Version Consistency
+        run: bun run check:action-versions
+      - name: GitHub Action Version Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-github-action-versions.test.ts
+      # Turbo derives build order from package.json, `tsc --build` follows
+      # tsconfig `references`. Where the two disagree, two compilers write one
+      # package's dist concurrently and fail with errors that contradict the
+      # source. Invisible behind a cache hit, so it lands on an unrelated PR.
+      - name: Project Reference Dependency Parity
+        run: bun run check:project-references
+      - name: Project Reference Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-project-reference-deps.test.ts
       # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
       # while neither ran in any workflow: the repo-wide half of the raw-control
       # and design-token contracts was dark, leaving only a pre-commit hook that
@@ -265,7 +283,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -282,7 +300,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -304,7 +322,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -341,7 +359,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -402,7 +420,7 @@ jobs:
       web_desktop_mobile: ${{ steps.plan.outputs.web_desktop_mobile }}
       extensions: ${{ steps.plan.outputs.extensions }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -434,7 +452,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.packages == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -465,7 +483,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.server_services == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -496,7 +514,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.web_desktop_mobile == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -539,7 +557,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.extensions == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -576,7 +594,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -611,7 +629,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -652,7 +670,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -693,7 +711,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -721,7 +739,7 @@ jobs:
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -756,7 +774,7 @@ jobs:
     needs: [trust, format, lint, guards, typecheck]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -801,7 +819,7 @@ jobs:
       - build
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push') }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Aggregate test and build results
         env:
@@ -867,7 +885,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -927,7 +945,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -980,7 +998,7 @@ jobs:
       always() && github.event_name == 'pull_request'
       && needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       # One download per surface so each surface resolves to a directory holding
@@ -1059,7 +1077,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -1135,7 +1153,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
