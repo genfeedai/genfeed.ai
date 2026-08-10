@@ -36,7 +36,7 @@ const WORKFLOW_GLOBS = [
 /** A 40-character hex ref is a commit digest, not a release tag. */
 const COMMIT_DIGEST = /^[0-9a-f]{40}$/;
 
-const USES_LINE = /^\s*(?:-\s*)?uses:\s*(\S+)/;
+const USES_LINE = /^\s*(?:-\s*)?uses:\s*(?:"([^"]+)"|'([^']+)'|(\S+))/;
 
 export type ActionReference = {
   /** `owner/repo`, with any sub-action path stripped: sub-actions ship together. */
@@ -51,6 +51,12 @@ export type ActionVersionViolation = {
   message: string;
   references: ActionReference[];
 };
+
+export function parseUsesLine(line: string): string | null {
+  const usesMatch = line.match(USES_LINE);
+
+  return usesMatch?.[1] ?? usesMatch?.[2] ?? usesMatch?.[3] ?? null;
+}
 
 /**
  * Local refs (`./.github/...`) and container refs (`docker://…`) carry no
@@ -96,13 +102,13 @@ export function collectActionReferences(): ActionReference[] {
     const lines = readFileSync(filePath, 'utf8').split('\n');
 
     for (const [index, line] of lines.entries()) {
-      const usesMatch = line.match(USES_LINE);
+      const usesTarget = parseUsesLine(line);
 
-      if (!usesMatch) {
+      if (!usesTarget) {
         continue;
       }
 
-      const parsed = parseUsesTarget(usesMatch[1]);
+      const parsed = parseUsesTarget(usesTarget);
 
       if (!parsed || COMMIT_DIGEST.test(parsed.version)) {
         continue;

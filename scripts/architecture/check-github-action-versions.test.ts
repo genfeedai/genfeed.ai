@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   checkGitHubActionVersions,
   collectActionReferences,
+  parseUsesLine,
   parseUsesTarget,
 } from './check-github-action-versions';
 
@@ -39,5 +40,17 @@ describe('GitHub Action version guard', () => {
       action: 'aquasecurity/trivy-action',
       version: '0.36.0',
     });
+  });
+
+  it('normalizes quoted and unquoted uses targets', () => {
+    expect(parseUsesLine('uses: actions/checkout@v7')).toBe(
+      'actions/checkout@v7',
+    );
+    expect(parseUsesLine('uses: "actions/checkout@v7"')).toBe(
+      'actions/checkout@v7',
+    );
+    expect(parseUsesLine("uses: 'actions/checkout@v7'")).toBe(
+      'actions/checkout@v7',
+    );
   });
 });

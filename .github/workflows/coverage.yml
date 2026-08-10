@@ -38,6 +38,8 @@ jobs:
           - packages/workflows
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -86,6 +88,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -128,6 +132,8 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -163,6 +169,8 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -211,6 +219,8 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -247,6 +257,8 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -300,6 +312,8 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
