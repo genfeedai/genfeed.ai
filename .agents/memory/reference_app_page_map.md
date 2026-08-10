@@ -441,7 +441,9 @@ Admin organization/administration:
 
 ## Review Notes
 
-- `Messages` is intentionally a full app/module for global social DM.
+- `Messages` is intentionally a full app/module for global social engagement —
+  comments + DMs as surfaces of one inbox (#2742); `SocialConversationType`
+  also reserves `mention`/`reply` for later producers.
 - `Remix` is not a top-level page concept. It is a contextual action inside
   Research, Publish, Analytics, Library, and authorized content-run outputs;
   `/publish/remix` remains a canonical Publish child route for typed handoffs.
