@@ -41,6 +41,25 @@ export interface ReplicateWebhookPayload extends WebhookPayload {
 }
 
 /**
+ * A prediction as returned by `GET /v1/predictions/{id}`.
+ *
+ * Distinct from `ReplicateWebhookPayload` on purpose: the webhook body arrives
+ * over the wire and is only as trustworthy as the signing secret, whereas this
+ * shape is fetched back from Replicate with the account API token. Only `id` is
+ * guaranteed — every other member stays `unknown` so consumers narrow at the
+ * point of use instead of trusting the vendor's envelope.
+ *
+ * @see https://replicate.com/docs/reference/http#get-a-prediction
+ */
+export interface ReplicatePredictionRecord {
+  id: string;
+  status?: unknown;
+  output?: unknown;
+  error?: unknown;
+  version?: unknown;
+}
+
+/**
  * Heygen webhook event payload
  */
 export interface HeygenWebhookPayload extends WebhookPayload {

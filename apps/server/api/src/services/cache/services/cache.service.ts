@@ -319,6 +319,38 @@ export class CacheService {
   }
 
   /**
+   * Claim `key` exactly once inside `ttlSeconds`, reporting the three outcomes
+   * separately.
+   *
+   * `acquireLock` cannot serve this: it collapses "already held" and "Redis is
+   * unreachable" into the same `false`. Idempotency guards need them apart —
+   * treating an unreachable cache as "already seen" would silently discard
+   * every inbound event for the duration of the outage, which is a far worse
+   * failure than handling one event twice.
+   *
+   * Callers deliberately never release the claim; it expires with the window.
+   *
+   * @param key - Namespaced identity of the thing being claimed
+   * @param ttlSeconds - How long the claim suppresses repeats
+   */
+  async claimOnce(
+    key: string,
+    ttlSeconds: number,
+  ): Promise<'claimed' | 'duplicate' | 'unavailable'> {
+    if (!this.isAvailable) {
+      return 'unavailable';
+    }
+
+    try {
+      const result = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
+      return result === 'OK' ? 'claimed' : 'duplicate';
+    } catch (error: unknown) {
+      this.logOperationError('claimOnce', { error, key });
+      return 'unavailable';
+    }
+  }
+
+  /**
    * Release a distributed lock.
    *
    * @param lockKey - The lock identifier to release

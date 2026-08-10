@@ -1,6 +1,7 @@
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
@@ -78,11 +79,22 @@ export class ReplicateGenerationWebhookHandler {
           ? output[0]
           : null;
 
-    if (imageUrl && typeof imageUrl === 'string') {
+    if (isAllowedReplicateOutputUrl(imageUrl)) {
       await this.webhooksService.processAssetFromWebhook(
         'replicate',
         asset.id,
         imageUrl,
+      );
+    } else if (imageUrl) {
+      // A URL that is present but off-host is the forged-callback signature,
+      // not vendor drift — fetching it would be the SSRF.
+      this.loggerService.error(
+        'Replicate webhook: asset output URL rejected by host allowlist',
+        {
+          assetId: asset.id,
+          predictionId: payload.id,
+          status: payload.status,
+        },
       );
     } else {
       this.loggerService.warn('Replicate webhook: no output URL for asset', {
@@ -143,7 +155,13 @@ export class ReplicateGenerationWebhookHandler {
     if (Array.isArray(output)) {
       const uploadTasks = output
         .map((url, index) => {
-          if (typeof url !== 'string') {
+          if (!isAllowedReplicateOutputUrl(url)) {
+            if (url) {
+              this.loggerService.error(
+                'Replicate webhook: output URL rejected by host allowlist',
+                { index, predictionId: payload.id },
+              );
+            }
             return null;
           }
 
@@ -181,12 +199,17 @@ export class ReplicateGenerationWebhookHandler {
           { model: payload.model, predictionId: payload.id },
         );
       }
-    } else if (typeof output === 'string') {
+    } else if (isAllowedReplicateOutputUrl(output)) {
       await this.webhooksService.processMediaFromWebhook(
         'replicate',
         ingredientCategory,
         payload.id,
         output,
+      );
+    } else if (typeof output === 'string') {
+      this.loggerService.error(
+        'Replicate webhook: output URL rejected by host allowlist',
+        { model: payload.model, predictionId: payload.id },
       );
     } else {
       // No direct URL(s) available — log and skip
