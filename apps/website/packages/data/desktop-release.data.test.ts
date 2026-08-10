@@ -57,6 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -234,6 +235,171 @@ describe('getLatestDesktopBuild', () => {
       string
     >;
     expect(retryHeaders.Authorization).toBeUndefined();
+  });
+
+  it('recovers when the authenticated request times out', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('GITHUB_TOKEN', 'ghp_active');
+
+    const fetchMock = vi.fn(
+      (_input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () =>
+              reject(
+                new DOMException('The operation was aborted.', 'AbortError'),
+              ),
+            { once: true },
+          );
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const buildPromise = getLatestDesktopBuild();
+    await vi.advanceTimersByTimeAsync(10_001);
+
+    await expect(buildPromise).resolves.toBeNull();
+
+    const redirectPromise = redirectToLatestDesktopBuild();
+    await vi.advanceTimersByTimeAsync(10_001);
+    const response = await redirectPromise;
+
+    expect(response.headers.get('Location')).toBe(DESKTOP_RELEASES_URL);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('recovers when the anonymous retry times out', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('GITHUB_TOKEN', 'ghp_expired');
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('bad credentials', { status: 401 }))
+      .mockImplementationOnce(
+        (_input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () =>
+                reject(
+                  new DOMException('The operation was aborted.', 'AbortError'),
+                ),
+              { once: true },
+            );
+          }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const buildPromise = getLatestDesktopBuild();
+    await vi.advanceTimersByTimeAsync(10_001);
+
+    await expect(buildPromise).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[1][1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[0][1]?.signal).not.toBe(
+      fetchMock.mock.calls[1][1]?.signal,
+    );
+  });
+
+  it('finds a desktop release on a later page', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) =>
+      release(`v2.4.${index}`, [`genfeed-2.4.${index}.tar.gz`]),
+    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(firstPage), {
+          headers: {
+            Link: '<https://api.github.com/repositories/1/releases?page=2>; rel="next"',
+          },
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify([
+            release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg']),
+          ]),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect((await getLatestDesktopBuild())?.version).toBe('0.2.0');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns null when pagination is exhausted', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([release('v2.4.0', [])]), {
+          headers: {
+            Link: '<https://api.github.com/repositories/1/releases?page=2>; rel="next"',
+          },
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([release('v2.3.0', [])]), { status: 200 }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await getLatestDesktopBuild()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops pagination at a malformed Link header', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify([release('v2.4.0', [])]), {
+          headers: { Link: 'not a valid link' },
+          status: 200,
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await getLatestDesktopBuild()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not follow an off-host next page', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify([release('v2.4.0', [])]), {
+          headers: {
+            Link: '<https://example.com/releases?page=2>; rel="next"',
+          },
+          status: 200,
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await getLatestDesktopBuild()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops pagination at the maximum page count', async () => {
+    const fetchMock = vi.fn((_input: Parameters<typeof fetch>[0]) => {
+      const nextPage = fetchMock.mock.calls.length + 1;
+
+      return Promise.resolve(
+        new Response(JSON.stringify([release(`v2.4.${nextPage}`, [])]), {
+          headers: {
+            Link: `<https://api.github.com/repositories/1/releases?page=${nextPage}>; rel="next"`,
+          },
+          status: 200,
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await getLatestDesktopBuild()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(10);
   });
 });
 

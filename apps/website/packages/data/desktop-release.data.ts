@@ -39,6 +39,12 @@ const RELEASE_REVALIDATE_SECONDS = 300;
 /** The direct-download route wants the newest build within a minute of publish. */
 const REDIRECT_REVALIDATE_SECONDS = 60;
 
+/** Bounds each GitHub attempt so a stalled API call cannot hold the route open. */
+const REQUEST_TIMEOUT_MS = 10_000;
+
+/** Caps pagination work when GitHub returns an unexpectedly long link chain. */
+const MAX_RELEASE_PAGES = 10;
+
 export interface DesktopBuild {
   /** GitHub release asset URL, validated to live under the Genfeed org. */
   downloadUrl: string;
@@ -153,12 +159,13 @@ function githubHeaders(token?: string): Record<string, string> {
  * releases page.
  */
 async function fetchGitHub(
-  path: string,
+  url: string,
   init: INextFetchInit,
 ): Promise<Response> {
   const token = process.env.GITHUB_TOKEN?.trim();
-  const url = `https://api.github.com${path}`;
-  const response = await fetch(url, { ...init, headers: githubHeaders(token) });
+  const requestUrl = new URL(url);
+  const path = `${requestUrl.pathname}${requestUrl.search}`;
+  const response = await fetchGitHubAttempt(url, init, token);
 
   if (token && (response.status === 401 || response.status === 403)) {
     logger.warn('Desktop download: GITHUB_TOKEN rejected, retrying anonymous', {
@@ -166,10 +173,60 @@ async function fetchGitHub(
       status: response.status,
     });
 
-    return fetch(url, { ...init, headers: githubHeaders() });
+    return fetchGitHubAttempt(url, init);
   }
 
   return response;
+}
+
+async function fetchGitHubAttempt(
+  url: string,
+  init: INextFetchInit,
+  token?: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      headers: githubHeaders(token),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function nextPageUrl(linkHeader: string | null): string | null {
+  if (!linkHeader) {
+    return null;
+  }
+
+  for (const link of linkHeader.split(',')) {
+    const [targetPart, ...parameterParts] = link.split(';');
+    const targetMatch = targetPart?.trim().match(/^<([^>]+)>$/);
+    const relation = parameterParts
+      .map((parameter) =>
+        parameter.trim().match(/^rel=(?:"([^"]+)"|([^\s]+))$/i),
+      )
+      .find((match) => match !== null);
+    const relationValue = relation?.[1] ?? relation?.[2];
+
+    if (!targetMatch || !relationValue?.split(/\s+/).includes('next')) {
+      continue;
+    }
+
+    try {
+      const url = new URL(targetMatch[1]);
+
+      return url.origin === 'https://api.github.com' ? url.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -236,40 +293,48 @@ async function fetchLatestDesktopBuild(
 ): Promise<DesktopBuild | null> {
   try {
     // GitHub returns releases newest-first, so the first `desktop-v*` entry
-    // that carries a usable asset is the current build. One page of 100 covers
-    // every release this repo has published.
-    const response = await fetchGitHub(
-      `/repos/${RELEASE_REPO}/releases?per_page=100`,
-      init,
-    );
+    // that carries a usable asset is the current build.
+    let pageUrl = `https://api.github.com/repos/${RELEASE_REPO}/releases?per_page=100`;
 
-    if (!response.ok) {
-      logger.warn('Desktop download: GitHub release list failed', {
-        status: response.status,
-        statusText: response.statusText,
-      });
+    for (let pageNumber = 1; pageNumber <= MAX_RELEASE_PAGES; pageNumber += 1) {
+      const response = await fetchGitHub(pageUrl, init);
 
-      return null;
-    }
+      if (!response.ok) {
+        logger.warn('Desktop download: GitHub release list failed', {
+          status: response.status,
+          statusText: response.statusText,
+        });
 
-    const releases = (await response.json()) as IGitHubRelease[];
-
-    if (!Array.isArray(releases)) {
-      logger.warn('Desktop download: GitHub release list was not an array');
-
-      return null;
-    }
-
-    for (const release of releases) {
-      if (release.draft === true) {
-        continue;
+        return null;
       }
 
-      const build = toDesktopBuild(release);
+      const releases = (await response.json()) as IGitHubRelease[];
 
-      if (build) {
-        return build;
+      if (!Array.isArray(releases)) {
+        logger.warn('Desktop download: GitHub release list was not an array');
+
+        return null;
       }
+
+      for (const release of releases) {
+        if (release.draft === true) {
+          continue;
+        }
+
+        const build = toDesktopBuild(release);
+
+        if (build) {
+          return build;
+        }
+      }
+
+      const nextUrl = nextPageUrl(response.headers.get('Link'));
+
+      if (!nextUrl) {
+        return null;
+      }
+
+      pageUrl = nextUrl;
     }
 
     return null;
