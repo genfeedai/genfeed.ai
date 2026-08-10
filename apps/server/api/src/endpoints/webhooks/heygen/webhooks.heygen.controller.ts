@@ -1,19 +1,17 @@
-import { HeygenWebhookPayloadDto } from '@api/endpoints/webhooks/dto/heygen-webhook-payload.dto';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
+import { HeygenWebhookVerificationService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
+import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
-  Body,
   Controller,
   HttpCode,
   Post,
   Req,
 } from '@nestjs/common';
-import { assertWebhookToken } from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -23,36 +21,48 @@ export class HeygenWebhookController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly heygenWebhookService: HeygenWebhookService,
+    private readonly heygenWebhookVerificationService: HeygenWebhookVerificationService,
   ) {}
 
+  /**
+   * Receives deliveries for the endpoint registered with HeyGen.
+   *
+   * The URL registered there is bare — authenticity comes from the signature
+   * over the body, not from anything in the request line. `main.ts` mounts
+   * `express.raw` on this path so the bytes reach us exactly as they were
+   * signed; the body is parsed only after the signature has been checked.
+   */
   @HttpCode(200)
   @Post('callback')
-  async handleCallback(
-    @Req() request: Request,
-    @Body() payload: HeygenWebhookPayloadDto,
-  ) {
+  async handleCallback(@Req() request: Request) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    assertWebhookToken({
-      configuredSecret: this.configService.get('HEYGEN_WEBHOOK_SECRET') as
-        | string
-        | undefined,
-      loggerService: this.loggerService,
-      request,
-      secretEnvVar: 'HEYGEN_WEBHOOK_SECRET',
-      url,
-    });
+    const rawBody = request.body;
+
+    if (!Buffer.isBuffer(rawBody)) {
+      this.loggerService.error(
+        `${url} rejected — body was parsed before verification, signature cannot be checked`,
+      );
+      throw new BadRequestException('Raw webhook body is required');
+    }
+
+    this.heygenWebhookVerificationService.assertSignature(
+      rawBody,
+      request.headers['heygen-signature'],
+      request.headers['heygen-timestamp'],
+    );
 
     if (
-      payload == null ||
-      typeof payload !== 'object' ||
-      Array.isArray(payload)
+      await this.heygenWebhookVerificationService.isReplay(
+        request.headers['heygen-event-id'],
+      )
     ) {
-      throw new BadRequestException('Webhook body is required');
+      return { detail: 'Webhook already processed' };
     }
+
+    const payload = this.parsePayload(rawBody, url);
 
     try {
       this.loggerService.log(`${url} received`, payload);
@@ -64,5 +74,22 @@ export class HeygenWebhookController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private parsePayload(rawBody: Buffer, url: string): HeygenWebhookPayload {
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(rawBody.toString());
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} body is not valid JSON`, error);
+      throw new BadRequestException('Webhook body must be valid JSON');
+    }
+
+    if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new BadRequestException('Webhook body is required');
+    }
+
+    return parsed as HeygenWebhookPayload;
   }
 }

@@ -1,13 +1,11 @@
 import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyCategory } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
-import { appendWebhookToken } from '@server/webhooks/webhook-token.util';
 import { firstValueFrom } from 'rxjs';
 
 type HeyGenApiRecord = Record<string, unknown>;
@@ -17,19 +15,12 @@ export class HeyGenService {
   private readonly constructorName: string = String(this.constructor.name);
 
   private readonly endpoint = 'https://api.heygen.com/v2';
-  private readonly callbackUrl: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
-  ) {
-    this.callbackUrl = appendWebhookToken(
-      `${this.configService.get('GENFEEDAI_WEBHOOKS_URL') ?? ''}/v1/webhooks/heygen/callback`,
-      this.configService.get('HEYGEN_WEBHOOK_SECRET') as string | undefined,
-    );
-  }
+  ) {}
 
   private getApiKey(): string {
     return this.apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
@@ -69,7 +60,6 @@ export class HeyGenService {
           `${this.endpoint}/video/generate`,
           {
             callback_id: metadataId,
-            callback_url: this.callbackUrl,
             caption: false,
             dimension: {
               height: 720,
@@ -171,7 +161,6 @@ export class HeyGenService {
           `${this.endpoint}/video/generate`,
           {
             callback_id: metadataId,
-            callback_url: this.callbackUrl,
             caption: false,
             dimension: dimensions,
             video_inputs: [

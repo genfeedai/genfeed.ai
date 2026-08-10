@@ -97,7 +97,7 @@ export const heygenSchema = {
     .optional()
     .allow('')
     .description(
-      'Shared secret appended to the HeyGen callback URL and verified on inbound webhooks',
+      'HeyGen-issued signing secret for the registered webhook endpoint, returned by POST/PATCH https://api.heygen.com/v3/webhooks/endpoints and used to verify the Heygen-Signature HMAC',
     ),
 };
 
