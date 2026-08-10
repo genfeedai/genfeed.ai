@@ -1,5 +1,4 @@
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -8,11 +7,6 @@ import { of } from 'rxjs';
 
 describe('HeyGenService', () => {
   let service: HeyGenService;
-
-  const configMock = {
-    get: vi.fn(() => 'test'),
-    isDevelopment: false,
-  } as unknown as ConfigService;
 
   const loggerMock = {
     error: vi.fn(),
@@ -45,7 +39,6 @@ describe('HeyGenService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeyGenService,
-        { provide: ConfigService, useValue: configMock },
         { provide: LoggerService, useValue: loggerMock },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
         { provide: HttpService, useValue: httpServiceMock },

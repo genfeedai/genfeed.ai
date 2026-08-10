@@ -31,6 +31,7 @@ import { GitHubWebhookController } from '@api/endpoints/webhooks/github/webhooks
 import { GitHubWebhookService } from '@api/endpoints/webhooks/github/webhooks.github.service';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
+import { HeygenWebhookVerificationService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.verification.service';
 import { KlingWebhookController } from '@api/endpoints/webhooks/klingai/webhooks.kling.controller';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import { LeonardoaiWebhookController } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.controller';
@@ -118,6 +119,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelRegistrationService,
     GitHubWebhookService,
     HeygenWebhookService,
+    HeygenWebhookVerificationService,
     KlingWebhookService,
     LeonardoaiWebhookService,
     MediaUploadService,

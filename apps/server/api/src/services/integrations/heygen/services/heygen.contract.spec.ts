@@ -1,5 +1,4 @@
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -28,19 +27,10 @@ describe('HeyGenService (contract)', () => {
     log: ReturnType<typeof vi.fn>;
   };
 
-  const CALLBACK_URL = 'https://webhook.test/v1/webhooks/heygen/callback';
-
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };
     logger = { error: vi.fn(), log: vi.fn() };
 
-    const configMock = {
-      get: vi.fn((key?: string) => {
-        if (key === 'GENFEEDAI_WEBHOOKS_URL') return 'https://webhook.test';
-        // HEYGEN_WEBHOOK_SECRET intentionally unset → callback carries no token.
-        return undefined;
-      }),
-    };
     const apiKeyHelperMock = {
       getApiKey: vi.fn().mockReturnValue('heygen-key'),
     };
@@ -48,7 +38,6 @@ describe('HeyGenService (contract)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeyGenService,
-        { provide: ConfigService, useValue: configMock },
         { provide: LoggerService, useValue: logger },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
         { provide: HttpService, useValue: httpService },
@@ -79,7 +68,6 @@ describe('HeyGenService (contract)', () => {
         'https://api.heygen.com/v2/video/generate',
         expect.objectContaining({
           callback_id: 'meta_1',
-          callback_url: CALLBACK_URL,
           caption: false,
           dimension: { height: 720, width: 1280 },
           video_inputs: [
@@ -103,6 +91,21 @@ describe('HeyGenService (contract)', () => {
           },
         },
       );
+    });
+
+    it('sends no callback_url, so no secret can ride the request line', async () => {
+      // Deliveries arrive at the endpoint registered with HeyGen and are
+      // authenticated by the Heygen-Signature HMAC. Reintroducing a per-request
+      // callback_url would mean unsigned callbacks the verifier must reject.
+      httpService.post.mockReturnValue(
+        of({ data: { data: { video_id: 'vid_abc' } }, status: 200 }),
+      );
+
+      await service.generateAvatarVideo('meta_1', 'a', 'v', 'text');
+
+      const [, body] = httpService.post.mock.calls[0];
+      expect(body).not.toHaveProperty('callback_url');
+      expect(body.callback_id).toBe('meta_1');
     });
 
     it('falls back to data.task_id when video_id is absent', async () => {
