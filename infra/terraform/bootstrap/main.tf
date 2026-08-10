@@ -402,6 +402,34 @@ data "aws_iam_policy_document" "gha_deploy_monitoring" {
   }
 
   statement {
+    sid     = "ReadProductionAlarms"
+    effect  = "Allow"
+    actions = ["cloudwatch:DescribeAlarms"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+    ]
+  }
+
+  statement {
+    sid     = "ReadProductionDashboard"
+    effect  = "Allow"
+    actions = ["cloudwatch:GetDashboard"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
+    sid     = "InspectProductionMonitoringTags"
+    effect  = "Allow"
+    actions = ["cloudwatch:ListTagsForResource"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
     sid     = "InspectOperationsTopic"
     effect  = "Allow"
     actions = ["sns:ListTagsForResource"]
@@ -414,10 +442,7 @@ data "aws_iam_policy_document" "gha_deploy_monitoring" {
     sid    = "DiscoverProductionMonitoring"
     effect = "Allow"
     actions = [
-      "cloudwatch:DescribeAlarms",
-      "cloudwatch:GetDashboard",
       "cloudwatch:ListDashboards",
-      "cloudwatch:ListTagsForResource",
       "sns:ListTopics",
     ]
     resources = ["*"]
