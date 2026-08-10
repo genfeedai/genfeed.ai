@@ -149,7 +149,6 @@ jobs:
       issues: write
     uses: ./.github/workflows/_deploy-ecs-core.yml
     with:
-      image_tag: ${{ needs.validate-release.outputs.release_sha }}
       allow_rollback: false
     secrets: inherit
 
