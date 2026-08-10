@@ -17,13 +17,8 @@
       "@genfeedai/constants/*": ["../constants/src/*"],
       "@genfeedai/enums": ["../enums/src/index.ts"],
       "@genfeedai/enums/*": ["../enums/src/*"],
-      "@genfeedai/helpers": ["../helpers/src/index.ts"],
-      "@genfeedai/helpers/*": ["../helpers/src/*"],
-      "@genfeedai/pricing": ["../pricing/src/index.ts"],
-      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
-      "@helpers/*": ["../helpers/src/*"],
       "@models/*": ["../models/*.d.ts"],
       "@props/*": ["../props/*.d.ts"],
       "@services/*": ["../services/*.d.ts"],
@@ -48,9 +43,6 @@
     },
     {
       "path": "../enums/tsconfig.json"
-    },
-    {
-      "path": "../helpers/tsconfig.json"
     }
   ]
 }

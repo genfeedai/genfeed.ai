@@ -71,12 +71,12 @@
     "electron": "43.3.0",
     "electron-builder": "26.15.3",
     "esbuild": "0.28.2",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "main": "dist/main.js",
   "name": "@genfeedai/desktop",
   "overrides": {
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "private": true,
   "productName": "GenFeed",

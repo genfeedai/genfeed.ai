@@ -478,3 +478,114 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
     /name: Checkout workflow helpers[\s\S]*?persist-credentials: false[\s\S]*?nightly-e2e-failure-reporter\.mjs[\s\S]*?reportNightlyE2eFailure/,
   );
 });
+
+test('keeps production monitoring permissions in the deploy-role bootstrap policy', () => {
+  const bootstrap = readFileSync(
+    path.join(REPOSITORY_ROOT, 'infra', 'terraform', 'bootstrap', 'main.tf'),
+    'utf8',
+  );
+
+  const policy = bootstrap.match(
+    /data "aws_iam_policy_document" "gha_deploy_monitoring" \{[\s\S]*?\n\}/,
+  )?.[0];
+  assert.ok(policy, 'bootstrap must define the deploy-role monitoring policy');
+
+  const statement = (sid) =>
+    policy.match(
+      new RegExp(`statement \\{\\n\\s+sid\\s+= "${sid}"[\\s\\S]*?\\n  \\}`),
+    )?.[0];
+
+  for (const action of [
+    'cloudwatch:DeleteAlarms',
+    'cloudwatch:DeleteDashboards',
+    'cloudwatch:DescribeAlarms',
+    'cloudwatch:GetDashboard',
+    'cloudwatch:ListDashboards',
+    'cloudwatch:ListTagsForResource',
+    'cloudwatch:PutDashboard',
+    'cloudwatch:PutMetricAlarm',
+    'cloudwatch:TagResource',
+    'cloudwatch:UntagResource',
+    'sns:ListTagsForResource',
+    'sns:ListTopics',
+  ]) {
+    assert.ok(
+      policy.includes(`"${action}"`),
+      `monitoring policy must allow ${action}`,
+    );
+  }
+
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch:\$\{var\.region\}:\$\{local\.account_id\}:alarm:genfeed-production-\*/,
+  );
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
+  );
+
+  for (const [sid, action, resource] of [
+    [
+      'ReadProductionAlarms',
+      'cloudwatch:DescribeAlarms',
+      /alarm:genfeed-production-\*/,
+    ],
+    [
+      'ReadProductionDashboard',
+      'cloudwatch:GetDashboard',
+      /dashboard\/genfeed-production/,
+    ],
+    [
+      'InspectProductionMonitoringTags',
+      'cloudwatch:ListTagsForResource',
+      /alarm:genfeed-production-\*[\s\S]*?dashboard\/genfeed-production/,
+    ],
+  ]) {
+    const scopedStatement = statement(sid);
+    assert.ok(scopedStatement, `monitoring policy must define ${sid}`);
+    assert.match(scopedStatement, /effect\s+= "Allow"/);
+    assert.ok(
+      scopedStatement.includes(`"${action}"`),
+      `${sid} must allow ${action}`,
+    );
+    assert.match(scopedStatement, resource);
+    assert.doesNotMatch(scopedStatement, /resources\s+= \["\*"\]/);
+  }
+
+  const inspectOperationsTopic = statement('InspectOperationsTopic');
+  assert.ok(
+    inspectOperationsTopic,
+    'monitoring policy must inspect the operations topic',
+  );
+  assert.match(inspectOperationsTopic, /effect\s+= "Allow"/);
+  assert.match(
+    inspectOperationsTopic,
+    /actions = \["sns:ListTagsForResource"\]/,
+  );
+  assert.match(
+    inspectOperationsTopic,
+    /resources = \[\n\s+"arn:\$\{local\.aws_partition\}:sns:\$\{var\.region\}:\$\{local\.account_id\}:api-genfeed-ai",\n\s+\]/,
+  );
+  assert.doesNotMatch(inspectOperationsTopic, /resources\s+= \["\*"\]/);
+
+  const discoverProductionMonitoring = statement(
+    'DiscoverProductionMonitoring',
+  );
+  assert.ok(
+    discoverProductionMonitoring,
+    'monitoring policy must retain unscoped discovery actions',
+  );
+  assert.match(
+    discoverProductionMonitoring,
+    /actions = \[\n\s+"cloudwatch:ListDashboards",\n\s+"sns:ListTopics",\n\s+\]/,
+  );
+  assert.match(discoverProductionMonitoring, /resources = \["\*"\]/);
+  assert.doesNotMatch(
+    discoverProductionMonitoring,
+    /cloudwatch:(?:DescribeAlarms|GetDashboard|ListTagsForResource)/,
+  );
+  assert.match(
+    bootstrap,
+    /resource "aws_iam_role_policy" "gha_deploy_monitoring" \{[\s\S]*?name\s+= "manage-production-monitoring"[\s\S]*?role\s+= aws_iam_role\.gha_deploy\.id[\s\S]*?policy\s+= data\.aws_iam_policy_document\.gha_deploy_monitoring\.json/,
+  );
+});

@@ -33,7 +33,9 @@ jobs:
       run:
         working-directory: scripts/deploy
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
