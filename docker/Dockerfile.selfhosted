@@ -207,6 +207,17 @@ RUN set -e; \
 # on a 7 GB ubuntu-latest runner, and a 3rd concurrent `nest build` risks OOM.
 RUN bun --filter @genfeedai/mcp build:prod
 
+# Flavor gate (community side of docker/Dockerfile.server's EE gate). This
+# image is AGPL and its pruned context omits every ee/* workspace, so the api
+# bundle must NOT carry the EE billing fragment — probed via the EE-only
+# controller route literal 'admin/credit-usage' (decorator strings survive
+# bundling). A hit means enterprise-licensed code leaked into the community
+# image, which is a licensing problem, not just a wrong feature set.
+RUN if grep -q "admin/credit-usage" apps/server/dist/apps/api/main.js; then \
+      echo "❌ community api bundle carries the EE billing fragment — ee/ code must never reach the AGPL image (see webpack.base.config.js flavor resolver + check:billing-flavor)" && exit 1; \
+    fi; \
+    echo "✅ community api bundle is OSS-flavored"
+
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/
 # NEXT_PUBLIC_* are inlined into the Next.js bundle at build time, so they must be
