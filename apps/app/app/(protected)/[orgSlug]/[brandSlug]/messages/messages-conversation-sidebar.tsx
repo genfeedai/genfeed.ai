@@ -1,7 +1,11 @@
 'use client';
 
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  SocialConversationType,
+} from '@genfeedai/enums';
 import type { SocialPlatform } from '@genfeedai/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
@@ -43,6 +47,14 @@ export type MessagesInboxView =
   | 'review'
   | 'unread';
 
+/**
+ * The two inbox surfaces the Messages module exposes. Mentions and replies are
+ * valid conversation types on the wire but have no destination of their own yet.
+ */
+export type MessagesSurface =
+  | SocialConversationType.COMMENT
+  | SocialConversationType.DM;
+
 interface PaginationState {
   hasNext: boolean;
   hasPrevious: boolean;
@@ -58,6 +70,11 @@ const VIEW_FILTERS: readonly ConversationSidebarFilter<MessagesInboxView>[] = [
   { label: 'Resolved', value: 'resolved' },
   { label: 'Archived', value: 'archived' },
   { label: 'All', value: 'all' },
+];
+
+const SURFACE_FILTERS: readonly ConversationSidebarFilter<MessagesSurface>[] = [
+  { label: 'Comments', value: SocialConversationType.COMMENT },
+  { label: 'DMs', value: SocialConversationType.DM },
 ];
 
 const PLATFORM_OPTIONS: Array<{
@@ -222,8 +239,10 @@ interface MessagesConversationSidebarProps {
   busyAction: string | null;
   connectionState: string;
   conversations: SocialConversationModel[];
+  conversationType: MessagesSurface;
   isLoading: boolean;
   onBrandFilterChange: (brandId: string) => void;
+  onConversationTypeChange: (conversationType: MessagesSurface) => void;
   onNextPage: () => void;
   onOAuthConnect: (platform: string) => void | Promise<void>;
   onPlatformChange: (platform: SocialPlatform | 'all') => void;
@@ -246,8 +265,10 @@ export function MessagesConversationSidebar({
   busyAction,
   connectionState,
   conversations,
+  conversationType,
   isLoading,
   onBrandFilterChange,
+  onConversationTypeChange,
   onNextPage,
   onOAuthConnect,
   onPlatformChange,
@@ -283,20 +304,32 @@ export function MessagesConversationSidebar({
     }
     return filter;
   });
+  const isDmSurface = conversationType === SocialConversationType.DM;
+  const syncLabel = isDmSurface ? 'Sync direct messages' : 'Sync comments';
   const syncAction = (
     <Button
-      ariaLabel="Sync social messages"
+      ariaLabel={syncLabel}
       className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
       icon={<RefreshCw className="size-4" />}
       isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
       isLoading={busyAction === 'sync'}
       size={ButtonSize.ICON}
-      tooltip="Sync social messages"
+      tooltip={syncLabel}
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onSync}
     />
   );
+  const emptyStateTitle = isDmSurface
+    ? 'No direct messages yet'
+    : 'No comments yet';
+  // DMs are polled rather than pushed, so an empty DM surface is the expected
+  // state until the first sync — say so instead of implying something is wrong.
+  const emptyStateBody = isDmSurface
+    ? 'Direct messages are pulled in by sync. Connect an Instagram account, then sync to fill this thread list.'
+    : brandFilter === 'all'
+      ? 'Connect a social account, then sync to pull comments into this inbox.'
+      : 'No comments for this brand yet. Connect accounts, sync, or switch brands.';
   const singleSectionLabel =
     view === 'resolved'
       ? 'Resolved'
@@ -319,6 +352,12 @@ export function MessagesConversationSidebar({
         placeholder="Search messages"
         value={search}
         onChange={onSearchChange}
+      />
+      <ConversationSidebarFilters
+        ariaLabel="Switch inbox surface"
+        filters={SURFACE_FILTERS}
+        value={conversationType}
+        onChange={onConversationTypeChange}
       />
       <ConversationSidebarFilters
         ariaLabel="Filter social conversations"
@@ -403,12 +442,10 @@ export function MessagesConversationSidebar({
             />
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground/60">
-                No conversations yet
+                {emptyStateTitle}
               </p>
               <p className="text-xs leading-5 text-foreground/38">
-                {brandFilter === 'all'
-                  ? 'Connect a social account, then sync to pull comments and DMs into this inbox.'
-                  : 'No conversations for this brand yet. Connect accounts, sync, or switch brands.'}
+                {emptyStateBody}
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1">

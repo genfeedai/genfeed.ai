@@ -3,6 +3,8 @@ import { SocialInboxActionService } from '@api/collections/social-inbox/services
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
+import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type StoreConversation = {
@@ -112,6 +114,8 @@ type TestContext = {
     emit: ReturnType<typeof vi.fn>;
   };
   instagramService: {
+    listConversations: ReturnType<typeof vi.fn>;
+    listMediaComments: ReturnType<typeof vi.fn>;
     replyToComment: ReturnType<typeof vi.fn>;
     sendCommentReplyDm: ReturnType<typeof vi.fn>;
   };
@@ -389,6 +393,8 @@ function createContext(): TestContext {
     postCommentReply: vi.fn().mockResolvedValue({ commentId: 'reply-1' }),
   };
   const instagramService = {
+    listConversations: vi.fn(),
+    listMediaComments: vi.fn(),
     replyToComment: vi.fn().mockResolvedValue({ commentId: 'ig-reply-1' }),
     sendCommentReplyDm: vi.fn().mockResolvedValue('dm-1'),
   };
@@ -405,6 +411,7 @@ function createContext(): TestContext {
   const ingestionService = new SocialInboxIngestionService(
     prisma as never,
     youtubeService as never,
+    instagramService as never,
     realtimeService,
     queueService as never,
   );
@@ -1383,6 +1390,198 @@ describe('SocialInboxService', () => {
       expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
+    });
+  });
+
+  describe('ingestInstagramComments', () => {
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@studio',
+          externalId: 'ig-account-1',
+          externalName: 'Studio',
+          id: 'credential-1',
+          label: 'Studio',
+          userId: 'user-1',
+          username: 'studio',
+        },
+      ]);
+      context.prisma.post.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          description: 'Launch recap',
+          externalId: 'media-1',
+          id: 'post-1',
+          label: 'Launch',
+          url: 'https://instagram.com/p/media-1',
+        },
+      ]);
+      // A top-level comment and its reply share thread ig-comment-1.
+      context.instagramService.listMediaComments.mockResolvedValue([
+        {
+          authorExternalId: 'ig-author-1',
+          authorUsername: 'taylor',
+          commentId: 'ig-comment-1',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          text: 'Love this',
+          threadId: 'ig-comment-1',
+        },
+        {
+          authorExternalId: 'ig-author-2',
+          authorUsername: 'jordan',
+          commentId: 'ig-comment-2',
+          createdAt: new Date('2026-01-01T00:01:00.000Z'),
+          text: 'Same here',
+          threadId: 'ig-comment-1',
+        },
+      ]);
+    }
+
+    it('ingests comments as comment conversations scoped to the org', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestInstagramComments(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 50 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations).toHaveLength(1);
+      expect(context.conversations[0]).toMatchObject({
+        conversationType: SocialConversationType.COMMENT,
+        externalConversationId: 'ig-comment-1',
+        platform: Platform.INSTAGRAM,
+        sourceContentId: 'media-1',
+      });
+
+      // Only connected Instagram credentials are swept.
+      expect(context.prisma.credential.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          isConnected: true,
+          isDeleted: false,
+          organizationId: 'org-1',
+          platform: PrismaCredentialPlatform.INSTAGRAM,
+        }),
+      });
+
+      const messageWhere =
+        context.prisma.socialMessage.findMany.mock.calls[0][0].where;
+      expect(messageWhere).toMatchObject({
+        externalMessageId: { in: ['ig-comment-1', 'ig-comment-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: Platform.INSTAGRAM,
+      });
+    });
+
+    it('is idempotent — a second sweep of the same comments creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestInstagramComments(scope, { limit: 50 });
+      const second = await context.service.ingestInstagramComments(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.conversations).toHaveLength(1);
+      expect(context.messages).toHaveLength(2);
+    });
+  });
+
+  describe('ingestInstagramDms', () => {
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@studio',
+          externalId: 'ig-account-1',
+          externalName: 'Studio',
+          id: 'credential-1',
+          label: 'Studio',
+          userId: 'user-1',
+          username: 'studio',
+        },
+      ]);
+      context.instagramService.listConversations.mockResolvedValue([
+        {
+          conversationId: 'ig-thread-1',
+          messages: [
+            {
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              messageId: 'ig-dm-1',
+              senderExternalId: 'ig-participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Do you ship to the EU?',
+            },
+            {
+              createdAt: new Date('2026-01-01T00:01:00.000Z'),
+              messageId: 'ig-dm-2',
+              senderExternalId: 'ig-participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Following up',
+            },
+          ],
+          participantExternalId: 'ig-participant-1',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+          updatedAt: new Date('2026-01-01T00:01:00.000Z'),
+        },
+      ]);
+    }
+
+    it('keys the thread by the Graph conversation id with no post anchor', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestInstagramDms(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 25 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations[0]).toMatchObject({
+        conversationType: SocialConversationType.DM,
+        externalConversationId: 'ig-thread-1',
+        participantExternalId: 'ig-participant-1',
+        platform: Platform.INSTAGRAM,
+        sourceContentId: null,
+      });
+
+      // A DM has nothing to reply on publicly, but the participant is known so
+      // the DM action stays available.
+      expect(context.conversations[0].availability).toMatchObject({
+        canPostReply: false,
+        canSendDm: true,
+      });
+    });
+
+    it('is idempotent — a second poll of the same thread creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestInstagramDms(scope, { limit: 25 });
+      const second = await context.service.ingestInstagramDms(scope, {
+        limit: 25,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.conversations).toHaveLength(1);
+      expect(context.messages).toHaveLength(2);
     });
   });
 });

@@ -1,4 +1,5 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { Platform, SocialConversationType } from '@genfeedai/enums';
 import type { SocialInboxSyncJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -9,6 +10,8 @@ import { vi } from 'vitest';
 describe('SocialInboxSyncProcessor', () => {
   let processor: SocialInboxSyncProcessor;
   let mockSocialInboxService: {
+    ingestInstagramComments: ReturnType<typeof vi.fn>;
+    ingestInstagramDms: ReturnType<typeof vi.fn>;
     ingestYoutubeComments: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
@@ -20,6 +23,14 @@ describe('SocialInboxSyncProcessor', () => {
 
   beforeEach(async () => {
     mockSocialInboxService = {
+      ingestInstagramComments: vi.fn().mockResolvedValue({
+        conversationsCreated: 1,
+        messagesCreated: 3,
+      }),
+      ingestInstagramDms: vi.fn().mockResolvedValue({
+        conversationsCreated: 4,
+        messagesCreated: 7,
+      }),
       ingestYoutubeComments: vi.fn().mockResolvedValue({
         conversationsCreated: 2,
         messagesCreated: 5,
@@ -48,7 +59,7 @@ describe('SocialInboxSyncProcessor', () => {
     expect(processor).toBeDefined();
   });
 
-  it('runs the ingestion with the job scope and options', async () => {
+  it('falls back to the YouTube comment sweep when the job carries no discriminator', async () => {
     const mockJob = {
       data: {
         brandId: 'brand-1',
@@ -70,6 +81,49 @@ describe('SocialInboxSyncProcessor', () => {
     );
     expect(result).toEqual({ conversationsCreated: 2, messagesCreated: 5 });
     expect(mockJob.updateProgress).toHaveBeenCalledWith(100);
+  });
+
+  it('routes an Instagram comment job to the Instagram comment sweep', async () => {
+    const mockJob = {
+      data: {
+        conversationType: SocialConversationType.COMMENT,
+        organizationId: 'org-1',
+        platform: Platform.INSTAGRAM,
+      },
+      updateProgress: vi.fn(),
+    };
+
+    const result = await processor.process(
+      mockJob as unknown as Job<SocialInboxSyncJobData>,
+    );
+
+    expect(mockSocialInboxService.ingestInstagramComments).toHaveBeenCalledWith(
+      { brandId: undefined, organizationId: 'org-1', userId: undefined },
+      { credentialId: undefined, limit: undefined },
+    );
+    expect(mockSocialInboxService.ingestYoutubeComments).not.toHaveBeenCalled();
+    expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 3 });
+  });
+
+  it('routes an Instagram DM job to the DM sweep', async () => {
+    const mockJob = {
+      data: {
+        conversationType: SocialConversationType.DM,
+        organizationId: 'org-1',
+        platform: Platform.INSTAGRAM,
+      },
+      updateProgress: vi.fn(),
+    };
+
+    const result = await processor.process(
+      mockJob as unknown as Job<SocialInboxSyncJobData>,
+    );
+
+    expect(mockSocialInboxService.ingestInstagramDms).toHaveBeenCalledTimes(1);
+    expect(
+      mockSocialInboxService.ingestInstagramComments,
+    ).not.toHaveBeenCalled();
+    expect(result).toEqual({ conversationsCreated: 4, messagesCreated: 7 });
   });
 
   it('propagates ingestion failures so BullMQ can retry', async () => {

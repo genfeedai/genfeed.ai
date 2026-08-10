@@ -7,7 +7,13 @@ import {
 } from '@genfeedai/enums';
 import type {
   InstagramAccountDetails,
+  InstagramConversationThread,
   InstagramCredentialResponse,
+  InstagramGraphCommentNode,
+  InstagramGraphCommentsResponse,
+  InstagramGraphConversationNode,
+  InstagramGraphConversationsResponse,
+  InstagramMediaComment,
   InstagramPageResponse,
   InstagramTrendingHashtag,
 } from '@genfeedai/interfaces/integrations/instagram.interface';
@@ -31,6 +37,101 @@ function requireString(
 }
 
 const INSTAGRAM_TOKEN_REFRESH_BUFFER_MS = 7 * 24 * 60 * 60 * 1000;
+
+const INSTAGRAM_COMMENT_NODE_FIELDS =
+  'id,text,timestamp,username,from{id,username}';
+const INSTAGRAM_COMMENT_FIELDS = `${INSTAGRAM_COMMENT_NODE_FIELDS},replies{${INSTAGRAM_COMMENT_NODE_FIELDS}}`;
+const INSTAGRAM_MESSAGE_NODE_FIELDS =
+  'id,message,created_time,from{id,username,name}';
+
+function boundGraphLimit(limit: number): number {
+  return Math.min(Math.max(Math.floor(limit), 1), 100);
+}
+
+function toGraphDate(value?: string): Date {
+  const parsed = value ? new Date(value) : new Date();
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+/**
+ * Flatten a top-level comment plus its replies into one list, with every entry
+ * carrying the top-level comment id as its thread id — the same shape the
+ * YouTube ingestion path consumes.
+ */
+function toMediaComments(
+  node: InstagramGraphCommentNode,
+): InstagramMediaComment[] {
+  const threadId = node.id;
+
+  if (!threadId) {
+    return [];
+  }
+
+  return [node, ...(node.replies?.data ?? [])].flatMap((comment) => {
+    if (!comment.id || !comment.text) {
+      return [];
+    }
+
+    return [
+      {
+        authorExternalId: comment.from?.id,
+        authorUsername: comment.from?.username ?? comment.username,
+        commentId: comment.id,
+        createdAt: toGraphDate(comment.timestamp),
+        text: comment.text,
+        threadId,
+      },
+    ];
+  });
+}
+
+function toConversationThread(
+  node: InstagramGraphConversationNode,
+  accountExternalId: string,
+): InstagramConversationThread[] {
+  if (!node.id) {
+    return [];
+  }
+
+  const participant = (node.participants?.data ?? []).find(
+    (entry) => entry.id && entry.id !== accountExternalId,
+  );
+
+  // Only the counterparty's messages become inbox messages. Our own sends are
+  // recorded when the DM action runs, so ingesting them back would duplicate
+  // the outbound side of the thread as inbound.
+  const messages = (node.messages?.data ?? []).flatMap((message) => {
+    if (
+      !message.id ||
+      !message.message ||
+      message.from?.id === accountExternalId
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        createdAt: toGraphDate(message.created_time),
+        messageId: message.id,
+        senderExternalId: message.from?.id,
+        senderName: message.from?.name,
+        senderUsername: message.from?.username,
+        text: message.message,
+      },
+    ];
+  });
+
+  return [
+    {
+      conversationId: node.id,
+      messages,
+      participantExternalId: participant?.id,
+      participantName: participant?.name,
+      participantUsername: participant?.username,
+      updatedAt: node.updated_time ? toGraphDate(node.updated_time) : undefined,
+    },
+  ];
+}
 
 // NOTE: `accessToken` here is the stored (encrypted-at-rest) value. Callers must
 // run it through `EncryptionUtil.decrypt()` before using it against the Graph API.
@@ -964,6 +1065,103 @@ export class InstagramService {
       this.loggerService.log(`${url} succeeded`, response.data);
 
       return { commentId: response.data.id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * List comments (top-level plus their replies) on one published media object.
+   */
+  public async listMediaComments(
+    organizationId: string,
+    brandId: string,
+    mediaId: string,
+    limit = 25,
+  ): Promise<InstagramMediaComment[]> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.getValidCredential(organizationId, brandId);
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+
+      const response = await firstValueFrom(
+        this.httpService.get<InstagramGraphCommentsResponse>(
+          `${this.graphUrl}/${this.apiVersion}/${mediaId}/comments`,
+          {
+            params: {
+              access_token: decryptedAccessToken,
+              fields: INSTAGRAM_COMMENT_FIELDS,
+              limit: boundGraphLimit(limit),
+            },
+          },
+        ),
+      );
+
+      const comments = (response.data.data ?? []).flatMap(toMediaComments);
+
+      this.loggerService.log(`${url} succeeded`, {
+        count: comments.length,
+        mediaId,
+      });
+
+      return comments;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Poll Graph conversations for the connected Instagram account. Each thread
+   * is keyed by the Graph conversation id and carries only the counterparty's
+   * inbound messages.
+   */
+  public async listConversations(
+    organizationId: string,
+    brandId: string,
+    limit = 25,
+  ): Promise<InstagramConversationThread[]> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.getValidCredential(organizationId, brandId);
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+      const instagramAccountId = requireString(
+        credential.externalId,
+        'externalId',
+      );
+      const boundedLimit = boundGraphLimit(limit);
+
+      const response = await firstValueFrom(
+        this.httpService.get<InstagramGraphConversationsResponse>(
+          `${this.graphUrl}/${this.apiVersion}/${instagramAccountId}/conversations`,
+          {
+            params: {
+              access_token: decryptedAccessToken,
+              fields: `id,updated_time,participants{id,username,name},messages.limit(${boundedLimit}){${INSTAGRAM_MESSAGE_NODE_FIELDS}}`,
+              limit: boundedLimit,
+              platform: 'instagram',
+            },
+          },
+        ),
+      );
+
+      const threads = (response.data.data ?? []).flatMap((node) =>
+        toConversationThread(node, instagramAccountId),
+      );
+
+      this.loggerService.log(`${url} succeeded`, {
+        count: threads.length,
+        instagramAccountId,
+      });
+
+      return threads;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

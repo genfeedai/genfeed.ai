@@ -85,6 +85,164 @@ describe('InstagramService', () => {
     });
   });
 
+  describe('listMediaComments', () => {
+    it('flattens replies under the top-level comment id and clamps the limit', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        id: 'credential-id',
+        accessToken: 'tok',
+        externalId: 'acc',
+      });
+
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              {
+                from: { id: 'author-1', username: 'taylor' },
+                id: 'comment-1',
+                replies: {
+                  data: [
+                    {
+                      from: { id: 'author-2', username: 'sam' },
+                      id: 'comment-2',
+                      text: 'Same question',
+                      timestamp: '2026-08-01T10:05:00+0000',
+                    },
+                    // No text — a sticker or deleted body carries nothing to ingest.
+                    { id: 'comment-3', timestamp: '2026-08-01T10:06:00+0000' },
+                  ],
+                },
+                text: 'Pricing?',
+                timestamp: '2026-08-01T10:00:00+0000',
+              },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.listMediaComments(
+        'org',
+        'brand',
+        'media-1',
+        250,
+      );
+
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v24.0/media-1/comments',
+        {
+          params: {
+            access_token: 'tok',
+            fields:
+              'id,text,timestamp,username,from{id,username},replies{id,text,timestamp,username,from{id,username}}',
+            limit: 100,
+          },
+        },
+      );
+      expect(result).toEqual([
+        {
+          authorExternalId: 'author-1',
+          authorUsername: 'taylor',
+          commentId: 'comment-1',
+          createdAt: new Date('2026-08-01T10:00:00+0000'),
+          text: 'Pricing?',
+          threadId: 'comment-1',
+        },
+        {
+          authorExternalId: 'author-2',
+          authorUsername: 'sam',
+          commentId: 'comment-2',
+          createdAt: new Date('2026-08-01T10:05:00+0000'),
+          text: 'Same question',
+          threadId: 'comment-1',
+        },
+      ]);
+    });
+  });
+
+  describe('listConversations', () => {
+    it('keys threads by conversation id and keeps only inbound messages', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        id: 'credential-id',
+        accessToken: 'tok',
+        externalId: 'account-1',
+      });
+
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              {
+                id: 'conversation-1',
+                messages: {
+                  data: [
+                    {
+                      created_time: '2026-08-01T11:00:00+0000',
+                      from: {
+                        id: 'participant-1',
+                        name: 'Taylor',
+                        username: 'taylor',
+                      },
+                      id: 'message-1',
+                      message: 'Do you ship to the EU?',
+                    },
+                    // Our own send — recorded when the DM action ran.
+                    {
+                      created_time: '2026-08-01T11:02:00+0000',
+                      from: { id: 'account-1', username: 'brand' },
+                      id: 'message-2',
+                      message: 'We do!',
+                    },
+                  ],
+                },
+                participants: {
+                  data: [
+                    { id: 'account-1', username: 'brand' },
+                    { id: 'participant-1', name: 'Taylor', username: 'taylor' },
+                  ],
+                },
+                updated_time: '2026-08-01T11:02:00+0000',
+              },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.listConversations('org', 'brand', 10);
+
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v24.0/account-1/conversations',
+        {
+          params: {
+            access_token: 'tok',
+            fields:
+              'id,updated_time,participants{id,username,name},messages.limit(10){id,message,created_time,from{id,username,name}}',
+            limit: 10,
+            platform: 'instagram',
+          },
+        },
+      );
+      expect(result).toEqual([
+        {
+          conversationId: 'conversation-1',
+          messages: [
+            {
+              createdAt: new Date('2026-08-01T11:00:00+0000'),
+              messageId: 'message-1',
+              senderExternalId: 'participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Do you ship to the EU?',
+            },
+          ],
+          participantExternalId: 'participant-1',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+          updatedAt: new Date('2026-08-01T11:02:00+0000'),
+        },
+      ]);
+    });
+  });
+
   describe('getTrends', () => {
     it('returns empty trends when no Instagram credential is connected', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);

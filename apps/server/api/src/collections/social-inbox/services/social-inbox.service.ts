@@ -141,4 +141,18 @@ export class SocialInboxService {
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     return this.ingestionService.ingestYoutubeComments(scope, options);
   }
+
+  ingestInstagramComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestInstagramComments(scope, options);
+  }
+
+  ingestInstagramDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestInstagramDms(scope, options);
+  }
 }
