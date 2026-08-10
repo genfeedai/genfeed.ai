@@ -214,6 +214,15 @@ test('keeps one canonical release contract for community and SaaS', () => {
     ),
     'utf8',
   );
+  const publishSelfhostedWorkflow = readFileSync(
+    fileURLToPath(
+      new URL(
+        '../../.github/workflows/_publish-selfhosted-core.yml',
+        import.meta.url,
+      ),
+    ),
+    'utf8',
+  );
   const dockerWorkflow = readFileSync(
     fileURLToPath(
       new URL('../../.github/workflows/docker-publish.yml', import.meta.url),
@@ -261,6 +270,10 @@ test('keeps one canonical release contract for community and SaaS', () => {
   assert.match(
     releaseWorkflow,
     /gh release edit "\$\{RELEASE_TAG\}" --draft=false/,
+  );
+  assert.match(
+    publishSelfhostedWorkflow,
+    /name: Attach install bundle to draft GitHub release[\s\S]*?draft: true/,
   );
 
   assert.doesNotMatch(dockerWorkflow, /^ {2}release:/m);
