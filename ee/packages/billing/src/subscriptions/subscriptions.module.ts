@@ -26,6 +26,8 @@ import { SubscriptionsService } from './services/subscriptions.service';
   providers: [
     {
       // SaaS cloud or licensed EE — not license-key-only (Cloud has no key).
+      // Unlicensed self-hosted EE builds remain on the OSS service; community
+      // builds alias this module away entirely.
       provide: SubscriptionsService,
       useClass: hasOrganizationBilling()
         ? SubscriptionsService

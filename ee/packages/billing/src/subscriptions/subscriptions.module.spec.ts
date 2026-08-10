@@ -1,49 +1,25 @@
-import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
-import { isEEEnabled } from '@genfeedai/config';
-import {
-  resetLicenseVerificationForTests,
-  setLicenseVerificationVerdictForTests,
-} from '@genfeedai/config/license-server';
-import { Test } from '@nestjs/testing';
+import { hasOrganizationBilling } from '@genfeedai/config';
+import { resetLicenseVerificationForTests } from '@genfeedai/config/license-server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const SUBSCRIPTIONS_TOKEN = 'SubscriptionsService';
-
-describe('SubscriptionsModule', () => {
+describe('SubscriptionsModule entitlement', () => {
   beforeEach(() => {
     resetLicenseVerificationForTests();
   });
 
   afterEach(() => {
-    resetLicenseVerificationForTests();
     vi.unstubAllEnvs();
+    resetLicenseVerificationForTests();
   });
 
-  it('resolves subscriptions service to OSS stub when EE is disabled', async () => {
+  it('keeps an unlicensed production self-host on OSS billing', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
     vi.stubEnv('GENFEED_LICENSE_KEY', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_LICENSE_KEY', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
 
-    const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: SUBSCRIPTIONS_TOKEN,
-          useClass: isEEEnabled()
-            ? OssSubscriptionsService
-            : OssSubscriptionsService,
-        },
-      ],
-    }).compile();
-
-    const service = module.get(SUBSCRIPTIONS_TOKEN);
-    expect(service).toBeInstanceOf(OssSubscriptionsService);
-  });
-
-  it('isEEEnabled rejects an unverified license value', () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', 'garbage');
-    expect(isEEEnabled()).toBe(false);
-  });
-
-  it('isEEEnabled returns the cached verification verdict', () => {
-    setLicenseVerificationVerdictForTests(true);
-    expect(isEEEnabled()).toBe(true);
+    expect(hasOrganizationBilling()).toBe(false);
   });
 });

@@ -18,6 +18,14 @@ beforeEach(() => {
   delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   delete process.env.GENFEED_LICENSE_KEY;
   delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+  delete process.env.GENFEEDAI_API_PUBLIC_URL;
+  delete process.env.GENFEEDAI_APP_URL;
+  delete process.env.GENFEEDAI_MCP_PUBLIC_URL;
+  delete process.env.NEXT_PUBLIC_API_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
 });
 
 afterEach(() => {
@@ -60,6 +68,15 @@ describe('hasOrganizationBilling', () => {
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
 
     expect(hasOrganizationBilling()).toBe(false);
+  });
+
+  it('is true when any hosted *.genfeed.ai public URL is set without GENFEED_CLOUD', () => {
+    process.env.GENFEEDAI_API_PUBLIC_URL = 'https://api.genfeed.ai';
+    expect(hasOrganizationBilling()).toBe(true);
+
+    delete process.env.GENFEEDAI_API_PUBLIC_URL;
+    process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT = 'https://app.genfeed.ai';
+    expect(hasOrganizationBilling()).toBe(true);
   });
 });
 

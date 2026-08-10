@@ -17,7 +17,9 @@ export function isEEEnabled(): boolean {
 /**
  * Whether organization subscription billing is available in this deployment.
  *
- * - **SaaS** (`GENFEED_CLOUD`): always — plan, portal, Stripe subscription.
+ * - **SaaS** (`GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD`, or `*.genfeed.ai`
+ *   domain via {@link import('./deployment').isHostedGenfeedCloud}): always —
+ *   plan, portal, Stripe subscription. Same rule on frontend and backend.
  * - **Self-hosted EE** (license key): yes — commercial self-host billing.
  * - **Self-hosted community**: no — Credits/managed PAYG only.
  */

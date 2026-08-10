@@ -63,7 +63,7 @@ describe('CloudSyncIndicator', () => {
     });
   });
 
-  it('does not infer cloud deployment from the hosted app hostname', () => {
+  it('does not render on the hosted app hostname', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...originalLocation, hostname: 'app.genfeed.ai' },
@@ -73,8 +73,8 @@ describe('CloudSyncIndicator', () => {
     render(<CloudSyncIndicator />);
 
     expect(
-      screen.getByRole('button', { name: 'Cloud disconnected' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Cloud disconnected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not render when the cloud env uses the canonical numeric flag', () => {

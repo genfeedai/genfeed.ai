@@ -6,7 +6,9 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 
 function enterpriseBillingUnavailable(): never {
   throw new ForbiddenException(
-    'Enterprise subscription billing is not available in OSS mode.',
+    'Organization subscription billing is not available on this API. ' +
+      'Hosted Genfeed Cloud (*.genfeed.ai) is SaaS — set GENFEED_CLOUD=true or a public *.genfeed.ai URL. ' +
+      'Self-hosted community builds use managed credits checkout instead of org Stripe subscriptions.',
   );
 }
 

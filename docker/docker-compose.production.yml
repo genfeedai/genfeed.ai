@@ -191,6 +191,9 @@ services:
       - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:${FILES_PORT:-3012}
       - GENFEEDAI_MICROSERVICES_MCP_URL=http://mcp:${MCP_PORT:-3014}
       - GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://notifications:${NOTIFICATIONS_PORT:-3011}
+      # Hosted cloud axis — must match ECS terraform (GENFEED_CLOUD=true).
+      # Without this, EE billing DI falls through to OSS stubs and checkout 403s.
+      - GENFEED_CLOUD=true
       - NODE_ENV=production
       - PORT=${API_PORT:-3010}
       - SERVICE_NAME=api
