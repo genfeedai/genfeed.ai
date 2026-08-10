@@ -17,8 +17,14 @@ function isSafeHref(href?: string): boolean {
   );
 }
 
-const ORDERED_LIST_ITEM = /^(\s*)(\d+)\.\s+(.*)$/;
-const UNORDERED_LIST_ITEM = /^(\s*)([-*+])\s+(.*)$/;
+// Horizontal whitespace only, and no trailing `(.*)$`. `\s` overlaps with `.`
+// on spaces but not on `\r`, so `\s+(.*)$` against a marker followed by a run
+// of spaces and a stray CR made the engine retry every split of that run —
+// quadratic in the line length, on model-authored input. Nothing reads the
+// item body here (only the indent and the marker), so the tail is dropped and
+// each remaining quantifier is followed by a disjoint class.
+const ORDERED_LIST_ITEM = /^([^\S\r\n]*)(\d+)\.[^\S\r\n]/;
+const UNORDERED_LIST_ITEM = /^([^\S\r\n]*)([-*+])[^\S\r\n]/;
 
 /**
  * Models often emit:

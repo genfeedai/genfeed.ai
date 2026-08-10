@@ -37,6 +37,32 @@ describe('normalizeAssistantListMarkdown', () => {
   it('collapses triple blank lines', () => {
     expect(normalizeAssistantListMarkdown('a\n\n\n\nb')).toBe('a\n\nb');
   });
+
+  it('still recognises markers and leaves non-markers alone', () => {
+    // The matcher no longer captures the item body, so pin the cases the
+    // indent/marker arithmetic depends on.
+    expect(normalizeAssistantListMarkdown('1. one\nbody')).toBe(
+      '1. one\n   body',
+    );
+    expect(normalizeAssistantListMarkdown('  - one\nbody')).toBe(
+      '  - one\n    body',
+    );
+    // No separator after the marker: not a list item, so nothing is indented.
+    expect(normalizeAssistantListMarkdown('1.one\nbody')).toBe('1.one\nbody');
+  });
+
+  it('matches padded markers in linear time', () => {
+    // A marker followed by a long run of spaces and a stray CR was the
+    // quadratic case: `\s` consumed the CR, `.` could not, and the engine
+    // retried every split of the run. Budget is generous — the old form took
+    // seconds here, the new one is sub-millisecond.
+    const padding = ' '.repeat(40_000);
+    const started = performance.now();
+    normalizeAssistantListMarkdown(`1.${padding}\r`);
+    normalizeAssistantListMarkdown(`*${padding}\r`);
+
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
 });
 
 describe('enhanceAssistantMarkdown', () => {
