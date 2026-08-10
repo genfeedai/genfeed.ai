@@ -22,6 +22,18 @@ function legacyCbcEncrypt(key: Buffer, value: string): string {
   return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
+/** Produce a legacy envelope that deterministically fails PKCS#7 validation. */
+function legacyCbcWithInvalidPadding(key: Buffer): string {
+  const iv = randomBytes(16);
+  const cipher = createCipheriv('aes-256-cbc', key, iv);
+  cipher.setAutoPadding(false);
+  const encrypted = Buffer.concat([
+    cipher.update(Buffer.alloc(16)),
+    cipher.final(),
+  ]);
+  return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
 describe('credential-cipher', () => {
   it('derives the historical sha256 key', () => {
     expect(KEY).toEqual(createHash('sha256').update(SECRET).digest());
@@ -65,8 +77,8 @@ describe('credential-cipher', () => {
     expect(decryptWithKey(KEY, legacy)).toBe('legacy-bot-token');
   });
 
-  it('returns legacy CBC values as-is when decryption fails (wrong key)', () => {
-    const legacy = legacyCbcEncrypt(deriveEncryptionKey('other'), 'token');
+  it('returns legacy CBC values as-is when decryption fails', () => {
+    const legacy = legacyCbcWithInvalidPadding(KEY);
     expect(decryptWithKey(KEY, legacy)).toBe(legacy);
   });
 });
