@@ -363,10 +363,10 @@ resource "aws_iam_role_policy" "gha_deploy" {
   policy = data.aws_iam_policy_document.gha_deploy.json
 }
 
-# CloudWatch dashboard/alarm APIs and SNS topic discovery are control-plane
-# operations that do not support useful resource-level scoping. Keep them in a
-# separate additive policy so the production monitoring boundary is explicit
-# and auditable independently from the general deploy policy.
+# Keep production monitoring permissions in a separate additive policy so the
+# boundary is explicit and auditable independently from the general deploy
+# policy. Scope SNS tag inspection to the one operations topic; only discovery
+# actions that lack useful resource-level scoping retain the wildcard resource.
 data "aws_iam_policy_document" "gha_deploy_monitoring" {
   statement {
     sid    = "ManageProductionAlarms"
@@ -402,13 +402,47 @@ data "aws_iam_policy_document" "gha_deploy_monitoring" {
   }
 
   statement {
+    sid     = "ReadProductionAlarms"
+    effect  = "Allow"
+    actions = ["cloudwatch:DescribeAlarms"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+    ]
+  }
+
+  statement {
+    sid     = "ReadProductionDashboard"
+    effect  = "Allow"
+    actions = ["cloudwatch:GetDashboard"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
+    sid     = "InspectProductionMonitoringTags"
+    effect  = "Allow"
+    actions = ["cloudwatch:ListTagsForResource"]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
+    sid     = "InspectOperationsTopic"
+    effect  = "Allow"
+    actions = ["sns:ListTagsForResource"]
+    resources = [
+      "arn:${local.aws_partition}:sns:${var.region}:${local.account_id}:api-genfeed-ai",
+    ]
+  }
+
+  statement {
     sid    = "DiscoverProductionMonitoring"
     effect = "Allow"
     actions = [
-      "cloudwatch:DescribeAlarms",
-      "cloudwatch:GetDashboard",
       "cloudwatch:ListDashboards",
-      "cloudwatch:ListTagsForResource",
       "sns:ListTopics",
     ]
     resources = ["*"]

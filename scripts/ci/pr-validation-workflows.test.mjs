@@ -490,6 +490,11 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
   )?.[0];
   assert.ok(policy, 'bootstrap must define the deploy-role monitoring policy');
 
+  const statement = (sid) =>
+    policy.match(
+      new RegExp(`statement \\{\\n\\s+sid\\s+= "${sid}"[\\s\\S]*?\\n  \\}`),
+    )?.[0];
+
   for (const action of [
     'cloudwatch:DeleteAlarms',
     'cloudwatch:DeleteDashboards',
@@ -501,6 +506,7 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     'cloudwatch:PutMetricAlarm',
     'cloudwatch:TagResource',
     'cloudwatch:UntagResource',
+    'sns:ListTagsForResource',
     'sns:ListTopics',
   ]) {
     assert.ok(
@@ -517,9 +523,66 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     policy,
     /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
   );
+
+  for (const [sid, action, resource] of [
+    [
+      'ReadProductionAlarms',
+      'cloudwatch:DescribeAlarms',
+      /alarm:genfeed-production-\*/,
+    ],
+    [
+      'ReadProductionDashboard',
+      'cloudwatch:GetDashboard',
+      /dashboard\/genfeed-production/,
+    ],
+    [
+      'InspectProductionMonitoringTags',
+      'cloudwatch:ListTagsForResource',
+      /alarm:genfeed-production-\*[\s\S]*?dashboard\/genfeed-production/,
+    ],
+  ]) {
+    const scopedStatement = statement(sid);
+    assert.ok(scopedStatement, `monitoring policy must define ${sid}`);
+    assert.match(scopedStatement, /effect\s+= "Allow"/);
+    assert.ok(
+      scopedStatement.includes(`"${action}"`),
+      `${sid} must allow ${action}`,
+    );
+    assert.match(scopedStatement, resource);
+    assert.doesNotMatch(scopedStatement, /resources\s+= \["\*"\]/);
+  }
+
+  const inspectOperationsTopic = statement('InspectOperationsTopic');
+  assert.ok(
+    inspectOperationsTopic,
+    'monitoring policy must inspect the operations topic',
+  );
+  assert.match(inspectOperationsTopic, /effect\s+= "Allow"/);
   assert.match(
-    policy,
-    /sid\s+= "DiscoverProductionMonitoring"[\s\S]*?resources = \["\*"\]/,
+    inspectOperationsTopic,
+    /actions = \["sns:ListTagsForResource"\]/,
+  );
+  assert.match(
+    inspectOperationsTopic,
+    /resources = \[\n\s+"arn:\$\{local\.aws_partition\}:sns:\$\{var\.region\}:\$\{local\.account_id\}:api-genfeed-ai",\n\s+\]/,
+  );
+  assert.doesNotMatch(inspectOperationsTopic, /resources\s+= \["\*"\]/);
+
+  const discoverProductionMonitoring = statement(
+    'DiscoverProductionMonitoring',
+  );
+  assert.ok(
+    discoverProductionMonitoring,
+    'monitoring policy must retain unscoped discovery actions',
+  );
+  assert.match(
+    discoverProductionMonitoring,
+    /actions = \[\n\s+"cloudwatch:ListDashboards",\n\s+"sns:ListTopics",\n\s+\]/,
+  );
+  assert.match(discoverProductionMonitoring, /resources = \["\*"\]/);
+  assert.doesNotMatch(
+    discoverProductionMonitoring,
+    /cloudwatch:(?:DescribeAlarms|GetDashboard|ListTagsForResource)/,
   );
   assert.match(
     bootstrap,
