@@ -244,6 +244,12 @@ test('keeps one canonical release contract for community and SaaS', () => {
     releaseWorkflow,
     /uses: \.\/\.github\/workflows\/_deploy-ecs-core\.yml/,
   );
+  const releaseDeploySaas = releaseWorkflow.match(
+    /deploy-saas:[\s\S]*?(?=\n {2}promote-community:)/,
+  )?.[0];
+  assert.ok(releaseDeploySaas);
+  assert.doesNotMatch(releaseDeploySaas, /image_tag:/);
+  assert.match(releaseDeploySaas, /allow_rollback: false/);
   assert.match(
     releaseWorkflow,
     /promote-community:[\s\S]*?needs: \[validate-release, publish-community, deploy-saas\]/,
