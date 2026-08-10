@@ -32,7 +32,9 @@ jobs:
             .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.36.0
+        # v-prefixed: upstream stopped publishing the bare "0.x.y" tag alias
+        # after 0.35.0, so an unprefixed pin past that fails to resolve at all.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "genfeedai/server:scan"
           format: "sarif"
@@ -64,7 +66,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run Trivy filesystem scanner
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "."
