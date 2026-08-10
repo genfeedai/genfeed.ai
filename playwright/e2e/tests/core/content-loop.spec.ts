@@ -120,15 +120,16 @@ test.describe('Core Content Loop', () => {
     );
     // The post route renders the artifact editor shell, not the retired
     // read-only detail panel: the failed state is the status badge beside the
-    // title, and scheduling is an editable date/time control rather than a
-    // "Scheduled Time" heading.
+    // title, and scheduling remains editable beneath its canonical heading.
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Failed Publish Draft' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByText('failed', { exact: true }).first(),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText('Scheduled Date')).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Scheduled time' }),
+    ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Date' }),
     ).toBeVisible();
