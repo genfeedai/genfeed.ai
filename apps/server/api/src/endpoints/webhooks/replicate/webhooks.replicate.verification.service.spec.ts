@@ -41,27 +41,7 @@ describe('ReplicateWebhookVerificationService', () => {
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
         { provide: ReplicateService, useValue: replicateService },
-        {
-          inject: [
-            CacheService,
-            ConfigService,
-            LoggerService,
-            ReplicateService,
-          ],
-          provide: ReplicateWebhookVerificationService,
-          useFactory: (
-            cache: CacheService,
-            config: ConfigService,
-            logger: LoggerService,
-            replicate: ReplicateService,
-          ) =>
-            new ReplicateWebhookVerificationService(
-              cache,
-              config,
-              logger,
-              replicate,
-            ),
-        },
+        ReplicateWebhookVerificationService,
       ],
     }).compile();
 

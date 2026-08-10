@@ -4,6 +4,7 @@ import { ConfigService } from '@libs/config/config.service';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
@@ -34,6 +35,7 @@ function isPredictionRecord(
  * output — from Replicate's own API using the account token, and suppresses
  * replays of a captured legitimate delivery.
  */
+@Injectable()
 export class ReplicateWebhookVerificationService {
   private readonly constructorName: string = String(this.constructor.name);
 
