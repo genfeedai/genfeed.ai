@@ -118,7 +118,17 @@ jobs:
     # gitleaks-action does not support the `release` event ("The [release] event is
     # not yet supported") and hard-fails on it. Release-triggered runs (self-hosted
     # publish) skip it — the same commit was already secret-scanned on push to master.
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name != 'release'
+    #
+    # Dependabot runs read the Dependabot secret store, not the Actions one, so
+    # `secrets.GITLEAKS_LICENSE` arrives empty and the action hard-fails with
+    # "[genfeedai] is an organization. License key is required." It has failed on
+    # every Dependabot PR, which is zero signal, not added safety: the diff is a
+    # bot-authored manifest/lockfile bump, `Secretlint (changed files)` still runs,
+    # and the history this job scans was already scanned on push to master.
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && github.event_name != 'release'
+      && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v7
         with:
