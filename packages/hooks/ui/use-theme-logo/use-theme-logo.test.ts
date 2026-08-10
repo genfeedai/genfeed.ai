@@ -57,7 +57,7 @@ describe('useThemeLogo', () => {
       const { result } = renderHook(() => useThemeLogo());
 
       await waitFor(() => {
-        expect(result.current).toBe('/genfeed-icon.svg');
+        expect(result.current).toBe('/logo.svg');
       });
     });
   });
