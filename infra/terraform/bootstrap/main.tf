@@ -363,6 +363,37 @@ resource "aws_iam_role_policy" "gha_deploy" {
   policy = data.aws_iam_policy_document.gha_deploy.json
 }
 
+# CloudWatch dashboard/alarm APIs and SNS topic discovery are control-plane
+# operations that do not support useful resource-level scoping. Keep them in a
+# separate additive policy so the production monitoring boundary is explicit
+# and auditable independently from the general deploy policy.
+data "aws_iam_policy_document" "gha_deploy_monitoring" {
+  statement {
+    sid    = "ManageProductionMonitoring"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:DeleteDashboards",
+      "cloudwatch:DescribeAlarms",
+      "cloudwatch:GetDashboard",
+      "cloudwatch:ListDashboards",
+      "cloudwatch:ListTagsForResource",
+      "cloudwatch:PutDashboard",
+      "cloudwatch:PutMetricAlarm",
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+      "sns:ListTopics",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_deploy_monitoring" {
+  name   = "manage-production-monitoring"
+  role   = aws_iam_role.gha_deploy.id
+  policy = data.aws_iam_policy_document.gha_deploy_monitoring.json
+}
+
 output "state_bucket" {
   value = aws_s3_bucket.state.id
 }
