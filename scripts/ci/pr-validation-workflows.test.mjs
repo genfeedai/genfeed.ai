@@ -501,6 +501,7 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     'cloudwatch:PutMetricAlarm',
     'cloudwatch:TagResource',
     'cloudwatch:UntagResource',
+    'sns:ListTagsForResource',
     'sns:ListTopics',
   ]) {
     assert.ok(
@@ -516,6 +517,10 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
   assert.match(
     policy,
     /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
+  );
+  assert.match(
+    policy,
+    /sid\s+= "InspectOperationsTopic"[\s\S]*?sns:ListTagsForResource[\s\S]*?arn:\$\{local\.aws_partition\}:sns:\$\{var\.region\}:\$\{local\.account_id\}:api-genfeed-ai/,
   );
   assert.match(
     policy,
