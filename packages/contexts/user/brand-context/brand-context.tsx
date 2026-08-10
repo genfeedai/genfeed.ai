@@ -21,6 +21,13 @@ export interface BrandContextType {
   credentialsError: Error | null;
   credentialsLoading: boolean;
   refreshBrands: () => Promise<void>;
+  /**
+   * True once `brands` reflects a settled authorization source (a hydrated
+   * bootstrap payload, a completed fetch, or a session that cannot fetch).
+   * Gate brand-authorization decisions on this — an empty `brands` array is
+   * otherwise indistinguishable from "still loading".
+   */
+  isBrandScopeResolved: boolean;
   /** True when auth is loaded and brandId/organizationId are available */
   isReady: boolean;
   /** Organization settings - fetched once, shared across all components */
@@ -55,6 +62,7 @@ export function BrandProvider({
       credentialsLoading: state.credentialsLoading,
       fleetCapabilities: state.fleetCapabilities,
       fleetCapabilitiesLoading: state.fleetCapabilitiesLoading,
+      isBrandScopeResolved: state.isBrandScopeResolved,
       isReady: state.isReady,
       organizationId: state.organizationId,
       refreshBrands: state.refreshBrands,
@@ -73,6 +81,7 @@ export function BrandProvider({
       state.credentialsLoading,
       state.fleetCapabilities,
       state.fleetCapabilitiesLoading,
+      state.isBrandScopeResolved,
       state.isReady,
       state.organizationId,
       state.refreshBrands,
