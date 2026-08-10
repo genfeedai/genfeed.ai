@@ -283,6 +283,21 @@ RUN echo "Checking build outputs..." && \
       echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
     done
 
+# Flavor gate: this image ships WITH ee/packages/billing, so the api bundle
+# must contain the EE billing fragment — probed via the EE-only controller
+# route literal 'admin/credit-usage' (decorator strings survive bundling).
+# Guards the #2751 class of bug: the tsconfig paths mapping for
+# `@billing-providers` points at the OSS stub and used to out-rank
+# resolve.alias, silently baking OSS no-op billing into the SaaS image. A
+# poisoned bundle fails HERE, inside the image build, instead of 403ing
+# production checkout.
+RUN if [ -d ee/packages/billing/src ]; then \
+      if ! grep -q "admin/credit-usage" apps/server/dist/apps/api/main.js; then \
+        echo "❌ api bundle is OSS-flavored but ee/packages/billing is present — @billing-providers resolved to the OSS stub (see webpack.base.config.js flavor resolver + check:billing-flavor)" && exit 1; \
+      fi; \
+      echo "✅ api bundle carries the EE billing fragment"; \
+    fi
+
 # ==================================================
 # Stage 6: Production - Runtime image
 # ==================================================

@@ -212,6 +212,11 @@ jobs:
         run: bun run check:product-workflow-boundary
       - name: DI Value Imports
         run: bun run check:di-value-imports
+      # `@billing-providers` must resolve to the flavor on disk. The tsconfig
+      # paths mapping points at the OSS stub and used to beat resolve.alias,
+      # which shipped OSS billing stubs inside the SaaS image (#2751).
+      - name: Billing Flavor Resolution
+        run: bun run check:billing-flavor
       - name: Untranslated String Ratchet
         run: bun run check:untranslated-strings
       - name: Untranslated String Guard Tests

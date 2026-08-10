@@ -7,8 +7,10 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 function enterpriseBillingUnavailable(): never {
   throw new ForbiddenException(
     'Organization subscription billing is not available on this API. ' +
-      'Hosted Genfeed Cloud (*.genfeed.ai) is SaaS — set GENFEED_CLOUD=true or a public *.genfeed.ai URL. ' +
-      'Self-hosted community builds use managed credits checkout instead of org Stripe subscriptions.',
+      'This build bundles the OSS billing stub — a hosted *.genfeed.ai API must be built from an image containing ee/packages/billing ' +
+      '(docker/Dockerfile.server; verify with `bun run check:billing-flavor`) AND run with GENFEED_CLOUD=true. ' +
+      'Self-hosted community builds use managed credits checkout instead of org Stripe subscriptions. ' +
+      'See docs/deployment-modes.md#build-flavors.',
   );
 }
 

@@ -1,16 +1,21 @@
 /**
  * EE billing DI fragments — the enterprise (SaaS) flavor of `@billing-providers`.
  *
- * Resolved by the webpack `@billing-providers` alias whenever
- * `ee/packages/billing` is present in the build (the `Dockerfile.server` SaaS
- * image). The three api billing collection modules compose their `@Module()`
- * metadata directly from the matching fragment here, so the EE controllers and
- * services register exactly as they did before the decouple.
+ * Resolved by the `@billing-providers` flavor resolver plugin in
+ * webpack.base.config.js whenever `ee/packages/billing` is present in the
+ * build (the `Dockerfile.server` SaaS image). The three api billing collection
+ * modules compose their `@Module()` metadata directly from the matching
+ * fragment here, so the EE controllers and services register exactly as they
+ * did before the decouple. Resolution must NOT rely on `resolve.alias` or the
+ * tsconfig paths mapping: the tsconfig pins `@billing-providers` to the OSS
+ * stub for tsc, and TsconfigPathsPlugin outranks the alias — which shipped
+ * OSS-stub billing inside the SaaS image until #2751. Guards:
+ * `bun run check:billing-flavor` + the Dockerfile.server bundle gate.
  *
  * Two-layer gating:
- *   1. Build-time — webpack only aliases `@billing-providers` to THIS file when
- *      `ee/packages/billing/src` exists on disk. The community image never sees
- *      it; it gets `billing.providers.oss.ts` instead.
+ *   1. Build-time — the flavor resolver points `@billing-providers` at THIS
+ *      file only when `ee/packages/billing/src` exists on disk. The community
+ *      image never sees it; it gets `billing.providers.oss.ts` instead.
  *   2. Runtime — `hasOrganizationBilling()` (SaaS via `GENFEED_CLOUD` **or**
  *      self-host license / signature) decides what the shared string token
  *      resolves to. The real EE service class is ALWAYS registered as a provider

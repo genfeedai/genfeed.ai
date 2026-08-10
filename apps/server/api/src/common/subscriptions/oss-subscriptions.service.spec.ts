@@ -55,6 +55,6 @@ describe('OssSubscriptionsService', () => {
 
     await expect(
       service.createForOrganization({}, 'billing@example.com', 'user-1'),
-    ).rejects.toThrow(/\*\.genfeed\.ai/);
+    ).rejects.toThrow(/OSS billing stub/);
   });
 });

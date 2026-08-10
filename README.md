@@ -36,7 +36,11 @@ and source workspaces for desktop, mobile, browser, and IDE clients.
 Availability can differ by deployment mode and configured provider. See
 [Deployment Modes](docs/deployment-modes.md) and
 [Execution Boundaries](docs/execution-boundaries.md) before relying on a feature
-for a specific distribution.
+for a specific distribution. Organization billing in particular is gated twice
+— at build time (the community image contains no `ee/` billing code) and at
+runtime (`GENFEED_CLOUD` / EE license); the
+[build flavors section](docs/deployment-modes.md#build-flavors-how-billing-code-gets-into-or-stays-out-of-an-image)
+explains both gates and the guards that keep them honest.
 
 ## Community quick start
 
