@@ -167,6 +167,9 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith(orgId, applyMargin(2.4, 1));
+    expect(modelsService.findOne).toHaveBeenCalledWith({
+      key: 'bytedance/seedance-2.5',
+    });
   });
 
   it('multiplies credits by 2 for high resolution via data.attributes', async () => {
@@ -286,7 +289,9 @@ describe('CreditsGuard', () => {
     const ctx = createContext({ model: 'fal-ai/flux-2-pro' });
     const result = await guard.canActivate(ctx);
     expect(result).toBe(true);
-    expect(modelsService.findOne).not.toHaveBeenCalled();
+    expect(modelsService.findOne).toHaveBeenCalledWith({
+      key: 'fal-ai/flux-2-pro',
+    });
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalled();

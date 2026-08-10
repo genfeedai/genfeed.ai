@@ -210,24 +210,6 @@ export class CreditsGuard implements CanActivate {
           };
           request.creditsConfig = updatedCreditsConfig;
           // Continue to balance check below
-        } else if (
-          isFalDestination(modelKey) ||
-          isReplicateDestination(modelKey) ||
-          isReplicateVersionId(modelKey)
-        ) {
-          // Dynamic provider destination/version: use custom model fallback cost
-          requiredCredits = this.getCustomModelCost();
-          this.loggerService.debug(
-            'Credits guard: Dynamic provider destination detected, applying custom model cost',
-            { modelKey, requiredCredits },
-          );
-
-          const updatedCreditsConfig = {
-            ...creditsConfig,
-            amount: requiredCredits,
-            modelKey,
-          };
-          request.creditsConfig = updatedCreditsConfig;
         } else if (isTrainingKey(modelKey)) {
           // Trained model (genfeedai/<id>): use custom model cost
           requiredCredits = this.getCustomModelCost();
@@ -243,7 +225,10 @@ export class CreditsGuard implements CanActivate {
           };
           request.creditsConfig = updatedCreditsConfig;
         } else {
-          // Try to find model in database first (for known models like Ideogram, Imagen, nano-banana-pro, etc.)
+          // Resolve the database row before classifying slash-shaped keys as
+          // provider destinations. Known provider models (for example
+          // bytedance/seedance) carry live providerCostUsd pricing; only an
+          // unknown destination should use the custom-model fallback.
           const model = await this.modelsService.findOne({
             key: normalized,
           });

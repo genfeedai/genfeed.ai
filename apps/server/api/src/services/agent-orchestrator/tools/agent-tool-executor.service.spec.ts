@@ -4895,7 +4895,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should gracefully fallback when generate_image endpoint fails', async () => {
+  it('should return an incomplete result when generate_image endpoint fails', async () => {
     const { internalApi, loggerService, service } = createService();
 
     vi.spyOn(internalApi, 'callInternalApi').mockRejectedValue(
@@ -4911,13 +4911,16 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(result.data).toEqual(
       expect.objectContaining({
         status: expect.any(String),
       }),
     );
-    expect(result.nextActions?.[0].type).toBe('content_preview_card');
+    expect(result.nextActions?.[0]).toMatchObject({
+      title: 'Image not ready',
+      type: 'completion_summary_card',
+    });
     expect(loggerService.warn).toHaveBeenCalled();
   });
 
@@ -4927,7 +4930,10 @@ describe('AgentToolExecutorService', () => {
     const callInternalApiSpy = vi
       .spyOn(internalApi, 'callInternalApi')
       .mockResolvedValue({
-        data: { id: 'img-123' },
+        data: {
+          attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
+          id: 'img-123',
+        },
       });
 
     const result = await service.executeTool(
@@ -4960,6 +4966,7 @@ describe('AgentToolExecutorService', () => {
     const { internalApi, service } = createService();
 
     vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+      cdnUrl: 'https://cdn.example.test/img-root-123.png',
       id: 'img-root-123',
     });
 
