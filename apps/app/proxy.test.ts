@@ -1839,14 +1839,7 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/logout', search: '' },
-        url: 'http://localhost:3000/logout',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedOutRequest('/logout'), {} as never);
 
     const setCookieHeader = response.headers.get('set-cookie') ?? '';
     expect(setCookieHeader).toContain('gf_ws');
