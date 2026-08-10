@@ -38,17 +38,19 @@ describe('useThemeLogo', () => {
   });
 
   describe('Mounted State', () => {
-    it('returns logo URL when mounted', async () => {
+    it('returns the CDN logo URL when mounted on a web surface', async () => {
       mockIsMounted = true;
 
       const { result } = renderHook(() => useThemeLogo());
 
       await waitFor(() => {
-        expect(result.current).toBe('/genfeed-icon.svg');
+        expect(result.current).toBe(
+          'https://cdn.genfeed.ai/assets/branding/logo.svg',
+        );
       });
     });
 
-    it('returns the same canonical logo in desktop shell mode', async () => {
+    it('returns the bundled local asset in desktop shell mode', async () => {
       process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
       mockIsMounted = true;
 
@@ -69,13 +71,15 @@ describe('useThemeLogo', () => {
       });
     });
 
-    it('returns the canonical local asset path when mounted', async () => {
+    it('returns the canonical CDN asset URL when mounted', async () => {
       mockIsMounted = true;
 
       const { result } = renderHook(() => useThemeLogo());
 
       await waitFor(() => {
-        expect(result.current).toBe('/genfeed-icon.svg');
+        expect(result.current).toBe(
+          'https://cdn.genfeed.ai/assets/branding/logo.svg',
+        );
       });
     });
   });
