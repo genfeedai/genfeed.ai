@@ -36,6 +36,32 @@ const storeState = {
   }>,
 };
 
+type MockBrand = {
+  id: string;
+  organization: { id?: string; slug: string };
+  slug: string;
+};
+
+const AUTHORIZED_BRANDS: MockBrand[] = [
+  {
+    id: 'brand-1',
+    organization: { id: 'org-1', slug: 'acme-org' },
+    slug: 'acme-creator',
+  },
+  {
+    id: 'brand-2',
+    organization: { id: 'org-1', slug: 'acme-org' },
+    slug: 'second-brand',
+  },
+];
+
+const brandState = {
+  brandId: 'brand-1',
+  brands: AUTHORIZED_BRANDS,
+  isBrandScopeResolved: true,
+  organizationId: 'org-1',
+};
+
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
@@ -57,20 +83,10 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    brandId: 'brand-1',
-    brands: [
-      {
-        id: 'brand-1',
-        organization: { id: 'org-1', slug: 'acme-org' },
-        slug: 'acme-creator',
-      },
-      {
-        id: 'brand-2',
-        organization: { id: 'org-1', slug: 'acme-org' },
-        slug: 'second-brand',
-      },
-    ],
-    organizationId: 'org-1',
+    brandId: brandState.brandId,
+    brands: brandState.brands,
+    isBrandScopeResolved: brandState.isBrandScopeResolved,
+    organizationId: brandState.organizationId,
     selectedBrand: {
       id: 'brand-1',
       organization: { slug: 'acme-org' },
@@ -145,6 +161,10 @@ describe('AgentWorkspaceLayoutClient', () => {
     navigationState.searchParams = new URLSearchParams();
     storeState.activeThreadId = 'thread-existing';
     storeState.threads = [];
+    brandState.brandId = 'brand-1';
+    brandState.brands = AUTHORIZED_BRANDS;
+    brandState.isBrandScopeResolved = true;
+    brandState.organizationId = 'org-1';
     routerReplace.mockReset();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue(undefined);
@@ -312,6 +332,113 @@ describe('AgentWorkspaceLayoutClient', () => {
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/agent/new');
     });
+  });
+
+  it('defers the returning bootstrap decision until brand scope resolves', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    brandState.brands = [];
+    brandState.isBrandScopeResolved = false;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'branded-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    const view = render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getThreadsEffect).not.toHaveBeenCalled();
+    expect(routerReplace).not.toHaveBeenCalled();
+
+    brandState.brands = AUTHORIZED_BRANDS;
+    brandState.isBrandScopeResolved = true;
+
+    view.rerender(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/branded-thread',
+      );
+    });
+  });
+
+  it('still falls back to a new conversation when resolved brands exclude the thread brand', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    brandState.brands = AUTHORIZED_BRANDS.filter(
+      (brand) => brand.id === 'brand-2',
+    );
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'foreign-brand-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/agent/new');
+    });
+  });
+
+  it('looks the returning thread up once while brand scope stays resolved', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'branded-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    const view = render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    });
+
+    view.rerender(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
   });
 
   it('preserves explicit thread routes without running returning-user bootstrap', async () => {

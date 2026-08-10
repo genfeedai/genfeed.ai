@@ -156,6 +156,7 @@ export function useBrandProviderState({
   const {
     data: brandsData,
     error: credentialsError,
+    isFetched: isBrandsFetched,
     isFetching: credentialsLoading,
     isLoading: brandsLoading,
     refetch: refetchBrands,
@@ -299,6 +300,16 @@ export function useBrandProviderState({
   ]);
 
   const isScopeReady = initialBrands.length > 0 || !brandsLoading;
+  // `isScopeReady` only says the scope ids are safe to read. It is derived from
+  // react-query `isLoading`, which is still false in the render between the
+  // query becoming enabled and its first fetch starting — so an empty `brands`
+  // array there means "not resolved yet", not "no brands". Consumers that
+  // authorize against the brand list (agent workspace bootstrap, #2702) must
+  // wait for a settled fetch, a hydrated bootstrap payload, or a session that
+  // can never fetch at all.
+  const isBrandScopeResolved =
+    isScopeReady &&
+    (hasInitialBootstrap || isBrandsFetched || !isBrandsFetchEnabled);
   const scopedBrandId = isScopeReady ? effectiveBrandId : '';
   const scopedOrganizationId = isScopeReady ? effectiveOrganizationId : '';
   const shouldFetchSettings =
@@ -458,6 +469,7 @@ export function useBrandProviderState({
     credentialsLoading,
     fleetCapabilities,
     fleetCapabilitiesLoading,
+    isBrandScopeResolved,
     isReady,
     organizationId: scopedOrganizationId,
     refreshBrands,

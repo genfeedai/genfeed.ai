@@ -138,6 +138,7 @@ describe('BrandProvider', () => {
     vi.clearAllMocks();
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    useAuthedServiceMock.mockReset();
     loadClientProtectedBootstrapMock.mockResolvedValue(null);
     authServiceGetInstanceMock.mockReturnValue({});
     useParamsMock.mockReturnValue({});
@@ -265,6 +266,82 @@ describe('BrandProvider', () => {
     expect(screen.getByTestId('brand-count')).toHaveTextContent('0');
     expect(screen.getByTestId('settings')).toHaveTextContent('none');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves brand scope immediately from a hydrated bootstrap payload', () => {
+    function Consumer() {
+      const { isBrandScopeResolved } = useBrand();
+
+      return (
+        <span data-testid="brand-scope-resolved">
+          {String(isBrandScopeResolved)}
+        </span>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={initialBootstrap as never}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    expect(screen.getByTestId('brand-scope-resolved')).toHaveTextContent(
+      'true',
+    );
+  });
+
+  it('holds brand scope unresolved until the brand fetch settles', async () => {
+    useAuthedServiceMock.mockResolvedValue({
+      findAllMeBrands: vi.fn().mockResolvedValue([
+        {
+          id: 'brand_fetched',
+          label: 'Fetched Brand',
+          organization: { id: 'org_123', slug: 'acme-org' },
+          slug: 'fetched-brand',
+        },
+      ]),
+    });
+
+    function Consumer() {
+      const { brands, isBrandScopeResolved } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-count">{String(brands.length)}</span>
+          <span data-testid="brand-scope-resolved">
+            {String(isBrandScopeResolved)}
+          </span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={null}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    // An empty list here means "not fetched yet" — consumers must not read it
+    // as "no authorized brands" (#2702).
+    expect(screen.getByTestId('brand-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('brand-scope-resolved')).toHaveTextContent(
+      'false',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-scope-resolved')).toHaveTextContent(
+        'true',
+      );
+      expect(screen.getByTestId('brand-count')).toHaveTextContent('1');
+    });
   });
 
   it('shows empty state when auth is not ready', () => {

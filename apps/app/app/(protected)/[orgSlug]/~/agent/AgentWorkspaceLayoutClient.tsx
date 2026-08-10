@@ -99,7 +99,7 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const { brandId, brands, organizationId } = useBrand();
+  const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
   const { activeHref, orgSlug } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
@@ -301,9 +301,15 @@ function AgentWorkspaceLayoutClientContent({
   // returned for the active organization and independently re-check its org,
   // status, id, and brand before placing it in the URL. /agent/new and explicit
   // /agent/:id deep links never enter this lookup.
+  //
+  // The brand check authorizes against `brands`, so the one-shot guard stays
+  // unconsumed until brand scope resolves (#2702). Deciding early would read a
+  // still-loading empty list, treat an authorized branded thread as
+  // unavailable, redirect to /agent/new, and never retry once brands arrive.
   useEffect(() => {
     if (
       !effectiveIsLoaded ||
+      !isBrandScopeResolved ||
       !isReturningBootstrapRoute ||
       prefillPrompt ||
       activeThreadId ||
@@ -366,6 +372,7 @@ function AgentWorkspaceLayoutClientContent({
     agentApiService,
     brands,
     effectiveIsLoaded,
+    isBrandScopeResolved,
     isReturningBootstrapRoute,
     organizationId,
     orgSlug,
@@ -373,11 +380,14 @@ function AgentWorkspaceLayoutClientContent({
     replace,
   ]);
 
+  // Release the one-shot guard when the route stops qualifying, and whenever
+  // brand scope drops back to unresolved (org switch, session change) so a
+  // decision taken against a superseded authorization set can be retried.
   useEffect(() => {
-    if (!isReturningBootstrapRoute) {
+    if (!isReturningBootstrapRoute || !isBrandScopeResolved) {
       hasAttemptedReturningBootstrapRef.current = false;
     }
-  }, [isReturningBootstrapRoute]);
+  }, [isBrandScopeResolved, isReturningBootstrapRoute]);
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
