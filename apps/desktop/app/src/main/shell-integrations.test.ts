@@ -96,6 +96,9 @@ describe('desktop shell integrations', () => {
     expect(
       electronMockState.tray.iconPath.endsWith('/assets/tray-icon.png'),
     ).toBe(true);
+    expect(electronMockState.tray.isTemplateImage).toBe(
+      process.platform === 'darwin',
+    );
     expect(electronMockState.tray.tooltip).toBe('Genfeed Desktop');
 
     const quickGenerateItem = findMenuItem(

@@ -395,7 +395,11 @@ export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
  */
 export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
 
-/** Query parameter identifying the editor surface hosted by Publish. */
+/**
+ * @deprecated Legacy query param. The Publish desk resolves editor kind from
+ * the entity the id belongs to (post / article / newsletter). Still accepted
+ * nowhere as source of truth; kept only so old bookmarked URLs do not 404.
+ */
 export const ARTIFACT_EDITOR_KIND_PARAM = 'kind';
 
 type NestedRouteValue<T> = T extends string
@@ -434,16 +438,17 @@ export function createOrganizationAppRoute(
 /**
  * Build the brand-relative path to an artifact's dedicated editor page.
  * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
+ *
+ * Kind is **not** encoded in the URL. Posts, articles, and newsletters are
+ * separate tables with no shared `type` column; the desk at
+ * `/publish/posts/:id` resolves which editor to mount by looking up the id.
+ * `artifactType` is kept so callers stay explicit when constructing links.
  */
 export function createArtifactEditorRoute(
   artifactType: ArtifactEditorType,
   artifactId: string,
 ): string {
-  const editorRoute = `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
-
-  return artifactType === 'post'
-    ? editorRoute
-    : `${editorRoute}?${ARTIFACT_EDITOR_KIND_PARAM}=${artifactType}`;
+  return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
 }
 
 /** Append the originating list to an artifact editor href. */

@@ -128,7 +128,7 @@ describe('ReplicateService', () => {
       });
     });
 
-    it('registers a completion webhook on cloud deployments', async () => {
+    it('registers a completion webhook on cloud deployments with a public base URL', async () => {
       isCloudMock.mockReturnValue(true);
       const { service } = createHarness();
 
@@ -148,6 +148,23 @@ describe('ReplicateService', () => {
       await service.runModel('owner/model', {});
 
       expect(predictionsCreate.mock.calls[0][0]).not.toHaveProperty('webhook');
+    });
+
+    it('omits the webhook on local cloud (unreachable Portless host)', async () => {
+      isCloudMock.mockReturnValue(true);
+      const { loggerService, service } = createHarness({
+        GENFEEDAI_WEBHOOKS_URL: 'https://api.genfeed.localhost',
+      });
+
+      await service.runModel('owner/model', {});
+
+      expect(predictionsCreate.mock.calls[0][0]).not.toHaveProperty('webhook');
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('skipping Replicate webhook'),
+        expect.objectContaining({
+          webhooksBase: 'https://api.genfeed.localhost',
+        }),
+      );
     });
 
     it('builds a per-request client when an api key override is supplied', async () => {

@@ -9,7 +9,10 @@ import {
   isReplicateDestination,
 } from '@api/collections/models/utils/model-key.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { isCloudDeployment } from '@genfeedai/config';
+import {
+  canReceiveProviderWebhooks,
+  isCloudDeployment,
+} from '@genfeedai/config';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
@@ -148,9 +151,16 @@ export class ReplicateImageGenerationProviderAdapter
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
         }
-        const outputUrls = isCloudDeployment()
-          ? undefined
-          : await this.waitForLocalPrediction(generationId);
+        // Cloud + public webhook URL: leave completion to the Replicate
+        // webhook (finishGeneration polls the DB). Local SaaS
+        // (GENFEED_CLOUD=true with api.genfeed.localhost) and self-hosted
+        // never receive provider webhooks, so poll Replicate and return
+        // output URLs for immediate finalize/upload.
+        const shouldPollForOutput =
+          !isCloudDeployment() || !canReceiveProviderWebhooks();
+        const outputUrls = shouldPollForOutput
+          ? await this.waitForLocalPrediction(generationId)
+          : undefined;
 
         return {
           externalId: generationId,

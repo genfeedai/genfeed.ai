@@ -69,6 +69,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       // ByteDance Seedance
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST,
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       // PixVerse
       MODEL_KEYS.REPLICATE_PIXVERSE_PIXVERSE_V6,
       // xAI Grok
@@ -165,6 +166,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0:
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST:
+      case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5:
         return this.buildSeedance2Prompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_PIXVERSE_PIXVERSE_V6:
@@ -707,9 +709,14 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const aspectRatio = calculatedRatio || '16:9';
 
+    // Cap duration: 2.0 family historically 5–15; 2.5 allows 4–30. Clamp to
+    // the safe 2.5 upper bound so a rogue 60s request cannot explode cost.
+    const rawDuration = params.duration ?? 5;
+    const duration = Math.min(Math.max(rawDuration, 4), 30);
+
     const input: Seedance2Input = {
       aspect_ratio: aspectRatio,
-      duration: params.duration ?? 5,
+      duration,
       prompt: promptText,
     };
 
@@ -717,8 +724,20 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       input.resolution = params.resolution;
     }
 
+    if (params.isAudioEnabled !== undefined) {
+      input.generate_audio = params.isAudioEnabled;
+    }
+
     if (params.references && params.references.length > 0) {
       input.image = params.references[0];
+    }
+
+    if (params.endFrame) {
+      input.last_frame = params.endFrame;
+    }
+
+    if (params.seed !== undefined && params.seed !== null) {
+      input.seed = params.seed;
     }
 
     return input;

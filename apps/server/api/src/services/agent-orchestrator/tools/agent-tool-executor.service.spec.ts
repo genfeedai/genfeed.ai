@@ -395,6 +395,8 @@ describe('AgentToolExecutorService', () => {
         status: 'pending',
         totalCount: 10,
       }),
+      getBatch: vi.fn(),
+      getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
     };
     const streamPublisher = {
@@ -3998,6 +4000,99 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
+  it('falls back to the review inbox when list_review_queue gets a placeholder batchId', async () => {
+    const { batchGenerationService, service } = createService();
+    batchGenerationService.getBatch = vi.fn();
+    batchGenerationService.getReviewInboxSummary = vi.fn().mockResolvedValue({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 1,
+      readyCount: 2,
+      recentItems: [
+        {
+          batchId: 'c9c2d469368c4314a3cfff32',
+          createdAt: '2026-08-09T20:00:00.000Z',
+          format: 'image',
+          id: 'c9c2d469368c4314a3cfff40',
+          platform: 'instagram',
+          reviewDecision: 'unset',
+          status: 'completed',
+          summary: 'Ready for review',
+        },
+      ],
+      rejectedCount: 0,
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_REVIEW_QUEUE,
+      {
+        batchId: 'pending',
+        limit: 10,
+      },
+      {
+        brandId: 'c7a1234567890123456789aa',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(batchGenerationService.getBatch).not.toHaveBeenCalled();
+    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      'c7a1234567890123456789aa',
+      10,
+    );
+    expect(result.data).toMatchObject({
+      pendingCount: 1,
+      readyCount: 2,
+      scope: 'brand',
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      primaryCta: {
+        href: '/publish/review?filter=ready',
+        label: 'Open review queue',
+      },
+      title: 'Review queue loaded',
+      type: 'completion_summary_card',
+    });
+    expect(result.nextActions?.[0]?.summaryText).toContain(
+      'ignored an invalid batch id',
+    );
+  });
+
+  it('loads the review inbox when list_review_queue is called without a batchId', async () => {
+    const { batchGenerationService, service } = createService();
+    batchGenerationService.getReviewInboxSummary = vi.fn().mockResolvedValue({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 0,
+      readyCount: 0,
+      recentItems: [],
+      rejectedCount: 0,
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_REVIEW_QUEUE,
+      {},
+      {
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      undefined,
+      20,
+    );
+    expect(result.nextActions?.[0]?.summaryText).toContain(
+      'No items are waiting',
+    );
+  });
+
   it('never treats a model tool call as publish approval', async () => {
     const { batchGenerationService, service } = createService();
 
@@ -4800,7 +4895,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should gracefully fallback when generate_image endpoint fails', async () => {
+  it('should return an incomplete result when generate_image endpoint fails', async () => {
     const { internalApi, loggerService, service } = createService();
 
     vi.spyOn(internalApi, 'callInternalApi').mockRejectedValue(
@@ -4816,13 +4911,16 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(result.data).toEqual(
       expect.objectContaining({
         status: expect.any(String),
       }),
     );
-    expect(result.nextActions?.[0].type).toBe('content_preview_card');
+    expect(result.nextActions?.[0]).toMatchObject({
+      title: 'Image not ready',
+      type: 'completion_summary_card',
+    });
     expect(loggerService.warn).toHaveBeenCalled();
   });
 
@@ -4832,7 +4930,10 @@ describe('AgentToolExecutorService', () => {
     const callInternalApiSpy = vi
       .spyOn(internalApi, 'callInternalApi')
       .mockResolvedValue({
-        data: { id: 'img-123' },
+        data: {
+          attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
+          id: 'img-123',
+        },
       });
 
     const result = await service.executeTool(
@@ -4865,6 +4966,7 @@ describe('AgentToolExecutorService', () => {
     const { internalApi, service } = createService();
 
     vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+      cdnUrl: 'https://cdn.example.test/img-root-123.png',
       id: 'img-root-123',
     });
 

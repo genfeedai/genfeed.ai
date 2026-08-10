@@ -11,7 +11,12 @@ interface UpsertCall {
 }
 
 describe('ModelCatalogSeedService', () => {
-  let prisma: { model: { upsert: ReturnType<typeof vi.fn> } };
+  let prisma: {
+    model: {
+      updateMany: ReturnType<typeof vi.fn>;
+      upsert: ReturnType<typeof vi.fn>;
+    };
+  };
   let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -27,7 +32,10 @@ describe('ModelCatalogSeedService', () => {
 
   beforeEach(() => {
     prisma = {
-      model: { upsert: vi.fn().mockResolvedValue({ id: 'model' }) },
+      model: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        upsert: vi.fn().mockResolvedValue({ id: 'model' }),
+      },
     };
     logger = {
       error: vi.fn(),
@@ -95,6 +103,40 @@ describe('ModelCatalogSeedService', () => {
     expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
       isActive: true,
       isDefault: true,
+    });
+  });
+
+  it('demotes other defaults in a category when promoting a catalog default', async () => {
+    const videoDefault = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.category === 'video' && entry.isDefault,
+    );
+    expect(videoDefault?.key).toBe('bytedance/seedance-2.5');
+
+    await service.reconcileCatalog();
+
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { isDefault: false },
+        where: expect.objectContaining({
+          category: 'video',
+          isDefault: true,
+          key: { not: 'bytedance/seedance-2.5' },
+        }),
+      }),
+    );
+  });
+
+  it('writes providerCostUsd for live-margin bill time on Seedance 2.5', async () => {
+    await service.reconcileCatalog();
+
+    const call = callForKey('bytedance/seedance-2.5');
+    expect(call?.create).toMatchObject({
+      pricingType: 'per-second',
+      providerCostUsd: 0.24,
+    });
+    expect(call?.update).toMatchObject({
+      pricingType: 'per-second',
+      providerCostUsd: 0.24,
     });
   });
 

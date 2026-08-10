@@ -33,6 +33,8 @@ export interface ModelCatalogSeedEntry {
   category: ModelCategory;
   config?: Readonly<Record<string, string>>;
   cost: number;
+  /** Credits per second (or per megapixel) when pricingType is not FLAT. */
+  costPerUnit?: number;
   costTier?: CostTier;
   defaultAspectRatio?: string;
   defaultDuration?: number;
@@ -48,8 +50,18 @@ export interface ModelCatalogSeedEntry {
   label: string;
   maxOutputs?: number;
   maxReferences?: number;
+  /** Floor credits charged for a run (legacy path only). */
+  minCost?: number;
   outputCostPerMillionTokens?: number;
+  /** How `cost` / `costPerUnit` / `providerCostUsd` are interpreted at bill time. */
+  pricingType?: string;
   provider: ModelProvider;
+  /**
+   * Raw provider list price in USD. Preferred bill-time input for
+   * `applyMargin` (live admin margin). Unit follows pricingType
+   * (per run, per second, or per megapixel).
+   */
+  providerCostUsd?: number;
   recommendedFor?: readonly string[];
   succeededBy?: string;
   supportsFeatures?: readonly string[];
@@ -111,6 +123,25 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       provider: curated?.provider ?? providerFromMediaKey(key),
     };
 
+    if (curated?.costTier) {
+      entry.costTier = curated.costTier;
+    }
+    if (curated && 'costPerUnit' in curated && curated.costPerUnit != null) {
+      entry.costPerUnit = curated.costPerUnit;
+    }
+    if (curated && 'minCost' in curated && curated.minCost != null) {
+      entry.minCost = curated.minCost;
+    }
+    if (curated && 'pricingType' in curated && curated.pricingType) {
+      entry.pricingType = curated.pricingType;
+    }
+    if (
+      curated &&
+      'providerCostUsd' in curated &&
+      curated.providerCostUsd != null
+    ) {
+      entry.providerCostUsd = curated.providerCostUsd;
+    }
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;
     }

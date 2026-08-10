@@ -134,7 +134,12 @@ export function AgentConversationTurnNavigator({
       aria-label="Conversation prompts"
       className="pointer-events-none absolute inset-y-0 left-2 z-10 hidden lg:flex xl:left-[calc(50%-26rem)]"
     >
-      <div className="pointer-events-auto my-10 flex min-h-0 flex-col justify-between py-1">
+      {/*
+        Cluster markers tightly in the vertical center — never justify-between
+        across the full column (that scattered 2–4 ticks so far apart they were
+        easy to miss and hard to scrub turn-to-turn).
+      */}
+      <div className="pointer-events-auto my-auto flex max-h-[min(70dvh,28rem)] min-h-0 flex-col items-center justify-center gap-0.5 overflow-y-auto py-2">
         {turns.map((turn) => {
           const isActive = turn.id === activeTurnId;
           return (
@@ -142,7 +147,7 @@ export function AgentConversationTurnNavigator({
               key={turn.id}
               aria-current={isActive ? 'location' : undefined}
               ariaLabel={turn.label}
-              className="group flex h-5 w-8 shrink items-center justify-center"
+              className="group flex h-4 w-7 shrink-0 items-center justify-center"
               onClick={() => handleTurnSelect(turn.id)}
               tooltip={turn.label}
               tooltipPosition="right"
@@ -154,8 +159,8 @@ export function AgentConversationTurnNavigator({
                 className={cn(
                   'h-0.5 rounded-full transition-[width,background-color] duration-150',
                   isActive
-                    ? 'w-3 bg-foreground/75'
-                    : 'w-2.5 bg-muted-foreground/35 group-hover:w-3 group-hover:bg-muted-foreground/70',
+                    ? 'w-3.5 bg-foreground/80'
+                    : 'w-2 bg-muted-foreground/40 group-hover:w-3 group-hover:bg-muted-foreground/75',
                 )}
               />
             </Button>

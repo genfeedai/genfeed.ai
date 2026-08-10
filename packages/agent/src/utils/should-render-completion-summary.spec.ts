@@ -91,8 +91,23 @@ describe('shouldRenderCompletionSummary', () => {
     ).toBe(true);
   });
 
-  it('keeps Done without a sibling product card', () => {
-    expect(shouldRenderCompletionSummary(completion(), [])).toBe(true);
+  it('hides generic Done without a sibling product card', () => {
+    expect(shouldRenderCompletionSummary(completion(), [])).toBe(false);
+  });
+
+  it('hides tool-inventory-only Done (clarify turns)', () => {
+    expect(
+      shouldRenderCompletionSummary(
+        completion({
+          summaryText: 'Completed this request successfully.',
+          outcomeBullets: [
+            '1 tool action completed',
+            'Tool: Get Current Brand',
+          ],
+        }),
+        [],
+      ),
+    ).toBe(false);
   });
 
   it('keeps Done with real outcome bullets even with batch sibling', () => {
@@ -124,7 +139,21 @@ describe('completionSummaryHasOutcomeSignal', () => {
     expect(completionSummaryHasOutcomeSignal(completion())).toBe(false);
   });
 
-  it('is true when bullets exist', () => {
+  it('is false for tool-inventory bullets alone', () => {
+    expect(
+      completionSummaryHasOutcomeSignal(
+        completion({
+          summaryText: 'Completed this request successfully.',
+          outcomeBullets: [
+            '1 tool action completed',
+            'Tool: Get Current Brand',
+          ],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('is true when product bullets exist', () => {
     expect(
       completionSummaryHasOutcomeSignal(
         completion({ outcomeBullets: ['Ready in review'] }),

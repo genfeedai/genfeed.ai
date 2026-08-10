@@ -103,12 +103,13 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List content items in the review queue. Can filter by batch ID and status.',
+      'List content waiting in the review queue. batchId is optional — omit it to load the brand/org review inbox. Never invent a batch id; only pass a real entity id when the operator or prior tool result provided one.',
     name: 'list_review_queue',
     parameters: {
       properties: {
         batchId: {
-          description: 'Filter by specific batch ID',
+          description:
+            'Optional real batch entity id. Omit for the full review inbox. Do not pass placeholders like "pending", "all", or "null".',
           type: 'string',
         },
         limit: {
@@ -116,7 +117,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
           type: 'number',
         },
         status: {
-          description: 'Filter by item status',
+          description: 'Filter by item status (batch-scoped listings only)',
           enum: ['pending', 'completed', 'failed'],
           type: 'string',
         },

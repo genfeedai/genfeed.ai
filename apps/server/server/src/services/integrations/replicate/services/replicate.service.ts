@@ -1,4 +1,7 @@
-import { isCloudDeployment } from '@genfeedai/config';
+import {
+  canReceiveProviderWebhooks,
+  isCloudDeployment,
+} from '@genfeedai/config';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -82,6 +85,29 @@ export class ReplicateService {
     return this.client;
   }
 
+  /**
+   * Register a Replicate completion webhook only when this deployment is
+   * cloud-mode AND the webhook base URL is reachable from the public internet.
+   * Local SaaS (`GENFEED_CLOUD=true` + `api.genfeed.localhost`) must poll
+   * instead — Replicate cannot POST to Portless hosts.
+   */
+  private resolveCompletionWebhookUrl(): string | undefined {
+    if (!isCloudDeployment()) {
+      return undefined;
+    }
+
+    const webhooksBase = this.configService.get('GENFEEDAI_WEBHOOKS_URL');
+    if (!canReceiveProviderWebhooks(webhooksBase)) {
+      this.loggerService.warn(
+        `${this.constructorName} skipping Replicate webhook — base URL is not publicly reachable`,
+        { webhooksBase: webhooksBase || null },
+      );
+      return undefined;
+    }
+
+    return `${webhooksBase}/v1/webhooks/replicate/callback`;
+  }
+
   public async runModel(
     modelIdentifier: string,
     input: Record<string, unknown>,
@@ -97,9 +123,7 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = isCloudDeployment()
-        ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
-        : undefined;
+      const webhookUrl = this.resolveCompletionWebhookUrl();
 
       const res = await client.predictions.create({
         input,
@@ -152,9 +176,7 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = isCloudDeployment()
-        ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
-        : undefined;
+      const webhookUrl = this.resolveCompletionWebhookUrl();
 
       const attempt = async () =>
         client.trainings.create(owner, model, version, {

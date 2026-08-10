@@ -4331,16 +4331,12 @@ describe('AgentOrchestratorService', () => {
         }),
       ],
       reviewRequired: false,
-      uiActions: expect.arrayContaining([
-        expect.objectContaining({
-          title: 'Done',
-          type: 'completion_summary_card',
-        }),
+      uiActions: [
         expect.objectContaining({
           title: 'Posts queued',
           type: 'content_preview_card',
         }),
-      ]),
+      ],
     });
   });
 

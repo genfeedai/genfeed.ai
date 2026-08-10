@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Input schema for bytedance/seedance-2.5 (curated from Replicate/ByteDance docs; re-sync with scripts/sync-replicate-schemas.ts when REPLICATE_KEY is available)",
+  "properties": {
+    "aspect_ratio": {
+      "default": "16:9",
+      "description": "Output aspect ratio. Use adaptive to let the model choose from inputs.",
+      "enum": ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9", "adaptive"],
+      "title": "Aspect Ratio",
+      "type": "string",
+      "x-order": 1
+    },
+    "audio": {
+      "description": "Optional reference audio URI",
+      "format": "uri",
+      "nullable": true,
+      "title": "Audio",
+      "type": "string",
+      "x-order": 7
+    },
+    "duration": {
+      "default": 5,
+      "description": "Output duration in seconds (4–30). Prefer short drafts — this model is expensive.",
+      "maximum": 30,
+      "minimum": 4,
+      "title": "Duration",
+      "type": "integer",
+      "x-order": 2
+    },
+    "generate_audio": {
+      "default": true,
+      "description": "Generate synchronized audio with the video",
+      "title": "Generate Audio",
+      "type": "boolean",
+      "x-order": 5
+    },
+    "image": {
+      "description": "First-frame / reference image URI for image-to-video",
+      "format": "uri",
+      "nullable": true,
+      "title": "Image",
+      "type": "string",
+      "x-order": 3
+    },
+    "last_frame": {
+      "description": "Optional last-frame image URI to control where the clip ends",
+      "format": "uri",
+      "nullable": true,
+      "title": "Last Frame",
+      "type": "string",
+      "x-order": 4
+    },
+    "prompt": {
+      "description": "Text prompt. Quote dialogue for lip-sync speech.",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "resolution": {
+      "default": "720p",
+      "description": "Output resolution. 720p costs substantially more than 480p.",
+      "enum": ["480p", "720p"],
+      "title": "Resolution",
+      "type": "string",
+      "x-order": 6
+    },
+    "seed": {
+      "description": "Random seed. Omit for random generations",
+      "nullable": true,
+      "title": "Seed",
+      "type": "integer",
+      "x-order": 8
+    },
+    "video": {
+      "description": "Optional reference video URI for edit/extension",
+      "format": "uri",
+      "nullable": true,
+      "title": "Video",
+      "type": "string",
+      "x-order": 9
+    }
+  },
+  "required": ["prompt"],
+  "title": "seedance-2.5 Input Schema",
+  "type": "object"
+}

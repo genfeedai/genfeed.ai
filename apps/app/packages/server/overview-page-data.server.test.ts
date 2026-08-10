@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getServerAuthTokenMock = vi.fn();
 const getOverviewBootstrapMock = vi.fn();
 const shouldSkipCloudBootstrapMock = vi.fn();
+const isDesktopServerRequestMock = vi.fn();
 const getInstanceMock = vi.fn(() => ({
   getOverviewBootstrap: getOverviewBootstrapMock,
 }));
@@ -11,6 +12,7 @@ vi.mock('@app-server/protected-bootstrap.server', () => ({
   getServerAuthToken: getServerAuthTokenMock,
   hasUsableServerAuthToken: vi.fn().mockReturnValue(true),
   shouldSkipCloudBootstrap: shouldSkipCloudBootstrapMock,
+  isDesktopServerRequest: isDesktopServerRequestMock,
 }));
 
 vi.mock('@services/auth/auth.service', () => ({
@@ -31,6 +33,7 @@ describe('loadOverviewPageData', () => {
     vi.resetModules();
     getServerAuthTokenMock.mockResolvedValue('token_123');
     shouldSkipCloudBootstrapMock.mockReturnValue(false);
+    isDesktopServerRequestMock.mockResolvedValue(false);
     getOverviewBootstrapMock.mockResolvedValue({
       activeRuns: [{ id: 'run_2' }],
       analytics: { totalPosts: 12 },

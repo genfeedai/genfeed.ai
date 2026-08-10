@@ -90,7 +90,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/calendar/release-calendar-filters.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/calendar/release-detail-drawer.tsx": 9,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/overview/PublishOverviewPage.tsx": 3,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/posts/[id]/post-editor-content.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/posts/[id]/PublishContentEditorPage.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/remix/trend-remix-page.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewDecisionPanel.tsx": 4,

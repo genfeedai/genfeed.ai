@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Input schema for bytedance/video-upscaler (curated from Replicate docs; re-sync with scripts/sync-replicate-schemas.ts when REPLICATE_KEY is available)",
+  "properties": {
+    "processing_type": {
+      "default": "standard",
+      "description": "standard is general-purpose; pro is higher quality (allowlist on Replicate)",
+      "enum": ["standard", "pro"],
+      "title": "Processing Type",
+      "type": "string",
+      "x-order": 1
+    },
+    "scene": {
+      "default": "aigc",
+      "description": "Content preset for enhancement",
+      "enum": ["aigc", "short_series", "ugc", "old_film", "common"],
+      "title": "Scene",
+      "type": "string",
+      "x-order": 2
+    },
+    "target_fps": {
+      "default": 30,
+      "description": "Output frame rate (interpolation if higher than source)",
+      "enum": [24, 30, 60, 120],
+      "title": "Target FPS",
+      "type": "integer",
+      "x-order": 4
+    },
+    "target_resolution": {
+      "default": "1080p",
+      "description": "Output resolution. Higher res costs more per second.",
+      "enum": ["240p", "360p", "480p", "540p", "720p", "1080p", "2k", "4k"],
+      "title": "Target Resolution",
+      "type": "string",
+      "x-order": 3
+    },
+    "video": {
+      "description": "Input video to upscale",
+      "format": "uri",
+      "title": "Video",
+      "type": "string",
+      "x-order": 0
+    }
+  },
+  "required": ["video"],
+  "title": "video-upscaler Input Schema",
+  "type": "object"
+}

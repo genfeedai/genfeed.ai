@@ -2,10 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE_ICON="${ROOT_DIR}/assets/app-icon.svg"
+SOURCE_ICON="${ROOT_DIR}/../../app/public/genfeed-icon.svg"
 ICONSET_DIR="${ROOT_DIR}/build/icon.iconset"
 OUTPUT_ICON="${ROOT_DIR}/build/icon.icns"
 RASTER_SOURCE="${ROOT_DIR}/build/app-icon-1024.png"
+TRAY_ICON="${ROOT_DIR}/assets/tray-icon.png"
+TRAY_ICON_RETINA="${ROOT_DIR}/assets/tray-icon@2x.png"
 
 if [[ ! -f "${SOURCE_ICON}" ]]; then
   echo "Source icon not found: ${SOURCE_ICON}" >&2
@@ -35,7 +37,10 @@ sips -z 256 256 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_256x256.png" >/dev
 sips -z 512 512 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_256x256@2x.png" >/dev/null
 sips -z 512 512 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_512x512.png" >/dev/null
 sips -z 1024 1024 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_512x512@2x.png" >/dev/null
+sips -z 16 16 "${RASTER_SOURCE}" --out "${TRAY_ICON}" >/dev/null
+sips -z 32 32 "${RASTER_SOURCE}" --out "${TRAY_ICON_RETINA}" >/dev/null
 
 iconutil -c icns "${ICONSET_DIR}" -o "${OUTPUT_ICON}"
 
 echo "Generated macOS icon at ${OUTPUT_ICON}"
+echo "Generated macOS tray icons at ${TRAY_ICON} and ${TRAY_ICON_RETINA}"

@@ -93,6 +93,28 @@ describe('AgentConversationTurnNavigator', () => {
     expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
+  it('clusters markers tightly instead of spreading them down the column', () => {
+    const conversation = createConversationDom(['user-1', 'user-2', 'user-3']);
+
+    const { container } = render(
+      <AgentConversationTurnNavigator
+        scrollContainerRef={conversation.ref}
+        timeline={[
+          buildMessage('user-1', 'user', 'First'),
+          buildMessage('user-2', 'user', 'Second'),
+          buildMessage('user-3', 'user', 'Third'),
+        ]}
+      />,
+    );
+
+    const rail = container.querySelector(
+      'nav[aria-label="Conversation prompts"] > div',
+    );
+    expect(rail?.className).toMatch(/gap-0\.5/);
+    expect(rail?.className).toMatch(/justify-center/);
+    expect(rail?.className).not.toMatch(/justify-between/);
+  });
+
   it('jumps to the selected user prompt', () => {
     const conversation = createConversationDom(['user-1', 'user-2']);
 

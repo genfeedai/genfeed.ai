@@ -1,6 +1,7 @@
 import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import { contextBridge, ipcRenderer } from 'electron';
+import { isTrustedDesktopAppOrigin } from './main/app-shell-origin.util';
 
 const APP_ORIGIN_ARGUMENT = '--genfeed-app-origin=';
 
@@ -16,15 +17,7 @@ const getDesktopAppOrigin = (): string | null => {
   try {
     const url = new URL(argument.slice(APP_ORIGIN_ARGUMENT.length));
 
-    if (
-      url.hash ||
-      url.hostname !== '127.0.0.1' ||
-      url.password ||
-      url.pathname !== '/' ||
-      url.protocol !== 'http:' ||
-      url.search ||
-      url.username
-    ) {
+    if (!isTrustedDesktopAppOrigin(url.toString())) {
       return null;
     }
 

@@ -61,3 +61,27 @@ export function buildScopedThreadHref(
 ): string {
   return `/${organizationSlug}/${brandSlug ?? '~'}${APP_ROUTES.AGENT.ROOT}/${threadId}`;
 }
+
+/**
+ * Extract a standard agent thread id from a normalized protected pathname
+ * (`/agent/:id`). Onboarding and unthreaded entry routes return null.
+ */
+export function extractAgentThreadIdFromPathname(
+  pathname: string,
+): string | null {
+  const match = pathname.match(/^\/agent\/([^/]+)$/);
+  if (!match?.[1]) {
+    return null;
+  }
+
+  const threadId = match[1];
+  if (
+    threadId === 'new' ||
+    threadId === 'onboarding' ||
+    threadId === 'journey'
+  ) {
+    return null;
+  }
+
+  return threadId;
+}

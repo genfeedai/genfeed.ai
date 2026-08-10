@@ -70,6 +70,18 @@ export function useAgentThreadList({
   const previousBrandIdRef = useRef(brandId);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  // When the operator picks Recent/Archived, keep that choice even if the open
+  // thread is archived — auto-switch only applies until the next manual toggle
+  // or a different thread is selected.
+  const userPinnedViewRef = useRef<AgentThreadStatus | null>(null);
+  const activeThreadStatus = useAgentChatStore((s) => {
+    if (!s.activeThreadId) {
+      return null;
+    }
+    return (
+      s.threads.find((thread) => thread.id === s.activeThreadId)?.status ?? null
+    );
+  });
 
   const getThreadHref = useCallback(
     (threadId: string) => `${APP_ROUTES.AGENT.ROOT}/${threadId}`,
@@ -128,9 +140,19 @@ export function useAgentThreadList({
       );
       const apiIds = new Set(renderableData.map((item) => item.id));
 
+      // Always keep the open thread visible even when the list filter (status
+      // or brand timing) would drop it — e.g. archived deep link before the
+      // view flips, or a brand-scoped upsert that landed before the API page.
       const activeThread =
         currentActiveId && !apiIds.has(currentActiveId)
-          ? renderableCurrent.find((t) => t.id === currentActiveId)
+          ? (renderableCurrent.find((t) => t.id === currentActiveId) ??
+            current.find(
+              (t) =>
+                t.id === currentActiveId &&
+                hasRenderableThreadId(t) &&
+                matchesBrandScope(t),
+            ) ??
+            null)
           : null;
 
       const RECENT_THRESHOLD_MS = 15_000;
@@ -299,6 +321,36 @@ export function useAgentThreadList({
     prevActiveIdRef.current = activeThreadId;
   }, [activeThreadId, isActive, threads, loadThreads, viewStatus]);
 
+  // Deep-linking into an archived thread must not leave the sidebar on Active
+  // ("No threads"). Only auto-enter archived when the operator has not pinned
+  // a list view (Recent/Archived menu) for this open thread.
+  useEffect(() => {
+    if (!isActive || !activeThreadId || !activeThreadStatus) {
+      return;
+    }
+
+    if (userPinnedViewRef.current != null) {
+      return;
+    }
+
+    if (
+      activeThreadStatus === AgentThreadStatus.ARCHIVED &&
+      viewStatus !== AgentThreadStatus.ARCHIVED
+    ) {
+      setViewStatus(AgentThreadStatus.ARCHIVED);
+    }
+  }, [activeThreadId, activeThreadStatus, isActive, viewStatus]);
+
+  // New open thread clears the manual pin so a deep link can auto-switch again.
+  const previousActiveForViewRef = useRef(activeThreadId);
+  useEffect(() => {
+    if (previousActiveForViewRef.current === activeThreadId) {
+      return;
+    }
+    previousActiveForViewRef.current = activeThreadId;
+    userPinnedViewRef.current = null;
+  }, [activeThreadId]);
+
   const handleSelect = useCallback(
     async (thread: AgentThread) => {
       clearThreadAttention(thread.id);
@@ -393,7 +445,11 @@ export function useAgentThreadList({
             ),
           );
           if (onNavigate) {
+            // Leave the archived row behind so Active list reloads cleanly;
+            // do not keep this thread selected under /agent/new.
+            setActiveThread(null);
             clearMessages();
+            resetActiveConversationState();
             onNavigate(getNewThreadHref());
           }
         } else {
@@ -411,6 +467,8 @@ export function useAgentThreadList({
       clearMessages,
       getNewThreadHref,
       onNavigate,
+      resetActiveConversationState,
+      setActiveThread,
       setThreads,
     ],
   );
@@ -612,11 +670,14 @@ export function useAgentThreadList({
     !authError && !shouldShowLoadFailureState && !isLoading;
 
   const handleToggleView = useCallback(() => {
-    setViewStatus((current) =>
-      current === AgentThreadStatus.ACTIVE
-        ? AgentThreadStatus.ARCHIVED
-        : AgentThreadStatus.ACTIVE,
-    );
+    setViewStatus((current) => {
+      const next =
+        current === AgentThreadStatus.ACTIVE
+          ? AgentThreadStatus.ARCHIVED
+          : AgentThreadStatus.ACTIVE;
+      userPinnedViewRef.current = next;
+      return next;
+    });
   }, []);
 
   const handleRetryLoad = useCallback(() => {

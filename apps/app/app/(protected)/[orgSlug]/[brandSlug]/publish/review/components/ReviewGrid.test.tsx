@@ -1,6 +1,5 @@
 import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import ReviewGrid from './ReviewGrid';
 import {
   getReviewFilterCounts,
@@ -42,7 +41,6 @@ const baseHandlers = {
   onBulkApprove: vi.fn(),
   onBulkReject: vi.fn(),
   onBulkRewriteWithAgent: vi.fn(),
-  onDiscardBatch: vi.fn(),
   onSelectItem: vi.fn(),
   onToggleSelect: vi.fn(),
 };
@@ -56,7 +54,6 @@ describe('ReviewGrid', () => {
     render(
       <ReviewGrid
         activeItem={mockItems[0]}
-        canDiscardBatch={true}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set()}
@@ -71,6 +68,9 @@ describe('ReviewGrid', () => {
     expect(
       screen.queryByText('Select a row or talk to the agent'),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Discard batch' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the table-owned empty state once when filters hide every item', () => {
@@ -81,7 +81,6 @@ describe('ReviewGrid', () => {
     render(
       <ReviewGrid
         activeItem={null}
-        canDiscardBatch={false}
         isActioning={false}
         items={visibleItems}
         selectedIds={new Set()}
@@ -95,16 +94,12 @@ describe('ReviewGrid', () => {
       screen.getByText('Try All statuses, or pick another batch.'),
     ).toBeInTheDocument();
     expect(screen.queryByText('No items in this view')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Discard batch' }),
-    ).not.toBeInTheDocument();
   });
 
   it('should show bulk actions when items are selected', () => {
     render(
       <ReviewGrid
         activeItem={mockItems[0]}
-        canDiscardBatch={true}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set(['item-1'])}
@@ -127,14 +122,12 @@ describe('ReviewGrid', () => {
     render(
       <ReviewGrid
         activeItem={mockItems[0]}
-        canDiscardBatch={true}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set(['item-1'])}
         onBulkApprove={onBulkApprove}
         onBulkReject={onBulkReject}
         onBulkRewriteWithAgent={onBulkRewriteWithAgent}
-        onDiscardBatch={vi.fn()}
         onSelectItem={onSelectItem}
         onToggleSelect={onToggleSelect}
       />,
@@ -153,27 +146,6 @@ describe('ReviewGrid', () => {
     expect(onBulkApprove).toHaveBeenCalledTimes(1);
     expect(onBulkReject).toHaveBeenCalledTimes(1);
     expect(onBulkRewriteWithAgent).toHaveBeenCalledTimes(1);
-  });
-
-  it('routes the whole-batch discard action', async () => {
-    const user = userEvent.setup();
-    const onDiscardBatch = vi.fn();
-
-    render(
-      <ReviewGrid
-        activeItem={mockItems[0]}
-        canDiscardBatch={true}
-        isActioning={false}
-        items={mockItems}
-        selectedIds={new Set()}
-        {...baseHandlers}
-        onDiscardBatch={onDiscardBatch}
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Discard batch' }));
-
-    expect(onDiscardBatch).toHaveBeenCalledOnce();
   });
 
   it('counts and filters review statuses', () => {

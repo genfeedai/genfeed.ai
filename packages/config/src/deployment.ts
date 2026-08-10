@@ -24,7 +24,17 @@ export function getDeployment(): Deployment {
 
 /** Resolve the client-surface axis independently from the deployment. */
 export function getClientSurface(): ClientSurface {
-  return envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL) ? 'desktop' : 'web';
+  if (envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL)) {
+    return 'desktop';
+  }
+
+  const runtimeSurface = (
+    globalThis as typeof globalThis & {
+      __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: ClientSurface };
+    }
+  ).__GENFEED_RUNTIME_CONFIG__?.clientSurface;
+
+  return runtimeSurface === 'desktop' ? 'desktop' : 'web';
 }
 
 export function isCloudDeployment(): boolean {

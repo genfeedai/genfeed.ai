@@ -32,124 +32,207 @@ export class AgentReviewToolHandler {
       };
     }
 
-    const batchId = this.normalizeBatchIdParam(params.batchId);
-    const limit = (params.limit as number) || 20;
+    const rawBatchId = params.batchId;
+    const batchId = this.normalizeBatchIdParam(rawBatchId);
+    const limit =
+      typeof params.limit === 'number' && Number.isFinite(params.limit)
+        ? Math.max(1, Math.min(params.limit, 50))
+        : 20;
 
-    if (params.batchId != null && !batchId) {
+    // Models often pass placeholders ("pending", "all", "null", empty) when the
+    // operator asks for "the review queue" without a batch. Never hard-fail the
+    // run — fall through to the brand/org review inbox instead.
+    const hadInvalidBatchId =
+      rawBatchId != null &&
+      !(typeof rawBatchId === 'string' && rawBatchId.trim() === '') &&
+      !batchId;
+
+    if (batchId) {
+      return this.listReviewQueueForBatch(batchId, params, ctx, limit);
+    }
+
+    return this.listReviewInbox(ctx, limit, hadInvalidBatchId);
+  }
+
+  private async listReviewQueueForBatch(
+    batchId: string,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+    limit: number,
+  ): Promise<AgentToolResult> {
+    if (!this.batchGenerationService) {
       return {
         creditsUsed: 0,
-        error: 'batchId must be a valid entity id',
+        error: 'Batch generation service not available',
         success: false,
       };
     }
 
-    if (batchId) {
-      const batch = await this.batchGenerationService.getBatch(
-        batchId,
-        ctx.organizationId,
-      );
+    const batch = await this.batchGenerationService.getBatch(
+      batchId,
+      ctx.organizationId,
+    );
 
-      if (!batch) {
-        return {
-          creditsUsed: 0,
-          error: `Batch ${batchId} not found`,
-          success: false,
-        };
-      }
-
-      const statusFilter = params.status as string | undefined;
-      let items = batch.items || [];
-
-      if (statusFilter) {
-        items = items.filter(
-          (item: unknown) =>
-            (item as Record<string, unknown>).status === statusFilter,
-        );
-      }
-
-      const visibleItems = items.slice(0, limit).map((item) => {
-        const reviewItem = item as unknown as Record<string, unknown>;
-        return {
-          caption: reviewItem.caption,
-          format: reviewItem.format,
-          id: String(reviewItem.id),
-          mediaUrl: reviewItem.mediaUrl,
-          platform: reviewItem.platform,
-          reviewDecision: normalizeReviewDecision(reviewItem.reviewDecision),
-          scheduledDate: reviewItem.scheduledDate,
-          status: reviewItem.status,
-        };
-      });
-
-      const readyCount = items.filter((item: unknown) => {
-        const reviewItem = item as Record<string, unknown>;
-        return (
-          !isTerminalReviewDecision(
-            normalizeReviewDecision(reviewItem.reviewDecision),
-          ) && reviewItem.status !== 'failed'
-        );
-      }).length;
-      const summaryText =
-        visibleItems.length === 0
-          ? 'This batch does not have any items in the current filter.'
-          : `Loaded ${visibleItems.length} item${visibleItems.length === 1 ? '' : 's'} from this batch. ${readyCount} item${readyCount === 1 ? ' is' : 's are'} ready for review right now.`;
-      const outcomeBullets = visibleItems.slice(0, 4).map((item) => {
-        const platformLabel = formatPlatformLabel(item.platform);
-        const formatLabel =
-          typeof item.format === 'string' ? item.format : null;
-        const statusLabel =
-          item.reviewDecision ??
-          (typeof item.status === 'string' ? item.status : null);
-
-        return [platformLabel, formatLabel, statusLabel]
-          .filter((value): value is string => Boolean(value))
-          .join(' · ');
-      });
-
+    if (!batch) {
       return {
         creditsUsed: 0,
-        data: {
-          batchId: String(batch.id),
-          batchStatus: batch.status,
-          items: visibleItems,
-          totalCount: batch.totalCount,
-        },
-        nextActions: [
-          {
-            id: `review-queue-${String(batch.id)}`,
-            outcomeBullets,
-            primaryCta: {
-              href: `/publish/review?batch=${String(batch.id)}&filter=ready`,
-              label: 'Open review queue',
-            },
-            status: 'completed',
-            summaryText,
-            title: 'Review queue loaded',
-            type: 'completion_summary_card',
-          },
-        ],
-        success: true,
+        error: `Batch ${batchId} not found`,
+        success: false,
       };
     }
 
-    const result = await this.batchGenerationService.getBatches(
-      ctx.organizationId,
-      { limit },
-    );
+    const statusFilter = params.status as string | undefined;
+    let items = batch.items || [];
+
+    if (statusFilter) {
+      items = items.filter(
+        (item: unknown) =>
+          (item as Record<string, unknown>).status === statusFilter,
+      );
+    }
+
+    const visibleItems = items.slice(0, limit).map((item) => {
+      const reviewItem = item as unknown as Record<string, unknown>;
+      return {
+        caption: reviewItem.caption,
+        format: reviewItem.format,
+        id: String(reviewItem.id),
+        mediaUrl: reviewItem.mediaUrl,
+        platform: reviewItem.platform,
+        reviewDecision: normalizeReviewDecision(reviewItem.reviewDecision),
+        scheduledDate: reviewItem.scheduledDate,
+        status: reviewItem.status,
+      };
+    });
+
+    const readyCount = items.filter((item: unknown) => {
+      const reviewItem = item as Record<string, unknown>;
+      return (
+        !isTerminalReviewDecision(
+          normalizeReviewDecision(reviewItem.reviewDecision),
+        ) && reviewItem.status !== 'failed'
+      );
+    }).length;
+    const summaryText =
+      visibleItems.length === 0
+        ? 'This batch does not have any items in the current filter.'
+        : `Loaded ${visibleItems.length} item${visibleItems.length === 1 ? '' : 's'} from this batch. ${readyCount} item${readyCount === 1 ? ' is' : 's are'} ready for review right now.`;
+    const outcomeBullets = visibleItems.slice(0, 4).map((item) => {
+      const platformLabel = formatPlatformLabel(item.platform);
+      const formatLabel = typeof item.format === 'string' ? item.format : null;
+      const statusLabel =
+        item.reviewDecision ??
+        (typeof item.status === 'string' ? item.status : null);
+
+      return [platformLabel, formatLabel, statusLabel]
+        .filter((value): value is string => Boolean(value))
+        .join(' · ');
+    });
 
     return {
       creditsUsed: 0,
       data: {
-        batches: result.items.map((b) => ({
-          completedCount: b.completedCount,
-          failedCount: b.failedCount,
-          id: b.id,
-          pendingCount: b.pendingCount,
-          status: b.status,
-          totalCount: b.totalCount,
-        })),
-        total: result.total,
+        batchId: String(batch.id),
+        batchStatus: batch.status,
+        items: visibleItems,
+        totalCount: batch.totalCount,
       },
+      nextActions: [
+        {
+          id: `review-queue-${String(batch.id)}`,
+          outcomeBullets,
+          primaryCta: {
+            href: `/publish/review?batch=${String(batch.id)}&filter=ready`,
+            label: 'Open review queue',
+          },
+          status: 'completed',
+          summaryText,
+          title: 'Review queue loaded',
+          type: 'completion_summary_card',
+        },
+      ],
+      success: true,
+    };
+  }
+
+  private async listReviewInbox(
+    ctx: ToolExecutionContext,
+    limit: number,
+    hadInvalidBatchId: boolean,
+  ): Promise<AgentToolResult> {
+    if (!this.batchGenerationService) {
+      return {
+        creditsUsed: 0,
+        error: 'Batch generation service not available',
+        success: false,
+      };
+    }
+
+    const inbox = await this.batchGenerationService.getReviewInboxSummary(
+      ctx.organizationId,
+      ctx.brandId,
+      limit,
+    );
+
+    const recentItems = inbox.recentItems ?? [];
+    const readyCount = inbox.readyCount ?? 0;
+    const pendingCount = inbox.pendingCount ?? 0;
+    const summaryText =
+      readyCount === 0 && pendingCount === 0
+        ? 'No items are waiting in the review queue right now.'
+        : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidBatchId ? ' (ignored an invalid batch id from the model and loaded the full queue).' : '.'}`;
+
+    const outcomeBullets = recentItems.slice(0, 4).map((item) => {
+      const platformLabel = formatPlatformLabel(item.platform);
+      const formatLabel = typeof item.format === 'string' ? item.format : null;
+      const statusLabel =
+        typeof item.status === 'string' ? item.status : 'ready';
+
+      return [platformLabel, formatLabel, statusLabel]
+        .filter((value): value is string => Boolean(value))
+        .join(' · ');
+    });
+
+    return {
+      creditsUsed: 0,
+      data: {
+        approvedCount: inbox.approvedCount,
+        changesRequestedCount: inbox.changesRequestedCount,
+        pendingCount,
+        readyCount,
+        recentItems: recentItems.map((item) => ({
+          batchId: item.batchId,
+          format: item.format,
+          id: item.id,
+          mediaUrl: item.mediaUrl,
+          platform: item.platform,
+          postId: item.postId,
+          reviewDecision: item.reviewDecision,
+          status: item.status,
+          summary: item.summary,
+        })),
+        rejectedCount: inbox.rejectedCount,
+        scope: ctx.brandId ? 'brand' : 'organization',
+      },
+      nextActions: [
+        {
+          id: `review-inbox-${ctx.brandId ?? ctx.organizationId}`,
+          outcomeBullets:
+            outcomeBullets.length > 0
+              ? outcomeBullets
+              : readyCount === 0
+                ? ['Queue is empty']
+                : [`${readyCount} ready for review`],
+          primaryCta: {
+            href: '/publish/review?filter=ready',
+            label: 'Open review queue',
+          },
+          status: 'completed',
+          summaryText,
+          title: 'Review queue loaded',
+          type: 'completion_summary_card',
+        },
+      ],
       success: true,
     };
   }

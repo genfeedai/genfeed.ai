@@ -2,6 +2,9 @@
 
 export type {
   CreditPackTier,
+  ModelLiveCreditPricing,
+  ModelLivePricingInput,
+  ModelLivePricingUnits,
   PlanCopyProps,
   PlanTier,
   PricingPlanProps,
@@ -18,6 +21,7 @@ export {
   BYOK_FEE_PER_CREDIT,
   BYOK_FEE_PERCENTAGE,
   BYOK_FREE_THRESHOLD_CREDITS,
+  billCreditsFromProviderCost,
   contentServiceOffering,
   creditPackPrice,
   creditPackTotalCredits,
@@ -42,10 +46,13 @@ export {
   PAYG_MIN_PURCHASE_USD,
   PLAN_COPY,
   PLAN_LABELS,
+  resolveLiveModelCreditPricing,
+  resolveProviderCostUnits,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
   TRAINING_PACKAGES,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   websitePlans,
+  withLiveModelCreditPricing,
 } from '@genfeedai/pricing';

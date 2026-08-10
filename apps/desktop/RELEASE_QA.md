@@ -11,7 +11,8 @@ packaged Electron shell.
 - Command: `bunx turbo run qa:release --filter=@genfeedai/desktop`.
 - Coverage: desktop lint, type-check, Bun tests, native rebuild, canonical
   `apps/app` standalone build, and Electron `--smoke-test` readiness. Smoke only
-  passes after `did-finish-load` and the `gf-desktop-shell` body marker render.
+  passes after `did-finish-load`, the `gf-desktop-shell` body marker renders,
+  and the sandboxed preload exposes the desktop bridge.
 
 ## Manual Checklist
 

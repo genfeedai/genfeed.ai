@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { BrowserWindow } from 'electron';
-import { app, Menu, Tray } from 'electron';
+import { app, Menu, nativeImage, Tray } from 'electron';
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,7 +10,13 @@ export class DesktopTrayService {
 
   initialize(mainWindow: BrowserWindow, onQuickGenerate: () => void): void {
     const iconPath = path.join(mainDir, 'assets', 'tray-icon.png');
-    this.tray = new Tray(iconPath);
+    const trayIcon = nativeImage.createFromPath(iconPath);
+
+    if (process.platform === 'darwin') {
+      trayIcon.setTemplateImage(true);
+    }
+
+    this.tray = new Tray(trayIcon);
     this.tray.setToolTip('Genfeed Desktop');
 
     const contextMenu = Menu.buildFromTemplate([

@@ -2,6 +2,7 @@ import {
   buildConversationScopeHref,
   buildOrganizationNewThreadHref,
   buildScopedThreadHref,
+  extractAgentThreadIdFromPathname,
 } from './conversation-scope-location';
 
 describe('conversation scope location', () => {
@@ -38,5 +39,17 @@ describe('conversation scope location', () => {
     expect(buildScopedThreadHref('acme', 'brand-a', 'thread-1')).toBe(
       '/acme/brand-a/agent/thread-1',
     );
+  });
+
+  it('extracts standard agent thread ids and ignores entry routes', () => {
+    expect(
+      extractAgentThreadIdFromPathname('/agent/cmsjhy6ip0030wjxnrdi5axao'),
+    ).toBe('cmsjhy6ip0030wjxnrdi5axao');
+    expect(extractAgentThreadIdFromPathname('/agent/new')).toBeNull();
+    expect(extractAgentThreadIdFromPathname('/agent/onboarding')).toBeNull();
+    expect(extractAgentThreadIdFromPathname('/agent/journey')).toBeNull();
+    expect(
+      extractAgentThreadIdFromPathname('/agent/onboarding/thread-1'),
+    ).toBeNull();
   });
 });

@@ -10,12 +10,6 @@ vi.mock('@hooks/utils/use-mounted/use-mounted', () => ({
   useMounted: vi.fn(() => mockIsMounted),
 }));
 
-vi.mock('@genfeedai/services/core/environment.service', () => ({
-  EnvironmentService: {
-    logoURL: 'https://example.com/logo.svg',
-  },
-}));
-
 describe('useThemeLogo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,11 +44,11 @@ describe('useThemeLogo', () => {
       const { result } = renderHook(() => useThemeLogo());
 
       await waitFor(() => {
-        expect(result.current).toBe('https://example.com/logo.svg');
+        expect(result.current).toBe('/genfeed-icon.svg');
       });
     });
 
-    it('returns the bundled desktop logo in desktop shell mode', async () => {
+    it('returns the same canonical logo in desktop shell mode', async () => {
       process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
       mockIsMounted = true;
 
@@ -75,13 +69,13 @@ describe('useThemeLogo', () => {
       });
     });
 
-    it('returns valid URL when mounted', async () => {
+    it('returns the canonical local asset path when mounted', async () => {
       mockIsMounted = true;
 
       const { result } = renderHook(() => useThemeLogo());
 
       await waitFor(() => {
-        expect(result.current).toMatch(/^https?:\/\/.+/);
+        expect(result.current).toBe('/genfeed-icon.svg');
       });
     });
   });

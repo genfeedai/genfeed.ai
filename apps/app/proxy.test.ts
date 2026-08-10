@@ -93,13 +93,19 @@ function makeSignedOutRequest(pathname: string, search?: string) {
 
 interface DesktopRequestOptions {
   desktopToken?: string;
+  desktopVersion?: string | null;
   hasSession: boolean;
   search?: string;
 }
 
 function makeDesktopRequest(
   pathname: string,
-  { desktopToken, hasSession, search = '' }: DesktopRequestOptions,
+  {
+    desktopToken,
+    desktopVersion = '0.1.0',
+    hasSession,
+    search = '',
+  }: DesktopRequestOptions,
 ) {
   const cookieMap: Record<string, string> = hasSession
     ? { [SESSION_COOKIE_NAME]: SESSION_TOKEN }
@@ -124,6 +130,9 @@ function makeDesktopRequest(
         if (normalizedName === 'x-genfeed-desktop-token') {
           return desktopToken ?? null;
         }
+        if (normalizedName === 'x-genfeed-desktop-version') {
+          return desktopVersion;
+        }
         return null;
       }),
     },
@@ -147,6 +156,7 @@ describe('proxy', () => {
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
+    vi.stubEnv('GENFEED_DESKTOP_MINIMUM_VERSION', undefined);
     vi.resetModules();
     globalThis.fetch = fetchMock as typeof fetch;
 
@@ -1493,6 +1503,62 @@ describe('proxy', () => {
     });
   });
 
+  it('recognizes a remote desktop request without a desktop build flag', async () => {
+    const { default: proxy } = await import('./proxy');
+    const response = await proxy(
+      makeDesktopRequest('/workspace', {
+        desktopToken: 'gf_valid_desktop_token',
+        hasSession: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('requires remote desktop clients to satisfy the configured minimum version', async () => {
+    vi.stubEnv('GENFEED_DESKTOP_MINIMUM_VERSION', '0.2.0');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/', {
+        desktopVersion: '0.1.9',
+        hasSession: false,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(426);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('x-genfeed-desktop-minimum-version')).toBe(
+      '0.2.0',
+    );
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        code: 'DESKTOP_UPDATE_REQUIRED',
+        currentVersion: '0.1.9',
+        minimumVersion: '0.2.0',
+      }),
+    );
+  });
+
+  it('rejects malformed desktop versions instead of bypassing the gate', async () => {
+    const { default: proxy } = await import('./proxy');
+    const response = await proxy(
+      makeDesktopRequest('/', {
+        desktopVersion: 'not-a-version',
+        hasSession: false,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(426);
+  });
+
   it('redirects signed-out desktop onboarding to the desktop login surface', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     vi.resetModules();
@@ -1773,14 +1839,7 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/logout', search: '' },
-        url: 'http://localhost:3000/logout',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedOutRequest('/logout'), {} as never);
 
     const setCookieHeader = response.headers.get('set-cookie') ?? '';
     expect(setCookieHeader).toContain('gf_ws');

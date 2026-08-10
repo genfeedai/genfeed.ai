@@ -174,7 +174,10 @@ export function getPublisherPostsStatusPath(
   return APP_ROUTES.PUBLISH.POSTS;
 }
 
-/** Canonical path for a single post under Publish (type-aware editor desk). */
+/**
+ * Canonical path for a single post under Publish.
+ * Renders the full PostDetail surface (same as the list sheet / admin page).
+ */
 export function getPublisherPostHref(postId: string): string {
   return `${APP_ROUTES.PUBLISH.POSTS}/${postId}`;
 }

@@ -73,13 +73,23 @@ export function AgentChatTimeline({
   // Only the terminal timeline entry may own the failure card / retry context.
   // An older failed work-group must not surface when a later group succeeded
   // or when the terminal entry is a message / stream row.
+  // Intermediate tool failures that were recovered (later tools completed)
+  // must not keep the failure card up either.
   const terminalEntry = timeline.at(-1);
   const terminalFailedWorkGroup =
-    terminalEntry?.kind === 'work-group' &&
-    terminalEntry.events.some(
-      (event) => event.status === AgentWorkEventStatus.FAILED,
-    )
-      ? terminalEntry
+    terminalEntry?.kind === 'work-group'
+      ? (() => {
+          const toolEvents = terminalEntry.events.filter(
+            (event) =>
+              event.status === AgentWorkEventStatus.FAILED ||
+              event.status === AgentWorkEventStatus.COMPLETED ||
+              event.status === AgentWorkEventStatus.CANCELLED,
+          );
+          const last = toolEvents.at(-1);
+          return last?.status === AgentWorkEventStatus.FAILED
+            ? terminalEntry
+            : null;
+        })()
       : null;
   const lastFailedDetail = terminalFailedWorkGroup
     ? [...terminalFailedWorkGroup.events]

@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 const htmlDocumentSpy = vi.fn();
+const headersMock = vi.fn(async () => new Headers());
+const runtimeConfigSpy = vi.fn();
 
 vi.mock('@styles/globals.css', () => ({}));
 
@@ -28,6 +30,10 @@ vi.mock('@helpers/ui/theme/theme.helper', () => ({
 // anywhere in the layout would fail the lang assertion below.
 vi.mock('@helpers/ui/locale/locale.helper', () => ({
   resolveRequestLocale: vi.fn().mockResolvedValue('en-XA'),
+}));
+
+vi.mock('next/headers', () => ({
+  headers: headersMock,
 }));
 
 // The real provider reads request-scoped config from i18n/request.ts, which
@@ -60,7 +66,10 @@ vi.mock('@ui/shell/AppHtmlDocument', () => ({
 }));
 
 vi.mock('@/components/runtime/RuntimeConfigScript', () => ({
-  default: () => null,
+  default: ({ source }: { source: string }) => {
+    runtimeConfigSpy(source);
+    return null;
+  },
 }));
 
 vi.mock('@ui/shell/metadata', () => ({
@@ -83,6 +92,8 @@ describe('app root layout', () => {
   beforeEach(() => {
     appProvidersSpy.mockClear();
     htmlDocumentSpy.mockClear();
+    runtimeConfigSpy.mockClear();
+    headersMock.mockResolvedValue(new Headers());
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
@@ -147,5 +158,27 @@ describe('app root layout', () => {
       follow: false,
       index: false,
     });
+  });
+
+  it('activates the desktop surface from the Electron version header', async () => {
+    headersMock.mockResolvedValue(
+      new Headers({ 'x-genfeed-desktop-version': '0.1.0' }),
+    );
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>Desktop child</div>,
+      } as never),
+    );
+
+    expect(htmlDocumentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bodyClassName: 'gf-app gf-desktop-shell gf-studio-app',
+      }),
+    );
+    expect(runtimeConfigSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"clientSurface":"desktop"'),
+    );
   });
 });

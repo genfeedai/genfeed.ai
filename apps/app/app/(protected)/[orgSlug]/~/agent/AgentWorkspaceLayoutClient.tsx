@@ -40,6 +40,7 @@ import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   buildOrganizationNewThreadHref,
   buildScopedThreadHref,
+  extractAgentThreadIdFromPathname,
 } from '@/lib/workspace-shell/conversation-scope-location';
 import { AgentWorkspaceContext } from './agent-workspace-context';
 
@@ -104,6 +105,7 @@ function AgentWorkspaceLayoutClientContent({
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const threads = useAgentChatStore((s) => s.threads);
   const completedRef = useRef(false);
   const lastBootstrapKeyRef = useRef<string | null>(null);
   const newRouteBaselineThreadRef = useRef<
@@ -376,6 +378,59 @@ function AgentWorkspaceLayoutClientContent({
       hasAttemptedReturningBootstrapRef.current = false;
     }
   }, [isReturningBootstrapRoute]);
+
+  // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
+  // the store, replace to the brand that owns it so chrome + list match data.
+  useEffect(() => {
+    if (!orgSlug || !organizationId) {
+      return;
+    }
+
+    const routeThreadId = extractAgentThreadIdFromPathname(pathname);
+    if (!routeThreadId || !isRenderableThreadId(routeThreadId)) {
+      return;
+    }
+
+    const thread =
+      threads.find((item) => item.id === routeThreadId) ??
+      (activeThreadId === routeThreadId
+        ? threads.find((item) => item.id === activeThreadId)
+        : undefined);
+
+    if (!thread?.brandId) {
+      return;
+    }
+
+    // Still loading / wrong org — never bounce into another tenant.
+    if (thread.organizationId && thread.organizationId !== organizationId) {
+      return;
+    }
+
+    if (thread.brandId === brandId) {
+      return;
+    }
+
+    const ownerBrand = brands.find(
+      (brand) =>
+        getBrandEntityId(brand) === thread.brandId &&
+        getBrandOrganizationId(brand) === organizationId,
+    );
+
+    if (!ownerBrand?.slug) {
+      return;
+    }
+
+    replace(buildScopedThreadHref(orgSlug, ownerBrand.slug, routeThreadId));
+  }, [
+    activeThreadId,
+    brandId,
+    brands,
+    orgSlug,
+    organizationId,
+    pathname,
+    replace,
+    threads,
+  ]);
 
   // Auto-navigate from an unthreaded route to the created thread route.
   useEffect(() => {

@@ -7,12 +7,13 @@ import type {
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import { isGenericRunLifecycleEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
-import { SignalZero, TriangleAlert, X } from 'lucide-react';
-import type { ReactElement } from 'react';
+import { Check, Copy, SignalZero, TriangleAlert, X } from 'lucide-react';
+import { type ReactElement, useCallback, useState } from 'react';
+import { buildAgentRunFailureCopyText } from './AgentRunFailureCard';
 
 interface AgentComposerStatusStackProps {
   activeWorkEvent: AgentWorkEvent | null;
@@ -32,12 +33,16 @@ const STATUS_SURFACE_CLASS =
 
 function splitComposerError(error: string): {
   detail: string | null;
+  recovery: string | null;
   summary: string;
+  title: string;
 } {
   const formatted = formatAgentError(error);
   return {
-    detail: formatted.detail ?? formatted.recovery,
-    summary: `${formatted.title} — ${formatted.summary}`,
+    detail: formatted.detail,
+    recovery: formatted.recovery,
+    summary: formatted.summary,
+    title: formatted.title,
   };
 }
 
@@ -65,6 +70,19 @@ export function AgentComposerStatusStack({
   socketConnectionState,
 }: AgentComposerStatusStackProps): ReactElement | null {
   const composerError = error ? splitComposerError(error) : null;
+  const [isErrorCopied, setIsErrorCopied] = useState(false);
+  const handleCopyError = useCallback(async () => {
+    if (!error) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(buildAgentRunFailureCopyText(error));
+      setIsErrorCopied(true);
+      window.setTimeout(() => setIsErrorCopied(false), 1500);
+    } catch {
+      setIsErrorCopied(false);
+    }
+  }, [error]);
   // Lifecycle bookends ("Agent started") are not useful sticky status — only
   // real tool/progress work belongs above the composer.
   const meaningfulWorkEvent =
@@ -90,7 +108,9 @@ export function AgentComposerStatusStack({
   return (
     <div
       aria-label="Conversation status and pending input"
-      className="max-h-[60dvh] space-y-2 overflow-y-auto pb-2"
+      // Cap height so status cards scroll instead of growing into the
+      // overflow-hidden workspace canvas and clipping during reconnect thrash.
+      className="max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain pb-2"
       role="region"
     >
       {pendingInputRequest ? (
@@ -114,22 +134,51 @@ export function AgentComposerStatusStack({
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1 space-y-1">
             <p className="font-medium text-sm leading-5 text-destructive">
+              {composerError.title}
+            </p>
+            <p className="text-xs leading-5 text-destructive/85">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-5 text-destructive/80">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-destructive/80">
                 {composerError.detail}
               </p>
             ) : null}
+            {composerError.recovery ? (
+              <p className="text-[11px] leading-5 text-destructive/75">
+                {composerError.recovery}
+              </p>
+            ) : null}
           </div>
-          <Button
-            ariaLabel="Dismiss composer error"
-            className="size-7 shrink-0 text-destructive hover:bg-destructive/20 hover:text-destructive"
-            icon={<X className="size-4" />}
-            onClick={onClearError}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
+          <div className="flex shrink-0 items-start gap-0.5">
+            <Button
+              ariaLabel={isErrorCopied ? 'Error copied' : 'Copy error'}
+              tooltip={isErrorCopied ? 'Copied' : 'Copy error for agent'}
+              className="size-7 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              icon={
+                isErrorCopied ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )
+              }
+              onClick={() => {
+                void handleCopyError();
+              }}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+            <Button
+              ariaLabel="Dismiss composer error"
+              className="size-7 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              icon={<X className="size-4" />}
+              onClick={onClearError}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -138,12 +187,12 @@ export function AgentComposerStatusStack({
           aria-live="polite"
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
+            'flex min-w-0 items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
           )}
           role="status"
         >
           <SignalZero className="size-4 shrink-0 text-warning" aria-hidden />
-          <p className="min-w-0 font-medium text-warning">
+          <p className="min-w-0 break-words font-medium text-warning">
             {socketConnectionState === 'offline'
               ? 'Offline. Your draft is safe; sending is paused.'
               : socketConnectionState === 'connecting'

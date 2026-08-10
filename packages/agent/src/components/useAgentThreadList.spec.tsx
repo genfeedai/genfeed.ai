@@ -324,6 +324,92 @@ describe('useAgentThreadList', () => {
     expect(result.current.isArchivedView).toBe(true);
   });
 
+  it('auto-switches to archived view when the open thread is archived', async () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'archived-open',
+      threads: [
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const apiService = makeApiService({
+      getThreadsEffect: vi.fn(() =>
+        Effect.succeed([
+          makeThread('archived-open', {
+            brandId: 'brand-1',
+            status: AgentThreadStatus.ARCHIVED,
+          }),
+        ]),
+      ),
+    });
+
+    const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ARCHIVED),
+    );
+    expect(result.current.isArchivedView).toBe(true);
+    await waitFor(() =>
+      expect(result.current.threads.some((t) => t.id === 'archived-open')).toBe(
+        true,
+      ),
+    );
+  });
+
+  it('keeps Recent after the operator toggles even when the open thread is archived', async () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'archived-open',
+      threads: [
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const apiService = makeApiService({
+      getThreadsEffect: vi.fn((params?: { status?: string }) => {
+        if (params?.status === AgentThreadStatus.ARCHIVED) {
+          return Effect.succeed([
+            makeThread('archived-open', {
+              brandId: 'brand-1',
+              status: AgentThreadStatus.ARCHIVED,
+            }),
+          ]);
+        }
+        return Effect.succeed([
+          makeThread('active-1', {
+            brandId: 'brand-1',
+            status: AgentThreadStatus.ACTIVE,
+          }),
+        ]);
+      }),
+    });
+
+    const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ARCHIVED),
+    );
+
+    act(() => {
+      result.current.handleToggleView();
+    });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ACTIVE),
+    );
+    // Must not bounce back to Archived while the same thread stays open.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.viewStatus).toBe(AgentThreadStatus.ACTIVE);
+    expect(result.current.isArchivedView).toBe(false);
+  });
+
   it('surfaces load failures with a retry state', async () => {
     const apiService = makeApiService({
       getThreadsEffect: vi.fn(() => Effect.fail(new Error('network down'))),

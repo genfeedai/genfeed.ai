@@ -21,6 +21,8 @@ const CONFIG_PATTERNS: Array<{
   title: string;
   summary: string;
   recovery: string;
+  /** When true, include a scrubbed slice of the raw error as detail. */
+  includeRawDetail?: boolean;
 }> = [
   {
     match:
@@ -47,10 +49,45 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Wait a moment, then retry the message.',
   },
   {
-    match: /timeout|ETIMEDOUT|ECONNRESET|network/i,
+    // Must run before the broader "timeout" connection pattern below.
+    match:
+      /did not finish before the recovery timeout|stream recovery timeout|stream timed out/i,
+    title: 'Run timed out',
+    summary:
+      'The agent run took too long to confirm completion over the live stream.',
+    recovery:
+      'Refresh the conversation — the run may already have finished. Then retry if needed.',
+  },
+  {
+    match:
+      /Invalid `?prisma\.|Unknown argument `|prisma\.[a-z]+\.(create|update|upsert)/i,
+    title: 'Data save failed',
+    summary:
+      'The agent could not save a post or related record (schema or database out of sync).',
+    recovery:
+      'Apply pending database migrations, restart the API, then retry. If it persists, report the tool name and time.',
+    includeRawDetail: true,
+  },
+  {
+    match:
+      /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up|failed to fetch|load failed|networkerror|network error|\bnetwork\b|bad gateway|gateway timeout|status code 502\b|\bHTTP\s*502\b|status code 504\b|\bHTTP\s*504\b|\btimeout\b/i,
     title: 'Connection interrupted',
-    summary: 'The request to the model provider did not complete.',
-    recovery: 'Check your connection and retry.',
+    summary:
+      'Could not reach the agent API (connection dropped or the local API was restarting).',
+    recovery:
+      'Confirm the API is up (https://api.genfeed.localhost/v1/health), then retry the message.',
+  },
+  {
+    // Tool wrappers often surface bare "Generation failed: 500" when the local
+    // API dies mid-request (nest-fast-dev rebuild). Prefer connection copy over
+    // a vague "provider unavailable" reading.
+    match:
+      /generation failed:\s*5\d{2}\b|failed with status\s*5\d{2}\b|:\s*5\d{2}\s*$/i,
+    title: 'Connection interrupted',
+    summary:
+      'The API returned a server error mid-request — often a local reload.',
+    recovery:
+      'Wait for the API to finish restarting, then retry. Avoid generating while the backend is rebuilding.',
   },
   {
     match: /401|unauthorized|invalid.*api.?key|invalid token/i,
@@ -85,6 +122,22 @@ function scrubSecrets(text: string): string {
     .trim();
 }
 
+function extractSafeContext(text: string): string | null {
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
+  const failedAt = lines.find((line) => /^Failed at:\s*[^\r\n]+$/i.test(line));
+  if (!failedAt) {
+    return null;
+  }
+
+  const retryHint = lines.find((line) =>
+    /^This step can be retried\.$/i.test(line),
+  );
+  return scrubSecrets([failedAt, retryHint].filter(Boolean).join('\n')).slice(
+    0,
+    160,
+  );
+}
+
 export function formatAgentError(
   raw: string | null | undefined,
 ): FormattedAgentError {
@@ -104,8 +157,15 @@ export function formatAgentError(
   // any secrets before they could reach the UI detail field.
   for (const pattern of CONFIG_PATTERNS) {
     if (pattern.match.test(original)) {
+      const cleaned = scrubSecrets(original);
+      const maxDetail = 240;
+      const detail = pattern.includeRawDetail
+        ? cleaned.length > maxDetail
+          ? `${cleaned.slice(0, maxDetail - 1)}…`
+          : cleaned
+        : extractSafeContext(original);
       return {
-        detail: null,
+        detail,
         isConfigurationError: true,
         recovery: pattern.recovery,
         summary: pattern.summary,

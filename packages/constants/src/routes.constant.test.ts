@@ -51,13 +51,14 @@ describe('routes.constant', () => {
     expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
   });
 
-  it('builds canonical type-aware Publish editor paths', () => {
+  it('builds canonical Publish editor paths without a kind query param', () => {
+    // Kind lives on the entity (which table the id hits), not the URL.
     expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
-      '/publish/posts/article-1?kind=article',
+      '/publish/posts/article-1',
     );
     expect(createArtifactEditorRoute('newsletter', 'newsletter-1')).toBe(
-      '/publish/posts/newsletter-1?kind=newsletter',
+      '/publish/posts/newsletter-1',
     );
     expect(createArtifactEditorRoute('post', 'post-1')).toBe(
       '/publish/posts/post-1',
@@ -89,11 +90,11 @@ describe('routes.constant', () => {
 
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publish/posts/article-1?kind=article',
+        '/genfeed-ai/paperclip/publish/posts/article-1',
         '/genfeed-ai/paperclip/publish/posts',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/publish/posts/article-1?kind=article&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
+      '/genfeed-ai/paperclip/publish/posts/article-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
     );
   });
 

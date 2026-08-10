@@ -424,12 +424,14 @@ const waitForCanonicalAppReady = async (
     new Promise((resolve, reject) => {
       const deadline = Date.now() + ${String(timeoutMs)};
       const check = () => {
-        if (document.body?.classList.contains('gf-desktop-shell')) {
+        const appReady = document.readyState === 'complete' && Boolean(document.body);
+        const bridgeReady = typeof window.genfeedDesktop?.auth?.login === 'function';
+        if (appReady && bridgeReady) {
           resolve(true);
           return;
         }
         if (Date.now() >= deadline) {
-          reject(new Error('Timed out waiting for gf-desktop-shell.'));
+          reject(new Error('Timed out waiting for the hosted app and desktop bridge.'));
           return;
         }
         setTimeout(check, 100);
@@ -504,7 +506,7 @@ const createWindow = async (): Promise<void> => {
       ],
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(mainDir, 'preload.js'),
+      preload: path.join(mainDir, 'preload.cjs'),
       sandbox: true,
     },
     width: 1560,
@@ -594,7 +596,6 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    await appShellService.start();
     await loadCanonicalApp(
       mainWindow,
       appShellService.buildInitialUrl(sessionService.getSession()),
@@ -606,7 +607,7 @@ const createWindow = async (): Promise<void> => {
 
     if (isSmokeTest) {
       process.stdout.write(
-        '[desktop] smoke readiness confirmed: canonical shell marker rendered.\n',
+        '[desktop] smoke readiness confirmed: canonical shell and desktop bridge rendered.\n',
       );
       app.exit(0);
       return;
@@ -1410,6 +1411,7 @@ app.whenReady().then(async () => {
     // Electron data root; using PGlite's directory would nest them under the DB.
     () => app.getPath('userData'),
   );
+  await appShellService.start();
   sessionService = new DesktopSessionService(
     kvService,
     environment,

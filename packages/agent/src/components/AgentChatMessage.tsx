@@ -290,8 +290,8 @@ export function AgentChatMessage({
                 // the track instead of expanding the conversation column.
                 'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
                 isUser
-                  ? 'text-[13px] leading-5 [&_p]:my-1.5'
-                  : 'text-[15px] leading-7 text-foreground/92',
+                  ? 'text-[13px] leading-5 [&_p]:my-1'
+                  : 'text-[15px] leading-6 text-foreground/92',
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (

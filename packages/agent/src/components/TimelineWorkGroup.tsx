@@ -1,5 +1,8 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
-import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
+import {
+  AgentWorkEventStatus,
+  AgentWorkEventType,
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   isActiveWorkEvent,
   isGenericRunLifecycleEvent,
@@ -34,22 +37,65 @@ export function TimelineWorkGroup({
 
   const terminalStatus = useMemo(() => {
     const source = entry.events;
-    if (source.some((event) => event.status === AgentWorkEventStatus.FAILED)) {
+    const terminalLifecycleEvent = source
+      .filter(
+        (event) =>
+          isGenericRunLifecycleEvent(event) &&
+          (event.event === AgentWorkEventType.COMPLETED ||
+            event.event === AgentWorkEventType.FAILED ||
+            event.event === AgentWorkEventType.CANCELLED),
+      )
+      .at(-1);
+
+    // A terminal run bookend is authoritative even when stale pending/running
+    // step events remain in the stream snapshot.
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.FAILED) {
       return 'failed' as const;
     }
-    if (
-      source.some((event) => event.status === AgentWorkEventStatus.CANCELLED)
-    ) {
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.CANCELLED) {
       return 'cancelled' as const;
     }
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.COMPLETED) {
+      return 'completed' as const;
+    }
+
     if (source.some((event) => isActiveWorkEvent(event))) {
       return 'live' as const;
     }
+
+    // Prefer the last non-lifecycle tool/step — intermediate create_post
+    // failures must not paint the whole group Failed when a later step
+    // (or a successful recovery path) completed.
+    const toolEvents = source.filter(
+      (event) => !isGenericRunLifecycleEvent(event),
+    );
+    const lastTool = toolEvents.at(-1);
+
+    if (lastTool?.status === AgentWorkEventStatus.FAILED) {
+      return 'failed' as const;
+    }
+    if (lastTool?.status === AgentWorkEventStatus.CANCELLED) {
+      return 'cancelled' as const;
+    }
     if (
-      source.some((event) => event.status === AgentWorkEventStatus.COMPLETED) ||
-      source.every((event) => isGenericRunLifecycleEvent(event))
+      toolEvents.some(
+        (event) => event.status === AgentWorkEventStatus.COMPLETED,
+      ) ||
+      toolEvents.length === 0
     ) {
       return 'completed' as const;
+    }
+    if (
+      toolEvents.some((event) => event.status === AgentWorkEventStatus.FAILED)
+    ) {
+      return 'failed' as const;
+    }
+    if (
+      toolEvents.some(
+        (event) => event.status === AgentWorkEventStatus.CANCELLED,
+      )
+    ) {
+      return 'cancelled' as const;
     }
     return 'live' as const;
   }, [entry.events]);

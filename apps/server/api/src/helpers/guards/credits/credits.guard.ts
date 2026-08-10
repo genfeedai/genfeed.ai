@@ -22,7 +22,10 @@ import {
 } from '@api/services/byok/byok-provider-map.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
-import { getDeserializer } from '@genfeedai/helpers';
+import {
+  billCreditsFromProviderCost,
+  getDeserializer,
+} from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -207,24 +210,6 @@ export class CreditsGuard implements CanActivate {
           };
           request.creditsConfig = updatedCreditsConfig;
           // Continue to balance check below
-        } else if (
-          isFalDestination(modelKey) ||
-          isReplicateDestination(modelKey) ||
-          isReplicateVersionId(modelKey)
-        ) {
-          // Dynamic provider destination/version: use custom model fallback cost
-          requiredCredits = this.getCustomModelCost();
-          this.loggerService.debug(
-            'Credits guard: Dynamic provider destination detected, applying custom model cost',
-            { modelKey, requiredCredits },
-          );
-
-          const updatedCreditsConfig = {
-            ...creditsConfig,
-            amount: requiredCredits,
-            modelKey,
-          };
-          request.creditsConfig = updatedCreditsConfig;
         } else if (isTrainingKey(modelKey)) {
           // Trained model (genfeedai/<id>): use custom model cost
           requiredCredits = this.getCustomModelCost();
@@ -240,7 +225,10 @@ export class CreditsGuard implements CanActivate {
           };
           request.creditsConfig = updatedCreditsConfig;
         } else {
-          // Try to find model in database first (for known models like Ideogram, Imagen, nano-banana-pro, etc.)
+          // Resolve the database row before classifying slash-shaped keys as
+          // provider destinations. Known provider models (for example
+          // bytedance/seedance) carry live providerCostUsd pricing; only an
+          // unknown destination should use the custom-model fallback.
           const model = await this.modelsService.findOne({
             key: normalized,
           });
@@ -256,6 +244,7 @@ export class CreditsGuard implements CanActivate {
               minCost: model.minCost,
               modelKey: normalized,
               pricingType: model.pricingType,
+              providerCostUsd: model.providerCostUsd,
             });
 
             // If model label indicates training, override cost to flat training cost
@@ -636,24 +625,45 @@ export class CreditsGuard implements CanActivate {
   }
 
   /**
-   * Calculate dynamic cost based on model pricing type
-   * @param model Model with pricing configuration
-   * @param width Output width in pixels (for per-megapixel)
-   * @param height Output height in pixels (for per-megapixel)
-   * @param duration Output duration in seconds (for per-second)
-   * @returns Calculated cost in credits
+   * Resolve credits for a generation.
+   *
+   * Preferred: shared `billCreditsFromProviderCost` (provider USD × units ×
+   * live admin margin). Same helper projects virtual `cost`/`costPerUnit` on
+   * model reads via ModelsService.normalizeModelDocument.
+   *
+   * Fallback: legacy baked `cost` / `costPerUnit` when providerCostUsd is null.
    */
   private calculateDynamicCost(
     model: {
       cost?: number | null;
-      pricingType?: string | null;
       costPerUnit?: number | null;
+      defaultDuration?: number | null;
       minCost?: number | null;
+      pricingType?: string | null;
+      providerCostUsd?: number | null;
     },
     width?: number,
     height?: number,
     duration?: number,
   ): number {
+    const liveCredits = billCreditsFromProviderCost(model, {
+      duration,
+      height,
+      width,
+    });
+    if (liveCredits !== null) {
+      this.loggerService.debug(
+        'Credits guard: providerCostUsd × applyMargin (live margin)',
+        {
+          credits: liveCredits,
+          duration,
+          pricingType: model.pricingType,
+          providerCostUsd: model.providerCostUsd,
+        },
+      );
+      return liveCredits;
+    }
+
     const pricingType = model.pricingType || PricingType.FLAT;
     let baseCost = model.cost || 0;
 
@@ -663,7 +673,7 @@ export class CreditsGuard implements CanActivate {
           const megapixels = (width * height) / 1_000_000;
           baseCost = Math.ceil(megapixels * model.costPerUnit);
           this.loggerService.debug(
-            'Credits guard: Per-megapixel cost calculated',
+            'Credits guard: Per-megapixel cost calculated (legacy costPerUnit)',
             {
               calculatedCost: baseCost,
               costPerUnit: model.costPerUnit,
@@ -680,7 +690,7 @@ export class CreditsGuard implements CanActivate {
         if (duration && model.costPerUnit) {
           baseCost = Math.ceil(duration * model.costPerUnit);
           this.loggerService.debug(
-            'Credits guard: Per-second cost calculated',
+            'Credits guard: Per-second cost calculated (legacy costPerUnit)',
             {
               calculatedCost: baseCost,
               costPerUnit: model.costPerUnit,
@@ -700,7 +710,7 @@ export class CreditsGuard implements CanActivate {
         break;
     }
 
-    // Apply minimum cost floor
+    // Apply minimum cost floor (legacy baked credits only)
     const minCost = model.minCost || 0;
     if (minCost > 0 && baseCost < minCost) {
       this.loggerService.debug('Credits guard: Minimum cost floor applied', {

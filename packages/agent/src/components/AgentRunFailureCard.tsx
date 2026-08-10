@@ -1,17 +1,45 @@
 'use client';
 
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { RefreshCw, TriangleAlert } from 'lucide-react';
-import type { ReactElement } from 'react';
+import { Check, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
+import { type ReactElement, useCallback, useState } from 'react';
 
 interface AgentRunFailureCardProps {
   error: string | null | undefined;
   className?: string;
   onRetry?: () => void | Promise<void>;
   isRetrying?: boolean;
+}
+
+/** Full diagnostic blob for dropping into an agent/dev chat. */
+export function buildAgentRunFailureCopyText(
+  rawError: string | null | undefined,
+): string {
+  const formatted = formatAgentError(rawError);
+  const lines = [
+    `## Agent run failure`,
+    ``,
+    `**Title:** ${formatted.title}`,
+    `**Summary:** ${formatted.summary}`,
+  ];
+  if (formatted.detail) {
+    lines.push(`**Detail:** ${formatted.detail}`);
+  }
+  if (formatted.recovery) {
+    lines.push(`**Recovery:** ${formatted.recovery}`);
+  }
+  if (rawError?.trim()) {
+    lines.push(``, `### Raw error`, ``, '```', rawError.trim(), '```');
+  }
+  lines.push(
+    ``,
+    `**URL:** ${typeof window !== 'undefined' ? window.location.href : ''}`,
+  );
+  lines.push(`**Time:** ${new Date().toISOString()}`);
+  return lines.join('\n');
 }
 
 export function AgentRunFailureCard({
@@ -21,6 +49,17 @@ export function AgentRunFailureCard({
   isRetrying = false,
 }: AgentRunFailureCardProps): ReactElement {
   const formatted = formatAgentError(error);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(buildAgentRunFailureCopyText(error));
+      setIsCopied(true);
+      window.setTimeout(() => setIsCopied(false), 1500);
+    } catch {
+      setIsCopied(false);
+    }
+  }, [error]);
 
   return (
     <div
@@ -43,7 +82,7 @@ export function AgentRunFailureCard({
               {formatted.summary}
             </p>
             {formatted.detail ? (
-              <p className="line-clamp-2 font-mono text-[11px] leading-snug text-destructive/70">
+              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-snug text-destructive/70">
                 {formatted.detail}
               </p>
             ) : null}
@@ -53,21 +92,41 @@ export function AgentRunFailureCard({
               </p>
             ) : null}
           </div>
-          {onRetry ? (
+          <div className="flex shrink-0 items-start gap-1.5">
             <Button
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               withWrapper={false}
-              isLoading={isRetrying}
-              isDisabled={isRetrying}
+              ariaLabel={isCopied ? 'Error copied' : 'Copy error'}
+              tooltip={isCopied ? 'Copied' : 'Copy error for agent'}
               onClick={() => {
-                void onRetry();
+                void handleCopy();
               }}
-              className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/30"
-              icon={<RefreshCw className="size-3.5" />}
-            >
-              Retry
-            </Button>
-          ) : null}
+              className="size-8 border border-destructive/30 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              icon={
+                isCopied ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )
+              }
+            />
+            {onRetry ? (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+                isLoading={isRetrying}
+                isDisabled={isRetrying}
+                onClick={() => {
+                  void onRetry();
+                }}
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/30"
+                icon={<RefreshCw className="size-3.5" />}
+              >
+                Retry
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

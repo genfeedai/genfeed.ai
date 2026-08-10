@@ -13,6 +13,7 @@ import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
+import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   readPreferredAgentChatModel,
@@ -294,6 +295,11 @@ export function AgentChatContainer({
     onSelectIngredient,
     workspacePlanningTaskId,
   });
+  // Debounce non-connected chrome so nest-fast-dev / Next HMR restarts do not
+  // thrash the composer status stack into overflow-hidden parents.
+  const stableSocketConnectionState = useStableSocketConnectionState(
+    container.socketConnectionState,
+  );
 
   const highlightedMessageId: string | null = null;
   const formattedError = useMemo(
@@ -534,7 +540,7 @@ export function AgentChatContainer({
               isBusy={
                 container.isBusy ||
                 isLoadingThread ||
-                container.socketConnectionState !== 'connected'
+                stableSocketConnectionState !== 'connected'
               }
               isReadOnly={isReadOnly}
               isRunActive={container.isRunActive}
@@ -564,7 +570,7 @@ export function AgentChatContainer({
               showSuggestedActionsWhenNotEmpty={
                 showSuggestedActionsWhenNotEmpty
               }
-              socketConnectionState={container.socketConnectionState}
+              socketConnectionState={stableSocketConnectionState}
             />
           )
         ) : null}

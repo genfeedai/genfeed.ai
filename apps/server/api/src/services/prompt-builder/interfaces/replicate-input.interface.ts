@@ -88,6 +88,13 @@ export interface SeeDream45Input extends BaseImageInput {
   image_input?: string[];
 }
 
+/** ByteDance Seedream 5 Pro */
+export interface SeeDream5ProInput extends BaseImageInput {
+  size?: string;
+  image_input?: string[];
+  output_format?: string;
+}
+
 /** FLUX 1.1 Pro */
 export interface Flux11ProInput extends BaseImageInput {
   output_format: string;
@@ -217,6 +224,7 @@ export type ReplicateImageInput =
   | IdeogramV3Input
   | SeeDream4Input
   | SeeDream45Input
+  | SeeDream5ProInput
   | Flux11ProInput
   | Flux2DevInput
   | Flux2ProInput
@@ -380,7 +388,7 @@ export interface KlingAvatarV2Input extends Record<string, unknown> {
 }
 
 // Union of all video model inputs
-/** ByteDance Seedance 2.0 / 2.0 Fast */
+/** ByteDance Seedance 2.0 / 2.0 Fast / 2.5 */
 export interface Seedance2Input extends BaseVideoInput {
   aspect_ratio: string;
   duration: number;
@@ -388,6 +396,8 @@ export interface Seedance2Input extends BaseVideoInput {
   resolution?: string;
   seed?: number;
   image?: string;
+  /** Seedance 2.5 last-frame control for image-to-video. */
+  last_frame?: string;
   video?: string;
   audio?: string;
 }
@@ -636,11 +646,21 @@ export interface TopazVideoUpscaleInput extends Record<string, unknown> {
   video: string | undefined;
 }
 
+/** ByteDance vCube video upscaler */
+export interface BytedanceVideoUpscalerInput extends Record<string, unknown> {
+  processing_type?: 'standard' | 'pro';
+  scene?: 'aigc' | 'short_series' | 'ugc' | 'old_film' | 'common';
+  target_fps?: number;
+  target_resolution?: string;
+  video: string | undefined;
+}
+
 // Union of all media model inputs
 export type ReplicateMediaInput =
   | MusicGenInput
   | TopazImageUpscaleInput
-  | TopazVideoUpscaleInput;
+  | TopazVideoUpscaleInput
+  | BytedanceVideoUpscalerInput;
 
 // ---------------------------------------------------------------------------
 // Trained / Custom model input

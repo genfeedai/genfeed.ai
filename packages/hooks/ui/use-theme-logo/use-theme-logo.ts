@@ -1,10 +1,8 @@
 'use client';
 
-import { isDesktopClient } from '@genfeedai/config/deployment';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { useMounted } from '@hooks/utils/use-mounted/use-mounted';
 
-const DESKTOP_LOGO_URL = '/genfeed-icon.svg';
+const GENFEED_LOGO_URL = '/genfeed-icon.svg';
 
 /**
  * Custom hook to get the logo URL
@@ -17,9 +15,5 @@ export function useThemeLogo(): string {
     return '';
   }
 
-  if (isDesktopClient()) {
-    return DESKTOP_LOGO_URL;
-  }
-
-  return EnvironmentService.logoURL;
+  return GENFEED_LOGO_URL;
 }

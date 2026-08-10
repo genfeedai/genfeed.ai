@@ -1,5 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { enhanceAssistantMarkdown } from './SafeMarkdown';
+import {
+  enhanceAssistantMarkdown,
+  normalizeAssistantListMarkdown,
+} from './SafeMarkdown';
+
+describe('normalizeAssistantListMarkdown', () => {
+  it('indents body lines under ordered items so numbering stays continuous', () => {
+    const input = [
+      'Rewrote four drafts.',
+      '',
+      '1. **One-second impact**',
+      ' Most visuals lose before the caption gets a chance.',
+      '',
+      ' The fix is brutal:',
+      ' One focal point.',
+      '',
+      '2. **Visuals as the hook**',
+      ' A good image is not decoration.',
+    ].join('\n');
+
+    const result = normalizeAssistantListMarkdown(input);
+
+    expect(result).toContain('1. **One-second impact**');
+    expect(result).toContain(
+      '   Most visuals lose before the caption gets a chance.',
+    );
+    expect(result).toContain('   The fix is brutal:');
+    expect(result).toContain('2. **Visuals as the hook**');
+    expect(result).toContain('   A good image is not decoration.');
+    // Still one continuous list in source (no structural split).
+    expect(result).toMatch(
+      /1\. \*\*One-second impact\*\*[\s\S]*2\. \*\*Visuals as the hook\*\*/,
+    );
+  });
+
+  it('collapses triple blank lines', () => {
+    expect(normalizeAssistantListMarkdown('a\n\n\n\nb')).toBe('a\n\nb');
+  });
+});
 
 describe('enhanceAssistantMarkdown', () => {
   it('turns labeled capability lines into bold list items', () => {

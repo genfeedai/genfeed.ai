@@ -130,6 +130,15 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'meta/llama-3': 0.0005,
   'openai/sora-2': 0.21,
   'runwayml/gen-4-turbo': 0.25,
+  // Seedance 2.5 is billed per output second. Known-cost map is used for
+  // discovery/estimate helpers as a **per-run** proxy at the default 5s / 480p
+  // band (~$0.51 BytePlus example). Do not treat this as a flat 30s price —
+  // catalog seed uses PER_SECOND costPerUnit for live billing.
+  'bytedance/seedance-2.5': 0.51,
+  // Seedream 5 Pro — 2K list price per image (1K is $0.045).
+  'bytedance/seedream-5-pro': 0.09,
+  // Video upscaler is per-output-second; proxy for a short 5s / 1080p standard pass.
+  'bytedance/video-upscaler': 0.15,
 };
 
 @Injectable()

@@ -3,6 +3,15 @@
 export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
 export const DESKTOP_ASSET_PROTOCOL_SCHEME = 'genfeed-asset';
 
+export const DESKTOP_HTTP_HEADERS = {
+  minimumVersion: 'x-genfeed-desktop-minimum-version',
+  token: 'x-genfeed-desktop-token',
+  userEmail: 'x-genfeed-desktop-user-email',
+  userId: 'x-genfeed-desktop-user-id',
+  userName: 'x-genfeed-desktop-user-name',
+  version: 'x-genfeed-desktop-version',
+} as const;
+
 const DESKTOP_ASSET_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export function buildDesktopAssetUrl(assetId: string): string {

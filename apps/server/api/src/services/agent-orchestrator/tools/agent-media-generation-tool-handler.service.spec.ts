@@ -8,17 +8,21 @@ function createHandler() {
   const internalApi = {
     callInternalApi: vi.fn(),
   };
+  const onboardingHandler = {
+    checkOnboardingStatus: vi.fn().mockResolvedValue({ nextActions: [] }),
+    completeJourneyMission: vi.fn().mockResolvedValue(undefined),
+  };
   const handler = new AgentMediaGenerationToolHandler(
     { error: vi.fn(), warn: vi.fn() } as never,
     { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
     internalApi as never,
     {} as never,
     contentGeneratorService as never,
-    {} as never,
+    onboardingHandler as never,
     {} as never,
   );
 
-  return { contentGeneratorService, handler, internalApi };
+  return { contentGeneratorService, handler, internalApi, onboardingHandler };
 }
 
 const context = {
@@ -216,5 +220,69 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
       title: 'Durable agents',
       type: 'content_preview_card',
     });
+  });
+});
+
+describe('AgentMediaGenerationToolHandler generateImage', () => {
+  it('does not claim success with a blank preview when generation errors', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockRejectedValue(
+      new Error('Polling timed out after 180s'),
+    );
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Polling timed out');
+    expect(result.nextActions?.[0]).toMatchObject({
+      title: 'Image not ready',
+      type: 'completion_summary_card',
+    });
+    expect(result.nextActions?.[0]).not.toMatchObject({
+      type: 'content_preview_card',
+    });
+  });
+
+  it('does not claim success when the API returns no CDN URL', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: { attributes: {}, id: 'ingredient-1' },
+    });
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/CDN URL|asset id/i);
+  });
+
+  it('returns a content preview only when a CDN URL is present', async () => {
+    const { handler, internalApi, onboardingHandler } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://cdn.example.com/logo.png',
+        },
+        id: 'ingredient-1',
+      },
+    });
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions?.[0]).toMatchObject({
+      images: ['https://cdn.example.com/logo.png'],
+      title: 'Image generated',
+      type: 'content_preview_card',
+    });
+    expect(onboardingHandler.completeJourneyMission).toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ const cookiesMock = vi.fn(async () => ({
   get: vi.fn(() => undefined),
   getAll: vi.fn(() => []),
 }));
+const headersMock = vi.fn(async () => new Headers());
 
 vi.mock('@genfeedai/auth-client/server', () => ({
   getBetterAuthServerToken: getBetterAuthServerTokenMock,
@@ -16,6 +17,7 @@ vi.mock('@genfeedai/auth-client/server', () => ({
 
 vi.mock('next/headers', () => ({
   cookies: cookiesMock,
+  headers: headersMock,
 }));
 
 vi.mock('@services/auth/auth.service', () => ({
@@ -51,6 +53,7 @@ describe('loadProtectedBootstrap', () => {
       get: vi.fn(() => undefined),
       getAll: vi.fn(() => []),
     });
+    headersMock.mockResolvedValue(new Headers());
     getBetterAuthServerTokenMock.mockResolvedValue('token_123');
     getBootstrapMock.mockResolvedValue({
       access: {
@@ -189,6 +192,20 @@ describe('loadProtectedBootstrap', () => {
     );
 
     await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips cloud bootstrap for a remote desktop request without a session token', async () => {
+    headersMock.mockResolvedValue(
+      new Headers({ 'x-genfeed-desktop-version': '0.1.0' }),
+    );
+    getBetterAuthServerTokenMock.mockResolvedValue('');
+
+    const { loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
     expect(getInstanceMock).not.toHaveBeenCalled();
   });

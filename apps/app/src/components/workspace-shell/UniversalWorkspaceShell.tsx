@@ -1236,9 +1236,12 @@ function UniversalWorkspaceShellContent({
                 Empty sessions leave the slot empty (`empty:hidden`). Product
                 routes never render this slot. */}
               {isCanvasComposerVisible ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-3 sm:px-4 md:pb-5">
+                // overflow-visible so reconnect/error status above the glass bar
+                // is not hard-clipped by the absolute bottom dock while the
+                // canvas section itself stays overflow-hidden for the page.
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-visible px-3 pb-3 sm:px-4 md:pb-5">
                   <div
-                    className="w-full min-w-0 max-w-3xl empty:hidden"
+                    className="w-full min-w-0 max-w-3xl overflow-visible empty:hidden"
                     data-testid="workspace-composer-slot"
                     ref={setComposerPortalTarget}
                   />
