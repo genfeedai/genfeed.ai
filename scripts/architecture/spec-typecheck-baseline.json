@@ -3218,14 +3218,6 @@
     },
     {
       "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "30ec8a53f332915ca62f",
-      "message": "Property 'getBatch' does not exist on type '{ approveItems: Mock<Procedure>; createBatch: Mock<Procedure>; processBatch: Mock<Procedure>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "a53b04e0b0defd9eeacc",
