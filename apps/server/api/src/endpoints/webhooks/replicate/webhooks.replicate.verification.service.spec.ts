@@ -37,11 +37,31 @@ describe('ReplicateWebhookVerificationService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ReplicateWebhookVerificationService,
         { provide: CacheService, useValue: cacheService },
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
         { provide: ReplicateService, useValue: replicateService },
+        {
+          inject: [
+            CacheService,
+            ConfigService,
+            LoggerService,
+            ReplicateService,
+          ],
+          provide: ReplicateWebhookVerificationService,
+          useFactory: (
+            cache: CacheService,
+            config: ConfigService,
+            logger: LoggerService,
+            replicate: ReplicateService,
+          ) =>
+            new ReplicateWebhookVerificationService(
+              cache,
+              config,
+              logger,
+              replicate,
+            ),
+        },
       ],
     }).compile();
 
@@ -57,6 +77,7 @@ describe('ReplicateWebhookVerificationService', () => {
       expect(cacheService.claimOnce).toHaveBeenCalledWith(
         'webhook:replicate:delivery:msg_abc',
         24 * 60 * 60,
+        ['webhook:replicate:delivery'],
       );
     });
 
@@ -102,10 +123,10 @@ describe('ReplicateWebhookVerificationService', () => {
       const resolved = await service.resolveTrustedPayload(signedPayload);
 
       expect(replicateService.getPrediction).toHaveBeenCalledWith('pred_123');
-      expect(resolved.output).toEqual([
+      expect(resolved?.output).toEqual([
         'https://replicate.delivery/pbxt/real.png',
       ]);
-      expect(resolved.version).toBe('ver_real');
+      expect(resolved?.version).toBe('ver_real');
     });
 
     it('overrides a forged success with the real failed status', async () => {
@@ -118,26 +139,26 @@ describe('ReplicateWebhookVerificationService', () => {
 
       const resolved = await service.resolveTrustedPayload(signedPayload);
 
-      expect(resolved.status).toBe('failed');
-      expect(resolved.output).toBeNull();
-      expect(resolved.error).toBe('NSFW content detected');
+      expect(resolved?.status).toBe('failed');
+      expect(resolved?.output).toBeNull();
+      expect(resolved?.error).toBe('NSFW content detected');
     });
 
-    it('trusts the signed payload when no API key is configured', async () => {
+    it('rejects the signed payload when no API key is configured', async () => {
       configService.get.mockReturnValue(undefined);
 
       const resolved = await service.resolveTrustedPayload(signedPayload);
 
       expect(replicateService.getPrediction).not.toHaveBeenCalled();
-      expect(resolved).toBe(signedPayload);
+      expect(resolved).toBeNull();
     });
 
-    it('trusts the signed payload when the re-fetch throws', async () => {
+    it('rejects the signed payload when the re-fetch throws', async () => {
       replicateService.getPrediction.mockRejectedValue(new Error('404'));
 
       const resolved = await service.resolveTrustedPayload(signedPayload);
 
-      expect(resolved).toBe(signedPayload);
+      expect(resolved).toBeNull();
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('prediction re-fetch failed'),
         expect.objectContaining({ predictionId: 'pred_123' }),
@@ -149,14 +170,29 @@ describe('ReplicateWebhookVerificationService', () => {
       ['a record with no id', { status: 'succeeded' }],
       ['a non-object response', 'succeeded'],
       ['null', null],
-    ])('trusts the signed payload on %s', async (_label, prediction) => {
+    ])('rejects the signed payload on %s', async (_label, prediction) => {
       replicateService.getPrediction.mockResolvedValue(prediction);
 
       const resolved = await service.resolveTrustedPayload(signedPayload);
 
-      expect(resolved).toBe(signedPayload);
+      expect(resolved).toBeNull();
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('mismatched record'),
+        { predictionId: 'pred_123' },
+      );
+    });
+
+    it('rejects a matching record without a trusted status', async () => {
+      replicateService.getPrediction.mockResolvedValue({
+        id: 'pred_123',
+        output: ['https://replicate.delivery/pbxt/real.png'],
+      });
+
+      await expect(
+        service.resolveTrustedPayload(signedPayload),
+      ).resolves.toBeNull();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('invalid status'),
         { predictionId: 'pred_123' },
       );
     });

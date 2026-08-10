@@ -332,10 +332,12 @@ export class CacheService {
    *
    * @param key - Namespaced identity of the thing being claimed
    * @param ttlSeconds - How long the claim suppresses repeats
+   * @param tags - Cache tags that own a successful claim
    */
   async claimOnce(
     key: string,
     ttlSeconds: number,
+    tags: string[] = [],
   ): Promise<'claimed' | 'duplicate' | 'unavailable'> {
     if (!this.isAvailable) {
       return 'unavailable';
@@ -343,7 +345,13 @@ export class CacheService {
 
     try {
       const result = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
-      return result === 'OK' ? 'claimed' : 'duplicate';
+
+      if (result !== 'OK') {
+        return 'duplicate';
+      }
+
+      await this.cacheTagsService.setTags(key, tags);
+      return 'claimed';
     } catch (error: unknown) {
       this.logOperationError('claimOnce', { error, key });
       return 'unavailable';

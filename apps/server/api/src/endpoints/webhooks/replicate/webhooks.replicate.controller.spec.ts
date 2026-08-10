@@ -32,6 +32,7 @@ describe('ReplicateWebhookController', () => {
     handleCompleted: vi.Mock;
     handleFailed: vi.Mock;
   };
+  let trainingsService: { findOne: vi.Mock; patch: vi.Mock };
   let verificationService: {
     isReplay: vi.Mock;
     resolveTrustedPayload: vi.Mock;
@@ -141,6 +142,7 @@ describe('ReplicateWebhookController', () => {
     _replicateWebhookService = module.get(ReplicateWebhookService);
     loggerService = module.get(LoggerService);
     generationWebhookHandler = module.get(ReplicateGenerationWebhookHandler);
+    trainingsService = module.get(TrainingsService);
   });
 
   it('should be defined', () => {
@@ -205,6 +207,27 @@ describe('ReplicateWebhookController', () => {
       expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
       expect(generationWebhookHandler.handleFailed).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'pred_forged', status: 'failed' }),
+      );
+    });
+
+    it('should not dispatch a payload whose prediction cannot be trusted', async () => {
+      const body = {
+        id: 'pred_untrusted',
+        model: 'owner/model',
+        output: ['https://evil.example.com/forged.png'],
+        status: 'succeeded',
+      };
+      verificationService.resolveTrustedPayload.mockResolvedValue(null);
+
+      await controller.handleCallback(mockRequest, body);
+      await flushAsyncProcessing();
+
+      expect(trainingsService.findOne).not.toHaveBeenCalled();
+      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
+      expect(generationWebhookHandler.handleFailed).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('deferred for Replicate reconciliation'),
+        { predictionId: 'pred_untrusted' },
       );
     });
 

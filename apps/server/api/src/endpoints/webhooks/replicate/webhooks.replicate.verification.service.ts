@@ -1,12 +1,9 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
+import type { ReplicatePredictionRecord } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
-import type {
-  ReplicatePredictionRecord,
-  ReplicateWebhookPayload,
-} from '@libs/interfaces/webhook-payload.interface';
+import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
@@ -37,7 +34,6 @@ function isPredictionRecord(
  * output — from Replicate's own API using the account token, and suppresses
  * replays of a captured legitimate delivery.
  */
-@Injectable()
 export class ReplicateWebhookVerificationService {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -67,6 +63,7 @@ export class ReplicateWebhookVerificationService {
     const outcome = await this.cacheService.claimOnce(
       this.cacheService.generateKey(REPLAY_CACHE_NAMESPACE, webhookId),
       REPLAY_WINDOW_SECONDS,
+      [REPLAY_CACHE_NAMESPACE],
     );
 
     if (outcome === 'duplicate') {
@@ -86,26 +83,20 @@ export class ReplicateWebhookVerificationService {
   }
 
   /**
-   * Returns the payload with its status and output replaced by Replicate's own
-   * record of the prediction.
-   *
-   * Falls back to the signed body when the prediction cannot be fetched — no
-   * API token configured (self-hosted), or a prediction created with a
-   * per-organization BYOK token the platform key cannot read. The output-host
-   * allowlist applied downstream is the floor that still holds in that case;
-   * this is the ceiling on top of it.
+   * Returns a payload whose state-changing fields come from Replicate's own
+   * record. A null result is untrusted and must never be dispatched.
    */
   async resolveTrustedPayload(
     payload: ReplicateWebhookPayload,
-  ): Promise<ReplicateWebhookPayload> {
+  ): Promise<ReplicateWebhookPayload | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (!this.configService.get('REPLICATE_KEY')) {
       this.loggerService.warn(
-        `${url} REPLICATE_KEY not configured, trusting signed payload`,
+        `${url} REPLICATE_KEY not configured, deferring untrusted payload`,
         { predictionId: payload.id },
       );
-      return payload;
+      return null;
     }
 
     let prediction: unknown;
@@ -113,10 +104,10 @@ export class ReplicateWebhookVerificationService {
       prediction = await this.replicateService.getPrediction(payload.id);
     } catch (error: unknown) {
       this.loggerService.warn(
-        `${url} prediction re-fetch failed, trusting signed payload`,
+        `${url} prediction re-fetch failed, deferring untrusted payload`,
         { error, predictionId: payload.id },
       );
-      return payload;
+      return null;
     }
 
     if (!isPredictionRecord(prediction) || prediction.id !== payload.id) {
@@ -124,18 +115,24 @@ export class ReplicateWebhookVerificationService {
         `${url} prediction re-fetch returned a mismatched record`,
         { predictionId: payload.id },
       );
-      return payload;
+      return null;
+    }
+
+    if (typeof prediction.status !== 'string') {
+      this.loggerService.warn(
+        `${url} prediction re-fetch returned an invalid status`,
+        { predictionId: payload.id },
+      );
+      return null;
     }
 
     return {
       ...payload,
       error: prediction.error,
       output: prediction.output,
-      status:
-        typeof prediction.status === 'string'
-          ? prediction.status
-          : payload.status,
-      version: prediction.version ?? payload.version,
+      status: prediction.status,
+      version:
+        typeof prediction.version === 'string' ? prediction.version : undefined,
     };
   }
 }

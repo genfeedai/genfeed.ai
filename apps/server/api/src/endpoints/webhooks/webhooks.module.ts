@@ -52,6 +52,7 @@ import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.ve
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -59,7 +60,10 @@ import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Module({
   controllers: [
@@ -126,7 +130,22 @@ import { forwardRef, Module } from '@nestjs/common';
     PostProcessingOrchestratorService,
     ReplicateGenerationWebhookHandler,
     ReplicateWebhookService,
-    ReplicateWebhookVerificationService,
+    {
+      inject: [CacheService, ConfigService, LoggerService, ReplicateService],
+      provide: ReplicateWebhookVerificationService,
+      useFactory: (
+        cacheService: CacheService,
+        configService: ConfigService,
+        loggerService: LoggerService,
+        replicateService: ReplicateService,
+      ) =>
+        new ReplicateWebhookVerificationService(
+          cacheService,
+          configService,
+          loggerService,
+          replicateService,
+        ),
+    },
     VercelWebhookService,
     WebhooksService,
   ],

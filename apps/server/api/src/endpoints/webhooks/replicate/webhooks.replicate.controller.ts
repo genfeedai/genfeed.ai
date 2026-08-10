@@ -96,6 +96,14 @@ export class ReplicateWebhookController {
       const payload =
         await this.verificationService.resolveTrustedPayload(signedPayload);
 
+      if (!payload) {
+        this.loggerService.warn(
+          `${url} untrusted payload deferred for Replicate reconciliation`,
+          { predictionId: signedPayload.id },
+        );
+        return;
+      }
+
       // Prefer checking by externalId first: if a training exists for this id, handle training flow
       const existingTraining = await this.trainingsService.findOne({
         externalId: payload.id,

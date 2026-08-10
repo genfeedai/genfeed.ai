@@ -177,9 +177,9 @@ describe('CacheService', () => {
     it('reports a first claim', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
 
-      await expect(service.claimOnce('delivery:1', 3600)).resolves.toBe(
-        'claimed',
-      );
+      await expect(
+        service.claimOnce('delivery:1', 3600, ['webhook:replicate']),
+      ).resolves.toBe('claimed');
       expect(mockRedisClient.set).toHaveBeenCalledWith(
         'delivery:1',
         '1',
@@ -187,6 +187,9 @@ describe('CacheService', () => {
         3600,
         'NX',
       );
+      expect(cacheTagsService.setTags).toHaveBeenCalledWith('delivery:1', [
+        'webhook:replicate',
+      ]);
     });
 
     it('reports a repeat claim as a duplicate', async () => {
@@ -195,6 +198,7 @@ describe('CacheService', () => {
       await expect(service.claimOnce('delivery:1', 3600)).resolves.toBe(
         'duplicate',
       );
+      expect(cacheTagsService.setTags).not.toHaveBeenCalled();
     });
 
     it('distinguishes a failed command from a duplicate', async () => {
