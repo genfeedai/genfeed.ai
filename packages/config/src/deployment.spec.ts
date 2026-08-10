@@ -4,38 +4,36 @@ import {
   getClientSurface,
   getDeployment,
   hasAgentFirstOnboarding,
+  hostnameFromUrl,
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
-  isHostedGenfeedApi,
+  isHostedGenfeedCloud,
+  isHostedGenfeedFromBrowser,
+  isHostedGenfeedFromEnv,
+  isHostedGenfeedHostname,
   isSaaS,
   isSelfHostedDeployment,
 } from './deployment';
-
-describe('isHostedGenfeedApi', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('is true only for the managed api.genfeed.ai public URL', () => {
-    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai/v1');
-    expect(isHostedGenfeedApi()).toBe(true);
-
-    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
-    expect(isHostedGenfeedApi()).toBe(false);
-
-    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'not-a-url');
-    expect(isHostedGenfeedApi()).toBe(false);
-  });
-});
 
 afterEach(() => {
   vi.unstubAllEnvs();
   delete (
     globalThis as typeof globalThis & {
       __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: string };
+      location?: { hostname?: string };
     }
   ).__GENFEED_RUNTIME_CONFIG__;
+  // jsdom / vitest may keep location — only clear our stubbed hostname path
+  try {
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: undefined,
+      writable: true,
+    });
+  } catch {
+    // ignore environments that freeze location
+  }
 });
 
 describe('envFlag', () => {
@@ -53,6 +51,94 @@ describe('envFlag', () => {
   });
 });
 
+describe('isHostedGenfeedHostname', () => {
+  it.each([
+    ['genfeed.ai', true],
+    ['www.genfeed.ai', true],
+    ['app.genfeed.ai', true],
+    ['api.genfeed.ai', true],
+    ['admin.genfeed.ai', true],
+    ['mcp.genfeed.ai', true],
+    ['cdn.genfeed.ai', true],
+    ['staging.app.genfeed.ai', true],
+    ['genfeed.localhost', false],
+    ['app.genfeed.localhost', false],
+    ['api.genfeed.internal', false],
+    ['localhost', false],
+    ['example.com', false],
+    ['genfeed.ai.evil.com', false],
+    ['', false],
+  ] as const)('%s → %s', (hostname, expected) => {
+    expect(isHostedGenfeedHostname(hostname)).toBe(expected);
+  });
+});
+
+describe('hostnameFromUrl', () => {
+  it('parses absolute URLs and bare hosts', () => {
+    expect(hostnameFromUrl('https://api.genfeed.ai/v1')).toBe('api.genfeed.ai');
+    expect(hostnameFromUrl('app.genfeed.ai')).toBe('app.genfeed.ai');
+    expect(hostnameFromUrl('not a url')).toBeUndefined();
+    expect(hostnameFromUrl(undefined)).toBeUndefined();
+  });
+});
+
+describe('isHostedGenfeedCloud', () => {
+  it('is true from any public *.genfeed.ai env URL without GENFEED_CLOUD', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_APPS_APP_ENDPOINT', 'https://app.genfeed.ai');
+
+    expect(isHostedGenfeedFromEnv()).toBe(true);
+    expect(isHostedGenfeedCloud()).toBe(true);
+    expect(getDeployment()).toBe('cloud');
+    expect(isSaaS()).toBe(true);
+  });
+
+  it('is true from the browser hostname on app.genfeed.ai', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    for (const key of [
+      'GENFEEDAI_API_PUBLIC_URL',
+      'GENFEEDAI_APP_URL',
+      'NEXT_PUBLIC_API_ENDPOINT',
+      'NEXT_PUBLIC_APPS_APP_ENDPOINT',
+    ] as const) {
+      vi.stubEnv(key, '');
+    }
+
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: { hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    expect(isHostedGenfeedFromBrowser()).toBe(true);
+    expect(isHostedGenfeedCloud()).toBe(true);
+    expect(getDeployment()).toBe('cloud');
+  });
+
+  it('is false for self-host and Portless local hostnames', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
+    vi.stubEnv(
+      'NEXT_PUBLIC_APPS_APP_ENDPOINT',
+      'https://app.genfeed.localhost',
+    );
+
+    expect(isHostedGenfeedCloud()).toBe(false);
+    expect(getDeployment()).toBe('self-hosted');
+  });
+
+  it('is false for internal Cloud Map hosts', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'http://api.genfeed.internal:3010');
+
+    expect(isHostedGenfeedFromEnv()).toBe(false);
+  });
+});
+
 describe('deployment axes', () => {
   it.each([
     [undefined, undefined, 'self-hosted'],
@@ -65,30 +151,15 @@ describe('deployment axes', () => {
       vi.stubEnv('GENFEED_CLOUD', serverFlag);
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', publicFlag);
       vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
+      vi.stubEnv('GENFEEDAI_APP_URL', '');
+      vi.stubEnv('NEXT_PUBLIC_APPS_APP_ENDPOINT', '');
+      vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', '');
 
       expect(getDeployment()).toBe(expected);
       expect(isCloudDeployment()).toBe(expected === 'cloud');
       expect(isSelfHostedDeployment()).toBe(expected === 'self-hosted');
     },
   );
-
-  it('treats the hosted api.genfeed.ai public URL as cloud without GENFEED_CLOUD', () => {
-    vi.stubEnv('GENFEED_CLOUD', '');
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
-    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
-
-    expect(getDeployment()).toBe('cloud');
-    expect(isCloudDeployment()).toBe(true);
-    expect(isSaaS()).toBe(true);
-  });
-
-  it('does not treat a self-host public URL as cloud', () => {
-    vi.stubEnv('GENFEED_CLOUD', '');
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
-    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
-
-    expect(getDeployment()).toBe('self-hosted');
-  });
 
   it.each([
     ['1', 'desktop'],
@@ -123,6 +194,8 @@ describe('deployment axes', () => {
     (cloudFlag, desktopFlag, expectedSaaS, expectedCommunity) => {
       vi.stubEnv('GENFEED_CLOUD', cloudFlag);
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktopFlag);
+      vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
+      vi.stubEnv('NEXT_PUBLIC_APPS_APP_ENDPOINT', '');
 
       expect(isSaaS()).toBe(expectedSaaS);
       expect(isCommunity()).toBe(expectedCommunity);

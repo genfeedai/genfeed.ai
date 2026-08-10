@@ -49,8 +49,8 @@ import { UserSubscriptionsService } from './user-subscriptions/services/user-sub
  *
  * Production EE images always bind the real services. The community image never
  * loads this file — it uses `billing.providers.oss.ts`. Freezing OSS stubs on a
- * production EE process when `GENFEED_CLOUD` was missing bricked hosted checkout
- * with "Enterprise subscription billing is not available in OSS mode."
+ * production EE process when `GENFEED_CLOUD` was missing bricked hosted checkout.
+ * Domain rule: `*.genfeed.ai` is SaaS (see `isHostedGenfeedCloud`).
  */
 function isOrgBillingLive(): boolean {
   if (process.env.NODE_ENV === 'production') {

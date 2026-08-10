@@ -11,7 +11,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 function enterpriseBillingUnavailable(): never {
   throw new ForbiddenException(
     'Organization subscription billing is not available on this API. ' +
-      'Hosted Genfeed Cloud requires GENFEED_CLOUD=true (or GENFEEDAI_API_PUBLIC_URL=https://api.genfeed.ai). ' +
+      'Hosted Genfeed Cloud (*.genfeed.ai) is SaaS — set GENFEED_CLOUD=true or a public *.genfeed.ai URL. ' +
       'Self-hosted community builds use managed credits checkout instead of org Stripe subscriptions.',
   );
 }

@@ -6,11 +6,20 @@ export type ClientSurface = 'desktop' | 'web';
 const ENABLED_ENV_FLAG_VALUES = new Set(['1', 'true']);
 
 /**
- * Managed Genfeed Cloud public API hosts. Used only as a production safety net
- * when `GENFEED_CLOUD` is missing on the hosted API (billing must never fall
- * through to OSS stubs on app.genfeed.ai).
+ * Env vars that may hold a public Genfeed Cloud URL. Used server-side (and in
+ * SSR) when the browser hostname is unavailable. Internal Cloud Map hosts
+ * (`*.genfeed.internal`) are not `*.genfeed.ai` and never match.
  */
-const HOSTED_GENFEED_API_HOSTS = new Set(['api.genfeed.ai']);
+const HOSTED_GENFEED_URL_ENV_KEYS = [
+  'GENFEEDAI_API_PUBLIC_URL',
+  'GENFEEDAI_APP_URL',
+  'GENFEEDAI_MCP_PUBLIC_URL',
+  'NEXT_PUBLIC_API_ENDPOINT',
+  'NEXT_PUBLIC_APPS_APP_ENDPOINT',
+  'NEXT_PUBLIC_APPS_ADMIN_ENDPOINT',
+  'NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT',
+  'NEXT_PUBLIC_MCP_ENDPOINT',
+] as const;
 
 /**
  * Resolve a boolean environment flag consistently across server and browser
@@ -21,25 +30,89 @@ export function envFlag(value: string | undefined): boolean {
 }
 
 /**
- * True when this process is the hosted Genfeed Cloud API, inferred from the
- * public API URL. Self-hosts never set this to api.genfeed.ai for their own
- * listener (they may call Cloud as a client, but their public URL is theirs).
+ * True when `hostname` is the managed Genfeed Cloud domain:
+ * `genfeed.ai`, `www.genfeed.ai`, or any `*.genfeed.ai`
+ * (app / api / admin / mcp / cdn / staging / …).
+ *
+ * Local Portless (`*.genfeed.localhost`) is **not** SaaS by hostname alone —
+ * set `GENFEED_CLOUD` / `NEXT_PUBLIC_GENFEED_CLOUD` for local cloud mode.
  */
-export function isHostedGenfeedApi(): boolean {
-  const publicApiUrl = process.env.GENFEEDAI_API_PUBLIC_URL?.trim();
-  if (!publicApiUrl) {
+export function isHostedGenfeedHostname(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, '');
+  if (!host) {
     return false;
+  }
+
+  return host === 'genfeed.ai' || host.endsWith('.genfeed.ai');
+}
+
+/** Extract a hostname from a URL or host:port string; undefined if unusable. */
+export function hostnameFromUrl(value: string | undefined): string | undefined {
+  const raw = value?.trim();
+  if (!raw) {
+    return undefined;
   }
 
   try {
-    const { hostname } = new URL(publicApiUrl);
-    return HOSTED_GENFEED_API_HOSTS.has(hostname.toLowerCase());
+    const withProtocol = raw.includes('://') ? raw : `https://${raw}`;
+    const { hostname } = new URL(withProtocol);
+    return hostname || undefined;
   } catch {
-    return false;
+    return undefined;
   }
 }
 
-/** Resolve the backend deployment axis. The server-only flag takes priority. */
+/**
+ * True when any configured public Genfeed URL points at `*.genfeed.ai`.
+ * Shared by API and Next — same rule both sides.
+ */
+export function isHostedGenfeedFromEnv(): boolean {
+  for (const key of HOSTED_GENFEED_URL_ENV_KEYS) {
+    const hostname = hostnameFromUrl(process.env[key]);
+    if (hostname && isHostedGenfeedHostname(hostname)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * True when the current browser tab is on `*.genfeed.ai`.
+ * No-op on the server / during SSR without a window.
+ */
+export function isHostedGenfeedFromBrowser(): boolean {
+  if (typeof globalThis === 'undefined') {
+    return false;
+  }
+
+  const location = (
+    globalThis as typeof globalThis & {
+      location?: { hostname?: string };
+    }
+  ).location;
+
+  const hostname = location?.hostname;
+  return typeof hostname === 'string' && isHostedGenfeedHostname(hostname);
+}
+
+/**
+ * Managed Genfeed Cloud by domain — frontend **and** backend.
+ * `*.genfeed.ai` is SaaS; env flags are the override for local / self-host.
+ */
+export function isHostedGenfeedCloud(): boolean {
+  return isHostedGenfeedFromBrowser() || isHostedGenfeedFromEnv();
+}
+
+/**
+ * @deprecated Prefer {@link isHostedGenfeedCloud}. Kept as an alias so older
+ * call sites and the billing PR diff stay greppable.
+ */
+export function isHostedGenfeedApi(): boolean {
+  return isHostedGenfeedCloud();
+}
+
+/** Resolve the backend deployment axis. Explicit flags win; domain is the safety net. */
 export function getDeployment(): Deployment {
   if (
     envFlag(process.env.GENFEED_CLOUD ?? process.env.NEXT_PUBLIC_GENFEED_CLOUD)
@@ -47,9 +120,10 @@ export function getDeployment(): Deployment {
     return 'cloud';
   }
 
-  // Hosted production safety net: ECS task env must set GENFEED_CLOUD, but a
-  // missing flag must not brick Stripe checkout with "OSS mode" on api.genfeed.ai.
-  if (isHostedGenfeedApi()) {
+  // Domain is the product source of truth for hosted SaaS. A missing
+  // GENFEED_CLOUD on api.genfeed.ai / app.genfeed.ai must never drop billing
+  // (or UI) into community/OSS mode.
+  if (isHostedGenfeedCloud()) {
     return 'cloud';
   }
 

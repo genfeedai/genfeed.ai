@@ -63,9 +63,12 @@ describe('hasOrganizationBilling', () => {
     expect(hasOrganizationBilling()).toBe(false);
   });
 
-  it('is true when hosted api.genfeed.ai public URL is set without GENFEED_CLOUD', () => {
+  it('is true when any hosted *.genfeed.ai public URL is set without GENFEED_CLOUD', () => {
     process.env.GENFEEDAI_API_PUBLIC_URL = 'https://api.genfeed.ai';
+    expect(hasOrganizationBilling()).toBe(true);
 
+    delete process.env.GENFEEDAI_API_PUBLIC_URL;
+    process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT = 'https://app.genfeed.ai';
     expect(hasOrganizationBilling()).toBe(true);
   });
 });
