@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 
-const TYPESCRIPT_6_VERSION = '6.0.2';
+const TYPESCRIPT_6_VERSION = '6.0.3';
 const TYPESCRIPT_7_ALIAS = 'npm:typescript@7.0.2';
 
 const LEGACY_API_CONSUMERS = new Set([

@@ -117,6 +117,14 @@ const checks = [
     ],
     name: 'Agent tool dispatch coverage',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-github-action-versions.ts',
+    ],
+    name: 'GitHub Action version consistency',
+  },
 ] as const;
 
 let failed = false;

@@ -225,6 +225,16 @@ jobs:
         run: bun run check:agent-tool-dispatch
       - name: Agent Tool Dispatch Guard Tests
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-agent-tool-dispatch.test.ts
+      # `uses:` refs cannot read a version from anywhere — GitHub resolves them
+      # before expressions exist — so an action version is duplicated across
+      # every workflow and composite action by force, and `deps:update` never
+      # sees any of it. This holds the only property that can be held: one tag
+      # version per action, repository-wide. Wired directly rather than through
+      # check:architecture, which does not run in this job.
+      - name: GitHub Action Version Consistency
+        run: bun run check:action-versions
+      - name: GitHub Action Version Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-github-action-versions.test.ts
       # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
       # while neither ran in any workflow: the repo-wide half of the raw-control
       # and design-token contracts was dark, leaving only a pre-commit hook that
