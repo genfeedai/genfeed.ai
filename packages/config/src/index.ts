@@ -8,6 +8,7 @@ export {
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
+  isHostedGenfeedApi,
   isSaaS,
   isSelfHostedDeployment,
 } from './deployment';

@@ -44,8 +44,50 @@ import { SubscriptionsController } from './subscriptions/controllers/subscriptio
 import { SubscriptionsService } from './subscriptions/services/subscriptions.service';
 import { UserSubscriptionsService } from './user-subscriptions/services/user-subscriptions.service';
 
-/** SaaS (GENFEED_CLOUD) or licensed EE self-host — not license-key-only. */
-const isOrgBillingLive = (): boolean => hasOrganizationBilling();
+/**
+ * SaaS (GENFEED_CLOUD / hosted api.genfeed.ai) or licensed EE self-host.
+ *
+ * Production EE images always bind the real services. The community image never
+ * loads this file — it uses `billing.providers.oss.ts`. Freezing OSS stubs on a
+ * production EE process when `GENFEED_CLOUD` was missing bricked hosted checkout
+ * with "Enterprise subscription billing is not available in OSS mode."
+ */
+function isOrgBillingLive(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  return hasOrganizationBilling();
+}
+
+function subscriptionsServiceProvider() {
+  return isOrgBillingLive()
+    ? { provide: SUBSCRIPTIONS_SERVICE, useExisting: SubscriptionsService }
+    : { provide: SUBSCRIPTIONS_SERVICE, useClass: OssSubscriptionsService };
+}
+
+function userSubscriptionsServiceProvider() {
+  return isOrgBillingLive()
+    ? {
+        provide: USER_SUBSCRIPTIONS_SERVICE,
+        useExisting: UserSubscriptionsService,
+      }
+    : {
+        provide: USER_SUBSCRIPTIONS_SERVICE,
+        useClass: OssUserSubscriptionsService,
+      };
+}
+
+function subscriptionAttributionsServiceProvider() {
+  return isOrgBillingLive()
+    ? {
+        provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
+        useExisting: SubscriptionAttributionsService,
+      }
+    : {
+        provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
+        useClass: OssSubscriptionAttributionsService,
+      };
+}
 
 export const subscriptions: BillingProviderFragment = {
   controllers: [SubscriptionsController],
@@ -70,30 +112,14 @@ export const subscriptions: BillingProviderFragment = {
         ).StripeModule,
     ),
   ],
-  providers: [
-    SubscriptionsService,
-    isOrgBillingLive()
-      ? { provide: SUBSCRIPTIONS_SERVICE, useExisting: SubscriptionsService }
-      : { provide: SUBSCRIPTIONS_SERVICE, useClass: OssSubscriptionsService },
-  ],
+  providers: [SubscriptionsService, subscriptionsServiceProvider()],
 };
 
 export const userSubscriptions: BillingProviderFragment = {
   controllers: [],
   exports: [UserSubscriptionsService, USER_SUBSCRIPTIONS_SERVICE],
   imports: [],
-  providers: [
-    UserSubscriptionsService,
-    isOrgBillingLive()
-      ? {
-          provide: USER_SUBSCRIPTIONS_SERVICE,
-          useExisting: UserSubscriptionsService,
-        }
-      : {
-          provide: USER_SUBSCRIPTIONS_SERVICE,
-          useClass: OssUserSubscriptionsService,
-        },
-  ],
+  providers: [UserSubscriptionsService, userSubscriptionsServiceProvider()],
 };
 
 export const subscriptionAttributions: BillingProviderFragment = {
@@ -102,14 +128,6 @@ export const subscriptionAttributions: BillingProviderFragment = {
   imports: [],
   providers: [
     SubscriptionAttributionsService,
-    isOrgBillingLive()
-      ? {
-          provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
-          useExisting: SubscriptionAttributionsService,
-        }
-      : {
-          provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
-          useClass: OssSubscriptionAttributionsService,
-        },
+    subscriptionAttributionsServiceProvider(),
   ],
 };

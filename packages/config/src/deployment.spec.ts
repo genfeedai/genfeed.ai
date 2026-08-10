@@ -7,9 +7,27 @@ import {
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
+  isHostedGenfeedApi,
   isSaaS,
   isSelfHostedDeployment,
 } from './deployment';
+
+describe('isHostedGenfeedApi', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('is true only for the managed api.genfeed.ai public URL', () => {
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai/v1');
+    expect(isHostedGenfeedApi()).toBe(true);
+
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
+    expect(isHostedGenfeedApi()).toBe(false);
+
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'not-a-url');
+    expect(isHostedGenfeedApi()).toBe(false);
+  });
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -46,12 +64,31 @@ describe('deployment axes', () => {
     (serverFlag, publicFlag, expected) => {
       vi.stubEnv('GENFEED_CLOUD', serverFlag);
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', publicFlag);
+      vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
 
       expect(getDeployment()).toBe(expected);
       expect(isCloudDeployment()).toBe(expected === 'cloud');
       expect(isSelfHostedDeployment()).toBe(expected === 'self-hosted');
     },
   );
+
+  it('treats the hosted api.genfeed.ai public URL as cloud without GENFEED_CLOUD', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+
+    expect(getDeployment()).toBe('cloud');
+    expect(isCloudDeployment()).toBe(true);
+    expect(isSaaS()).toBe(true);
+  });
+
+  it('does not treat a self-host public URL as cloud', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.example.com');
+
+    expect(getDeployment()).toBe('self-hosted');
+  });
 
   it.each([
     ['1', 'desktop'],

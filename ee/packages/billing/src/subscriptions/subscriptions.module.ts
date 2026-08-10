@@ -26,10 +26,13 @@ import { SubscriptionsService } from './services/subscriptions.service';
   providers: [
     {
       // SaaS cloud or licensed EE — not license-key-only (Cloud has no key).
+      // Production EE builds always use the real service; community never loads
+      // this module (webpack aliases OSS stubs instead).
       provide: SubscriptionsService,
-      useClass: hasOrganizationBilling()
-        ? SubscriptionsService
-        : OssSubscriptionsService,
+      useClass:
+        process.env.NODE_ENV === 'production' || hasOrganizationBilling()
+          ? SubscriptionsService
+          : OssSubscriptionsService,
     },
   ],
 })

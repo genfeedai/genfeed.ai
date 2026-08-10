@@ -52,5 +52,9 @@ describe('OssSubscriptionsService', () => {
     await expect(
       service.createForOrganization({}, 'billing@example.com', 'user-1'),
     ).rejects.toBeInstanceOf(ForbiddenException);
+
+    await expect(
+      service.createForOrganization({}, 'billing@example.com', 'user-1'),
+    ).rejects.toThrow(/GENFEED_CLOUD=true/);
   });
 });

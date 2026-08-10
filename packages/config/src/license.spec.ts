@@ -18,6 +18,7 @@ beforeEach(() => {
   delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   delete process.env.GENFEED_LICENSE_KEY;
   delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+  delete process.env.GENFEEDAI_API_PUBLIC_URL;
 });
 
 afterEach(() => {
@@ -60,6 +61,12 @@ describe('hasOrganizationBilling', () => {
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
 
     expect(hasOrganizationBilling()).toBe(false);
+  });
+
+  it('is true when hosted api.genfeed.ai public URL is set without GENFEED_CLOUD', () => {
+    process.env.GENFEEDAI_API_PUBLIC_URL = 'https://api.genfeed.ai';
+
+    expect(hasOrganizationBilling()).toBe(true);
   });
 });
 
