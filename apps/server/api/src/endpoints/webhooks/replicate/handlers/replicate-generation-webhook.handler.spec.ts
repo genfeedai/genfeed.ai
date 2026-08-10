@@ -95,7 +95,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
       expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
         'replicate',
         expect.anything(),
-        'pred_123',
+        'pred_123_1',
         ALLOWED_URL,
       );
       expect(loggerService.error).toHaveBeenCalledWith(
