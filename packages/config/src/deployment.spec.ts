@@ -140,6 +140,15 @@ describe('isHostedGenfeedCloud', () => {
 });
 
 describe('deployment axes', () => {
+  it('lets an explicit false cloud flag override a hosted URL', () => {
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+
+    expect(getDeployment()).toBe('self-hosted');
+    expect(isCloudDeployment()).toBe(false);
+  });
+
   it.each([
     [undefined, undefined, 'self-hosted'],
     ['false', 'true', 'self-hosted'],

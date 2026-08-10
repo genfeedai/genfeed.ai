@@ -114,10 +114,12 @@ export function isHostedGenfeedApi(): boolean {
 
 /** Resolve the backend deployment axis. Explicit flags win; domain is the safety net. */
 export function getDeployment(): Deployment {
-  if (
-    envFlag(process.env.GENFEED_CLOUD ?? process.env.NEXT_PUBLIC_GENFEED_CLOUD)
-  ) {
-    return 'cloud';
+  const serverFlag = process.env.GENFEED_CLOUD?.trim();
+  const publicFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
+  const explicitFlag = serverFlag || publicFlag;
+
+  if (explicitFlag) {
+    return envFlag(explicitFlag) ? 'cloud' : 'self-hosted';
   }
 
   // Domain is the product source of truth for hosted SaaS. A missing

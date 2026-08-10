@@ -19,6 +19,13 @@ beforeEach(() => {
   delete process.env.GENFEED_LICENSE_KEY;
   delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
   delete process.env.GENFEEDAI_API_PUBLIC_URL;
+  delete process.env.GENFEEDAI_APP_URL;
+  delete process.env.GENFEEDAI_MCP_PUBLIC_URL;
+  delete process.env.NEXT_PUBLIC_API_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT;
+  delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
 });
 
 afterEach(() => {

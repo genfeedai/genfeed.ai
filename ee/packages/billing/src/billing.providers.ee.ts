@@ -47,15 +47,12 @@ import { UserSubscriptionsService } from './user-subscriptions/services/user-sub
 /**
  * SaaS (GENFEED_CLOUD / hosted api.genfeed.ai) or licensed EE self-host.
  *
- * Production EE images always bind the real services. The community image never
- * loads this file — it uses `billing.providers.oss.ts`. Freezing OSS stubs on a
- * production EE process when `GENFEED_CLOUD` was missing bricked hosted checkout.
- * Domain rule: `*.genfeed.ai` is SaaS (see `isHostedGenfeedCloud`).
+ * The community image never loads this file — it uses
+ * `billing.providers.oss.ts`. Hosted Cloud is detected from its explicit flag or
+ * `*.genfeed.ai` public URL, while unlicensed self-hosted EE builds stay on the
+ * OSS services.
  */
 function isOrgBillingLive(): boolean {
-  if (process.env.NODE_ENV === 'production') {
-    return true;
-  }
   return hasOrganizationBilling();
 }
 
