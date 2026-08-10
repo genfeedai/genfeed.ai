@@ -363,6 +363,64 @@ resource "aws_iam_role_policy" "gha_deploy" {
   policy = data.aws_iam_policy_document.gha_deploy.json
 }
 
+# CloudWatch dashboard/alarm APIs and SNS topic discovery are control-plane
+# operations that do not support useful resource-level scoping. Keep them in a
+# separate additive policy so the production monitoring boundary is explicit
+# and auditable independently from the general deploy policy.
+data "aws_iam_policy_document" "gha_deploy_monitoring" {
+  statement {
+    sid    = "ManageProductionAlarms"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:PutMetricAlarm",
+    ]
+    resources = ["arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*"]
+  }
+
+  statement {
+    sid    = "ManageProductionDashboard"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:DeleteDashboards",
+      "cloudwatch:PutDashboard",
+    ]
+    resources = ["arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production"]
+  }
+
+  statement {
+    sid    = "TagProductionMonitoring"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+    ]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
+    sid    = "DiscoverProductionMonitoring"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:DescribeAlarms",
+      "cloudwatch:GetDashboard",
+      "cloudwatch:ListDashboards",
+      "cloudwatch:ListTagsForResource",
+      "sns:ListTopics",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_deploy_monitoring" {
+  name   = "manage-production-monitoring"
+  role   = aws_iam_role.gha_deploy.id
+  policy = data.aws_iam_policy_document.gha_deploy_monitoring.json
+}
+
 output "state_bucket" {
   value = aws_s3_bucket.state.id
 }

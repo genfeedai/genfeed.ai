@@ -478,3 +478,51 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
     /name: Checkout workflow helpers[\s\S]*?persist-credentials: false[\s\S]*?nightly-e2e-failure-reporter\.mjs[\s\S]*?reportNightlyE2eFailure/,
   );
 });
+
+test('keeps production monitoring permissions in the deploy-role bootstrap policy', () => {
+  const bootstrap = readFileSync(
+    path.join(REPOSITORY_ROOT, 'infra', 'terraform', 'bootstrap', 'main.tf'),
+    'utf8',
+  );
+
+  const policy = bootstrap.match(
+    /data "aws_iam_policy_document" "gha_deploy_monitoring" \{[\s\S]*?\n\}/,
+  )?.[0];
+  assert.ok(policy, 'bootstrap must define the deploy-role monitoring policy');
+
+  for (const action of [
+    'cloudwatch:DeleteAlarms',
+    'cloudwatch:DeleteDashboards',
+    'cloudwatch:DescribeAlarms',
+    'cloudwatch:GetDashboard',
+    'cloudwatch:ListDashboards',
+    'cloudwatch:ListTagsForResource',
+    'cloudwatch:PutDashboard',
+    'cloudwatch:PutMetricAlarm',
+    'cloudwatch:TagResource',
+    'cloudwatch:UntagResource',
+    'sns:ListTopics',
+  ]) {
+    assert.ok(
+      policy.includes(`"${action}"`),
+      `monitoring policy must allow ${action}`,
+    );
+  }
+
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch:\$\{var\.region\}:\$\{local\.account_id\}:alarm:genfeed-production-\*/,
+  );
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
+  );
+  assert.match(
+    policy,
+    /sid\s+= "DiscoverProductionMonitoring"[\s\S]*?resources = \["\*"\]/,
+  );
+  assert.match(
+    bootstrap,
+    /resource "aws_iam_role_policy" "gha_deploy_monitoring" \{[\s\S]*?name\s+= "manage-production-monitoring"[\s\S]*?role\s+= aws_iam_role\.gha_deploy\.id[\s\S]*?policy\s+= data\.aws_iam_policy_document\.gha_deploy_monitoring\.json/,
+  );
+});
