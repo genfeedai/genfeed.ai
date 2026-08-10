@@ -235,6 +235,14 @@ jobs:
         run: bun run check:action-versions
       - name: GitHub Action Version Guard Tests
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-github-action-versions.test.ts
+      # Turbo derives build order from package.json, `tsc --build` follows
+      # tsconfig `references`. Where the two disagree, two compilers write one
+      # package's dist concurrently and fail with errors that contradict the
+      # source. Invisible behind a cache hit, so it lands on an unrelated PR.
+      - name: Project Reference Dependency Parity
+        run: bun run check:project-references
+      - name: Project Reference Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-project-reference-deps.test.ts
       # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
       # while neither ran in any workflow: the repo-wide half of the raw-control
       # and design-token contracts was dark, leaving only a pre-commit hook that

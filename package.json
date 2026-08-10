@@ -70,6 +70,7 @@
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
     "check:legacy-cron-surface": "bun run scripts/architecture/check-legacy-cron-jobs-surface.ts",
     "check:product-workflow-boundary": "bun run scripts/architecture/check-product-workflow-boundary.ts",
+    "check:project-references": "bun run scripts/architecture/check-project-reference-deps.ts",
     "check:relation-alias-reads": "bun run scripts/architecture/check-relation-alias-reads.ts",
     "check:relation-alias-writes": "bun run scripts/architecture/check-relation-alias-writes.ts",
     "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",
