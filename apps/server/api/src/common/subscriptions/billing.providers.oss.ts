@@ -2,9 +2,15 @@
  * OSS billing DI fragments — the community (selfhosted) flavor of
  * `@billing-providers`.
  *
- * Resolved by the webpack `@billing-providers` alias (and the matching tsconfig
- * path) whenever `ee/packages/billing` is absent from the build, which is the
- * case for the AGPL community image. Each api billing collection module composes
+ * Resolved by the `@billing-providers` flavor resolver plugin in
+ * webpack.base.config.js whenever `ee/packages/billing` is absent from the
+ * build, which is the case for the AGPL community image. The tsconfig path for
+ * `@billing-providers` always points HERE — tsc needs a static target and this
+ * file carries the shared fragment types — which is exactly why bundling must
+ * not trust tsconfig paths: TsconfigPathsPlugin outranks `resolve.alias`, and
+ * letting it decide baked this stub into the SaaS image (#2751). The flavor
+ * resolver plugin registered ahead of it is the load-bearing fix, enforced by
+ * `bun run check:billing-flavor` and the Dockerfile.server bundle gate. Each api billing collection module composes
  * its `@Module()` metadata directly from the matching fragment here, so the OSS
  * webpack graph never compile-time depends on enterprise billing code.
  *

@@ -65,6 +65,7 @@
     "check:action-versions": "bun run scripts/architecture/check-github-action-versions.ts",
     "check:agent-tool-dispatch": "bun run scripts/architecture/check-agent-tool-dispatch.ts",
     "check:architecture": "bun run scripts/check-architecture.ts",
+    "check:billing-flavor": "bun run scripts/check-billing-flavor.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",
     "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",
