@@ -369,19 +369,46 @@ resource "aws_iam_role_policy" "gha_deploy" {
 # and auditable independently from the general deploy policy.
 data "aws_iam_policy_document" "gha_deploy_monitoring" {
   statement {
-    sid    = "ManageProductionMonitoring"
+    sid    = "ManageProductionAlarms"
     effect = "Allow"
     actions = [
       "cloudwatch:DeleteAlarms",
+      "cloudwatch:PutMetricAlarm",
+    ]
+    resources = ["arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*"]
+  }
+
+  statement {
+    sid    = "ManageProductionDashboard"
+    effect = "Allow"
+    actions = [
       "cloudwatch:DeleteDashboards",
+      "cloudwatch:PutDashboard",
+    ]
+    resources = ["arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production"]
+  }
+
+  statement {
+    sid    = "TagProductionMonitoring"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+    ]
+    resources = [
+      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
+      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
+    ]
+  }
+
+  statement {
+    sid    = "DiscoverProductionMonitoring"
+    effect = "Allow"
+    actions = [
       "cloudwatch:DescribeAlarms",
       "cloudwatch:GetDashboard",
       "cloudwatch:ListDashboards",
       "cloudwatch:ListTagsForResource",
-      "cloudwatch:PutDashboard",
-      "cloudwatch:PutMetricAlarm",
-      "cloudwatch:TagResource",
-      "cloudwatch:UntagResource",
       "sns:ListTopics",
     ]
     resources = ["*"]

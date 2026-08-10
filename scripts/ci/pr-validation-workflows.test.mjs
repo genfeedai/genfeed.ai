@@ -509,7 +509,18 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     );
   }
 
-  assert.match(policy, /resources = \["\*"\]/);
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch:\$\{var\.region\}:\$\{local\.account_id\}:alarm:genfeed-production-\*/,
+  );
+  assert.match(
+    policy,
+    /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
+  );
+  assert.match(
+    policy,
+    /sid\s+= "DiscoverProductionMonitoring"[\s\S]*?resources = \["\*"\]/,
+  );
   assert.match(
     bootstrap,
     /resource "aws_iam_role_policy" "gha_deploy_monitoring" \{[\s\S]*?name\s+= "manage-production-monitoring"[\s\S]*?role\s+= aws_iam_role\.gha_deploy\.id[\s\S]*?policy\s+= data\.aws_iam_policy_document\.gha_deploy_monitoring\.json/,
