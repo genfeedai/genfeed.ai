@@ -479,6 +479,16 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
   );
 });
 
+test('pins mocked core E2E builds to Community mode', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const frontendJob = jobBlock(workflow, 'e2e-frontend', 'e2e.yml');
+
+  assert.match(
+    frontendJob,
+    /name: Build app[\s\S]*?NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"[\s\S]*?NEXT_PUBLIC_GENFEED_CLOUD: "false"[\s\S]*?NEXT_PUBLIC_API_ENDPOINT: https:\/\/api\.genfeed\.ai\/v1/,
+  );
+});
+
 test('keeps production monitoring permissions in the deploy-role bootstrap policy', () => {
   const bootstrap = readFileSync(
     path.join(REPOSITORY_ROOT, 'infra', 'terraform', 'bootstrap', 'main.tf'),

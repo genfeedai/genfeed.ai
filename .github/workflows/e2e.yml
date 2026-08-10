@@ -235,6 +235,11 @@ jobs:
           # bypass (middleware can't read a plain server env at request time on
           # edge) and disables live sockets (use-socket-manager).
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
+          # The mocked core suite exercises the clean Community routes below
+          # (for example /studio/clips). Explicitly pin that deployment mode so
+          # the hosted mock API endpoint cannot make getDeployment() select the
+          # SaaS shell and remove Community-only rewrites at build time.
+          NEXT_PUBLIC_GENFEED_CLOUD: "false"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
           # Correct var name (app reads NEXT_PUBLIC_API_ENDPOINT, not _API_URL).
