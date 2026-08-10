@@ -65,6 +65,9 @@
       "path": "../enums/tsconfig.json"
     },
     {
+      "path": "../helpers/tsconfig.json"
+    },
+    {
       "path": "../interfaces/tsconfig.json"
     },
     {
