@@ -122,6 +122,15 @@ function scrubSecrets(text: string): string {
     .trim();
 }
 
+function extractSafeContext(text: string): string | null {
+  const firstLine = text.split(/\r?\n/, 1)[0]?.trim();
+  if (!firstLine || !/^Failed at:\s*[^\r\n]+$/i.test(firstLine)) {
+    return null;
+  }
+
+  return scrubSecrets(firstLine).slice(0, 160);
+}
+
 export function formatAgentError(
   raw: string | null | undefined,
 ): FormattedAgentError {
@@ -147,7 +156,7 @@ export function formatAgentError(
         ? cleaned.length > maxDetail
           ? `${cleaned.slice(0, maxDetail - 1)}…`
           : cleaned
-        : null;
+        : extractSafeContext(original);
       return {
         detail,
         isConfigurationError: true,

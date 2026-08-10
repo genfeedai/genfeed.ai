@@ -1,5 +1,8 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
-import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
+import {
+  AgentWorkEventStatus,
+  AgentWorkEventType,
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   isActiveWorkEvent,
   isGenericRunLifecycleEvent,
@@ -34,6 +37,28 @@ export function TimelineWorkGroup({
 
   const terminalStatus = useMemo(() => {
     const source = entry.events;
+    const terminalLifecycleEvent = source
+      .filter(
+        (event) =>
+          isGenericRunLifecycleEvent(event) &&
+          (event.event === AgentWorkEventType.COMPLETED ||
+            event.event === AgentWorkEventType.FAILED ||
+            event.event === AgentWorkEventType.CANCELLED),
+      )
+      .at(-1);
+
+    // A terminal run bookend is authoritative even when stale pending/running
+    // step events remain in the stream snapshot.
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.FAILED) {
+      return 'failed' as const;
+    }
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.CANCELLED) {
+      return 'cancelled' as const;
+    }
+    if (terminalLifecycleEvent?.event === AgentWorkEventType.COMPLETED) {
+      return 'completed' as const;
+    }
+
     if (source.some((event) => isActiveWorkEvent(event))) {
       return 'live' as const;
     }

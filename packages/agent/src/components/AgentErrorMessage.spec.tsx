@@ -54,4 +54,23 @@ describe('AgentErrorMessage', () => {
       'Generation failed: 500',
     );
   });
+
+  it('keeps scrubbed generic details actionable', () => {
+    render(<AgentErrorMessage message="Selected model is unavailable" />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Selected model is unavailable',
+    );
+  });
+
+  it('keeps trusted step context while hiding classified provider details', () => {
+    render(
+      <AgentErrorMessage message={'Failed at: Generate Clip\nGPU timeout'} />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Failed at: Generate Clip',
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent('GPU timeout');
+  });
 });

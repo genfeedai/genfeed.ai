@@ -20,6 +20,9 @@ export function AgentErrorMessage({
   const formatted = useMemo(() => formatAgentError(message), [message]);
   const displayMessage = useMemo(() => {
     const parts = [formatted.title, formatted.summary];
+    if (formatted.detail) {
+      parts.push(formatted.detail);
+    }
     if (formatted.recovery) {
       parts.push(formatted.recovery);
     }
