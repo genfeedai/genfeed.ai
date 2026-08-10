@@ -120,7 +120,7 @@ jobs:
     # publish) skip it — the same commit was already secret-scanned on push to master.
     if: needs.trust.outputs.is-trusted == 'true' && github.event_name != 'release'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -136,7 +136,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -179,7 +179,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -265,7 +265,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -282,7 +282,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -304,7 +304,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -341,7 +341,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -402,7 +402,7 @@ jobs:
       web_desktop_mobile: ${{ steps.plan.outputs.web_desktop_mobile }}
       extensions: ${{ steps.plan.outputs.extensions }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -434,7 +434,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.packages == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -465,7 +465,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.server_services == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -496,7 +496,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.web_desktop_mobile == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -539,7 +539,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.extensions == 'true')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -576,7 +576,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -611,7 +611,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -652,7 +652,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -693,7 +693,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -721,7 +721,7 @@ jobs:
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -756,7 +756,7 @@ jobs:
     needs: [trust, format, lint, guards, typecheck]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -801,7 +801,7 @@ jobs:
       - build
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push') }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Aggregate test and build results
         env:
@@ -867,7 +867,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -927,7 +927,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -980,7 +980,7 @@ jobs:
       always() && github.event_name == 'pull_request'
       && needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       # One download per surface so each surface resolves to a directory holding
@@ -1059,7 +1059,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -1135,7 +1135,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 

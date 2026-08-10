@@ -60,7 +60,7 @@ jobs:
     # rollback — not manual approval.
     environment: production
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # Needed when HEAD is a non-server commit: the image resolver can walk
           # recent first-parent ancestors and verify no server-image inputs
