@@ -173,7 +173,13 @@ describe('useAgentChatStream', () => {
     expect(state.activeThreadId).toBe('thread-new');
     expect(state.activeRunId).toBe('run-1');
     expect(state.runStartedAt).toBe(startedAt);
-    expect(state.stream.streamingContent).toBe('Hello world');
+    // Tokens land on the next animation frame, not on the emitting tick —
+    // `appendStreamToken` buffers and schedules a single coalesced flush.
+    await waitFor(() =>
+      expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+        'Hello world',
+      ),
+    );
     expect(state.threads[0]).toEqual(
       expect.objectContaining({
         brandId: null,

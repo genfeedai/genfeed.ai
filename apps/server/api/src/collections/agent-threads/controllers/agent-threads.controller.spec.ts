@@ -27,6 +27,7 @@ describe('AgentThreadsController', () => {
     addMessage: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     getMessagesByRoom: ReturnType<typeof vi.fn>;
+    getMessagesPage: ReturnType<typeof vi.fn>;
     getRecentMessages: ReturnType<typeof vi.fn>;
     resolveMessageArtifactReferences: ReturnType<typeof vi.fn>;
   };
@@ -57,6 +58,9 @@ describe('AgentThreadsController', () => {
       addMessage: vi.fn(),
       findOne: vi.fn(),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
+      getMessagesPage: vi
+        .fn()
+        .mockResolvedValue({ docs: [], hasMore: false, nextCursor: null }),
       getRecentMessages: vi.fn().mockResolvedValue([]),
       resolveMessageArtifactReferences: vi.fn().mockResolvedValue([]),
     };
@@ -267,6 +271,100 @@ describe('AgentThreadsController', () => {
       service.findOne.mockResolvedValue({ id: 'test' });
       await controller.getThread({} as never, 'test-id', mockUser);
       expect(service.findOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMessages', () => {
+    it('forwards the cursor and computed limit to getMessagesPage, org-scoped', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
+        '25',
+        'opaque-cursor',
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_current',
+        { cursor: 'opaque-cursor', limit: 25 },
+      );
+    });
+
+    it('defaults the limit to 50 and passes no cursor when the query omits them', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        {} as never,
+        'thread-1',
+        mockUser,
+        undefined,
+        undefined,
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_current',
+        { cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('reverses the newest-first service page into chronological order', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [
+          { id: 'msg-3', content: 'third' },
+          { id: 'msg-2', content: 'second' },
+          { id: 'msg-1', content: 'first' },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      const result = await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
+      );
+
+      expect(
+        (result as { data: Array<{ id: string }> }).data.map((d) => d.id),
+      ).toEqual(['msg-1', 'msg-2', 'msg-3']);
+    });
+
+    it('surfaces hasMore and nextCursor via links.cursor', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: true,
+        nextCursor: 'next-opaque-cursor',
+      });
+
+      const result = await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          links: expect.objectContaining({
+            cursor: {
+              hasMore: true,
+              limit: 50,
+              nextCursor: 'next-opaque-cursor',
+            },
+          }),
+        }),
+      );
     });
   });
 

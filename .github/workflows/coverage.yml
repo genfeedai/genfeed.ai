@@ -51,6 +51,7 @@ jobs:
         run: bunx turbo run build --filter='./${{ matrix.package }}...'
 
       - name: Run coverage
+        id: coverage
         # Prefer the workspace test script so packages/enums and friends stay
         # on the same entrypoint as package CI (#1829).
         run: |
@@ -71,12 +72,12 @@ jobs:
           retention-days: 7
 
       - name: Assert package coverage report exists
-        if: always()
+        if: ${{ always() && steps.coverage.outcome == 'success' }}
         run: |
           set -euo pipefail
           report="${{ matrix.package }}/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::Missing non-empty coverage report at $report"
+            echo "::error::${{ matrix.package }} tests passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
           echo "Found coverage report: $report ($(wc -c < "$report") bytes)"
@@ -101,6 +102,7 @@ jobs:
         run: bunx turbo run build --filter='./packages/hooks...'
 
       - name: Run coverage
+        id: coverage
         run: cd packages/hooks && bunx vitest run --coverage --config vitest.config.mts
 
       - name: Upload coverage artifact
@@ -112,12 +114,12 @@ jobs:
           retention-days: 7
 
       - name: Assert hooks coverage report exists
-        if: always()
+        if: ${{ always() && steps.coverage.outcome == 'success' }}
         run: |
           set -euo pipefail
           report="packages/hooks/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::Missing non-empty coverage report at $report"
+            echo "::error::packages/hooks tests passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
 
@@ -145,9 +147,22 @@ jobs:
         run: bunx turbo run build --filter='./apps/app...'
 
       - name: Run coverage
+        id: coverage
         run: cd apps/app && bun run test:cov:shard -- --reporter=blob --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
+
+      - name: Assert app blob report exists
+        if: ${{ always() && steps.coverage.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(apps/app/.vitest-reports/blob-*.json)
+          if [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; then
+            echo "::error::apps/app shard ${{ matrix.shard }}/4 tests passed but expected one non-empty Vitest blob report; found ${#reports[@]}"
+            exit 1
+          fi
 
       - name: Upload blob report artifact
         uses: actions/upload-artifact@v7
@@ -166,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: coverage-app
-    if: always()
+    if: ${{ needs.coverage-app.result == 'success' }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -185,7 +200,25 @@ jobs:
           path: apps/app/.vitest-reports
           merge-multiple: true
 
+      - name: Assert all app blob reports exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(apps/app/.vitest-reports/blob-*.json)
+          if [ "${#reports[@]}" -ne 4 ]; then
+            echo "::error::Expected four apps/app Vitest blob reports before merge; found ${#reports[@]}"
+            exit 1
+          fi
+          for report in "${reports[@]}"; do
+            if [ ! -s "$report" ]; then
+              echo "::error::App coverage blob report is empty: $report"
+              exit 1
+            fi
+          done
+
       - name: Merge coverage reports
+        id: merge
         run: cd apps/app && bunx vitest --merge-reports .vitest-reports --coverage --config ./vitest.config.mts
         env:
           NODE_ENV: test
@@ -199,12 +232,12 @@ jobs:
           retention-days: 7
 
       - name: Assert app coverage report exists
-        if: always()
+        if: ${{ always() && steps.merge.outcome == 'success' }}
         run: |
           set -euo pipefail
           report="apps/app/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::Missing non-empty coverage report at $report"
+            echo "::error::apps/app coverage merge passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
 
@@ -232,10 +265,23 @@ jobs:
         run: bunx turbo run build --filter=./packages/**
 
       - name: Run coverage
+        id: coverage
         run: cd apps/server/api && bunx vitest run --reporter=blob --coverage --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+
+      - name: Assert API blob report exists
+        if: ${{ always() && steps.coverage.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(apps/server/api/.vitest-reports/blob-*.json)
+          if [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; then
+            echo "::error::apps/server/api shard ${{ matrix.shard }}/4 tests passed but expected one non-empty Vitest blob report; found ${#reports[@]}"
+            exit 1
+          fi
 
       - name: Upload blob report artifact
         uses: actions/upload-artifact@v7
@@ -254,7 +300,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: coverage-api
-    if: always()
+    if: ${{ needs.coverage-api.result == 'success' }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -273,7 +319,25 @@ jobs:
           path: apps/server/api/.vitest-reports
           merge-multiple: true
 
+      - name: Assert all API blob reports exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(apps/server/api/.vitest-reports/blob-*.json)
+          if [ "${#reports[@]}" -ne 4 ]; then
+            echo "::error::Expected four apps/server/api Vitest blob reports before merge; found ${#reports[@]}"
+            exit 1
+          fi
+          for report in "${reports[@]}"; do
+            if [ ! -s "$report" ]; then
+              echo "::error::API coverage blob report is empty: $report"
+              exit 1
+            fi
+          done
+
       - name: Merge coverage reports
+        id: merge
         run: cd apps/server/api && bunx vitest --merge-reports .vitest-reports --coverage
         env:
           NODE_ENV: test
@@ -288,12 +352,12 @@ jobs:
           retention-days: 7
 
       - name: Assert API coverage report exists
-        if: always()
+        if: ${{ always() && steps.merge.outcome == 'success' }}
         run: |
           set -euo pipefail
           report="apps/server/api/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::Missing non-empty coverage report at $report"
+            echo "::error::apps/server/api coverage merge passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
 
@@ -332,6 +396,7 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
       - name: Run E2E coverage shard ${{ matrix.shard }}/4
+        id: coverage
         # No --reporter override here so the monocart reporter (lcov + v8) from
         # playwright-coverage.config.ts runs in full. --shard splits app-core.
         # Threshold 0 — this run reports coverage, it does not gate on it.
@@ -352,11 +417,11 @@ jobs:
           retention-days: 7
 
       - name: Assert E2E coverage report exists
-        if: always()
+        if: ${{ always() && steps.coverage.outcome == 'success' }}
         run: |
           set -euo pipefail
           report="playwright-report/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::Missing non-empty E2E coverage report at $report"
+            echo "::error::apps/app E2E shard ${{ matrix.shard }}/4 tests passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi

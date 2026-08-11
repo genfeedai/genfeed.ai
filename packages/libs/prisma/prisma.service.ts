@@ -3,12 +3,10 @@ import { PrismaClient } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { createPrismaPgConfig } from './prisma-pg-config';
-
-const POSTGRES_CA_FILE_ENV_KEYS = [
-  'PRISMA_POSTGRES_CA_FILE',
-  'PGSSLROOTCERT',
-] as const;
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from './prisma-pg-config';
 
 export type PrismaQueryListener = (event: Prisma.QueryEvent) => void;
 

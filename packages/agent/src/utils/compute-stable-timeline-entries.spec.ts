@@ -94,9 +94,11 @@ describe('computeStableTimelineEntries', () => {
       [userEntry(), assistantEntry()],
     );
 
-    // Simulate a re-derivation that rebuilds every object from scratch but
-    // with identical content (this is what `deriveHistoricalTimeline` does
-    // on every `messages`/`workEvents` change).
+    // Simulate a re-derivation where even the nested message objects are
+    // rebuilt from scratch with identical content. `deriveHistoricalTimeline`
+    // always rebuilds the entry wrapper; the nested `message` additionally
+    // comes back fresh whenever the store rehydrates (refetch, cached
+    // conversation restore, thread switch).
     const rebuilt: TimelineEntry[] = [userEntry(), assistantEntry()];
     const second = computeStableTimelineEntries(first, rebuilt);
 

@@ -1,5 +1,6 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -110,6 +111,10 @@ const mockLogger = {
   warn: vi.fn(),
 };
 
+const mockConfigService = {
+  get: vi.fn(),
+};
+
 // ---------------------------------------------------------------------------
 // Test Suite
 // ---------------------------------------------------------------------------
@@ -122,11 +127,13 @@ describe('BrandScraperService', () => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     vi.clearAllMocks();
+    mockConfigService.get.mockReturnValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandScraperService,
         BrandWebsiteParserService,
+        { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -360,6 +367,40 @@ describe('BrandScraperService', () => {
       );
     });
 
+    it('uses Logo.dev only when the website scraper finds no logo', async () => {
+      mockConfigService.get.mockReturnValue('pk_test');
+      fetchMock.mockResolvedValue(
+        makeResponse(makeHtml({ body: '', title: 'Acme | Home' })),
+      );
+
+      const result = await service.scrapeWebsite('https://www.acme.com/about');
+
+      expect(result.logoUrl).toBe(
+        'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
+      );
+    });
+
+    it('keeps a scraper-discovered logo ahead of Logo.dev', async () => {
+      mockConfigService.get.mockReturnValue('pk_test');
+      fetchMock.mockResolvedValue(
+        makeResponse(
+          makeHtml({ body: '<img class="logo" src="/owned-logo.svg" />' }),
+        ),
+      );
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.logoUrl).toBe('https://acme.com/owned-logo.svg');
+    });
+
+    it('retains the placeholder path when Logo.dev is not configured', async () => {
+      fetchMock.mockResolvedValue(makeResponse(makeHtml({ body: '' })));
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.logoUrl).toBeUndefined();
+    });
+
     it('uses a Twitter card image when no Open Graph image exists', async () => {
       fetchMock.mockResolvedValue(
         makeResponse(`<!DOCTYPE html>
@@ -433,6 +474,26 @@ describe('BrandScraperService', () => {
 
       expect(result.ogImage).toBe('https://cdn.acme.com/card.jpg');
       expect(result.bannerUrl).toBe('https://cdn.acme.com/card.jpg');
+    });
+
+    it('applies Logo.dev after the meta-tag fallback finds no logo', async () => {
+      mockConfigService.get.mockReturnValue('pk_test');
+      fetchMock
+        .mockResolvedValueOnce(makeResponse('', 500))
+        .mockResolvedValueOnce(
+          makeResponse(
+            makeHtml({
+              body: '',
+              title: 'FallbackCo',
+            }),
+          ),
+        );
+
+      const result = await service.scrapeWebsite('https://www.acme.com');
+
+      expect(result.logoUrl).toBe(
+        'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
+      );
     });
 
     it('falls back to meta tags when scrape fails (503)', async () => {

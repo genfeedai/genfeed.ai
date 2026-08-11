@@ -953,8 +953,11 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   setMemoryEntries: (entries) => set({ memoryEntries: entries }),
   setMessages: (messages) =>
     set({
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
       messages,
+      messagesCursor: null,
     }),
   setMessagesPage: (page) =>
     set({

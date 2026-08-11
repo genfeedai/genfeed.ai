@@ -15,6 +15,9 @@ jobs:
     uses: ./.github/workflows/desktop-qa.yml
 
   desktop-macos:
+    # Signing and release secrets are only exposed for an actual desktop tag
+    # push. A manual dispatch can still exercise the reusable QA job above.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/desktop-v')
     needs: desktop-release-qa
     runs-on: macos-latest
     timeout-minutes: 60
@@ -25,6 +28,7 @@ jobs:
       DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
       DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
       GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
+      GENFEED_DESKTOP_VISUAL_QA_ENABLED: ${{ secrets.GENFEED_DESKTOP_VISUAL_QA_SESSION != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -119,7 +123,7 @@ jobs:
             xcrun stapler validate "$dmg"
           done
 
-      - name: Verify Developer ID signature and notarization
+      - name: Verify Developer ID signature, notarization, and app size
         run: |
           DMG_PATH="$(find apps/desktop/app/release -maxdepth 1 -name '*.dmg' -type f | head -1)"
           MOUNT_PATH="$(mktemp -d)"
@@ -143,13 +147,42 @@ jobs:
             exit 1
           fi
 
+          MAX_APP_SIZE_MIB=500
+          APP_SIZE_KIB="$(du -sk "$APP_PATH" | awk '{print $1}')"
+          APP_SIZE_MIB="$(( (APP_SIZE_KIB + 1023) / 1024 ))"
+
+          {
+            echo "## Desktop package size"
+            echo
+            echo "GenFeed.app: ${APP_SIZE_MIB} MiB (budget: ${MAX_APP_SIZE_MIB} MiB)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$APP_SIZE_MIB" -gt "$MAX_APP_SIZE_MIB" ]; then
+            echo "::error::GenFeed.app is ${APP_SIZE_MIB} MiB and exceeds the 500 MiB release budget"
+            exit 1
+          fi
+
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -dvvv "$APP_PATH" 2>&1 | grep -F 'Authority=Developer ID Application'
           xcrun stapler validate "$APP_PATH"
           spctl --assess --type execute --verbose=2 "$APP_PATH"
 
       - name: Capture packaged visual QA
+        if: env.GENFEED_DESKTOP_VISUAL_QA_ENABLED == 'true'
+        env:
+          GENFEED_DESKTOP_VISUAL_QA_SESSION: ${{ secrets.GENFEED_DESKTOP_VISUAL_QA_SESSION }}
         run: bun run --filter=@genfeedai/desktop visual:qa:release
+
+      - name: Record deferred authenticated visual QA
+        if: env.GENFEED_DESKTOP_VISUAL_QA_ENABLED != 'true'
+        run: |
+          echo "::warning::GENFEED_DESKTOP_VISUAL_QA_SESSION is not configured — authenticated screenshot evidence is deferred."
+          {
+            echo "## Desktop visual QA"
+            echo
+            echo "Authenticated screenshot evidence was deferred because the optional release-only session fixture is not configured."
+            echo "Desktop QA, smoke, signing, notarization, and Gatekeeper verification remain required."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
@@ -164,6 +197,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload visual QA screenshots
+        if: env.GENFEED_DESKTOP_VISUAL_QA_ENABLED == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-visual-qa
@@ -188,6 +222,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
+          make_latest: false
           fail_on_unmatched_files: true
           files: |
             release/*

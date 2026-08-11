@@ -700,6 +700,37 @@ describe('Server Serializers', () => {
 
       expect(output.data.attributes.reviewDecision).toBe(expected);
     });
+
+    it('canonicalizes structured review events without assigning legacy entries a decision', () => {
+      const output = PostSerializer.serialize({
+        id: 'ckpost0000000000000000001',
+        reviewEvents: [
+          {
+            decision: 'REQUEST_CHANGES',
+            reviewerId: 'ckuser0000000000000000001',
+          },
+          'legacy-event',
+        ],
+      }) as {
+        data: {
+          attributes: {
+            reviewEvents: unknown[];
+          };
+        };
+      };
+
+      expect(output.data.attributes.reviewEvents[0]).toEqual({
+        decision: 'request_changes',
+        reviewerId: 'ckuser0000000000000000001',
+      });
+
+      const legacyEvent = output.data.attributes.reviewEvents[1];
+      const legacyEventHasDecision =
+        typeof legacyEvent === 'object' &&
+        legacyEvent !== null &&
+        'decision' in legacyEvent;
+      expect(legacyEventHasDecision).toBe(false);
+    });
   });
 
   // Regression for #1223: `PostListSerializer` was previously destructured as

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -62,24 +62,55 @@ vi.mock('./CreditsBarTrigger', () => ({
     billingHref,
     fullBalance,
     isLoading,
+    planLimit,
+    planUsagePercent,
   }: {
-    balance: number;
+    balance: number | null;
     billingHref: string;
     fullBalance: string;
     isLoading?: boolean;
+    planLimit: number;
+    planUsagePercent: number;
   }) => (
     <div
       data-testid="credits-trigger"
       data-loading={isLoading ? 'true' : 'false'}
+      data-plan-limit={planLimit}
+      data-plan-usage={planUsagePercent}
     >
       <span data-testid="credits-balance">{fullBalance}</span>
-      <span data-testid="credits-numeric">{balance}</span>
+      <span data-testid="credits-numeric">{balance ?? 'unknown'}</span>
       <a href={billingHref} data-testid="credits-link">
         top-up
       </a>
     </div>
   ),
 }));
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
+function balanceResponse(balance: number) {
+  return {
+    generatedAt: '2026-06-17T00:00:00.000Z',
+    segments: [
+      {
+        balance,
+        currencyOrUnit: 'credits',
+        label: 'Genfeed',
+        lastSyncedAt: '2026-06-17T00:00:00.000Z',
+        provider: 'genfeed',
+        status: 'available',
+      },
+    ],
+  };
+}
 
 describe('TopbarCreditsBar', () => {
   beforeEach(() => {
@@ -90,19 +121,7 @@ describe('TopbarCreditsBar', () => {
     mockGetCreditsService.mockResolvedValue({
       getTopbarBalances: mockGetTopbarBalances,
     });
-    mockGetTopbarBalances.mockResolvedValue({
-      generatedAt: '2026-06-17T00:00:00.000Z',
-      segments: [
-        {
-          balance: 42,
-          currencyOrUnit: 'credits',
-          label: 'Genfeed',
-          lastSyncedAt: '2026-06-17T00:00:00.000Z',
-          provider: 'genfeed',
-          status: 'available',
-        },
-      ],
-    });
+    mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
   });
 
   it('loads topbar balances without logging an error', async () => {
@@ -208,5 +227,155 @@ describe('TopbarCreditsBar', () => {
     });
 
     expect(mockLoggerError).not.toHaveBeenCalled();
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-loading',
+      'false',
+    );
+    expect(screen.getByTestId('credits-balance')).toHaveTextContent('—');
+    expect(screen.getByTestId('credits-numeric')).toHaveTextContent('unknown');
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-plan-usage',
+      '0',
+    );
+  });
+
+  it('returns to loading on retry and renders the recovered balance', async () => {
+    const retry = createDeferred<ReturnType<typeof balanceResponse>>();
+    mockGetTopbarBalances
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockImplementationOnce(() => retry.promise);
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent(
+        'unknown',
+      );
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'false',
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'true',
+      );
+    });
+
+    await act(async () => {
+      retry.resolve(balanceResponse(88));
+      await retry.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('88');
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'false',
+      );
+    });
+  });
+
+  it('does not let an older request publish data or clear a newer loading state', async () => {
+    const older = createDeferred<ReturnType<typeof balanceResponse>>();
+    const newer = createDeferred<ReturnType<typeof balanceResponse>>();
+    mockGetTopbarBalances
+      .mockImplementationOnce(() => older.promise)
+      .mockImplementationOnce(() => newer.promise);
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      older.resolve(balanceResponse(7));
+      await older.promise;
+    });
+
+    expect(screen.getByTestId('credits-numeric')).toHaveTextContent('unknown');
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-loading',
+      'true',
+    );
+
+    await act(async () => {
+      newer.resolve(balanceResponse(84));
+      await newer.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('84');
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'false',
+      );
+    });
+  });
+
+  it('does not let an older request overwrite a newer response', async () => {
+    const older = createDeferred<ReturnType<typeof balanceResponse>>();
+    const newer = createDeferred<ReturnType<typeof balanceResponse>>();
+    mockGetTopbarBalances
+      .mockImplementationOnce(() => older.promise)
+      .mockImplementationOnce(() => newer.promise);
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
+    });
+    act(() => {
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      newer.resolve(balanceResponse(96));
+      await newer.promise;
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('96');
+    });
+
+    await act(async () => {
+      older.resolve(balanceResponse(3));
+      await older.promise;
+    });
+
+    expect(screen.getByTestId('credits-balance')).toHaveTextContent('96');
+  });
+
+  it('keeps a real zero balance distinct from an unavailable balance', async () => {
+    mockGetTopbarBalances.mockResolvedValue(balanceResponse(0));
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('0');
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('0');
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'false',
+      );
+    });
   });
 });

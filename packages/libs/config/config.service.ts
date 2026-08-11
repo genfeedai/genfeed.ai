@@ -61,6 +61,7 @@ interface ApiEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
   MARKETPLACE_API_URL?: string;
+  LOGO_DEV_PUBLISHABLE_KEY?: string;
   PGSSLROOTCERT?: string;
   PRISMA_POSTGRES_CA_FILE?: string;
   npm_package_description?: string;
@@ -107,6 +108,7 @@ const apiSpecificSchema = {
     .uri()
     .optional()
     .default('http://localhost:3200'),
+  LOGO_DEV_PUBLISHABLE_KEY: Joi.string().optional().allow(''),
   PGSSLROOTCERT: Joi.string().optional().allow(''),
   PRISMA_POSTGRES_CA_FILE: Joi.string().optional().allow(''),
   // Solana (optional)

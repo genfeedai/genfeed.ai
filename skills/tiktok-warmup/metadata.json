@@ -1,7 +1,7 @@
 {
   "name": "tiktok-warmup",
-  "version": "1.0.0",
-  "description": "Guide TikTok account warmup with engagement plans, warmup slideshow content, trending sound guidance, and post-warmup assessment frameworks",
+  "version": "2.0.0",
+  "description": "Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [
@@ -18,7 +18,9 @@
     "tiktok trust score",
     "first post on tiktok",
     "tiktok slideshow warmup",
-    "tiktok warmup carousel"
+    "tiktok warmup carousel",
+    "tiktok 7 day plan",
+    "tiktok 5 day plan"
   ],
   "references": {},
   "outputs": ["text"],

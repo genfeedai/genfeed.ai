@@ -18,13 +18,14 @@ import Link from 'next/link';
 
 /** Matches LowCreditsBanner — topbar warning tone below this. */
 export const TOPBAR_LOW_CREDITS_THRESHOLD = 1000;
+const BALANCE_UNAVAILABLE_LABEL = 'Balance unavailable';
 
 type Props = {
   billingHref: string;
-  balance: number;
+  balance: number | null;
   fullBalance: string;
   compactBalance: string;
-  /** True until the first topbar-balances response — no red zero flash. */
+  /** True while an unknown balance is loading — no red zero flash. */
   isLoading?: boolean;
   visibleProviderSegments: ITopbarBalanceSegment[];
   planLimit: number;
@@ -36,11 +37,14 @@ type Props = {
 };
 
 function getBalanceSeverity(
-  balance: number,
+  balance: number | null,
   isLoading: boolean,
-): 'critical' | 'warning' | 'healthy' | 'loading' {
+): 'critical' | 'warning' | 'healthy' | 'loading' | 'unavailable' {
   if (isLoading) {
     return 'loading';
+  }
+  if (balance === null) {
+    return 'unavailable';
   }
   if (balance <= 0) {
     return 'critical';
@@ -68,6 +72,7 @@ export default function CreditsBarTrigger({
   const unit = EnvironmentService.CREDITS_LABEL;
   const severity = getBalanceSeverity(balance, isLoading);
   const isLoadingState = severity === 'loading';
+  const isUnavailable = severity === 'unavailable';
   const isCritical = severity === 'critical';
   const isWarning = severity === 'warning';
   const isLow = isCritical || isWarning;
@@ -92,16 +97,20 @@ export default function CreditsBarTrigger({
           title={
             isLoadingState
               ? `Loading ${unit} balance`
-              : `${fullBalance} ${unit}`
+              : isUnavailable
+                ? `${unit} balance unavailable`
+                : `${fullBalance} ${unit}`
           }
           ariaLabel={
             isLoadingState
               ? `Loading ${unit} balance`
-              : isCritical
-                ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
-                : isWarning
-                  ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
-                  : `Balance ${fullBalance} ${unit}. Open wallet.`
+              : isUnavailable
+                ? `${unit} balance unavailable. Open wallet.`
+                : isCritical
+                  ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
+                  : isWarning
+                    ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
+                    : `Balance ${fullBalance} ${unit}. Open wallet.`
           }
           className={cn(
             'hidden h-8 items-center gap-1.5 rounded-md border px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
@@ -119,8 +128,9 @@ export default function CreditsBarTrigger({
               'text-[13px] font-semibold tabular-nums tracking-[-0.02em]',
               isCritical && 'text-destructive',
               isWarning && 'text-amber-600 dark:text-amber-400',
-              isLoadingState && 'min-w-[2.25ch] text-muted-foreground',
-              !isLow && !isLoadingState && 'text-foreground',
+              (isLoadingState || isUnavailable) &&
+                'min-w-[2.25ch] text-muted-foreground',
+              !isLow && !isLoadingState && !isUnavailable && 'text-foreground',
             )}
           >
             {compactBalance}
@@ -180,6 +190,10 @@ export default function CreditsBarTrigger({
               <p className="text-xs leading-none text-muted-foreground">
                 Loading balance…
               </p>
+            ) : isUnavailable ? (
+              <p className="text-xs leading-none text-muted-foreground">
+                {BALANCE_UNAVAILABLE_LABEL}
+              </p>
             ) : planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
                 {formatCompactNumber(planUsed)} /{' '}
@@ -198,7 +212,7 @@ export default function CreditsBarTrigger({
           </div>
         </DropdownMenuLabel>
 
-        {planLimit > 0 ? (
+        {!isLoadingState && !isUnavailable && planLimit > 0 ? (
           <div className="px-2 pb-2">
             <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
