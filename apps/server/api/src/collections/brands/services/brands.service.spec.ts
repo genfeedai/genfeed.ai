@@ -37,6 +37,7 @@ describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let assetDelegate: Record<string, ReturnType<typeof vi.fn>>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let brandScraperService: {
     scrapeWebsite: ReturnType<typeof vi.fn>;
     validateUrl: ReturnType<typeof vi.fn>;
@@ -98,9 +99,10 @@ describe('BrandsService', () => {
       updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
 
+    queryRaw = vi.fn().mockResolvedValue([]);
     const prisma = {
       // Brand kit asset relations resolve through a single ranked raw query.
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: queryRaw,
       asset: assetDelegate,
       brand: delegate,
     } as unknown as PrismaService;
@@ -222,42 +224,28 @@ describe('BrandsService', () => {
         { id: 'brand-1', organizationId: 'org-1' },
         { id: 'brand-2', organizationId: 'org-1' },
       ]);
-      assetDelegate.findFirst.mockImplementation(
-        ({ where }: { where: { category: string; parentBrandId: string } }) =>
-          where.category === 'LOGO' && where.parentBrandId === 'brand-1'
-            ? Promise.resolve({
-                category: 'LOGO',
-                cloudObjectKey: 'logos/logo-1',
-                displayName: 'Wordmark',
-                id: 'logo-1',
-                mimeType: 'image/png',
-                parentBrandId: 'brand-1',
-              })
-            : Promise.resolve(null),
-      );
-      assetDelegate.findMany.mockImplementation(
-        ({ where }: { where: { parentBrandId: string } }) =>
-          where.parentBrandId === 'brand-1'
-            ? Promise.resolve([
-                {
-                  category: 'REFERENCE',
-                  cloudObjectKey: 'references/ref-1',
-                  displayName: null,
-                  id: 'ref-1',
-                  mimeType: null,
-                  parentBrandId: 'brand-1',
-                },
-              ])
-            : Promise.resolve([]),
-      );
+      queryRaw.mockResolvedValue([
+        {
+          category: 'LOGO',
+          cloudObjectKey: 'logos/logo-1',
+          displayName: 'Wordmark',
+          id: 'logo-1',
+          mimeType: 'image/png',
+          parentBrandId: 'brand-1',
+        },
+        {
+          category: 'REFERENCE',
+          cloudObjectKey: 'references/ref-1',
+          displayName: null,
+          id: 'ref-1',
+          mimeType: null,
+          parentBrandId: 'brand-1',
+        },
+      ]);
 
       const brands = await service.findForOrganization('org-1');
 
-      // One bounded reference read per brand — never one unbounded scan.
-      expect(assetDelegate.findMany).toHaveBeenCalledTimes(2);
-      expect(assetDelegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 10 }),
-      );
+      expect(queryRaw).toHaveBeenCalledTimes(1);
       expect(brands[0].logo).toEqual({
         category: 'LOGO',
         cdnUrl: 'https://cdn.example.com/logos/logo-1',
@@ -277,31 +265,21 @@ describe('BrandsService', () => {
 
       await service.findForOrganization('org-1');
 
-      expect(assetDelegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            isDeleted: false,
-            parentBrandId: 'brand-1',
-            parentOrgId: 'org-1',
-          }),
-        }),
-      );
-      expect(assetDelegate.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            isDeleted: false,
-            parentBrandId: 'brand-1',
-            parentOrgId: 'org-1',
-          }),
-        }),
-      );
+      expect(queryRaw).toHaveBeenCalledTimes(1);
+      expect(queryRaw.mock.calls[0]?.slice(1)).toEqual([
+        'org-1',
+        ['brand-1'],
+        ['LOGO', 'BANNER', 'REFERENCE'],
+        'REFERENCE',
+        10,
+      ]);
     });
 
     it('skips the asset read when the organization has no brands', async () => {
       delegate.findMany.mockResolvedValue([]);
 
       await expect(service.findForOrganization('org-1')).resolves.toEqual([]);
-      expect(assetDelegate.findMany).not.toHaveBeenCalled();
+      expect(queryRaw).not.toHaveBeenCalled();
     });
   });
 
