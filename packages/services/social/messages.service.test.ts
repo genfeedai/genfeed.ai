@@ -251,12 +251,32 @@ describe('SocialMessagesService', () => {
   });
 
   it('syncYoutube POSTs the sync limit', async () => {
-    const payload = { synced: 4 };
+    const payload = { jobId: 'job-1', status: 'queued' };
     http.post.mockResolvedValue(axiosResponse(payload));
 
     const result = await service.syncYoutube(10);
 
     expect(http.post).toHaveBeenCalledWith('/youtube/sync', { limit: 10 });
+    expect(result).toEqual(payload);
+  });
+
+  it('syncInstagram enqueues a comment sweep on its own route', async () => {
+    const payload = { jobId: 'job-2', status: 'queued' };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.syncInstagram();
+
+    expect(http.post).toHaveBeenCalledWith('/instagram/sync', { limit: 25 });
+    expect(result).toEqual(payload);
+  });
+
+  it('syncInstagramDms enqueues a DM sweep on its own route', async () => {
+    const payload = { jobId: 'job-3', status: 'queued' };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.syncInstagramDms(5);
+
+    expect(http.post).toHaveBeenCalledWith('/instagram/dms/sync', { limit: 5 });
     expect(result).toEqual(payload);
   });
 

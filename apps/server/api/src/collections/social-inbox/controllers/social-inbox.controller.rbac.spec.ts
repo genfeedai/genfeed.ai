@@ -11,6 +11,21 @@ describe('SocialInboxController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
+  it('should require owner, admin, or creator role for the Instagram sync routes', () => {
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.syncInstagramComments,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.syncInstagramDms,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+  });
+
   it('should require owner, admin, or creator role for createDraft', () => {
     const metadata = Reflect.getMetadata(
       'roles',
