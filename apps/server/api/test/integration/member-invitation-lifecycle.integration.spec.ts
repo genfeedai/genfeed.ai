@@ -12,11 +12,7 @@ import {
   createTestUser,
   generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
-import {
-  createTestDatabaseHelper,
-  E2ETestModule,
-  type TestDatabaseHelper,
-} from '@api-test/e2e-test.module';
+import { E2ETestModule, TestDatabaseHelper } from '@api-test/e2e-test.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GoneException } from '@nestjs/common';
@@ -57,8 +53,8 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
     moduleRef = await Test.createTestingModule({
       imports: [moduleConfig],
     }).compile();
-    dbHelper = createTestDatabaseHelper(moduleRef);
     prisma = moduleRef.get(PrismaService);
+    dbHelper = new TestDatabaseHelper(prisma);
 
     const config = {
       get: vi.fn((key: string) => {
