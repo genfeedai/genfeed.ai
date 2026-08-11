@@ -3,6 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   generateSourceVariations: vi.fn(),
   notifyError: vi.fn(),

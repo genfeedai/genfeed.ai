@@ -148,4 +148,24 @@ describe('loadMessages', () => {
       'Post {index}',
     );
   });
+
+  it('serves the source-post variation copy used by the remix surface', () => {
+    const english = loadMessages(DEFAULT_LOCALE).common as Record<
+      string,
+      unknown
+    >;
+
+    expect(resolveMessageId(english, 'sourcePostVariations.title')).toBe(
+      'Generate brand-voice variations',
+    );
+    expect(
+      resolveMessageId(english, 'sourcePostVariations.results.noPadding'),
+    ).toBe('No duplicate placeholder was added.');
+    expect(
+      resolveMessageId(
+        english,
+        'sourcePostVariations.results.organizationDefaults',
+      ),
+    ).toBe('Organization defaults (no brand voice configured)');
+  });
 });

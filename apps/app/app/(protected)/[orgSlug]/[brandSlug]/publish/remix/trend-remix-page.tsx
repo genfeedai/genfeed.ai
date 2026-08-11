@@ -29,6 +29,7 @@ import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util'
 import { ArrowRight, Layers3, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useMemo, useState } from 'react';
 
 const COUNT_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1);
@@ -42,6 +43,7 @@ function resolvePlatform(
 }
 
 function TrendRemixPageContent() {
+  const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const { href } = useOrgUrl();
   const getPostsService = useAuthedService((token: string) =>
@@ -73,7 +75,7 @@ function TrendRemixPageContent() {
 
   const generate = async () => {
     if (!sourceInput) {
-      setError('This remix link does not identify an available source post.');
+      setError(translate('sourcePostVariations.errors.invalidSource'));
       return;
     }
 
@@ -90,7 +92,9 @@ function TrendRemixPageContent() {
         notifications.warning(nextResult.meta.partialReason);
       } else {
         notifications.success(
-          `${nextResult.meta.actualCount} variations ready for review`,
+          translate('sourcePostVariations.notifications.ready', {
+            count: nextResult.meta.actualCount,
+          }),
         );
       }
     } catch (generationError) {
@@ -100,7 +104,7 @@ function TrendRemixPageContent() {
       );
       const message =
         (generationError as Error)?.message ||
-        'Failed to generate post variations.';
+        translate('sourcePostVariations.errors.generationFailed');
       setError(message);
       notifications.error(message);
     } finally {
@@ -116,22 +120,27 @@ function TrendRemixPageContent() {
   const visibleError =
     error ||
     (!sourceInput
-      ? 'This remix link does not identify an available, supported source post.'
+      ? translate('sourcePostVariations.errors.invalidSourceDetailed')
       : null);
+  const variationUnit = (value: number) =>
+    translate(
+      value === 1
+        ? 'sourcePostVariations.count.unitOne'
+        : 'sourcePostVariations.count.unitMany',
+    );
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <header className="max-w-2xl space-y-2">
         <div className="flex items-center gap-2 text-sm text-foreground/55">
           <Layers3 className="size-4" />
-          Source-aware generation
+          {translate('sourcePostVariations.eyebrow')}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Generate brand-voice variations
+          {translate('sourcePostVariations.title')}
         </h1>
         <p className="text-sm leading-6 text-foreground/62">
-          Create distinct, platform-ready posts from this source and compare
-          them together before publishing.
+          {translate('sourcePostVariations.description')}
         </p>
       </header>
 
@@ -141,23 +150,29 @@ function TrendRemixPageContent() {
             <div className="space-y-3">
               <div>
                 <h2 className="text-sm font-semibold" id="setup-title">
-                  Variation count
+                  {translate('sourcePostVariations.count.title')}
                 </h2>
                 <p className="mt-1 text-xs text-foreground/55">
-                  Each variation uses a different angle, opener, and structure.
+                  {translate('sourcePostVariations.count.help')}
                 </p>
               </div>
               <Select
                 value={String(count)}
                 onValueChange={(value) => setCount(Number(value))}
               >
-                <SelectTrigger className="w-48" aria-label="Variation count">
+                <SelectTrigger
+                  className="w-48"
+                  aria-label={translate('sourcePostVariations.count.ariaLabel')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {COUNT_OPTIONS.map((option) => (
                     <SelectItem key={option} value={String(option)}>
-                      {option} {option === 1 ? 'variation' : 'variations'}
+                      {translate('sourcePostVariations.count.option', {
+                        count: option,
+                        unit: variationUnit(option),
+                      })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -166,14 +181,19 @@ function TrendRemixPageContent() {
 
             <div className="flex flex-col items-start gap-3 sm:items-end">
               <Badge variant="secondary">
-                Estimated cost: {sourcePostVariationCredits(count)} credits (
-                {sourcePostVariationCredits(1)} each)
+                {translate('sourcePostVariations.pricing', {
+                  cost: sourcePostVariationCredits(count),
+                  perVariation: sourcePostVariationCredits(1),
+                })}
               </Badge>
               <Button
                 icon={<Sparkles className="size-4" />}
                 isDisabled={!sourceInput}
                 isLoading={isSubmitting}
-                label={`Generate ${count} ${count === 1 ? 'variation' : 'variations'}`}
+                label={translate('sourcePostVariations.generate', {
+                  count,
+                  unit: variationUnit(count),
+                })}
                 onClick={() => {
                   generate().catch(() => undefined);
                 }}
@@ -199,14 +219,24 @@ function TrendRemixPageContent() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold" id="variations-title">
-                  {result.meta.actualCount} of {result.meta.requestedCount}{' '}
-                  variations ready
+                  {translate('sourcePostVariations.results.ready', {
+                    actual: result.meta.actualCount,
+                    requested: result.meta.requestedCount,
+                  })}
                 </h2>
-                <Badge variant="outline">{result.meta.voiceModeLabel}</Badge>
+                <Badge variant="outline">
+                  {translate(
+                    result.meta.voiceMode === 'brand-voice'
+                      ? 'sourcePostVariations.results.brandVoice'
+                      : 'sourcePostVariations.results.organizationDefaults',
+                  )}
+                </Badge>
               </div>
               <p className="mt-1 text-sm text-foreground/55">
-                Group {result.meta.groupId.slice(0, 8)} ·{' '}
-                {result.meta.creditCost} credits charged
+                {translate('sourcePostVariations.results.summary', {
+                  credits: result.meta.creditCost,
+                  group: result.meta.groupId.slice(0, 8),
+                })}
               </p>
             </div>
             {reviewHref ? (
@@ -217,7 +247,7 @@ function TrendRemixPageContent() {
                 withWrapper={false}
               >
                 <Link href={reviewHref}>
-                  Review all
+                  {translate('sourcePostVariations.results.reviewAll')}
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -229,7 +259,8 @@ function TrendRemixPageContent() {
               className="border border-warning/35 bg-warning/10 p-3 text-sm text-warning"
               role="status"
             >
-              {result.meta.partialReason} No duplicate placeholder was added.
+              {result.meta.partialReason}{' '}
+              {translate('sourcePostVariations.results.noPadding')}
             </p>
           ) : null}
 
@@ -239,7 +270,10 @@ function TrendRemixPageContent() {
                 <Card bodyClassName="p-5">
                   <div className="flex items-center justify-between gap-3">
                     <Badge variant="secondary">
-                      Variation {index + 1} of {result.meta.actualCount}
+                      {translate('sourcePostVariations.results.label', {
+                        count: result.meta.actualCount,
+                        position: index + 1,
+                      })}
                     </Badge>
                     <span className="text-xs capitalize text-foreground/45">
                       {post.platform}
@@ -249,8 +283,9 @@ function TrendRemixPageContent() {
                     {post.description}
                   </p>
                   <p className="mt-2 text-xs text-foreground/45">
-                    Source retained · review batch{' '}
-                    {result.meta.reviewBatchId.slice(0, 8)}
+                    {translate('sourcePostVariations.results.provenance', {
+                      batch: result.meta.reviewBatchId.slice(0, 8),
+                    })}
                   </p>
                 </Card>
               </article>

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ContentIntelligencePlatform } from '@genfeedai/enums';
 import type { Request } from 'express';
 
@@ -29,9 +30,10 @@ export interface PostVariationResponseMeta {
   voiceModeLabel: string;
 }
 
-export interface SourcePostVariationRequest extends Request {
+export interface SourcePostVariationRequest extends Omit<Request, 'user'> {
   creditsOutputCount?: number;
   resolvedPostVariationSource?: ResolvedPostVariationSource;
+  user?: AuthenticatedUser;
 }
 
 export interface GeneratePostVariationsParams {

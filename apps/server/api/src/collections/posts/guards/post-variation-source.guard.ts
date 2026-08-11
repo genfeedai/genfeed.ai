@@ -1,4 +1,3 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type {
   ResolvedPostVariationSource,
   SourcePostVariationRequest,
@@ -24,7 +23,7 @@ export class PostVariationSourceGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<SourcePostVariationRequest>();
-    const user = request.user as AuthenticatedUser | undefined;
+    const user = request.user;
     if (!user) {
       throw new NotFoundException('Source post');
     }

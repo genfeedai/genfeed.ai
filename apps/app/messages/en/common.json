@@ -74,6 +74,39 @@
       "title": "Thread replies"
     }
   },
+  "sourcePostVariations": {
+    "count": {
+      "ariaLabel": "Variation count",
+      "help": "Each variation uses a different angle, opener, and structure.",
+      "option": "{count} {unit}",
+      "title": "Variation count",
+      "unitMany": "variations",
+      "unitOne": "variation"
+    },
+    "description": "Create distinct, platform-ready posts from this source and compare them together before publishing.",
+    "errors": {
+      "generationFailed": "Failed to generate post variations.",
+      "invalidSource": "This remix link does not identify an available source post.",
+      "invalidSourceDetailed": "This remix link does not identify an available, supported source post."
+    },
+    "eyebrow": "Source-aware generation",
+    "generate": "Generate {count} {unit}",
+    "notifications": {
+      "ready": "{count} variations ready for review"
+    },
+    "pricing": "Estimated cost: {cost} credits ({perVariation} each)",
+    "results": {
+      "brandVoice": "Brand voice",
+      "label": "Variation {position} of {count}",
+      "noPadding": "No duplicate placeholder was added.",
+      "organizationDefaults": "Organization defaults (no brand voice configured)",
+      "provenance": "Source retained · review batch {batch}",
+      "ready": "{actual} of {requested} variations ready",
+      "reviewAll": "Review all",
+      "summary": "Group {group} · {credits} credits charged"
+    },
+    "title": "Generate brand-voice variations"
+  },
   "subscription": {
     "plans": {
       "changeError": "Could not start the plan change. Please try again.",
