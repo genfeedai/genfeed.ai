@@ -8,6 +8,7 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { collapseOAuthConnectCards } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
@@ -103,29 +104,13 @@ export function AgentChatMessage({
       return [];
     }
 
-    let genericOAuthCardRendered = false;
-
-    const filtered = uiActions.filter((action) => {
-      // Generation configuration follows the single conversation composer.
-      // The completed content_preview_card remains in the transcript.
-      if (action.type === 'generation_action_card') {
-        return false;
-      }
-
-      const isGenericOAuthCard =
-        action.type === 'oauth_connect_card' && !action.platform?.trim().length;
-
-      if (!isGenericOAuthCard) {
-        return true;
-      }
-
-      if (genericOAuthCardRendered) {
-        return false;
-      }
-
-      genericOAuthCardRendered = true;
-      return true;
-    });
+    const filtered = collapseOAuthConnectCards(
+      uiActions.filter((action) => {
+        // Generation configuration follows the single conversation composer.
+        // The completed content_preview_card remains in the transcript.
+        return action.type !== 'generation_action_card';
+      }),
+    );
 
     // Drop noise Done cards when a sibling result card already owns the turn
     // (T3/Codex density — one surface per outcome, not stacked chrome).

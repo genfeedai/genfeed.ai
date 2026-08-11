@@ -196,6 +196,9 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'start_campaign', surfaces: ['agent'] },
   { name: 'submit_brand_interview_answer', surfaces: ['agent', 'mcp'] },
   { name: 'suggest_ingredient_alternatives', surfaces: ['agent'] },
+  // Agent-only: renders conversational choices as in-product controls. MCP
+  // clients own their own affordances and have no card surface to render into.
+  { name: 'suggest_next_steps', surfaces: ['agent'] },
   { name: 'tag_social_conversation', surfaces: ['mcp'] },
   { name: 'update_goal', surfaces: ['agent'] },
   {

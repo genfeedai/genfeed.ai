@@ -80,6 +80,7 @@ export enum AgentToolName {
   PREPARE_VOICE_CLONE = 'prepare_voice_clone',
   PREPARE_CLIP_WORKFLOW_RUN = 'prepare_clip_workflow_run',
   SUGGEST_INGREDIENT_ALTERNATIVES = 'suggest_ingredient_alternatives',
+  SUGGEST_NEXT_STEPS = 'suggest_next_steps',
   CREATE_LIVESTREAM_BOT = 'create_livestream_bot',
   MANAGE_LIVESTREAM_BOT = 'manage_livestream_bot',
   LIST_ADS_RESEARCH = 'list_ads_research',

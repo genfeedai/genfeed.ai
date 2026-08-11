@@ -45,6 +45,7 @@ const UI_ACTION_MAP: Partial<
   select_ingredient: 'ingredient_picker_card',
   start_campaign: 'campaign_control_card',
   suggest_ingredient_alternatives: 'ingredient_alternatives_card',
+  suggest_next_steps: 'next_steps_card',
   upscale_image: 'image_transform_card',
 };
 

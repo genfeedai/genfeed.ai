@@ -32,6 +32,7 @@ import { ImageTransformCard } from '@genfeedai/agent/components/ImageTransformCa
 import { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { LivestreamBotCard } from '@genfeedai/agent/components/LivestreamBotCard';
+import { NextStepsCard } from '@genfeedai/agent/components/NextStepsCard';
 import { OnboardingChecklistCard } from '@genfeedai/agent/components/OnboardingChecklistCard';
 import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
@@ -184,6 +185,9 @@ export function UiActionRenderer({
           apiService={liveApiService}
         />
       ) : null;
+      break;
+    case 'next_steps_card':
+      card = <NextStepsCard action={action} onUiAction={liveOnUiAction} />;
       break;
     case 'schedule_post_card':
       card = <SchedulePostCard action={action} />;

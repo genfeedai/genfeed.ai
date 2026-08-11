@@ -22,7 +22,8 @@ export type ToolUiActionType =
   | 'image_transform_card'
   | 'schedule_post_card'
   | 'ingredient_picker_card'
-  | 'ingredient_alternatives_card';
+  | 'ingredient_alternatives_card'
+  | 'next_steps_card';
 
 export interface ToolParameterSchema {
   type: 'object';
