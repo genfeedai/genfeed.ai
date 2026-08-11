@@ -392,15 +392,45 @@ jobs:
         # Keep each TypeScript program in its own process. A single repo-wide
         # process retained enough compiler state to hit the runner shutdown
         # window without emitting a diagnostic.
+        #
+        # Every workspace runs even after one fails. `api` sorts first and holds
+        # most of the debt, so a bare `set -e` loop aborted there and hid the
+        # other eleven: #2758 reported 7 drifted entries in `api` while `files`
+        # and `mcp` held 2 more that only a local regeneration surfaced. One
+        # baseline fix would otherwise cost a CI round-trip per workspace.
+        # Failures are collected and their diagnostics replayed together below.
         run: |
           set -euo pipefail
+          log_dir="$(mktemp -d)"
+          failed=()
+          checked=0
           for config in apps/server/*/tsconfig.typecheck.specs.json; do
             workspace="${config#apps/server/}"
             workspace="${workspace%%/*}"
+            checked=$((checked + 1))
             echo "::group::Spec typecheck: ${workspace}"
-            bun run check:spec-typecheck --workspace "${workspace}"
+            # `if !` keeps `set -e` from aborting the loop on a failing
+            # workspace; `pipefail` keeps `tee` from masking the real status.
+            if ! bun run check:spec-typecheck --workspace "${workspace}" 2>&1 \
+              | tee "${log_dir}/${workspace}.log"; then
+              failed+=("${workspace}")
+            fi
             echo "::endgroup::"
           done
+
+          if [ "${#failed[@]}" -eq 0 ]; then
+            echo "Spec typecheck ratchet passed across ${checked} workspace(s)."
+            exit 0
+          fi
+
+          # Replay outside the collapsed groups so every workspace's
+          # diagnostics are visible without expanding the log by hand.
+          echo "::error::Spec typecheck ratchet failed in ${#failed[@]} of ${checked} workspace(s): ${failed[*]}"
+          for workspace in "${failed[@]}"; do
+            echo "----- ${workspace} -----"
+            cat "${log_dir}/${workspace}.log"
+          done
+          exit 1
 
   # Heavy test jobs key off this planner's outputs on every event: on pull
   # requests the diff base is the PR base, on master pushes it is
