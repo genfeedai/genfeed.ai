@@ -7,6 +7,7 @@ import type {
   ICreditsBreakdown,
   IOrganizationSetting,
   ISubscription,
+  SubscriptionChangePreview,
 } from '../index';
 
 export interface UseSubscriptionReturn {
@@ -16,6 +17,7 @@ export interface UseSubscriptionReturn {
   isLoading: boolean;
   isSubscriptionActive: boolean;
   openBillingPortal: () => Promise<void>;
+  previewPlanChange: (newPriceId: string) => Promise<SubscriptionChangePreview>;
   changeSubscriptionPlan: (newPriceId: string) => Promise<void>;
   refreshSubscription: () => Promise<void>;
   refreshCreditsBreakdown: () => Promise<void>;

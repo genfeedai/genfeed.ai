@@ -6,7 +6,7 @@ import {
   ByokBillingStatus,
   formatEnumLabel,
 } from '@genfeedai/enums';
-import { getPlanEntitlementForTier } from '@genfeedai/pricing';
+import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
 import {
   BYOK_FEE_PERCENTAGE,
   BYOK_FREE_THRESHOLD_CREDITS,
@@ -22,6 +22,25 @@ import { Text } from '@ui/typography/text';
 import { ExternalLink, TriangleAlert } from 'lucide-react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import PlansCard from './plans-card';
+
+/**
+ * `subscription.category` is not serialized to the client, so the plan name is
+ * read from the organization's entitlement tier — the same value that drives
+ * the limits grid below it.
+ */
+const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
+  byok: 'BYOK',
+  enterprise: getPlanLabel('enterprise'),
+  free: 'Free',
+  payg: getPlanLabel('payg'),
+  pro: getPlanLabel('pro'),
+  scale: getPlanLabel('scale'),
+};
+
+function formatSubscriptionTierLabel(tier?: string): string {
+  return (tier && SUBSCRIPTION_TIER_LABELS[tier]) || 'Free';
+}
 
 function SectionCard({
   title,
@@ -177,8 +196,8 @@ export default function SettingsSubscriptionPage() {
                 <Text size="sm" color="muted">
                   Plan
                 </Text>
-                <Text weight="medium" className="capitalize">
-                  {subscription.category || 'Free'}
+                <Text weight="medium">
+                  {formatSubscriptionTierLabel(settings?.subscriptionTier)}
                 </Text>
               </div>
               <div className="flex flex-col gap-1 text-right">
@@ -259,6 +278,8 @@ export default function SettingsSubscriptionPage() {
           </div>
         </div>
       </SectionCard>
+
+      <PlansCard />
 
       {isByokTier ? (
         <ByokUsageSection openBillingPortal={openBillingPortal} />

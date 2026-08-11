@@ -4,6 +4,7 @@ import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,
+  SubscriptionChangePreview,
 } from '@genfeedai/interfaces';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { StripeService } from '@genfeedai/services/billing/stripe.service';
@@ -101,7 +102,14 @@ export function useSubscription(): UseSubscriptionReturn {
   const openBillingPortal = async () => {
     try {
       const service = await getStripeService();
-      const response: IBillingPortalResponse = await service.getPortalUrl();
+      // Stripe returns the customer to wherever they left the app; the server
+      // only knows the origin, so the current path travels with the request.
+      const returnPath =
+        typeof window === 'undefined'
+          ? undefined
+          : `${window.location.pathname}${window.location.search}`;
+      const response: IBillingPortalResponse =
+        await service.getPortalUrl(returnPath);
 
       window.open(response.url, '_blank');
     } catch (err) {
@@ -110,25 +118,19 @@ export function useSubscription(): UseSubscriptionReturn {
     }
   };
 
-  // const postSubscriptionPreview = async (
-  //   newPriceId: string,
-  // ): Promise<ISubscriptionPreview> => {
-  //   try {
-  //     const token: string =
-  //     const service = SubscriptionsService.getInstance(token);
+  const previewPlanChange = async (
+    newPriceId: string,
+  ): Promise<SubscriptionChangePreview> => {
+    try {
+      const service = await getSubscriptionsService();
 
-  //     const body: Partial<ISubscriptionPreview> = {
-  //       price: newPriceId,
-  //     };
-
-  //     return await service.postSubscriptionPreview(body);
-  //   } catch (error) {
-  //     logger.error('Failed to preview subscription change:', error);
-  //     notificationsService.error('Subscription preview');
-  //     setError('Failed to preview subscription change');
-  //     throw error;
-  //   }
-  // };
+      return await service.previewSubscriptionChange(newPriceId);
+    } catch (err) {
+      logger.error('Failed to preview subscription change:', err);
+      notificationsService.error('Subscription preview');
+      throw err;
+    }
+  };
 
   const changeSubscriptionPlan = async (newPriceId: string): Promise<void> => {
     try {
@@ -155,7 +157,6 @@ export function useSubscription(): UseSubscriptionReturn {
   };
 
   return {
-    // postSubscriptionPreview,
     changeSubscriptionPlan,
     creditsBreakdown,
     error,
@@ -164,6 +165,7 @@ export function useSubscription(): UseSubscriptionReturn {
     isSubscriptionActive: hasActiveSubscription,
 
     openBillingPortal,
+    previewPlanChange,
     refreshCreditsBreakdown,
     refreshSubscription,
     subscription,
