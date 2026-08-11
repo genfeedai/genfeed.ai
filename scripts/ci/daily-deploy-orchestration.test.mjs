@@ -92,7 +92,10 @@ test('preflight is a clean no-op when the exact master SHA already shipped', () 
   assert.equal(result.outcome, 'clean no-op');
   assert.equal(result.deployed_sha, MASTER_SHA);
   assert.equal(result.deploy_marker_url, marker.html_url);
-  assert.match(result.skipped_reason, /already shipped/);
+  assert.equal(
+    result.skipped_reason,
+    `Current master SHA is already shipped by the canonical Release workflow: ${marker.html_url}`,
+  );
 });
 
 test('preflight blocks active deploys and the newest failed CI run', () => {
@@ -618,11 +621,6 @@ test('keeps one canonical release contract for community and SaaS', () => {
     ),
     'utf8',
   );
-  const orchestrationHelper = readFileSync(
-    fileURLToPath(new URL('./daily-deploy-orchestration.mjs', import.meta.url)),
-    'utf8',
-  );
-
   assert.match(releaseWorkflow, /^name: Release$/m);
   assert.match(releaseWorkflow, /^ {2}workflow_dispatch:/m);
   assert.match(
@@ -683,8 +681,4 @@ test('keeps one canonical release contract for community and SaaS', () => {
   assert.doesNotMatch(dailyWorkflow, /listDeployments/);
   assert.match(dailyWorkflow, /RELEASE_WORKFLOW: release\.yml/);
   assert.match(dailyWorkflow, /the canonical Release workflow/);
-  assert.match(
-    orchestrationHelper,
-    /Current master SHA is already shipped by \$\{label\}/,
-  );
 });
