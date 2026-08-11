@@ -192,6 +192,28 @@ export function AgentSettings({
           Leave unset to use the platform default model for new threads.
         </p>
         <div className="grid gap-2">
+          <Button
+            aria-pressed={selectedModel === ''}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            onClick={() => handleModelChange('')}
+            className={cn(
+              'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
+              selectedModel === ''
+                ? 'border-primary/40 bg-primary/5'
+                : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
+            )}
+          >
+            <div className="flex flex-1 flex-col gap-0.5">
+              <span className="text-sm font-medium text-foreground">Auto</span>
+              <span className="text-xs text-muted-foreground">
+                Use the platform default model
+              </span>
+            </div>
+            {selectedModel === '' ? (
+              <Check className="size-4 text-primary" />
+            ) : null}
+          </Button>
           {isModelsLoading ? (
             <p className="text-xs text-muted-foreground">Loading models…</p>
           ) : null}

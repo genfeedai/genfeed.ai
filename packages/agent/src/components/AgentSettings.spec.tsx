@@ -1,6 +1,7 @@
 import { AgentSettings } from '@genfeedai/agent/components/AgentSettings';
 import { GenerationPriority } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -74,6 +75,56 @@ describe('AgentSettings', () => {
       'aria-pressed',
       'true',
     );
+    expect(screen.getByRole('button', { name: /^Auto/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('keeps Auto available when a removed override is absent from the catalog', () => {
+    render(
+      <AgentSettings
+        models={SETTINGS_MODELS}
+        initialSettings={{
+          defaultModel: 'retired/model',
+          generationPriority: GenerationPriority.BALANCED,
+          persona: '',
+        }}
+        onSave={onSave}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /^Auto/ })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /Claude Sonnet 5/i }),
+    ).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('saves Auto as an explicit empty model override', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <AgentSettings
+        models={[]}
+        initialSettings={{
+          defaultModel: 'retired/model',
+          generationPriority: GenerationPriority.BALANCED,
+          persona: '',
+        }}
+        onSave={onSave}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /^Auto/ }));
+    await user.click(screen.getByRole('button', { name: 'Save Settings' }));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith({
+        defaultModel: '',
+        generationPriority: GenerationPriority.BALANCED,
+        persona: '',
+      });
+    });
   });
 
   it('saves the edited values through the provided boundary', async () => {

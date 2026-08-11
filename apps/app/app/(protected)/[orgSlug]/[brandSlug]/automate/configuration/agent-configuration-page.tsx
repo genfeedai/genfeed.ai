@@ -111,7 +111,9 @@ export default function AgentConfigurationPage(): ReactElement {
 
         await Promise.all([
           brandsService.updateAgentConfig(selectedBrandId, {
-            defaultModel: settings.defaultModel || undefined,
+            // Empty string explicitly clears the brand-level override. An
+            // omitted field means "leave unchanged" at the PATCH boundary.
+            defaultModel: settings.defaultModel,
             persona: settings.persona || undefined,
           }),
           usersService.patchSettings(currentUser.id, {

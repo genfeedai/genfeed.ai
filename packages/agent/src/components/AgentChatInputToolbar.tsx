@@ -45,7 +45,7 @@ export interface AgentChatInputToolbarProps {
   isTranscribing: boolean;
   isUploading: boolean;
   /** Registry-backed chat catalogue (shared ModelSelectorPopover). */
-  models?: readonly IModel[];
+  models: readonly IModel[];
   onAddFiles?: (files: File[]) => void;
   onInsertReference: () => void;
   onModelChange?: (model: string) => void;
@@ -72,7 +72,7 @@ function AgentChatInputToolbarInner({
   isModelsLoading = false,
   isTranscribing,
   isUploading,
-  models = [],
+  models,
   creditsAvailable = null,
   onAddFiles,
   onInsertReference,
@@ -99,49 +99,48 @@ function AgentChatInputToolbarInner({
   // One shared picker for agent chat + studio/generation (selectionMode=single).
   // autoLabel opts single mode into Auto + priority cards (user settings:
   // empty defaultAgentModel + generationPriority).
-  const modelSelector =
-    onModelChange && (selectedModel || models.length > 0 || isModelsLoading) ? (
-      <ModelSelectorPopover
-        autoLabel={autoLabel}
-        className={cn(
-          'max-w-[12rem] text-muted-foreground hover:text-foreground',
-          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
-        )}
-        favoriteModelKeys={favoriteModelKeys}
-        // Model pick stays available while reconnecting — only block during an
-        // active run or attachment/mic work.
-        isDisabled={Boolean(
-          showStop || isUploading || isTranscribing || isModelsLoading,
-        )}
-        models={models}
-        name="agent-chat-model"
-        onChange={(_name, values) => {
-          const next = values[0]?.trim();
-          if (!next) {
-            return;
-          }
-          // Auto or a concrete key — never leave the previous model in values.
-          onModelChange(next);
-        }}
-        onFavoriteToggle={onFavoriteToggle}
-        onPrioritizeChange={(priority) => {
-          // Parent handlePrioritizeChange already pins Auto + persists
-          // generationPriority. Do NOT also call onModelChange first — that
-          // raced a model-only settings patch and dropped the priority save.
-          onPrioritizeChange?.(priority);
-        }}
-        prioritize={prioritize}
-        creditsAvailable={creditsAvailable}
-        selectionMode="single"
-        values={
-          isAutoSelected
-            ? [AUTO_MODEL_OPTION_VALUE]
-            : selectedModel
-              ? [selectedModel]
-              : []
+  const modelSelector = onModelChange ? (
+    <ModelSelectorPopover
+      autoLabel={autoLabel}
+      className={cn(
+        'max-w-[12rem] text-muted-foreground hover:text-foreground',
+        isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
+      )}
+      favoriteModelKeys={favoriteModelKeys}
+      // Model pick stays available while reconnecting — only block during an
+      // active run or attachment/mic work.
+      isDisabled={Boolean(
+        showStop || isUploading || isTranscribing || isModelsLoading,
+      )}
+      models={models}
+      name="agent-chat-model"
+      onChange={(_name, values) => {
+        const next = values[0]?.trim();
+        if (!next) {
+          return;
         }
-      />
-    ) : null;
+        // Auto or a concrete key — never leave the previous model in values.
+        onModelChange(next);
+      }}
+      onFavoriteToggle={onFavoriteToggle}
+      onPrioritizeChange={(priority) => {
+        // Parent handlePrioritizeChange already pins Auto + persists
+        // generationPriority. Do NOT also call onModelChange first — that
+        // raced a model-only settings patch and dropped the priority save.
+        onPrioritizeChange?.(priority);
+      }}
+      prioritize={prioritize}
+      creditsAvailable={creditsAvailable}
+      selectionMode="single"
+      values={
+        isAutoSelected
+          ? [AUTO_MODEL_OPTION_VALUE]
+          : selectedModel
+            ? [selectedModel]
+            : []
+      }
+    />
+  ) : null;
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(event.target.files ?? []);

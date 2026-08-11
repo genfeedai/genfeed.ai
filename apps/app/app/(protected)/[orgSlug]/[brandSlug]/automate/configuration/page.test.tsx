@@ -6,6 +6,7 @@ import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { useParams } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -232,5 +233,20 @@ describe('AgentConfigurationPage', () => {
       }),
     );
     expect(refreshBrands).toHaveBeenCalledOnce();
+  });
+
+  it('persists Auto as an explicit brand override clear', async () => {
+    const user = userEvent.setup();
+    render(<AgentConfigurationPage />);
+
+    await user.click(screen.getByRole('button', { name: /^Auto/ }));
+    await user.click(screen.getByRole('button', { name: 'Save Settings' }));
+
+    await waitFor(() => {
+      expect(updateAgentConfig).toHaveBeenCalledWith('brand-db-id', {
+        defaultModel: '',
+        persona: 'Use the brand voice.',
+      });
+    });
   });
 });

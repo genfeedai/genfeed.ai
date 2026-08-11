@@ -197,7 +197,9 @@ export default function SettingsConversationPage({
     try {
       const service = await getUsersService();
       const patch: Partial<ISetting> = {
-        defaultAgentModel: defaultAgentModel || undefined,
+        // Empty string is the persisted Auto sentinel. `undefined` would omit
+        // the field and leave a removed or stale model override in place.
+        defaultAgentModel,
         generationPriority,
       };
 
@@ -241,29 +243,17 @@ export default function SettingsConversationPage({
     [defaultAgentModel, isAutoSelected],
   );
 
-  // Prefer registry catalogue; fall back to org enabled keys as stub IModels.
+  // An empty allowlist means unrestricted. A non-empty allowlist is always an
+  // intersection, even when no registry rows match — never broaden back to the
+  // full catalog. Auto remains available independently in the shared picker.
   const enabledModelIds = settings?.enabledModelIds ?? [];
   const pickerModels = useMemo(() => {
-    if (registryModels.length > 0) {
-      if (enabledModelIds.length === 0) {
-        return registryModels;
-      }
-      const enabled = new Set(enabledModelIds);
-      const filtered = registryModels.filter((model) => enabled.has(model.key));
-      return filtered.length > 0 ? filtered : registryModels;
+    if (enabledModelIds.length === 0) {
+      return registryModels;
     }
-    return enabledModelIds.map(
-      (key) =>
-        ({
-          cost: 0,
-          isActive: true,
-          isDefault: false,
-          key,
-          label: key,
-          category: ModelCategory.TEXT,
-          provider: ModelProvider.OPENROUTER,
-        }) as IModel,
-    );
+
+    const enabled = new Set(enabledModelIds);
+    return registryModels.filter((model) => enabled.has(model.key));
   }, [enabledModelIds, registryModels]);
 
   if (!isLoaded) {
