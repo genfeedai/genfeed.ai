@@ -1,6 +1,6 @@
-# TikTok Warmup Content Skill
+# TikTok Warm-up Skill
 
-Expert TikTok account warmup guide — engagement plans, Day 3 warmup slideshow content, trending sound discovery, and post-warmup assessment for new accounts before posting promotional content.
+Evidence-aware TikTok 5–7 day guidance: native-app consumption and niche engagement on Days 1–3, profile and feed tuning on Days 4–5, then gradual first uploads and continued engagement on Days 6–7.
 
 ## Installation
 
@@ -10,34 +10,34 @@ npx skills add genfeedai/skills/tiktok-warmup
 
 ## Usage
 
+```text
+"Create a transparent TikTok warm-up plan for my fitness brand"
+"Build my Days 1–3 TikTok native engagement checklist"
+"Help me tune my TikTok profile and feed on Days 4–5"
+"Prepare my first TikTok upload for Day 6"
+"Assess my TikTok launch without guessing about shadowbans"
 ```
-"Create a TikTok warmup plan for my fitness brand"
-"Generate warmup content for my new TikTok account in the food niche"
-"Help me warm up my TikTok before posting promotional content"
-"Build a TikTok engagement plan for Days 1 and 2"
-"Create a warmup slideshow brief for TikTok"
-"Assess my TikTok warmup performance — should I start posting now?"
-```
 
-## What It Does
+## What it does
 
-- Generates Days 1-2 engagement plans: keyword banks, account follow criteria, daily activity checklists, and comment templates adapted to your niche
-- Creates Day 3 warmup content: full slide-by-slide carousel/slideshow briefs with image direction, caption, hashtag strategy, and trending sound guidance
-- Explains TikTok image duplicate detection and original image requirements to prevent suppression
-- Provides trending sound discovery methods including Genfeed `get_trends` integration
-- Outputs a 48-hour post-warmup assessment framework with green/yellow/red signal thresholds
-- Guides the graduated promotional content transition (Weeks 1-4 cadence)
-- Documents TikTok trust score signals and suppression triggers specific to new accounts
+- Guides a 5–7 day progression without promising distribution outcomes.
+- Labels native watch, like, save, follow, comment, manual-phone, and FYP checks as `user_confirmed`.
+- Distinguishes authorized TikTok profile, statistics, public-video, capability, and owned-post data as `platform_verified`.
+- Distinguishes Genfeed schedule, publish, and failure activity as `genfeed_observed`.
+- Produces a policy-aware first-upload brief and a gradual launch assessment.
+- Explains missing scopes and unavailable data without converting them into failed checks.
+- Avoids hidden trust-score claims and does not diagnose “shadowbans” from low views.
 
-## Phases Covered
+## Phases
 
 | Phase | Days | Output |
-|-------|------|--------|
-| Engagement Plan | 1-2 | Keyword bank, follow criteria, daily checklist, comment templates |
-| Warmup Content | 3 | Slideshow brief, sound direction, caption, hashtags |
-| Light Engagement | 4-7 | Continued activity guidance, second post decision |
-| Assessment | Day 5 (48h check) | Performance signals, go/no-go framework |
-| Transition | Week 2+ | Graduated cadence, content pillars, promotional signal timing |
+|---|---:|---|
+| Native consumption and niche engagement | 1–3 | Manual native-app checklist, niche search bank, feed-relevance check |
+| Profile and feed tuning | 4–5 | Profile checklist, authorized signal refresh, first-upload brief |
+| Gradual first uploads | 6–7 | First upload, outcome review, continued engagement, optional second upload |
+| Graduation | 5–7+ | Evidence-aware next action with no reach guarantee |
+
+The canonical machine-readable definition is `social-warmup.tiktok@1` in `@genfeedai/api-types`; `SKILL.md` remains the long-form guidance source.
 
 ## License
 

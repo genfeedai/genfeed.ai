@@ -1,553 +1,271 @@
 ---
 name: tiktok-warmup
-description: Guide TikTok account warmup with engagement plans, warmup content, and post-warmup strategy. Triggers on "tiktok warmup", "warm up tiktok account", "new tiktok account", "tiktok account warmup plan", "tiktok engagement plan", "warmup content tiktok".
+description: Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment. Triggers on "tiktok warmup", "warm up tiktok account", "new tiktok account", "tiktok account warmup plan", "tiktok engagement plan", "warmup content tiktok".
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
-# TikTok Warmup Content Skill
+# TikTok Warm-up Skill
 
-You are a TikTok growth specialist who helps users warm up new TikTok accounts before posting promotional or monetizable content. You generate engagement plans, warmup content, trending sound guidance, and post-warmup assessment frameworks based on how the TikTok algorithm actually works.
+Help creators follow a conservative 5–7 day launch routine for a new or newly repurposed TikTok account. The routine is advisory: TikTok does not publish an official warm-up program or expose a hidden account “trust score.” Never promise reach, diagnose a “shadowban” from low views, or imply that Genfeed can read private watch, like, save, follow, comment, or For You feed history.
 
-## Why Warmup Matters
+The canonical structured definition is `social-warmup.tiktok@1` in `packages/api-types/src/contracts/social-warmup-blueprint.contract.ts`. This skill is the long-form product guidance. Shared product code must consume the structured definition rather than parse this file.
 
-TikTok assigns every new account a trust score. This score determines the initial distribution pool your first posts enter. An account that has demonstrated platform-native behavior — watching videos, leaving genuine comments, following relevant accounts, engaging with sounds — receives a larger initial audience for its first post compared to an account that connects and immediately pushes promotional content.
+## Evidence and observation boundaries
 
-The warmup period exists because TikTok's algorithm needs behavioral signals to categorize your account. Without those signals, the algorithm treats your content as unclassified, distributes it to a generic test pool, and the resulting low engagement buries it permanently.
+Every checklist result must retain one of these provenance labels:
 
-**The warmup is not hacking the algorithm. It is telling the algorithm what you are.**
+| Provenance | What it means | TikTok examples |
+|---|---|---|
+| `user_confirmed` | The creator explicitly confirms an action that connected APIs do not expose | Native watch time, likes, saves, follows, comments, manual-phone use, FYP relevance |
+| `platform_verified` | TikTok returned the field through a scope the creator granted | Profile fields, authorized profile statistics, public owned videos, creator posting capabilities, owned-post metrics |
+| `genfeed_observed` | Genfeed recorded its own activity | Drafted, scheduled, published, processing, or failed Genfeed post activity |
 
----
+Missing scope or unavailable data means **unavailable**, not failed. Genfeed activity is not proof of native-app consumption. User confirmation is not platform telemetry.
 
-## Core Principles
+Last reviewed: **2026-08-11**
 
-### 1. Behavior Before Content
+Evidence references:
 
-TikTok evaluates the account, not just individual posts. Your engagement pattern, watch time, and interaction history all feed into how aggressively the algorithm distributes your content. Build the signal bank before you need it.
+- [TikTok API scopes](https://developers.tiktok.com/doc/tiktok-api-scopes?enter_method=left_navigation)
+- [TikTok Get User Info](https://developers.tiktok.com/doc/tiktok-api-v2-get-user-info/)
+- [TikTok Display API](https://developers.tiktok.com/doc/display-api-overview)
+- [TikTok Content Posting API](https://developers.tiktok.com/doc/content-posting-api-reference-direct-post)
+- [TikTok post status](https://developers.tiktok.com/doc/content-posting-api-reference-get-video-status)
 
-### 2. Niche Specificity Compounds
+## Safety and integrity rules
 
-Engaging with broad/generic content gives the algorithm no useful signal. Every action during warmup should be within your target niche. The algorithm correlates your engagement behavior with your content and makes placement decisions based on that correlation.
+- Never automate scrolling, views, likes, saves, follows, comments, or other engagement.
+- Never claim a fixed action count, elapsed time, or metric guarantees distribution.
+- Use TikTok’s native controls and follow its current policies.
+- Prefer original, rights-cleared media and accurate captions. Do not claim duplicate media automatically causes permanent suppression.
+- Treat thresholds as planning heuristics, never hidden platform rules.
+- If a post is processing, private, under review, removed, or failed, report that observable state. Do not translate it into “shadowbanned.”
 
-### 3. No Duplicate Assets
+## Blueprint overview
 
-TikTok's perceptual hash detection identifies duplicate images across the platform. Using stock photos, recycled screenshots, or images you have posted elsewhere will trigger suppression — sometimes permanently for that asset. All warmup slideshow content must use original, never-before-posted images.
+| Phase | Days | Goal |
+|---|---:|---|
+| Native consumption and niche engagement | 1–3 | Manually learn the niche and make the For You feed more relevant |
+| Profile and feed tuning | 4–5 | Complete the visible profile, refresh authorized signals, and prepare one useful first upload |
+| Gradual first uploads | 6–7 | Publish one original item, continue normal engagement, review real outcomes, and optionally publish a second item |
 
-### 4. Gradual Velocity
+Five days is the earliest graduation point. Seven days is the recommended full plan. Extending the plan is reasonable when the creator needs more time, a posting outcome is unresolved, or the content is not ready. Neither duration guarantees reach.
 
-Follow, engagement, and posting velocity are all rate-signaled. Sudden spikes — 100 follows in an hour, 30 comments in 10 minutes — look like bot behavior. Human users engage in bursts and pauses. Spread activity naturally across the day.
+## Phase 1: Days 1–3 — Native consumption and niche engagement
 
----
+Use TikTok manually on the creator’s phone. Keep sessions natural and manageable; the objective is to understand the audience and content conventions, not to hit a magic count.
 
-## Phase 1: Days 1-2 — Engagement Plan
+### Daily checklist
 
-### What You Are Building
+- [ ] Search two or three niche topics and watch enough of each selected video to understand it.
+- [ ] Note recurring hooks, formats, questions, sounds, and creator styles.
+- [ ] Like or save only examples that are genuinely useful or representative.
+- [ ] Follow a small set of active, relevant creators; avoid bulk follow/unfollow behavior.
+- [ ] Leave contextual comments only when there is something specific to add.
+- [ ] Check whether the For You feed is becoming more relevant and explicitly record the result.
+- [ ] Confirm that all engagement was performed manually in the native app.
 
-During Days 1-2, you do NOT post. You build the behavioral foundation that tells TikTok what niche you are in and that you are a real, engaged user.
+All seven checks are `user_confirmed`. A connected TikTok account cannot verify them through the standard scopes listed above.
 
-### Daily Activity Checklist
+### Niche search bank
 
-#### Morning Session (15-20 minutes)
+When the user gives a niche, produce a compact bank:
 
-- [ ] Open TikTok and let the For You Page play for 5-10 minutes without touching anything. Watch videos to at least 80% completion. This signals genuine watch time.
-- [ ] Search 2-3 niche-relevant keywords (see Hashtag and Keyword Bank below). Watch the top results. Follow 3-5 accounts that are publishing regularly in your niche.
-- [ ] Leave 2-3 comments on videos that genuinely resonated. Use the templates below.
+| Search type | Purpose | Fitness example |
+|---|---|---|
+| Broad topic | Learn the main conversation | “beginner fitness” |
+| Problem | Find audience questions | “gym anxiety tips” |
+| Format | Learn native presentation | “beginner workout carousel” |
+| Creator | Find relevant accounts | “fitness coach for beginners” |
 
-#### Afternoon Session (10-15 minutes)
+### Creator selection guidance
 
-- [ ] Open TikTok and engage with whatever the FYP has served based on your morning behavior. The FYP will start shifting toward your niche — reward it with genuine watch time.
-- [ ] Like 5-10 videos that represent the content quality you want to create.
-- [ ] Duet or Stitch one video that aligns closely with your niche (you don't have to post it — TikTok registers the intent of opening these tools, but posting is optional and not recommended this early).
+Prefer accounts that are active, clearly relevant, and use formats the creator can realistically sustain. Follower count is context, not a quality guarantee. Do not infer fake followers from one ratio or exclude an account solely because it is large, small, personal, or corporate.
 
-#### Evening Session (5-10 minutes)
+### Contextual comment patterns
 
-- [ ] Scroll for 5 minutes. Save 2-3 sounds that feel native to your niche (tap the sound name, then the bookmark icon). Saving sounds signals to the algorithm that you are interested in audio, and those sounds get associated with your account identity.
-- [ ] Check the Discover/Explore tab and interact with 1-2 trending topics if they overlap with your niche.
+Use these as structures, not copy-paste templates:
 
-#### What to Avoid on Days 1-2
+- **Specific observation:** “The example about [specific point] clarified [specific question].”
+- **Genuine question:** “When you used [specific technique], how did you decide between it and [alternative]?”
+- **Relevant experience:** “I tried [related action] and noticed [concise result].”
+- **Useful addition:** “One related detail that helped me was [specific, accurate point].”
 
-- Do NOT post any content
-- Do NOT add a bio link (bio links are a monetization signal; too early and they trigger scrutiny)
-- Do NOT mass follow more than 15-20 accounts per day in a single burst
-- Do NOT use the same exact comment on multiple videos
-- Do NOT engage with content outside your niche (dilutes the signal)
-- Do NOT connect third-party scheduling tools yet
+Avoid repetitive text, promotional replies, fabricated experiences, or comments that do not relate to the video.
 
-### Hashtag and Keyword Bank Generation
+## Phase 2: Days 4–5 — Profile and feed tuning
 
-When the user provides their niche, generate a bank using this structure:
+Continue the manual routine at a sustainable pace, then make the account understandable to a real visitor.
 
-#### Keyword Bank (for TikTok search, not hashtags yet)
+### Profile checklist
 
-| Search Term Type | Purpose | Examples (fitness niche) |
-|-----------------|---------|--------------------------|
-| Broad niche terms | Find the main community | "home workout", "weight loss", "beginner fitness" |
-| Problem-specific terms | Find the audience you serve | "how to lose belly fat", "gym anxiety tips" |
-| Creator search terms | Find accounts to follow | "fitness for beginners", "workout motivation" |
-| Trend-adjacent terms | Find trending niche content | "75 hard challenge", "12-3-30 workout" |
+- [ ] Use a recognizable display name and avatar.
+- [ ] Write a concise bio that accurately describes the account.
+- [ ] Confirm that any profile link or business information is accurate and appropriate for the account.
+- [ ] Review privacy, comment, Duet, Stitch, and disclosure settings in TikTok.
 
-#### Account Follow Criteria
+When authorized, Genfeed may label returned profile fields as `platform_verified`. Profile completeness is evaluated only from granted fields. It does not prove account quality or predict distribution.
 
-Follow accounts that match ALL of these:
-- Posting at least 3x per week in the past month
-- Have under 500K followers (mid-tier accounts have more engaged audiences in niche)
-- Show genuine engagement (comments that are specific, not just emoji reactions)
-- Post in a format similar to what you plan to create
+### Authorized signal refresh
 
-Do NOT follow:
-- Brand/corporate accounts in your niche (unless you are a brand)
-- Accounts that have not posted in the last 2 weeks
-- Accounts with very high follower-to-engagement ratios (suggests inflated numbers)
+If the creator granted the corresponding scope, refresh:
 
-### Comment Templates
+- Basic/profile fields from `user.info.basic` and `user.info.profile`.
+- Follower, following, likes, and video counts from `user.info.stats`.
+- Owned public videos from `video.list`.
+- Creator posting choices and restrictions available to the Content Posting API.
 
-Effective warmup comments add genuine value. They should demonstrate that you actually watched the video and have something to contribute. Use these as structural templates, not word-for-word copies.
+Each returned field is `platform_verified` and needs an observation timestamp. A missing scope or omitted field is unavailable. Do not convert an empty public-video list into a failed warm-up signal.
 
-#### Template 1: Specific Observation
+### Feed tuning
 
-```
-"The part where you [specific thing they demonstrated] — that actually answers a question I had. [One-sentence expansion on why it resonated or what you are going to try]"
-```
+- [ ] Continue niche searches and ordinary viewing.
+- [ ] Use TikTok’s native “not interested” or equivalent controls for clearly irrelevant recommendations when appropriate.
+- [ ] Record FYP relevance as the creator’s observation, not a platform-verified metric.
 
-#### Template 2: Question That Shows You Watched
+### Prepare the first upload
 
-```
-"At [timestamp or moment description] — did you find that [specific technique/approach] works better than [alternative]? Asking because I have been doing [X] and wondering if there's a difference."
-```
+Choose one small, useful, niche-relevant item the creator can execute well. Video, photo mode, or another format can work; do not claim one format is universally favored.
 
-#### Template 3: Value Add
+Use this brief:
 
-```
-"Adding to this — [one relevant tip or piece of information you know about the topic that the creator didn't mention]. Great breakdown."
-```
-
-#### Template 4: Personal Connection
-
-```
-"This is exactly what happened when I tried [related thing]. Ended up [brief relatable outcome]. Following for more of this."
-```
-
-#### Comment Rules
-
-- Never copy-paste the same comment twice
-- Never use pure emoji comments (they are invisible to algorithm — treat them as no-ops)
-- Avoid generic phrases: "great video", "love this", "so helpful" — these are indistinguishable from bot behavior
-- Keep comments under 150 characters — long comments on new accounts can flag spam detection
-- Space out comments: 3 per session, not 10 in sequence
-
----
-
-## Phase 2: Day 3 — Warmup Content Creation
-
-### What Warmup Content Is
-
-Your first post must not be promotional. It should be pure value or entertainment, formatted as a slideshow/photo carousel (2-10 slides), using an on-trend sound. This format is strategically chosen for three reasons:
-
-1. Photo carousels use still images, not video — lower production barrier
-2. Slides give the algorithm multiple perceptual frames to classify your content
-3. Carousel format allows text overlay, making the content accessible without sound
-
-### Warmup Content Strategy
-
-#### Niche-Relevant Topic Framework
-
-| Content Type | Purpose | Example (fitness niche) |
-|-------------|---------|-------------------------|
-| "Things I wish I knew" | Pure value, no agenda | "5 things I wish I knew before my first gym visit" |
-| Quick reference list | Save-worthy, shareable | "Foods that actually keep you full for 4+ hours" |
-| Myth vs. fact | Authority builder | "3 fitness myths that are slowing your progress" |
-| Before/after mindset | Emotional connection | "What changed when I stopped tracking calories obsessively" |
-| Mini how-to | Actionable value | "How to structure a 30-minute workout when you have no time" |
-
-#### Warmup Content vs Regular Content
-
-| Warmup Content | Regular/Promotional Content |
-|---------------|----------------------------|
-| No CTA to follow, buy, or visit | Clear CTA expected |
-| No brand name or logo | Brand presence expected |
-| No mention of product or service | Product/service is the point |
-| No link in bio reference | Bio link CTA is standard |
-| Niche-relevant, genuinely helpful | May be niche-relevant or promotional |
-| Designed to be saved and shared | Designed to convert |
-
-### Slideshow/Carousel Content Brief Format
-
-When generating warmup content, output a complete slide-by-slide brief:
-
-```
-WARMUP SLIDESHOW BRIEF
----
-Topic: [Specific topic in the user's niche]
-Format: Photo carousel (TikTok slideshow)
-Slides: [3-8 recommended]
-Sound direction: [See Trending Sound Discovery section]
-Caption: [Under 100 characters — descriptive, no CTA]
-Hashtags: [3-5 niche hashtags — see Hashtag Rules for Day 3]
-
-SLIDE BREAKDOWN:
----
-Slide 1 (Hook):
-  Text overlay: [The hook headline — 6 words max, large bold text]
-  Image direction: [What should appear — specific, not "relevant image"]
-  Tone: [Curiosity, intrigue, or direct value promise]
-
-Slide 2:
-  Text overlay: [Point 1 — one idea only]
-  Image direction: [Visual that illustrates the point]
-  Tip: Keep text under 20 words
-
-[Slides 3-N: Same pattern — one idea per slide]
-
-Final slide (Soft CTA):
-  Text overlay: [Save this / Share this / Tag someone — no promotional ask]
-  Image direction: [Clean, simple visual — avoid clutter]
+```text
+FIRST TIKTOK UPLOAD BRIEF
+Topic: [one specific audience problem or observation]
+Format: [video / photo mode / other supported format]
+Viewer value: [what the viewer learns, feels, or can do]
+Hook: [accurate opening, no unsupported promise]
+Body: [three to five concise beats]
+Caption: [clear description and necessary disclosure]
+Rights check: [original or licensed visuals/audio]
+Accessibility: [captions, readable text, useful alt context]
+Policy check: [claims, disclosure, privacy, and community rules]
 ```
 
-### Image Requirements for Warmup Slides
+Good first-upload topics include a short tutorial, a specific lesson, a process demonstration, a myth corrected with reliable evidence, or a compact checklist. Avoid engagement bait and claims the creator cannot support.
 
-Every image must meet these criteria — TikTok's perceptual hash detection will penalize duplicate assets:
+## Phase 3: Days 6–7 — Gradual first uploads
 
-| Requirement | Why It Matters |
-|-------------|----------------|
-| Original photos only — no stock photography | Stock photos are indexed elsewhere; hash detection flags them |
-| No screenshots from other apps or platforms | Platform cross-contamination signals |
-| No recycled images from your other social accounts | Your own re-used images are still duplicates in TikTok's index |
-| Shot on a phone or camera, uploaded fresh | "Fresh" files with unique metadata pass hash detection more reliably |
-| Consistent but not identical framing | Visual variety within a cohesive style signals authentic creation |
+### Day 6: Publish and observe one original upload
 
-#### Practical Image Sources That Work
+- Publish the prepared item through TikTok or an authorized Genfeed flow.
+- Preserve the actual state: draft, scheduled, processing, public, private, failed, or removed.
+- Continue ordinary niche viewing and genuine replies.
+- Do not repeatedly delete and re-upload solely because early views are low.
+- Give metrics enough time to settle for the account and audience before drawing conclusions.
 
-- Original photography you took yourself (even simple flat lays, textures, everyday objects relevant to niche)
-- Screenshots of text you have written (e.g., notes app, whiteboard) — original content
-- Hand-drawn or hand-written visuals photographed fresh
-- AI-generated images that have not been posted anywhere before (generate fresh, do not reuse)
+TikTok public-video data or Content Posting status is `platform_verified` when available. Genfeed schedule, publish, and failure records are `genfeed_observed`. Native replies and consumption remain `user_confirmed`.
 
-### Trending Sound Discovery Guidance
+### Day 7: Review and optionally publish a second item
 
-Do NOT use a sound because you like it. Use a sound because it is trending AND it fits your niche.
+Review the first item before deciding whether to publish again:
 
-#### How to Find the Right Sound
+- Is the post public or still in a documented processing/review state?
+- Are there technical or policy errors to resolve?
+- Which owned-post metrics are actually available?
+- Are comments or questions revealing a useful follow-up?
+- Can the creator maintain quality without forcing volume?
 
-**Method 1 — FYP Observation (most reliable)**
-During your Days 1-2 engagement sessions, note sounds that appear across 3+ different videos in your niche. If the same sound is being used by multiple creators making content similar to yours, it is niche-relevant AND trending.
+A second original upload is optional. Publish it only when it is ready and there is no unresolved technical or policy issue. Continue normal engagement whether or not a second item is published.
 
-**Method 2 — Sound Library Filter**
-In the TikTok video creation flow: tap Sound > search your niche keywords > sort by "Trending." Filter to sounds under 60 seconds. Sounds that appear in the "Matched to your videos" section are algorithmically associated with your niche.
+## Evidence-aware assessment
 
-**Method 3 — Genfeed `get_trends` Tool**
-If Genfeed is connected:
-- Use `get_trends` with platform set to `tiktok`
-- Filter by sound type
-- The response includes sounds with virality scores — prioritize sounds with high virality score but moderate usage count (still growing, not peaked)
+Assess observable outcomes; do not score a hidden algorithm state.
 
-**Sound Selection Criteria**
+### Platform-verified when authorized
 
-| Signal | Prefer | Avoid |
-|--------|--------|-------|
-| Trending momentum | Rising sounds (added to favorites 5K-50K times recently) | Peaked sounds (used 10M+ times — saturated) |
-| Niche fit | Used by creators in your niche | Sounds native to an unrelated niche |
-| Tempo | Matches the pace of your slide transitions | Jarring mismatch with slide rhythm |
-| Age | Under 4 weeks old | Older than 6 weeks (algorithm has already peaked distribution) |
+- Profile and statistics returned by granted user-info scopes.
+- Public owned videos returned by `video.list`.
+- Creator posting capabilities returned by the posting flow.
+- Owned-post metrics that TikTok returns.
+- Content Posting status, including processing, completed, or failed outcomes.
 
-#### Slide Timing to Sound
+### Genfeed-observed
 
-Most TikTok carousels auto-advance slides on a rhythm. Set your slide timing to match the sound:
-- Fast-paced sounds (120+ BPM): 2-3 seconds per slide
-- Mid-tempo sounds (80-120 BPM): 3-4 seconds per slide
-- Slow/ambient sounds: 4-6 seconds per slide
+- Draft and schedule creation.
+- Publish attempts.
+- Provider acknowledgements and processing state.
+- Failures and recorded failure reasons.
 
----
+### User-confirmed
 
-## Phase 3: Days 4-7 — Continued Light Engagement
+- Manual-phone use.
+- Watch behavior, likes, saves, follows, and comments.
+- FYP relevance.
+- Native actions not returned through the authorized APIs.
 
-Between posting Day 3 warmup content and scaling up, maintain engagement:
+### Interpreting a weak first result
 
-### Days 4-5: Observe First Post Performance
+Low or flat views alone do not prove a “shadowban.” Check, in order:
 
-- Continue daily engagement sessions (15-20 min/day)
-- Check analytics on your Day 3 post at 24-hour and 48-hour marks
-- Note: who is watching, where they found it (FYP vs. search vs. following), watch time percentage
-- Do NOT post again yet unless the metrics clearly signal saturation (see Assessment Framework below)
+1. The observable post status and visibility.
+2. Any moderation notice or policy message shown by TikTok.
+3. Genfeed or provider failure details.
+4. Scope availability and snapshot staleness.
+5. Content clarity, rights, accessibility, audience fit, and technical quality.
+6. Whether more time or another high-quality test is appropriate.
 
-### Day 6-7: Optional Second Warmup Post
+Report uncertainty directly. Never promise that completing the checklist will prevent moderation or guarantee distribution.
 
-If metrics from Day 3 post are positive (see assessment), post a second warmup carousel of similar format. If metrics were neutral/negative, extend engagement-only behavior for another 3-5 days before posting.
+## Graduation rules
 
----
+The account can move to a gradual publishing cadence when:
 
-## Phase 4: Post-Warmup Assessment Framework
+- The required Days 1–5 native actions are explicitly user-confirmed.
+- Authorized profile, statistics, public-video, and creator-capability snapshots are refreshed when those scopes are available.
+- A first original upload is observed through authorized platform data when available.
+- Applicable Genfeed schedule, publish, and failure activity has been reviewed.
+- No known technical, policy, or rights issue remains unresolved.
 
-Use this to evaluate whether your warmup succeeded before transitioning to regular content.
+Graduation is a workflow milestone, not a platform guarantee. Increase cadence according to the creator’s ability to sustain quality and respond to real results. Do not prescribe fixed promotional ratios or universal post counts as algorithm rules.
 
-### Metrics to Check at 48 Hours Post-First-Post
+## Genfeed integration
 
-| Metric | Green Signal | Yellow — More Warmup | Red — Do Not Post Promotional |
-|--------|-------------|---------------------|-------------------------------|
-| Video views | 200+ | 50-200 | Under 50 |
-| Watch time % (avg) | 60%+ | 30-60% | Under 30% |
-| Profile visits | 20+ | 5-20 | Under 5 |
-| Follower conversions | Any | 0 with profile visits | 0 with no profile visits |
-| Traffic source | FYP majority | Mixed | "Following" only |
+### Drafting
 
-**Note on the numbers:** These are signals, not thresholds. A post with 80 views and 75% watch time on a niche-specialized account is a healthier signal than a post with 500 views and 15% watch time. The algorithm reads quality signals, not raw view counts.
+Use Genfeed to research, outline, or draft the first upload. Keep the draft unpublished until the creator approves the topic, assets, claims, disclosures, caption, and TikTok settings.
 
-### Warmup Succeeded Signals
+### Publishing
 
-All of these together indicate readiness:
-- At least one post reached non-followers organically (FYP traffic source showing)
-- Watch time percentage is above 50% on at least one post
-- You have received at least 5 genuine, specific comments (not emoji-only)
-- Your FYP is now showing highly niche-relevant content without you having to search for it
-- You have 20-50 followers from your warmup content
+Before an authorized publish action:
 
-### Warmup Needs More Time Signals
+- Query current creator information and respect the returned privacy/settings choices.
+- Obtain the creator’s explicit consent for the post.
+- Use rights-cleared media and accurate disclosures.
+- Record the Genfeed action as `genfeed_observed`.
+- Poll or receive the TikTok status and store that result separately as `platform_verified`.
 
-Any of these indicate extending warmup:
-- All traffic coming from "Following" tab only (the algorithm has not pushed you outward)
-- Watch time under 30% (content is being abandoned quickly — may be a mismatch signal)
-- No organic (non-following) reach on first or second post
-- FYP is still serving generic/unrelated content
+### Failures
 
-### Warmup Failure Signals (Account-Level Issues)
+Preserve the provider failure state and reason. Give the creator a concrete corrective action when one is known. Do not relabel a technical failure, review state, private post, or low metric as suppression.
 
-If you see these, the problem may be at the account level, not the content:
-- Posts consistently showing 0-5 views even after 48 hours
-- Views spike to ~50 then stop entirely (shadowban pattern — often triggered by early link-in-bio or policy violations)
-- "Under Review" label on posts
+## Output format
 
-If failure signals appear, do NOT continue posting. Audit the account for policy violations, remove any bio links, and continue 5-7 days of engagement-only behavior before testing again.
+```text
+TIKTOK 5–7 DAY WARM-UP
+Blueprint: social-warmup.tiktok@1
+Last reviewed: 2026-08-11
 
----
+CURRENT PHASE: [Days 1–3 / Days 4–5 / Days 6–7]
 
-## Post-Warmup Content Strategy Transition
+TODAY
+- [action]
+  Completion: [attestation / signal / event]
+  Provenance: [user_confirmed / platform_verified / genfeed_observed]
+  Status: [incomplete / complete / unavailable / stale / failed]
 
-### Graduated Posting Cadence
+AVAILABLE EVIDENCE
+- [signal and observation time]
 
-Do not go from 1 warmup post to 3 promotional posts per day. The algorithm notices sudden behavioral shifts and recalibrates distribution downward.
+UNAVAILABLE EVIDENCE
+- [missing scope or unavailable field; never reported as false]
 
-| Week | Recommended Posts/Week | Content Mix |
-|------|------------------------|-------------|
-| Week 1 (Post-warmup) | 3-4 | 70% value/entertainment, 30% brand-building |
-| Week 2 | 4-5 | 60% value, 25% brand-building, 15% promotional |
-| Week 3-4 | 5-7 | 50% value, 25% brand-building, 25% promotional |
-| Month 2+ | 7-14 | Your sustainable content mix |
+NEXT ACTION
+- [one concrete step]
 
-### Introducing Promotional Signals Gradually
-
-TikTok promotional signals that should be introduced one at a time, not all at once:
-
-| Signal | When to Add | Notes |
-|--------|------------|-------|
-| Bio link | After first 5 posts performing | Use a clean link (linktree or similar) |
-| "Link in bio" CTA in captions | After 10 posts | Soft first: "find it in bio" not "BUY NOW" |
-| Branded hashtags | After establishing presence | Your branded hashtag, not just #ad |
-| Spark Ads boosting | After Week 3 | Only boost posts already performing organically |
-| TikTok Shopping integration | After 30+ days and consistent organic reach | Requires separate review |
-
-### Content Pillars for Long-Term TikTok Growth
-
-| Pillar | TikTok Format | Frequency | Algorithm Behavior |
-|--------|--------------|-----------|-------------------|
-| Educational carousels | Slideshow (5-10 slides) | 2-3x/week | High save rate, niche authority |
-| FYP-native entertainment | Short video (7-15 sec), trending sound | 2-3x/week | Broad distribution, discovery |
-| Behind-the-scenes/authentic | Unpolished video, talking head | 1-2x/week | Comment engagement, trust |
-| Trend participation | Stitch, Duet, or trend format | 1x/week when relevant | Algorithm-boosted, discovery |
-| Product/service content | Video or carousel | 1-2x/week max | Narrow distribution (promotional filter) |
-
----
-
-## TikTok Platform Rules Reference
-
-### Trust Score Signals (What Builds It)
-
-| Positive Signal | What It Tells the Algorithm |
-|-----------------|----------------------------|
-| Consistent daily usage | Real human behavior pattern |
-| Niche-specific engagement | Account has a clear topical identity |
-| Genuine comments received | Content is provoking real responses |
-| High watch time on your posts | Content is matching audience expectations |
-| Using sounds before posting | Integrated into audio ecosystem |
-| Duets/Stitches of niche content | Platform-native participation |
-
-### Suppression Triggers (What Hurts It)
-
-| Trigger | Why TikTok Suppresses | How to Avoid |
-|---------|----------------------|-------------|
-| Duplicate image assets | Indicates recycled/scraped content | Original images only (see Image Requirements) |
-| External link in bio on new account | Monetization-first signal | Wait until after first 5 posts performing |
-| Follow/unfollow velocity spikes | Bot pattern detection | Max 15-20 follows per day, spread across sessions |
-| Identical captions across posts | Template/spam pattern | Unique captions, even small variations |
-| Hashtag stuffing (30 hashtags) | Keyword spam pattern | Use 3-8 targeted hashtags |
-| Posting same content across platforms simultaneously | Cross-posting detection | Wait until account is established before automating |
-| Engagement bait text | Policy violation: artificial engagement | Never use engagement-bait prompts |
-
-### Hashtag Rules for TikTok
-
-TikTok hashtags work differently than Instagram. Use fewer, more specific ones.
-
-| Tier | Count | Examples (fitness niche) |
-|------|-------|--------------------------|
-| Broad niche (1M+ posts) | 1-2 | #fitness, #workout |
-| Mid-tier niche (100K-1M) | 2-3 | #homeworkout, #fitnesstips |
-| Specific/long-tail (<100K) | 1-2 | #beginnerworkoutroutine, #workoutsforwomen |
-
-Total hashtag count: 3-7. Never more than 8 on a warmup post.
-
----
-
-## Genfeed Integration
-
-If you have access to Genfeed tools, use them throughout the warmup:
-
-### `get_trends` (Platform: TikTok)
-Use this during Phase 1 (Days 1-2) to identify:
-- Trending hashtags in the user's niche
-- Rising sounds with high virality scores but moderate usage counts (still growing)
-- Trending video formats being used in the niche
-
-Filter results by niche keywords from the user's brand profile. Prioritize sounds and hashtags that are trending within a specific niche rather than broad trending content.
-
-### `create_post`
-Use this during Phase 2 (Day 3) to draft the warmup slideshow brief directly into the Genfeed platform. When using `create_post` for warmup content:
-- Set platform to `tiktok`
-- Mark the post as draft until the user confirms the image brief
-- Include the generated caption and hashtag set in the post metadata
-
-### `publish_post`
-Only invoke `publish_post` after the user confirms:
-- Images are original and have not been posted on any other platform
-- Sound selection matches the niche-trending criteria
-- Caption is under 100 characters with no CTAs or links
-- Account is at least 2 days old with engagement activity logged
-
----
-
-## Output Format
-
-### Phase 1 Output: Engagement Plan
-
+CAUTION
+- This routine does not guarantee reach or diagnose hidden ranking states.
 ```
-TIKTOK WARMUP — ENGAGEMENT PLAN
-Account Niche: [User-provided niche]
-Warmup Duration: Days 1-2 (engagement only)
-
-KEYWORD BANK (search these in TikTok, not hashtags yet):
-Broad niche: [3-4 terms]
-Problem-specific: [3-4 terms]
-Creator discovery: [2-3 terms]
-
-ACCOUNT FOLLOW CRITERIA:
-[Bullet criteria specific to the niche]
-
-DAILY CHECKLIST (Days 1-2):
-Morning (15-20 min):
-- 5-10 minutes of FYP watch time (no skipping, 80%+ completion)
-- Search [keyword 1] — watch top 5, follow [number] accounts
-- Search [keyword 2] — watch top 5, follow [number] accounts
-- Leave [number] genuine comments using templates below
-
-Afternoon (10-15 min):
-- 10 minutes FYP — like niche-relevant videos
-- Save [number] sounds from niche-relevant videos
-
-Evening (5-10 min):
-- 5 minutes FYP — passive watch time
-- Check Discover tab for trending niche topics
-
-COMMENT BANK (niche-customized templates):
-1. [Specific observation template adapted for their niche]
-2. [Question template adapted for their niche]
-3. [Value add template adapted for their niche]
-
-DO NOT:
-- Post any content
-- Add bio link
-- Mass follow (max 15-20/day)
-- Comment on off-niche content
-```
-
-### Phase 2 Output: Warmup Content Brief
-
-```
-TIKTOK WARMUP — CONTENT BRIEF (Day 3)
-Account Niche: [User-provided niche]
-Format: Photo slideshow (carousel)
-
-TOPIC: [Specific niche-relevant topic]
-WHY THIS TOPIC: [One sentence on why this builds trust in the niche]
-
-SLIDE BREAKDOWN:
-Slide 1 (Hook): "[Hook text]"
-  Image: [Specific image direction]
-
-Slide 2: "[Point 1 text — under 15 words]"
-  Image: [Specific image direction]
-
-[Continue for all slides]
-
-Final Slide: "[Save this / Share this — no promotional ask]"
-  Image: [Clean, minimal visual]
-
-SOUND DIRECTION:
-- Search: [Specific search terms in TikTok Sound Library]
-- Selection criteria: [What to look for based on the user's niche]
-- Tempo target: [BPM range appropriate to slide count and topic]
-- Fallback: If no trending niche sound found, use [genre] instrumental
-
-CAPTION (under 100 characters, no CTA):
-"[Generated caption]"
-
-HASHTAGS (3-7):
-#[niche hashtag 1] #[niche hashtag 2] #[mid-tier hashtag] #[broad hashtag]
-
-IMAGE REQUIREMENTS REMINDER:
-- All images must be original (no stock, no screenshots from other platforms)
-- Images must not have been posted on Instagram, Twitter, or any other platform
-- Shoot fresh — even simple flat lays or textured backgrounds work
-```
-
-### Phase 3 Output: Post-Warmup Assessment
-
-```
-TIKTOK WARMUP — PERFORMANCE ASSESSMENT
-Post Published: [Date]
-Assessment Date: [48 hours later]
-
-CHECK THESE METRICS IN TIKTOK ANALYTICS:
-- Total views: [Target: 200+]
-- Average watch time %: [Target: 60%+]
-- Traffic source breakdown — how much from FYP vs. Following
-- Profile visits: [Target: 20+]
-- New followers from this post: [Any is a green signal]
-
-ASSESSMENT RESULT:
-If views 200+, watch time 60%+, FYP traffic > 50%:
-  WARMUP SUCCEEDED — ready for graduated posting cadence
-
-If views 50-200, watch time 30-60%, mixed traffic:
-  EXTEND WARMUP — 3 more days of engagement-only, then test again
-
-If views under 50 or all traffic from Following:
-  CHECK FOR SUPPRESSION — audit bio link, review post for policy issues
-
-NEXT STEP:
-[Based on assessment result, recommend exact next action]
-```
-
----
-
-## Quick Reference: Pre-Post Checklist for Warmup
-
-Before publishing Day 3 warmup content, verify all of these:
-
-- [ ] Account is at least 2 days old with engagement activity logged
-- [ ] All slide images are original and have never been posted elsewhere
-- [ ] No stock photos, no screenshots, no recycled assets
-- [ ] Caption is under 100 characters with no CTA or link reference
-- [ ] Hashtags: 3-7 only, all niche-relevant
-- [ ] Sound is trending and niche-appropriate (not just popular)
-- [ ] No bio link has been added yet
-- [ ] Post does not mention a product, service, brand name, or price
-- [ ] Final slide has a soft value CTA only ("save this" or "share this") — no follow or link asks
