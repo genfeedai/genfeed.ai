@@ -22,21 +22,16 @@ export class LifecycleEmailQueueService {
     scheduledFor: Date,
   ): Promise<void> {
     const delay = Math.max(0, scheduledFor.getTime() - Date.now());
-    // BullMQ rejects custom job ids containing ':' (its Redis key delimiter)
-    // with "Custom Id cannot contain :". Trigger keys legitimately carry ':'
-    // (`signup:{userId}`, `checkout:{sessionId}`) and are persisted in
-    // lifecycle_email_deliveries, so sanitize here only — deterministically,
-    // to preserve job-id dedupe. The DB unique constraint
-    // `lifecycle_email_deliveries_unique_step` remains the durable guard.
+    // BullMQ rejects custom job ids containing ':' (its Redis key delimiter).
+    // Every component here is colon-free by construction — trigger keys are
+    // built with '-' in LifecycleEmailService for exactly this reason.
     const jobId = [
       'lifecycle-email',
       data.userId,
       data.sequence,
       data.step,
       data.triggerKey,
-    ]
-      .join('-')
-      .replaceAll(':', '-');
+    ].join('-');
 
     await this.queue.add('send-lifecycle-email', data, {
       delay,

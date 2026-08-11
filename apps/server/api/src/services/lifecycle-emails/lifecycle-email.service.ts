@@ -42,6 +42,7 @@ type ScheduleDeliveryInput = {
   triggerKey: string;
   scheduledFor: Date;
   metadata?: LifecycleEmailMetadata;
+  checkoutSessionId?: string;
 };
 
 type CheckoutStartedInput = {
@@ -82,7 +83,9 @@ export class LifecycleEmailService {
       }
 
       const now = new Date();
-      const triggerKey = `${WELCOME_TRIGGER_PREFIX}:${user.id}`;
+      // Trigger keys must stay colon-free: they feed BullMQ custom job ids,
+      // and BullMQ rejects ':' (its Redis key delimiter).
+      const triggerKey = `${WELCOME_TRIGGER_PREFIX}-${user.id}`;
 
       await this.scheduleDelivery({
         scheduledFor: now,
@@ -123,6 +126,7 @@ export class LifecycleEmailService {
       }
 
       await this.scheduleDelivery({
+        checkoutSessionId: input.checkoutSessionId,
         metadata: {
           checkoutUrl: input.checkoutUrl ?? undefined,
           organizationId: input.organizationId,
@@ -260,10 +264,7 @@ export class LifecycleEmailService {
 
     await this.queueService.scheduleEmail(
       {
-        checkoutSessionId:
-          input.sequence === 'abandoned-checkout'
-            ? input.triggerKey.replace(`${CHECKOUT_TRIGGER_PREFIX}:`, '')
-            : undefined,
+        checkoutSessionId: input.checkoutSessionId,
         organizationId: input.metadata?.organizationId,
         sequence: input.sequence,
         step: input.step,
@@ -325,7 +326,8 @@ export class LifecycleEmailService {
   }
 
   private checkoutTriggerKey(checkoutSessionId: string): string {
-    return `${CHECKOUT_TRIGGER_PREFIX}:${checkoutSessionId}`;
+    // Colon-free: trigger keys feed BullMQ custom job ids, which reject ':'.
+    return `${CHECKOUT_TRIGGER_PREFIX}-${checkoutSessionId}`;
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

@@ -99,7 +99,7 @@ describe('LifecycleEmailService', () => {
           },
           sequence: 'abandoned-checkout',
           step: 'checkout-recovery',
-          triggerKey: 'checkout:cs_1',
+          triggerKey: 'checkout-cs_1',
           userId: 'user_1',
         }),
       }),
@@ -122,7 +122,7 @@ describe('LifecycleEmailService', () => {
       where: {
         sequence: 'abandoned-checkout',
         status: { in: ['scheduled', 'failed'] },
-        triggerKey: 'checkout:cs_1',
+        triggerKey: 'checkout-cs_1',
       },
     });
     expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
@@ -133,7 +133,7 @@ describe('LifecycleEmailService', () => {
       where: {
         sequence: 'abandoned-checkout',
         status: { in: ['scheduled', 'failed'] },
-        triggerKey: 'checkout:cs_1',
+        triggerKey: 'checkout-cs_1',
         userId: 'user_1',
       },
     });

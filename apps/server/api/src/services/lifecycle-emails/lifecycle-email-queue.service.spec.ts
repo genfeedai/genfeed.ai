@@ -18,7 +18,7 @@ describe('LifecycleEmailQueueService.scheduleEmail', () => {
     return {
       sequence: 'abandoned-checkout',
       step: 'checkout-recovery',
-      triggerKey: 'checkout:cs_live_123',
+      triggerKey: 'checkout-cs_live_123',
       userId: 'user_1',
       ...overrides,
     } as LifecycleEmailJobData;
@@ -29,9 +29,9 @@ describe('LifecycleEmailQueueService.scheduleEmail', () => {
   });
 
   it('never puts ":" in the BullMQ job id', async () => {
-    // Regression: trigger keys carry ':' (`signup:{userId}`,
-    // `checkout:{sessionId}`) and the job id was joined with ':', so BullMQ
-    // rejected every lifecycle email with "Custom Id cannot contain :".
+    // Regression: the job id was joined with ':' and trigger keys carried ':'
+    // too, so BullMQ rejected every lifecycle email with
+    // "Custom Id cannot contain :". Ids and trigger keys are '-' joined now.
     const { queue, service } = makeService();
 
     await service.scheduleEmail(jobData(), new Date(Date.now() + 1_000));
