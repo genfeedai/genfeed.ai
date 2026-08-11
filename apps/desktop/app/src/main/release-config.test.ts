@@ -116,7 +116,7 @@ describe('desktop release config', () => {
     );
     expect(buildMain).not.toContain('--external:@prisma/client');
     expect(buildMain).not.toContain('--external:electron-updater');
-    expect(buildMain).toContain('createRequire(import.meta.url)');
+    expect(buildMain).toContain('__genfeedCreateRequire(import.meta.url)');
     expect(copyShell).toContain('compactStandaloneDependencies');
     expect(copyShell).toContain(
       "path.join(nodeModulesRoot, '.bun', 'node_modules')",
