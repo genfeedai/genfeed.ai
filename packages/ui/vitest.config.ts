@@ -387,6 +387,11 @@ export default defineConfig({
     ],
   },
   test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+    },
     environment: 'jsdom',
     environmentOptions: {
       jsdom: {
