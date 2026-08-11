@@ -71,6 +71,26 @@ export interface OAuthVerifyResult {
  * }
  */
 export abstract class BaseIntegrationController {
+  /**
+   * Query params through which our integrations pass the server's provider-app
+   * identity: `client_id` (most), `client_key` (TikTok), `app_id` (Meta) and the
+   * OAuth 1.0a consumer keys.
+   */
+  private static readonly PROVIDER_IDENTITY_PARAMS = [
+    'app_id',
+    'client_id',
+    'client_key',
+    'consumer_key',
+    'oauth_consumer_key',
+  ];
+
+  /** What an unset ConfigService value looks like once it reaches a query string. */
+  private static readonly UNSET_CONFIG_VALUES = new Set([
+    '',
+    'null',
+    'undefined',
+  ]);
+
   protected readonly constructorName: string;
 
   /**
@@ -212,6 +232,13 @@ export abstract class BaseIntegrationController {
       // Generate OAuth URL
       const oauthResult = await this.generateOAuthUrl(brand.id, publicMetadata);
 
+      // Before anything is persisted: a platform whose provider-app config is
+      // missing builds an authorize URL carrying `undefined` credentials. Left
+      // unchecked the request succeeds, a permanently unconnectable credential
+      // row is written, and the account reads "Not connected" forever with no
+      // trace of the real cause.
+      this.assertOAuthUrlIsConfigured(oauthResult.url);
+
       // Save credential with OAuth tokens if provided
       if (oauthResult.oauthToken || oauthResult.oauthTokenSecret) {
         await this.credentialsService.upsertForBrand(
@@ -232,6 +259,56 @@ export abstract class BaseIntegrationController {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Reject an authorize URL built from absent provider-app configuration.
+   *
+   * Every integration reads its client id/secret straight off ConfigService and
+   * casts the result to `string`, so an unset key reaches the OAuth client as
+   * `undefined` and is serialized into the query string verbatim. The provider
+   * then rejects the round-trip and the verify callback never runs.
+   *
+   * Only params that are actually present are checked: OAuth 1.0a flows (X)
+   * carry a request token instead of a client id, and their absence here is
+   * correct rather than a misconfiguration.
+   */
+  protected assertOAuthUrlIsConfigured(url: string): void {
+    const notConfigured = (detail: string): HttpException => {
+      this.loggerService.error(
+        `${this.getLogUrl('connect')} blocked: ${this.platform} is not configured`,
+        detail,
+      );
+
+      return new HttpException(
+        { detail, title: 'Integration not configured' },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    };
+
+    let searchParams: URLSearchParams;
+
+    try {
+      searchParams = new URL(url).searchParams;
+    } catch {
+      throw notConfigured(
+        `The ${this.platform} integration produced an invalid authorization URL. Check its provider credentials on this server.`,
+      );
+    }
+
+    for (const param of BaseIntegrationController.PROVIDER_IDENTITY_PARAMS) {
+      const value = searchParams.get(param);
+
+      if (value === null) {
+        continue;
+      }
+
+      if (BaseIntegrationController.UNSET_CONFIG_VALUES.has(value.trim())) {
+        throw notConfigured(
+          `The ${this.platform} integration is missing its provider credentials on this server (${param} is not set).`,
+        );
+      }
     }
   }
 
