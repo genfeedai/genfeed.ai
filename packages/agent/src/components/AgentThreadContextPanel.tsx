@@ -2,6 +2,7 @@
 
 import { formatRelativeTime } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
+import { AGENT_THREAD_CONTEXT_COPY } from '@genfeedai/agent/constants/agent-thread-context-copy.constant';
 import {
   CONVERSATION_COMPOSER_ACTIONS,
   resolveConversationComposerDestinationHref,
@@ -135,13 +136,13 @@ export function AgentThreadContextPanel({
     >
       <div className="gen-shell-toolbar shrink-0 p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-          Context
+          {AGENT_THREAD_CONTEXT_COPY.eyebrow}
         </p>
         <h2 className="mt-1 truncate text-base font-semibold text-foreground">
-          {thread?.title?.trim() || 'This conversation'}
+          {thread?.title?.trim() || AGENT_THREAD_CONTEXT_COPY.untitledThread}
         </h2>
         <p className="mt-1 text-xs leading-5 text-foreground/55">
-          What the agent is working with right now.
+          {AGENT_THREAD_CONTEXT_COPY.subtitle}
         </p>
       </div>
 
@@ -150,25 +151,31 @@ export function AgentThreadContextPanel({
           action={
             <SectionLink
               href={orgHref(APP_ROUTES.SETTINGS.BRANDS)}
-              label={brand ? 'Manage' : 'Set up'}
+              label={
+                brand
+                  ? AGENT_THREAD_CONTEXT_COPY.brandManage
+                  : AGENT_THREAD_CONTEXT_COPY.brandSetUp
+              }
             />
           }
-          title="Brand"
+          title={AGENT_THREAD_CONTEXT_COPY.brandSection}
         >
           {brand ? (
             <>
-              <ContextRow label="Active" value={brand.label || 'Untitled'} />
+              <ContextRow
+                label={AGENT_THREAD_CONTEXT_COPY.brandActive}
+                value={brand.label || AGENT_THREAD_CONTEXT_COPY.untitledBrand}
+              />
               {completenessScore !== null ? (
                 <ContextRow
-                  label="Context filled"
+                  label={AGENT_THREAD_CONTEXT_COPY.brandCompleteness}
                   value={`${completenessScore}%`}
                 />
               ) : null}
             </>
           ) : (
             <p className="text-[11px] leading-5 text-muted-foreground">
-              No brand selected. The agent writes generically until one is
-              chosen.
+              {AGENT_THREAD_CONTEXT_COPY.brandEmpty}
             </p>
           )}
         </ContextSection>
@@ -177,10 +184,14 @@ export function AgentThreadContextPanel({
           action={
             <SectionLink
               href={orgHref(APP_ROUTES.SETTINGS.SOCIAL)}
-              label={connectedConnections.length > 0 ? 'Manage' : 'Connect'}
+              label={
+                connectedConnections.length > 0
+                  ? AGENT_THREAD_CONTEXT_COPY.channelsManage
+                  : AGENT_THREAD_CONTEXT_COPY.channelsConnect
+              }
             />
           }
-          title="Channels"
+          title={AGENT_THREAD_CONTEXT_COPY.channelsSection}
         >
           {connectedConnections.length > 0 ? (
             <div className="flex flex-col gap-1.5">
@@ -202,28 +213,37 @@ export function AgentThreadContextPanel({
             </div>
           ) : (
             <p className="text-[11px] leading-5 text-muted-foreground">
-              No channels connected. Publishing stays unavailable until one is.
+              {AGENT_THREAD_CONTEXT_COPY.channelsEmpty}
             </p>
           )}
         </ContextSection>
 
-        <ContextSection title="Conversation">
+        <ContextSection title={AGENT_THREAD_CONTEXT_COPY.conversationSection}>
           <ContextRow
-            label="Messages"
+            label={AGENT_THREAD_CONTEXT_COPY.conversationMessages}
             value={String(thread?.messageCount ?? messageCount)}
           />
           {thread?.requestedModel ? (
-            <ContextRow label="Model" value={thread.requestedModel} />
+            <ContextRow
+              label={AGENT_THREAD_CONTEXT_COPY.conversationModel}
+              value={thread.requestedModel}
+            />
           ) : null}
           {startedAt ? (
-            <ContextRow label="Started" value={`${startedAt} ago`} />
+            <ContextRow
+              label={AGENT_THREAD_CONTEXT_COPY.conversationStarted}
+              value={`${startedAt} ago`}
+            />
           ) : null}
           {lastActivityAt ? (
-            <ContextRow label="Last activity" value={`${lastActivityAt} ago`} />
+            <ContextRow
+              label={AGENT_THREAD_CONTEXT_COPY.conversationLastActivity}
+              value={`${lastActivityAt} ago`}
+            />
           ) : null}
         </ContextSection>
 
-        <ContextSection title="Go to">
+        <ContextSection title={AGENT_THREAD_CONTEXT_COPY.destinationsSection}>
           <div className="flex flex-wrap gap-1.5">
             {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
               <Link
