@@ -84,6 +84,15 @@ export class RedisIoAdapter extends IoAdapter {
           isDevelopment: process.env.NODE_ENV === 'development',
         }),
       },
+      // #2517 item 4 — transport compression. Agent chat fan-out (tool
+      // payloads, coalesced token batches, dashboard blocks) can carry
+      // sizeable JSON frames; per-message deflate shrinks them over the wire
+      // at the cost of per-frame CPU, so it's gated behind a size threshold —
+      // small frames (most socket.io control/ack traffic) skip compression
+      // entirely rather than pay deflate overhead for no bandwidth win.
+      perMessageDeflate: {
+        threshold: 1024,
+      },
       ...options,
     };
 

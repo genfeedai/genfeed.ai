@@ -132,6 +132,45 @@ export class RedisService
     this.logger.debug(`Published to ${channel}: ${payload}`, this.context);
   }
 
+  /**
+   * Queue several PUBLISH commands on one ioredis pipeline and flush them in
+   * a single round trip, instead of awaiting each `publish()` sequentially.
+   * Order is preserved — ioredis pipelines execute queued commands in the
+   * order they were added, and PUBLISH ordering within a single connection
+   * is FIFO — so callers that need message N to arrive before message N+1
+   * (e.g. a trailing token batch before the `agent:done` event) can still
+   * rely on ordering while paying for one network round trip instead of N.
+   * No-ops (same as `publish()`) when Redis is not initialized.
+   */
+  async publishBatch(
+    entries: Array<{ channel: string; message: unknown }>,
+  ): Promise<void> {
+    if (entries.length === 0) {
+      return;
+    }
+    if (entries.length === 1) {
+      await this.publish(entries[0].channel, entries[0].message);
+      return;
+    }
+    if (!this.isInitialized) {
+      this.logger.warn(
+        `Cannot publish batch of ${entries.length}: Redis not initialized — skipping (offline mode)`,
+        this.context,
+      );
+      return;
+    }
+
+    const pipeline = this.publisher.pipeline();
+    for (const entry of entries) {
+      pipeline.publish(entry.channel, JSON.stringify(entry.message));
+    }
+    await pipeline.exec();
+    this.logger.debug(
+      `Published batch of ${entries.length} messages via pipeline`,
+      this.context,
+    );
+  }
+
   async subscribe(channel: string, handler?: (message: unknown) => void) {
     if (!this.isInitialized) {
       // Queue the subscription for later
