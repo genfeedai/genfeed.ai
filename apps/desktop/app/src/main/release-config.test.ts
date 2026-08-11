@@ -121,7 +121,7 @@ describe('desktop release config', () => {
       "path.join(nodeModulesRoot, '.bun', 'node_modules')",
     );
     expect(copyShell).toContain(
-      "path.join(outputRoot, 'apps', 'app', 'node_modules')",
+      "path.join(root, 'apps', 'app', 'node_modules')",
     );
   });
 
