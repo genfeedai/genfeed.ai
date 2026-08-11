@@ -296,6 +296,101 @@ describe('BaseIntegrationController', () => {
         }),
       ).rejects.toThrow(HttpException);
     });
+
+    // An unset ConfigService key is cast to `string` by every integration and
+    // reaches the authorize URL as the literal "undefined". The round-trip can
+    // never complete, so the connect attempt must fail loudly instead of
+    // leaving a credential row that reads "Not connected" forever.
+    describe('when the platform is not configured on this server', () => {
+      it.each([
+        [
+          'undefined',
+          'https://oauth.example.com/authorize?client_id=undefined',
+        ],
+        ['null', 'https://oauth.example.com/authorize?client_id=null'],
+        ['empty', 'https://oauth.example.com/authorize?client_id='],
+      ])(
+        'rejects a %s client_id with SERVICE_UNAVAILABLE',
+        async (_label, url) => {
+          controller.setMockOAuthResult({ url });
+
+          await expect(
+            controller.testHandleConnect(mockUser, { brandId }),
+          ).rejects.toMatchObject({
+            status: HttpStatus.SERVICE_UNAVAILABLE,
+          });
+        },
+      );
+
+      it('names the platform and the missing param in the error', async () => {
+        controller.setMockOAuthResult({
+          url: 'https://open-api.tiktok.com/auth?client_key=undefined',
+        });
+
+        try {
+          await controller.testHandleConnect(mockUser, { brandId });
+          expect.unreachable('connect should have thrown');
+        } catch (error) {
+          const response = (error as HttpException).getResponse() as {
+            detail: string;
+            title: string;
+          };
+          expect(response.title).toBe('Integration not configured');
+          expect(response.detail).toContain(CredentialPlatform.YOUTUBE);
+          expect(response.detail).toContain('client_key');
+        }
+      });
+
+      it('writes no credential row', async () => {
+        controller.setMockOAuthResult({
+          url: 'https://oauth.example.com/authorize?client_id=undefined',
+        });
+
+        await expect(
+          controller.testHandleConnect(mockUser, { brandId }),
+        ).rejects.toThrow(HttpException);
+
+        // The row is what made this invisible: connect persisted a permanently
+        // unconnectable credential and returned 200.
+        expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
+        expect(credentialsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('rejects an unparseable authorization URL', async () => {
+        controller.setMockOAuthResult({ url: 'not-a-url' });
+
+        await expect(
+          controller.testHandleConnect(mockUser, { brandId }),
+        ).rejects.toMatchObject({
+          status: HttpStatus.SERVICE_UNAVAILABLE,
+        });
+      });
+    });
+
+    it('allows an OAuth 1.0a URL that carries no client id', async () => {
+      // X's request-token flow has no client_id in the authorize URL; treating
+      // its absence as "unconfigured" would break a working integration.
+      controller.setMockOAuthResult({
+        oauthToken: 'request-token',
+        url: 'https://api.x.com/oauth/authenticate?oauth_token=request-token',
+      });
+
+      await expect(
+        controller.testHandleConnect(mockUser, { brandId }),
+      ).resolves.toMatchObject({ oauthToken: 'request-token' });
+    });
+
+    it('allows a configured client id through', async () => {
+      controller.setMockOAuthResult({
+        url: 'https://oauth.example.com/authorize?client_id=real-client-id',
+      });
+
+      await expect(
+        controller.testHandleConnect(mockUser, { brandId }),
+      ).resolves.toMatchObject({
+        url: 'https://oauth.example.com/authorize?client_id=real-client-id',
+      });
+    });
   });
 
   describe('updateCredentialWithTokens', () => {
