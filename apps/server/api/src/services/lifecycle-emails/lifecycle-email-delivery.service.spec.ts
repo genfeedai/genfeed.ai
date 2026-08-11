@@ -97,14 +97,14 @@ describe('LifecycleEmailDeliveryService', () => {
       sequence: 'welcome',
       status: 'scheduled',
       step: 'welcome-day-0',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       user,
     });
 
     await service.sendLifecycleEmail({
       sequence: 'welcome',
       step: 'welcome-day-0',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       userId: 'user_1',
     });
 
@@ -136,14 +136,14 @@ describe('LifecycleEmailDeliveryService', () => {
       sequence: 'welcome',
       status: 'scheduled',
       step: 'welcome-day-2',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       user,
     });
 
     await service.sendLifecycleEmail({
       sequence: 'welcome',
       step: 'welcome-day-2',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       userId: 'user_1',
     });
 
@@ -168,14 +168,14 @@ describe('LifecycleEmailDeliveryService', () => {
       sequence: 'activation-nudge',
       status: 'scheduled',
       step: 'activation-nudge',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       user,
     });
 
     await service.sendLifecycleEmail({
       sequence: 'activation-nudge',
       step: 'activation-nudge',
-      triggerKey: 'signup:user_1',
+      triggerKey: 'signup-user_1',
       userId: 'user_1',
     });
 
