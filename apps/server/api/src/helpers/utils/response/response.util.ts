@@ -81,6 +81,13 @@ export const setTopLinks = (
     'page' in data &&
     Array.isArray(data.docs);
 
+  // Keyset/cursor-paginated response: caller attached `hasMore` alongside
+  // `docs` (see AgentThreadsController#getMessages). Additive to the offset
+  // `pagination` link above — never emitted together, since cursor callers
+  // never set `totalDocs`/`page`.
+  const isCursorPaginated =
+    data && typeof data === 'object' && typeof data.hasMore === 'boolean';
+
   const topLevelLinks = isPaginated
     ? {
         pagination: {
@@ -91,9 +98,18 @@ export const setTopLinks = (
         },
         self: req.originalUrl,
       }
-    : {
-        self: req.originalUrl,
-      };
+    : isCursorPaginated
+      ? {
+          cursor: {
+            hasMore: data.hasMore,
+            limit: data.limit,
+            nextCursor: data.nextCursor ?? null,
+          },
+          self: req.originalUrl,
+        }
+      : {
+          self: req.originalUrl,
+        };
 
   // IMPORTANT: Return a NEW object to avoid race conditions.
   // Serializers are singletons - mutating serializerOptions directly
