@@ -71,14 +71,15 @@ export class SubscriptionsService
 
   private async resolveStripeCustomerId(
     customerId: string | null | undefined,
+    organizationId: string | null | undefined,
   ): Promise<string | undefined> {
-    if (!customerId) {
+    if (!customerId || !organizationId) {
       return undefined;
     }
 
-    const customer = await this.prisma.customer.findUnique({
+    const customer = await this.prisma.customer.findFirst({
       select: { stripeCustomerId: true },
-      where: { id: customerId },
+      where: { id: customerId, isDeleted: false, organizationId },
     });
 
     return customer?.stripeCustomerId ?? undefined;
@@ -91,7 +92,10 @@ export class SubscriptionsService
 
     const stripeCustomerId =
       normalized.stripeCustomerId ??
-      (await this.resolveStripeCustomerId(normalized.customerId));
+      (await this.resolveStripeCustomerId(
+        normalized.customerId,
+        normalized.organizationId,
+      ));
 
     return {
       ...normalized,
@@ -308,7 +312,10 @@ export class SubscriptionsService
     try {
       const stripeCustomer = await this.stripeService.retrieveCustomer(
         this.requireString(
-          await this.resolveStripeCustomerId(subscription.customerId),
+          await this.resolveStripeCustomerId(
+            subscription.customerId,
+            subscription.organizationId,
+          ),
           'Subscription stripeCustomerId',
         ),
       );
@@ -449,7 +456,10 @@ export class SubscriptionsService
       // Get the upcoming invoice preview
       const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
         this.requireString(
-          await this.resolveStripeCustomerId(subscription.customerId),
+          await this.resolveStripeCustomerId(
+            subscription.customerId,
+            subscription.organizationId,
+          ),
           'Subscription stripeCustomerId',
         ),
         subscription.stripeSubscriptionId,

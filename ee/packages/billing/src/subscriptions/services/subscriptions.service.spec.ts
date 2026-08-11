@@ -90,7 +90,7 @@ function buildStripeSubscription(options: {
 
 describe('SubscriptionsService', () => {
   let subscriptionDelegate: Delegate;
-  let customerDelegate: { findUnique: MockFn };
+  let customerDelegate: { findFirst: MockFn };
   let organizationSettingDelegate: { updateMany: MockFn };
   let stripeService: {
     changeSubscriptionPlan: MockFn;
@@ -113,7 +113,7 @@ describe('SubscriptionsService', () => {
 
   beforeEach(() => {
     subscriptionDelegate = createDelegate();
-    customerDelegate = { findUnique: vi.fn().mockResolvedValue(null) };
+    customerDelegate = { findFirst: vi.fn().mockResolvedValue(null) };
     organizationSettingDelegate = {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
@@ -357,9 +357,9 @@ describe('SubscriptionsService', () => {
         stripeCustomerId: 'cus_new',
       });
       subscriptionDelegate.create.mockResolvedValue(
-        buildSubscription({ id: 'sub_created' }),
+        buildSubscription({ customerId: 'cust_row_new', id: 'sub_created' }),
       );
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_new',
       });
 
@@ -370,6 +370,14 @@ describe('SubscriptionsService', () => {
       );
 
       expect(result.stripeCustomerId).toBe('cus_new');
+      expect(customerDelegate.findFirst).toHaveBeenCalledWith({
+        select: { stripeCustomerId: true },
+        where: {
+          id: 'cust_row_new',
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
+      });
       expect(stripeService.createOrganizationCustomer).toHaveBeenCalledTimes(1);
     });
 
@@ -407,7 +415,7 @@ describe('SubscriptionsService', () => {
       subscriptionDelegate.findFirst.mockResolvedValue(
         buildSubscription({ id: 'sub_winner' }),
       );
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_new',
       });
 
@@ -454,20 +462,24 @@ describe('SubscriptionsService', () => {
         where: { isDeleted: false, organizationId: ORGANIZATION_ID },
       });
       expect(result?.stripeCustomerId).toBeUndefined();
-      expect(customerDelegate.findUnique).not.toHaveBeenCalled();
+      expect(customerDelegate.findFirst).not.toHaveBeenCalled();
     });
 
     it('derives stripeCustomerId from the related customer row', async () => {
       subscriptionDelegate.findFirst.mockResolvedValue(buildSubscription());
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
 
       const result = await service.findByOrganizationId(ORGANIZATION_ID);
 
-      expect(customerDelegate.findUnique).toHaveBeenCalledWith({
+      expect(customerDelegate.findFirst).toHaveBeenCalledWith({
         select: { stripeCustomerId: true },
-        where: { id: 'cust_row_1' },
+        where: {
+          id: 'cust_row_1',
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
       });
       expect(result?.stripeCustomerId).toBe('cus_1');
     });
@@ -525,7 +537,7 @@ describe('SubscriptionsService', () => {
     };
 
     it('returns the subscription once the Stripe customer resolves', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.retrieveCustomer.mockResolvedValue({
@@ -537,7 +549,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws NotFound when Stripe has no such customer', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.retrieveCustomer.mockResolvedValue(null);
@@ -549,7 +561,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws BadRequest when the subscription has no Stripe customer id', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: null,
       });
 
@@ -743,7 +755,7 @@ describe('SubscriptionsService', () => {
   describe('previewSubscriptionChange', () => {
     beforeEach(() => {
       subscriptionDelegate.findFirst.mockResolvedValue(buildSubscription());
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.getUpcomingInvoice.mockResolvedValue({
@@ -832,7 +844,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws BadRequest when no Stripe customer id can be resolved', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: null,
       });
 
