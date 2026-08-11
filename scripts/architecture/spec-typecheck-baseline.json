@@ -540,8 +540,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/credits/controllers/credits.controller.spec.ts",
-      "fingerprint": "1de88465ad60bc46e053",
-      "message": "Argument of type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<string, any>; ... 73 more ...; files?: Express.Multer.File[] | ... 1 more ... | undefined; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<...>; ... 73 more ...; files?: File[] | ... 1 more ... | undefined; }' is missing the following properties from type 'RequestWithContext': setTimeout, destroy, addListener, emit, and 38 more.",
+      "fingerprint": "35ee592a9dafa71b6fc1",
+      "message": "Argument of type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<string, any>; ... 76 more ...; files?: Express.Multer.File[] | ... 1 more ... | undefined; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<...>; ... 76 more ...; files?: File[] | ... 1 more ... | undefined; }' is missing the following properties from type 'RequestWithContext': setTimeout, destroy, _read, read, and 33 more.",
       "workspace": "api"
     },
     {
@@ -1172,8 +1172,8 @@
       "code": 2345,
       "count": 3,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "17d1e64f94b72cd8ec7c",
-      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'RequestWithContext' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 102 more.",
+      "fingerprint": "4f14d76149d0814dae2e",
+      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'RequestWithContext' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 101 more.",
       "workspace": "api"
     },
     {
@@ -1194,6 +1194,14 @@
     },
     {
       "code": 2345,
+      "count": 11,
+      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
+      "fingerprint": "6fb3b61c2989b017e18d",
+      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'import(\"<root>/apps/server/api/src/common/middleware/request-context.middleware\").RequestWithContext'.   Type 'RequestWithContext' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 101 more.",
+      "workspace": "api"
+    },
+    {
+      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "7b56f100aa8c1257d6ca",
@@ -1206,14 +1214,6 @@
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "9e0ae1edde061cab1ec4",
       "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; isDeleted: boolean; organizationId: string | null; label: string; key: string; createdAt: Date; id: string; updatedAt: Date; config: JsonValue; ... 54 more ...; supportsFeatures: string[]; }': description, isDeleted, organizationId, createdAt, and 57 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "bfae828788e2b050df1f",
-      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'import(\"<root>/apps/server/api/src/common/middleware/request-context.middleware\").RequestWithContext'.   Type 'RequestWithContext' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 102 more.",
       "workspace": "api"
     },
     {
@@ -1610,18 +1610,18 @@
     },
     {
       "code": 2345,
-      "count": 9,
+      "count": 2,
       "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "0a9d02bbd695bd56c440",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 104 more.",
+      "fingerprint": "695028ac1b7b011b8044",
+      "message": "Argument of type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
       "workspace": "api"
     },
     {
       "code": 2345,
-      "count": 2,
+      "count": 9,
       "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "925acf805fedbb93d8aa",
-      "message": "Argument of type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 104 more.",
+      "fingerprint": "8f3e450f002b4a74da62",
+      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
       "workspace": "api"
     },
     {
@@ -2684,8 +2684,8 @@
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.controller.spec.ts",
-      "fingerprint": "8c7ee5927554c35037c3",
-      "message": "Conversion of type '{ body: unknown; headers: { 'stripe-signature': string; }; }' to type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ body: unknown; headers: { 'stripe-signature': string; }; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 102 more.",
+      "fingerprint": "166d87226547f85713c5",
+      "message": "Conversion of type '{ body: unknown; headers: { 'stripe-signature': string; }; }' to type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ body: unknown; headers: { 'stripe-signature': string; }; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 101 more.",
       "workspace": "api"
     },
     {
@@ -3020,8 +3020,8 @@
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/helpers/utils/response/response.util.spec.ts",
-      "fingerprint": "55a21b72aedfca05ae5b",
-      "message": "Argument of type '{ originalUrl: string; }' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type '{ originalUrl: string; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 103 more.",
+      "fingerprint": "4cea1aca68b01d683ba7",
+      "message": "Argument of type '{ originalUrl: string; }' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type '{ originalUrl: string; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 102 more.",
       "workspace": "api"
     },
     {
@@ -5212,8 +5212,8 @@
       "code": 2352,
       "count": 1,
       "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
-      "fingerprint": "2d2119119fe5ef10bb54",
-      "message": "Conversion of type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<any>; stdout: EventEmitter<any>; }' to type 'ChildProcess' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<any>; stdout: EventEmitter<any>; }' is missing the following properties from type 'ChildProcess': stdin, stdio, killed, connected, and 23 more.",
+      "fingerprint": "98bd90d9c651fa916753",
+      "message": "Conversion of type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' to type 'ChildProcess' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' is missing the following properties from type 'ChildProcess': stdin, stdio, killed, connected, and 23 more.",
       "workspace": "files"
     },
     {
@@ -5356,8 +5356,8 @@
       "code": 2352,
       "count": 1,
       "file": "apps/server/mcp/src/mcp/controllers/mcp.controller.spec.ts",
-      "fingerprint": "9acfe47858b6c936788a",
-      "message": "Conversion of type '{ authContext: { organizationId: string; token: string; userId: string; }; }' to type 'AuthenticatedRequest' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ authContext: { organizationId: string; token: string; userId: string; }; }' is missing the following properties from type 'AuthenticatedRequest': get, header, accepts, acceptsCharsets, and 98 more.",
+      "fingerprint": "3a074eb3c1771fac5d6a",
+      "message": "Conversion of type '{ authContext: { organizationId: string; token: string; userId: string; }; }' to type 'AuthenticatedRequest' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ authContext: { organizationId: string; token: string; userId: string; }; }' is missing the following properties from type 'AuthenticatedRequest': get, header, accepts, acceptsCharsets, and 97 more.",
       "workspace": "mcp"
     },
     {

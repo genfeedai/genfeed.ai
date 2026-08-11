@@ -66,7 +66,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.7",
     "@electron/notarize": "3.1.1",
-    "@types/node": "26.2.0",
+    "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",
     "electron": "43.3.0",
     "electron-builder": "26.15.3",
@@ -90,7 +90,7 @@
     "clean": "rm -rf dist",
     "copy:app-shell": "node ./scripts/copy-app-shell.cjs",
     "copy:assets": "mkdir -p dist/assets && cp -r assets/* dist/assets/ && mkdir -p dist/desktop-prisma && cp -r ../../../packages/desktop-prisma/prisma/migrations dist/desktop-prisma/migrations",
-    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "bun run electron:install-binary && bun run native:rebuild && node ./scripts/dev.cjs",
     "electron:install-binary": "node ./scripts/install-electron.cjs",
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",

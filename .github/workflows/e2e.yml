@@ -51,10 +51,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js 22.x
+      - name: Setup Node.js 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22.x"
+          node-version: "24.x"
 
       - name: Check route coverage
         run: node scripts/e2e-route-coverage.mjs

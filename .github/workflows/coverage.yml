@@ -44,7 +44,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -94,7 +94,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -138,7 +138,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -175,7 +175,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Download blob report artifacts
@@ -225,7 +225,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -263,7 +263,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Download blob report artifacts
@@ -318,7 +318,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
           cache-playwright: "true"
 
