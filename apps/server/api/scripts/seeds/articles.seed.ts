@@ -407,8 +407,78 @@ async function invalidatePublicArticleCache(): Promise<void> {
   }
 }
 
+/**
+ * Reads the seeded rows back and reports exactly the columns the public list
+ * endpoint filters on (`status`, `publishedAt`, `isDeleted`) plus the artwork
+ * URL. A seed that reports success while the public feed stays empty is
+ * otherwise indistinguishable from a seed that wrote to the wrong database —
+ * this prints the evidence instead of leaving it to be guessed at.
+ */
+async function reportSeededRows(
+  prisma: PrismaClient,
+  owner: SeedOwner,
+): Promise<void> {
+  const rows = await prisma.article.findMany({
+    orderBy: { slug: 'asc' },
+    select: {
+      coverImageUrl: true,
+      isDeleted: true,
+      publishedAt: true,
+      scope: true,
+      slug: true,
+      status: true,
+    },
+    where: {
+      organizationId: owner.organizationId,
+      slug: { in: LAUNCH_ARTICLES.map((article) => article.slug) },
+    },
+  });
+
+  for (const row of rows) {
+    logger.log(
+      `row ${row.slug}: status=${row.status} scope=${row.scope} publishedAt=${row.publishedAt?.toISOString() ?? 'null'} isDeleted=${row.isDeleted} artwork=${row.coverImageUrl ? 'set' : 'MISSING'}`,
+    );
+  }
+
+  const publicCount = await prisma.article.count({
+    where: {
+      isDeleted: false,
+      publishedAt: { not: null },
+      status: ArticleStatus.PUBLISHED,
+    },
+  });
+  logger.log(
+    `Rows matching the public feed filter across all organizations: ${publicCount}`,
+  );
+}
+
+/**
+ * Names the database this run will write to — host, port, and database name
+ * only, never the credentials. "The seed reported success but the public feed
+ * is empty" has exactly two shapes: rows that fail the feed's filter, or rows
+ * written somewhere the API never reads. `reportSeededRows` rules out the
+ * first; this rules out the second, without anyone having to open an env file.
+ */
+function describeDatabaseTarget(): void {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return;
+  }
+
+  try {
+    const parsed = new URL(url);
+    logger.log(
+      `Target database: ${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}${parsed.pathname}`,
+    );
+  } catch {
+    logger.log('Target database: DATABASE_URL is not a parseable URL');
+  }
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
+  describeDatabaseTarget();
 
   const args = parseArgs();
 
@@ -429,6 +499,18 @@ async function main(): Promise<void> {
   ) {
     throw new Error(
       'A live production seed must name its owner: pass --ownerEmail=<email> or --organizationId=<id>',
+    );
+  }
+
+  // `--env=production` only selects which env file to load; it says nothing
+  // about where that file points. A checkout whose `.env.production` still
+  // holds a localhost connection string will happily report "LIVE publishing
+  // ... for production" while writing to the developer's own database — the
+  // run looks like a successful deploy and the public feed never changes.
+  // Refuse rather than let a local write masquerade as a production one.
+  if (args.env === 'production' && !args.dryRun && isLocalDatabase()) {
+    throw new Error(
+      'Refusing a live production seed: DATABASE_URL points at a local database. Point .env.production at the production database, or drop --live to dry-run.',
     );
   }
 
@@ -519,6 +601,8 @@ async function main(): Promise<void> {
     if (!args.dryRun && created + updated > 0) {
       await invalidatePublicArticleCache();
     }
+
+    await reportSeededRows(prisma, owner);
   } finally {
     await prisma.$disconnect();
   }
