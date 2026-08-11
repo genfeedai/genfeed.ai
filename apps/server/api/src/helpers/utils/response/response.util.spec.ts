@@ -45,5 +45,46 @@ describe('response.utils', () => {
       const result = setTopLinks(req, {}, { id: '1' });
       expect(result.topLevelLinks).toEqual({ self: '/items/1' });
     });
+
+    it('emits cursor links when the caller attaches hasMore/nextCursor', () => {
+      const req = { originalUrl: '/agent/threads/thread-1/messages' };
+      const data = {
+        docs: [],
+        hasMore: true,
+        limit: 50,
+        nextCursor: 'opaque-cursor',
+      };
+
+      const result = setTopLinks(req, {}, data);
+      expect(result.topLevelLinks).toEqual({
+        cursor: { hasMore: true, limit: 50, nextCursor: 'opaque-cursor' },
+        self: '/agent/threads/thread-1/messages',
+      });
+    });
+
+    it('reports a null nextCursor when a cursor page is exhausted', () => {
+      const req = { originalUrl: '/agent/threads/thread-1/messages' };
+      const data = { docs: [], hasMore: false, limit: 50, nextCursor: null };
+
+      const result = setTopLinks(req, {}, data);
+      expect(result.topLevelLinks).toEqual({
+        cursor: { hasMore: false, limit: 50, nextCursor: null },
+        self: '/agent/threads/thread-1/messages',
+      });
+    });
+
+    it('never combines the offset and cursor link shapes', () => {
+      const req = { originalUrl: '/items?page=1' };
+      const data = {
+        docs: [],
+        limit: 10,
+        page: 1,
+        totalDocs: 15,
+        totalPages: 2,
+      };
+
+      const result = setTopLinks(req, {}, data);
+      expect(result.topLevelLinks).not.toHaveProperty('cursor');
+    });
   });
 });
