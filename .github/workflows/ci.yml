@@ -77,7 +77,7 @@ jobs:
       - name: Check contributor trust
         id: check
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
@@ -1143,7 +1143,7 @@ jobs:
           persist-credentials: false
 
       - name: Open or update tracking issue (Priority P0)
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:
@@ -1219,7 +1219,7 @@ jobs:
           persist-credentials: false
 
       - name: Close open master-ci-failure trackers
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:

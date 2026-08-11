@@ -86,7 +86,7 @@ jobs:
 
       - name: Evaluate deploy preflight
         id: preflight
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           SHOULD_CONTINUE: ${{ steps.enabled_guard.outputs.should_continue }}
           PRECHECK_SKIPPED_REASON: ${{ steps.enabled_guard.outputs.skipped_reason }}
@@ -286,7 +286,7 @@ jobs:
 
       - name: Dispatch and watch Deploy ECS (production)
         id: deploy
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
         with:
@@ -453,7 +453,7 @@ jobs:
     steps:
       - name: Open or update tracking issue
         id: issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha || needs.dispatch-deploy.outputs.deployed_sha || 'unknown' }}
           OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome || needs.preflight.outputs.outcome || 'failed' }}
