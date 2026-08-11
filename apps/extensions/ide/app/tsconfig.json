@@ -23,13 +23,18 @@
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/ui/*": ["../../../../packages/ui/src/*"],
       "@commands/*": ["./src/commands/*"],
       "@services/*": ["./src/services/*"],
       "@types/*": ["./src/types/*"],
+      "@ui/*": ["../../../../packages/ui/src/*"],
       "@views/*": ["./src/views/*"]
     },
     "resolveJsonModule": true,
-    "rootDir": "./src",
+    // Widened to the repo root because `@genfeedai/ui/*` resolves to
+    // `packages/ui/src`. Inert in practice: `tsc` only ever runs `--noEmit`
+    // here, and `dist/extension.js` is produced by esbuild.
+    "rootDir": "../../../..",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
