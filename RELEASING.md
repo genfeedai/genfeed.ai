@@ -162,6 +162,21 @@ previously fell months behind `master`.
 npm failure blocks the release: the GitHub release stays a draft, so a red npm
 lane is visible instead of silent.
 
+### The public surface is two packages
+
+Only the installable products are public:
+
+- `@genfeedai/cli` — the terminal client (`npm install -g @genfeedai/cli`).
+  Its `dist` is bundled by `bun build`, so workspace packages are
+  `devDependencies` and nothing internal leaks into the install graph.
+- `@genfeedai/create` — the self-hosted scaffolder
+  (`npx @genfeedai/create my-genfeed`).
+
+Every other `packages/*` workspace is `private: true`. The pre-monorepo repos
+published internals (`enums`, `helpers`, `ui`, …) to npm as a transport between
+repos; `workspace:*` replaced that at the 2026-04 migration, and those names are
+deprecated on the registry rather than kept current.
+
 ### Enrollment
 
 `scripts/npm-release-enrollment.json` decides which public packages the lane
@@ -172,24 +187,24 @@ listed in exactly one of:
 - `excluded` — never published, with a written reason.
 
 `bun run check:npm-release` enforces that on every PR. It also rejects an
-enrolled package with a runtime `workspace:` dependency on an excluded one, which
-would publish a manifest pointing at a version npm has never seen: installable,
-broken on `require`. Adding a publishable package is therefore a deliberate
-release decision rather than a silent one.
+enrolled package with a runtime `workspace:` dependency on an excluded or
+private one, which would publish a manifest pointing at a version npm has never
+seen: installable, broken on `require`. Making a package publishable is
+therefore a deliberate release decision rather than a silent one.
 
 ### Trusted publisher configuration
 
 npm matches the trusted publisher against the **caller** workflow filename and
 allows one workflow per package, so the entry point is `release.yml`. An npm
-owner must configure each `@genfeedai/*` package with:
+owner must configure `@genfeedai/cli` and `@genfeedai/create` with:
 
 - organization: `genfeedai`
 - repository: `genfeed.ai`
 - workflow: `release.yml`
 - environment: unset unless the workflow is updated to use one
 
-Packages configured against the older `publish-packages.yml` must be repointed at
-`release.yml`, or their publish step fails authorization.
+A package configured against another workflow filename fails authorization at
+publish time.
 
 ### First publish of a new package name
 
@@ -198,12 +213,13 @@ needs one owner-authenticated bootstrap publication before it can be enrolled.
 The release lane fails fast and names the packages when an enrolled name is
 missing from the registry. Bootstrap from a preflight tarball, then configure the
 trusted publisher; never bypass the version PR or publish a workspace directory
-directly.
+directly. Both currently enrolled names already exist on npm, so no bootstrap is
+pending.
 
 ### Local preflight
 
 ```bash
-bun run publish:package packages/enums
+bun run publish:package packages/cli
 ```
 
 That builds from clean outputs, orders workspace dependencies, packs with Bun,

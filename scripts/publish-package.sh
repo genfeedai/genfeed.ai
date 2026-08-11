@@ -9,7 +9,7 @@
 # master through a pull request first.
 #
 # Usage:
-#   ./scripts/publish-package.sh packages/enums
+#   ./scripts/publish-package.sh packages/cli
 
 set -euo pipefail
 
