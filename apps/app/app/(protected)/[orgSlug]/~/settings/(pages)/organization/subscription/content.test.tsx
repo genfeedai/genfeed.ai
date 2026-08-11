@@ -4,6 +4,16 @@ import SettingsSubscriptionPage from './content';
 import '@testing-library/jest-dom/vitest';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 
+// PlansCard renders inside this page, so the catalog-backed stub keeps the
+// assertions on real copy without a NextIntlClientProvider.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     isReady: true,
@@ -39,6 +49,7 @@ describe('SettingsSubscriptionPage', () => {
       isLoading: false,
       isSubscriptionActive: true,
       openBillingPortal: vi.fn(),
+      previewPlanChange: vi.fn(),
       refreshCreditsBreakdown: vi.fn(),
       refreshSubscription: vi.fn(),
       subscription: {
@@ -59,5 +70,23 @@ describe('SettingsSubscriptionPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Add credits')).not.toBeInTheDocument();
     expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
+  });
+
+  it('offers in-app plan selection alongside the billing portal', () => {
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('Plans')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Upgrade to Pro/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('names the plan from the organization tier, not the unserialized category', () => {
+    // The mocked subscription claims category "pro" while the org tier is
+    // "free"; `category` never reaches the client, so the tier wins.
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.queryByText('pro')).not.toBeInTheDocument();
   });
 });

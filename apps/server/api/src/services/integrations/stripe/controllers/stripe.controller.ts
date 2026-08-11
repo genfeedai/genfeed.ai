@@ -30,6 +30,7 @@ import {
   HttpException,
   Inject,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -323,10 +324,26 @@ export class StripeController {
     }
   }
 
+  /**
+   * Stripe's `return_url` must be absolute, so it is always composed from the
+   * trusted request origin. A caller-supplied `returnPath` only contributes the
+   * path — anything that could escape the origin (scheme, protocol-relative
+   * `//host`, backslash) is discarded rather than trusted.
+   */
+  private resolvePortalReturnUrl(origin: string, returnPath?: string): string {
+    const isOriginRelative =
+      returnPath?.startsWith('/') === true &&
+      !returnPath.startsWith('//') &&
+      !returnPath.includes('\\');
+
+    return isOriginRelative ? `${origin}${returnPath}` : origin;
+  }
+
   @Get('portal')
   async getBillingPortalUrl(
     @CurrentUser() user: User,
     @Req() request: Request,
+    @Query('returnPath') returnPath?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url);
@@ -368,7 +385,7 @@ export class StripeController {
 
       const billingUrl = await this.stripeService.getBillingPortalUrl(
         stripeCustomerId,
-        origin,
+        this.resolvePortalReturnUrl(origin, returnPath),
       );
 
       return serializeSingle(request, StripeUrlSerializer, billingUrl);

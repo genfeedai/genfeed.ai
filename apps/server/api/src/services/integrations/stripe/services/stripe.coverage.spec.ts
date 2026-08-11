@@ -632,7 +632,7 @@ describe('StripeService — coverage spec', () => {
   // -----------------------------------------------------------------------
 
   describe('getBillingPortalUrl', () => {
-    it('creates a billing portal session and appends /billing to return URL', async () => {
+    it('creates a billing portal session with the caller-resolved return URL', async () => {
       const mockPortal = makeMockBillingPortalSession('bps_org');
       const createSpy = vi
         .spyOn(service.stripe.billingPortal.sessions, 'create')
@@ -645,7 +645,7 @@ describe('StripeService — coverage spec', () => {
 
       expect(createSpy).toHaveBeenCalledWith({
         customer: 'cus_1',
-        return_url: 'https://app.example.com/billing',
+        return_url: 'https://app.example.com',
       });
       expect(result).toBe(mockPortal);
     });

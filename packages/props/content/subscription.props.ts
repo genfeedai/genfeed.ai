@@ -1,7 +1,4 @@
-import type {
-  ISubscription,
-  SubscriptionChangePreview,
-} from '@genfeedai/interfaces';
+import type { ISubscription } from '@genfeedai/interfaces';
 import type { ReactNode } from 'react';
 
 export interface SubscriptionGuardProps {
@@ -10,12 +7,6 @@ export interface SubscriptionGuardProps {
   requiredPlan?: 'monthly' | 'payg';
   fallback?: ReactNode;
   redirectTo?: string;
-}
-
-export interface SubscriptionPlanChangerProps {
-  subscription: ISubscription;
-  onPreviewChange: (newPriceId: string) => Promise<SubscriptionChangePreview>;
-  onChangePlan: (newPriceId: string) => Promise<void>;
 }
 
 /**

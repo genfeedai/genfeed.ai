@@ -422,6 +422,42 @@ describe('StripeController', () => {
       expect(result).toEqual({ url: 'https://billing.stripe.com/portal' });
     });
 
+    it('should return to the origin root when no returnPath is given', async () => {
+      await controller.getBillingPortalUrl(mockUser, mockRequest);
+
+      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+        'cus_test123',
+        'https://app.genfeed.ai',
+      );
+    });
+
+    it('should append a relative returnPath to the request origin', async () => {
+      await controller.getBillingPortalUrl(
+        mockUser,
+        mockRequest,
+        '/acme/~/settings/organization/subscription',
+      );
+
+      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+        'cus_test123',
+        'https://app.genfeed.ai/acme/~/settings/organization/subscription',
+      );
+    });
+
+    it.each([
+      'https://evil.example.com',
+      '//evil.example.com',
+      '\\\\evil.example.com',
+      'settings/organization/subscription',
+    ])('should discard the off-origin returnPath %s', async (returnPath) => {
+      await controller.getBillingPortalUrl(mockUser, mockRequest, returnPath);
+
+      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+        'cus_test123',
+        'https://app.genfeed.ai',
+      );
+    });
+
     it('should throw BAD_REQUEST when origin missing', async () => {
       await expect(
         controller.getBillingPortalUrl(mockUser, mockRequestNoOrigin),
