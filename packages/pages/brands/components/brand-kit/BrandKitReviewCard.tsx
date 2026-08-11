@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
+  BRAND_KIT_ASSET_FIELD_KEYS,
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetImportStatus,
   type BrandKitAssetRole,
@@ -58,11 +59,7 @@ const DEFERRED_REVIEW_FIELDS = new Set<BrandKitFieldKey>([
 ]);
 
 /** Asset-valued fields are reviewed as pictures and land through asset import. */
-const ASSET_FIELDS = new Set<BrandKitFieldKey>(
-  BRAND_KIT_FIELD_OWNERSHIP.filter(
-    (owner) => owner.valueKind === 'asset' || owner.valueKind === 'asset[]',
-  ).map((owner) => owner.key),
-);
+const ASSET_FIELDS = new Set<BrandKitFieldKey>(BRAND_KIT_ASSET_FIELD_KEYS);
 
 const ASSET_ROLE_ORDER: readonly BrandKitAssetRole[] = [
   'logo',
