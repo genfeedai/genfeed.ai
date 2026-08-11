@@ -549,7 +549,7 @@ jobs:
           persist-credentials: false
 
       - name: Open, reopen, or update the nightly-failure issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           GATE_RESULT: ${{ needs.e2e-gate.result }}
           AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
