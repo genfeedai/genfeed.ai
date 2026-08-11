@@ -396,6 +396,16 @@ export function useAgentFullPage({
     setActiveThread(threadId);
     clearThreadAttention(threadId);
 
+    // These describe the thread being opened, not the one being left, and only
+    // the thread response refreshes them. A cache hit makes the conversation
+    // interactive before that response lands, so carrying the previous thread's
+    // status over would let resolvedThreadStatus report ACTIVE for an archived
+    // thread and leave the composer writable through the revalidation window.
+    if (previousThreadId !== threadId) {
+      setActiveThreadStatus(null);
+      setWorkspacePlanningTaskId(null);
+    }
+
     // Cache hit: show the thread immediately and revalidate underneath. Only a
     // genuinely unseen thread gets the blank track and the skeleton.
     const hasVisibleConversation =

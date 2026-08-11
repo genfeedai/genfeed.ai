@@ -1,5 +1,6 @@
 import type {
   AgentChatMessage,
+  AgentInputRequest,
   AgentMemoryEntry,
   AgentProposedPlan,
   AgentWorkEvent,
@@ -600,6 +601,15 @@ describe('agent-chat.store terminal sessions', () => {
 });
 
 describe('agent-chat.store conversation cache', () => {
+  function makeInputRequest(id: string): AgentInputRequest {
+    return {
+      inputRequestId: id,
+      prompt: 'Pick one',
+      threadId: 'thread-1',
+      title: 'Input needed',
+    };
+  }
+
   function makeWorkEvent(id: string): AgentWorkEvent {
     return {
       createdAt: '2026-03-26T10:00:00.000Z',
@@ -616,7 +626,7 @@ describe('agent-chat.store conversation cache', () => {
     store.setMessages([makeMessage('m-1'), makeMessage('m-2')]);
     store.setLatestProposedPlan(makePlan('plan-1'));
     store.setWorkEvents([makeWorkEvent('w-1')]);
-    store.setPendingInputRequest({ id: 'req-1', prompt: 'Pick one' } as never);
+    store.setPendingInputRequest(makeInputRequest('req-1'));
 
     useAgentChatStore.getState().cacheConversation('thread-1');
     useAgentChatStore.getState().resetActiveConversationState();
@@ -630,7 +640,7 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.messages.map((message) => message.id)).toEqual(['m-1', 'm-2']);
     expect(state.latestProposedPlan?.summary).toBe('Plan plan-1');
     expect(state.workEvents.map((event) => event.id)).toEqual(['w-1']);
-    expect(state.pendingInputRequest?.id).toBe('req-1');
+    expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
   });
 
   it('restoreCachedConversation reports a miss without touching state', () => {

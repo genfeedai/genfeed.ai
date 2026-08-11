@@ -619,9 +619,18 @@ export function useAgentChatContainer({
   // isLoadingThread, so keying only off the loading transition would leave the
   // switch parked at the scroll offset of the thread the user just left.
   useEffect(() => {
+    if (activeThreadId === null) {
+      // Leaving for the no-thread surface ends this thread's claim on the
+      // scroll position. Holding the id would mean re-entering that same
+      // thread from cache matches neither branch below and never scrolls.
+      scrolledThreadIdRef.current = null;
+      wasLoadingThreadRef.current = isLoadingThread;
+      return;
+    }
+
     const hasFinishedLoading = wasLoadingThreadRef.current && !isLoadingThread;
     const isNewlyRenderedThread =
-      activeThreadId !== null && activeThreadId !== scrolledThreadIdRef.current;
+      activeThreadId !== scrolledThreadIdRef.current;
 
     if (
       (hasFinishedLoading || isNewlyRenderedThread) &&
