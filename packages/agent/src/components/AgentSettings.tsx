@@ -65,6 +65,15 @@ const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   },
 ];
 
+/**
+ * Held as data rather than inline JSX so the new selector copy stays one
+ * translatable unit once shared packages gain a message catalog.
+ */
+const DEFAULT_MODEL_COPY = {
+  autoDescription: 'Use the platform default model',
+  autoLabel: 'Auto',
+} as const;
+
 export function AgentSettings({
   initialSettings,
   isDefaultState = false,
@@ -205,9 +214,11 @@ export function AgentSettings({
             )}
           >
             <div className="flex flex-1 flex-col gap-0.5">
-              <span className="text-sm font-medium text-foreground">Auto</span>
+              <span className="text-sm font-medium text-foreground">
+                {DEFAULT_MODEL_COPY.autoLabel}
+              </span>
               <span className="text-xs text-muted-foreground">
-                Use the platform default model
+                {DEFAULT_MODEL_COPY.autoDescription}
               </span>
             </div>
             {selectedModel === '' ? (
