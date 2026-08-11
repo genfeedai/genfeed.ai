@@ -63,7 +63,7 @@ const organizationJsonLd = {
     'content analytics',
     'content marketing',
   ],
-  logo: cdnAsset('/assets/logo.png'),
+  logo: cdnAsset('/assets/branding/logo.jpg'),
   name: 'Genfeed',
   sameAs: [
     'https://x.com/genfeedai',

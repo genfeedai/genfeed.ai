@@ -1,3 +1,4 @@
+import { SocialConversationType } from '@genfeedai/enums';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ALL_BRANDS_FILTER } from './messages-page.helpers';
@@ -14,8 +15,12 @@ describe('useMessagesInboxFilters', () => {
 
     expect(result.current.brandFilter).toBe('brand-1');
     expect(result.current.inboxView).toBe('inbox');
+    expect(result.current.conversationType).toBe(
+      SocialConversationType.COMMENT,
+    );
     expect(result.current.query).toEqual({
       brandId: 'brand-1',
+      conversationType: SocialConversationType.COMMENT,
       limit: 50,
       page: 1,
       status: 'open',
@@ -37,6 +42,39 @@ describe('useMessagesInboxFilters', () => {
     expect(result.current.inboxView).toBe('review');
     expect(result.current.query).toEqual({
       allBrands: true,
+      conversationType: SocialConversationType.COMMENT,
+      limit: 50,
+      needsReview: true,
+      page: 1,
+    });
+  });
+
+  it('switches inbox surface without discarding the status view', () => {
+    const { result } = renderHook(() =>
+      useMessagesInboxFilters({
+        brandSlug: 'demo',
+        routeBrandId: 'brand-1',
+      }),
+    );
+
+    act(() => {
+      result.current.setInboxView('review');
+      result.current.stepConversationPage(2);
+    });
+
+    expect(result.current.conversationPage).toBe(3);
+
+    act(() => {
+      result.current.setConversationType(SocialConversationType.DM);
+    });
+
+    expect(result.current.conversationType).toBe(SocialConversationType.DM);
+    expect(result.current.inboxView).toBe('review');
+    // A surface switch lands on a different list, so paging starts over.
+    expect(result.current.conversationPage).toBe(1);
+    expect(result.current.query).toEqual({
+      brandId: 'brand-1',
+      conversationType: SocialConversationType.DM,
       limit: 50,
       needsReview: true,
       page: 1,

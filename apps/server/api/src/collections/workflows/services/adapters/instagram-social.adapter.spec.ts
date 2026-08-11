@@ -1,4 +1,6 @@
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
+import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('InstagramSocialAdapter', () => {
@@ -24,7 +26,12 @@ describe('InstagramSocialAdapter', () => {
       error: vi.fn(),
       log: vi.fn(),
     };
-    adapter = new InstagramSocialAdapter(mockInstagramService, mockLogger);
+    // Cast at the constructor boundary so the adapter's dependencies can grow
+    // without re-fingerprinting the spec-typecheck baseline (see #2674).
+    adapter = new InstagramSocialAdapter(
+      mockInstagramService as unknown as InstagramService,
+      mockLogger as unknown as LoggerService,
+    );
   });
 
   describe('createReplyPublisher', () => {

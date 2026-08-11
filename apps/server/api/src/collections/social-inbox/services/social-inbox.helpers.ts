@@ -4,7 +4,7 @@ import type {
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { SocialInboxPage } from '@api/collections/social-inbox/services/social-inbox.types';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
-import { Platform } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
@@ -12,6 +12,14 @@ type JsonRecord = Record<string, unknown>;
 const SUPPORTED_PLATFORMS = new Set(['youtube', 'instagram']);
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
+
+// A DM thread is anchored to a participant, not to a piece of content, so the
+// public reply action is structurally unavailable rather than merely missing an
+// id. Surfacing the reason keeps the composer explainable instead of failing at
+// action time.
+const DM_POST_REPLY_REASON =
+  'Direct message threads have no post or comment to reply on';
+const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
 
 export function normalizePlatform(platform: string): string {
   return platform.trim().toLowerCase();
@@ -87,14 +95,36 @@ export function getAvailability(params: {
     };
   }
 
+  const isDirectMessage = params.conversationType === SocialConversationType.DM;
+
   if (params.platform === Platform.YOUTUBE) {
+    if (isDirectMessage) {
+      return {
+        canPostReply: false,
+        canSendDm: false,
+        postReplyReason: DM_POST_REPLY_REASON,
+        sendDmReason: YOUTUBE_DM_REASON,
+      };
+    }
+
     return {
       canPostReply: Boolean(params.externalParentId),
       canSendDm: false,
       postReplyReason: params.externalParentId
         ? undefined
         : 'YouTube reply requires a parent comment id',
-      sendDmReason: 'YouTube Data API does not support channel DMs',
+      sendDmReason: YOUTUBE_DM_REASON,
+    };
+  }
+
+  if (isDirectMessage) {
+    return {
+      canPostReply: false,
+      canSendDm: Boolean(params.participantExternalId),
+      postReplyReason: DM_POST_REPLY_REASON,
+      sendDmReason: params.participantExternalId
+        ? undefined
+        : 'Instagram DM requires the participant recipient id',
     };
   }
 

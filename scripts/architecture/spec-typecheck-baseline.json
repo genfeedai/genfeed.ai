@@ -2084,14 +2084,6 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
-      "fingerprint": "a08b3fd9d7b33354964e",
-      "message": "Argument of type '{ postComment: Mock<Procedure | Constructable>; sendCommentReplyDm: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'InstagramService'.   Type '{ postComment: Mock<Procedure | Constructable>; sendCommentReplyDm: Mock<Procedure | Constructable>; }' is missing the following properties from type 'InstagramService': constructorName, graphUrl, apiVersion, configService, and 18 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
       "fingerprint": "e0d42f8f9e6ba1cdbfb1",
       "message": "Argument of type '{ organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
       "workspace": "api"

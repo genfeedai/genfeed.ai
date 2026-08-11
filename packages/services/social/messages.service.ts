@@ -5,9 +5,9 @@ import type {
   SocialConversation,
   SocialConversationStatus,
   SocialInboxQuery,
+  SocialInboxSyncEnqueueResult,
   SocialMessage,
   SocialMessageQuery,
-  YoutubeSyncResult,
 } from '@genfeedai/interfaces';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
@@ -178,11 +178,26 @@ export class SocialMessagesService extends BaseService<
     );
   }
 
-  syncYoutube(limit = 25): Promise<YoutubeSyncResult> {
+  syncYoutube(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/youtube/sync', limit);
+  }
+
+  syncInstagram(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/instagram/sync', limit);
+  }
+
+  syncInstagramDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/instagram/dms/sync', limit);
+  }
+
+  private enqueueSync(
+    path: string,
+    limit: number,
+  ): Promise<SocialInboxSyncEnqueueResult> {
     return this.executeWithErrorHandling(
-      `POST ${this.baseURL}/youtube/sync`,
+      `POST ${this.baseURL}${path}`,
       this.instance
-        .post<YoutubeSyncResult>('/youtube/sync', { limit })
+        .post<SocialInboxSyncEnqueueResult>(path, { limit })
         .then((response) => response.data),
     );
   }
