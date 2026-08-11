@@ -46,7 +46,7 @@ jobs:
       website: ${{ steps.changes.outputs.website }}
       docs: ${{ steps.changes.outputs.docs }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -74,7 +74,7 @@ jobs:
     if: needs.detect.outputs.website == 'true'
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -127,7 +127,7 @@ jobs:
     if: needs.detect.outputs.docs == 'true'
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
