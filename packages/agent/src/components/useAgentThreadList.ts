@@ -51,6 +51,9 @@ export function useAgentThreadList({
   const resetActiveConversationState = useAgentChatStore(
     (s) => s.resetActiveConversationState,
   );
+  const clearConversationCache = useAgentChatStore(
+    (s) => s.clearConversationCache,
+  );
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -213,9 +216,14 @@ export function useAgentThreadList({
     setThreads([]);
     setActiveThread(null);
     resetActiveConversationState();
+    // Cached conversations belong to the brand being left. Keeping them would
+    // let a switch back into an out-of-scope thread paint its old messages
+    // before the fetch that should have denied it ever returns.
+    clearConversationCache();
     setIsLoading(true);
   }, [
     brandId,
+    clearConversationCache,
     isActive,
     resetActiveConversationState,
     setActiveThread,
