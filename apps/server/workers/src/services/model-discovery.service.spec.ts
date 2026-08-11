@@ -24,11 +24,16 @@ vi.mock('@libs/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-vi.mock('@genfeedai/pricing', () => ({
-  applyMargin: vi.fn((providerCostUsd: number) =>
-    Math.max(2, Math.ceil(providerCostUsd / 0.3 / 0.01)),
-  ),
-}));
+vi.mock('@genfeedai/pricing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/pricing')>();
+
+  return {
+    ...actual,
+    applyMargin: vi.fn((providerCostUsd: number) =>
+      Math.max(2, Math.ceil(providerCostUsd / 0.3 / 0.01)),
+    ),
+  };
+});
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory } from '@genfeedai/enums';
