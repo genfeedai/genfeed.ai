@@ -3,8 +3,10 @@
  * Edit here — shell header, empty states, and expand control all read these.
  */
 export const WORKSPACE_INSPECTOR_CHROME = {
-  conversationTab: 'Conversation',
+  // Tab order in the rail is Context first, then Conversation — see
+  // `UniversalWorkspaceShell`. These are labels only; order lives there.
   contextTab: 'Context',
+  conversationTab: 'Conversation',
   /** Sole title when the rail is context-only (e.g. `/agent`). */
   title: 'Context',
   openFullConversation: 'Open full conversation',
@@ -16,5 +18,5 @@ export const WORKSPACE_INSPECTOR_CHROME = {
   surfaceSyncFailed: 'Surface brand synchronization failed',
   mobileDrawerTitle: 'Context',
   mobileDrawerDescription:
-    'Conversation and context for the active workspace surface.',
+    'Context and conversation for the active workspace surface.',
 } as const;

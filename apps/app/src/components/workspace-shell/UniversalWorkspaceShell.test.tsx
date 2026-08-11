@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import {
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
@@ -802,15 +808,11 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    // Move off the default tab first, so a dropped conversation listener
-    // leaves the rail on Context instead of passing by accident.
-    fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
-
-    await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      ),
+    // Context is the default tab, so the composer event has to move the rail
+    // for this to pass — a dropped listener leaves it on Context.
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
 
     fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
@@ -821,6 +823,36 @@ describe('UniversalWorkspaceShell', () => {
         'true',
       ),
     );
+
+    // And back, so the context listener is covered by the same transition.
+    fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
+    );
+  });
+
+  it('leads the inspector rail with Context, then Conversation', () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    // The desktop rail and the mobile drawer both render the list; order is
+    // identical in each, so assert on the first one.
+    const [tabList] = screen.getAllByRole('tablist');
+    const labels = within(tabList)
+      .getAllByRole('tab')
+      .map((tab) => tab.textContent);
+
+    expect(labels).toEqual(['Context', 'Conversation']);
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {
