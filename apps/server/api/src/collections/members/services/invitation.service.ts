@@ -300,7 +300,7 @@ export class InvitationService {
 
     const revoked = await this.prisma.invitation.update({
       data: { revokedAt: new Date(), status: 'canceled' },
-      where: { id: invitation.id },
+      where: scopedWhere(organizationId, { id: invitation.id }),
     });
 
     return toInvitationView(revoked);
@@ -343,13 +343,12 @@ export class InvitationService {
         status: 'pending',
         tokenHash,
       },
-      where: {
+      where: scopedWhere(input.organizationId, {
         acceptedAt: null,
         id: invitation.id,
-        isDeleted: false,
         revokedAt: null,
         tokenHash: invitation.tokenHash,
-      },
+      }),
     });
 
     if (rotateResult.count !== 1) {
@@ -632,13 +631,12 @@ export class InvitationService {
       const deliveredAt = new Date();
       const delivered = await this.prisma.invitation.updateMany({
         data: { status: 'delivered', updatedAt: deliveredAt },
-        where: {
+        where: scopedWhere(input.invitation.organizationId, {
           acceptedAt: null,
           id: input.invitation.id,
-          isDeleted: false,
           revokedAt: null,
           tokenHash: input.invitation.tokenHash,
-        },
+        }),
       });
 
       if (delivered.count !== 1) {
@@ -659,13 +657,12 @@ export class InvitationService {
         status: 'delivery-failed',
         updatedAt: failedAt,
       },
-      where: {
+      where: scopedWhere(input.invitation.organizationId, {
         acceptedAt: null,
         id: input.invitation.id,
-        isDeleted: false,
         revokedAt: null,
         tokenHash: input.invitation.tokenHash,
-      },
+      }),
     });
 
     if (failed.count !== 1) {

@@ -1123,14 +1123,6 @@
     {
       "delegate": "invitation",
       "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "fdb73445016df01bff48",
-      "method": "findFirst",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
       "fingerprint": "c6ccfeefebd169e36d72",
       "method": "findUnique",
       "model": "Invitation",
@@ -1147,26 +1139,10 @@
     {
       "delegate": "invitation",
       "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "92ed294e62e26d8279a1",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
       "fingerprint": "ca404e6cbb8e2edc1881",
       "method": "update",
       "model": "Invitation",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "05b5401809751acdf72d",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "invitation",

@@ -422,7 +422,7 @@ describe('InvitationService', () => {
 
       expect(prisma.invitation.update).toHaveBeenCalledWith({
         data: { revokedAt: now, status: 'canceled' },
-        where: { id: 'inv_123' },
+        where: { id: 'inv_123', isDeleted: false, organizationId: orgId },
       });
       expect(result.status).toBe('revoked');
     });
@@ -473,7 +473,19 @@ describe('InvitationService', () => {
           }),
           where: expect.objectContaining({
             id: 'inv_123',
+            isDeleted: false,
+            organizationId: orgId,
             tokenHash: hashToken('token-123'),
+          }),
+        }),
+      );
+      expect(prisma.invitation.updateMany).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'inv_123',
+            isDeleted: false,
+            organizationId: orgId,
           }),
         }),
       );
@@ -510,7 +522,11 @@ describe('InvitationService', () => {
           tokenHash: invitation.tokenHash,
           updatedAt: now,
         },
-        where: expect.objectContaining({ id: 'inv_123' }),
+        where: expect.objectContaining({
+          id: 'inv_123',
+          isDeleted: false,
+          organizationId: orgId,
+        }),
       });
     });
   });
