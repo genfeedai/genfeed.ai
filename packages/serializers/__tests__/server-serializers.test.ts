@@ -701,7 +701,7 @@ describe('Server Serializers', () => {
       expect(output.data.attributes.reviewDecision).toBe(expected);
     });
 
-    it('canonicalizes structured review events and preserves legacy entries', () => {
+    it('canonicalizes structured review events without assigning legacy entries a decision', () => {
       const output = PostSerializer.serialize({
         id: 'ckpost0000000000000000001',
         reviewEvents: [
@@ -714,18 +714,22 @@ describe('Server Serializers', () => {
       }) as {
         data: {
           attributes: {
-            reviewEvents: Array<Record<string, unknown> | string>;
+            reviewEvents: unknown[];
           };
         };
       };
 
-      expect(output.data.attributes.reviewEvents).toEqual([
-        {
-          decision: 'request_changes',
-          reviewerId: 'ckuser0000000000000000001',
-        },
-        'legacy-event',
-      ]);
+      expect(output.data.attributes.reviewEvents[0]).toEqual({
+        decision: 'request_changes',
+        reviewerId: 'ckuser0000000000000000001',
+      });
+
+      const legacyEvent = output.data.attributes.reviewEvents[1];
+      const legacyEventHasDecision =
+        typeof legacyEvent === 'object' &&
+        legacyEvent !== null &&
+        'decision' in legacyEvent;
+      expect(legacyEventHasDecision).toBe(false);
     });
   });
 
