@@ -109,6 +109,18 @@ describe('formatAgentError', () => {
     expect(performance.now() - started).toBeLessThan(1_000);
   });
 
+  it('still classifies an already-formatted provider auth error', () => {
+    // The composer used to receive `${title}: ${summary}` and format it a
+    // second time. The concatenated string matched no pattern, so a real 401
+    // surfaced as the generic "Run failed / The agent hit an error".
+    const formatted = formatAgentError(
+      'Provider authentication failed: The model provider rejected the credentials for this request.',
+    );
+
+    expect(formatted.title).toBe('Provider authentication failed');
+    expect(formatted.isConfigurationError).toBe(true);
+  });
+
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {
     expect(formatAgentError('prompt used 512 tokens').title).not.toBe(
       'Provider temporarily unavailable',

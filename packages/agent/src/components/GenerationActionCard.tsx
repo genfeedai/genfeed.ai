@@ -64,6 +64,8 @@ export function GenerationActionCard({
     prioritize,
     setPrioritize,
     modelsLoading,
+    modelsError,
+    retryLoadModels,
     filteredModels,
     autoModelLabel,
     availableAspectRatios,
@@ -153,6 +155,8 @@ export function GenerationActionCard({
             textareaRef={textareaRef}
             isDisabled={status === 'generating'}
             modelsLoading={modelsLoading}
+            modelsError={modelsError}
+            onRetryLoadModels={retryLoadModels}
             filteredModels={filteredModels}
             isAutoMode={isAutoMode}
             modelKey={modelKey}
