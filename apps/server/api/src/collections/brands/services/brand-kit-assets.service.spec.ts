@@ -5,16 +5,44 @@ import type { ConfigService } from '@libs/config/config.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type RankedAssetRow = {
+  category: string;
+  cloudObjectKey: string | null;
+  displayName: string | null;
+  id: string;
+  mimeType: string | null;
+  parentBrandId: string | null;
+};
+
+/** The interpolated SQL, flattened so a test can assert on its shape. */
+function readSql(call: unknown[]): string {
+  return (call[0] as TemplateStringsArray).join(' ? ');
+}
+
+function readBindings(call: unknown[]): unknown[] {
+  return call.slice(1);
+}
+
+function rankedRow(overrides: Partial<RankedAssetRow>): RankedAssetRow {
+  return {
+    category: 'LOGO',
+    cloudObjectKey: null,
+    displayName: null,
+    id: 'asset-1',
+    mimeType: null,
+    parentBrandId: 'brand-1',
+    ...overrides,
+  };
+}
+
 describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
-  let findFirst: ReturnType<typeof vi.fn>;
-  let findMany: ReturnType<typeof vi.fn>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let service: BrandKitAssetsService;
 
   beforeEach(() => {
-    findFirst = vi.fn().mockResolvedValue(null);
-    findMany = vi.fn().mockResolvedValue([]);
+    queryRaw = vi.fn().mockResolvedValue([]);
     service = new BrandKitAssetsService(
-      { asset: { findFirst, findMany } } as unknown as PrismaService,
+      { $queryRaw: queryRaw } as unknown as PrismaService,
       {} as unknown as CacheInvalidationService,
       {} as unknown as FilesClientService,
       { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
@@ -24,32 +52,20 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
   it('scopes the read to the brand, the organization and live assets', async () => {
     await service.resolveBrandKitAssets('brand-1', 'org-1');
 
-    expect(findFirst).toHaveBeenCalledTimes(2);
-    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(queryRaw).toHaveBeenCalledTimes(1);
 
-    for (const query of [...findFirst.mock.calls, ...findMany.mock.calls]) {
-      expect(query[0]).toEqual(
-        expect.objectContaining({
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-          where: expect.objectContaining({
-            isDeleted: false,
-            parentBrandId: 'brand-1',
-            parentOrgId: 'org-1',
-            parentType: 'BRAND',
-          }),
-        }),
-      );
-    }
-
-    expect(findFirst.mock.calls.map(([query]) => query.where.category)).toEqual(
-      ['LOGO', 'BANNER'],
-    );
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 10,
-        where: expect.objectContaining({ category: 'REFERENCE' }),
-      }),
-    );
+    const sql = readSql(queryRaw.mock.calls[0]);
+    expect(sql).toContain('"isDeleted" = false');
+    expect(sql).toContain(`"parentType"::text = 'BRAND'`);
+    expect(sql).toContain('"parentOrgId" =');
+    expect(sql).toContain('"parentBrandId" = ANY(');
+    expect(readBindings(queryRaw.mock.calls[0])).toEqual([
+      'org-1',
+      ['brand-1'],
+      ['LOGO', 'BANNER', 'REFERENCE'],
+      'REFERENCE',
+      10,
+    ]);
   });
 
   it.each([
@@ -57,16 +73,16 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
     ['https://cdn.example.com', 'https://cdn.example.com/logos/asset-logo'],
     ['https://cdn.example.com/', 'https://cdn.example.com/logos/asset-logo'],
   ])('normalizes the CDN base %j', async (cdnUrl, expectedUrl) => {
-    findFirst.mockResolvedValueOnce({
-      category: 'LOGO',
-      cloudObjectKey: '/logos/asset-logo',
-      displayName: 'Wordmark',
-      id: 'asset-logo',
-      mimeType: 'image/png',
-      parentBrandId: 'brand-1',
-    });
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({
+        cloudObjectKey: '/logos/asset-logo',
+        displayName: 'Wordmark',
+        id: 'asset-logo',
+        mimeType: 'image/png',
+      }),
+    ]);
     service = new BrandKitAssetsService(
-      { asset: { findFirst, findMany } } as unknown as PrismaService,
+      { $queryRaw: queryRaw } as unknown as PrismaService,
       {} as unknown as CacheInvalidationService,
       {} as unknown as FilesClientService,
       { cdnUrl } as unknown as ConfigService,
@@ -78,14 +94,7 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
   });
 
   it('falls back to the canonical key shape when no object key was recorded', async () => {
-    findFirst.mockResolvedValueOnce({
-      category: 'LOGO',
-      cloudObjectKey: null,
-      displayName: null,
-      id: 'asset-logo',
-      mimeType: null,
-      parentBrandId: 'brand-1',
-    });
+    queryRaw.mockResolvedValueOnce([rankedRow({ id: 'asset-logo' })]);
 
     const assets = await service.resolveBrandKitAssets('brand-1', 'org-1');
 
@@ -94,56 +103,37 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
   });
 
   it('selects the newest logo and banner deterministically', async () => {
-    findFirst
-      .mockResolvedValueOnce({
-        category: 'LOGO',
-        cloudObjectKey: 'logos/newest-logo',
-        displayName: null,
-        id: 'newest-logo',
-        mimeType: null,
-        parentBrandId: 'brand-1',
-      })
-      .mockResolvedValueOnce({
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ cloudObjectKey: 'logos/newest-logo', id: 'newest-logo' }),
+      rankedRow({
         category: 'BANNER',
         cloudObjectKey: 'banners/newest-banner',
-        displayName: null,
         id: 'newest-banner',
-        mimeType: null,
-        parentBrandId: 'brand-1',
-      });
+      }),
+    ]);
 
     const assets = await service.resolveBrandKitAssets('brand-1', 'org-1');
 
     expect(assets.logo?.id).toBe('newest-logo');
     expect(assets.banner?.id).toBe('newest-banner');
-    expect(findFirst.mock.calls.map(([query]) => query.orderBy)).toEqual([
-      [{ updatedAt: 'desc' }, { id: 'asc' }],
-      [{ updatedAt: 'desc' }, { id: 'asc' }],
-    ]);
+    expect(readSql(queryRaw.mock.calls[0])).toContain(
+      'ORDER BY asset."updatedAt" DESC, asset."id" ASC',
+    );
   });
 
   it('keeps the newest ten references in deterministic order', async () => {
-    findMany.mockImplementation(({ take }) =>
-      Promise.resolve(
-        Array.from({ length: 12 }, (_, index) => ({
+    queryRaw.mockResolvedValueOnce(
+      Array.from({ length: 10 }, (_, index) =>
+        rankedRow({
           category: 'REFERENCE',
           cloudObjectKey: `references/ref-${index + 1}`,
-          displayName: null,
           id: `ref-${index + 1}`,
-          mimeType: null,
-          parentBrandId: 'brand-1',
-        })).slice(0, take),
+        }),
       ),
     );
 
     const assets = await service.resolveBrandKitAssets('brand-1', 'org-1');
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-        take: 10,
-      }),
-    );
     expect(assets.references).toHaveLength(10);
     expect(assets.references.map((reference) => reference.id)).toEqual(
       Array.from({ length: 10 }, (_, index) => `ref-${index + 1}`),
@@ -158,90 +148,62 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
 });
 
 describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
-  let findFirst: ReturnType<typeof vi.fn>;
-  let findMany: ReturnType<typeof vi.fn>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let service: BrandKitAssetsService;
 
   beforeEach(() => {
-    findFirst = vi.fn().mockResolvedValue(null);
-    findMany = vi.fn().mockResolvedValue([]);
+    queryRaw = vi.fn().mockResolvedValue([]);
     service = new BrandKitAssetsService(
-      { asset: { findFirst, findMany } } as unknown as PrismaService,
+      { $queryRaw: queryRaw } as unknown as PrismaService,
       {} as unknown as CacheInvalidationService,
       {} as unknown as FilesClientService,
       { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
     );
   });
 
-  it('bounds each role read for every requested brand', async () => {
+  it('resolves every brand in one query instead of one read per brand', async () => {
     await service.resolveBrandKitAssetsForBrands(
       ['brand-1', 'brand-2', 'brand-1'],
       'org-1',
     );
 
-    expect(findFirst).toHaveBeenCalledTimes(4);
-    expect(findMany).toHaveBeenCalledTimes(2);
-    expect(findMany.mock.calls.map(([query]) => query.take)).toEqual([10, 10]);
-    expect(
-      [...findFirst.mock.calls, ...findMany.mock.calls].map(
-        ([query]) => query.where,
-      ),
-    ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          category: 'LOGO',
-          isDeleted: false,
-          parentBrandId: 'brand-1',
-          parentOrgId: 'org-1',
-          parentType: 'BRAND',
-        }),
-        expect.objectContaining({
-          category: 'BANNER',
-          isDeleted: false,
-          parentBrandId: 'brand-2',
-          parentOrgId: 'org-1',
-          parentType: 'BRAND',
-        }),
-        expect.objectContaining({
-          category: 'REFERENCE',
-          isDeleted: false,
-          parentBrandId: 'brand-2',
-          parentOrgId: 'org-1',
-          parentType: 'BRAND',
-        }),
-      ]),
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(readBindings(queryRaw.mock.calls[0])[1]).toEqual([
+      'brand-1',
+      'brand-2',
+    ]);
+  });
+
+  it('bounds each role per brand inside the query', async () => {
+    await service.resolveBrandKitAssetsForBrands(
+      ['brand-1', 'brand-2'],
+      'org-1',
     );
+
+    const sql = readSql(queryRaw.mock.calls[0]);
+    expect(sql).toContain(
+      'PARTITION BY asset."parentBrandId", asset."category"',
+    );
+    expect(sql).toContain('ROW_NUMBER()');
+    expect(sql).toContain('ranked."roleRank" <= CASE');
+    // The reference cap is per brand, not a global `take` one brand can starve.
+    expect(readBindings(queryRaw.mock.calls[0]).at(-1)).toBe(10);
   });
 
   it('routes each asset to its own brand', async () => {
-    findFirst
-      .mockResolvedValueOnce({
-        category: 'LOGO',
-        cloudObjectKey: 'logos/logo-1',
-        displayName: null,
-        id: 'logo-1',
-        mimeType: null,
-        parentBrandId: 'brand-1',
-      })
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        category: 'LOGO',
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ cloudObjectKey: 'logos/logo-1', id: 'logo-1' }),
+      rankedRow({
         cloudObjectKey: 'logos/logo-2',
-        displayName: null,
         id: 'logo-2',
-        mimeType: null,
         parentBrandId: 'brand-2',
-      })
-      .mockResolvedValueOnce(null);
-    findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
+      }),
+      rankedRow({
         category: 'REFERENCE',
         cloudObjectKey: 'references/ref-1',
-        displayName: null,
         id: 'ref-1',
-        mimeType: null,
         parentBrandId: 'brand-2',
-      },
+      }),
     ]);
 
     const resolved = await service.resolveBrandKitAssetsForBrands(
@@ -257,6 +219,21 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     ]);
   });
 
+  it('ignores rows for a brand that was never requested', async () => {
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ id: 'logo-foreign', parentBrandId: 'brand-foreign' }),
+      rankedRow({ id: 'logo-1' }),
+    ]);
+
+    const resolved = await service.resolveBrandKitAssetsForBrands(
+      ['brand-1'],
+      'org-1',
+    );
+
+    expect(resolved.size).toBe(1);
+    expect(resolved.get('brand-1')?.logo?.id).toBe('logo-1');
+  });
+
   it('yields an empty kit for a brand that owns no assets', async () => {
     const resolved = await service.resolveBrandKitAssetsForBrands(
       ['brand-1'],
@@ -269,8 +246,7 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
   it('skips the read entirely when there are no brands', async () => {
     const resolved = await service.resolveBrandKitAssetsForBrands([], 'org-1');
 
-    expect(findFirst).not.toHaveBeenCalled();
-    expect(findMany).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
     expect(resolved.size).toBe(0);
   });
 });
