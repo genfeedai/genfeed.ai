@@ -145,15 +145,22 @@ describe('StripeService — coverage spec', () => {
         'user_1',
       );
 
-      expect(createSpy).toHaveBeenCalledWith({
-        email: 'billing@acme.com',
-        metadata: {
-          organizationId: 'org_1',
-          type: 'organization',
-          userId: 'user_1',
+      expect(createSpy).toHaveBeenCalledWith(
+        {
+          email: 'billing@acme.com',
+          metadata: {
+            organizationId: 'org_1',
+            type: 'organization',
+            userId: 'user_1',
+          },
+          name: 'Acme Inc',
         },
-        name: 'Acme Inc',
-      });
+        {
+          idempotencyKey: expect.stringMatching(
+            /^org-customer-org_1-[0-9a-f]{16}$/,
+          ),
+        },
+      );
       expect(result).toBe(mockCustomer);
       expect(loggerMock.log).toHaveBeenCalled();
     });
@@ -187,11 +194,18 @@ describe('StripeService — coverage spec', () => {
         'hello@test.com',
       );
 
-      expect(createSpy).toHaveBeenCalledWith({
-        email: 'hello@test.com',
-        metadata: { type: 'user', userId: 'user_1' },
-        name: 'hello@test.com',
-      });
+      expect(createSpy).toHaveBeenCalledWith(
+        {
+          email: 'hello@test.com',
+          metadata: { type: 'user', userId: 'user_1' },
+          name: 'hello@test.com',
+        },
+        {
+          idempotencyKey: expect.stringMatching(
+            /^user-customer-user_1-[0-9a-f]{16}$/,
+          ),
+        },
+      );
       expect(result).toBe(mockCustomer);
     });
 
@@ -205,6 +219,7 @@ describe('StripeService — coverage spec', () => {
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Vincent' }),
+        expect.objectContaining({ idempotencyKey: expect.any(String) }),
       );
     });
 
