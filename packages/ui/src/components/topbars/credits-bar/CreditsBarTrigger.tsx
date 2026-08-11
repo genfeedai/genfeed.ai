@@ -18,6 +18,7 @@ import Link from 'next/link';
 
 /** Matches LowCreditsBanner — topbar warning tone below this. */
 export const TOPBAR_LOW_CREDITS_THRESHOLD = 1000;
+const BALANCE_UNAVAILABLE_LABEL = 'Balance unavailable';
 
 type Props = {
   billingHref: string;
@@ -191,7 +192,7 @@ export default function CreditsBarTrigger({
               </p>
             ) : isUnavailable ? (
               <p className="text-xs leading-none text-muted-foreground">
-                Balance unavailable
+                {BALANCE_UNAVAILABLE_LABEL}
               </p>
             ) : planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
