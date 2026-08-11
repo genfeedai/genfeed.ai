@@ -306,6 +306,30 @@ describe('AgentStreamEffectsService', () => {
       );
     });
 
+    it('persists the classified error while preserving the public stream error', async () => {
+      await runEffectPromise(
+        serviceWithRuns.publishStreamFailureEffect({
+          context,
+          error: 'Request failed with status code 401',
+          failRun: true,
+          persistedError:
+            'Provider authentication failed: The model provider rejected the credentials for this request.',
+          threadId: 'thread-1',
+        }),
+      );
+
+      expect(mockAgentRunsService.fail).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'Provider authentication failed: The model provider rejected the credentials for this request.',
+      );
+      expect(mockStreamPublisher.publishErrorEffect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Request failed with status code 401',
+        }),
+      );
+    });
+
     it('does not fail the run when failRun is false, but still publishes effects', async () => {
       await runEffectPromise(
         serviceWithRuns.publishStreamFailureEffect({

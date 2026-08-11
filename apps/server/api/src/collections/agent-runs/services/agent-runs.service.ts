@@ -11,6 +11,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import {
+  type AuthorizedAgentArtifactWrite,
   authorizeAgentArtifactWrite,
   hasAgentArtifactWriteInput,
 } from '@api/shared/utils/agent-artifact-reference-write.util';
@@ -145,35 +146,53 @@ export class AgentRunsService extends BaseService<
   override async create(
     createDto: CreateAgentRunDto,
   ): Promise<AgentRunDocument> {
-    const dto = this.normalizeAgentRunWriteData(createDto);
-    const organizationId = dto.organizationId as string | undefined;
-    const userId = dto.userId as string | undefined;
-
-    if (!organizationId) {
-      throw new NotFoundException({
-        message: 'Organization context is required',
-      });
-    }
-
-    if (!userId) {
-      throw new NotFoundException({
-        message: 'User context is required',
-      });
-    }
-
-    const artifactWrite = await authorizeAgentArtifactWrite({
-      authorizer: this.agentArtifactReferenceService,
-      inputs: [dto],
-      readContext: {
-        ...(typeof dto.brandId === 'string' ? { brandId: dto.brandId } : {}),
-        organizationId,
-      },
-    });
+    const { artifactWrite, dto } = await this.prepareCreateData(createDto);
 
     return super.create({
       ...dto,
       ...artifactWrite,
     } as unknown as CreateAgentRunDto) as Promise<AgentRunDocument>;
+  }
+
+  /**
+   * Atomically create-or-terminalize one server-generated run attempt. The
+   * stable attempt id makes this safe when the initial create committed but
+   * its acknowledgement was lost: the fallback updates that row instead of
+   * inserting a second failed run.
+   */
+  @HandleErrors('record failed agent run attempt', 'agent-runs')
+  async recordFailedAttempt(
+    attemptId: string,
+    createDto: CreateAgentRunDto,
+    error: string,
+  ): Promise<AgentRunDocument> {
+    const { artifactWrite, dto, organizationId } = await this.prepareCreateData(
+      {
+        ...createDto,
+        id: attemptId,
+      },
+    );
+    const completedAt = new Date();
+    const terminalData = {
+      completedAt,
+      durationMs: 0,
+      error,
+      retryCount: 1,
+      status: AgentExecutionStatus.FAILED,
+    } satisfies Prisma.AgentRunUncheckedUpdateInput;
+    const createData = {
+      ...dto,
+      ...artifactWrite,
+      ...terminalData,
+    } as Prisma.AgentRunUncheckedCreateInput;
+
+    return (await this.prisma.agentRun.upsert({
+      create: createData,
+      update: terminalData,
+      where: scopedWhere(organizationId, {
+        id: attemptId,
+      }) as Prisma.AgentRunWhereUniqueInput,
+    })) as AgentRunDocument;
   }
 
   override async patch(
@@ -875,5 +894,44 @@ export class AgentRunsService extends BaseService<
     }
 
     return dto;
+  }
+
+  private async prepareCreateData(
+    createDto: AgentRunWriteData | CreateAgentRunDto,
+  ): Promise<{
+    artifactWrite: AuthorizedAgentArtifactWrite;
+    dto: AgentRunWriteData;
+    organizationId: string;
+  }> {
+    const dto = this.normalizeAgentRunWriteData(createDto);
+    const organizationId = dto.organizationId as string | undefined;
+    const userId = dto.userId as string | undefined;
+
+    if (!organizationId) {
+      throw new NotFoundException({
+        message: 'Organization context is required',
+      });
+    }
+
+    if (!userId) {
+      throw new NotFoundException({
+        message: 'User context is required',
+      });
+    }
+
+    const artifactWrite = await authorizeAgentArtifactWrite({
+      authorizer: this.agentArtifactReferenceService,
+      inputs: [dto],
+      readContext: {
+        ...(typeof dto.brandId === 'string' ? { brandId: dto.brandId } : {}),
+        organizationId,
+      },
+    });
+
+    return {
+      artifactWrite,
+      dto,
+      organizationId,
+    };
   }
 }

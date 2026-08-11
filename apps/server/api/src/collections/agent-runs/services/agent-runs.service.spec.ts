@@ -12,6 +12,7 @@ describe('AgentRunsService', () => {
     findMany: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
+    upsert: vi.fn(),
   };
   const logger = {
     debug: vi.fn(),
@@ -36,6 +37,9 @@ describe('AgentRunsService', () => {
     agentRun.findMany.mockResolvedValue([]);
     agentRun.update.mockResolvedValue({ id: 'run-1' });
     agentRun.updateMany.mockResolvedValue({ count: 1 });
+    agentRun.upsert.mockImplementation(({ create }) =>
+      Promise.resolve({ ...create }),
+    );
     artifactReferenceService.resolveReference.mockImplementation((reference) =>
       Promise.resolve({ reference }),
     );
@@ -166,6 +170,77 @@ describe('AgentRunsService', () => {
         strategyId: 'strategy-1',
         userId: 'user-1',
       }),
+    });
+  });
+
+  it('atomically records one organization-scoped failed attempt with its thread', async () => {
+    const failure =
+      'Provider authentication failed: The model provider rejected the credentials for this request.';
+
+    await service.recordFailedAttempt(
+      'attempt-1',
+      {
+        label: 'Failed run',
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        trigger: 'manual',
+        userId: 'user-1',
+      } as never,
+      failure,
+    );
+
+    expect(agentRun.create).not.toHaveBeenCalled();
+    expect(agentRun.upsert).toHaveBeenCalledOnce();
+    expect(agentRun.upsert).toHaveBeenCalledWith({
+      create: expect.objectContaining({
+        completedAt: expect.any(Date),
+        durationMs: 0,
+        error: failure,
+        id: 'attempt-1',
+        organizationId: 'org-1',
+        retryCount: 1,
+        status: 'FAILED',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      }),
+      update: expect.objectContaining({
+        completedAt: expect.any(Date),
+        durationMs: 0,
+        error: failure,
+        retryCount: 1,
+        status: 'FAILED',
+      }),
+      where: {
+        id: 'attempt-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('queries failed attempts by thread and organization through existing scoped paths', async () => {
+    const since = new Date('2026-08-11T00:00:00.000Z');
+
+    await service.getByThread('thread-1', 'org-1');
+    expect(agentRun.findMany).toHaveBeenNthCalledWith(1, {
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 50,
+      where: {
+        isDeleted: false,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+      },
+    });
+
+    await service.findRecentByOrganization('org-1', since);
+    expect(agentRun.findMany).toHaveBeenNthCalledWith(2, {
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      where: {
+        createdAt: { gte: since },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 

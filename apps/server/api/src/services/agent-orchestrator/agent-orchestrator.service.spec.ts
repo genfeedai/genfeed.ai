@@ -368,6 +368,7 @@ describe('AgentOrchestratorService', () => {
       isCancelled: vi.fn().mockResolvedValue(false),
       mergeMetadata: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue({}),
+      recordFailedAttempt: vi.fn().mockResolvedValue({ id: RUN_ID }),
       recordToolCall: vi.fn().mockResolvedValue(undefined),
       start: vi
         .fn()
@@ -2132,6 +2133,80 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('records one failed attempt when a provider-auth error aborts before run creation', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    agentRunsService.create.mockRejectedValueOnce(
+      new Error('Request failed with status code 401'),
+    );
+
+    await expect(
+      service.chatStream(
+        {
+          content: 'Authenticate this turn',
+          threadId: CONVERSATION_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow('Request failed with status code 401');
+
+    expect(agentRunsService.recordFailedAttempt).toHaveBeenCalledOnce();
+    expect(agentRunsService.recordFailedAttempt).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        organizationId: ORG_ID,
+        threadId: CONVERSATION_ID,
+        userId: USER_ID,
+      }),
+      'Provider authentication failed: The model provider rejected the credentials for this request.',
+    );
+    expect(agentRunsService.fail).not.toHaveBeenCalled();
+  });
+
+  it('classifies a provider-auth rejection before the first token without duplicating the run', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key: string) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+    llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
+      new Error('Request failed with status code 401'),
+    );
+
+    await service.chatStream(
+      {
+        content: 'Reject before streaming',
+        threadId: CONVERSATION_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (agentRunsService.fail.mock.calls.length > 0) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(streamPublisher.publishToken).not.toHaveBeenCalled();
+    expect(agentRunsService.fail).toHaveBeenCalledOnce();
+    expect(agentRunsService.fail).toHaveBeenCalledWith(
+      RUN_ID,
+      ORG_ID,
+      'Provider authentication failed: The model provider rejected the credentials for this request.',
+    );
+    expect(agentRunsService.recordFailedAttempt).not.toHaveBeenCalled();
+    expect(streamPublisher.publishError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'Request failed with status code 401',
+        runId: RUN_ID,
+        threadId: CONVERSATION_ID,
+      }),
+    );
+  });
+
   it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
@@ -2792,7 +2867,7 @@ describe('AgentOrchestratorService', () => {
     expect(agentRunsService.fail).toHaveBeenCalledWith(
       RUN_ID,
       ORG_ID,
-      'Batch publishing scope denied',
+      'Run failed: The agent hit an error while running. Batch publishing scope denied',
     );
     expect(streamPublisher.publishError).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2874,7 +2949,7 @@ describe('AgentOrchestratorService', () => {
     expect(agentRunsService.fail).toHaveBeenCalledWith(
       RUN_ID,
       ORG_ID,
-      'Recurring publishing scope denied',
+      'Run failed: The agent hit an error while running. Recurring publishing scope denied',
     );
     expect(streamPublisher.publishError).toHaveBeenCalledWith(
       expect.objectContaining({
