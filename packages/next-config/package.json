@@ -1,7 +1,7 @@
 {
   "devDependencies": {
     "@sentry/nextjs": "*",
-    "@types/node": "*",
+    "@types/node": "24.13.3",
     "next": "*",
     "tailwindcss": "*",
     "@typescript/native": "npm:typescript@7.0.2"

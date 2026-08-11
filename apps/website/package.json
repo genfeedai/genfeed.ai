@@ -37,7 +37,7 @@
     "build": "next build --turbopack",
     "check:orphans": "bun run scripts/check-orphans.ts",
     "check:seo": "bun run scripts/check-seo.ts",
-    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "bun run ../../scripts/dev/run-portless.ts website -- bun run dev:process",
     "generate:llms": "bun run scripts/generate-llms-txt.ts",
     "lint": "biome check app src packages scripts instrumentation.ts instrumentation-client.ts next.config.ts postcss.config.mjs tailwind.config.ts package.json tsconfig.json vercel.json sentry.edge.config.ts sentry.server.config.ts README.md",
@@ -54,7 +54,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
-    "@types/node": "26.2.0",
+    "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@typescript/native": "npm:typescript@7.0.2",

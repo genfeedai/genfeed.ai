@@ -24,7 +24,7 @@
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
     "@types/chrome": "0.2.5",
-    "@types/node": "26.2.0",
+    "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitest/coverage-v8": "4.1.10",
@@ -78,7 +78,7 @@
   "scripts": {
     "build": "npm exec plasmo build",
     "cache:clear": "./scripts/bash/cache-clear.sh",
-    "deps:update": "bunx npm-check-updates -u --reject typescript,tailwindcss,jsdom && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,tailwindcss,jsdom,@types/node && bun install",
     "dev": "npm exec plasmo dev",
     "dev:debug": "PLASMO_PUBLIC_ENV=development npm exec plasmo dev",
     "format:check": "prettier --check .",

@@ -4,7 +4,7 @@
     "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "26.2.0",
+    "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "next": "16.3.0",
@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "tsc --watch",
     "test": "bun test src",
     "type-check": "tsc --noEmit"

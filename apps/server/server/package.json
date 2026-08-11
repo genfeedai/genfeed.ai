@@ -19,7 +19,7 @@
   "devDependencies": {
     "@nestjs/testing": "11.1.28",
     "@types/jsonwebtoken": "9.0.10",
-    "@types/node": "26.2.0",
+    "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",
     "unplugin-swc": "1.5.10",
     "vitest": "4.1.10"
