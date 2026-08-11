@@ -79,6 +79,12 @@ const ASSET_IMPORT_STATUS_LABELS: Record<BrandKitAssetImportStatus, string> = {
   skipped: 'Skipped',
 };
 
+const ASSET_PICKER_HINT = 'Click an image to select it for import.';
+
+function formatSelectedAssetsLabel(count: number): string {
+  return `${count} ${count === 1 ? 'asset' : 'assets'} selected.`;
+}
+
 const STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
   'strategyContentTypes',
   'strategyGoals',
@@ -671,7 +677,7 @@ export default function BrandKitReviewCard({
                   <div>
                     <h3 className="text-sm font-semibold">Asset Candidates</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Click an image to select it for import.
+                      {ASSET_PICKER_HINT}
                     </p>
                   </div>
                   <Checkbox
@@ -729,7 +735,7 @@ export default function BrandKitReviewCard({
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">
-                    {selectedCandidateIds.size} assets selected.
+                    {formatSelectedAssetsLabel(selectedCandidateIds.size)}
                   </p>
                   <Button
                     isDisabled={selectedCandidateIds.size === 0}
