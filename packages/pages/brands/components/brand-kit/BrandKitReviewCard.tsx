@@ -79,6 +79,15 @@ const ASSET_IMPORT_STATUS_LABELS: Record<BrandKitAssetImportStatus, string> = {
   skipped: 'Skipped',
 };
 
+const BRAND_KIT_REVIEW_COPY = {
+  assetCandidates: 'Asset Candidates',
+  assetSelectionHint: 'Click an image to select it for import.',
+  current: 'Current',
+  diagnostics: 'Diagnostics',
+  noDraft: 'No brand kit draft yet',
+  proposed: 'Proposed',
+} as const;
+
 const STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
   'strategyContentTypes',
   'strategyGoals',
@@ -95,6 +104,34 @@ type BrandKitGroupedField = {
   field: IBrandKitDraftField;
   key: BrandKitFieldKey;
 };
+
+function formatAppliedFieldsSummary(result: IBrandKitApplyResult): string {
+  return `Applied ${result.appliedFields.length} fields; preserved ${result.preservedFields.length}. Status: ${result.status}.`;
+}
+
+function formatConfidence(confidence: number | undefined): string {
+  return `Confidence: ${confidence ? `${Math.round(confidence * 100)}%` : 'not scored'}`;
+}
+
+function formatDraftPrompt(brandLabel: string): string {
+  return `Enter a website URL and scan to load proposed fields for ${brandLabel}.`;
+}
+
+function formatMissingFields(fields: readonly string[]): string {
+  return `Missing: ${fields.join(', ')}`;
+}
+
+function formatReadinessScore(score: number): string {
+  return `${score}% readiness`;
+}
+
+function formatSelectedAssetCount(count: number): string {
+  return `${count} assets selected.`;
+}
+
+function formatSelectedFieldSummary(count: number): string {
+  return `${count} supported fields selected. Images are imported from the asset picker above; social links are review only.`;
+}
 
 function hasObjectValue(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -519,7 +556,7 @@ export default function BrandKitReviewCard({
           <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">
-                {draft.readiness.score}% readiness
+                {formatReadinessScore(draft.readiness.score)}
               </span>
               <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
                 {draft.readiness.status}
@@ -527,7 +564,7 @@ export default function BrandKitReviewCard({
             </div>
             {draft.readiness.missingFields.length > 0 ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                Missing: {draft.readiness.missingFields.join(', ')}
+                {formatMissingFields(draft.readiness.missingFields)}
               </p>
             ) : null}
           </div>
@@ -575,10 +612,7 @@ export default function BrandKitReviewCard({
                             <div>
                               <div className="font-medium">{field.label}</div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                Confidence:{' '}
-                                {field.confidence
-                                  ? `${Math.round(field.confidence * 100)}%`
-                                  : 'not scored'}
+                                {formatConfidence(field.confidence)}
                               </div>
                             </div>
 
@@ -605,7 +639,7 @@ export default function BrandKitReviewCard({
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <div>
                               <div className="mb-1 text-xs font-medium text-muted-foreground">
-                                Current
+                                {BRAND_KIT_REVIEW_COPY.current}
                               </div>
                               {isAssetField ? (
                                 <BrandKitAssetGrid
@@ -621,7 +655,7 @@ export default function BrandKitReviewCard({
 
                             <div>
                               <div className="mb-1 text-xs font-medium text-muted-foreground">
-                                Proposed
+                                {BRAND_KIT_REVIEW_COPY.proposed}
                               </div>
                               {isAssetField ? (
                                 <BrandKitAssetGrid
@@ -669,9 +703,11 @@ export default function BrandKitReviewCard({
               <section className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold">Asset Candidates</h3>
+                    <h3 className="text-sm font-semibold">
+                      {BRAND_KIT_REVIEW_COPY.assetCandidates}
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Click an image to select it for import.
+                      {BRAND_KIT_REVIEW_COPY.assetSelectionHint}
                     </p>
                   </div>
                   <Checkbox
@@ -729,7 +765,7 @@ export default function BrandKitReviewCard({
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">
-                    {selectedCandidateIds.size} assets selected.
+                    {formatSelectedAssetCount(selectedCandidateIds.size)}
                   </p>
                   <Button
                     isDisabled={selectedCandidateIds.size === 0}
@@ -751,7 +787,9 @@ export default function BrandKitReviewCard({
 
             {diagnostics.length > 0 ? (
               <section className="space-y-2">
-                <h3 className="text-sm font-semibold">Diagnostics</h3>
+                <h3 className="text-sm font-semibold">
+                  {BRAND_KIT_REVIEW_COPY.diagnostics}
+                </h3>
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   {diagnostics.map((diagnostic) => (
                     <li key={`${diagnostic.code}-${diagnostic.fieldKey ?? ''}`}>
@@ -764,17 +802,13 @@ export default function BrandKitReviewCard({
 
             {applyResult ? (
               <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
-                Applied {applyResult.appliedFields.length} fields; preserved{' '}
-                {applyResult.preservedFields.length}. Status:{' '}
-                {applyResult.status}.
+                {formatAppliedFieldsSummary(applyResult)}
               </div>
             ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">
-                {selectedApplyCount} supported fields selected. Images are
-                imported from the asset picker above; social links are review
-                only.
+                {formatSelectedFieldSummary(selectedApplyCount)}
               </p>
               <Button
                 isDisabled={selectedApplyCount === 0}
@@ -787,11 +821,10 @@ export default function BrandKitReviewCard({
         ) : (
           <div className="flex flex-col items-start gap-1 rounded-md border border-dashed border-border/60 px-3 py-4">
             <p className="text-sm font-medium text-foreground/70">
-              No brand kit draft yet
+              {BRAND_KIT_REVIEW_COPY.noDraft}
             </p>
             <p className="text-xs leading-5 text-foreground/45">
-              Enter a website URL and scan to load proposed fields for{' '}
-              {brand.label}.
+              {formatDraftPrompt(brand.label)}
             </p>
           </div>
         )}
