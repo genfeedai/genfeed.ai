@@ -1,0 +1,103 @@
+import { describe, expect, it, vi } from 'vitest';
+import {
+  assertArticleSchemaReady,
+  buildOrganizationSelector,
+  countDeletedCacheKeys,
+  getMissingArticleColumns,
+  isLocalDatabaseUrl,
+  REQUIRED_ARTICLE_COLUMNS,
+} from './articles.seed';
+
+describe('articles seed schema preflight', () => {
+  it('guards every physical column written by the launch seed', () => {
+    expect(REQUIRED_ARTICLE_COLUMNS).toEqual([
+      'coverImageUrl',
+      'label',
+      'summary',
+    ]);
+    expect(getMissingArticleColumns(['label', 'summary'])).toEqual([
+      'coverImageUrl',
+    ]);
+  });
+
+  it('fails closed before migration on a remote database', async () => {
+    const migrateDeploy = vi.fn(() => true);
+
+    await expect(
+      assertArticleSchemaReady({
+        findPresentColumns: async () => ['label', 'summary'],
+        localDatabase: false,
+        migrateDeploy,
+      }),
+    ).rejects.toThrow('coverImageUrl');
+    expect(migrateDeploy).not.toHaveBeenCalled();
+  });
+
+  it('migrates a loopback database and verifies the schema again', async () => {
+    const snapshots = [
+      ['coverImageUrl'],
+      ['coverImageUrl', 'label', 'summary'],
+    ];
+    const migrateDeploy = vi.fn(() => true);
+
+    await expect(
+      assertArticleSchemaReady({
+        findPresentColumns: async () => snapshots.shift() ?? [],
+        localDatabase: true,
+        migrateDeploy,
+      }),
+    ).resolves.toBeUndefined();
+    expect(migrateDeploy).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a local schema that remains incomplete after migration', async () => {
+    await expect(
+      assertArticleSchemaReady({
+        findPresentColumns: async () => ['coverImageUrl'],
+        localDatabase: true,
+        migrateDeploy: () => true,
+      }),
+    ).rejects.toThrow('still missing label, summary');
+  });
+
+  it('recognizes IPv4, hostname, and bracketed IPv6 loopback URLs only', () => {
+    expect(isLocalDatabaseUrl('postgresql://localhost:5432/genfeed')).toBe(
+      true,
+    );
+    expect(isLocalDatabaseUrl('postgresql://127.0.0.1:5432/genfeed')).toBe(
+      true,
+    );
+    expect(isLocalDatabaseUrl('postgresql://[::1]:5432/genfeed')).toBe(true);
+    expect(isLocalDatabaseUrl('postgresql://db.example.com:5432/genfeed')).toBe(
+      false,
+    );
+    expect(isLocalDatabaseUrl('not a URL')).toBe(false);
+  });
+
+  it('constrains an explicit organization to the selected email owner', () => {
+    expect(buildOrganizationSelector('org-1', 'user-1')).toEqual({
+      id: 'org-1',
+      isDeleted: false,
+      userId: 'user-1',
+    });
+    expect(buildOrganizationSelector('org-1', null)).toEqual({
+      id: 'org-1',
+      isDeleted: false,
+    });
+  });
+
+  it('counts only cache keys that Redis actually deleted', () => {
+    expect(
+      countDeletedCacheKeys(
+        [
+          [null, 1],
+          [new Error('failed'), 0],
+          [null, 0],
+          [null, 1],
+        ],
+        3,
+      ),
+    ).toBe(1);
+    expect(countDeletedCacheKeys(null, 3)).toBe(0);
+  });
+});

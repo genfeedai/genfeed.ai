@@ -57,7 +57,7 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                   <ArticleCover
                     category={article.category}
                     className="mb-4 h-32 md:h-40"
-                    coverImageUrl={article.bannerUrl}
+                    coverImageUrl={article.coverImageUrl}
                     isCompact
                     label={article.label}
                     seed={article.slug || article.id}

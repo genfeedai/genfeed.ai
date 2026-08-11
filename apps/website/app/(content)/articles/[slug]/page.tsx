@@ -139,7 +139,7 @@ export default async function ArticleDetail({
     // The artwork first — it is the article's own image — then the composed
     // social card, which is what a share preview actually renders.
     imageUrls: [
-      article.bannerUrl,
+      article.coverImageUrl,
       `${EnvironmentService.apps.website}/articles/${slug}/og`,
     ],
     inLanguage: 'en-US',
@@ -194,7 +194,6 @@ export default async function ArticleDetail({
           JSON.stringify({
             ...article,
             author: article.author,
-            bannerUrl: article.bannerUrl,
             readingTime: article.readingTime,
             wordCount: article.wordCount,
           }),

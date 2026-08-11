@@ -33,8 +33,6 @@ export interface IArticle extends IBaseEntity {
   wordCount?: number;
   scope: AssetScope;
   generationPrompt?: string;
-  /** Derived from {@link IArticle.coverImageUrl} — read-only on the model. */
-  bannerUrl?: string;
   evaluation?: IEvaluation | null;
   seoScore?: number | null;
   seoBreakdown?: SeoScorecardSnapshot | null;

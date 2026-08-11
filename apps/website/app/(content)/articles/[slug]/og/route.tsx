@@ -1,6 +1,6 @@
+import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
+import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
-import { getArticleCoverPalette } from '../../article-cover.palette';
-import { getPublicArticleBySlugCached } from '../article-loader';
 
 const SIZE = { height: 630, width: 1200 };
 
@@ -22,7 +22,7 @@ const SIZE = { height: 630, width: 1200 };
  */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ slug: string }> },
+  { params }: RouteContext<'/articles/[slug]/og'>,
 ): Promise<ImageResponse> {
   const { slug } = await params;
   const article = await getPublicArticleBySlugCached(slug).catch(() => null);
@@ -31,7 +31,7 @@ export async function GET(
   const label = article?.label?.trim() || 'Genfeed.ai';
   const category = article?.category?.trim();
   const summary = article?.summary?.trim();
-  const artwork = article?.bannerUrl?.trim();
+  const artwork = article?.coverImageUrl?.trim();
 
   return new ImageResponse(
     <div

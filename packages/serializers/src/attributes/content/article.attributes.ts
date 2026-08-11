@@ -13,9 +13,8 @@ export const articleAttributes = createEntityAttributes([
   'status',
   'scope',
   'publishedAt',
-  // The real Prisma column. `bannerUrl` is derived from it on the model, so it
-  // is not listed here — a serializer attribute with no backing column always
-  // emits `undefined`, which is how the article cover stayed invisible.
+  // Persist the public artwork contract directly. Serializer attributes must
+  // be backed by real Prisma columns or explicit computed projections.
   'coverImageUrl',
   'aiGeneration',
   'viralityAnalysis',

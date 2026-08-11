@@ -16,6 +16,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
+import ArticleCover from '@website/(content)/articles/article-cover';
 import {
   ArrowRight,
   Calendar,
@@ -28,7 +29,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import ArticleCover from '../article-cover';
 import ArticleContent from './article-content';
 
 function formatDate(dateString: string): string {
@@ -133,7 +133,7 @@ export default function ArticleDetail({
 
         <ArticleCover
           category={article.category}
-          coverImageUrl={article.bannerUrl}
+          coverImageUrl={article.coverImageUrl}
           label={article.label}
           seed={article.slug || article.id}
         />

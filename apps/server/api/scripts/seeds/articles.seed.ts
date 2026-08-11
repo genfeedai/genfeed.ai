@@ -65,6 +65,12 @@ type SeedOwner = {
   userId: string;
 };
 
+type OrganizationSelector = {
+  id?: string;
+  isDeleted: false;
+  userId?: string;
+};
+
 function loadEnvFile(): void {
   const args = process.argv.slice(2);
   const envArg = args.find((arg) => arg.startsWith('--env='))?.split('=')[1];
@@ -186,6 +192,17 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
+export function buildOrganizationSelector(
+  organizationId: string | null,
+  ownerUserId: string | null,
+): OrganizationSelector {
+  return {
+    ...(organizationId ? { id: organizationId } : {}),
+    isDeleted: false,
+    ...(ownerUserId ? { userId: ownerUserId } : {}),
+  };
+}
+
 /**
  * Articles require both an owning user and an organization — `articles` carries
  * a non-nullable `organizationId`, and every tenant-scoped read filters on it,
@@ -220,10 +237,13 @@ async function resolveOwner(params: {
     orderBy: { createdAt: 'asc' },
     select: { id: true, label: true, userId: true },
     where: params.organizationId
-      ? { id: params.organizationId, isDeleted: false }
+      ? buildOrganizationSelector(
+          params.organizationId,
+          ownerByEmail?.id ?? null,
+        )
       : ownerByEmail
-        ? { isDeleted: false, userId: ownerByEmail.id }
-        : { isDeleted: false },
+        ? buildOrganizationSelector(null, ownerByEmail.id)
+        : buildOrganizationSelector(null, null),
   });
 
   const [organization] = candidates;
@@ -274,27 +294,35 @@ async function resolveOwner(params: {
   };
 }
 
-/**
- * Columns introduced by `20260811160000_rename_article_title_excerpt_to_label_summary`.
- * The seed writes `label`/`summary`, so a database still holding the pre-#2767
- * `title`/`excerpt` spelling rejects every insert with Postgres 42703.
- */
-const REQUIRED_ARTICLE_COLUMNS = ['label', 'summary'] as const;
+/** Every physical column written by both the create and refresh paths. */
+export const REQUIRED_ARTICLE_COLUMNS = [
+  'coverImageUrl',
+  'label',
+  'summary',
+] as const;
 
-function isLocalDatabase(): boolean {
-  const url = process.env.DATABASE_URL;
+export function getMissingArticleColumns(
+  presentColumns: readonly string[],
+): string[] {
+  const present = new Set(presentColumns);
+  return REQUIRED_ARTICLE_COLUMNS.filter((column) => !present.has(column));
+}
 
-  if (!url) {
+export function isLocalDatabaseUrl(databaseUrl?: string): boolean {
+  if (!databaseUrl) {
     return false;
   }
 
   try {
-    return ['0.0.0.0', '127.0.0.1', '::1', 'localhost'].includes(
-      new URL(url).hostname,
-    );
+    const hostname = new URL(databaseUrl).hostname.replace(/^\[|\]$/g, '');
+    return ['0.0.0.0', '127.0.0.1', '::1', 'localhost'].includes(hostname);
   } catch {
     return false;
   }
+}
+
+function isLocalDatabase(): boolean {
+  return isLocalDatabaseUrl(process.env.DATABASE_URL);
 }
 
 function runMigrateDeploy(): boolean {
@@ -331,31 +359,24 @@ function runMigrateDeploy(): boolean {
  * directly. Against anything remote, migrations belong to the deploy pipeline —
  * report the exact command and stop.
  */
-async function assertArticleSchemaReady(prisma: PrismaClient): Promise<void> {
-  const findMissingColumns = async (): Promise<string[]> => {
-    const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'articles'
-        AND table_schema = current_schema()
-    `;
-    const present = new Set(rows.map((row) => row.column_name));
-
-    return REQUIRED_ARTICLE_COLUMNS.filter((column) => !present.has(column));
-  };
-
-  const missing = await findMissingColumns();
+export async function assertArticleSchemaReady(params: {
+  findPresentColumns: () => Promise<readonly string[]>;
+  localDatabase: boolean;
+  migrateDeploy: () => boolean;
+}): Promise<void> {
+  const missing = getMissingArticleColumns(await params.findPresentColumns());
 
   if (missing.length === 0) {
     return;
   }
 
-  if (!isLocalDatabase()) {
+  if (!params.localDatabase) {
     throw new Error(
-      `articles is missing ${missing.join(', ')} — the target database has not applied ` +
-        '20260811160000_rename_article_title_excerpt_to_label_summary. Migrations for ' +
-        'non-local databases run through the deploy pipeline, not this seed. Merge the ' +
-        'migration to master and let the deploy apply it, then re-run this seed.',
+      `articles is missing required seed column(s): ${missing.join(', ')}. ` +
+        'The target database has not applied the current article schema migrations ' +
+        '(including 20260811160000_rename_article_title_excerpt_to_label_summary for ' +
+        'label/summary). Non-local migrations run through the deploy pipeline, not ' +
+        'this seed. Let the deploy apply them, then re-run this seed.',
     );
   }
 
@@ -363,13 +384,15 @@ async function assertArticleSchemaReady(prisma: PrismaClient): Promise<void> {
     `articles is missing ${missing.join(', ')}; applying pending migrations to the local database`,
   );
 
-  if (!runMigrateDeploy()) {
+  if (!params.migrateDeploy()) {
     throw new Error(
       'prisma migrate deploy failed — resolve the migration state before seeding.',
     );
   }
 
-  const stillMissing = await findMissingColumns();
+  const stillMissing = getMissingArticleColumns(
+    await params.findPresentColumns(),
+  );
 
   if (stillMissing.length > 0) {
     throw new Error(
@@ -380,11 +403,39 @@ async function assertArticleSchemaReady(prisma: PrismaClient): Promise<void> {
   logger.log('Local migrations applied; articles schema is ready');
 }
 
+async function findPresentArticleColumns(
+  prisma: PrismaClient,
+): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'articles'
+      AND table_schema = current_schema()
+  `;
+
+  return rows.map((row) => row.column_name);
+}
+
 /**
  * Tags on the public article endpoints (`@Cache({ tags: [...] })`), whose
  * responses this seed changes underneath the API.
  */
 const PUBLIC_ARTICLE_CACHE_TAGS = ['articles', 'public'] as const;
+
+type RedisPipelineResult = readonly [Error | null, unknown];
+
+export function countDeletedCacheKeys(
+  results: readonly RedisPipelineResult[] | null,
+  keyCount: number,
+): number {
+  if (!results) {
+    return 0;
+  }
+
+  return results
+    .slice(0, keyCount)
+    .filter(([error, result]) => !error && Number(result) > 0).length;
+}
 
 /**
  * Writing rows with Prisma skips every service that would normally bust the
@@ -423,9 +474,18 @@ async function invalidatePublicArticleCache(): Promise<void> {
         pipeline.del(key);
       }
       pipeline.del(`tag:${tag}`);
-      await pipeline.exec();
+      const results = await pipeline.exec();
+      const failedCommands = results
+        ? results.filter(([error]) => Boolean(error)).length
+        : keys.length + 1;
 
-      invalidated += keys.length;
+      invalidated += countDeletedCacheKeys(results, keys.length);
+
+      if (failedCommands > 0) {
+        logger.warn(
+          `${failedCommands} cache deletion command(s) failed for tag ${tag}`,
+        );
+      }
     }
 
     logger.log(`Invalidated ${invalidated} cached public article response(s)`);
@@ -549,7 +609,11 @@ async function main(): Promise<void> {
   const prisma = createPrismaClient();
 
   try {
-    await assertArticleSchemaReady(prisma);
+    await assertArticleSchemaReady({
+      findPresentColumns: () => findPresentArticleColumns(prisma),
+      localDatabase: isLocalDatabase(),
+      migrateDeploy: runMigrateDeploy,
+    });
 
     const owner = await resolveOwner({
       organizationId: parseOptionalId(args.organizationId),
@@ -640,7 +704,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  logger.error('Articles seed failed', error);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    logger.error('Articles seed failed', error);
+    process.exit(1);
+  });
+}

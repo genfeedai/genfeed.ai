@@ -26,8 +26,8 @@ const { getPublicArticleBySlugCached } = await import('./article-loader');
 function article(overrides: Partial<Article> = {}): Article {
   return {
     author: 'Ada Lovelace',
-    bannerUrl: 'https://cdn.genfeed.ai/banner.jpg',
     content: '<p>body</p>',
+    coverImageUrl: 'https://cdn.genfeed.ai/cover.jpg',
     createdAt: '2026-01-01T00:00:00.000Z',
     id: 'article-1',
     label: 'How agents ship content',
@@ -93,7 +93,7 @@ describe('generateStaticParams', () => {
 });
 
 describe('generateMetadata', () => {
-  it('builds article metadata from label, summary and banner', async () => {
+  it('builds article metadata from label, summary and cover image', async () => {
     getPublicArticleBySlug.mockResolvedValue(article());
 
     const meta = await generateMetadata({
@@ -106,7 +106,7 @@ describe('generateMetadata', () => {
     expect(meta.openGraph?.type).toBe('article');
     expect(meta.twitter?.creator).toBe('@genfeedai');
     // The raw artwork carries no headline, so the shared image is the composed
-    // card, not the banner.
+    // card, not the source cover.
     expect(meta.openGraph?.images).toMatchObject({
       type: 'image/png',
       url: expect.stringContaining('/articles/article-meta/og'),
@@ -116,7 +116,9 @@ describe('generateMetadata', () => {
   // Every article without artwork used to share one default card, so a feed of
   // Genfeed links all looked like the same link.
   it('points an artworkless article at its own generated card', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article({ bannerUrl: undefined }));
+    getPublicArticleBySlug.mockResolvedValue(
+      article({ coverImageUrl: undefined }),
+    );
 
     const meta = await generateMetadata({
       params: Promise.resolve({ slug: 'no-artwork' }),
@@ -134,7 +136,7 @@ describe('generateMetadata', () => {
   it('falls back to placeholder copy when label and summary are blank', async () => {
     getPublicArticleBySlug.mockResolvedValue(
       article({
-        bannerUrl: undefined,
+        coverImageUrl: undefined,
         createdAt: undefined,
         label: '   ',
         summary: '',
@@ -193,7 +195,7 @@ describe('ArticleDetailRoute', () => {
 
     expect(articleJsonLd.headline).toBe('How agents ship content');
     expect(articleJsonLd.image).toEqual([
-      'https://cdn.genfeed.ai/banner.jpg',
+      'https://cdn.genfeed.ai/cover.jpg',
       expect.stringContaining('/articles/route-published/og'),
     ]);
     expect(articleJsonLd.keywords).toBe('agents');
@@ -209,7 +211,7 @@ describe('ArticleDetailRoute', () => {
     getPublicArticleBySlug.mockResolvedValue(
       article({
         author: '  ',
-        bannerUrl: undefined,
+        coverImageUrl: undefined,
         content: undefined,
         label: '',
         summary: undefined,

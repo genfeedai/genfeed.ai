@@ -20,10 +20,6 @@ export class Article extends BaseArticle {
     }
   }
 
-  get bannerUrl(): string | undefined {
-    return this.coverImageUrl || undefined;
-  }
-
   get wordCount(): number {
     if (!this.content) {
       return 0;
