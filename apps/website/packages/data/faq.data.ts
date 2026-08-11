@@ -1,4 +1,4 @@
-import { PLAN_COPY } from '@helpers/business/pricing/pricing.helper';
+import { PLAN_COPY } from '@genfeedai/pricing';
 import type { ReactNode } from 'react';
 
 export interface FAQItem {

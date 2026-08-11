@@ -1,6 +1,6 @@
 'use client';
 
-import { websitePlans } from '@genfeedai/helpers/business/pricing/pricing.helper';
+import { websitePlans } from '@genfeedai/pricing';
 import type {
   PricingPlanProps,
   PricingSubscriptionsProps,

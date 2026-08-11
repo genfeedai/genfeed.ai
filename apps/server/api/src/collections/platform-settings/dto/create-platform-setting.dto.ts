@@ -1,4 +1,4 @@
-import { MAX_MARGIN_MULTIPLIER } from '@genfeedai/helpers';
+import { MAX_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsOptional, Max, Min } from 'class-validator';
 

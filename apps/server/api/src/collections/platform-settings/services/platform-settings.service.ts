@@ -4,7 +4,7 @@ import type { PlatformSettingDocument } from '@api/collections/platform-settings
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
-import { setRuntimeMarginMultiplier } from '@genfeedai/helpers';
+import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

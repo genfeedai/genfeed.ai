@@ -24,7 +24,7 @@ vi.mock('@libs/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-vi.mock('@genfeedai/helpers', () => ({
+vi.mock('@genfeedai/pricing', () => ({
   applyMargin: vi.fn((providerCostUsd: number) =>
     Math.max(2, Math.ceil(providerCostUsd / 0.3 / 0.01)),
   ),

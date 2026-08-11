@@ -18,10 +18,7 @@ import { useCases } from '@data/use-cases.data';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants/model-capabilities.constant';
 import { ModelCategory } from '@genfeedai/enums';
-import {
-  PLAN_COPY,
-  websitePlans,
-} from '@helpers/business/pricing/pricing.helper';
+import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
 
 const BASE_URL = 'https://genfeed.ai';
 const PUBLIC_DIR = resolve(process.cwd(), 'public');

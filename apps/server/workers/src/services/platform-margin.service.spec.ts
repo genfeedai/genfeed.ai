@@ -2,7 +2,7 @@ import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
 import {
   getRuntimeMarginMultiplier,
   setRuntimeMarginMultiplier,
-} from '@genfeedai/helpers';
+} from '@genfeedai/pricing';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

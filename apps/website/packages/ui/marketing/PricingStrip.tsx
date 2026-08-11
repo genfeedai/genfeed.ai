@@ -1,10 +1,7 @@
 'use client';
 
-import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
-import {
-  formatPlanPriceLabel,
-  getPlanLabel,
-} from '@helpers/business/pricing/pricing.helper';
+import type { PlanTier } from '@genfeedai/pricing';
+import { formatPlanPriceLabel, getPlanLabel } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PricingStripProps } from '@props/website/pricing-strip.props';
 import Link from 'next/link';

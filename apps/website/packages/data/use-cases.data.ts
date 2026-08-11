@@ -1,5 +1,5 @@
-import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
-import { PLAN_COPY } from '@helpers/business/pricing/pricing.helper';
+import type { PlanTier } from '@genfeedai/pricing';
+import { PLAN_COPY } from '@genfeedai/pricing';
 
 export interface UseCase {
   slug: string;

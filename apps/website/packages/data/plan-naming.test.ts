@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
+import type { PlanTier } from '@genfeedai/pricing';
 import {
   getPlanByTier,
   getPlanLabel,
   PLAN_COPY,
   PLAN_LABELS,
   websitePlans,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { describe, expect, it } from 'vitest';
 import { products } from './products.data';
 import { useCases } from './use-cases.data';

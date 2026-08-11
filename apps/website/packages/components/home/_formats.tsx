@@ -6,7 +6,7 @@ import {
   BYOK_CREDIT_VALUE_DOLLARS,
   INTERNAL_CREDIT_COSTS,
   VIDEO_CREDIT_COSTS,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { OutputFormat } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';

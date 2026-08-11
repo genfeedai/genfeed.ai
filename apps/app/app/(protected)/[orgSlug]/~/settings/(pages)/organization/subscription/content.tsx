@@ -6,11 +6,12 @@ import {
   ByokBillingStatus,
   formatEnumLabel,
 } from '@genfeedai/enums';
-import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
 import {
   BYOK_FEE_PERCENTAGE,
   BYOK_FREE_THRESHOLD_CREDITS,
-} from '@helpers/business/pricing/pricing.helper';
+  getPlanEntitlementForTier,
+  getPlanLabel,
+} from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { CreditsService } from '@services/billing/credits.service';

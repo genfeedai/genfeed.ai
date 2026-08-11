@@ -5,7 +5,7 @@ import {
   PAYG_CREDIT_PACKS,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

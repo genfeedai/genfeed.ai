@@ -4,7 +4,7 @@ import {
   BASE_MARGIN_PERCENT,
   BASE_PROVIDER_COST_FRACTION,
   MAX_MARGIN_MULTIPLIER,
-} from '@genfeedai/helpers';
+} from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { logger } from '@services/core/logger.service';

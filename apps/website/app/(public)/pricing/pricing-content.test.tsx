@@ -1,8 +1,9 @@
-import { formatOutputs, formatPrice } from '@genfeedai/pricing';
 import {
+  formatOutputs,
+  formatPrice,
   getProPlan,
   getScalePlan,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';

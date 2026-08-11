@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
+import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
   BYOK_CREDIT_VALUE_DOLLARS,
@@ -15,7 +15,7 @@ import {
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';

@@ -9,7 +9,6 @@ export default defineConfig({
         __dirname,
         '../constants/dist/index.js',
       ),
-      '@genfeedai/pricing': path.resolve(__dirname, '../pricing/src/index.ts'),
       '@genfeedai/enums': path.resolve(__dirname, '../enums/src/index.ts'),
       '@genfeedai/helpers': path.resolve(__dirname, './src/index.ts'),
       '@genfeedai/interfaces': path.resolve(

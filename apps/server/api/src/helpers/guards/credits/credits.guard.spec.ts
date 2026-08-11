@@ -116,7 +116,7 @@ describe('CreditsGuard', () => {
 
   it('bills from providerCostUsd × applyMargin so admin margin applies live', async () => {
     const { applyMargin, setRuntimeMarginMultiplier } = await import(
-      '@genfeedai/helpers'
+      '@genfeedai/pricing'
     );
     setRuntimeMarginMultiplier(1);
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
@@ -146,7 +146,7 @@ describe('CreditsGuard', () => {
 
   it('scales providerCostUsd by duration for per-second video models', async () => {
     const { applyMargin, setRuntimeMarginMultiplier } = await import(
-      '@genfeedai/helpers'
+      '@genfeedai/pricing'
     );
     setRuntimeMarginMultiplier(1);
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
