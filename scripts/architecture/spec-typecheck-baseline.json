@@ -4010,14 +4010,6 @@
     },
     {
       "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
-      "fingerprint": "c52faadf1fe239ac256d",
-      "message": "Argument of type 'Customer' is not assignable to parameter of type 'Customer & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Customer' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 16,
       "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
       "fingerprint": "3af97db97a34ef3e687d",
