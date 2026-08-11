@@ -199,15 +199,17 @@ function UniversalWorkspaceShellContent({
   const [agentInspectorPortalTarget, setAgentInspectorPortalTarget] =
     useState<HTMLElement | null>(null);
   const [hasAgentInspectorPanel, setHasAgentInspectorPanel] = useState(false);
-  // The rail carries two things now: the conversation, reachable from every
-  // surface, and the surface's own context. Conversation leads — that is the
-  // whole point of it no longer being a shell state you navigate away to.
+  // The rail carries two things now: the surface's own context, and the
+  // conversation reachable from every surface. Context leads — the rail opens
+  // on what the current surface is about; the conversation sits behind it.
   const [inspectorTab, setInspectorTab] =
-    useState<WorkspaceInspectorTab>('conversation');
+    useState<WorkspaceInspectorTab>('context');
 
   // Product surfaces ask for a rail tab without navigating away:
   // - Context: entity detail / product panels (review row, post detail, …)
   // - Conversation: seed/open agent composer while keeping canvas page context
+  //   (this is how the composer reaches the conversation now that it is the
+  //   second tab rather than the default one)
   useEffect(() => {
     const openContextTab = () => {
       setInspectorTab('context');
@@ -963,11 +965,11 @@ function UniversalWorkspaceShellContent({
         <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
           {conversationSlot ? (
             <TabsList className="h-8">
-              <TabsTrigger value="conversation">
-                {WORKSPACE_INSPECTOR_CHROME.conversationTab}
-              </TabsTrigger>
               <TabsTrigger value="context">
                 {WORKSPACE_INSPECTOR_CHROME.contextTab}
+              </TabsTrigger>
+              <TabsTrigger value="conversation">
+                {WORKSPACE_INSPECTOR_CHROME.conversationTab}
               </TabsTrigger>
             </TabsList>
           ) : (
@@ -1001,26 +1003,11 @@ function UniversalWorkspaceShellContent({
           ) : null}
         </div>
 
-        {/* `forceMount` on both panes: switching tabs must not unmount the
+        {/* Context leads, conversation follows — pane order matches the tab
+          order above so keyboard tab navigation and DOM order agree.
+          `forceMount` on both panes: switching tabs must not unmount the
           conversation, or its prompt bar would vanish from the shell composer
           and an in-flight run would lose its transcript. */}
-        {conversationSlot ? (
-          <TabsContent
-            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
-            forceMount
-            value="conversation"
-          >
-            {conversationSlot}
-            {isInspectorComposerOwner ? (
-              <div
-                className="shrink-0 p-2"
-                data-testid="workspace-inspector-composer-slot"
-                ref={setComposerPortalTarget}
-              />
-            ) : null}
-          </TabsContent>
-        ) : null}
-
         <TabsContent
           className={cn(
             'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
@@ -1115,6 +1102,23 @@ function UniversalWorkspaceShellContent({
             </>
           )}
         </TabsContent>
+
+        {conversationSlot ? (
+          <TabsContent
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+            forceMount
+            value="conversation"
+          >
+            {conversationSlot}
+            {isInspectorComposerOwner ? (
+              <div
+                className="shrink-0 p-2"
+                data-testid="workspace-inspector-composer-slot"
+                ref={setComposerPortalTarget}
+              />
+            ) : null}
+          </TabsContent>
+        ) : null}
       </Tabs>
     );
   };
