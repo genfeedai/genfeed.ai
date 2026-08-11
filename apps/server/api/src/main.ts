@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { DocsService } from '@api/endpoints/docs/docs.service';
@@ -279,10 +280,8 @@ async function main() {
     app.useGlobalFilters(new DatabaseExceptionFilter(logger, configService));
     app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
 
-    // Bull Board setup — monitors every BullMQ queue across api, workers,
-    // and files. Keep this list in sync with the registerQueue calls in
-    // apps/server/workers/src/queues/queues.module.ts and
-    // apps/server/files/src/queues/queues.module.ts.
+    // Bull Board setup — the canonical list automatically includes every
+    // API/workers queue plus explicitly reviewed service-local queues.
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
@@ -291,57 +290,8 @@ async function main() {
       RedisWorkload.QUEUE,
     );
     const bullBoardConnection = buildBullMQConnection(redisConfig);
-    const monitoredQueueNames = [
-      'default',
-      // analytics
-      'analytics-facebook',
-      'analytics-social',
-      'analytics-sync',
-      'analytics-threads',
-      'analytics-twitter',
-      'analytics-youtube',
-      // ads
-      'ad-bulk-upload',
-      'ad-insights-aggregation',
-      'ad-optimization',
-      'ad-sync-google',
-      'ad-sync-meta',
-      'ad-sync-tiktok',
-      // workflows + agents
-      'workflow-execution',
-      'batch-workflow',
-      'agent-run',
-      'orchestrator-run',
-      'campaign-memory-extraction',
-      'triggers.evaluate',
-      'campaign-processing',
-      // content
-      'article-generation',
-      'batch-content',
-      'content-optimization',
-      'content-pipeline',
-      'pattern-extraction',
-      // clips
-      'clip-analyze',
-      'clip-factory',
-      // files service
-      'file-processing',
-      'image-processing',
-      'task-processing',
-      'video-processing',
-      'youtube-processing',
-      // misc
-      'credit-deduction',
-      'email-digest',
-      'heygen-poll',
-      'reply-bot-polling',
-      'telegram-distribute',
-      'webhook-client',
-      'workspace-task',
-    ];
-
     createBullBoard({
-      queues: monitoredQueueNames.map(
+      queues: BULL_BOARD_QUEUE_NAMES.map(
         (name) =>
           new BullMQAdapter(
             new Queue(name, { connection: bullBoardConnection }),

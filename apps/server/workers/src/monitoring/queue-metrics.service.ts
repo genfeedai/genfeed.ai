@@ -9,6 +9,8 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
+import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
+import type { OperationalQueueHealthSnapshot } from '@workers/monitoring/queue-health.types';
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 
@@ -17,8 +19,8 @@ const COLLECTION_WINDOW_MS = 5 * 60 * 1000;
 const PUBLISH_MARKER_PREFIX = 'genfeed:monitoring:queue-metrics';
 
 // These queues are owned by the files runtime and are not yet part of the
-// shared queue-contracts package. They still use the same production Redis and
-// are included in the aggregate without becoming metric dimensions.
+// shared queue-contracts package. Preserve their aggregate CloudWatch coverage
+// without treating them as API/worker alert contracts.
 const FILE_QUEUE_NAMES = [
   'file-processing',
   'image-processing',
@@ -27,12 +29,19 @@ const FILE_QUEUE_NAMES = [
   'youtube-processing',
 ] as const;
 
+export const QUEUE_HEALTH_QUEUE_NAMES = ALL_QUEUE_NAMES;
+
 const MONITORED_QUEUE_NAMES = [
-  ...ALL_QUEUE_NAMES,
+  ...QUEUE_HEALTH_QUEUE_NAMES,
   ...FILE_QUEUE_NAMES,
 ] as const;
 
-interface QueueSnapshot {
+interface OperationalQueueSnapshot extends OperationalQueueHealthSnapshot {
+  failedEvents: number;
+  stalledEvents: number;
+}
+
+interface AggregateQueueSnapshot {
   failedEvents: number;
   oldestWaitingAgeSeconds: number;
   stalledEvents: number;
@@ -50,6 +59,7 @@ export class QueueMetricsService implements OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
+    private readonly queueHealthMonitor: QueueHealthMonitorService,
   ) {
     this.cloudWatch = new CloudWatchClient({
       region: String(this.configService.get('AWS_REGION') || 'us-west-1'),
@@ -98,24 +108,6 @@ export class QueueMetricsService implements OnModuleDestroy {
         throw new Error('No BullMQ queue snapshot succeeded');
       }
 
-      const totals = snapshots.reduce<QueueSnapshot>(
-        (aggregate, snapshot) => ({
-          failedEvents: aggregate.failedEvents + snapshot.failedEvents,
-          oldestWaitingAgeSeconds: Math.max(
-            aggregate.oldestWaitingAgeSeconds,
-            snapshot.oldestWaitingAgeSeconds,
-          ),
-          stalledEvents: aggregate.stalledEvents + snapshot.stalledEvents,
-          waiting: aggregate.waiting + snapshot.waiting,
-        }),
-        {
-          failedEvents: 0,
-          oldestWaitingAgeSeconds: 0,
-          stalledEvents: 0,
-          waiting: 0,
-        },
-      );
-
       const failedQueueCount = results.length - snapshots.length;
       if (failedQueueCount > 0) {
         this.logger.warn(
@@ -124,15 +116,28 @@ export class QueueMetricsService implements OnModuleDestroy {
         );
       }
 
-      await this.cloudWatch.send(
-        new PutMetricDataCommand({
-          MetricData: this.buildMetricData(totals),
-          Namespace: METRIC_NAMESPACE,
-        }),
-      );
+      const [metricResult, healthResult] = await Promise.allSettled([
+        this.publishAggregateMetrics(snapshots),
+        this.queueHealthMonitor.processSnapshots(snapshots, redis),
+      ]);
+
+      if (metricResult.status === 'rejected') {
+        this.logger.error(
+          'Failed to publish aggregate BullMQ metrics',
+          metricResult.reason,
+          this.context,
+        );
+      }
+      if (healthResult.status === 'rejected') {
+        this.logger.error(
+          'Failed to process BullMQ queue health snapshots',
+          healthResult.reason,
+          this.context,
+        );
+      }
     } catch (error: unknown) {
       this.logger.error(
-        'Failed to publish aggregate BullMQ metrics',
+        'Failed to collect BullMQ queue health',
         error,
         this.context,
       );
@@ -159,27 +164,61 @@ export class QueueMetricsService implements OnModuleDestroy {
   private async collectQueue(
     queue: Queue,
     redis: Redis,
-  ): Promise<QueueSnapshot> {
+  ): Promise<OperationalQueueSnapshot> {
     const now = Date.now();
-    const [counts, waitingJobs, events] = await Promise.all([
-      queue.getJobCounts('waiting'),
-      queue.getWaiting(0, 0),
+    const [counts, oldestWaitingJobs, events] = await Promise.all([
+      queue.getJobCounts('waiting', 'active', 'delayed', 'failed'),
+      queue.getJobs(['waiting'], 0, 0, true),
       redis.xrange(
         queue.toKey('events'),
         `${now - COLLECTION_WINDOW_MS}-0`,
         '+',
       ),
     ]);
-    const oldestWaitingTimestamp = waitingJobs[0]?.timestamp;
+    const oldestWaitingTimestamp = oldestWaitingJobs[0]?.timestamp;
 
     return {
+      active: counts.active ?? 0,
+      capturedAt: new Date(now).toISOString(),
+      delayed: counts.delayed ?? 0,
+      failed: counts.failed ?? 0,
       failedEvents: this.countEvents(events, 'failed'),
       oldestWaitingAgeSeconds: oldestWaitingTimestamp
-        ? Math.max(0, (now - oldestWaitingTimestamp) / 1000)
+        ? Math.max(0, Math.floor((now - oldestWaitingTimestamp) / 1000))
         : 0,
+      queueName: queue.name,
       stalledEvents: this.countEvents(events, 'stalled'),
       waiting: counts.waiting ?? 0,
     };
+  }
+
+  private async publishAggregateMetrics(
+    snapshots: OperationalQueueSnapshot[],
+  ): Promise<void> {
+    const totals = snapshots.reduce<AggregateQueueSnapshot>(
+      (aggregate, snapshot) => ({
+        failedEvents: aggregate.failedEvents + snapshot.failedEvents,
+        oldestWaitingAgeSeconds: Math.max(
+          aggregate.oldestWaitingAgeSeconds,
+          snapshot.oldestWaitingAgeSeconds,
+        ),
+        stalledEvents: aggregate.stalledEvents + snapshot.stalledEvents,
+        waiting: aggregate.waiting + snapshot.waiting,
+      }),
+      {
+        failedEvents: 0,
+        oldestWaitingAgeSeconds: 0,
+        stalledEvents: 0,
+        waiting: 0,
+      },
+    );
+
+    await this.cloudWatch.send(
+      new PutMetricDataCommand({
+        MetricData: this.buildMetricData(totals),
+        Namespace: METRIC_NAMESPACE,
+      }),
+    );
   }
 
   private countEvents(
@@ -199,7 +238,7 @@ export class QueueMetricsService implements OnModuleDestroy {
     }, 0);
   }
 
-  private buildMetricData(snapshot: QueueSnapshot): MetricDatum[] {
+  private buildMetricData(snapshot: AggregateQueueSnapshot): MetricDatum[] {
     const dimensions = [{ Name: 'Service', Value: 'workers' }];
     const metrics: MetricDatum[] = [
       { MetricName: 'Heartbeat', Unit: 'Count', Value: 1 },
