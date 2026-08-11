@@ -27,7 +27,7 @@ export class CustomersService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    private readonly cacheService: CacheService,
+    private readonly organizationBillingCacheService: CacheService,
   ) {
     super(prisma, 'customer', logger);
   }
@@ -63,7 +63,7 @@ export class CustomersService extends BaseService<
       currentStripeCustomerId: string | null,
     ) => Promise<string>,
   ): Promise<Customer> {
-    const lockKey = this.cacheService.generateKey(
+    const lockKey = this.organizationBillingCacheService.generateKey(
       'organization-billing',
       'customer-provision',
       organizationId,
@@ -77,7 +77,7 @@ export class CustomersService extends BaseService<
       return await this.upsertForOrganization(organizationId, stripeCustomerId);
     };
 
-    let provisioned = await this.cacheService.withLock(
+    let provisioned = await this.organizationBillingCacheService.withLock(
       lockKey,
       provision,
       ORGANIZATION_BILLING_LOCK_TTL_SECONDS,
@@ -88,7 +88,7 @@ export class CustomersService extends BaseService<
 
     for (const delayMs of ORGANIZATION_BILLING_LOCK_RETRY_DELAYS_MS) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
-      provisioned = await this.cacheService.withLock(
+      provisioned = await this.organizationBillingCacheService.withLock(
         lockKey,
         provision,
         ORGANIZATION_BILLING_LOCK_TTL_SECONDS,
