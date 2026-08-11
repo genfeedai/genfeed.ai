@@ -71,7 +71,9 @@ vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
 
 interface StoreState {
   activeThreadId: string | null;
+  cacheConversation: ReturnType<typeof vi.fn>;
   clearComposerSeed: ReturnType<typeof vi.fn>;
+  clearConversationCache: ReturnType<typeof vi.fn>;
   creditsRemaining: number | null;
   composerSeed: null;
   messages: Array<{
@@ -114,6 +116,7 @@ interface StoreState {
   } | null;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  restoreCachedConversation: ReturnType<typeof vi.fn>;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveThread: ReturnType<typeof vi.fn>;
@@ -134,7 +137,9 @@ interface StoreState {
 
 const storeState: StoreState = {
   activeThreadId: null,
+  cacheConversation: vi.fn(),
   clearComposerSeed: vi.fn(),
+  clearConversationCache: vi.fn(),
   clearThreadAttention: vi.fn(),
   composerSeed: null,
   creditsRemaining: null,
@@ -147,6 +152,7 @@ const storeState: StoreState = {
   pageContext: null,
   resetActiveConversationState: vi.fn(),
   resetStreamState: vi.fn(),
+  restoreCachedConversation: vi.fn(() => false),
   seedComposer: vi.fn(),
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn(),

@@ -195,6 +195,31 @@ interface AgentComposerSeed {
   threadId: string | null;
 }
 
+/**
+ * What a thread's conversation looked like when the user last left it.
+ *
+ * Switching threads used to blank the track and hold it blank for the whole
+ * round trip, so every revisit of a thread the user had just read cost a full
+ * fetch of data the browser already had. Re-showing this snapshot makes the
+ * switch paint instantly; the in-flight fetch still lands and replaces it.
+ *
+ * Stream state is deliberately excluded — a half-streamed turn must never be
+ * restored as if it were settled history.
+ */
+interface CachedConversation {
+  latestProposedPlan: AgentProposedPlan | null;
+  messages: AgentChatMessage[];
+  pendingInputRequest: AgentInputRequest | null;
+  workEvents: AgentWorkEvent[];
+}
+
+/**
+ * Threads retained in the conversation cache. Bounded so a long session cannot
+ * pin every thread's messages in memory; the least recently cached entry is
+ * evicted first.
+ */
+const CONVERSATION_CACHE_LIMIT = 10;
+
 interface AgentChatState {
   activeRunId: string | null;
   draftPlanModeEnabled: boolean;
@@ -238,6 +263,8 @@ interface AgentChatState {
   terminalSessionsByThread: TerminalSessionsByThread;
   /** Per-thread active session id. Key = threadId | "global". */
   activeTerminalSessionByThread: Record<string, string>;
+  /** Last-seen conversation per thread, for instant re-paint on switch. */
+  conversationCacheByThread: Record<string, CachedConversation>;
 }
 
 interface AgentChatActions {
@@ -270,6 +297,12 @@ interface AgentChatActions {
   endOverlaySession: (overlayId: string) => void;
   clearMessages: () => void;
   resetActiveConversationState: () => void;
+  /** Snapshot the visible conversation so returning to `threadId` is instant. */
+  cacheConversation: (threadId: string) => void;
+  /** Re-show a cached conversation. Returns false when nothing was cached. */
+  restoreCachedConversation: (threadId: string) => boolean;
+  /** Drop every cached conversation — the scope they belonged to is gone. */
+  clearConversationCache: () => void;
   toggleOpen: () => void;
   setPageContext: (context: AgentPageContextState | null) => void;
   setMemoryEntries: (entries: AgentMemoryEntry[]) => void;
@@ -481,7 +514,40 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         wasAgentOpenBeforeOverlay: true,
       };
     }),
+  cacheConversation: (threadId) =>
+    set((state) => {
+      // Nothing worth re-showing, and caching an empty conversation would let a
+      // later switch skip the loading skeleton while showing a blank track.
+      if (state.messages.length === 0) {
+        return state;
+      }
+
+      // Re-inserting moves the thread to the end of the key order, which is what
+      // makes the eviction below least-recently-cached rather than arbitrary.
+      const { [threadId]: _evicted, ...retained } =
+        state.conversationCacheByThread;
+      const next: Record<string, CachedConversation> = {
+        ...retained,
+        [threadId]: {
+          latestProposedPlan: state.latestProposedPlan,
+          messages: state.messages,
+          pendingInputRequest: state.pendingInputRequest,
+          workEvents: state.workEvents,
+        },
+      };
+
+      const threadIds = Object.keys(next);
+      for (const staleId of threadIds.slice(
+        0,
+        Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
+      )) {
+        delete next[staleId];
+      }
+
+      return { conversationCacheByThread: next };
+    }),
   clearComposerSeed: () => set({ composerSeed: null }),
+  clearConversationCache: () => set({ conversationCacheByThread: {} }),
   clearMessages: () =>
     set({
       activeRunId: null,
@@ -503,6 +569,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       ),
     })),
   composerSeed: null,
+  conversationCacheByThread: {},
   creditsRemaining: null,
   draftPlanModeEnabled: false,
   endOverlaySession: (overlayId) =>
@@ -627,6 +694,31 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       stream: { ...DEFAULT_STREAM_STATE },
       workEvents: [],
     })),
+  restoreCachedConversation: (threadId) => {
+    const cached = get().conversationCacheByThread[threadId];
+
+    if (!cached) {
+      return false;
+    }
+
+    // Mirrors resetActiveConversationState for everything the cache does not
+    // carry, so no run/stream state leaks across from the thread being left.
+    set({
+      activeRunId: null,
+      activeRunStatus: 'idle',
+      composerSeed: null,
+      draftPlanModeEnabled: false,
+      latestProposedPlan: cached.latestProposedPlan,
+      messages: cached.messages,
+      pendingInputRequest: cached.pendingInputRequest,
+      runStartedAt: null,
+      stream: { ...DEFAULT_STREAM_STATE },
+      threadUiBusyById: {},
+      workEvents: cached.workEvents,
+    });
+
+    return true;
+  },
   runStartedAt: null,
   seedComposer: (content, threadId = null) =>
     set({

@@ -61,6 +61,8 @@ interface AgentChatStoreState {
     | 'failed'
     | 'cancelled';
   activeThreadId: string | null;
+  cacheConversation: ReturnType<typeof vi.fn>;
+  clearConversationCache: ReturnType<typeof vi.fn>;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   clearMessages: ReturnType<typeof vi.fn>;
   composerSeed: {
@@ -74,6 +76,7 @@ interface AgentChatStoreState {
   pendingInputRequest: Record<string, unknown> | null;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  restoreCachedConversation: ReturnType<typeof vi.fn>;
   runStartedAt: string | null;
   stream: {
     activeToolCalls: unknown[];
@@ -99,6 +102,8 @@ const storeState: AgentChatStoreState = {
   activeRunId: null,
   activeRunStatus: 'idle',
   activeThreadId: null,
+  cacheConversation: vi.fn(),
+  clearConversationCache: vi.fn(),
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
   composerSeed: null,
@@ -126,6 +131,7 @@ const storeState: AgentChatStoreState = {
     storeState.workEvents = [];
   }),
   resetStreamState: vi.fn(),
+  restoreCachedConversation: vi.fn(() => false),
   runStartedAt: null,
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn((threadId: string | null) => {

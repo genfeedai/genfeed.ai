@@ -168,6 +168,10 @@ export function useAgentFullPage({
   const resetActiveConversationState = useAgentChatStore(
     (s) => s.resetActiveConversationState,
   );
+  const cacheConversation = useAgentChatStore((s) => s.cacheConversation);
+  const restoreCachedConversation = useAgentChatStore(
+    (s) => s.restoreCachedConversation,
+  );
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
   const setOnboardingChecklist = useAgentChatStore(
@@ -345,6 +349,11 @@ export function useAgentFullPage({
         return;
       }
       clearedForThreadIdRef.current = undefined;
+      // Leaving via the agent root is still leaving a thread — bank it so
+      // stepping back into that conversation is instant.
+      if (activeThreadRef.current) {
+        cacheConversation(activeThreadRef.current);
+      }
       setIsLoadingThread(false);
       setActiveThreadStatus(null);
       setWorkspacePlanningTaskId(null);
@@ -360,6 +369,7 @@ export function useAgentFullPage({
     }
   }, [
     authReady,
+    cacheConversation,
     threadId,
     resetActiveConversationState,
     setActiveThread,
@@ -373,93 +383,133 @@ export function useAgentFullPage({
     }
 
     const controller = new AbortController();
+    const previousThreadId = activeThreadRef.current;
     const shouldPreserveVisibleThread =
-      activeThreadRef.current === threadId && messageCountRef.current > 0;
+      previousThreadId === threadId && messageCountRef.current > 0;
 
-    setIsLoadingThread(true);
+    // Keep what the user was just reading so switching back is a re-paint
+    // rather than another round trip.
+    if (previousThreadId && !shouldPreserveVisibleThread) {
+      cacheConversation(previousThreadId);
+    }
+
     setActiveThread(threadId);
     clearThreadAttention(threadId);
-    if (!shouldPreserveVisibleThread) {
+
+    // These describe the thread being opened, not the one being left, and only
+    // the thread response refreshes them. A cache hit makes the conversation
+    // interactive before that response lands, so carrying the previous thread's
+    // status over would let resolvedThreadStatus report ACTIVE for an archived
+    // thread and leave the composer writable through the revalidation window.
+    if (previousThreadId !== threadId) {
+      setActiveThreadStatus(null);
+      setWorkspacePlanningTaskId(null);
+    }
+
+    // Cache hit: show the thread immediately and revalidate underneath. Only a
+    // genuinely unseen thread gets the blank track and the skeleton.
+    const hasVisibleConversation =
+      shouldPreserveVisibleThread || restoreCachedConversation(threadId);
+    if (!hasVisibleConversation) {
       resetActiveConversationState();
     }
-    Promise.all([
-      runAgentApiEffect(
-        apiService.getThreadEffect(threadId, controller.signal),
-      ),
-      runAgentApiEffect(
-        apiService.getMessagesEffect(
-          threadId,
-          { limit: 100 },
-          controller.signal,
-        ),
-      ),
-      runAgentApiEffect(
-        apiService.getThreadSnapshotEffect(threadId, controller.signal),
-      ),
-    ])
-      .then(([thread, msgs, snapshot]) => {
-        if (!controller.signal.aborted) {
-          resetStreamState();
-          setMessages(msgs);
-          setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
-          setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
-          setActiveRun(snapshot.activeRun?.runId ?? null, {
-            startedAt: snapshot.activeRun?.startedAt ?? null,
-            status: mapSnapshotRunStatus(snapshot.activeRun?.status),
-          });
-          setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
-          setWorkEvents(mapSnapshotWorkEvents(snapshot));
-          setIsLoadingThread(false);
-          setActiveThreadStatus(thread.status);
-          setWorkspacePlanningTaskId(
-            parseWorkspacePlanningTaskId(thread.source),
-          );
-          setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-          const now = new Date().toISOString();
-          const firstUserMessage = msgs.find((msg) => msg.role === 'user');
-          upsertThread({
-            brandId: thread.brandId,
-            createdAt: now,
-            contextVersion: thread.contextVersion,
-            id: threadId,
-            organizationId: thread.organizationId,
-            planModeEnabled: thread.planModeEnabled,
-            source: thread.source,
-            status: thread.status,
-            title:
-              thread.title ??
-              firstUserMessage?.content?.slice(0, 60) ??
-              msgs[0]?.content?.slice(0, 60) ??
-              'Current chat',
-            updatedAt: now,
-            ...buildThreadSummaryFromSnapshot(snapshot, {
-              isVisible: true,
-              now,
-            }),
-          });
-          setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
-        }
-      })
-      .catch((error) => {
+    setIsLoadingThread(!hasVisibleConversation);
+
+    let hasReportedLoadFailure = false;
+    const reportLoadFailure = (error: unknown) => {
+      if (controller.signal.aborted || hasReportedLoadFailure) {
+        return;
+      }
+      hasReportedLoadFailure = true;
+      setIsLoadingThread(false);
+      setWorkspacePlanningTaskId(null);
+      setError(
+        isAuthError(error) ? AUTH_REQUIRED_MESSAGE : LOAD_THREAD_ERROR_MESSAGE,
+      );
+    };
+
+    const threadRequest = runAgentApiEffect(
+      apiService.getThreadEffect(threadId, controller.signal),
+    );
+    const snapshotRequest = runAgentApiEffect(
+      apiService.getThreadSnapshotEffect(threadId, controller.signal),
+    );
+
+    // The conversation body is the whole perceived cost of a switch, and it
+    // needs only this one response. Awaiting the thread record and the snapshot
+    // alongside it held the track blank for the slowest of three round trips.
+    const messagesRequest = runAgentApiEffect(
+      apiService.getMessagesEffect(threadId, { limit: 100 }, controller.signal),
+    ).then((msgs) => {
+      if (!controller.signal.aborted) {
+        resetStreamState();
+        setMessages(msgs);
+        setIsLoadingThread(false);
+      }
+      return msgs;
+    });
+
+    // Chained on the messages paint, not raced with it: resetStreamState above
+    // clears workEvents and run status, so it must never land after the
+    // snapshot has filled them in.
+    Promise.all([messagesRequest, snapshotRequest])
+      .then(([, snapshot]) => {
         if (controller.signal.aborted) {
           return;
         }
-        setIsLoadingThread(false);
-        if (isAuthError(error)) {
-          setWorkspacePlanningTaskId(null);
-          setError(AUTH_REQUIRED_MESSAGE);
+        setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
+        setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
+        setActiveRun(snapshot.activeRun?.runId ?? null, {
+          startedAt: snapshot.activeRun?.startedAt ?? null,
+          status: mapSnapshotRunStatus(snapshot.activeRun?.status),
+        });
+        setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
+        setWorkEvents(mapSnapshotWorkEvents(snapshot));
+      })
+      .catch(reportLoadFailure);
+
+    Promise.all([threadRequest, messagesRequest, snapshotRequest])
+      .then(([thread, msgs, snapshot]) => {
+        if (controller.signal.aborted) {
           return;
         }
-        setWorkspacePlanningTaskId(null);
-        setError(LOAD_THREAD_ERROR_MESSAGE);
-      });
+        setActiveThreadStatus(thread.status);
+        setWorkspacePlanningTaskId(parseWorkspacePlanningTaskId(thread.source));
+        setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
+        const now = new Date().toISOString();
+        const firstUserMessage = msgs.find((msg) => msg.role === 'user');
+        upsertThread({
+          brandId: thread.brandId,
+          createdAt: now,
+          contextVersion: thread.contextVersion,
+          id: threadId,
+          organizationId: thread.organizationId,
+          planModeEnabled: thread.planModeEnabled,
+          source: thread.source,
+          status: thread.status,
+          title:
+            thread.title ??
+            firstUserMessage?.content?.slice(0, 60) ??
+            msgs[0]?.content?.slice(0, 60) ??
+            'Current chat',
+          updatedAt: now,
+          ...buildThreadSummaryFromSnapshot(snapshot, {
+            isVisible: true,
+            now,
+          }),
+        });
+        setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+      })
+      .catch(reportLoadFailure);
 
     return () => controller.abort();
   }, [
     threadId,
     apiService,
     authReady,
+    cacheConversation,
     clearThreadAttention,
+    restoreCachedConversation,
     setActiveThread,
     setActiveRun,
     setError,
