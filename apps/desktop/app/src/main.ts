@@ -641,6 +641,58 @@ const createWindow = async (): Promise<void> => {
   });
 };
 
+const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
+  const errorText =
+    error instanceof Error ? error.stack || error.message : String(error);
+  process.stderr.write(`[desktop] startup failed: ${errorText}\n`);
+  telemetryService.captureException(error, { surface: 'startup' });
+
+  if (isSmokeTest) {
+    app.exit(1);
+    return;
+  }
+
+  try {
+    if (!mainWindow) {
+      mainWindow = new BrowserWindow({
+        backgroundColor: getDesktopBootBackground(),
+        height: 720,
+        minHeight: 560,
+        minWidth: 860,
+        show: false,
+        title: 'GenFeed',
+        titleBarStyle:
+          process.platform === 'darwin' ? 'hiddenInset' : 'default',
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        },
+        width: 1080,
+      });
+
+      mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+          event.preventDefault();
+          mainWindow?.hide();
+        }
+      });
+      mainWindow.on('closed', () => {
+        mainWindow = null;
+      });
+    }
+
+    await mainWindow.loadURL(buildDesktopFailureScreenUrl());
+    mainWindow.show();
+    mainWindow.focus();
+  } catch (failureScreenError) {
+    process.stderr.write(
+      `[desktop] failure screen could not open: ${failureScreenError instanceof Error ? failureScreenError.stack || failureScreenError.message : String(failureScreenError)}\n`,
+    );
+    app.exit(1);
+  }
+};
+
 const openAndActivateWorkspace = async () => {
   const workspace = await workspaceService.openWorkspace();
 
@@ -1370,8 +1422,8 @@ app.on('before-quit', (event) => {
 
   void (async () => {
     try {
-      terminalService.killAll();
-      await appShellService.stop();
+      terminalService?.killAll();
+      await appShellService?.stop();
     } finally {
       shortcutsService.unregister();
       trayService.destroy();
@@ -1388,149 +1440,154 @@ app.on('will-quit', () => {
   }
 });
 
-app.whenReady().then(async () => {
-  telemetryService.init();
-  pgliteService = new DesktopPgliteService(
-    path.join(app.getPath('userData'), 'pglite-db'),
-  );
-  const pglite = await pgliteService.init();
-  prismaService = new DesktopPrismaService(pglite);
-  const prismaClient = prismaService.getClient();
-  kvService = new DesktopKvService(prismaClient);
-  await kvService.init();
-  syncConsentService = new DesktopSyncConsentService(kvService);
-  localIdentityService = new LocalIdentityService(kvService);
-  await localIdentityService.initialize();
-  await prismaService.bootstrapLocalIdentity(
-    localIdentityService.getLocalUserId(),
-  );
-  appShellService = new DesktopAppShellService(
-    environment,
-    () => sessionService.getSession(),
-    // Spawned server processes carve their own storage directories out of the
-    // Electron data root; using PGlite's directory would nest them under the DB.
-    () => app.getPath('userData'),
-  );
-  await appShellService.start();
-  sessionService = new DesktopSessionService(
-    kvService,
-    environment,
-    appShellService.appOrigin,
-    electronSession.defaultSession.cookies,
-  );
-  const session = await sessionService.validateStoredSession();
-  if (session) {
-    await localIdentityService.setBetterAuthId(session.userId);
-  }
-  await persistDeviceIdentity(session);
-  workspaceService = new DesktopWorkspaceService(prismaClient);
-  await workspaceService.init();
-  syncService = new DesktopSyncService(prismaClient);
-  await syncService.init();
-  filesService = new DesktopFilesService(workspaceService, prismaClient);
-  new DesktopAssetProtocolService(filesService).register();
-  terminalService = new DesktopTerminalService(workspaceService);
-  generationService = new DesktopGenerationService(
-    {
-      deleteValue: (key) => kvService.deleteValue(key),
-      getSyncJob: async (jobId) => {
-        const row = await prismaClient.desktopSyncJob.findUnique({
-          where: { id: jobId },
-        });
-        return row;
-      },
-      getValue: (key) => kvService.getValue(key),
-      listSyncJobs: async (type, workspaceId) => {
-        const rows = await prismaClient.desktopSyncJob.findMany({
-          orderBy: {
-            updatedAt: 'desc',
-          },
-          where: {
-            type,
-            ...(workspaceId ? { workspaceId } : {}),
-          },
-        });
-        return rows;
-      },
-      setValue: (key, value) => kvService.setValue(key, value),
-      upsertSyncJob: async (row) => {
-        await prismaClient.desktopSyncJob.upsert({
-          create: row,
-          update: row,
-          where: { id: row.id },
-        });
-      },
-    },
-    filesService,
-  );
-  await generationService.resumeAssetGenerationJobs();
-  cloudService = new DesktopCloudService(environment, () =>
-    sessionService.getSession(),
-  );
-  localService = new DesktopLocalService(prismaClient, generationService);
-  draftsService = new DesktopDraftsService(workspaceService);
-  isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
-  telemetryService.setUser(sessionService.getSession());
-  process.on('uncaughtException', (error) => {
-    telemetryService.captureException(error, { source: 'uncaughtException' });
-  });
-  process.on('unhandledRejection', (error) => {
-    telemetryService.captureException(error, { source: 'unhandledRejection' });
-  });
-  registerProtocolHandling();
-  configureSessionPermissions();
-  registerIpcHandlers();
-  await createWindow();
-
-  if (isVisualQa) {
-    try {
-      await captureVisualQa();
-      app.exit(0);
-    } catch (error) {
-      process.stderr.write(
-        `[desktop] visual QA capture failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
-      );
-      app.exit(1);
+void app
+  .whenReady()
+  .then(async () => {
+    telemetryService.init();
+    process.on('uncaughtException', (error) => {
+      telemetryService.captureException(error, { source: 'uncaughtException' });
+    });
+    process.on('unhandledRejection', (error) => {
+      telemetryService.captureException(error, {
+        source: 'unhandledRejection',
+      });
+    });
+    pgliteService = new DesktopPgliteService(
+      path.join(app.getPath('userData'), 'pglite-db'),
+    );
+    const pglite = await pgliteService.init();
+    prismaService = new DesktopPrismaService(pglite);
+    const prismaClient = prismaService.getClient();
+    kvService = new DesktopKvService(prismaClient);
+    await kvService.init();
+    syncConsentService = new DesktopSyncConsentService(kvService);
+    localIdentityService = new LocalIdentityService(kvService);
+    await localIdentityService.initialize();
+    await prismaService.bootstrapLocalIdentity(
+      localIdentityService.getLocalUserId(),
+    );
+    appShellService = new DesktopAppShellService(
+      environment,
+      () => sessionService.getSession(),
+      // Spawned server processes carve their own storage directories out of the
+      // Electron data root; using PGlite's directory would nest them under the DB.
+      () => app.getPath('userData'),
+    );
+    await appShellService.start();
+    sessionService = new DesktopSessionService(
+      kvService,
+      environment,
+      appShellService.appOrigin,
+      electronSession.defaultSession.cookies,
+    );
+    const session = await sessionService.validateStoredSession();
+    if (session) {
+      await localIdentityService.setBetterAuthId(session.userId);
     }
-    return;
-  }
+    await persistDeviceIdentity(session);
+    workspaceService = new DesktopWorkspaceService(prismaClient);
+    await workspaceService.init();
+    syncService = new DesktopSyncService(prismaClient);
+    await syncService.init();
+    filesService = new DesktopFilesService(workspaceService, prismaClient);
+    new DesktopAssetProtocolService(filesService).register();
+    terminalService = new DesktopTerminalService(workspaceService);
+    generationService = new DesktopGenerationService(
+      {
+        deleteValue: (key) => kvService.deleteValue(key),
+        getSyncJob: async (jobId) => {
+          const row = await prismaClient.desktopSyncJob.findUnique({
+            where: { id: jobId },
+          });
+          return row;
+        },
+        getValue: (key) => kvService.getValue(key),
+        listSyncJobs: async (type, workspaceId) => {
+          const rows = await prismaClient.desktopSyncJob.findMany({
+            orderBy: {
+              updatedAt: 'desc',
+            },
+            where: {
+              type,
+              ...(workspaceId ? { workspaceId } : {}),
+            },
+          });
+          return rows;
+        },
+        setValue: (key, value) => kvService.setValue(key, value),
+        upsertSyncJob: async (row) => {
+          await prismaClient.desktopSyncJob.upsert({
+            create: row,
+            update: row,
+            where: { id: row.id },
+          });
+        },
+      },
+      filesService,
+    );
+    await generationService.resumeAssetGenerationJobs();
+    cloudService = new DesktopCloudService(environment, () =>
+      sessionService.getSession(),
+    );
+    localService = new DesktopLocalService(prismaClient, generationService);
+    draftsService = new DesktopDraftsService(workspaceService);
+    isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
+    telemetryService.setUser(sessionService.getSession());
+    registerProtocolHandling();
+    configureSessionPermissions();
+    registerIpcHandlers();
+    await createWindow();
 
-  if (mainWindow) {
-    trayService.initialize(mainWindow, emitQuickGenerate);
-    shortcutsService.register(mainWindow, emitQuickGenerate);
-  }
-
-  const updaterService = new DesktopUpdaterService({
-    autoUpdater,
-    isPackaged: app.isPackaged,
-    notify: ({ body, title }) => {
-      if (Notification.isSupported()) {
-        void new Notification({ body, title }).show();
+    if (isVisualQa) {
+      try {
+        await captureVisualQa();
+        app.exit(0);
+      } catch (error) {
+        process.stderr.write(
+          `[desktop] visual QA capture failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+        );
+        app.exit(1);
       }
-    },
-    onError: (error, context) => {
-      telemetryService.captureException(error, context);
-    },
-  });
-  updaterService.initialize();
-
-  const deepLinkArgument = process.argv.find((value: string) =>
-    value.startsWith('genfeedai-desktop://'),
-  );
-
-  if (deepLinkArgument) {
-    void handleAuthCallback(deepLinkArgument);
-  }
-
-  app.on('activate', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    } else {
-      void createWindow();
+      return;
     }
-  });
-});
+
+    if (mainWindow) {
+      trayService.initialize(mainWindow, emitQuickGenerate);
+      shortcutsService.register(mainWindow, emitQuickGenerate);
+    }
+
+    const updaterService = new DesktopUpdaterService({
+      autoUpdater,
+      isPackaged: app.isPackaged,
+      notify: ({ body, title }) => {
+        if (Notification.isSupported()) {
+          void new Notification({ body, title }).show();
+        }
+      },
+      onError: (error, context) => {
+        telemetryService.captureException(error, context);
+      },
+    });
+    updaterService.initialize();
+
+    const deepLinkArgument = process.argv.find((value: string) =>
+      value.startsWith('genfeedai-desktop://'),
+    );
+
+    if (deepLinkArgument) {
+      void handleAuthCallback(deepLinkArgument);
+    }
+
+    app.on('activate', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      } else {
+        void createWindow();
+      }
+    });
+  })
+  .catch(showDesktopStartupFailure);
 
 app.on('second-instance', (_event: unknown, argv: string[]) => {
   const deepLinkArgument = argv.find((value: string) =>

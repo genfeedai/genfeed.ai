@@ -46,9 +46,10 @@ describe('desktop release QA', () => {
     const smokeRunner = readText('apps/desktop/app/scripts/run-smoke.cjs');
 
     expect(scripts?.['qa:release']).toBe(
-      'bun run lint && bun run type-check && bun run test && bun run smoke',
+      'bun run lint && bun run type-check && bun run test && bun run smoke && bun run verify:bundle-size',
     );
     expect(scripts?.smoke).toContain('run-smoke.cjs');
+    expect(scripts?.['verify:bundle-size']).toContain('check-bundle-size.cjs');
     expect(smokeRunner).toContain("'--smoke-test'");
     expect(smokeRunner).toContain('90_000');
     expect(smokeRunner).toContain("child.kill('SIGTERM')");
@@ -155,6 +156,19 @@ describe('desktop release QA', () => {
     expect(publishStep).toContain('uses: softprops/action-gh-release@v3');
     expect(publishStep).toContain('tag_name: $' + '{{ github.ref_name }}');
     expect(publishStep).toContain('make_latest: false');
+  });
+
+  it('rejects oversized packaged macOS applications', () => {
+    const releaseWorkflow = readText('.github/workflows/desktop-release.yml');
+    const verificationStep = readWorkflowStep(
+      releaseWorkflow,
+      'Verify Developer ID signature, notarization, and app size',
+    );
+
+    expect(verificationStep).toContain('MAX_APP_SIZE_MIB=500');
+    expect(verificationStep).toContain('APP_SIZE_MIB=');
+    expect(verificationStep).toContain('exceeds the 500 MiB release budget');
+    expect(verificationStep).toContain('## Desktop package size');
   });
 
   it('documents the manual desktop release evidence checklist', () => {

@@ -16,6 +16,97 @@ function copyDirectory(source, destination) {
   fs.cpSync(source, destination, { recursive: true, force: true });
 }
 
+function copyNodeModuleEntries(sourceRoot, destinationRoot) {
+  if (!fs.existsSync(sourceRoot)) {
+    return;
+  }
+
+  for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
+    if (entry.name === '.bun') {
+      continue;
+    }
+
+    const source = path.join(sourceRoot, entry.name);
+
+    if (entry.name.startsWith('@')) {
+      for (const scopedEntry of fs.readdirSync(source, {
+        withFileTypes: true,
+      })) {
+        const destination = path.join(
+          destinationRoot,
+          entry.name,
+          scopedEntry.name,
+        );
+
+        if (!fs.existsSync(destination)) {
+          fs.mkdirSync(path.dirname(destination), { recursive: true });
+          fs.cpSync(path.join(source, scopedEntry.name), destination, {
+            dereference: true,
+            force: true,
+            recursive: true,
+          });
+        }
+      }
+      continue;
+    }
+
+    const destination = path.join(destinationRoot, entry.name);
+
+    if (!fs.existsSync(destination)) {
+      fs.cpSync(source, destination, {
+        dereference: true,
+        force: true,
+        recursive: true,
+      });
+    }
+  }
+}
+
+function compactStandaloneDependencies(root) {
+  const nodeModulesRoot = path.join(root, 'node_modules');
+  const bunHoistedRoot = path.join(nodeModulesRoot, '.bun', 'node_modules');
+
+  if (!fs.existsSync(bunHoistedRoot)) {
+    return;
+  }
+
+  const compactRoot = path.join(root, 'node_modules.compact');
+  fs.rmSync(compactRoot, { force: true, recursive: true });
+  fs.mkdirSync(compactRoot, { recursive: true });
+
+  // Preserve the direct standalone dependencies first, then fill their
+  // transitive runtime graph from Bun's hoisted store. Copying with
+  // dereference=true converts Bun's workspace symlinks into a portable tree.
+  copyNodeModuleEntries(nodeModulesRoot, compactRoot);
+  copyNodeModuleEntries(bunHoistedRoot, compactRoot);
+
+  fs.rmSync(nodeModulesRoot, { force: true, recursive: true });
+  fs.renameSync(compactRoot, nodeModulesRoot);
+
+  // Next is already available from the compact root. The nested copy is a
+  // second dereferenced instance of the same package and is never required by
+  // Node's ancestor lookup from apps/app/server.js.
+  fs.rmSync(path.join(root, 'apps', 'app', 'node_modules'), {
+    force: true,
+    recursive: true,
+  });
+}
+
+function pruneDisabledImageOptimizer(root) {
+  const nodeModulesRoot = path.join(root, 'node_modules');
+  const sharpPackagesRoot = path.join(nodeModulesRoot, '@img');
+
+  // Next declares sharp as an optional dependency even when its image
+  // optimizer is disabled. Bun's standalone tree therefore still carries the
+  // wrapper and every platform-specific libvips package unless we remove them
+  // from this desktop-only bundle.
+  fs.rmSync(path.join(nodeModulesRoot, 'sharp'), {
+    force: true,
+    recursive: true,
+  });
+  fs.rmSync(sharpPackagesRoot, { force: true, recursive: true });
+}
+
 function findServerDirectory(root) {
   const queue = [root];
 
@@ -46,6 +137,8 @@ if (!fs.existsSync(standaloneRoot)) {
 
 fs.rmSync(outputRoot, { force: true, recursive: true });
 copyDirectory(standaloneRoot, outputRoot);
+compactStandaloneDependencies(outputRoot);
+pruneDisabledImageOptimizer(outputRoot);
 
 const serverDirectory = findServerDirectory(standaloneRoot);
 
