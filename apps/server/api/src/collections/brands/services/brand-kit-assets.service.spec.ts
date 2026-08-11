@@ -1,3 +1,4 @@
+import { BRAND_KIT_RESOLVED_REFERENCE_LIMIT } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -56,15 +57,16 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
 
     const sql = readSql(queryRaw.mock.calls[0]);
     expect(sql).toContain('"isDeleted" = false');
-    expect(sql).toContain(`"parentType"::text = 'BRAND'`);
+    expect(sql).toContain(`"parentType" = 'BRAND'::"AssetParent"`);
     expect(sql).toContain('"parentOrgId" =');
     expect(sql).toContain('"parentBrandId" = ANY(');
+    expect(sql).toContain('"category" = ANY( ? ::"AssetCategory"[])');
     expect(readBindings(queryRaw.mock.calls[0])).toEqual([
       'org-1',
       ['brand-1'],
       ['LOGO', 'BANNER', 'REFERENCE'],
       'REFERENCE',
-      10,
+      BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
     ]);
   });
 
@@ -121,9 +123,9 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
     );
   });
 
-  it('keeps the newest ten references in deterministic order', async () => {
+  it('keeps the configured number of newest references in deterministic order', async () => {
     queryRaw.mockResolvedValueOnce(
-      Array.from({ length: 10 }, (_, index) =>
+      Array.from({ length: BRAND_KIT_RESOLVED_REFERENCE_LIMIT }, (_, index) =>
         rankedRow({
           category: 'REFERENCE',
           cloudObjectKey: `references/ref-${index + 1}`,
@@ -134,9 +136,12 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
 
     const assets = await service.resolveBrandKitAssets('brand-1', 'org-1');
 
-    expect(assets.references).toHaveLength(10);
+    expect(assets.references).toHaveLength(BRAND_KIT_RESOLVED_REFERENCE_LIMIT);
     expect(assets.references.map((reference) => reference.id)).toEqual(
-      Array.from({ length: 10 }, (_, index) => `ref-${index + 1}`),
+      Array.from(
+        { length: BRAND_KIT_RESOLVED_REFERENCE_LIMIT },
+        (_, index) => `ref-${index + 1}`,
+      ),
     );
   });
 
@@ -187,7 +192,9 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     expect(sql).toContain('ROW_NUMBER()');
     expect(sql).toContain('ranked."roleRank" <= CASE');
     // The reference cap is per brand, not a global `take` one brand can starve.
-    expect(readBindings(queryRaw.mock.calls[0]).at(-1)).toBe(10);
+    expect(readBindings(queryRaw.mock.calls[0]).at(-1)).toBe(
+      BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
+    );
   });
 
   it('routes each asset to its own brand', async () => {
