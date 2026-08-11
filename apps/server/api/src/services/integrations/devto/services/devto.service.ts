@@ -115,11 +115,11 @@ export class DevtoService {
         body_markdown: article.content ?? '',
         published,
         tags,
-        title: article.title,
+        title: article.label,
       };
 
-      if (article.excerpt) {
-        articleBody.description = article.excerpt;
+      if (article.summary) {
+        articleBody.description = article.summary;
       }
       if (article.coverImageUrl) {
         articleBody.main_image = article.coverImageUrl;

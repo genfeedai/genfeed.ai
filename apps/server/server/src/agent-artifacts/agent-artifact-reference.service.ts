@@ -494,9 +494,9 @@ export class AgentArtifactReferenceService {
             'category',
             'content',
             'coverImageUrl',
-            'excerpt',
+            'label',
             'slug',
-            'title',
+            'summary',
           ],
         );
       case 'asset':
@@ -955,11 +955,11 @@ export class AgentArtifactReferenceService {
     if (kind !== 'article') {
       return record;
     }
+    // `label`/`summary` are the persisted column names since #2767, so only
+    // the serializer-only `bannerUrl` alias still needs deriving.
     return {
       ...record,
       bannerUrl: record.coverImageUrl,
-      label: record.title,
-      summary: record.excerpt,
     };
   }
 

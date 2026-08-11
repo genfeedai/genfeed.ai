@@ -169,7 +169,7 @@ describe('ArticleFilterUtil', () => {
       const filter = ArticleFilterUtil.buildContentSearchFilter(' marketing ');
       expect(filter.OR as unknown[]).toHaveLength(3);
       expect(
-        (filter.OR as Array<{ title?: { contains: string } }>)[0].title
+        (filter.OR as Array<{ label?: { contains: string } }>)[0].label
           ?.contains,
       ).toBe('marketing');
     });

@@ -437,7 +437,8 @@ export class ArticlesService extends BaseService<
       const publicUrl = result.slug
         ? `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${result.slug}`
         : undefined;
-      const articleLabel = this.readString(result.label) ?? result.title;
+      // `articles.label` is NOT NULL, so the update result always carries it.
+      const articleLabel = String(result.label);
       const articleSlug = this.readString(result.slug) ?? result.id;
 
       await this.notificationsService.sendArticleNotification({
@@ -445,8 +446,7 @@ export class ArticlesService extends BaseService<
         label: articleLabel,
         publicUrl,
         slug: articleSlug,
-        summary:
-          this.readString(result.summary) ?? this.readString(result.excerpt),
+        summary: this.readString(result.summary),
       });
 
       this.logger.log(

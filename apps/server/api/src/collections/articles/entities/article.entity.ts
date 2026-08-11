@@ -6,8 +6,6 @@ export class ArticleEntity extends BaseEntity implements Article {
   userId!: string;
   organizationId!: string;
   brandId!: string | null;
-  title!: string;
-  excerpt!: string | null;
   coverImageUrl!: string | null;
   banner?: string;
 

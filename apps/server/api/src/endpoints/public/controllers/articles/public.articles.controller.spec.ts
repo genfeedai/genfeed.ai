@@ -30,6 +30,27 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
   };
 });
 
+/**
+ * `page`/`limit`/`pagination`/`isDeleted`/`sort` are non-optional on
+ * `BaseQueryDto` — they carry initializers, not `?`. A partial object literal
+ * annotated `ArticlesQueryDto` is therefore a TS2739, which is why this file
+ * held four baselined spec-typecheck errors. Building the query through a
+ * factory supplies the framework defaults once and keeps each test's literal
+ * down to the field under test.
+ */
+function buildArticlesQuery(
+  overrides: Partial<ArticlesQueryDto> = {},
+): ArticlesQueryDto {
+  return {
+    isDeleted: false,
+    limit: 10,
+    page: 1,
+    pagination: true,
+    sort: 'createdAt: -1',
+    ...overrides,
+  };
+}
+
 describe('PublicArticlesController', () => {
   let controller: PublicArticlesController;
   let articlesService: ArticlesService;
@@ -115,10 +136,7 @@ describe('PublicArticlesController', () => {
   describe('findPublicArticles', () => {
     it('should return public articles', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-      };
+      const query = buildArticlesQuery();
 
       const articles = [mockArticle];
       mockArticlesService.findAll.mockResolvedValue({
@@ -137,11 +155,7 @@ describe('PublicArticlesController', () => {
 
     it('should filter by search term', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-        search: 'technology',
-      };
+      const query = buildArticlesQuery({ search: 'technology' });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [mockArticle],
@@ -156,16 +170,19 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findAll).toHaveBeenCalled();
       const call = mockArticlesService.findAll.mock.calls[0];
       const queryArg = call[0] as { where: Record<string, unknown> };
-      expect(queryArg.where.OR).toBeDefined();
+      // The searchable columns are `label`/`summary` since #2767 — the old
+      // `title`/`excerpt` spellings are unknown arguments to Prisma and made
+      // every `?search=` request 500.
+      expect(queryArg.where.OR).toEqual([
+        { label: { mode: 'insensitive', contains: 'technology' } },
+        { summary: { mode: 'insensitive', contains: 'technology' } },
+        { content: { mode: 'insensitive', contains: 'technology' } },
+      ]);
     });
 
     it('should filter by category', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        category: ArticleCategory.POST,
-        limit: 10,
-        page: 1,
-      };
+      const query = buildArticlesQuery({ category: ArticleCategory.POST });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [mockArticle],
@@ -183,13 +200,10 @@ describe('PublicArticlesController', () => {
       expect(queryArg.where.category).toBe(ArticleCategory.POST);
     });
 
-    it('should filter by tag', async () => {
+    it('should filter by tag through the Tag[] relation', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-        tag: '507f1f77bcf86cd799439999',
-      };
+      const tag = 'clz1a2b3c4d5e6f7g8h9i0j1n';
+      const query = buildArticlesQuery({ tag });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [],
@@ -201,7 +215,30 @@ describe('PublicArticlesController', () => {
 
       await controller.findPublicArticles(request, query);
 
-      expect(articlesService.findAll).toHaveBeenCalled();
+      const call = mockArticlesService.findAll.mock.calls[0];
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      // `tags` is a Tag[] relation, so it takes `{ some: { id } }`. Assigning
+      // the bare tag id was an unknown-argument error on every `?tag=` request.
+      expect(queryArg.where.tags).toEqual({ some: { id: tag } });
+    });
+
+    it('should ignore a tag that is not a valid entity id', async () => {
+      const request = {} as Request;
+      const query = buildArticlesQuery({ tag: 'not-an-id' });
+
+      mockArticlesService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 0,
+      });
+
+      await controller.findPublicArticles(request, query);
+
+      const call = mockArticlesService.findAll.mock.calls[0];
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where).not.toHaveProperty('tags');
     });
   });
 

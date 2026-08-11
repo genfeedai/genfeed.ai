@@ -1,0 +1,25 @@
+-- articles.title / articles.excerpt were the only place in the stack that used
+-- those spellings (#2767). Everything above Prisma — CreateArticleDto,
+-- UpdateArticleDto, articleAttributes, the JSON:API wire contract, the MCP
+-- response contract, packages/client's Article model, and ~35 UI call sites —
+-- reads and writes `label` and `summary`, matching Brand.label and
+-- Organization.label.
+--
+-- The mismatch was silent because ArticleDocument declares `label`/`summary` as
+-- optional Mongo-era aliases (see .agents/memory/rules/prisma_legacy_alias_fields.md):
+-- they type-check and are undefined at runtime. Consequences in production:
+--   * ArticlesService.createArticle spread `label` straight into
+--     prisma.article.create → "Unknown argument `label`", and the NOT NULL
+--     `title` column had no value to write, so API article creation failed.
+--   * ArticleSerializer emitted label: undefined / summary: undefined, so
+--     genfeed.ai/articles rendered blank card titles.
+--   * PublicArticlesController's ?search= filter targeted `label`, which Prisma
+--     rejected as an unknown argument.
+--
+-- Persistence follows the domain vocabulary rather than the other way round:
+-- renaming two columns is a smaller, safer change than rewriting the DTOs, the
+-- published wire contract, and every consumer.
+--
+-- RENAME COLUMN preserves data, defaults, and indexes; no backfill is needed.
+ALTER TABLE "articles" RENAME COLUMN "title" TO "label";
+ALTER TABLE "articles" RENAME COLUMN "excerpt" TO "summary";

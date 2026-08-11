@@ -15,7 +15,10 @@ const contentDirectory = fileURLToPath(new URL('../content', import.meta.url));
 
 // 54 → 52: #2538 retired core-loop/corpus-health and
 // core-loop/prelaunch-corpus-backfill without lowering the floor.
-const MINIMUM_DOCS_PAGES = 52;
+// 52 → 48: #2767 moved the prompting guide, asset prompting guide, prompt
+// templates, and launch-day playbook to genfeed.ai/articles — tutorial content
+// belongs on the main domain, docs stay product and developer reference.
+const MINIMUM_DOCS_PAGES = 48;
 
 function findMdxFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

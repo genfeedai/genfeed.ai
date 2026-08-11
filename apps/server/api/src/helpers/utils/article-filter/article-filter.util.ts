@@ -127,8 +127,8 @@ export class ArticleFilterUtil {
     const searchFilter = { contains: search.trim(), mode: 'insensitive' };
     return {
       OR: [
-        { title: searchFilter },
-        { excerpt: searchFilter },
+        { label: searchFilter },
+        { summary: searchFilter },
         { content: searchFilter },
       ],
     };

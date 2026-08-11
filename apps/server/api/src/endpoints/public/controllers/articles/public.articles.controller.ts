@@ -83,10 +83,10 @@ export class PublicArticlesController {
       matchQuery.category = category;
     }
 
-    // Add tag filter
-    if (tag) {
-      matchQuery.tags = tag;
-    }
+    // Add tag filter. `tags` is a Tag[] relation, so it takes a relation
+    // filter (`{ some: { id } }`), never a bare scalar — Prisma rejects the
+    // scalar form outright, which used to 500 every `?tag=` request.
+    Object.assign(matchQuery, ArticleFilterUtil.buildTagFilter(tag));
 
     // Filter by brand if provided
     if (brandId) {
