@@ -2,6 +2,8 @@ import messages from '../messages/en/common.json';
 
 type MessageNode = string | { readonly [key: string]: MessageNode };
 
+// Catalog files contain a namespace's messages; i18n/messages.ts is what
+// nests them. Mirror that shape so common.actions.cancel resolves here too.
 const catalog: MessageNode = { common: messages as MessageNode };
 
 /**
