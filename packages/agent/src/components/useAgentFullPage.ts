@@ -439,6 +439,26 @@ export function useAgentFullPage({
     // after the user returns to it.
     const isThreadDataFresh = isConversationCacheFresh(threadId);
 
+    // Everything else the thread response feeds has a second source (the
+    // cached conversation, `storeThreadStatus`, `useAgentThreadList`'s prompt
+    // write). These two do not: `workspacePlanningTaskId` is local state whose
+    // only populating writer is the skipped handler below, and
+    // `restoreCachedConversation` forces `draftPlanModeEnabled` to false. Left
+    // unset, a warm open hides the follow-up-tasks affordance and shows the
+    // composer's plan-mode toggle off. A thread can only be cache-fresh if it
+    // was prefetched or opened from the list, so its row is in the store — and
+    // the list serializes both `source` and `planModeEnabled`. Read at effect
+    // time rather than through a selector so this never re-runs the switch.
+    if (isThreadDataFresh) {
+      const listedThread = useAgentChatStore
+        .getState()
+        .threads.find((thread) => thread.id === threadId);
+      setWorkspacePlanningTaskId(
+        parseWorkspacePlanningTaskId(listedThread?.source),
+      );
+      setDraftPlanModeEnabled(listedThread?.planModeEnabled ?? false);
+    }
+
     const threadRequest = isThreadDataFresh
       ? null
       : runAgentApiEffect(

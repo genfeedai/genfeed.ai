@@ -40,8 +40,10 @@ interface UseAgentThreadPrefetchResult {
  * open, so the real switch (`useAgentFullPage`'s thread effect) is a cache
  * hit instead of a cold fetch. Only the messages payload — the one response
  * that gates paint — plus the snapshot (plan/pending-input/work-events) are
- * fetched; the thread record itself is refreshed on the real switch either
- * way and isn't worth prefetching.
+ * fetched. The thread record is deliberately not among them: priming stamps
+ * `cachedAt`, so the switch that follows sees a fresh cache and skips
+ * `getThread` too. `useAgentFullPage` covers that gap from the thread list
+ * row, which already carries every field the skipped handler would have set.
  */
 export function useAgentThreadPrefetch({
   apiService,

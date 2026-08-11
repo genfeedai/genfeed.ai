@@ -38,6 +38,7 @@ vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
       label: string;
       prompt: string;
     }>;
+    workspacePlanningTaskId?: string | null;
   }) => (
     <div>
       agent-chat-container
@@ -48,6 +49,11 @@ vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
       <div>{props.placeholder}</div>
       <div>{props.promptBarLayoutMode}</div>
       <div>{props.isWideLayout ? 'wide-layout' : 'standard-layout'}</div>
+      <div>
+        {props.workspacePlanningTaskId
+          ? `planning-task-${props.workspacePlanningTaskId}`
+          : 'no-planning-task'}
+      </div>
       <div>
         {(props.suggestedActions ?? []).map((action) => (
           <span key={action.id ?? action.label}>{action.label}</span>
@@ -132,7 +138,12 @@ interface StoreState {
   setThreadPrompt: ReturnType<typeof vi.fn>;
   setWorkEvents: ReturnType<typeof vi.fn>;
   seedComposer: ReturnType<typeof vi.fn>;
-  threads: Array<{ brandId?: string | null; id: string }>;
+  threads: Array<{
+    brandId?: string | null;
+    id: string;
+    planModeEnabled?: boolean;
+    source?: string;
+  }>;
   upsertThread: ReturnType<typeof vi.fn>;
 }
 
@@ -400,6 +411,37 @@ describe('AgentFullPage', () => {
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
     expect(apiService.getMessages).toHaveBeenCalledTimes(1);
     expect(storeState.setError).not.toHaveBeenCalled();
+  });
+
+  it('hydrates the planning task and plan mode from the listed thread when the cache is fresh (#2799)', async () => {
+    storeState.isConversationCacheFresh.mockReturnValue(true);
+    storeState.threads = [
+      {
+        id: 'thread-1',
+        planModeEnabled: true,
+        source: 'workspace-planning:task-42',
+      },
+    ];
+    const apiService = createApiService({
+      getMessages: vi.fn(
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue([], signal),
+      ),
+      getThread: vi.fn(),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    // The skipped `getThread` handler is the only writer of both values, so on
+    // a warm open they have to come from the list row instead.
+    await waitFor(() => {
+      expect(screen.getByText('planning-task-task-42')).toBeDefined();
+    });
+    expect(storeState.setDraftPlanModeEnabled).toHaveBeenCalledWith(true);
+    expect(apiService.getThread).not.toHaveBeenCalled();
   });
 
   it('still reports a load failure for a messages-only rejection when the cache is fresh (#2790)', async () => {
