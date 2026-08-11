@@ -326,6 +326,76 @@ type, direction, speed, focus changes, and any added elements.</p>
 rotation, 5 seconds, add floating dust particles, subtle focus pull from
 background to foreground."</p>
 
+<h2>The filmmaking lexicon: effects you can direct on purpose</h2>
+
+<p>Cinematic vocabulary is useful only when it changes the instruction you give
+the model. "Make it cinematic" hands every decision back to the generator.
+Naming the movement or optical effect tells it what changes, what stays stable,
+and where the viewer should look. Use the interactive effect lab above to see
+each principle before you add it to a prompt.</p>
+
+<h3>Film grain</h3>
+
+<p>Film grain is fine luminance and colour variation inherited from photosensitive
+film stock. In generated video it can soften a clinically digital image and
+help separate a memory, period setting, or documentary texture from the rest of
+a sequence. Ask for the stock character and restraint: <code>fine 35mm grain,
+mostly luminance noise, preserved skin detail</code>. Heavy uniform noise looks
+like compression damage rather than film.</p>
+
+<h3>Vignette</h3>
+
+<p>A vignette gradually darkens the frame toward its edges. It guides attention
+without changing the composition, but only while the viewer does not notice
+the mechanism. Prompt for a <code>restrained natural vignette with preserved
+edge detail</code>; avoid it when information at the edge of frame matters.</p>
+
+<h3>Rack focus</h3>
+
+<p>A rack focus changes the focal plane during one shot. The camera can remain
+locked while attention moves from a foreground subject to a background subject,
+revealing a relationship without a cut. Name both endpoints and the order:
+<code>begin focused on the foreground glass, then smoothly shift focus to the
+person in the doorway</code>.</p>
+
+<h3>Dolly zoom</h3>
+
+<p>A dolly zoom moves the camera while changing focal length in the opposite
+direction. The subject stays nearly the same size while background perspective
+stretches or compresses. It signals shock, unease, or a sudden change in
+perception. A usable instruction specifies both coordinated moves: <code>dolly
+backward while zooming in, keep the subject size locked, let the corridor
+expand behind them</code>.</p>
+
+<h3>Whip pan</h3>
+
+<p>A whip pan crosses the scene fast enough to create directional motion blur.
+It adds energy, redirects attention, or hides a transition between two shots
+with matched direction. Include the launch direction, landing subject, and
+speed curve: <code>fast left-to-right whip pan, clean acceleration, settle on
+the product in a stable final frame</code>.</p>
+
+<h3>Colour grade</h3>
+
+<p>Colour grading shapes contrast and colour after capture. Describe a
+relationship rather than one global tint: <code>warm amber highlights, slightly
+cool shadows, natural skin tones, neutral whites</code>. That gives the model a
+palette while preserving believable materials.</p>
+
+<h3>Combine effects with one visual priority</h3>
+
+<p>Effects multiply each other. A dolly zoom, heavy grain, hard vignette, flare,
+and aggressive grade in the same five-second clip give the viewer five competing
+instructions. Start with one narrative job, choose the effect that performs it,
+and add a second only when it supports the first.</p>
+
+<pre><code>Scene: A founder alone in a bright office after the team leaves.
+Camera: Slow dolly backward while zooming in; keep the founder the same size.
+Focus: Founder remains sharp; background perspective expands.
+Grade: Restrained cool shadows with neutral skin tones.
+Texture: Fine 35mm luminance grain at low strength.
+Duration: 6 seconds, smooth movement, stable final frame.</code></pre>
+
 <h2>Audio</h2>
 
 <h3>Voice</h3>
@@ -1267,7 +1337,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
     label: 'How to prompt AI images, videos, and audio',
     slug: 'how-to-prompt-ai-images-videos-and-audio',
     summary:
-      'Prompt skeletons for image, video, and audio generation — subject, style, environment, lighting, composition — with worked examples.',
+      'Prompt skeletons for image, video, and audio generation, plus an interactive filmmaking lexicon for previewing and applying cinematic effects.',
   },
   {
     category: ArticleCategory.LISTICLE,
