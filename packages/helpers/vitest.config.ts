@@ -5,10 +5,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@constants': path.resolve(__dirname, '../ui/constants'),
-      '@genfeedai/auth-client': path.resolve(
-        __dirname,
-        '../auth-client/src/index.ts',
-      ),
       '@genfeedai/constants': path.resolve(
         __dirname,
         '../constants/dist/index.js',

@@ -2,7 +2,6 @@
   "$schema-note": "Single source of truth for which public packages the automated npm release lane publishes. Every package under packages/ with a public publishConfig must appear in exactly one of enrolled/excluded, so adding a publishable package is a deliberate release decision instead of a silent one. Enforced by scripts/npm-release-plan.mjs (bun run check:npm-release).",
   "enrolled": [
     "packages/api-types",
-    "packages/auth-client",
     "packages/cli",
     "packages/client",
     "packages/constants",
@@ -19,6 +18,7 @@
     "packages/workflows"
   ],
   "excluded": {
+    "packages/auth-client": "Consumed only by apps and private packages (contexts, hooks), never by a published one. Never published to npm; npm OIDC cannot perform a first publish, so enrolling it requires a one-time owner-authenticated bootstrap first.",
     "packages/harness": "Never published to npm and no enrolled package depends on it at runtime. npm OIDC cannot perform a first publish, so enrolling it requires a one-time owner-authenticated bootstrap first.",
     "packages/queue-contracts": "Never published to npm and no enrolled package depends on it at runtime. npm OIDC cannot perform a first publish, so enrolling it requires a one-time owner-authenticated bootstrap first."
   }
