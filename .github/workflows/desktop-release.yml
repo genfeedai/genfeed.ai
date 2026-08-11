@@ -25,6 +25,7 @@ jobs:
       DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
       DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
       GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
+      GENFEED_DESKTOP_VISUAL_QA_SESSION: ${{ secrets.GENFEED_DESKTOP_VISUAL_QA_SESSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -149,7 +150,19 @@ jobs:
           spctl --assess --type execute --verbose=2 "$APP_PATH"
 
       - name: Capture packaged visual QA
+        if: env.GENFEED_DESKTOP_VISUAL_QA_SESSION != ''
         run: bun run --filter=@genfeedai/desktop visual:qa:release
+
+      - name: Record deferred authenticated visual QA
+        if: env.GENFEED_DESKTOP_VISUAL_QA_SESSION == ''
+        run: |
+          echo "::warning::GENFEED_DESKTOP_VISUAL_QA_SESSION is not configured — authenticated screenshot evidence is deferred."
+          {
+            echo "## Desktop visual QA"
+            echo
+            echo "Authenticated screenshot evidence was deferred because the optional release-only session fixture is not configured."
+            echo "Desktop QA, smoke, signing, notarization, and Gatekeeper verification remain required."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
@@ -164,6 +177,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload visual QA screenshots
+        if: env.GENFEED_DESKTOP_VISUAL_QA_SESSION != ''
         uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-visual-qa
@@ -188,6 +202,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
+          make_latest: false
           fail_on_unmatched_files: true
           files: |
             release/*

@@ -82,9 +82,26 @@ describe('desktop release QA', () => {
     expect(mainProcess).toContain("'restart-persistence.png'");
     expect(mainProcess).toContain("'expired-credential-recovery.png'");
     expect(releaseWorkflow).toContain('apps/desktop/app/visual-qa/*.png');
+    expect(releaseWorkflow).toContain(
+      'GENFEED_DESKTOP_VISUAL_QA_SESSION: $' +
+        '{{ secrets.GENFEED_DESKTOP_VISUAL_QA_SESSION }}',
+    );
+    expect(releaseWorkflow).toContain(
+      "if: env.GENFEED_DESKTOP_VISUAL_QA_SESSION != ''",
+    );
+    expect(releaseWorkflow).toContain(
+      "if: env.GENFEED_DESKTOP_VISUAL_QA_SESSION == ''",
+    );
     expect(releaseWorkflow).not.toContain(
       'apps/desktop/app/release/visual-qa/*.png',
     );
+  });
+
+  it('keeps desktop releases out of the self-hosted latest channel', () => {
+    const releaseWorkflow = readText('.github/workflows/desktop-release.yml');
+
+    expect(releaseWorkflow).toContain('tag_name: $' + '{{ github.ref_name }}');
+    expect(releaseWorkflow).toContain('make_latest: false');
   });
 
   it('documents the manual desktop release evidence checklist', () => {
