@@ -68,7 +68,12 @@ export const returnInternalServerError = (
 };
 
 export const setTopLinks = (
-  req: Request,
+  // `originalUrl` is the only thing this reads, and stating that is what the
+  // type should say. A full `Request` structurally satisfies it, so both
+  // callers below pass unchanged — while callers holding just a URL (specs
+  // most of all) no longer need to fabricate 100+ unused express members or
+  // launder a stub through `as unknown as Request`.
+  req: Pick<Request, 'originalUrl'>,
   serializerOptions: Record<string, unknown>,
   data: Record<string, unknown>,
 ) => {
