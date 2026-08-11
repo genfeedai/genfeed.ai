@@ -1,6 +1,13 @@
-import messages from '../messages/en/common.json';
+import common from '../messages/en/common.json';
 
 type MessageNode = string | { readonly [key: string]: MessageNode };
+
+/**
+ * The catalog files hold a namespace's contents, not the namespace itself —
+ * `i18n/messages.ts` is what nests them. Mirror that here so a lookup of
+ * `common.actions.cancel` resolves.
+ */
+const MESSAGES = { common } as unknown as MessageNode;
 
 /**
  * `vi.mock('next-intl')` replacement that resolves keys against the real
@@ -14,7 +21,7 @@ type MessageNode = string | { readonly [key: string]: MessageNode };
 export function translateFromCatalog(namespace: string) {
   return (key: string, values?: Record<string, string | number>): string => {
     const path = `${namespace}.${key}`;
-    let node: MessageNode = messages as MessageNode;
+    let node: MessageNode = MESSAGES;
 
     for (const segment of path.split('.')) {
       if (typeof node === 'string') {
