@@ -14,21 +14,132 @@ import type {
   AgentUiAction,
 } from '@genfeedai/interfaces';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
 
+// #2517 defaults — mirrored by AGENT_STREAM_COALESCE_WINDOW_MS /
+// AGENT_STREAM_COALESCE_MAX_BYTES in packages/config/src/schemas/ai.schema.ts.
+// Kept here only as a last-resort fallback if ConfigService is unavailable
+// (e.g. constructed outside DI in a test).
+const DEFAULT_COALESCE_WINDOW_MS = 50;
+const DEFAULT_COALESCE_MAX_BYTES = 2048;
+
+/**
+ * A run's buffered-but-not-yet-published live token deltas. Deltas are no
+ * longer persisted per-token (#2517 item 1 — `assistant.finalized` is the
+ * durable record); this buffer exists purely to coalesce the live transport
+ * fan-out so a fast-streaming LLM response collapses from one Redis publish
+ * + socket.io emit per token into a handful of publishes per response.
+ *
+ * `threadId`/`runId`/`userId` are captured once, from the first token of the
+ * run, and reused for every flush of that key — the thread and caller cannot
+ * change mid-run, so re-validating per token is wasted work on the hot path.
+ */
+interface PendingTokenBuffer {
+  bytes: number;
+  runId?: string;
+  threadId: string;
+  timer?: ReturnType<typeof setTimeout>;
+  tokens: string[];
+  userId: string;
+}
+
 @Injectable()
 export class AgentStreamPublisherService {
+  private readonly constructorName = String(this.constructor.name);
+  private readonly pendingTokenBuffers = new Map<string, PendingTokenBuffer>();
+
   constructor(
     private readonly redisService: RedisService,
+    private readonly loggerService: LoggerService,
     @Optional()
     private readonly agentThreadsService?: AgentThreadsService,
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
+    @Optional()
+    private readonly configService?: ConfigService,
   ) {}
+
+  private getCoalesceWindowMs(): number {
+    return (
+      Number(this.configService?.get('AGENT_STREAM_COALESCE_WINDOW_MS')) ||
+      DEFAULT_COALESCE_WINDOW_MS
+    );
+  }
+
+  private getCoalesceMaxBytes(): number {
+    return (
+      Number(this.configService?.get('AGENT_STREAM_COALESCE_MAX_BYTES')) ||
+      DEFAULT_COALESCE_MAX_BYTES
+    );
+  }
+
+  private tokenBufferKey(threadId: string, runId?: string): string {
+    return `${threadId}:${runId ?? 'stream'}`;
+  }
+
+  /**
+   * Pop and clear the pending buffer for `key`, returning a ready-to-publish
+   * Redis batch entry (or `null` if there was nothing buffered). Clears any
+   * armed flush timer so a stale timer can never fire against an
+   * already-flushed / already-deleted buffer entry.
+   */
+  private buildFlushEntry(
+    key: string,
+  ): { channel: string; message: unknown } | null {
+    const pending = this.pendingTokenBuffers.get(key);
+    if (!pending) {
+      return null;
+    }
+
+    if (pending.timer) {
+      clearTimeout(pending.timer);
+    }
+    this.pendingTokenBuffers.delete(key);
+
+    if (pending.tokens.length === 0) {
+      return null;
+    }
+
+    return {
+      channel: CHANNEL,
+      message: {
+        data: {
+          runId: pending.runId,
+          threadId: pending.threadId,
+          token: pending.tokens.join(''),
+          timestamp: new Date().toISOString(),
+          userId: pending.userId,
+        },
+        type: 'agent:token',
+      },
+    };
+  }
+
+  /**
+   * Timer-triggered flush. Runs outside any caller's awaited chain (it's
+   * scheduled via `setTimeout`), so unlike the byte-threshold flush inside
+   * `publishToken` — whose promise is awaited and errors bubble to the
+   * caller's own `Effect.catchAll` — this path must swallow and log its own
+   * errors or it becomes an unhandled promise rejection.
+   */
+  private flushTokenBufferOnTimer(key: string): void {
+    const entry = this.buildFlushEntry(key);
+    if (!entry) {
+      return;
+    }
+    this.redisService.publish(entry.channel, entry.message).catch((error) => {
+      this.loggerService.warn(
+        `${this.constructorName} coalesced token flush failed for ${key}`,
+        { error: error instanceof Error ? error.message : String(error) },
+      );
+    });
+  }
 
   private async persistThreadEvent(
     threadId: string,
@@ -141,26 +252,56 @@ export class AgentStreamPublisherService {
     return fromPromiseEffect(() => this.publishToken(data)).pipe(Effect.asVoid);
   }
 
+  /**
+   * Live-transport only (#2517 item 1) — token deltas are no longer persisted
+   * as `assistant.delta` thread events. `assistant.finalized` (written once,
+   * in `publishDone`) is the durable record; deltas exist solely to drive the
+   * live UI. `'assistant.delta'` remains a valid `persistThreadEvent` type
+   * and thread-timeline branch for historical rows written before this
+   * change, and for the CLI's independent event-type vocabulary — only the
+   * write here was removed.
+   *
+   * Deltas are buffered per run (#2517 item 2) and flushed as one Redis
+   * publish when the coalescing window elapses or the byte threshold is hit,
+   * whichever is first — collapsing what would otherwise be one Redis
+   * publish + socket.io emit per LLM token into a handful per response.
+   */
   async publishToken(data: {
     threadId: string;
     runId?: string;
     token: string;
     userId: string;
-  }) {
-    await this.persistThreadEvent(data.threadId, {
-      commandId: `assistant-delta:${data.threadId}:${data.runId ?? 'stream'}`,
-      payload: {
-        content: data.token,
-      },
-      runId: data.runId,
-      type: 'assistant.delta',
-      userId: data.userId,
-    });
+  }): Promise<void> {
+    const key = this.tokenBufferKey(data.threadId, data.runId);
+    let pending = this.pendingTokenBuffers.get(key);
+    if (!pending) {
+      pending = {
+        bytes: 0,
+        runId: data.runId,
+        threadId: data.threadId,
+        tokens: [],
+        userId: data.userId,
+      };
+      this.pendingTokenBuffers.set(key, pending);
+    }
 
-    await this.redisService.publish(CHANNEL, {
-      data: { ...data, timestamp: new Date().toISOString() },
-      type: 'agent:token',
-    });
+    pending.tokens.push(data.token);
+    pending.bytes += Buffer.byteLength(data.token, 'utf8');
+
+    if (pending.bytes >= this.getCoalesceMaxBytes()) {
+      const entry = this.buildFlushEntry(key);
+      if (entry) {
+        await this.redisService.publish(entry.channel, entry.message);
+      }
+      return;
+    }
+
+    if (!pending.timer) {
+      pending.timer = setTimeout(() => {
+        this.flushTokenBufferOnTimer(key);
+      }, this.getCoalesceWindowMs());
+      pending.timer.unref?.();
+    }
   }
 
   publishReasoningEffect(
@@ -354,10 +495,25 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
-      data: { ...data, timestamp: new Date().toISOString() },
-      type: 'agent:done',
-    });
+    // Force-flush any buffered-but-unpublished token deltas synchronously so
+    // no trailing text is lost when the run ends (#2517 item 2), and pipeline
+    // it with the `agent:done` publish instead of awaiting each sequentially
+    // (#2517 item 3). ioredis pipelines preserve command order, so the
+    // trailing tokens are guaranteed to arrive before `agent:done`.
+    const flushEntry = this.buildFlushEntry(
+      this.tokenBufferKey(data.threadId, data.runId),
+    );
+    const doneEntry = {
+      channel: CHANNEL,
+      message: {
+        data: { ...data, timestamp: new Date().toISOString() },
+        type: 'agent:done',
+      },
+    };
+
+    await this.redisService.publishBatch(
+      flushEntry ? [flushEntry, doneEntry] : [doneEntry],
+    );
   }
 
   publishErrorEffect(
@@ -382,10 +538,24 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
-      data: { ...data, timestamp: new Date().toISOString() },
-      type: 'agent:error',
-    });
+    // Both failure and cancellation route through here (see
+    // publishStreamCancelledEffect/publishStreamFailureEffect) — force-flush
+    // any buffered token deltas so partial text isn't silently dropped right
+    // before the error surfaces, and so the buffer's Map entry never leaks.
+    const flushEntry = this.buildFlushEntry(
+      this.tokenBufferKey(data.threadId, data.runId),
+    );
+    const errorEntry = {
+      channel: CHANNEL,
+      message: {
+        data: { ...data, timestamp: new Date().toISOString() },
+        type: 'agent:error',
+      },
+    };
+
+    await this.redisService.publishBatch(
+      flushEntry ? [flushEntry, errorEntry] : [errorEntry],
+    );
   }
 
   publishUIBlocksEffect(

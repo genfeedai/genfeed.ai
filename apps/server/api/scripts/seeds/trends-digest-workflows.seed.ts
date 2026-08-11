@@ -21,6 +21,10 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import { PrismaClient } from '@genfeedai/prisma';
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -153,7 +157,11 @@ function createPrismaClient(): PrismaClient {
     throw new Error('DATABASE_URL environment variable is not set');
   }
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+      }),
+    ),
   });
 }
 

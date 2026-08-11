@@ -20,6 +20,7 @@ type RedisClientSubset = Pick<
   | 'connect'
   | 'duplicate'
   | 'on'
+  | 'pipeline'
   | 'publish'
   | 'quit'
   | 'subscribe'
@@ -66,6 +67,21 @@ describe('RedisService', () => {
         }
         return client as unknown as Redis;
       }) as unknown as Mocked<RedisClientSubset>['on'],
+      pipeline: vi.fn(() => {
+        const queued: Array<[string, string]> = [];
+        const pipelineStub = {
+          exec: vi
+            .fn()
+            .mockResolvedValue(
+              queued.map(() => [null, 1] as [Error | null, number]),
+            ),
+          publish: vi.fn((channel: string, message: string) => {
+            queued.push([channel, message]);
+            return pipelineStub;
+          }),
+        };
+        return pipelineStub as unknown as ReturnType<Redis['pipeline']>;
+      }) as unknown as Mocked<RedisClientSubset>['pipeline'],
       publish: vi.fn().mockResolvedValue(1),
       quit: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn().mockResolvedValue(undefined),
@@ -283,5 +299,111 @@ describe('RedisService', () => {
     subscriber.emitMessage('flaky-channel', JSON.stringify({ retried: true }));
 
     expect(handler).toHaveBeenCalledWith({ retried: true });
+  });
+
+  describe('publishBatch', () => {
+    it('should no-op on an empty batch without touching Redis', async () => {
+      const publisher = buildMockClient();
+      const subscriber = buildMockClient();
+
+      vi.mocked(Redis)
+        .mockImplementationOnce(() => publisher as unknown as Redis)
+        .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+      createService();
+      await service.onModuleInit();
+
+      await expect(service.publishBatch([])).resolves.toBeUndefined();
+
+      expect(publisher.publish).not.toHaveBeenCalled();
+      expect(publisher.pipeline).not.toHaveBeenCalled();
+    });
+
+    it('should delegate a single-entry batch to publish() instead of a pipeline', async () => {
+      const publisher = buildMockClient();
+      const subscriber = buildMockClient();
+
+      vi.mocked(Redis)
+        .mockImplementationOnce(() => publisher as unknown as Redis)
+        .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+      createService();
+      await service.onModuleInit();
+
+      await service.publishBatch([
+        { channel: 'agent-chat', message: { type: 'agent:done' } },
+      ]);
+
+      expect(publisher.publish).toHaveBeenCalledOnce();
+      expect(publisher.publish).toHaveBeenCalledWith(
+        'agent-chat',
+        JSON.stringify({ type: 'agent:done' }),
+      );
+      expect(publisher.pipeline).not.toHaveBeenCalled();
+    });
+
+    it('should pipeline a multi-entry batch into a single round trip, preserving order', async () => {
+      const publisher = buildMockClient();
+      const subscriber = buildMockClient();
+
+      vi.mocked(Redis)
+        .mockImplementationOnce(() => publisher as unknown as Redis)
+        .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+      createService();
+      await service.onModuleInit();
+
+      await service.publishBatch([
+        {
+          channel: 'agent-chat',
+          message: { token: 'hello', type: 'agent:token' },
+        },
+        { channel: 'agent-chat', message: { type: 'agent:done' } },
+      ]);
+
+      expect(publisher.publish).not.toHaveBeenCalled();
+      expect(publisher.pipeline).toHaveBeenCalledOnce();
+
+      const pipelineResult = publisher.pipeline.mock.results[0]
+        ?.value as unknown as {
+        exec: ReturnType<typeof vi.fn>;
+        publish: ReturnType<typeof vi.fn>;
+      };
+
+      expect(pipelineResult.publish).toHaveBeenCalledTimes(2);
+      expect(pipelineResult.publish).toHaveBeenNthCalledWith(
+        1,
+        'agent-chat',
+        JSON.stringify({ token: 'hello', type: 'agent:token' }),
+      );
+      expect(pipelineResult.publish).toHaveBeenNthCalledWith(
+        2,
+        'agent-chat',
+        JSON.stringify({ type: 'agent:done' }),
+      );
+      expect(pipelineResult.exec).toHaveBeenCalledOnce();
+    });
+
+    it('should no-op with a warning when Redis is not initialized', async () => {
+      createService();
+
+      await expect(
+        service.publishBatch([
+          {
+            channel: 'agent-chat',
+            message: { token: 'a', type: 'agent:token' },
+          },
+          {
+            channel: 'agent-chat',
+            message: { token: 'b', type: 'agent:token' },
+          },
+        ]),
+      ).resolves.toBeUndefined();
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Redis not initialized'),
+        expect.objectContaining({ service: 'RedisService' }),
+      );
+    });
   });
 });

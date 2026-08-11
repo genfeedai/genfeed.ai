@@ -97,16 +97,19 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
-      const messages = await this.agentMessagesService.getMessagesByRoom(
+      const page = await this.agentMessagesService.getMessagesPage(
         threadId,
         organizationId,
         { cursor, limit: messageLimit },
       );
 
-      const chronological = [...messages].reverse();
+      const chronological = [...page.docs].reverse();
 
       return serializeCollection(req, ThreadMessageSerializer, {
         docs: chronological,
+        hasMore: page.hasMore,
+        limit: messageLimit,
+        nextCursor: page.nextCursor,
       });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getMessages');

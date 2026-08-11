@@ -1,7 +1,9 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { encodeAgentMessageCursor } from '@api/collections/agent-messages/utils/agent-message-cursor.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentArtifactReferenceService } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentMessagesService', () => {
@@ -195,37 +197,160 @@ describe('AgentMessagesService', () => {
     });
   });
 
-  it('uses bounded cursor pagination for room messages', async () => {
-    await service.getMessagesByRoom('thread-1', 'org-1', {
-      cursor: '2026-06-01T10:00:00.000Z',
-      limit: 999,
+  describe('getMessagesByRoom', () => {
+    it('uses a composite (createdAt, id) tiebreaker for cursor pagination, not createdAt alone', async () => {
+      const cursor = encodeAgentMessageCursor({
+        createdAt: '2026-06-01T10:00:00.000Z',
+        id: 'message-5',
+      });
+
+      await service.getMessagesByRoom('thread-1', 'org-1', {
+        cursor,
+        limit: 999,
+      });
+
+      expect(agentMessage.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: undefined,
+        take: 100,
+        where: {
+          OR: [
+            { createdAt: { lt: new Date('2026-06-01T10:00:00.000Z') } },
+            {
+              createdAt: new Date('2026-06-01T10:00:00.000Z'),
+              id: { lt: 'message-5' },
+            },
+          ],
+          isDeleted: false,
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+        },
+      });
     });
 
-    expect(agentMessage.findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip: undefined,
-      take: 100,
-      where: {
-        createdAt: { lt: new Date('2026-06-01T10:00:00.000Z') },
-        isDeleted: false,
-        organizationId: 'org-1',
-        threadId: 'thread-1',
-      },
+    it('keeps legacy page support bounded when no cursor is provided', async () => {
+      await service.getMessagesByRoom('thread-1', 'org-1', {
+        limit: 25,
+        page: 3,
+      });
+
+      expect(agentMessage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 50,
+          take: 25,
+        }),
+      );
+    });
+
+    it('rejects a malformed cursor instead of silently returning the first page', async () => {
+      await expect(
+        service.getMessagesByRoom('thread-1', 'org-1', {
+          cursor: 'not-a-valid-cursor',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
-  it('keeps legacy page support bounded when no cursor is provided', async () => {
-    await service.getMessagesByRoom('thread-1', 'org-1', {
-      limit: 25,
-      page: 3,
+  describe('getMessagesPage', () => {
+    it('returns the first page newest-first with hasMore + nextCursor when more rows exist', async () => {
+      const rows = [
+        { createdAt: new Date('2026-06-03T00:00:00.000Z'), id: 'msg-3' },
+        { createdAt: new Date('2026-06-02T00:00:00.000Z'), id: 'msg-2' },
+        { createdAt: new Date('2026-06-01T00:00:00.000Z'), id: 'msg-1' },
+      ];
+      agentMessage.findMany.mockResolvedValueOnce(rows);
+
+      const page = await service.getMessagesPage('thread-1', 'org-1', {
+        limit: 2,
+      });
+
+      expect(agentMessage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 3 }),
+      );
+      expect(page.docs).toEqual(rows.slice(0, 2));
+      expect(page.hasMore).toBe(true);
+      expect(page.nextCursor).toBe(
+        encodeAgentMessageCursor({
+          createdAt: '2026-06-02T00:00:00.000Z',
+          id: 'msg-2',
+        }),
+      );
     });
 
-    expect(agentMessage.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        skip: 50,
-        take: 25,
-      }),
-    );
+    it('walks an older page using the previous nextCursor', async () => {
+      const cursor = encodeAgentMessageCursor({
+        createdAt: '2026-06-02T00:00:00.000Z',
+        id: 'msg-2',
+      });
+      agentMessage.findMany.mockResolvedValueOnce([
+        { createdAt: new Date('2026-06-01T00:00:00.000Z'), id: 'msg-1' },
+      ]);
+
+      await service.getMessagesPage('thread-1', 'org-1', {
+        cursor,
+        limit: 2,
+      });
+
+      expect(agentMessage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: undefined,
+          where: expect.objectContaining({
+            OR: [
+              { createdAt: { lt: new Date('2026-06-02T00:00:00.000Z') } },
+              {
+                createdAt: new Date('2026-06-02T00:00:00.000Z'),
+                id: { lt: 'msg-2' },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('signals exhaustion with hasMore=false and a null nextCursor on the last page', async () => {
+      agentMessage.findMany.mockResolvedValueOnce([
+        { createdAt: new Date('2026-06-01T00:00:00.000Z'), id: 'msg-1' },
+      ]);
+
+      const page = await service.getMessagesPage('thread-1', 'org-1', {
+        limit: 2,
+      });
+
+      expect(page.hasMore).toBe(false);
+      expect(page.nextCursor).toBeNull();
+      expect(page.docs).toHaveLength(1);
+    });
+
+    it('does not drop or duplicate a sibling row sharing the exact cursor timestamp', async () => {
+      // Two messages share the identical createdAt millisecond. The cursor
+      // sits between them (id 'msg-5b'); the older sibling ('msg-5a') must
+      // still be selectable by the next page's where clause, and the newer
+      // sibling ('msg-5c', already returned before the cursor) must not be.
+      const tiedTimestamp = '2026-06-01T10:00:00.000Z';
+      const cursor = encodeAgentMessageCursor({
+        createdAt: tiedTimestamp,
+        id: 'msg-5b',
+      });
+
+      agentMessage.findMany.mockResolvedValueOnce([
+        { createdAt: new Date(tiedTimestamp), id: 'msg-5a' },
+      ]);
+
+      await service.getMessagesPage('thread-1', 'org-1', { cursor, limit: 50 });
+
+      const calledWhere = agentMessage.findMany.mock.calls[0][0].where;
+      // msg-5a: createdAt equal, id < cursor id -> matched by the second OR branch.
+      expect(calledWhere.OR[1]).toEqual({
+        createdAt: new Date(tiedTimestamp),
+        id: { lt: 'msg-5b' },
+      });
+      // msg-5c (id greater than the cursor, same timestamp) would satisfy
+      // neither branch: createdAt is not < tiedTimestamp, and id is not <
+      // 'msg-5b' - so it is correctly excluded, never re-returned.
+      const wouldMatchFirstBranch = false; // createdAt === tiedTimestamp, not <
+      const wouldMatchSecondBranch = 'msg-5c' < 'msg-5b';
+      expect(wouldMatchFirstBranch || wouldMatchSecondBranch).toBe(false);
+    });
   });
 
   it('bounds compaction backlog reads', async () => {

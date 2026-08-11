@@ -645,12 +645,25 @@ export function collapseSupersededSnapshotCards(
   });
 }
 
-export function deriveTimeline(
+export interface HistoricalTimeline {
+  entries: TimelineEntry[];
+  activeEvents: AgentWorkEvent[];
+}
+
+/**
+ * Pure derivation of the settled portion of the timeline — message and
+ * work-group entries. Depends only on `messages`, `workEvents`, and the
+ * single `isStreaming` boolean (which decides whether in-flight work events
+ * are held out as "active" rather than folded into history). It does NOT
+ * depend on `streamingContent` / `streamingReasoning` / `activeToolCalls`,
+ * so callers can memoize this independent of per-token stream updates —
+ * see `use-agent-chat-container.ts`.
+ */
+export function deriveHistoricalTimeline(
   messages: AgentChatMessage[],
   workEvents: AgentWorkEvent[],
-  streamState: TimelineStreaming['streamState'],
-  runDurationLabel: string | null,
-): TimelineEntry[] {
+  isStreaming: boolean,
+): HistoricalTimeline {
   const entries: TimelineEntry[] = [];
   const displayMessages = collapseSupersededSnapshotCards(messages);
   const assistantMessages = displayMessages.filter(
@@ -681,13 +694,12 @@ export function deriveTimeline(
     AgentWorkEventStatus.RUNNING,
     AgentWorkEventStatus.PENDING,
   ]);
-  const isStreamActive = streamState.isStreaming;
 
   const historicalEvents: EnrichedWorkEvent[] = [];
   const activeEvents: AgentWorkEvent[] = [];
 
   for (const event of workEvents) {
-    if (isStreamActive && activeStatuses.has(event.status)) {
+    if (isStreaming && activeStatuses.has(event.status)) {
       activeEvents.push(event);
     } else {
       // Stream is idle — never keep tools "running" in history or the UI
@@ -759,24 +771,58 @@ export function deriveTimeline(
   // 7. Settled work summary after the answer for that turn
   const ordered = placeWorkGroupsAfterAnswers(entries);
 
-  // 8. Append streaming entry if active (always last while live)
-  if (
-    isStreamActive ||
+  return { activeEvents, entries: ordered };
+}
+
+/**
+ * Appends the live streaming row (if any) to a previously-derived historical
+ * timeline. This is the only part of the timeline that depends on
+ * `streamingContent` / `streamingReasoning` / `activeToolCalls`, so it is
+ * kept as a cheap, separate composition step rather than folded back into
+ * `deriveHistoricalTimeline`.
+ */
+export function composeTimelineWithStream(
+  historical: HistoricalTimeline,
+  streamState: TimelineStreaming['streamState'],
+  runDurationLabel: string | null,
+): TimelineEntry[] {
+  const { entries, activeEvents } = historical;
+
+  const hasLiveContent =
+    streamState.isStreaming ||
     streamState.activeToolCalls.length > 0 ||
     streamState.streamingContent ||
-    streamState.streamingReasoning
-  ) {
-    ordered.push({
+    streamState.streamingReasoning;
+
+  if (!hasLiveContent) {
+    return entries;
+  }
+
+  return [
+    ...entries,
+    {
       createdAt: new Date().toISOString(),
       id: 'streaming-current',
       kind: 'streaming',
       runDurationLabel,
       streamState,
       workEvents: activeEvents,
-    });
-  }
+    },
+  ];
+}
 
-  return ordered;
+export function deriveTimeline(
+  messages: AgentChatMessage[],
+  workEvents: AgentWorkEvent[],
+  streamState: TimelineStreaming['streamState'],
+  runDurationLabel: string | null,
+): TimelineEntry[] {
+  const historical = deriveHistoricalTimeline(
+    messages,
+    workEvents,
+    streamState.isStreaming,
+  );
+  return composeTimelineWithStream(historical, streamState, runDurationLabel);
 }
 
 /**

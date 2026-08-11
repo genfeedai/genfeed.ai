@@ -20,6 +20,10 @@ import process from 'node:process';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostStatus } from '@genfeedai/enums';
 import { PrismaClient } from '@genfeedai/prisma';
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -287,8 +291,17 @@ async function main(): Promise<void> {
     logger.warn('LIVE mode: invalid posts.status values will be rewritten.');
   }
 
+  // TLS is resolved through the same factory `PrismaService` uses rather than
+  // handing the raw URL to the adapter. RDS forces SSL and pg 8.22 treats
+  // `sslmode=require` as `verify-full`, so a connection string that works for
+  // the deployed API fails from a laptop, which has no bundled CA at
+  // `/certs/rds-ca.pem`.
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl }),
+    adapter: new PrismaPg(
+      createPrismaPgConfig(databaseUrl, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+      }),
+    ),
     log: ['error'],
   });
 

@@ -1,4 +1,9 @@
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import {
+  buildAgentMessageCursorWhere,
+  decodeAgentMessageCursor,
+  encodeAgentMessageCursor,
+} from '@api/collections/agent-messages/utils/agent-message-cursor.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -44,6 +49,17 @@ type AgentMessagePageOptions = {
   limit?: number;
   page?: number;
 };
+
+/**
+ * Keyset-paginated window over a thread's messages, newest-first. `hasMore`
+ * / `nextCursor` tell the caller whether an older page exists and how to
+ * fetch it; `nextCursor` is `null` once the thread is exhausted.
+ */
+export interface AgentMessagePage {
+  docs: AgentMessageDocument[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
 
 const DEFAULT_AGENT_MESSAGE_LIMIT = 50;
 const MAX_AGENT_MESSAGE_LIMIT = 100;
@@ -130,29 +146,94 @@ export class AgentMessagesService extends BaseService<
     });
   }
 
+  /**
+   * Messages for a thread, newest-first, bounded array (no pagination
+   * metadata). Used by internal callers (task planning, orchestrator,
+   * runtime controller) that only ever page by `page`/`limit` and consume a
+   * plain array. Kept return-shape stable for those callers; use
+   * `getMessagesPage` for a UI-facing paginated read.
+   */
   async getMessagesByRoom(
     roomId: string,
     organizationId: string,
     options: AgentMessagePageOptions = {},
   ): Promise<AgentMessageDocument[]> {
+    const { rows } = await this.queryMessagesByRoom(
+      roomId,
+      organizationId,
+      options,
+      false,
+    );
+    return rows;
+  }
+
+  /**
+   * Keyset-paginated window over a thread's messages, newest-first, walking
+   * backward (older) as the cursor advances. Stable under concurrent
+   * inserts: the composite `(createdAt, id)` cursor (see
+   * `agent-message-cursor.util.ts`) never drops or duplicates rows that
+   * share a `createdAt` millisecond, unlike a `createdAt`-only comparison.
+   *
+   * Fetches `limit + 1` rows to detect `hasMore` without a separate COUNT
+   * query, then slices back to `limit`.
+   */
+  async getMessagesPage(
+    roomId: string,
+    organizationId: string,
+    options: AgentMessagePageOptions = {},
+  ): Promise<AgentMessagePage> {
+    const { rows, limit } = await this.queryMessagesByRoom(
+      roomId,
+      organizationId,
+      options,
+      true,
+    );
+
+    const hasMore = rows.length > limit;
+    const docs = hasMore ? rows.slice(0, limit) : rows;
+    const boundary = docs[docs.length - 1];
+    const nextCursor =
+      hasMore && boundary
+        ? encodeAgentMessageCursor({
+            createdAt: boundary.createdAt.toISOString(),
+            id: boundary.id,
+          })
+        : null;
+
+    return { docs, hasMore, nextCursor };
+  }
+
+  /**
+   * Shared keyset/offset query behind `getMessagesByRoom` and
+   * `getMessagesPage`. When `fetchExtra` is true, requests one row past
+   * `limit` so the caller can detect `hasMore` without a COUNT query.
+   */
+  private async queryMessagesByRoom(
+    roomId: string,
+    organizationId: string,
+    options: AgentMessagePageOptions,
+    fetchExtra: boolean,
+  ): Promise<{ rows: AgentMessageDocument[]; limit: number }> {
     const limit = this.normalizeLimit(
       options.limit,
       DEFAULT_AGENT_MESSAGE_LIMIT,
       MAX_AGENT_MESSAGE_LIMIT,
     );
+    const cursorPosition = decodeAgentMessageCursor(options.cursor);
     const page = Math.max(1, options.page ?? 1);
-    const cursorDate = this.parseCursorDate(options.cursor);
-    const skip = cursorDate ? undefined : (page - 1) * limit;
+    const skip = cursorPosition ? undefined : (page - 1) * limit;
 
-    return this.delegate.findMany({
+    const rows = (await this.delegate.findMany({
       where: scopedWhere(organizationId, {
-        ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
+        ...buildAgentMessageCursorWhere(cursorPosition),
         threadId: roomId,
       }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
-      take: limit,
-    }) as Promise<AgentMessageDocument[]>;
+      take: fetchExtra ? limit + 1 : limit,
+    })) as AgentMessageDocument[];
+
+    return { limit, rows };
   }
 
   async getRecentMessages(
@@ -364,12 +445,5 @@ export class AgentMessagesService extends BaseService<
     }
 
     return Math.min(Math.floor(value), maxLimit);
-  }
-
-  private parseCursorDate(cursor: string | undefined): Date | undefined {
-    if (!cursor) return undefined;
-
-    const parsed = new Date(cursor);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }
 }

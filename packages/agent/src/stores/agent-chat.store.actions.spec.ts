@@ -15,7 +15,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(
   id: string,
@@ -142,15 +142,6 @@ describe('agent-chat.store messages and plans', () => {
 });
 
 describe('agent-chat.store stream state', () => {
-  it('appendStreamToken concatenates tokens', () => {
-    useAgentChatStore.getState().appendStreamToken('Hello ');
-    useAgentChatStore.getState().appendStreamToken('world');
-
-    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
-      'Hello world',
-    );
-  });
-
   it('setStreamingReasoning replaces reasoning content', () => {
     useAgentChatStore.getState().setStreamingReasoning('thinking...');
 
@@ -725,5 +716,174 @@ describe('agent-chat.store conversation cache', () => {
     expect(
       useAgentChatStore.getState().restoreCachedConversation('thread-1'),
     ).toBe(false);
+  });
+});
+
+// #2517 — a `requestAnimationFrame` per streamed token forced every
+// historical timeline row to re-render/re-parse markdown dozens of times a
+// second. `appendStreamToken` now buffers tokens in a module-scope array and
+// flushes them as a single `setState()` call, raced between rAF and a
+// `setTimeout` fallback. jsdom does not implement `requestAnimationFrame`, so
+// it is stubbed here to queue (not synchronously invoke) callbacks — that is
+// the only way to observe the "buffered, not yet flushed" intermediate state
+// the rest of these tests depend on.
+describe('agent-chat.store stream token buffering (#2517)', () => {
+  let rafCallbacks: FrameRequestCallback[];
+  let rafHandleCounter: number;
+
+  function flushRaf(): void {
+    const callbacks = rafCallbacks;
+    rafCallbacks = [];
+    for (const callback of callbacks) {
+      callback(0);
+    }
+  }
+
+  beforeEach(() => {
+    rafCallbacks = [];
+    rafHandleCounter = 0;
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      (callback: FrameRequestCallback): number => {
+        rafHandleCounter += 1;
+        rafCallbacks.push(callback);
+        return rafHandleCounter;
+      },
+    );
+    vi.stubGlobal('cancelAnimationFrame', (): void => {
+      // Handles are not individually tracked — `schedulePendingStreamFlush`'s
+      // own `hasRun` guard is what actually prevents a cancelled flush from
+      // running, so a no-op stub still exercises the real safety property.
+    });
+  });
+
+  afterEach(() => {
+    // Discard while the fake clock/rAF stub are still installed so a flush
+    // left pending by a test cannot leak a scheduled callback — and its
+    // buffered tokens — into the next test.
+    useAgentChatStore.getState().resetStreamState();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('buffers multiple tokens and flushes them as one concatenated update', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('Hel');
+    store.appendStreamToken('lo ');
+    store.appendStreamToken('world');
+
+    // Still buffered — no flush has run yet.
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'Hello world',
+    );
+  });
+
+  it('preserves exact token order across many rapid appends', () => {
+    const store = useAgentChatStore.getState();
+    const tokens = Array.from({ length: 25 }, (_, index) => `t${index}-`);
+    for (const token of tokens) {
+      store.appendStreamToken(token);
+    }
+
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      tokens.join(''),
+    );
+  });
+
+  it('falls back to the timer flush when rAF never fires (e.g. a hidden tab)', () => {
+    useAgentChatStore.getState().appendStreamToken('fallback');
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'fallback',
+    );
+  });
+
+  it('does not double-flush when both rAF and the timer fallback fire', () => {
+    useAgentChatStore.getState().appendStreamToken('once');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('once');
+  });
+
+  it('tokens appended after a flush start a fresh buffer instead of being dropped', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('first ');
+    flushRaf();
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('first ');
+
+    store.appendStreamToken('second');
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'first second',
+    );
+  });
+
+  it('a reset while tokens are buffered discards them instead of flushing stale content', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('half a sen');
+
+    store.resetStreamState();
+
+    // Neither the rAF nor the timer fallback should resurrect the discarded
+    // buffer even if a callback was already queued at reset time.
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+
+  it('finalizeStream discards buffered tokens and uses the server-authoritative message content', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('stale locally-buffered text');
+
+    store.finalizeStream(
+      makeMessage('m-final', { content: 'server final content' }),
+    );
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    const state = useAgentChatStore.getState();
+    expect(state.stream.streamingContent).toBe('');
+    expect(state.messages.at(-1)?.content).toBe('server final content');
+  });
+
+  it('resetActiveConversationState discards buffered tokens instead of flushing them', () => {
+    useAgentChatStore.getState().appendStreamToken('half a sentence');
+
+    useAgentChatStore.getState().resetActiveConversationState();
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+
+  it('restoreCachedConversation discards buffered tokens instead of flushing them', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1')]);
+    store.cacheConversation('thread-1');
+    store.appendStreamToken('half a sentence');
+
+    store.restoreCachedConversation('thread-1');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
   });
 });

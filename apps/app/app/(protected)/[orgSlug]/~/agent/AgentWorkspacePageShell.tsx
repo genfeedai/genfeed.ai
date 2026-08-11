@@ -46,6 +46,22 @@ export function AgentWorkspacePageShell({
     [getToken],
   );
 
+  // `onSelectCreditPack` is drilled all the way down to `AgentChatMessage`
+  // (now `React.memo`-wrapped, see #2517) for every message row. An inline
+  // arrow here would be a fresh reference on every render of this shell,
+  // defeating that memoization for the entire conversation history. Stabilize
+  // both billing callbacks with `useCallback` for the same reason.
+  const handleNavigateToBilling = useCallback(() => {
+    push(orgHref('/settings/credits'));
+  }, [push, orgHref]);
+
+  const handleSelectCreditPack = useCallback(
+    (pack: { label: string; price: string; credits: number }) => {
+      push(orgHref(`/settings/credits?pack=${pack.label.toLowerCase()}`));
+    },
+    [push, orgHref],
+  );
+
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <AgentFullPage
@@ -55,15 +71,11 @@ export function AgentWorkspacePageShell({
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
         showThreadSidebar={false}
         threadId={threadId}
-        onNavigateToBilling={() => {
-          push(orgHref('/settings/credits'));
-        }}
+        onNavigateToBilling={handleNavigateToBilling}
         onOAuthConnect={handleOAuthConnect}
         onBrandCreate={handleBrandCreate}
         onOnboardingCompleted={completeOnboardingFlow}
-        onSelectCreditPack={(pack) => {
-          push(orgHref(`/settings/credits?pack=${pack.label.toLowerCase()}`));
-        }}
+        onSelectCreditPack={handleSelectCreditPack}
       />
     </div>
   );

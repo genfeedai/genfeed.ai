@@ -45,10 +45,14 @@ packaged Electron shell.
 - Link the passing `Desktop QA` workflow run for the candidate branch or PR.
 - Link the `Desktop Release` workflow run for the signed macOS artifact.
 - Attach or reference the generated `genfeed-desktop-release.json` manifest.
-- Provide `GENFEED_DESKTOP_VISUAL_QA_SESSION` to the trusted release job as a
-  JSON session fixture containing a valid `gf_` key plus signed cookie. It is
-  consumed only by Electron main and must never be uploaded as evidence.
-- Attach the `genfeed-desktop-visual-qa` artifact containing
+- When authenticated screenshot evidence is required, provide the optional
+  `GENFEED_DESKTOP_VISUAL_QA_SESSION` release-only fixture to the trusted job.
+  It contains a disposable `gf_` key plus signed cookie, is consumed only by
+  Electron main, and must never be uploaded as evidence or used as a customer
+  or production runtime credential. When it is absent, the workflow records the
+  deferral while keeping Desktop QA, smoke, signing, notarization, and
+  Gatekeeper verification as hard release gates.
+- When captured, attach the `genfeed-desktop-visual-qa` artifact containing
   `desktop-login.png`, `pkce-callback.png`, `authenticated-route.png`,
   `logout.png`, `restart-persistence.png`, and
   `expired-credential-recovery.png`, captured from the packaged `.app`.
