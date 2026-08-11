@@ -361,6 +361,7 @@ describe('InvitationService', () => {
           acceptedAt: null,
           id: 'inv_123',
           isDeleted: false,
+          organizationId: orgId,
           revokedAt: null,
           tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
         },
