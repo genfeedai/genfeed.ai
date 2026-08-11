@@ -1,7 +1,10 @@
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
-import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
+import {
+  FFmpegCoreService,
+  FifoSemaphore,
+} from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -308,14 +311,31 @@ describe('FFmpegCoreService', () => {
       const K = 2;
       const service = await buildService(String(K));
       const activated: ProcessControl[] = [];
+      const spawnOrder: string[] = [];
+      let activeProcesses = 0;
+      let maxActiveProcesses = 0;
       let spawnCount = 0;
 
-      (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        spawnCount += 1;
-        const { proc, control } = makeControllableProcess();
-        activated.push(control);
-        return proc;
-      });
+      (spawn as ReturnType<typeof vi.fn>).mockImplementation(
+        (_binary: string, args: string[]) => {
+          spawnCount += 1;
+          spawnOrder.push(args[0]);
+          activeProcesses += 1;
+          maxActiveProcesses = Math.max(maxActiveProcesses, activeProcesses);
+          const { proc, control } = makeControllableProcess();
+          activated.push({
+            close: (code: number) => {
+              activeProcesses -= 1;
+              control.close(code);
+            },
+            error: (error: Error) => {
+              activeProcesses -= 1;
+              control.error(error);
+            },
+          });
+          return proc;
+        },
+      );
 
       const results = Array.from({ length: 6 }, (_, i) =>
         service.executeFFmpeg([`-task-${i}`]).catch((error: Error) => error),
@@ -323,17 +343,20 @@ describe('FFmpegCoreService', () => {
 
       await flushMicrotasks();
       expect(spawnCount).toBe(K);
+      expect(spawnOrder).toEqual(['-task-0', '-task-1']);
 
       // Completing the first (FIFO) in-flight process must release exactly
       // one slot to the third queued task, never more than K at once.
       activated[0].close(0);
       await flushMicrotasks();
       expect(spawnCount).toBe(K + 1);
+      expect(spawnOrder).toEqual(['-task-0', '-task-1', '-task-2']);
 
       // A failing process must still release its slot (finally-path).
       activated[1].close(1);
       await flushMicrotasks();
       expect(spawnCount).toBe(K + 2);
+      expect(spawnOrder).toEqual(['-task-0', '-task-1', '-task-2', '-task-3']);
 
       activated[2].close(0);
       await flushMicrotasks();
@@ -348,6 +371,11 @@ describe('FFmpegCoreService', () => {
 
       const settled = await Promise.all(results);
       expect(spawnCount).toBe(6);
+      expect(spawnOrder).toEqual(
+        Array.from({ length: 6 }, (_, index) => `-task-${index}`),
+      );
+      expect(maxActiveProcesses).toBe(K);
+      expect(activeProcesses).toBe(0);
       // Task 1 (second FIFO slot) was closed with a non-zero exit code.
       expect(settled[1]).toBeInstanceOf(Error);
     });
@@ -383,22 +411,54 @@ describe('FFmpegCoreService', () => {
       expect(firstResult).toBeInstanceOf(Error);
     });
 
-    it('defaults to a concurrency of 4 when FFMPEG_MAX_CONCURRENCY is unset', async () => {
-      const service = await buildService(undefined);
-      let spawnCount = 0;
+    it.each([undefined, '', '   '])(
+      'defaults to a concurrency of 4 when FFMPEG_MAX_CONCURRENCY is %p',
+      async (configuredValue) => {
+        const service = await buildService(configuredValue);
+        let spawnCount = 0;
 
-      (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        spawnCount += 1;
-        const { proc } = makeControllableProcess();
-        return proc;
-      });
+        (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          spawnCount += 1;
+          const { proc } = makeControllableProcess();
+          return proc;
+        });
 
-      for (let i = 0; i < 5; i += 1) {
-        service.executeFFmpeg([`-task-${i}`]).catch(() => undefined);
-      }
+        for (let i = 0; i < 5; i += 1) {
+          service.executeFFmpeg([`-task-${i}`]).catch(() => undefined);
+        }
 
-      await flushMicrotasks();
-      expect(spawnCount).toBe(4);
-    });
+        await flushMicrotasks();
+        expect(spawnCount).toBe(4);
+      },
+    );
+
+    it.each(['0', '-1', '1.5', 'not-a-number', '9007199254740992'])(
+      'rejects invalid runtime FFMPEG_MAX_CONCURRENCY %p',
+      async (configuredValue) => {
+        await expect(buildService(configuredValue)).rejects.toThrow(
+          'FFmpeg concurrency limit must be a positive safe integer',
+        );
+      },
+    );
   });
+});
+
+describe('FifoSemaphore', () => {
+  it.each([
+    0,
+    -1,
+    1.5,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.MAX_SAFE_INTEGER + 1,
+  ])('rejects invalid construction limit %p', (limit) => {
+    expect(() => new FifoSemaphore(limit)).toThrow(RangeError);
+  });
+
+  it.each([1, 4, Number.MAX_SAFE_INTEGER])(
+    'accepts positive safe integer construction limit %p',
+    (limit) => {
+      expect(() => new FifoSemaphore(limit)).not.toThrow();
+    },
+  );
 });
