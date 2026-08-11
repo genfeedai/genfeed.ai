@@ -19,6 +19,7 @@ export function isModEnterKey(event: {
   ctrlKey: boolean;
   defaultPrevented?: boolean;
   isComposing?: boolean;
+  repeat?: boolean;
 }): boolean {
   if (event.key !== 'Enter') {
     return false;
@@ -26,10 +27,21 @@ export function isModEnterKey(event: {
   if (!(event.metaKey || event.ctrlKey)) {
     return false;
   }
-  if (event.defaultPrevented || event.isComposing) {
+  if (event.defaultPrevented || event.isComposing || event.repeat) {
     return false;
   }
   return true;
+}
+
+function findEnabledSubmitter(
+  form: HTMLFormElement,
+): HTMLButtonElement | HTMLInputElement | null {
+  const submitter = form.querySelector(SUBMIT_CONTROL_SELECTOR);
+
+  return submitter instanceof HTMLButtonElement ||
+    submitter instanceof HTMLInputElement
+    ? submitter
+    : null;
 }
 
 export function findSubmittableForm(
@@ -52,7 +64,7 @@ export function findSubmittableForm(
     return null;
   }
 
-  if (!form.querySelector(SUBMIT_CONTROL_SELECTOR)) {
+  if (!findEnabledSubmitter(form)) {
     return null;
   }
 
@@ -72,6 +84,11 @@ export function handleFormModEnterSubmit(event: KeyboardEvent): boolean {
     return false;
   }
 
+  const submitter = findEnabledSubmitter(form);
+  if (!submitter) {
+    return false;
+  }
+
   // requestSubmit runs constraint validation and fires the React onSubmit
   // handler. Do not fall back to form.submit() — that skips both.
   if (typeof form.requestSubmit !== 'function') {
@@ -79,6 +96,6 @@ export function handleFormModEnterSubmit(event: KeyboardEvent): boolean {
   }
 
   event.preventDefault();
-  form.requestSubmit();
+  form.requestSubmit(submitter);
   return true;
 }
