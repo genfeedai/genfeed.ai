@@ -66,12 +66,12 @@ jobs:
           echo "should_continue=true" >> "$GITHUB_OUTPUT"
           echo "skipped_reason=" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout master
-        if: steps.enabled_guard.outputs.should_continue == 'true'
+      - name: Checkout workflow helpers
         uses: actions/checkout@v7.0.1
         with:
-          ref: master
+          ref: ${{ github.sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Resolve origin/master
         id: master
@@ -93,169 +93,86 @@ jobs:
           MASTER_SHA: ${{ steps.master.outputs.sha }}
         with:
           script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { evaluateDeployPreflight } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/daily-deploy-orchestration.mjs',
+                ),
+              ).href,
+            );
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const masterSha = process.env.MASTER_SHA || '';
 
-            const result = {
-              should_deploy: 'false',
-              issue_needed: 'false',
-              outcome: 'blocked',
-              skipped_reason: '',
-              failure_reason: '',
-              failure_stage: '',
-              master_sha: masterSha,
-              ci_run_url: '',
-              gate_run_url: '',
-              deploy_marker_url: '',
-              deployed_sha: '',
-            };
-
-            function setOutputs() {
-              for (const [key, value] of Object.entries(result)) {
-                core.setOutput(key, value || '');
-              }
-            }
-
-            function skip(reason, outcome = 'blocked') {
-              result.outcome = outcome;
-              result.skipped_reason = reason;
-              setOutputs();
-            }
-
-            function block(reason) {
-              result.outcome = 'blocked';
-              result.issue_needed = 'true';
-              result.failure_reason = reason;
-              result.failure_stage = 'preflight';
-              setOutputs();
-            }
-
-            async function listRuns(workflowId, options = {}) {
+            async function listRuns(workflowId) {
               const response = await github.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
                 workflow_id: workflowId,
-                per_page: 50,
-                ...options,
+                branch: 'master',
+                per_page: 100,
               });
               return response.data.workflow_runs;
             }
 
-            async function latestRunForSha(workflowId, sha) {
-              const runs = await listRuns(workflowId, { branch: 'master' });
-              return runs
-                .filter((run) => run.head_sha === sha)
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            }
-
-            async function latestSuccessfulRunForSha(workflowId, sha) {
-              const runs = await listRuns(workflowId, {
-                branch: 'master',
-                status: 'completed',
-              });
-              return runs
-                .filter((run) => run.head_sha === sha && run.conclusion === 'success')
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            }
-
             try {
-              if (process.env.SHOULD_CONTINUE !== 'true') {
-                skip(
-                  process.env.PRECHECK_SKIPPED_REASON ||
-                    'Daily production deploy precheck skipped.',
-                  'clean no-op',
-                );
-                return;
-              }
+              const [deployRuns, fastlaneRuns, releaseRuns, ciRuns, fullSuiteRuns] =
+                process.env.SHOULD_CONTINUE === 'true'
+                  ? await Promise.all([
+                      listRuns(process.env.DEPLOY_WORKFLOW),
+                      listRuns(process.env.FASTLANE_WORKFLOW),
+                      listRuns(process.env.RELEASE_WORKFLOW),
+                      listRuns(process.env.CI_WORKFLOW),
+                      listRuns(process.env.FULL_SUITE_WORKFLOW),
+                    ])
+                  : [[], [], [], [], []];
 
-              if (!masterSha) {
-                block('Could not resolve origin/master.');
-                return;
+              const result = evaluateDeployPreflight({
+                shouldContinue: process.env.SHOULD_CONTINUE === 'true',
+                precheckSkippedReason: process.env.PRECHECK_SKIPPED_REASON,
+                masterSha,
+                workflowRef: context.ref,
+                workflowSha: context.sha,
+                currentRunId: context.runId,
+                activeWorkflowRuns: [
+                  { label: 'Deploy ECS (production)', runs: deployRuns },
+                  { label: 'Deploy ECS fastlane', runs: fastlaneRuns },
+                  { label: 'Release', runs: releaseRuns },
+                ],
+                successfulWorkflowMarkers: [
+                  { label: 'Deploy ECS (production)', runs: deployRuns },
+                  { label: 'Deploy ECS fastlane', runs: fastlaneRuns },
+                  {
+                    label: 'the canonical Release workflow',
+                    runs: releaseRuns,
+                  },
+                ],
+                ciRuns,
+                fullSuiteRuns,
+              });
+              for (const [key, value] of Object.entries(result)) {
+                core.setOutput(key, value || '');
               }
-
-              if (context.ref !== 'refs/heads/master') {
-                skip(`Workflow ref is ${context.ref}; production deploy attempts only run from refs/heads/master.`);
-                return;
-              }
-
-              if (context.sha !== masterSha) {
-                skip(`Workflow SHA ${context.sha} does not match origin/master ${masterSha}; refusing to deploy a non-master SHA.`);
-                return;
-              }
-
-              const activeStatuses = ['queued', 'in_progress', 'waiting', 'pending', 'requested'];
-              const activeWorkflows = [
-                [process.env.DEPLOY_WORKFLOW, 'Deploy ECS (production)'],
-                [process.env.FASTLANE_WORKFLOW, 'Deploy ECS fastlane'],
-                [process.env.RELEASE_WORKFLOW, 'Release'],
-              ];
-
-              for (const [workflowId, label] of activeWorkflows) {
-                for (const status of activeStatuses) {
-                  const runs = await listRuns(workflowId, { status });
-                  const active = runs.find((run) => run.id !== context.runId);
-                  if (active) {
-                    skip(`${label} is already ${active.status}: ${active.html_url}`);
-                    return;
-                  }
-                }
-              }
-
-              const successfulWorkflowMarkers = [
-                [process.env.DEPLOY_WORKFLOW, 'Deploy ECS (production)'],
-                [process.env.FASTLANE_WORKFLOW, 'Deploy ECS fastlane'],
-                [process.env.RELEASE_WORKFLOW, 'the canonical Release workflow'],
-              ];
-
-              for (const [workflowId, label] of successfulWorkflowMarkers) {
-                const successfulRun = await latestSuccessfulRunForSha(workflowId, masterSha);
-                if (successfulRun) {
-                  result.deploy_marker_url = successfulRun.html_url;
-                  result.deployed_sha = masterSha;
-                  skip(
-                    `Current master SHA is already shipped by ${label}: ${successfulRun.html_url}`,
-                    'clean no-op',
-                  );
-                  return;
-                }
-              }
-
-              const ciRun = await latestRunForSha(process.env.CI_WORKFLOW, masterSha);
-              if (!ciRun) {
-                block(`No CI run found for exact master SHA ${masterSha}.`);
-                return;
-              }
-              result.ci_run_url = ciRun.html_url;
-              if (ciRun.status !== 'completed') {
-                skip(`CI for ${masterSha} is ${ciRun.status}: ${ciRun.html_url}`);
-                return;
-              }
-              if (ciRun.conclusion !== 'success') {
-                block(`CI for ${masterSha} concluded ${ciRun.conclusion}: ${ciRun.html_url}`);
-                return;
-              }
-
-              const fullSuiteRun = await latestRunForSha(process.env.FULL_SUITE_WORKFLOW, masterSha);
-              if (fullSuiteRun) {
-                result.gate_run_url = fullSuiteRun.html_url;
-                if (fullSuiteRun.status !== 'completed') {
-                  skip(`Full Suite for ${masterSha} is ${fullSuiteRun.status}: ${fullSuiteRun.html_url}`);
-                  return;
-                }
-                if (fullSuiteRun.conclusion !== 'success') {
-                  block(`Full Suite for ${masterSha} concluded ${fullSuiteRun.conclusion}: ${fullSuiteRun.html_url}`);
-                  return;
-                }
-              } else {
-                result.gate_run_url = 'Will run inside Deploy ECS (production) via qa-before-deploy.';
-              }
-
-              result.should_deploy = 'true';
-              result.outcome = '';
-              setOutputs();
             } catch (error) {
-              block(`Daily deploy preflight failed unexpectedly: ${error.message}`);
+              const reason = `Daily deploy preflight failed unexpectedly: ${error.message}`;
+              for (const [key, value] of Object.entries({
+                should_deploy: 'false',
+                issue_needed: 'true',
+                outcome: 'blocked',
+                skipped_reason: '',
+                failure_reason: reason,
+                failure_stage: 'preflight',
+                master_sha: masterSha,
+                ci_run_url: '',
+                gate_run_url: '',
+                deploy_marker_url: '',
+                deployed_sha: '',
+              })) {
+                core.setOutput(key, value);
+              }
               core.setFailed(error);
             }
 
@@ -305,7 +222,7 @@ jobs:
               classifyDeployRunFailure,
               createDeployRunTitle,
               formatDeployFailure,
-              matchesCorrelatedDeployRun,
+              selectCorrelatedDeployRun,
             } = helpers;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -334,9 +251,9 @@ jobs:
               }
             }
 
-            function fail(reason, classification = {}) {
+            function fail(reason, classification = {}, outcome = 'failed') {
               result.issue_needed = 'true';
-              result.outcome = 'failed';
+              result.outcome = outcome;
               result.failure_reason = reason;
               result.failure_stage = classification.stage || 'unknown';
               result.failure_job_name = classification.jobName || '';
@@ -356,23 +273,22 @@ jobs:
                   workflow_id: workflowId,
                   branch: 'master',
                   event: 'workflow_dispatch',
-                  per_page: 30,
+                  per_page: 100,
                 });
-                const match = runs.data.workflow_runs
-                  .filter((run) =>
-                    matchesCorrelatedDeployRun(run, {
-                      correlationId,
-                      masterSha,
-                    }),
-                  )
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                if (match) {
-                  return match;
+                const selection = selectCorrelatedDeployRun(
+                  runs.data.workflow_runs,
+                  { correlationId },
+                );
+                if (selection.matchCount > 1) {
+                  return { ambiguousCount: selection.matchCount, run: null };
+                }
+                if (selection.run) {
+                  return { ambiguousCount: 0, run: selection.run };
                 }
                 core.info(`Waiting for dispatched deploy run to appear (${attempt}/60)...`);
                 await sleep(5000);
               }
-              return null;
+              return { ambiguousCount: 0, run: null };
             }
 
             await github.rest.actions.createWorkflowDispatch({
@@ -382,13 +298,23 @@ jobs:
               ref: 'master',
               inputs: {
                 orchestrator_run_id: correlationId,
+                expected_master_sha: masterSha,
               },
             });
 
-            const run = await findDispatchedRun();
+            const selection = await findDispatchedRun();
+            if (selection.ambiguousCount > 1) {
+              fail(
+                `Dispatch correlation ${correlationId} matched ${selection.ambiguousCount} child runs; refusing an ambiguous attachment.`,
+                { stage: 'dispatch-discovery' },
+              );
+              return;
+            }
+            const run = selection.run;
             if (!run) {
               fail(
                 `Deploy ECS (production) dispatch did not produce correlated run ${expectedRunTitle} for ${masterSha}.`,
+                { stage: 'dispatch-discovery' },
               );
               return;
             }
@@ -396,6 +322,15 @@ jobs:
             result.deploy_run_url = run.html_url;
             setOutputs();
             core.info(`Watching deploy run: ${run.html_url}`);
+
+            if (run.head_sha !== masterSha) {
+              fail(
+                `Correlated child run ${run.html_url} resolved ${run.head_sha}, but preflight selected ${masterSha}; master advanced before dispatch and the child was blocked by its expected-SHA guard.`,
+                { stage: 'dispatch-discovery' },
+                'blocked',
+              );
+              return;
+            }
 
             let current = run;
             while (current.status !== 'completed') {
@@ -430,7 +365,9 @@ jobs:
                 per_page: 100,
               },
             );
-            const classification = classifyDeployRunFailure(jobs);
+            const classification = classifyDeployRunFailure(jobs, {
+              childConclusion: current.conclusion,
+            });
             fail(
               `Deploy ECS (production) ${formatDeployFailure(
                 classification,
@@ -442,7 +379,7 @@ jobs:
   report-failure:
     name: Report blocking failure
     needs: [preflight, dispatch-deploy]
-    if: ${{ always() && (needs.preflight.outputs.issue_needed == 'true' || needs.dispatch-deploy.outputs.issue_needed == 'true' || needs.preflight.result == 'failure' || needs.dispatch-deploy.result == 'failure') }}
+    if: ${{ always() && (needs.preflight.outputs.issue_needed == 'true' || needs.dispatch-deploy.outputs.issue_needed == 'true' || needs.preflight.result == 'failure' || needs.preflight.result == 'cancelled' || needs.dispatch-deploy.result == 'failure' || needs.dispatch-deploy.result == 'cancelled') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -451,12 +388,20 @@ jobs:
     outputs:
       issue_url: ${{ steps.issue.outputs.issue_url }}
     steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Open or update tracking issue
         id: issue
         uses: actions/github-script@v9
         env:
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha || needs.dispatch-deploy.outputs.deployed_sha || 'unknown' }}
-          OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome || needs.preflight.outputs.outcome || 'failed' }}
+          PREFLIGHT_OUTCOME: ${{ needs.preflight.outputs.outcome }}
+          DISPATCH_OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome }}
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          DISPATCH_RESULT: ${{ needs.dispatch-deploy.result }}
           FAILURE_REASON: ${{ needs.dispatch-deploy.outputs.failure_reason || needs.preflight.outputs.failure_reason || 'Daily deploy workflow failed before it could record a reason.' }}
           FAILURE_STAGE: ${{ needs.dispatch-deploy.outputs.failure_stage || needs.preflight.outputs.failure_stage || 'unknown' }}
           FAILURE_JOB_NAME: ${{ needs.dispatch-deploy.outputs.failure_job_name }}
@@ -467,89 +412,52 @@ jobs:
           DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
         with:
           script: |
-            const label = 'daily-deploy';
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const {
+              buildDailyDeployFailureBody,
+              reportDailyDeployFailure,
+              resolveDailyDeployOutcome,
+            } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/daily-deploy-orchestration.mjs',
+                ),
+              ).href,
+            );
             const date = new Date().toISOString().slice(0, 10);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const masterSha = process.env.MASTER_SHA || 'unknown';
-            const outcome = process.env.OUTCOME || 'failed';
-            const deployRunUrl = process.env.DEPLOY_RUN_URL || 'not dispatched';
-            const gateRunUrl = process.env.GATE_RUN_URL || 'not available';
-            const ciRunUrl = process.env.CI_RUN_URL || 'not available';
-            const failureReason = process.env.FAILURE_REASON || 'Unknown failure.';
-            const failureStage = process.env.FAILURE_STAGE || 'unknown';
-            const failureJobName = process.env.FAILURE_JOB_NAME || 'not available';
-            const failureJobUrl = process.env.FAILURE_JOB_URL || 'not available';
-            const failureStepName = process.env.FAILURE_STEP_NAME || 'not available';
-            const title = 'Daily production deploy blocked';
-            const body = [
-              `**Daily production deploy attempt blocked or failed** on \`${date}\`.`,
-              ``,
-              `- Attempt run: ${runUrl}`,
-              `- Master SHA: \`${masterSha}\``,
-              `- Outcome: \`${outcome}\``,
-              `- Reason: ${failureReason}`,
-              `- Failure stage: \`${failureStage}\``,
-              `- Failure job: ${failureJobName}`,
-              `- Failure step: ${failureStepName}`,
-              `- Failure job URL: ${failureJobUrl}`,
-              `- CI run: ${ciRunUrl}`,
-              `- Full-suite gate: ${gateRunUrl}`,
-              `- Deploy run: ${deployRunUrl}`,
-              ``,
-              `The scheduler did not use fastlane. Any live migrations, if reached, ran only inside the normal \`Deploy ECS (production)\` workflow.`,
-            ].join('\n');
-
-            try {
-              await github.rest.issues.getLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: label,
-              });
-            } catch (error) {
-              if (error.status !== 404) {
-                throw error;
-              }
-
-              await github.rest.issues.createLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: label,
-                color: 'b60205',
-                description: 'Daily production deploy automation blockers',
-              });
-            }
-
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: label,
-              per_page: 1,
+            const outcome = resolveDailyDeployOutcome({
+              preflightOutcome: process.env.PREFLIGHT_OUTCOME,
+              dispatchOutcome: process.env.DISPATCH_OUTCOME,
+              preflightResult: process.env.PREFLIGHT_RESULT,
+              dispatchResult: process.env.DISPATCH_RESULT,
             });
-
-            if (existing.data.length > 0) {
-              const number = existing.data[0].number;
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: number,
-                body,
-              });
-              const issueUrl = existing.data[0].html_url;
-              core.setOutput('issue_url', issueUrl);
-              core.info(`Commented on existing daily deploy issue #${number}`);
-              return;
-            }
-
-            const created = await github.rest.issues.create({
+            const body = buildDailyDeployFailureBody({
+              runId: context.runId,
+              date,
+              runUrl,
+              masterSha: process.env.MASTER_SHA,
+              outcome,
+              failureReason: process.env.FAILURE_REASON,
+              failureStage: process.env.FAILURE_STAGE,
+              failureJobName: process.env.FAILURE_JOB_NAME,
+              failureJobUrl: process.env.FAILURE_JOB_URL,
+              failureStepName: process.env.FAILURE_STEP_NAME,
+              ciRunUrl: process.env.CI_RUN_URL,
+              gateRunUrl: process.env.GATE_RUN_URL,
+              deployRunUrl: process.env.DEPLOY_RUN_URL,
+            });
+            const report = await reportDailyDeployFailure({
+              github,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title,
+              runId: context.runId,
               body,
-              labels: [label],
+              core,
             });
-            core.setOutput('issue_url', created.data.html_url);
-            core.info(`Created daily deploy issue #${created.data.number}`);
+            core.setOutput('issue_url', report.issueUrl || '');
 
   summary:
     name: Summary
@@ -560,7 +468,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Write deployment attempt summary
+        uses: actions/github-script@v9
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           DISPATCH_RESULT: ${{ needs.dispatch-deploy.result }}
@@ -568,7 +482,8 @@ jobs:
           PREFLIGHT_ISSUE_NEEDED: ${{ needs.preflight.outputs.issue_needed }}
           DEPLOY_ISSUE_NEEDED: ${{ needs.dispatch-deploy.outputs.issue_needed }}
           SHOULD_DEPLOY: ${{ needs.preflight.outputs.should_deploy }}
-          OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome || needs.preflight.outputs.outcome || 'failed' }}
+          PREFLIGHT_OUTCOME: ${{ needs.preflight.outputs.outcome }}
+          DISPATCH_OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome }}
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
           DEPLOYED_SHA: ${{ needs.dispatch-deploy.outputs.deployed_sha || needs.preflight.outputs.deployed_sha }}
           SKIPPED_REASON: ${{ needs.preflight.outputs.skipped_reason }}
@@ -582,45 +497,44 @@ jobs:
           DEPLOY_MARKER_URL: ${{ needs.preflight.outputs.deploy_marker_url }}
           DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
           ISSUE_URL: ${{ needs.report-failure.outputs.issue_url }}
-        run: |
-          set -euo pipefail
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { buildDailyDeploySummary } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/daily-deploy-orchestration.mjs',
+                ),
+              ).href,
+            );
+            const summary = buildDailyDeploySummary({
+              preflightOutcome: process.env.PREFLIGHT_OUTCOME,
+              dispatchOutcome: process.env.DISPATCH_OUTCOME,
+              preflightResult: process.env.PREFLIGHT_RESULT,
+              dispatchResult: process.env.DISPATCH_RESULT,
+              reportResult: process.env.REPORT_RESULT,
+              masterSha: process.env.MASTER_SHA,
+              deployedSha: process.env.DEPLOYED_SHA,
+              skippedReason: process.env.SKIPPED_REASON,
+              failureReason: process.env.FAILURE_REASON,
+              failureStage: process.env.FAILURE_STAGE,
+              failureJobName: process.env.FAILURE_JOB_NAME,
+              failureJobUrl: process.env.FAILURE_JOB_URL,
+              failureStepName: process.env.FAILURE_STEP_NAME,
+              ciRunUrl: process.env.CI_RUN_URL,
+              gateRunUrl: process.env.GATE_RUN_URL,
+              deployMarkerUrl: process.env.DEPLOY_MARKER_URL,
+              deployRunUrl: process.env.DEPLOY_RUN_URL,
+              issueUrl: process.env.ISSUE_URL,
+            });
+            await core.summary.addRaw(summary).write();
 
-          deployed_sha="${DEPLOYED_SHA:-not deployed}"
-          skipped_reason="${SKIPPED_REASON:-none}"
-          failure_reason="${FAILURE_REASON:-none}"
-          failure_stage="${FAILURE_STAGE:-none}"
-          failure_job_name="${FAILURE_JOB_NAME:-not available}"
-          failure_job_url="${FAILURE_JOB_URL:-not available}"
-          failure_step_name="${FAILURE_STEP_NAME:-not available}"
-          gate_run_url="${GATE_RUN_URL:-not available}"
-          deploy_run_url="${DEPLOY_RUN_URL:-not dispatched}"
-          issue_url="${ISSUE_URL:-none}"
-
-          if [ "${gate_run_url}" = "Will run inside Deploy ECS (production) via qa-before-deploy." ] && [ "${deploy_run_url}" != "not dispatched" ]; then
-            gate_run_url="${deploy_run_url} (qa-before-deploy in normal deploy run)"
-          fi
-
-          {
-            echo "## Daily production deploy"
-            echo ""
-            echo "- Outcome: \`${OUTCOME:-failed}\`"
-            echo "- Master SHA: \`${MASTER_SHA:-unknown}\`"
-            echo "- Deployed SHA: \`${deployed_sha}\`"
-            echo "- Skipped reason: ${skipped_reason}"
-            echo "- Failure reason: ${failure_reason}"
-            echo "- Failure stage: \`${failure_stage}\`"
-            echo "- Failure job: ${failure_job_name}"
-            echo "- Failure step: ${failure_step_name}"
-            echo "- Failure job URL: ${failure_job_url}"
-            echo "- CI run URL: ${CI_RUN_URL:-not available}"
-            echo "- Gate run URL: ${gate_run_url}"
-            echo "- Deploy run URL: ${deploy_run_url}"
-            echo "- Latest deploy marker: ${DEPLOY_MARKER_URL:-not available}"
-            echo "- Tracking issue: ${issue_url}"
-            echo ""
-            echo "Results: preflight=\`${PREFLIGHT_RESULT}\`, dispatch=\`${DISPATCH_RESULT}\`, report=\`${REPORT_RESULT}\`."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "${PREFLIGHT_ISSUE_NEEDED:-false}" = "true" ] || [ "${DEPLOY_ISSUE_NEEDED:-false}" = "true" ]; then
-            exit 1
-          fi
+            if (
+              process.env.PREFLIGHT_ISSUE_NEEDED === 'true' ||
+              process.env.DEPLOY_ISSUE_NEEDED === 'true' ||
+              ['failure', 'cancelled'].includes(process.env.REPORT_RESULT)
+            ) {
+              core.setFailed('Daily production deploy was blocked or failed.');
+            }
