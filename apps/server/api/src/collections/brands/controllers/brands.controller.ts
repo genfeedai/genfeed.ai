@@ -135,7 +135,10 @@ export class BrandsController extends BaseCRUDController<
         data: {
           description: description || undefined,
           label: label || undefined,
-          logoUrl: scraped.logoUrl || scraped.ogImage || undefined,
+          // A social preview is not a company logo. `scraped.logoUrl` already
+          // resolves DOM logo → Logo.dev; undefined keeps the client on its
+          // deterministic placeholder path when neither source is available.
+          logoUrl: scraped.logoUrl || undefined,
           primaryColor: scraped.primaryColor || undefined,
           secondaryColor: scraped.secondaryColor || undefined,
           slug: slug || undefined,

@@ -12,11 +12,13 @@ import type {
   IExtractedBrandData,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
+import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -51,6 +53,7 @@ export class BrandScraperService {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly brandWebsiteParser: BrandWebsiteParserService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -66,6 +69,10 @@ export class BrandScraperService {
       const rawContent = await this.fetchAndParse(normalizedUrl);
       const scrapedData = this.brandWebsiteParser.extractBrandData(
         rawContent,
+        normalizedUrl,
+      );
+      scrapedData.logoUrl = this.resolveWebsiteLogoUrl(
+        scrapedData.logoUrl,
         normalizedUrl,
       );
 
@@ -96,7 +103,7 @@ export class BrandScraperService {
           fontCandidates: [],
           fontFamily: undefined,
           heroText: undefined,
-          logoUrl: undefined,
+          logoUrl: this.resolveWebsiteLogoUrl(undefined, normalizedUrl),
           metaDescription: fallback.description,
           ogImage: fallback.ogImage,
           primaryColor: undefined,
@@ -586,6 +593,25 @@ export class BrandScraperService {
     }
 
     return normalized;
+  }
+
+  /**
+   * Preserve a scraper-discovered logo and consult Logo.dev only when the
+   * website supplied none. URL generation is synchronous and non-blocking;
+   * downstream image/import errors retain their existing placeholder paths.
+   */
+  private resolveWebsiteLogoUrl(
+    scrapedLogoUrl: string | undefined,
+    sourceUrl: string,
+  ): string | undefined {
+    if (scrapedLogoUrl) {
+      return scrapedLogoUrl;
+    }
+
+    return buildLogoDevLogoUrl(
+      sourceUrl,
+      this.configService.get('LOGO_DEV_PUBLISHABLE_KEY'),
+    );
   }
 
   /**
