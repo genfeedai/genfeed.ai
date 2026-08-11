@@ -1,4 +1,5 @@
 import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
+import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -156,7 +157,7 @@ export function useAgentFullPage({
   const updateThread = useAgentChatStore((s) => s.updateThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
   const setError = useAgentChatStore((s) => s.setError);
-  const setMessages = useAgentChatStore((s) => s.setMessages);
+  const setMessagesPage = useAgentChatStore((s) => s.setMessagesPage);
   const existingMessages = useAgentChatStore((s) => s.messages);
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setPendingInputRequest = useAgentChatStore(
@@ -474,14 +475,18 @@ export function useAgentFullPage({
     // needs only this one response. Awaiting the thread record and the snapshot
     // alongside it held the track blank for the slowest of three round trips.
     const messagesRequest = runAgentApiEffect(
-      apiService.getMessagesEffect(threadId, { limit: 100 }, controller.signal),
-    ).then((msgs) => {
+      apiService.getMessagesPageEffect(
+        threadId,
+        { limit: AGENT_MESSAGE_PAGE_SIZE },
+        controller.signal,
+      ),
+    ).then((page) => {
       if (!controller.signal.aborted) {
         resetStreamState();
-        setMessages(msgs);
+        setMessagesPage(page);
         setIsLoadingThread(false);
       }
-      return msgs;
+      return page.messages;
     });
 
     // The two Promise.all chains below only report a failure when the thread
@@ -562,7 +567,7 @@ export function useAgentFullPage({
     setActiveThread,
     setActiveRun,
     setError,
-    setMessages,
+    setMessagesPage,
     setLatestProposedPlan,
     setDraftPlanModeEnabled,
     setPendingInputRequest,

@@ -1,6 +1,7 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 import { mapRunStatusToClientStatus } from '@genfeedai/agent/components/agent-workspace-run.helpers';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
@@ -38,7 +39,14 @@ import type {
   ChatAttachment,
 } from '@genfeedai/props/ui/attachments.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 interface UseAgentChatContainerParams {
   apiService: AgentApiService;
@@ -123,6 +131,15 @@ export function useAgentChatContainer({
   );
   const addMessage = useAgentChatStore((s) => s.addMessage);
   const messages = useAgentChatStore((s) => s.messages);
+  const hasMoreMessages = useAgentChatStore((s) => s.hasMoreMessages);
+  const messagesCursor = useAgentChatStore((s) => s.messagesCursor);
+  const isLoadingOlderMessages = useAgentChatStore(
+    (s) => s.isLoadingOlderMessages,
+  );
+  const prependOlderMessages = useAgentChatStore((s) => s.prependOlderMessages);
+  const setIsLoadingOlderMessages = useAgentChatStore(
+    (s) => s.setIsLoadingOlderMessages,
+  );
   const isGenerating = useAgentChatStore((s) => s.isGenerating);
   const error = useAgentChatStore((s) => s.error);
   const setError = useAgentChatStore((s) => s.setError);
@@ -218,6 +235,17 @@ export function useAgentChatContainer({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const olderMessagesRequestEpochRef = useRef(0);
+  const olderMessagesRequestInFlightRef = useRef(false);
+  const olderMessagesAbortControllerRef = useRef<AbortController | null>(null);
+  const activeThreadIdRef = useRef(activeThreadId);
+  const messagesCursorRef = useRef(messagesCursor);
+  const pendingScrollAnchorRef = useRef<{
+    container: HTMLDivElement;
+    expectedMessageCount: number;
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
   const wasLoadingThreadRef = useRef(isLoadingThread);
   const scrolledThreadIdRef = useRef<string | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -229,6 +257,9 @@ export function useAgentChatContainer({
   const [followUpTaskMessage, setFollowUpTaskMessage] = useState<string | null>(
     null,
   );
+
+  activeThreadIdRef.current = activeThreadId;
+  messagesCursorRef.current = messagesCursor;
 
   const isRunActive =
     activeRunStatus === 'running' || activeRunStatus === 'cancelling';
@@ -627,6 +658,112 @@ export function useAgentChatContainer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  const loadOlderMessages = useCallback(async () => {
+    const threadId = activeThreadId;
+    const cursor = messagesCursor;
+    if (
+      !threadId ||
+      !cursor ||
+      !hasMoreMessages ||
+      isLoadingOlderMessages ||
+      olderMessagesRequestInFlightRef.current
+    ) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    olderMessagesRequestInFlightRef.current = true;
+    setIsLoadingOlderMessages(true);
+    const requestEpoch = ++olderMessagesRequestEpochRef.current;
+    const controller = new AbortController();
+    olderMessagesAbortControllerRef.current = controller;
+
+    try {
+      const page = await runAgentApiEffect(
+        apiService.getMessagesPageEffect(
+          threadId,
+          { cursor, limit: AGENT_MESSAGE_PAGE_SIZE },
+          controller.signal,
+        ),
+      );
+
+      if (
+        controller.signal.aborted ||
+        requestEpoch !== olderMessagesRequestEpochRef.current ||
+        activeThreadIdRef.current !== threadId ||
+        messagesCursorRef.current !== cursor
+      ) {
+        return;
+      }
+
+      const currentMessageIds = new Set(messages.map((message) => message.id));
+      const olderMessageCount = page.messages.filter(
+        (message) => !currentMessageIds.has(message.id),
+      ).length;
+      pendingScrollAnchorRef.current =
+        olderMessageCount > 0
+          ? {
+              container,
+              expectedMessageCount: messages.length + olderMessageCount,
+              scrollHeight: container.scrollHeight,
+              scrollTop: container.scrollTop,
+            }
+          : null;
+      prependOlderMessages(page);
+    } catch {
+      if (!controller.signal.aborted) {
+        setError('Failed to load older messages. Try scrolling up again.');
+      }
+    } finally {
+      if (requestEpoch === olderMessagesRequestEpochRef.current) {
+        olderMessagesRequestInFlightRef.current = false;
+        olderMessagesAbortControllerRef.current = null;
+        setIsLoadingOlderMessages(false);
+      }
+    }
+  }, [
+    activeThreadId,
+    apiService,
+    hasMoreMessages,
+    isLoadingOlderMessages,
+    messages,
+    messagesCursor,
+    prependOlderMessages,
+    setError,
+    setIsLoadingOlderMessages,
+  ]);
+
+  useLayoutEffect(() => {
+    const anchor = pendingScrollAnchorRef.current;
+    if (!anchor || messages.length < anchor.expectedMessageCount) {
+      return;
+    }
+
+    pendingScrollAnchorRef.current = null;
+    anchor.container.scrollTop =
+      anchor.scrollTop + (anchor.container.scrollHeight - anchor.scrollHeight);
+  }, [messages.length]);
+
+  useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+    olderMessagesRequestEpochRef.current += 1;
+    olderMessagesRequestInFlightRef.current = false;
+    olderMessagesAbortControllerRef.current?.abort();
+    olderMessagesAbortControllerRef.current = null;
+    pendingScrollAnchorRef.current = null;
+  }, [activeThreadId]);
+
+  useEffect(() => {
+    return () => {
+      olderMessagesRequestEpochRef.current += 1;
+      olderMessagesAbortControllerRef.current?.abort();
+    };
+  }, []);
+
   const hasRenderableThreadState =
     messages.length > 0 ||
     Boolean(latestProposedPlan) ||
@@ -652,11 +789,14 @@ export function useAgentChatContainer({
       const distanceFromBottom =
         container.scrollHeight - container.scrollTop - container.clientHeight;
       setIsAtBottom(distanceFromBottom <= threshold);
+      if (container.scrollTop <= threshold) {
+        void loadOlderMessages();
+      }
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [loadOlderMessages]);
 
   // Scroll-to-bottom when a thread first becomes readable (imperative DOM, not
   // derived UI). A thread restored from cache paints without ever flipping
@@ -762,6 +902,7 @@ export function useAgentChatContainer({
     timeline,
     // local state
     isAtBottom,
+    isLoadingOlderMessages,
     isSubmittingInputRequest,
     activeUiAction,
     isCreatingFollowUpTasks,
@@ -793,5 +934,6 @@ export function useAgentChatContainer({
     handleRequestPlanChanges,
     handleCreateFollowUpTasks,
     scrollToBottom,
+    loadOlderMessages,
   };
 }

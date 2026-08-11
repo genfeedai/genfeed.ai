@@ -8,6 +8,7 @@ import type {
   AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type {
@@ -210,7 +211,9 @@ interface CachedConversation {
   /** `Date.now()` when this entry was written — drives freshness (below). */
   cachedAt: number;
   latestProposedPlan: AgentProposedPlan | null;
+  hasMoreMessages: boolean;
   messages: AgentChatMessage[];
+  messagesCursor: string | null;
   pendingInputRequest: AgentInputRequest | null;
   workEvents: AgentWorkEvent[];
 }
@@ -224,9 +227,9 @@ interface CachedConversation {
  * passively while the user scans the thread list, not only when they
  * actually visit a thread — a ceiling sized for "threads visited" was too
  * tight for "threads hovered" and would evict a just-primed entry before the
- * click that was supposed to benefit from it. Each entry holds at most 100
- * messages (the same page size every fetch already uses), so this is a
- * bounded, modest increase in retained memory.
+ * click that was supposed to benefit from it. Each entry starts with one
+ * bounded message page; older pages are retained only when the user backfills
+ * them, keeping the passive-prefetch memory increase modest.
  */
 export const CONVERSATION_CACHE_LIMIT = 20;
 
@@ -247,6 +250,9 @@ interface AgentChatState {
   draftPlanModeEnabled: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
+  hasMoreMessages: boolean;
+  messagesCursor: string | null;
+  isLoadingOlderMessages: boolean;
   memoryEntries: AgentMemoryEntry[];
   threads: AgentThread[];
   activeThreadId: string | null;
@@ -295,6 +301,9 @@ interface AgentChatActions {
   addMessage: (message: AgentChatMessage) => void;
   clearPendingInputRequest: () => void;
   setMessages: (messages: AgentChatMessage[]) => void;
+  setMessagesPage: (page: AgentMessagesPage) => void;
+  prependOlderMessages: (page: AgentMessagesPage) => void;
+  setIsLoadingOlderMessages: (loading: boolean) => void;
   setThreads: (threads: AgentThread[]) => void;
   setActiveRun: (
     runId: string | null,
@@ -641,8 +650,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         ...retained,
         [threadId]: {
           cachedAt: Date.now(),
+          hasMoreMessages: state.hasMoreMessages,
           latestProposedPlan: state.latestProposedPlan,
           messages: state.messages,
+          messagesCursor: state.messagesCursor,
           pendingInputRequest: state.pendingInputRequest,
           workEvents: state.workEvents,
         },
@@ -667,7 +678,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: null,
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       messages: [],
+      messagesCursor: null,
       pendingInputRequest: null,
       runStartedAt: null,
       threadUiBusyById: {},
@@ -779,10 +793,13 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     return Date.now() - cached.cachedAt < CONVERSATION_CACHE_FRESHNESS_MS;
   },
   isGenerating: false,
+  isLoadingOlderMessages: false,
   isOpen: readPanelPreference(),
   latestProposedPlan: null,
+  hasMoreMessages: false,
   memoryEntries: [],
   messages: [],
+  messagesCursor: null,
   modelCosts: {},
   onboardingCompletionPercent: 0,
   onboardingEarnedCredits: 0,
@@ -836,7 +853,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: null,
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       messages: [],
+      messagesCursor: null,
       pendingInputRequest: null,
       runStartedAt: null,
       stream: { ...DEFAULT_STREAM_STATE },
@@ -869,7 +889,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: cached.latestProposedPlan,
+      hasMoreMessages: cached.hasMoreMessages,
+      isLoadingOlderMessages: false,
       messages: cached.messages,
+      messagesCursor: cached.messagesCursor,
       pendingInputRequest: cached.pendingInputRequest,
       runStartedAt: null,
       stream: { ...DEFAULT_STREAM_STATE },
@@ -914,6 +937,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         : {}),
     })),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
+  setIsLoadingOlderMessages: (loading) =>
+    set({ isLoadingOlderMessages: loading }),
   setIsOpen: (open) => {
     persistPanelPreference(open);
     set((state) => ({
@@ -930,6 +955,29 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     set({
       latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
       messages,
+    }),
+  setMessagesPage: (page) =>
+    set({
+      hasMoreMessages: page.hasMore,
+      isLoadingOlderMessages: false,
+      latestProposedPlan: deriveLatestProposedPlanFromMessages(page.messages),
+      messages: page.messages,
+      messagesCursor: page.nextCursor,
+    }),
+  prependOlderMessages: (page) =>
+    set((state) => {
+      const currentIds = new Set(state.messages.map((message) => message.id));
+      const olderMessages = page.messages.filter(
+        (message) => !currentIds.has(message.id),
+      );
+      const messages = [...olderMessages, ...state.messages];
+
+      return {
+        hasMoreMessages: page.hasMore,
+        latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
+        messages,
+        messagesCursor: page.nextCursor,
+      };
     }),
   setModelCosts: (costs) => set({ modelCosts: costs }),
   setOnboardingChecklist: (payload) =>

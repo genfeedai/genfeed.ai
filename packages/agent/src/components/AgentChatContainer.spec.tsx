@@ -1,9 +1,16 @@
+import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   type AgentChatMessage as AgentChatMessageType,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -283,6 +290,8 @@ type StoreState = {
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
   draftPlanModeEnabled: boolean;
+  hasMoreMessages: boolean;
+  isLoadingOlderMessages: boolean;
   latestProposedPlan: null | {
     id: string;
     status?: string;
@@ -300,6 +309,8 @@ type StoreState = {
   error: string | null;
   isGenerating: boolean;
   messages: AgentChatMessageType[];
+  messagesCursor: string | null;
+  prependOlderMessages: ReturnType<typeof vi.fn>;
   pendingInputRequest: {
     allowFreeText: boolean;
     threadId: string;
@@ -318,6 +329,7 @@ type StoreState = {
   setDraftPlanModeEnabled: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
+  setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
   stream: {
     activeToolCalls: [];
     pendingUiActions: [];
@@ -338,6 +350,8 @@ const storeState: StoreState = {
   clearPendingInputRequest: vi.fn(),
   draftPlanModeEnabled: false,
   error: null,
+  hasMoreMessages: false,
+  isLoadingOlderMessages: false,
   isGenerating: false,
   latestProposedPlan: null,
   messages: [
@@ -358,6 +372,12 @@ const storeState: StoreState = {
     threadId: 'thread-1',
     title: 'Prompt bar mode',
   },
+  messagesCursor: null,
+  prependOlderMessages: vi.fn((page) => {
+    storeState.messages = [...page.messages, ...storeState.messages];
+    storeState.hasMoreMessages = page.hasMore;
+    storeState.messagesCursor = page.nextCursor;
+  }),
   runStartedAt: null,
   socketConnectionState: 'connected',
   setActiveRun: vi.fn(),
@@ -370,6 +390,9 @@ const storeState: StoreState = {
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
     storeState.latestProposedPlan = plan;
+  }),
+  setIsLoadingOlderMessages: vi.fn((loading: boolean) => {
+    storeState.isLoadingOlderMessages = loading;
   }),
   stream: {
     activeToolCalls: [],
@@ -386,6 +409,7 @@ const storeState: StoreState = {
 const EFFECT_METHOD_MAP = {
   cancelRun: 'cancelRunEffect',
   getActiveRuns: 'getActiveRunsEffect',
+  getMessagesPage: 'getMessagesPageEffect',
   respondToInputRequest: 'respondToInputRequestEffect',
   respondToUiAction: 'respondToUiActionEffect',
   updateThread: 'updateThreadEffect',
@@ -420,6 +444,7 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   return withAgentApiEffects({
     cancelRun: vi.fn(),
     getActiveRuns: vi.fn().mockResolvedValue([]),
+    getMessagesPage: vi.fn(),
     respondToInputRequest: vi.fn(),
     respondToUiAction: vi.fn(),
     updateThread: vi.fn(),
@@ -468,6 +493,7 @@ describe('AgentChatContainer', () => {
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
+    storeState.prependOlderMessages.mockClear();
     storeState.setActiveThread.mockReset();
     storeState.setActiveRun.mockReset();
     storeState.setActiveRunStatus.mockReset();
@@ -475,10 +501,14 @@ describe('AgentChatContainer', () => {
     storeState.setDraftPlanModeEnabled.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
+    storeState.setIsLoadingOlderMessages.mockClear();
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
+    storeState.activeThreadId = 'thread-1';
     storeState.draftPlanModeEnabled = false;
     storeState.error = null;
+    storeState.hasMoreMessages = false;
+    storeState.isLoadingOlderMessages = false;
     storeState.latestProposedPlan = null;
     storeState.pendingInputRequest = {
       allowFreeText: true,
@@ -490,6 +520,7 @@ describe('AgentChatContainer', () => {
       title: 'Prompt bar mode',
     };
     storeState.messages = [buildAssistantMessage()];
+    storeState.messagesCursor = null;
     storeState.runStartedAt = null;
     storeState.stream.streamingContent = '';
     storeState.threads = [];
@@ -835,6 +866,117 @@ describe('AgentChatContainer', () => {
     rerender(<AgentChatContainer apiService={apiService as never} />);
 
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto' });
+  });
+
+  it('loads older messages near the top and preserves the visible scroll anchor', async () => {
+    const olderMessage = buildAssistantMessage({
+      content: 'Older reply',
+      id: 'm-older',
+    });
+    const getMessagesPage = vi.fn().mockResolvedValue({
+      hasMore: false,
+      messages: [olderMessage],
+      nextCursor: null,
+    });
+    const apiService = createApiService({ getMessagesPage });
+    storeState.pendingInputRequest = null;
+    storeState.hasMoreMessages = true;
+    storeState.messagesCursor = 'cursor-older';
+
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+    const scrollContainer = view.container.querySelector('.overflow-y-auto');
+    if (!(scrollContainer instanceof HTMLDivElement)) {
+      throw new Error('Conversation scroll container not found');
+    }
+
+    let scrollHeight = 1_000;
+    Object.defineProperties(scrollContainer, {
+      clientHeight: { configurable: true, value: 500 },
+      scrollHeight: {
+        configurable: true,
+        get: () => scrollHeight,
+      },
+    });
+    scrollContainer.scrollTop = 20;
+    fireEvent.scroll(scrollContainer);
+
+    await waitFor(() => {
+      expect(getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        { cursor: 'cursor-older', limit: AGENT_MESSAGE_PAGE_SIZE },
+        expect.any(AbortSignal),
+      );
+    });
+    await waitFor(() => {
+      expect(storeState.prependOlderMessages).toHaveBeenCalledTimes(1);
+    });
+
+    scrollHeight = 1_400;
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(scrollContainer.scrollTop).toBe(420);
+  });
+
+  it('drops an older-page response that resolves after the active thread changes', async () => {
+    let resolvePage:
+      | ((page: {
+          hasMore: boolean;
+          messages: AgentChatMessageType[];
+          nextCursor: string | null;
+        }) => void)
+      | undefined;
+    const getMessagesPage = vi.fn(
+      () =>
+        new Promise<{
+          hasMore: boolean;
+          messages: AgentChatMessageType[];
+          nextCursor: string | null;
+        }>((resolve) => {
+          resolvePage = resolve;
+        }),
+    );
+    const apiService = createApiService({ getMessagesPage });
+    storeState.pendingInputRequest = null;
+    storeState.hasMoreMessages = true;
+    storeState.messagesCursor = 'cursor-thread-1';
+
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+    const scrollContainer = view.container.querySelector('.overflow-y-auto');
+    if (!(scrollContainer instanceof HTMLDivElement)) {
+      throw new Error('Conversation scroll container not found');
+    }
+    Object.defineProperties(scrollContainer, {
+      clientHeight: { configurable: true, value: 500 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    scrollContainer.scrollTop = 20;
+    fireEvent.scroll(scrollContainer);
+
+    await waitFor(() => {
+      expect(getMessagesPage).toHaveBeenCalledTimes(1);
+    });
+
+    storeState.activeThreadId = 'thread-2';
+    storeState.messages = [
+      buildAssistantMessage({ id: 'thread-2-message', threadId: 'thread-2' }),
+    ];
+    storeState.messagesCursor = 'cursor-thread-2';
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    await act(async () => {
+      resolvePage?.({
+        hasMore: false,
+        messages: [buildAssistantMessage({ id: 'stale-older-message' })],
+        nextCursor: null,
+      });
+      await Promise.resolve();
+    });
+
+    expect(storeState.prependOlderMessages).not.toHaveBeenCalled();
   });
 
   it('renders contextual suggested actions through the shared prompt bar suggestions UI without plan mode shortcuts', () => {
