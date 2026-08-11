@@ -16,8 +16,9 @@
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --live
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --organizationId=<id>
+ *   bun run apps/server/api/scripts/seeds/articles.seed.ts --ownerEmail=<email>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --userId=<id>
- *   bun run apps/server/api/scripts/seeds/articles.seed.ts --env=production --live
+ *   bun run apps/server/api/scripts/seeds/articles.seed.ts --env=production --live --ownerEmail=<email>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --all-clusters
  */
 
@@ -50,6 +51,7 @@ type SeedArgs = {
   dryRun: boolean;
   env?: string;
   organizationId?: string;
+  ownerEmail?: string;
   userId?: string;
 };
 
@@ -97,6 +99,9 @@ function parseArgs(): SeedArgs {
     env: args.find((arg) => arg.startsWith('--env='))?.split('=')[1],
     organizationId: args
       .find((arg) => arg.startsWith('--organizationId='))
+      ?.split('=')[1],
+    ownerEmail: args
+      .find((arg) => arg.startsWith('--ownerEmail='))
       ?.split('=')[1],
     userId: args.find((arg) => arg.startsWith('--userId='))?.split('=')[1],
   };
@@ -165,32 +170,56 @@ function createPrismaClient(): PrismaClient {
 }
 
 /**
- * Articles require both an owning user and an organization. Without explicit
- * ids we publish under the oldest surviving organization and its owner, which
- * is the platform's own org in every deployment that has one.
+ * Articles require both an owning user and an organization — `articles` carries
+ * a non-nullable `organizationId`, and every tenant-scoped read filters on it,
+ * so there is no such thing as an org-less article. The only question is which
+ * org publishes them.
+ *
+ * `--ownerEmail=<email>` is the selector to reach for: it names the human who
+ * owns the publishing org, which stays stable across environments where ids do
+ * not. `--organizationId=` narrows further when that person owns several orgs.
+ * With neither, we fall back to the oldest surviving organization — fine for a
+ * fresh local database, and rejected outright for a live production run, where
+ * "oldest" is whichever account happened to sign up first.
  */
 async function resolveOwner(params: {
   organizationId: string | null;
+  ownerEmail: string | null;
   prisma: PrismaClient;
   userId: string | null;
 }): Promise<SeedOwner> {
+  const ownerByEmail = params.ownerEmail
+    ? await params.prisma.user.findFirst({
+        select: { id: true },
+        where: { email: params.ownerEmail, isDeleted: false },
+      })
+    : null;
+
+  if (params.ownerEmail && !ownerByEmail) {
+    throw new Error(`No active user found for email ${params.ownerEmail}`);
+  }
+
   const organization = await params.prisma.organization.findFirst({
     orderBy: { createdAt: 'asc' },
     select: { id: true, label: true, userId: true },
     where: params.organizationId
       ? { id: params.organizationId, isDeleted: false }
-      : { isDeleted: false },
+      : ownerByEmail
+        ? { isDeleted: false, userId: ownerByEmail.id }
+        : { isDeleted: false },
   });
 
   if (!organization) {
     throw new Error(
       params.organizationId
         ? `Organization ${params.organizationId} not found or deleted`
-        : 'No organization found to own the seeded articles',
+        : params.ownerEmail
+          ? `No organization owned by ${params.ownerEmail}`
+          : 'No organization found to own the seeded articles',
     );
   }
 
-  const userId = params.userId || organization.userId;
+  const userId = params.userId || ownerByEmail?.id || organization.userId;
   if (!userId) {
     throw new Error(
       `Organization ${organization.id} has no owner; pass --userId=<id>`,
@@ -388,6 +417,21 @@ async function main(): Promise<void> {
     return;
   }
 
+  // These articles are public marketing surface. Landing them in the wrong org
+  // on production is not a cosmetic mistake — they become someone else's rows,
+  // invisible to their intended owner and visible in a tenant that never asked
+  // for them. Live production runs must name the owner.
+  if (
+    args.env === 'production' &&
+    !args.dryRun &&
+    !args.organizationId &&
+    !args.ownerEmail
+  ) {
+    throw new Error(
+      'A live production seed must name its owner: pass --ownerEmail=<email> or --organizationId=<id>',
+    );
+  }
+
   const prisma = createPrismaClient();
 
   try {
@@ -395,6 +439,7 @@ async function main(): Promise<void> {
 
     const owner = await resolveOwner({
       organizationId: parseOptionalId(args.organizationId),
+      ownerEmail: args.ownerEmail ?? null,
       prisma,
       userId: parseOptionalId(args.userId),
     });
