@@ -2,6 +2,8 @@ import messages from '../messages/en/common.json';
 
 type MessageNode = string | { readonly [key: string]: MessageNode };
 
+const catalog: MessageNode = { common: messages as MessageNode };
+
 /**
  * `vi.mock('next-intl')` replacement that resolves keys against the real
  * English catalog, so component tests keep asserting the copy a user actually
@@ -14,7 +16,7 @@ type MessageNode = string | { readonly [key: string]: MessageNode };
 export function translateFromCatalog(namespace: string) {
   return (key: string, values?: Record<string, string | number>): string => {
     const path = `${namespace}.${key}`;
-    let node: MessageNode = messages as MessageNode;
+    let node = catalog;
 
     for (const segment of path.split('.')) {
       if (typeof node === 'string') {
