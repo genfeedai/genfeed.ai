@@ -7,6 +7,12 @@ on:
       - 'packages/**'
       - 'ee/packages/billing/**'
       - 'docker/Dockerfile.server'
+      # This build runs the Dockerfile's EE billing flavor gate, so it is the
+      # PR-time check that catches a #2751-style mis-resolution. It only helps
+      # if a bundler-config change actually triggers it.
+      - 'webpack.base.config.js'
+      - 'tsconfig.json'
+      - 'tsconfig.server.decorators.json'
       - 'bun.lock'
       - 'package.json'
       - '.github/workflows/server-image-pr.yml'
