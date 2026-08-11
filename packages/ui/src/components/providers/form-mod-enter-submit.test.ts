@@ -59,6 +59,14 @@ describe('isModEnterKey', () => {
         defaultPrevented: true,
       }),
     ).toBe(false);
+    expect(
+      isModEnterKey({
+        key: 'Enter',
+        metaKey: true,
+        ctrlKey: false,
+        repeat: true,
+      }),
+    ).toBe(false);
   });
 });
 
@@ -115,16 +123,28 @@ describe('handleFormModEnterSubmit', () => {
     document.body.innerHTML = '';
   });
 
-  it('calls requestSubmit and preventDefault on mod+Enter inside a form', () => {
+  it('passes the enabled submitter to requestSubmit', () => {
     const form = mountForm(`
       <form>
         <input type="email" name="email" value="a@b.co" />
-        <button type="submit">Send</button>
+        <button type="submit" name="intent" value="draft" disabled>
+          Save draft
+        </button>
+        <button
+          type="submit"
+          name="intent"
+          value="publish"
+          formaction="/publish"
+          formmethod="post"
+        >
+          Publish
+        </button>
       </form>
     `);
     const input = form.querySelector('input');
-    if (!input) {
-      throw new Error('missing input');
+    const submitter = form.querySelector('button:not(:disabled)');
+    if (!input || !submitter) {
+      throw new Error('missing form control');
     }
 
     const requestSubmit = vi.fn();
@@ -136,7 +156,34 @@ describe('handleFormModEnterSubmit', () => {
 
     expect(handleFormModEnterSubmit(event)).toBe(true);
     expect(preventDefault).toHaveBeenCalledOnce();
-    expect(requestSubmit).toHaveBeenCalledOnce();
+    expect(requestSubmit).toHaveBeenCalledWith(submitter);
+    expect(submitter).toHaveAttribute('name', 'intent');
+    expect(submitter).toHaveAttribute('value', 'publish');
+    expect(submitter).toHaveAttribute('formaction', '/publish');
+    expect(submitter).toHaveAttribute('formmethod', 'post');
+  });
+
+  it('ignores repeated mod+Enter keydown events', () => {
+    const form = mountForm(`
+      <form>
+        <input type="email" name="email" />
+        <button type="submit">Send</button>
+      </form>
+    `);
+    const input = form.querySelector('input');
+    if (!input) {
+      throw new Error('missing input');
+    }
+
+    const requestSubmit = vi.fn();
+    form.requestSubmit = requestSubmit;
+
+    const event = keyEvent({ repeat: true });
+    Object.defineProperty(event, 'target', { value: input });
+
+    expect(handleFormModEnterSubmit(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(false);
+    expect(requestSubmit).not.toHaveBeenCalled();
   });
 
   it('does not submit on plain Enter', () => {
