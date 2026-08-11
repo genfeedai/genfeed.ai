@@ -207,6 +207,8 @@ interface AgentComposerSeed {
  * restored as if it were settled history.
  */
 interface CachedConversation {
+  /** `Date.now()` when this entry was written — drives freshness (below). */
+  cachedAt: number;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
   pendingInputRequest: AgentInputRequest | null;
@@ -217,8 +219,28 @@ interface CachedConversation {
  * Threads retained in the conversation cache. Bounded so a long session cannot
  * pin every thread's messages in memory; the least recently cached entry is
  * evicted first.
+ *
+ * Raised from 10 (#2790): hover/focus prefetch now populates this cache
+ * passively while the user scans the thread list, not only when they
+ * actually visit a thread — a ceiling sized for "threads visited" was too
+ * tight for "threads hovered" and would evict a just-primed entry before the
+ * click that was supposed to benefit from it. Each entry holds at most 100
+ * messages (the same page size every fetch already uses), so this is a
+ * bounded, modest increase in retained memory.
  */
-const CONVERSATION_CACHE_LIMIT = 10;
+export const CONVERSATION_CACHE_LIMIT = 20;
+
+/**
+ * A cached conversation counts as fresh for this long after it was written
+ * (#2790). Within the window, switching to that thread skips the
+ * thread-metadata and snapshot requests (`getThreadEffect` /
+ * `getThreadSnapshotEffect`) entirely — the messages list still refetches
+ * (nothing else can supply it, and it is what gates paint). Deliberately
+ * short and time-bounded rather than "cache forever": a thread whose status,
+ * plan, or work events changed server-side while the tab was open still
+ * converges within one window's length of the user returning to it.
+ */
+export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 
 interface AgentChatState {
   activeRunId: string | null;
@@ -303,6 +325,13 @@ interface AgentChatActions {
   restoreCachedConversation: (threadId: string) => boolean;
   /** Drop every cached conversation — the scope they belonged to is gone. */
   clearConversationCache: () => void;
+  /** Write prefetched data into the cache without disturbing the active thread. */
+  primeConversationCache: (
+    threadId: string,
+    data: Omit<CachedConversation, 'cachedAt'>,
+  ) => void;
+  /** Whether `threadId`'s cache entry is recent enough to skip revalidation requests. */
+  isConversationCacheFresh: (threadId: string) => boolean;
   toggleOpen: () => void;
   setPageContext: (context: AgentPageContextState | null) => void;
   setMemoryEntries: (entries: AgentMemoryEntry[]) => void;
@@ -611,6 +640,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       const next: Record<string, CachedConversation> = {
         ...retained,
         [threadId]: {
+          cachedAt: Date.now(),
           latestProposedPlan: state.latestProposedPlan,
           messages: state.messages,
           pendingInputRequest: state.pendingInputRequest,
@@ -741,6 +771,13 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     });
   },
+  isConversationCacheFresh: (threadId) => {
+    const cached = get().conversationCacheByThread[threadId];
+    if (!cached) {
+      return false;
+    }
+    return Date.now() - cached.cachedAt < CONVERSATION_CACHE_FRESHNESS_MS;
+  },
   isGenerating: false,
   isOpen: readPanelPreference(),
   latestProposedPlan: null,
@@ -757,6 +794,36 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   overlayAutoCollapsedAgent: false,
   pageContext: null,
   pendingInputRequest: null,
+  primeConversationCache: (threadId, data) =>
+    set((state) => {
+      // The active thread's live state is the source of truth; a prefetch
+      // that lands after the user has already navigated there must never
+      // clobber it with a slightly-stale snapshot.
+      if (threadId === state.activeThreadId) {
+        return state;
+      }
+
+      // Same recency-by-reinsertion + LRU eviction as `cacheConversation`.
+      const { [threadId]: _evicted, ...retained } =
+        state.conversationCacheByThread;
+      const next: Record<string, CachedConversation> = {
+        ...retained,
+        [threadId]: {
+          ...data,
+          cachedAt: Date.now(),
+        },
+      };
+
+      const threadIds = Object.keys(next);
+      for (const staleId of threadIds.slice(
+        0,
+        Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
+      )) {
+        delete next[staleId];
+      }
+
+      return { conversationCacheByThread: next };
+    }),
   removeMemoryEntry: (entryId) =>
     set((state) => ({
       memoryEntries: state.memoryEntries.filter((item) => item.id !== entryId),

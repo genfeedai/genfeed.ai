@@ -12,6 +12,8 @@ import {
 import type { TerminalSessionDto } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   AGENT_PANEL_OPEN_KEY,
+  CONVERSATION_CACHE_FRESHNESS_MS,
+  CONVERSATION_CACHE_LIMIT,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/enums';
@@ -668,7 +670,7 @@ describe('agent-chat.store conversation cache', () => {
   });
 
   it('evicts the least recently cached thread past the limit', () => {
-    for (let index = 0; index < 11; index += 1) {
+    for (let index = 0; index < CONVERSATION_CACHE_LIMIT + 1; index += 1) {
       useAgentChatStore.getState().setMessages([makeMessage(`m-${index}`)]);
       useAgentChatStore.getState().cacheConversation(`thread-${index}`);
     }
@@ -677,7 +679,9 @@ describe('agent-chat.store conversation cache', () => {
       useAgentChatStore.getState().restoreCachedConversation('thread-0'),
     ).toBe(false);
     expect(
-      useAgentChatStore.getState().restoreCachedConversation('thread-10'),
+      useAgentChatStore
+        .getState()
+        .restoreCachedConversation(`thread-${CONVERSATION_CACHE_LIMIT}`),
     ).toBe(true);
   });
 
@@ -685,7 +689,7 @@ describe('agent-chat.store conversation cache', () => {
     useAgentChatStore.getState().setMessages([makeMessage('m-0')]);
     useAgentChatStore.getState().cacheConversation('thread-0');
 
-    for (let index = 1; index < 10; index += 1) {
+    for (let index = 1; index < CONVERSATION_CACHE_LIMIT; index += 1) {
       useAgentChatStore.getState().setMessages([makeMessage(`m-${index}`)]);
       useAgentChatStore.getState().cacheConversation(`thread-${index}`);
     }
@@ -695,8 +699,12 @@ describe('agent-chat.store conversation cache', () => {
     useAgentChatStore.getState().setMessages([makeMessage('m-0-again')]);
     useAgentChatStore.getState().cacheConversation('thread-0');
 
-    useAgentChatStore.getState().setMessages([makeMessage('m-10')]);
-    useAgentChatStore.getState().cacheConversation('thread-10');
+    useAgentChatStore
+      .getState()
+      .setMessages([makeMessage(`m-${CONVERSATION_CACHE_LIMIT}`)]);
+    useAgentChatStore
+      .getState()
+      .cacheConversation(`thread-${CONVERSATION_CACHE_LIMIT}`);
 
     expect(
       useAgentChatStore.getState().restoreCachedConversation('thread-0'),
@@ -716,6 +724,117 @@ describe('agent-chat.store conversation cache', () => {
     expect(
       useAgentChatStore.getState().restoreCachedConversation('thread-1'),
     ).toBe(false);
+  });
+
+  describe('primeConversationCache (#2790 prefetch)', () => {
+    function makePrefetchedData(id: string) {
+      return {
+        latestProposedPlan: null,
+        messages: [makeMessage(id)],
+        pendingInputRequest: null,
+        workEvents: [],
+      };
+    }
+
+    it('writes prefetched data so it can later be restored', () => {
+      useAgentChatStore
+        .getState()
+        .primeConversationCache('thread-hover', makePrefetchedData('m-hover'));
+
+      expect(
+        useAgentChatStore.getState().restoreCachedConversation('thread-hover'),
+      ).toBe(true);
+      expect(useAgentChatStore.getState().messages[0]?.id).toBe('m-hover');
+    });
+
+    it('never overwrites the currently active thread', () => {
+      useAgentChatStore.getState().setActiveThread('thread-active');
+      useAgentChatStore.getState().setMessages([makeMessage('m-live')]);
+
+      useAgentChatStore
+        .getState()
+        .primeConversationCache(
+          'thread-active',
+          makePrefetchedData('m-stale-prefetch'),
+        );
+
+      // A prefetch for the active thread must be dropped, not cached — the
+      // live in-memory state is already the freshest available data, and
+      // caching a snapshot here could later overwrite it with something
+      // stale on a future restore.
+      expect(
+        useAgentChatStore.getState().restoreCachedConversation('thread-active'),
+      ).toBe(false);
+      expect(useAgentChatStore.getState().messages[0]?.id).toBe('m-live');
+    });
+
+    it('evicts the least recently primed thread past the limit', () => {
+      for (let index = 0; index < CONVERSATION_CACHE_LIMIT + 1; index += 1) {
+        useAgentChatStore
+          .getState()
+          .primeConversationCache(
+            `thread-${index}`,
+            makePrefetchedData(`m-${index}`),
+          );
+      }
+
+      expect(
+        useAgentChatStore.getState().restoreCachedConversation('thread-0'),
+      ).toBe(false);
+      expect(
+        useAgentChatStore
+          .getState()
+          .restoreCachedConversation(`thread-${CONVERSATION_CACHE_LIMIT}`),
+      ).toBe(true);
+    });
+  });
+
+  describe('isConversationCacheFresh (#2790 warm-cache skip)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-26T10:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns false for a thread with no cache entry', () => {
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-none'),
+      ).toBe(false);
+    });
+
+    it('returns true immediately after caching', () => {
+      useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+      useAgentChatStore.getState().cacheConversation('thread-1');
+
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-1'),
+      ).toBe(true);
+    });
+
+    it('stays fresh just under the freshness window', () => {
+      useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+      useAgentChatStore.getState().cacheConversation('thread-1');
+
+      vi.advanceTimersByTime(CONVERSATION_CACHE_FRESHNESS_MS - 1);
+
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-1'),
+      ).toBe(true);
+    });
+
+    it('expires once the freshness window elapses, forcing a real refetch', () => {
+      useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+      useAgentChatStore.getState().cacheConversation('thread-1');
+
+      vi.advanceTimersByTime(CONVERSATION_CACHE_FRESHNESS_MS);
+
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-1'),
+      ).toBe(false);
+    });
   });
 });
 

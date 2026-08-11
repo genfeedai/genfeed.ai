@@ -76,6 +76,7 @@ interface StoreState {
   clearConversationCache: ReturnType<typeof vi.fn>;
   creditsRemaining: number | null;
   composerSeed: null;
+  isConversationCacheFresh: ReturnType<typeof vi.fn>;
   messages: Array<{
     content: string;
     createdAt: string;
@@ -143,6 +144,7 @@ const storeState: StoreState = {
   clearThreadAttention: vi.fn(),
   composerSeed: null,
   creditsRemaining: null,
+  isConversationCacheFresh: vi.fn(() => false),
   messages: [],
   modelCosts: {},
   onboardingSignupGiftCredits: 0,
@@ -289,6 +291,8 @@ describe('AgentFullPage', () => {
     storeState.resetActiveConversationState.mockReset();
     storeState.clearThreadAttention.mockReset();
     storeState.activeThreadId = null;
+    storeState.isConversationCacheFresh.mockReset();
+    storeState.isConversationCacheFresh.mockReturnValue(false);
     storeState.messages = [];
     storeState.pageContext = null;
     storeState.threads = [];
@@ -361,6 +365,128 @@ describe('AgentFullPage', () => {
     expect(apiService.getThread).toHaveBeenCalledTimes(2);
     expect(apiService.getMessages).toHaveBeenCalledTimes(2);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(2);
+    expect(storeState.setError).not.toHaveBeenCalled();
+  });
+
+  it('skips the thread and snapshot requests when the conversation cache is fresh (#2790)', async () => {
+    storeState.isConversationCacheFresh.mockReturnValue(true);
+    const messages = [
+      {
+        content: 'Cached prompt',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-1',
+        role: 'user',
+        threadId: 'thread-1',
+      },
+    ];
+    const apiService = createApiService({
+      getMessages: vi.fn(
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue(messages, signal),
+      ),
+      getThread: vi.fn(),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+    });
+
+    expect(apiService.getThread).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(storeState.setError).not.toHaveBeenCalled();
+  });
+
+  it('still reports a load failure for a messages-only rejection when the cache is fresh (#2790)', async () => {
+    storeState.isConversationCacheFresh.mockReturnValue(true);
+    const apiService = createApiService({
+      getMessages: vi.fn().mockRejectedValue(new Error('Messages down')),
+      getThread: vi.fn(),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to load this thread. Refresh and try again.',
+      );
+    });
+
+    expect(apiService.getThread).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('fires all three requests when the conversation cache is not fresh (#2790 regression)', async () => {
+    storeState.isConversationCacheFresh.mockReturnValue(false);
+    const messages = [
+      {
+        content: 'Fresh prompt',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-1',
+        role: 'user',
+        threadId: 'thread-1',
+      },
+    ];
+    const apiService = createApiService({
+      getMessages: vi.fn(
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue(messages, signal),
+      ),
+      getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            createdAt: '2026-03-10T10:00:00.000Z',
+            id: threadId,
+            status: AgentThreadStatus.ACTIVE,
+            title: 'Loaded thread',
+            updatedAt: '2026-03-10T10:00:00.000Z',
+          },
+          signal,
+        ),
+      ),
+      getThreadSnapshot: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            activeRun: null,
+            lastAssistantMessage: null,
+            lastSequence: 0,
+            latestProposedPlan: null,
+            latestUiBlocks: null,
+            memorySummaryRefs: [],
+            pendingApprovals: [],
+            pendingInputRequests: [],
+            profileSnapshot: null,
+            sessionBinding: null,
+            source: 'agent',
+            threadId,
+            threadStatus: AgentThreadStatus.ACTIVE,
+            timeline: [],
+            title: 'Loaded thread',
+          },
+          signal,
+        ),
+      ),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+    });
+
+    expect(apiService.getThread).toHaveBeenCalledTimes(1);
+    expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
     expect(storeState.setError).not.toHaveBeenCalled();
   });
 
