@@ -213,10 +213,16 @@ RUN bun --filter @genfeedai/mcp build:prod
 # controller route literal 'admin/credit-usage' (decorator strings survive
 # bundling). A hit means enterprise-licensed code leaked into the community
 # image, which is a licensing problem, not just a wrong feature set.
-RUN if grep -q "admin/credit-usage" apps/server/dist/apps/api/main.js; then \
-      echo "❌ community api bundle carries the EE billing fragment — ee/ code must never reach the AGPL image (see webpack.base.config.js flavor resolver + check:billing-flavor)" && exit 1; \
+RUN bundle="apps/server/dist/apps/api/main.js"; \
+    if [ ! -r "${bundle}" ]; then \
+      echo "❌ cannot inspect the community api bundle at ${bundle}" && exit 1; \
     fi; \
-    echo "✅ community api bundle is OSS-flavored"
+    grep -Fq "admin/credit-usage" "${bundle}"; status=$?; \
+    case "${status}" in \
+      0) echo "❌ community api bundle carries the EE billing fragment — ee/ code must never reach the AGPL image (see webpack.base.config.js flavor resolver + check:billing-flavor)" && exit 1 ;; \
+      1) echo "✅ community api bundle is OSS-flavored" ;; \
+      *) echo "❌ failed to inspect the community api bundle at ${bundle}" && exit "${status}" ;; \
+    esac
 
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/
