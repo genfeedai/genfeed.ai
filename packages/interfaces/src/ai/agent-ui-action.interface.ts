@@ -35,6 +35,7 @@ export type AgentUiActionType =
   | 'campaign_launch_prep_card'
   | 'workflow_created_card'
   | 'bot_created_card'
+  | 'next_steps_card'
   | 'livestream_bot_status_card';
 
 export interface AgentUiActionBase {
@@ -66,6 +67,18 @@ export interface AgentUiActionOutputVariant {
   thumbnailUrl?: string;
   title?: string;
   url?: string;
+}
+
+/**
+ * One choice the agent offers the user. Every option carries its own CTAs so a
+ * suggestion always renders a control — either navigation to the owning page or
+ * an in-conversation follow-up — never bare prose the user cannot act on.
+ */
+export interface AgentNextStepOption {
+  id: string;
+  title: string;
+  description?: string;
+  ctas: AgentUiActionCta[];
 }
 
 export interface AgentIngredientItem {
@@ -235,6 +248,7 @@ export interface AgentUiAction extends AgentUiActionBase {
   }>;
   textContent?: string;
   textActions?: string[];
+  nextSteps?: AgentNextStepOption[];
 }
 
 import type { PostVisibility } from '@genfeedai/enums';

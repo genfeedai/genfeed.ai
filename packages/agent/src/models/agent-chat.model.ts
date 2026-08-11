@@ -108,6 +108,18 @@ export interface AgentUiActionCta {
 
 export type { AgentUiActionHandler } from '@genfeedai/interfaces';
 
+/**
+ * One choice the agent offers. Every option carries its own CTAs so a
+ * suggestion always renders a control — navigation to the owning page or an
+ * in-conversation follow-up — never bare prose the user cannot act on.
+ */
+export interface AgentNextStepOption {
+  id: string;
+  title: string;
+  description?: string;
+  ctas: AgentUiActionCta[];
+}
+
 export interface AgentIngredientItem {
   id: string;
   url: string;
@@ -165,6 +177,7 @@ export interface AgentUiAction {
     | 'campaign_launch_prep_card'
     | 'workflow_created_card'
     | 'bot_created_card'
+    | 'next_steps_card'
     | 'livestream_bot_status_card'
     | 'brand_interview_offer_card'
     | 'brand_interview_complete_card';
@@ -310,6 +323,7 @@ export interface AgentUiAction {
   }>;
   textContent?: string;
   textActions?: string[];
+  nextSteps?: AgentNextStepOption[];
   clipRunState?: ClipRunCardState;
 }
 

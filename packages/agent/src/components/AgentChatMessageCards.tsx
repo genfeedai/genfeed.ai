@@ -1,6 +1,7 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -76,46 +77,74 @@ export function OAuthConnectCard({
   action: AgentUiAction;
   onConnect?: (platform: string) => void | Promise<void>;
 }): ReactElement {
-  const platform = action.platform?.trim();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
+    null,
+  );
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  const handleConnect = useCallback(async () => {
-    if (!platform || !onConnect || isConnecting) {
-      return;
-    }
+  const platforms = collectConnectPlatforms(action);
 
-    setConnectError(null);
-    setIsConnecting(true);
-    try {
-      await onConnect(platform);
-    } catch {
-      setConnectError('Could not start the connection. Please try again.');
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [isConnecting, onConnect, platform]);
+  const handleConnect = useCallback(
+    async (platform: string) => {
+      if (!onConnect || connectingPlatform) {
+        return;
+      }
 
-  if (!platform) {
+      setConnectError(null);
+      setConnectingPlatform(platform);
+      try {
+        await onConnect(platform);
+      } catch {
+        setConnectError('Could not start the connection. Please try again.');
+      } finally {
+        setConnectingPlatform(null);
+      }
+    },
+    [connectingPlatform, onConnect],
+  );
+
+  if (platforms.length === 0) {
     return <GenericOAuthConnectCard action={action} />;
   }
 
-  const label = formatPlatformLabel(platform);
+  const isSinglePlatform = platforms.length === 1;
+  // The title already names the platform for a single card, so the button
+  // carries the verb only — repeating "Connect X (Twitter)" twice reads as a
+  // rendering bug.
+  const title = action.title?.trim().length
+    ? action.title
+    : isSinglePlatform
+      ? `Connect ${formatPlatformLabel(platforms[0])}`
+      : 'Connect an account';
 
   return (
     <div className="mt-2 rounded-lg border border-border bg-background p-3">
-      <p className="mb-2 text-sm font-medium text-foreground">
-        Connect {label}
-      </p>
-      <Button
-        variant={ButtonVariant.DEFAULT}
-        size={ButtonSize.SM}
-        onClick={handleConnect}
-        isDisabled={!onConnect || isConnecting}
-        isLoading={isConnecting}
-      >
-        Connect {label}
-      </Button>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {action.description ? (
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {action.description}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {platforms.map((platform) => {
+          const label = formatPlatformLabel(platform);
+
+          return (
+            <Button
+              key={platform}
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              onClick={() => {
+                void handleConnect(platform);
+              }}
+              isDisabled={!onConnect || connectingPlatform !== null}
+              isLoading={connectingPlatform === platform}
+            >
+              {isSinglePlatform ? `Connect ${label}` : label}
+            </Button>
+          );
+        })}
+      </div>
       {connectError ? (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
           {connectError}

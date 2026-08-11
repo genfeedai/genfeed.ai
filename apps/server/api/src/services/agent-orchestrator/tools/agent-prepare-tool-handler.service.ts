@@ -3,12 +3,18 @@ import { resolveClipIdentity } from '@api/collections/clip-projects/services/cli
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import {
+  AGENT_NEXT_STEP_DESTINATIONS,
+  isAgentNextStepDestinationKey,
+} from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
 import type {
   AgentClipRunIdentity,
+  AgentNextStepOption,
   AgentToolResult,
+  AgentUiActionCta,
 } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -21,7 +27,8 @@ interface AgentBrandsServiceLike {
 }
 
 /**
- * Prepare/UI handoff tools (generation, workflow trigger, voice clone, clip run).
+ * Prepare/UI handoff tools (generation, workflow trigger, voice clone, clip run,
+ * next-step suggestions).
  * Extracted from AgentToolExecutorService per #519.
  */
 @Injectable()
@@ -461,6 +468,90 @@ export class AgentPrepareToolHandler {
         },
       ],
       success: true,
+    };
+  }
+
+  /**
+   * Turns the choices the model wants to offer into a card of real controls.
+   * Numbered prose ("1. Connect an account 2. Brand setup …") leaves the user
+   * with nothing to click, so every step resolves to at least one CTA: a link
+   * to the page that owns it, an in-conversation follow-up prompt, or both.
+   *
+   * Destinations are server-owned keys — the model never authors a URL.
+   */
+  suggestNextSteps(params: Record<string, unknown>): AgentToolResult {
+    const steps = Array.isArray(params.steps) ? params.steps : [];
+    const prompt = readOptionalString(params.prompt);
+
+    const options = steps
+      .map((step, index) => this.buildNextStepOption(step, index))
+      .filter((option): option is AgentNextStepOption => option !== null);
+
+    if (options.length === 0) {
+      return {
+        creditsUsed: 0,
+        error:
+          'steps must contain at least one entry with a title and either a destination or a prompt',
+        success: false,
+      };
+    }
+
+    return {
+      creditsUsed: 0,
+      data: { stepCount: options.length },
+      nextActions: [
+        {
+          description: prompt,
+          id: `next-steps-${Date.now()}`,
+          nextSteps: options,
+          title: 'What would you like to do?',
+          type: 'next_steps_card' as const,
+        },
+      ],
+      success: true,
+    };
+  }
+
+  private buildNextStepOption(
+    step: unknown,
+    index: number,
+  ): AgentNextStepOption | null {
+    if (typeof step !== 'object' || step === null) {
+      return null;
+    }
+
+    const candidate = step as Record<string, unknown>;
+    const destinationKey = readOptionalString(candidate.destination);
+    const destination = isAgentNextStepDestinationKey(destinationKey)
+      ? AGENT_NEXT_STEP_DESTINATIONS[destinationKey]
+      : undefined;
+    const followUpPrompt = readOptionalString(candidate.prompt);
+    const title = readOptionalString(candidate.title) ?? destination?.label;
+
+    // A step with neither a page nor a follow-up prompt is prose again.
+    if (!title || (!destination && !followUpPrompt)) {
+      return null;
+    }
+
+    const ctas: AgentUiActionCta[] = [];
+
+    if (destination) {
+      ctas.push({ href: destination.href, label: destination.ctaLabel });
+    }
+
+    if (followUpPrompt) {
+      ctas.push({
+        action: 'send_prompt',
+        label: destination ? 'Do it here' : 'Continue here',
+        payload: { prompt: followUpPrompt },
+      });
+    }
+
+    return {
+      ctas,
+      description: readOptionalString(candidate.description),
+      id: `next-step-${index + 1}-${destinationKey ?? 'inline'}`,
+      title,
     };
   }
 }

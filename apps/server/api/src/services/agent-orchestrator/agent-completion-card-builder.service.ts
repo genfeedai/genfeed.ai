@@ -79,19 +79,90 @@ export class AgentCompletionCardBuilderService {
   buildAssistantUiActions(
     params: BuildAssistantUiActionsParams,
   ): BuildAssistantUiActionsResult {
-    const suggestedActions = this.buildCompletionSuggestedActions(params);
+    const uiActions = this.collapseOAuthConnectCards(params.uiActions);
+    const collapsedParams = { ...params, uiActions };
+    const suggestedActions =
+      this.buildCompletionSuggestedActions(collapsedParams);
     const completionSummaryCard = this.buildCompletionSummaryCard({
       suggestedActions,
       toolCalls: params.toolCalls,
-      uiActions: params.uiActions,
+      uiActions,
     });
 
     return {
       suggestedActions,
       uiActions: completionSummaryCard
-        ? [completionSummaryCard, ...params.uiActions]
-        : params.uiActions,
+        ? [completionSummaryCard, ...uiActions]
+        : uiActions,
     };
+  }
+
+  /**
+   * A turn that probes `get_connection_status` once per platform emits one
+   * `oauth_connect_card` per probe — six stacked cards for a single "what is
+   * connected?" question. Collapse them into one picker card holding every
+   * offered platform, in first-seen order, at the position of the first card.
+   *
+   * Mirrored on the client (`collapseOAuthConnectCards` in `@genfeedai/agent`)
+   * so streamed turns and already-stored transcripts render the same way.
+   */
+  private collapseOAuthConnectCards(
+    uiActions: AgentUiAction[],
+  ): AgentUiAction[] {
+    const connectCards = uiActions.filter(
+      (action) => action.type === 'oauth_connect_card',
+    );
+
+    if (connectCards.length < 2) {
+      return uiActions;
+    }
+
+    const platforms: string[] = [];
+    connectCards.forEach((action) => {
+      const candidates = action.platforms?.length
+        ? action.platforms
+        : [action.platform ?? ''];
+
+      candidates.forEach((candidate) => {
+        const normalized = candidate.trim().toLowerCase();
+        if (normalized && !platforms.includes(normalized)) {
+          platforms.push(normalized);
+        }
+      });
+    });
+
+    // Every card was the platform-less generic picker — the client already
+    // renders only the first of those, so leave the shape untouched.
+    if (platforms.length === 0) {
+      return uiActions;
+    }
+
+    const [firstCard] = connectCards;
+    const collapsed: AgentUiAction = {
+      ...firstCard,
+      description:
+        firstCard.description ??
+        'Connect an account to unlock publishing and scheduling.',
+      id: `oauth-connect-collapsed-${firstCard.id}`,
+      platform: platforms.length === 1 ? platforms[0] : undefined,
+      platforms,
+      title: platforms.length === 1 ? firstCard.title : 'Connect an account',
+    };
+
+    let hasEmittedCollapsed = false;
+
+    return uiActions.flatMap((action) => {
+      if (action.type !== 'oauth_connect_card') {
+        return [action];
+      }
+
+      if (hasEmittedCollapsed) {
+        return [];
+      }
+
+      hasEmittedCollapsed = true;
+      return [collapsed];
+    });
   }
 
   private buildCompletionSecondaryCtas(

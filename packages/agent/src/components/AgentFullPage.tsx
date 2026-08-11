@@ -5,6 +5,7 @@ import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/Agent
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
+import { AgentThreadContextPanel } from '@genfeedai/agent/components/AgentThreadContextPanel';
 import { useConversationInspectorShell } from '@genfeedai/agent/components/ConversationInspectorShellContext';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -92,6 +93,10 @@ export function AgentFullPage({
   // inline, which is what the onboarding route and unit tests render.
   const inspectorShell = useConversationInspectorShell();
 
+  // Outputs win once the thread has produced something, setup wins while the
+  // brand is still incomplete, and thread context is the floor — the rail is
+  // never empty, because a conversation always has a brand, channels, and a
+  // history worth showing.
   const contextPanel = hasThreadOutputs ? (
     <AgentOutputsPanel className="h-full w-full" />
   ) : showSetupPanel ? (
@@ -102,17 +107,26 @@ export function AgentFullPage({
       connectedPlatformsCount={agentSetup.connectedPlatformsCount}
       onOAuthConnect={onOAuthConnect}
     />
-  ) : null;
+  ) : (
+    <AgentThreadContextPanel
+      brand={agentSetup.brand}
+      className="h-full w-full"
+      completenessScore={agentSetup.completenessScore}
+      connectedConnections={agentSetup.connectedConnections}
+      threadId={threadId}
+    />
+  );
 
   // T3 density on product agent routes: single conversation column.
-  // Onboarding keeps the setup/outputs dual-column chrome. Product routes
-  // project into ConversationInspector when the workspace shell provides it;
-  // mobile drawers still expose outputs/setup without a permanent right rail.
+  // Onboarding keeps the setup/outputs dual-column chrome — and only those two,
+  // so a finished checklist collapses back to one column instead of pinning a
+  // reference panel next to the welcome conversation. Product routes project
+  // into ConversationInspector when the workspace shell provides it; mobile
+  // drawers still expose outputs/setup without a permanent right rail.
   const hasInlineContextPanel =
-    !inspectorShell && contextPanel !== null && onboardingMode;
+    !inspectorShell && onboardingMode && (hasThreadOutputs || showSetupPanel);
   const setInspectorHasPanel = inspectorShell?.setHasPanel;
-  const hasProjectedContextPanel =
-    inspectorShell?.isActive === true && contextPanel !== null;
+  const hasProjectedContextPanel = inspectorShell?.isActive === true;
 
   useEffect(() => {
     if (!setInspectorHasPanel) {
