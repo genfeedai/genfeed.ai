@@ -82,7 +82,7 @@
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
-    "build:main": "bunx esbuild src/main.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:node-pty --tsconfig=tsconfig.json",
+    "build:main": "bunx esbuild src/main.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/main.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:node-pty --tsconfig=tsconfig.json",
     "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
     "build:preload": "bunx esbuild src/preload.ts --bundle --format=cjs --platform=node --target=node20 --outfile=dist/preload.cjs --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
