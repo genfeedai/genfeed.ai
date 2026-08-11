@@ -13,12 +13,11 @@ export const EMPTY_STABLE_TIMELINE_ENTRIES_STATE: StableTimelineEntriesState = {
 /**
  * Structurally shares historical timeline entries across re-derivations.
  *
- * `deriveHistoricalTimeline` rebuilds every entry (and every nested message /
- * work-event object it copies) on each call, so a naive `messages` /
- * `workEvents` change invalidates the whole array by reference even when
- * only one entry actually changed. Row components memoized with
- * `React.memo` still re-render on every entry in that case because their
- * `entry` prop is a fresh object.
+ * `deriveHistoricalTimeline` rebuilds every entry wrapper on each call (and
+ * re-copies work-event payloads), so any `messages` / `workEvents` change
+ * invalidates the whole array by reference even when only one entry actually
+ * changed. Row components memoized with `React.memo` still re-render on every
+ * entry in that case because their `entry` prop is a fresh object.
  *
  * This diffs the next entries against the previous ones by `id` and reuses
  * the prior object reference whenever the content is deep-equal, so
@@ -62,9 +61,16 @@ function isTimelineEntryUnchanged(
     case 'user-message':
     case 'assistant-message': {
       const nextTyped = next as typeof previous;
+      // Content equality, not reference equality. `deriveHistoricalTimeline`
+      // passes `message` through by reference from the `messages` array, so a
+      // plain `===` holds while the store keeps message identity — but it
+      // fails wholesale whenever messages are rehydrated into fresh objects
+      // (refetch, cached-conversation restore, thread switch), which is
+      // exactly when dropping every row's memo hurts most. `deepEqual`
+      // short-circuits on `Object.is`, so the identity fast path is kept.
       return (
-        previous.message === nextTyped.message &&
-        previous.createdAt === nextTyped.createdAt
+        previous.createdAt === nextTyped.createdAt &&
+        deepEqual(previous.message, nextTyped.message)
       );
     }
     case 'work-group': {
