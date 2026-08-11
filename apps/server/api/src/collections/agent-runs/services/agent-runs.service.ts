@@ -166,12 +166,11 @@ export class AgentRunsService extends BaseService<
     createDto: CreateAgentRunDto,
     error: string,
   ): Promise<AgentRunDocument> {
-    const { artifactWrite, dto, organizationId } = await this.prepareCreateData(
-      {
+    const { artifactWrite, dto, organizationId, userId } =
+      await this.prepareCreateData({
         ...createDto,
         id: attemptId,
-      },
-    );
+      });
     const completedAt = new Date();
     const terminalData = {
       completedAt,
@@ -184,6 +183,8 @@ export class AgentRunsService extends BaseService<
       ...dto,
       ...artifactWrite,
       ...terminalData,
+      organizationId,
+      userId,
     } as Prisma.AgentRunUncheckedCreateInput;
 
     return (await this.prisma.agentRun.upsert({
@@ -902,6 +903,7 @@ export class AgentRunsService extends BaseService<
     artifactWrite: AuthorizedAgentArtifactWrite;
     dto: AgentRunWriteData;
     organizationId: string;
+    userId: string;
   }> {
     const dto = this.normalizeAgentRunWriteData(createDto);
     const organizationId = dto.organizationId as string | undefined;
@@ -932,6 +934,7 @@ export class AgentRunsService extends BaseService<
       artifactWrite,
       dto,
       organizationId,
+      userId,
     };
   }
 }

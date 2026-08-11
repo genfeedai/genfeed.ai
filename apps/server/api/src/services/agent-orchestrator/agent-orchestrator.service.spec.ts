@@ -2168,7 +2168,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key: string) =>
+    configService.get.mockImplementation((key) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2211,7 +2211,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key: string) =>
+    configService.get.mockImplementation((key) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2247,7 +2247,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key: string) =>
+    configService.get.mockImplementation((key) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2358,7 +2358,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key: string) =>
+    configService.get.mockImplementation((key) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     // Simulate a Redis publish outage for the duration of the stream.
