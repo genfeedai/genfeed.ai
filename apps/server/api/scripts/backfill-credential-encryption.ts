@@ -25,6 +25,10 @@
 import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import process from 'node:process';
 import { PrismaClient } from '@genfeedai/prisma';
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -81,9 +85,21 @@ async function main(): Promise<void> {
   const { dryRun, batchSize } = parseArgs();
   const key = getKey();
 
-  const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL!,
-  });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required to run this backfill.');
+  }
+
+  // TLS is resolved through the same factory `PrismaService` uses rather than
+  // handing the raw URL to the adapter. RDS forces SSL and pg 8.22 treats
+  // `sslmode=require` as `verify-full`, so a connection string that works for
+  // the deployed API fails from a laptop, which has no bundled CA at
+  // `/certs/rds-ca.pem`.
+  const adapter = new PrismaPg(
+    createPrismaPgConfig(connectionString, {
+      caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+    }),
+  );
   const prisma = new PrismaClient({ adapter, log: ['error'] });
 
   const fieldSelect = Object.fromEntries(

@@ -44,6 +44,16 @@ export type PrismaPgConfigOptions = {
   caFilePaths?: readonly (string | undefined)[];
 };
 
+/**
+ * Env keys that may name a Postgres CA bundle, in precedence order. Lives here
+ * rather than in `prisma.service.ts` so ops scripts — which build their own
+ * adapter without Nest — resolve TLS from the same list the runtime does.
+ */
+export const POSTGRES_CA_FILE_ENV_KEYS = [
+  'PRISMA_POSTGRES_CA_FILE',
+  'PGSSLROOTCERT',
+] as const;
+
 function parseDatabaseUrl(connectionString: string): URL | undefined {
   try {
     return new URL(connectionString);
