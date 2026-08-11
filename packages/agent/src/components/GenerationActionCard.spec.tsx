@@ -203,7 +203,7 @@ describe('GenerationActionCard', () => {
           'LIGHTING: Dramatic overhead spotlights.',
           'STYLE: Photorealistic sports photography.',
           'NEGATIVE: No text or watermarks.',
-        ].join('\n'),
+        ].join('\n\n'),
       );
     });
   });
@@ -227,7 +227,7 @@ describe('GenerationActionCard', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toHaveValue(
-        'SCENE: Professional boxing ring.\nSUBJECT: Athletic boxer in black gear.',
+        'SCENE: Professional boxing ring.\n\nSUBJECT: Athletic boxer in black gear.',
       );
     });
   });
@@ -287,7 +287,14 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
       />,
     );
 
@@ -320,7 +327,14 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
       />,
     );
 
