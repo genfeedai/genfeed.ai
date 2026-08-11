@@ -52,6 +52,26 @@ export class StripeController {
     private readonly customersService: CustomersService,
   ) {}
 
+  /**
+   * An organization owns exactly one Stripe customer. The subscription's
+   * `stripeCustomerId` is a derived projection; the org's `customers` row is
+   * authoritative. Treating a projection gap as "no Stripe customer" is what
+   * duplicated org customers on Stripe.
+   */
+  private async resolveOrgStripeCustomerId(
+    organizationId: string,
+    subscription: { stripeCustomerId?: string | null },
+  ): Promise<string | null> {
+    if (subscription.stripeCustomerId) {
+      return subscription.stripeCustomerId;
+    }
+
+    const organizationCustomer =
+      await this.customersService.findByOrganizationId(organizationId);
+
+    return organizationCustomer?.stripeCustomerId ?? null;
+  }
+
   @Post('checkout')
   async createCheckoutSession(
     @CurrentUser() user: User,
@@ -124,19 +144,10 @@ export class StripeController {
 
       // Stale stripeCustomerId from another Stripe account (e.g. Vitae / old
       // local key) must be recreated on the active Genfeed account.
-      //
-      // An organization owns exactly one Stripe customer. Before concluding
-      // that none exists, fall back to the org's customer row — the
-      // subscription projection is derived, and treating a gap in it as
-      // "no Stripe customer" duplicates the org's customer on Stripe.
-      let stripeCustomerId = subscription.stripeCustomerId ?? null;
-      if (!stripeCustomerId) {
-        const organizationCustomer =
-          await this.customersService.findByOrganizationId(
-            publicMetadata.organization,
-          );
-        stripeCustomerId = organizationCustomer?.stripeCustomerId ?? null;
-      }
+      let stripeCustomerId = await this.resolveOrgStripeCustomerId(
+        publicMetadata.organization,
+        subscription,
+      );
 
       const liveCustomer = stripeCustomerId
         ? await this.stripeService.retrieveCustomer(stripeCustomerId)
@@ -158,17 +169,15 @@ export class StripeController {
         );
         stripeCustomerId = recreated.id;
 
-        if (subscription.customerId) {
-          await this.customersService.patch(subscription.customerId, {
-            stripeCustomerId,
-          });
-        } else {
-          const customer = await this.customersService.create({
-            organizationId: organization.id.toString(),
-            stripeCustomerId,
-          });
+        // Rebind the org's single customer row (never insert a second one)
+        // and repoint the subscription if it referenced a different row.
+        const customer = await this.customersService.upsertForOrganization(
+          organization.id.toString(),
+          stripeCustomerId,
+        );
+        if (subscription.customerId !== String(customer.id)) {
           await this.subscriptionsService.patch(subscription.id, {
-            customerId: customer.id.toString(),
+            customerId: String(customer.id),
           });
         }
 
@@ -281,7 +290,11 @@ export class StripeController {
           dbUser.id.toString(),
         );
       }
-      if (!subscription.stripeCustomerId) {
+      const stripeCustomerId = await this.resolveOrgStripeCustomerId(
+        publicMetadata.organization,
+        subscription,
+      );
+      if (!stripeCustomerId) {
         return returnBadRequest({
           message: 'Subscription is missing stripeCustomerId',
           success: false,
@@ -289,7 +302,7 @@ export class StripeController {
       }
 
       const result = await this.stripeService.createSetupCheckoutSession(
-        subscription.stripeCustomerId,
+        stripeCustomerId,
         `${origin}/agent/onboarding`,
         `${origin}${isEEEnabled() ? '/onboarding/providers' : '/onboarding/brand'}`,
       );
@@ -340,7 +353,11 @@ export class StripeController {
       if (!subscription) {
         return returnNotFound('Subscription', publicMetadata.organization);
       }
-      if (!subscription.stripeCustomerId) {
+      const stripeCustomerId = await this.resolveOrgStripeCustomerId(
+        publicMetadata.organization,
+        subscription,
+      );
+      if (!stripeCustomerId) {
         return returnBadRequest({
           message: 'Subscription is missing stripeCustomerId',
           success: false,
@@ -348,7 +365,7 @@ export class StripeController {
       }
 
       const billingUrl = await this.stripeService.getBillingPortalUrl(
-        subscription.stripeCustomerId,
+        stripeCustomerId,
         origin,
       );
 

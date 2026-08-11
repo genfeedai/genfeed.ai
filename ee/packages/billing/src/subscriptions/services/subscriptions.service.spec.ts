@@ -101,10 +101,10 @@ describe('SubscriptionsService', () => {
     retrieveCustomer: MockFn;
   };
   let customersService: {
-    create: MockFn;
     findByOrganizationId: MockFn;
     findByStripeCustomerId: MockFn;
     patch: MockFn;
+    upsertForOrganization: MockFn;
   };
   let creditsUtilsService: { resetOrganizationCredits: MockFn };
   let configService: { get: MockFn };
@@ -126,10 +126,10 @@ describe('SubscriptionsService', () => {
       retrieveCustomer: vi.fn(),
     };
     customersService = {
-      create: vi.fn(),
       findByOrganizationId: vi.fn().mockResolvedValue(null),
       findByStripeCustomerId: vi.fn().mockResolvedValue(null),
       patch: vi.fn(),
+      upsertForOrganization: vi.fn(),
     };
     creditsUtilsService = { resetOrganizationCredits: vi.fn() };
     configService = { get: vi.fn().mockReturnValue(undefined) };
@@ -255,7 +255,7 @@ describe('SubscriptionsService', () => {
       stripeService.createOrganizationCustomer.mockResolvedValue({
         id: 'cus_new',
       } as unknown as StripeCustomer);
-      customersService.create.mockResolvedValue({
+      customersService.upsertForOrganization.mockResolvedValue({
         id: 'cust_row_new',
         stripeCustomerId: 'cus_new',
       });
@@ -275,10 +275,10 @@ describe('SubscriptionsService', () => {
         ORGANIZATION_ID,
         'user_1',
       );
-      expect(customersService.create).toHaveBeenCalledWith({
-        organizationId: ORGANIZATION_ID,
-        stripeCustomerId: 'cus_new',
-      });
+      expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        'cus_new',
+      );
       const createArgs = subscriptionDelegate.create.mock.calls[0] as [
         { data: Record<string, unknown> },
       ];
@@ -314,7 +314,7 @@ describe('SubscriptionsService', () => {
         'cus_existing',
       );
       expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
-      expect(customersService.create).not.toHaveBeenCalled();
+      expect(customersService.upsertForOrganization).not.toHaveBeenCalled();
     });
 
     it('re-creates the Stripe customer and repoints the local row when Stripe no longer has it', async () => {
@@ -352,7 +352,7 @@ describe('SubscriptionsService', () => {
       stripeService.createOrganizationCustomer.mockResolvedValue({
         id: 'cus_new',
       } as unknown as StripeCustomer);
-      customersService.create.mockResolvedValue({
+      customersService.upsertForOrganization.mockResolvedValue({
         id: 'cust_row_new',
         stripeCustomerId: 'cus_new',
       });
@@ -387,6 +387,58 @@ describe('SubscriptionsService', () => {
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(subscriptionDelegate.create).not.toHaveBeenCalled();
+    });
+
+    it('returns the winning row when a concurrent checkout wins the subscription insert race', async () => {
+      // Partial unique index `subscriptions_organizationId_active_key`
+      // guarantees one active subscription row per org; the losing insert
+      // converges on the winner instead of surfacing a 500.
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.upsertForOrganization.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockRejectedValue(
+        new Error('Unique constraint failed'),
+      );
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ id: 'sub_winner' }),
+      );
+      customerDelegate.findUnique.mockResolvedValue({
+        stripeCustomerId: 'cus_new',
+      });
+
+      const result = await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(result.id).toBe('sub_winner');
+    });
+
+    it('rethrows the subscription insert failure when no winning row exists', async () => {
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.upsertForOrganization.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockRejectedValue(new Error('db down'));
+      subscriptionDelegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.createForOrganization(
+          organization,
+          'billing@acme.test',
+          'user_1',
+        ),
+      ).rejects.toThrow('db down');
     });
   });
 

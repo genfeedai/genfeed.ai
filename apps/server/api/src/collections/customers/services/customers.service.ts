@@ -39,4 +39,43 @@ export class CustomersService extends BaseService<
       },
     }) as Promise<Customer | null>;
   }
+
+  /**
+   * Bind a Stripe customer id to the organization's single active customer
+   * row. An organization owns exactly one billing identity — enforced by the
+   * partial unique index `customers_organizationId_active_key` — so every
+   * writer must converge on this row instead of inserting a second one.
+   * Concurrent first-checkout races surface as P2002; the loser re-reads the
+   * winner's row and patches it.
+   */
+  async upsertForOrganization(
+    organizationId: string,
+    stripeCustomerId: string,
+  ): Promise<Customer> {
+    const existing = await this.findByOrganizationId(organizationId);
+
+    if (existing) {
+      if (existing.stripeCustomerId === stripeCustomerId) {
+        return existing;
+      }
+
+      return await this.patch(String(existing.id), { stripeCustomerId });
+    }
+
+    try {
+      return await this.create({ organizationId, stripeCustomerId });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const winner = await this.findByOrganizationId(organizationId);
+        if (winner) {
+          return await this.patch(String(winner.id), { stripeCustomerId });
+        }
+      }
+
+      throw error;
+    }
+  }
 }

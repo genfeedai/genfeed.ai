@@ -3,6 +3,7 @@ import type { IBetterAuthUserCreatedEvent } from '@api/auth/better-auth/better-a
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
@@ -69,6 +70,7 @@ export class StripeCheckoutWebhookHandler {
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly customersService: CustomersService,
     private readonly usersService: UsersService,
     private readonly managedStripeCheckoutService: ManagedStripeCheckoutService,
     private readonly organizationsService: OrganizationsService,
@@ -449,9 +451,21 @@ export class StripeCheckoutWebhookHandler {
       String(dbUser.id),
     );
 
+    // The session's Stripe customer funds ORG credits, so it binds to the
+    // org's single customer row — never to users."stripeCustomerId", which is
+    // the consumer-lane (user-level billing) slot. Writing it there clobbered
+    // the slot for multi-org users and pointed the user billing portal at an
+    // org customer.
+    if (typeof session.customer === 'string') {
+      await this.customersService.upsertForOrganization(
+        String(organization.id),
+        session.customer,
+      );
+    }
+
     await this.usersService.patch(
       String(dbUser.id),
-      this.buildManagedCheckoutUserPatch(session, dbUser),
+      this.buildManagedCheckoutUserPatch(dbUser),
     );
 
     if (orgSetting) {
@@ -463,9 +477,10 @@ export class StripeCheckoutWebhookHandler {
       );
     }
 
-    // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
-    // and credit balance are all persisted to the DB above; both identity
-    // resolvers route from the DB (epic #735, Phase C — no legacy auth provider write-back).
+    // User row (onboarding), org customer row (stripeCustomerId), org settings
+    // (hasEverHadCredits), and credit balance are all persisted to the DB
+    // above; both identity resolvers route from the DB (epic #735, Phase C —
+    // no legacy auth provider write-back).
     await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
     // The credit grant is the durable replay guard. API-key provisioning is
@@ -509,12 +524,15 @@ export class StripeCheckoutWebhookHandler {
     };
   }
 
-  /** Mark onboarding complete and capture the Stripe customer id on the user row. */
+  /**
+   * Mark onboarding complete on the user row. The session's Stripe customer
+   * is org billing and is persisted to the org's `customers` row by the
+   * caller — users."stripeCustomerId" stays reserved for the consumer lane.
+   */
   private buildManagedCheckoutUserPatch(
-    session: StripeCheckoutSession,
     dbUser: UserDocument,
   ): Record<string, unknown> {
-    const userPatch: Record<string, unknown> = {
+    return {
       isOnboardingCompleted: true,
       onboardingCompletedAt: dbUser.isOnboardingCompleted
         ? dbUser.onboardingCompletedAt
@@ -524,12 +542,6 @@ export class StripeCheckoutWebhookHandler {
           ? dbUser.onboardingStepsCompleted
           : ['brand', 'providers', 'summary'],
     };
-
-    if (typeof session.customer === 'string') {
-      userPatch.stripeCustomerId = session.customer;
-    }
-
-    return userPatch;
   }
 
   /**

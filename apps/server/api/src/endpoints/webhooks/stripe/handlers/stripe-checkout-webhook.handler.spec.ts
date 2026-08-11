@@ -2,6 +2,7 @@ import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-aut
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
@@ -47,6 +48,7 @@ describe('StripeCheckoutWebhookHandler', () => {
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(35_000),
   };
+  const customersService = { upsertForOrganization: vi.fn() };
   const usersService = { create: vi.fn(), findOne: vi.fn(), patch: vi.fn() };
   const managedStripeCheckoutService = {
     cacheCheckoutResult: vi.fn(),
@@ -120,6 +122,7 @@ describe('StripeCheckoutWebhookHandler', () => {
         { provide: BrandsService, useValue: brandsService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
+        { provide: CustomersService, useValue: customersService },
         { provide: UsersService, useValue: usersService },
         {
           provide: ManagedStripeCheckoutService,
@@ -364,6 +367,26 @@ describe('StripeCheckoutWebhookHandler', () => {
       accessBootstrapCacheService.invalidateForUser.mockResolvedValue(
         undefined,
       );
+    });
+
+    it('binds the session customer to the org customer row, never the user slot', async () => {
+      // Regression: the managed-checkout session customer funds ORG credits.
+      // Writing it to users."stripeCustomerId" (the consumer-lane slot)
+      // clobbered the slot for multi-org users and pointed the user-level
+      // billing portal at an org customer.
+      await handler.handleCheckoutCompleted(session, 'url');
+
+      expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
+        'org_managed_1',
+        'cus_managed_1',
+      );
+      const userPatches = usersService.patch.mock.calls.map(
+        (call: unknown[]) => call[1] as Record<string, unknown>,
+      );
+      expect(userPatches.length).toBeGreaterThan(0);
+      for (const patch of userPatches) {
+        expect(patch).not.toHaveProperty('stripeCustomerId');
+      }
     });
 
     it('passes a managed-inference checkout reference into the credit grant', async () => {

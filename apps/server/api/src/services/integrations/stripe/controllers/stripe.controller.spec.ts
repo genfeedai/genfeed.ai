@@ -64,9 +64,8 @@ describe('StripeController', () => {
     recordCheckoutStarted: ReturnType<typeof vi.fn>;
   };
   let customersService: {
-    create: ReturnType<typeof vi.fn>;
     findByOrganizationId: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
+    upsertForOrganization: ReturnType<typeof vi.fn>;
   };
 
   const mockRequest = {
@@ -127,9 +126,8 @@ describe('StripeController', () => {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
     };
     customersService = {
-      create: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
       findByOrganizationId: vi.fn().mockResolvedValue(null),
-      patch: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
+      upsertForOrganization: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -250,6 +248,45 @@ describe('StripeController', () => {
       expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
       expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
         'cus_test123',
+        'price_abc123',
+        'https://app.genfeed.ai',
+        1,
+        undefined,
+      );
+    });
+
+    it('rebinds the single org customer row when the Stripe customer is stale', async () => {
+      // Recreate path: the org's customer no longer resolves on the active
+      // Stripe account. The replacement must converge on the org's ONE
+      // customer row (upsert) and repoint the subscription at it — never
+      // insert a second row.
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce({
+        customerId: 'cust_row_old',
+        id: 'test-object-id',
+        stripeCustomerId: 'cus_stale',
+      });
+      stripeService.retrieveCustomer.mockResolvedValueOnce(null);
+      organizationsService.findOne.mockResolvedValueOnce({
+        id: orgId,
+        label: 'Acme Inc',
+      });
+      customersService.upsertForOrganization.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_recreated',
+      });
+
+      await controller.createCheckoutSession(mockUser, dto, mockRequest);
+
+      expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
+        orgId,
+        'cus_recreated',
+      );
+      expect(subscriptionsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        { customerId: 'cust_row_1' },
+      );
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_recreated',
         'price_abc123',
         'https://app.genfeed.ai',
         1,

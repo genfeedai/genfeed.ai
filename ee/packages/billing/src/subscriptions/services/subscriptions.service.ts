@@ -224,7 +224,10 @@ export class SubscriptionsService
         });
       }
     } else {
-      // No customer exists, create new one
+      // No customer exists, create new one. `upsertForOrganization` converges
+      // on the org's single active customer row — a concurrent first checkout
+      // that wins the insert race just gets its row patched, never a second
+      // row (partial unique index `customers_organizationId_active_key`).
       stripeCustomer = await this.stripeService.createOrganizationCustomer(
         organization.label,
         billingEmail,
@@ -232,10 +235,10 @@ export class SubscriptionsService
         userId,
       );
 
-      customer = await this.customersService.create({
-        organizationId: organization.id.toString(),
-        stripeCustomerId: stripeCustomer.id,
-      });
+      customer = await this.customersService.upsertForOrganization(
+        organization.id.toString(),
+        stripeCustomer.id,
+      );
     }
 
     const subscriptionData = {
@@ -246,7 +249,21 @@ export class SubscriptionsService
       userId,
     } satisfies CreateSubscriptionDto;
 
-    const savedSubscription = await this.create(subscriptionData);
+    // One active subscription row per org (partial unique index
+    // `subscriptions_organizationId_active_key`): a concurrent createForOrganization
+    // that loses the insert race returns the winner's row.
+    let savedSubscription: SubscriptionDocument;
+    try {
+      savedSubscription = await this.create(subscriptionData);
+    } catch (error: unknown) {
+      const winner = await this.findByOrganizationId(
+        organization.id.toString(),
+      );
+      if (!winner) {
+        throw error;
+      }
+      savedSubscription = winner;
+    }
 
     this.logger.log(`${url} success`, {
       customerId: customer.id,
