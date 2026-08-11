@@ -3,6 +3,7 @@ import type {
   AccountHealthSummary,
   IArticle,
   IBrand,
+  IBrandKitAssetValue,
   IImage,
   ILink,
   IVideo,
@@ -250,6 +251,20 @@ export interface BrandKitReviewCardProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
+}
+
+export interface BrandKitAssetGridProps {
+  assets: IBrandKitAssetValue[];
+  emptyLabel: string;
+}
+
+export interface BrandKitAssetTileProps {
+  asset: IBrandKitAssetValue;
+  isSelectable?: boolean;
+  isSelected?: boolean;
+  onToggle?: () => void;
+  sourceUrl?: string;
+  statusLabel?: string;
 }
 
 export interface BrandDetailManualKitCardProps {

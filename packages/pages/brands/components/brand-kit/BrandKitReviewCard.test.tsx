@@ -8,8 +8,15 @@ const mocks = vi.hoisted(() => ({
   applyBrandKitDraft: vi.fn(),
   crawlBrandKitWebsite: vi.fn(),
   getBrandsService: vi.fn(),
+  importBrandKitAssets: vi.fn(),
   loggerError: vi.fn(),
   onRefreshBrand: vi.fn(),
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <img alt={alt} src={src} />
+  ),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -48,17 +55,24 @@ vi.mock('@ui/card/Card', () => ({
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    ariaLabel,
     children,
     isDisabled,
     label,
     onClick,
   }: {
+    ariaLabel?: string;
     children?: ReactNode;
     isDisabled?: boolean;
     label?: ReactNode;
     onClick?: () => void;
   }) => (
-    <button disabled={isDisabled} type="button" onClick={onClick}>
+    <button
+      aria-label={ariaLabel}
+      disabled={isDisabled}
+      type="button"
+      onClick={onClick}
+    >
       {children ?? label}
     </button>
   ),
@@ -225,9 +239,18 @@ describe('BrandKitReviewCard', () => {
       preservedFields: ['logo'],
       status: 'partial',
     });
+    mocks.importBrandKitAssets.mockResolvedValue({
+      brandId: 'brand-1',
+      diagnostics: [],
+      failedCandidateIds: [],
+      importedAssetIds: ['asset-1'],
+      skippedCandidateIds: [],
+      status: 'complete',
+    });
     mocks.getBrandsService.mockResolvedValue({
       applyBrandKitDraft: mocks.applyBrandKitDraft,
       crawlBrandKitWebsite: mocks.crawlBrandKitWebsite,
+      importBrandKitAssets: mocks.importBrandKitAssets,
     });
     mocks.onRefreshBrand.mockResolvedValue(undefined);
   });
@@ -257,8 +280,12 @@ describe('BrandKitReviewCard', () => {
     });
 
     expect(screen.getByText('67% readiness')).toBeInTheDocument();
-    expect(screen.getByText('Safe import pending')).toBeInTheDocument();
-    expect(screen.getByText(/candidate-logo/)).toBeInTheDocument();
+    expect(screen.getByText('Pick images below')).toBeInTheDocument();
+    expect(screen.getByAltText('Website logo')).toHaveAttribute(
+      'src',
+      'https://acme.test/logo.png',
+    );
+    expect(screen.getByAltText('logo')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Description proposed value'), {
       target: { value: 'Edited description' },
@@ -312,5 +339,54 @@ describe('BrandKitReviewCard', () => {
 
     const applyPayload = mocks.applyBrandKitDraft.mock.calls[0]?.[1];
     expect(applyPayload.fields.logo).toBeUndefined();
+  });
+
+  it('imports the asset candidates picked from the image grid', async () => {
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    const importButton = await screen.findByRole('button', {
+      name: 'Import Selected Assets',
+    });
+    expect(importButton).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select Website logo' }),
+    );
+    fireEvent.click(screen.getByLabelText('Replace existing logo and banner'));
+    fireEvent.click(importButton);
+
+    await waitFor(() => {
+      expect(mocks.importBrandKitAssets).toHaveBeenCalledWith('brand-1', {
+        assets: [
+          {
+            candidateId: 'candidate-logo',
+            height: 512,
+            label: 'Website logo',
+            replaceExisting: true,
+            role: 'logo',
+            sourceType: 'website',
+            sourceUrl: 'https://acme.test/logo.png',
+            url: 'https://acme.test/logo.png',
+            width: 512,
+          },
+        ],
+      });
+      expect(mocks.onRefreshBrand).toHaveBeenCalled();
+    });
+
+    expect(
+      await screen.findByText(/Imported 1 assets; skipped 0; failed 0/),
+    ).toBeInTheDocument();
   });
 });

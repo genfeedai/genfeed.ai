@@ -3,10 +3,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
+  type BrandKitAssetImportStatus,
+  type BrandKitAssetRole,
   type BrandKitFieldGroup,
   type BrandKitFieldKey,
   type IBrandKitApplyResult,
   type IBrandKitAssetCandidate,
+  type IBrandKitAssetImportResponse,
+  type IBrandKitAssetValue,
   type IBrandKitDiagnostic,
   type IBrandKitDraft,
   type IBrandKitDraftField,
@@ -21,6 +25,8 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useMemo, useState } from 'react';
+import BrandKitAssetGrid from './BrandKitAssetGrid';
+import BrandKitAssetTile from './BrandKitAssetTile';
 
 /** Readable field inside the scan strip — light surface, not invisible ghost. */
 const INLINE_INPUT_CLASSNAME =
@@ -50,6 +56,31 @@ const DEFERRED_REVIEW_FIELDS = new Set<BrandKitFieldKey>([
   'references',
   'socialLinks',
 ]);
+
+/** Asset-valued fields are reviewed as pictures and land through asset import. */
+const ASSET_FIELDS = new Set<BrandKitFieldKey>(
+  BRAND_KIT_FIELD_OWNERSHIP.filter(
+    (owner) => owner.valueKind === 'asset' || owner.valueKind === 'asset[]',
+  ).map((owner) => owner.key),
+);
+
+const ASSET_ROLE_ORDER: readonly BrandKitAssetRole[] = [
+  'logo',
+  'banner',
+  'reference',
+];
+
+const ASSET_ROLE_LABELS: Record<BrandKitAssetRole, string> = {
+  banner: 'Banner',
+  logo: 'Logo',
+  reference: 'References',
+};
+
+const ASSET_IMPORT_STATUS_LABELS: Record<BrandKitAssetImportStatus, string> = {
+  failed: 'Import failed',
+  imported: 'Imported',
+  skipped: 'Skipped',
+};
 
 const STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
   'strategyContentTypes',
@@ -106,6 +137,18 @@ function formatBrandKitValue(value: unknown): string {
   return String(value);
 }
 
+function isAssetValue(value: unknown): value is IBrandKitAssetValue {
+  return hasObjectValue(value) && typeof value.role === 'string';
+}
+
+function toAssetValues(value: unknown): IBrandKitAssetValue[] {
+  if (Array.isArray(value)) {
+    return value.filter(isAssetValue);
+  }
+
+  return isAssetValue(value) ? [value] : [];
+}
+
 function parseEditableValue(key: BrandKitFieldKey, value: string) {
   if (!STRING_LIST_FIELDS.has(key)) {
     return value.trim();
@@ -135,26 +178,14 @@ function canApplyField(key: BrandKitFieldKey, field: IBrandKitDraftField) {
 function getDiagnostics(
   draft: IBrandKitDraft | null,
   applyResult: IBrandKitApplyResult | null,
+  assetImportResult: IBrandKitAssetImportResponse | null,
 ): IBrandKitDiagnostic[] {
   return [
     ...(draft?.diagnostics ?? []),
     ...(draft?.readiness.diagnostics ?? []),
     ...(applyResult?.diagnostics ?? []),
+    ...(assetImportResult?.diagnostics ?? []),
   ];
-}
-
-function getAssetCandidateSummary(candidate: IBrandKitAssetCandidate): string {
-  return [
-    candidate.candidateId,
-    candidate.role,
-    candidate.label,
-    candidate.width && candidate.height
-      ? `${candidate.width}x${candidate.height}`
-      : '',
-    candidate.sourceUrl ?? candidate.url,
-  ]
-    .filter(Boolean)
-    .join(' ');
 }
 
 export default function BrandKitReviewCard({
@@ -175,9 +206,16 @@ export default function BrandKitReviewCard({
   const [applyResult, setApplyResult] = useState<IBrandKitApplyResult | null>(
     null,
   );
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [shouldReplaceExisting, setShouldReplaceExisting] = useState(false);
+  const [assetImportResult, setAssetImportResult] =
+    useState<IBrandKitAssetImportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isImportingAssets, setIsImportingAssets] = useState(false);
 
   const groupedFields = useMemo(() => {
     const groups = new Map<BrandKitFieldGroup, BrandKitGroupedField[]>();
@@ -202,9 +240,33 @@ export default function BrandKitReviewCard({
   }, [draft]);
 
   const diagnostics = useMemo(
-    () => getDiagnostics(draft, applyResult),
-    [applyResult, draft],
+    () => getDiagnostics(draft, applyResult, assetImportResult),
+    [applyResult, assetImportResult, draft],
   );
+
+  const candidatesByRole = useMemo(() => {
+    const groups = new Map<BrandKitAssetRole, IBrandKitAssetCandidate[]>();
+
+    for (const candidate of draft?.assetCandidates ?? []) {
+      const group = groups.get(candidate.role) ?? [];
+      group.push(candidate);
+      groups.set(candidate.role, group);
+    }
+
+    return groups;
+  }, [draft]);
+
+  const importStatusByCandidateId = useMemo(() => {
+    const statuses = new Map<string, BrandKitAssetImportStatus>();
+
+    for (const result of assetImportResult?.results ?? []) {
+      if (result.candidateId) {
+        statuses.set(result.candidateId, result.status);
+      }
+    }
+
+    return statuses;
+  }, [assetImportResult]);
 
   const selectedApplyCount = useMemo(() => {
     if (!draft) {
@@ -239,6 +301,8 @@ export default function BrandKitReviewCard({
 
     setFieldValues(nextValues);
     setSelectedFields(nextSelected);
+    setSelectedCandidateIds(new Set());
+    setAssetImportResult(null);
   }, []);
 
   const handleScan = useCallback(async () => {
@@ -292,6 +356,65 @@ export default function BrandKitReviewCard({
     },
     [],
   );
+
+  const handleToggleCandidate = useCallback((candidateId: string) => {
+    setSelectedCandidateIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(candidateId)) {
+        next.delete(candidateId);
+      } else {
+        next.add(candidateId);
+      }
+
+      return next;
+    });
+  }, []);
+
+  const handleImportAssets = useCallback(async () => {
+    if (!draft || selectedCandidateIds.size === 0) {
+      setError('Select at least one asset to import.');
+      return;
+    }
+
+    setIsImportingAssets(true);
+    setError(null);
+
+    try {
+      const assets = draft.assetCandidates
+        .filter((candidate) => selectedCandidateIds.has(candidate.candidateId))
+        .map((candidate) => ({
+          candidateId: candidate.candidateId,
+          height: candidate.height,
+          label: candidate.label,
+          mimeType: candidate.mimeType,
+          replaceExisting: shouldReplaceExisting,
+          role: candidate.role,
+          sourceType: candidate.sourceType,
+          sourceUrl: candidate.sourceUrl,
+          url: candidate.url,
+          width: candidate.width,
+        }));
+
+      const service = await getBrandsService();
+      const result = await service.importBrandKitAssets(brandId, { assets });
+
+      setAssetImportResult(result);
+      await onRefreshBrand();
+    } catch (importError) {
+      logger.error('Failed to import brand kit assets', importError);
+      setError('Failed to import the selected brand assets.');
+    } finally {
+      setIsImportingAssets(false);
+    }
+  }, [
+    brandId,
+    draft,
+    getBrandsService,
+    onRefreshBrand,
+    selectedCandidateIds,
+    shouldReplaceExisting,
+  ]);
 
   const handleFieldValueChange = useCallback(
     (key: BrandKitFieldKey, value: string) => {
@@ -431,6 +554,7 @@ export default function BrandKitReviewCard({
                   <div className="space-y-3">
                     {fields.map(({ field, key }) => {
                       const isDeferred = DEFERRED_REVIEW_FIELDS.has(key);
+                      const isAssetField = ASSET_FIELDS.has(key);
                       const isSelectable = canApplyField(key, field);
                       const proposedValue = formatBrandKitValue(
                         field.proposedValue,
@@ -438,6 +562,12 @@ export default function BrandKitReviewCard({
                       const currentValue = formatBrandKitValue(
                         field.currentValue,
                       );
+                      const proposedAssets = isAssetField
+                        ? toAssetValues(field.proposedValue)
+                        : [];
+                      const currentAssets = isAssetField
+                        ? toAssetValues(field.currentValue)
+                        : [];
 
                       return (
                         <div
@@ -466,9 +596,11 @@ export default function BrandKitReviewCard({
                               />
                             ) : (
                               <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
-                                {isDeferred
-                                  ? 'Safe import pending'
-                                  : 'Review only'}
+                                {isAssetField
+                                  ? 'Pick images below'
+                                  : isDeferred
+                                    ? 'Safe import pending'
+                                    : 'Review only'}
                               </span>
                             )}
                           </div>
@@ -478,16 +610,28 @@ export default function BrandKitReviewCard({
                               <div className="mb-1 text-xs font-medium text-muted-foreground">
                                 Current
                               </div>
-                              <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
-                                {currentValue || 'Empty'}
-                              </pre>
+                              {isAssetField ? (
+                                <BrandKitAssetGrid
+                                  assets={currentAssets}
+                                  emptyLabel="Empty"
+                                />
+                              ) : (
+                                <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
+                                  {currentValue || 'Empty'}
+                                </pre>
+                              )}
                             </div>
 
                             <div>
                               <div className="mb-1 text-xs font-medium text-muted-foreground">
                                 Proposed
                               </div>
-                              {isSelectable && selectedFields.has(key) ? (
+                              {isAssetField ? (
+                                <BrandKitAssetGrid
+                                  assets={proposedAssets}
+                                  emptyLabel="No proposal"
+                                />
+                              ) : isSelectable && selectedFields.has(key) ? (
                                 <Textarea
                                   aria-label={`${field.label} proposed value`}
                                   className="min-h-[72px]"
@@ -525,15 +669,86 @@ export default function BrandKitReviewCard({
             })}
 
             {draft.assetCandidates.length > 0 ? (
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold">Asset Candidates</h3>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {draft.assetCandidates.map((candidate) => (
-                    <li key={candidate.candidateId}>
-                      {getAssetCandidateSummary(candidate)}
-                    </li>
-                  ))}
-                </ul>
+              <section className="space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold">Asset Candidates</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Click an image to select it for import.
+                    </p>
+                  </div>
+                  <Checkbox
+                    aria-label="Replace existing logo and banner"
+                    isChecked={shouldReplaceExisting}
+                    label="Replace existing logo/banner"
+                    onCheckedChange={(checked) =>
+                      setShouldReplaceExisting(checked === true)
+                    }
+                  />
+                </div>
+
+                {ASSET_ROLE_ORDER.map((role) => {
+                  const candidates = candidatesByRole.get(role) ?? [];
+
+                  if (candidates.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={role} className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground">
+                        {ASSET_ROLE_LABELS[role]}
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                        {candidates.map((candidate) => {
+                          const importStatus = importStatusByCandidateId.get(
+                            candidate.candidateId,
+                          );
+
+                          return (
+                            <BrandKitAssetTile
+                              key={candidate.candidateId}
+                              asset={candidate}
+                              isSelectable
+                              isSelected={selectedCandidateIds.has(
+                                candidate.candidateId,
+                              )}
+                              sourceUrl={candidate.sourceUrl}
+                              statusLabel={
+                                importStatus
+                                  ? ASSET_IMPORT_STATUS_LABELS[importStatus]
+                                  : undefined
+                              }
+                              onToggle={() =>
+                                handleToggleCandidate(candidate.candidateId)
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCandidateIds.size} assets selected.
+                  </p>
+                  <Button
+                    isDisabled={selectedCandidateIds.size === 0}
+                    isLoading={isImportingAssets}
+                    label="Import Selected Assets"
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    onClick={() => void handleImportAssets()}
+                  />
+                </div>
+
+                {assetImportResult ? (
+                  <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
+                    {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
@@ -560,9 +775,9 @@ export default function BrandKitReviewCard({
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">
-                {selectedApplyCount} supported fields selected. Assets and
-                social links are reviewed here and preserved for the safe import
-                flow.
+                {selectedApplyCount} supported fields selected. Images are
+                imported from the asset picker above; social links are review
+                only.
               </p>
               <Button
                 isDisabled={selectedApplyCount === 0}
