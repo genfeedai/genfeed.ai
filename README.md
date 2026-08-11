@@ -29,7 +29,8 @@ and source workspaces for desktop, mobile, browser, and IDE clients.
 - Visual workflow authoring and local/BYOK execution
 - Image, video, text, voice, and audio provider adapters
 - Content library, brand, scheduling, and publishing modules
-- REST API with OpenAPI documentation, typed client packages, and an MCP server
+- REST API with OpenAPI documentation, typed client packages, an MCP server, and
+  a terminal CLI
 - PostgreSQL persistence via Prisma and Redis/BullMQ background work
 - Community Docker distribution that excludes commercial `ee/` source
 
@@ -41,6 +42,79 @@ for a specific distribution. Organization billing in particular is gated twice
 runtime (`GENFEED_CLOUD` / EE license); the
 [build flavors section](docs/deployment-modes.md#build-flavors-how-billing-code-gets-into-or-stays-out-of-an-image)
 explains both gates and the guards that keep them honest.
+
+## Agent integration
+
+Genfeed is drivable by an AI agent, not only by the web app, and the agent
+surface covers the full loop rather than read-only reporting: the same
+connection that generates an image, video, or article can also draft a post,
+schedule a release, and publish it to a connected account. Writes are bounded by
+API-key scopes and, on MCP, by a human approval gate.
+
+| Surface          | What it is                                          | Where                                             |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------- |
+| **MCP server**   | Streamable HTTP endpoint exposing 105 curated tools | `https://mcp.genfeed.ai/mcp` (`apps/server/mcp`)  |
+| **CLI**          | `genfeed` / `gf`, 24 command groups                 | [`@genfeedai/cli`](packages/cli)                  |
+| **REST API**     | OpenAPI document at `/v1/openapi.json`              | `apps/server/api`                                 |
+| **In-app agent** | Product agent exposing 93 curated tools             | `apps/server/api/src/services/agent-orchestrator` |
+
+All four run against the same REST API. Tool availability is decided by one
+reviewed catalog, not by endpoint mirroring — see
+[Agent Surface](docs/agent-surface.md).
+
+### Connect an MCP client
+
+Create an API key in organization settings or through the guided
+[Connect Genfeed](https://app.genfeed.ai/connect) flow, then export it where the
+client runs:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+```
+
+Claude Code:
+
+```bash
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+Codex, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.genfeed]
+url = "https://mcp.genfeed.ai/mcp"
+bearer_token_env_var = "GENFEED_API_KEY"
+```
+
+OAuth-capable clients can add `https://mcp.genfeed.ai/mcp` as a custom server
+without a manually created key; they discover the authorization server from
+`/.well-known/oauth-protected-resource`. A self-hosted deployment serves the
+same endpoint at `http://localhost:3014/mcp`.
+
+### Use the CLI
+
+```bash
+bun add -g @genfeedai/cli
+gf login
+gf generate image "product shot on a concrete plinth"
+gf publish <ingredientId> --platforms instagram,linkedin
+```
+
+`gf login` runs a browser PKCE flow against Genfeed Cloud; `gf login -k gf_live_xxx`
+covers CI, containers, agent runtimes, and self-hosted deployments.
+
+### Call the API directly
+
+The API is REST/OpenAPI and takes the same bearer key:
+
+```bash
+curl -H "Authorization: Bearer $GENFEED_API_KEY" https://api.genfeed.ai/v1/brands
+```
+
+`@genfeedai/api-types` publishes types and Zod schemas generated from the
+OpenAPI document; `@genfeedai/client` publishes the shared request/response
+models. Neither package is an HTTP client — both are typing layers over your own
+`fetch`.
 
 ## Community quick start
 
