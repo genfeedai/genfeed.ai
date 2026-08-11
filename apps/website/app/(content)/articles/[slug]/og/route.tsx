@@ -22,7 +22,7 @@ const SIZE = { height: 630, width: 1200 };
  */
 export async function GET(
   _request: Request,
-  { params }: RouteContext<'/articles/[slug]/og'>,
+  { params }: { params: Promise<{ slug: string }> },
 ): Promise<ImageResponse> {
   const { slug } = await params;
   const article = await getPublicArticleBySlugCached(slug).catch(() => null);
