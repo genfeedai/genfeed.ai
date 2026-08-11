@@ -1,6 +1,12 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
@@ -16,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   listPage: vi.fn(),
   postReply: vi.fn(),
   replace: vi.fn(),
+  syncInstagram: vi.fn(),
+  syncInstagramDms: vi.fn(),
+  syncYoutube: vi.fn(),
 }));
 
 vi.mock('@genfeedai/agent', () => ({
@@ -268,7 +277,9 @@ describe('SocialMessagesPage', () => {
       postReply: mocks.postReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
-      syncYoutube: vi.fn(),
+      syncInstagram: mocks.syncInstagram,
+      syncInstagramDms: mocks.syncInstagramDms,
+      syncYoutube: mocks.syncYoutube,
       updateStatus: vi.fn(),
     });
     mocks.listPage.mockResolvedValue({
@@ -304,11 +315,17 @@ describe('SocialMessagesPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Messages' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sync social messages' }),
+      screen.getByRole('button', { name: 'Sync comments' }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
-        { brandId: 'brand-1', limit: 50, page: 1, status: 'open' },
+        {
+          brandId: 'brand-1',
+          conversationType: 'comment',
+          limit: 50,
+          page: 1,
+          status: 'open',
+        },
         expect.any(AbortSignal),
       ),
     );
@@ -383,8 +400,15 @@ describe('SocialMessagesPage', () => {
 
     render(<SocialMessagesPage />);
 
-    expect(await screen.findByText('No conversations yet')).toBeInTheDocument();
-    expect(screen.getByText('Social inbox is empty')).toBeInTheDocument();
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('No comments yet'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('messages-empty-state')).getByText(
+        'No comments yet',
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: /Connect a social channel/i })
         .length,
@@ -398,7 +422,7 @@ describe('SocialMessagesPage', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sync social messages' }),
+      screen.getByRole('button', { name: 'Sync comments' }),
     ).toBeInTheDocument();
 
     expect(screen.getByTestId('messages-surface-layout')).toHaveClass(
@@ -410,5 +434,104 @@ describe('SocialMessagesPage', () => {
       'min-h-0',
       'flex-1',
     );
+  });
+
+  it('switches to the DM surface, queries DMs, and syncs direct messages', async () => {
+    mocks.listPage.mockImplementation(
+      (params: { conversationType?: string }) => {
+        const isDmQuery = params.conversationType === 'dm';
+
+        return Promise.resolve({
+          hasNext: false,
+          hasPrevious: false,
+          items: isDmQuery ? [] : [conversation],
+          page: 1,
+          pageSize: 50,
+          total: isDmQuery ? 0 : 1,
+          totalPages: 1,
+        });
+      },
+    );
+
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync comments' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'DMs' }));
+
+    await waitFor(() =>
+      expect(mocks.listPage).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          conversationType: 'dm',
+          limit: 50,
+          page: 1,
+          status: 'open',
+        },
+        expect.any(AbortSignal),
+      ),
+    );
+
+    // DMs are polled, so an unsynced DM surface says so instead of reading as an error.
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('No direct messages yet'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sync direct messages' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.syncInstagramDms).toHaveBeenCalledTimes(1),
+    );
+    expect(mocks.syncYoutube).not.toHaveBeenCalled();
+    expect(mocks.syncInstagram).not.toHaveBeenCalled();
+  });
+
+  it('sweeps every comment platform when syncing the comments surface', async () => {
+    render(<SocialMessagesPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sync comments' }),
+    );
+
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+    expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
+    expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
+  });
+
+  it('renders a DM thread without a source content anchor', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [
+        {
+          ...conversation,
+          availability: {
+            canPostReply: false,
+            canSendDm: true,
+            postReplyReason:
+              'Direct message threads have no post or comment to reply on',
+          },
+          conversationType: 'dm',
+          platform: 'instagram',
+        },
+      ],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Taylor',
+      }),
+    ).toBeInTheDocument();
+    // A DM hangs off no post, so the comment thread's source anchor stays away.
+    expect(screen.queryByText('Launch video')).not.toBeInTheDocument();
   });
 });

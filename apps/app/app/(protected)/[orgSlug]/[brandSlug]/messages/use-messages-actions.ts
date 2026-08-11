@@ -1,5 +1,6 @@
 'use client';
 
+import { SocialConversationType } from '@genfeedai/enums';
 import type {
   SocialConversationStatus,
   SocialInboxReference,
@@ -15,6 +16,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { MessagesSurface } from './messages-conversation-sidebar';
 import {
   getMessagesErrorMessage,
   type MessagesBusyAction,
@@ -32,6 +34,8 @@ import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
 
 export interface UseMessagesActionsParams {
   readonly canAttachReferences: boolean;
+  /** Which inbox surface is open — decides what a sync actually sweeps. */
+  readonly conversationType: MessagesSurface;
   readonly getMessagesService: () => Promise<SocialMessagesService>;
   readonly loadConversations: (signal?: AbortSignal) => Promise<void>;
   readonly onLoadError?: (message: string | null) => void;
@@ -42,6 +46,7 @@ export interface UseMessagesActionsParams {
 
 export function useMessagesActions({
   canAttachReferences,
+  conversationType,
   getMessagesService,
   loadConversations,
   onLoadError,
@@ -205,7 +210,7 @@ export function useMessagesActions({
     [getMessagesService, loadConversations, onLoadError, selectedId],
   );
 
-  const handleSyncYoutube = useCallback(async () => {
+  const handleSync = useCallback(async () => {
     const action: MessagesActionKind = 'sync';
     if (actionInFlightRef.current) {
       captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
@@ -220,10 +225,19 @@ export function useMessagesActions({
 
     try {
       const service = await getMessagesService();
-      await service.syncYoutube();
-      setNotice(
-        'YouTube sync started. New comments will appear here once the background job finishes.',
-      );
+      if (conversationType === SocialConversationType.DM) {
+        await service.syncInstagramDms();
+        setNotice(
+          'Direct message sync started. New threads will appear here once the background job finishes.',
+        );
+      } else {
+        // The comments surface spans every connected platform, so one sync
+        // sweeps them all rather than making the operator pick.
+        await Promise.all([service.syncYoutube(), service.syncInstagram()]);
+        setNotice(
+          'Comment sync started. New comments will appear here once the background jobs finish.',
+        );
+      }
       await loadConversations();
       captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
     } catch (err: unknown) {
@@ -235,7 +249,7 @@ export function useMessagesActions({
       }
       setBusyAction(null);
     }
-  }, [getMessagesService, loadConversations, onLoadError]);
+  }, [conversationType, getMessagesService, loadConversations, onLoadError]);
 
   const handleApproveDraft = useCallback(
     async (messageId: string) => {
@@ -407,7 +421,7 @@ export function useMessagesActions({
     handleDraftChange,
     handleRejectDraft,
     handleStatusChange,
-    handleSyncYoutube,
+    handleSync,
     handleToggleConversationReference,
     handleToggleMessageReference,
     isConversationReferenced,

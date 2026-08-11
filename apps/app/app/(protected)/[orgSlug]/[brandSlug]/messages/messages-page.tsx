@@ -5,7 +5,11 @@ import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthCon
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  SocialConversationType,
+} from '@genfeedai/enums';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
@@ -293,7 +297,7 @@ export default function MessagesPage() {
     handleDraftChange,
     handleRejectDraft,
     handleStatusChange,
-    handleSyncYoutube,
+    handleSync,
     handleToggleConversationReference,
     handleToggleMessageReference,
     isConversationReferenced,
@@ -302,6 +306,7 @@ export default function MessagesPage() {
     references,
   } = useMessagesActions({
     canAttachReferences,
+    conversationType: filters.conversationType,
     getMessagesService,
     loadConversations,
     onLoadError: setLoadError,
@@ -342,6 +347,11 @@ export default function MessagesPage() {
     selectedConversation,
   });
 
+  const isDmSurface = filters.conversationType === SocialConversationType.DM;
+  // A DM has no post or comment behind it, so the thread reads top-to-bottom
+  // on its own instead of hanging off a source-content anchor.
+  const isDmThread =
+    selectedConversation?.conversationType === SocialConversationType.DM;
   const availability = selectedConversation?.availability ?? {
     canPostReply: false,
     canSendDm: false,
@@ -398,9 +408,17 @@ export default function MessagesPage() {
       busyAction={busyAction}
       connectionState={connectionState}
       conversations={conversations}
+      conversationType={filters.conversationType}
       isLoading={isLoadingConversations}
       onBrandFilterChange={(value) => {
         filters.setBrandFilter(value);
+        setSelectedId(null);
+        updateSelectedConversationParam(null);
+      }}
+      onConversationTypeChange={(value) => {
+        // Surfaces are separate destinations, so the comment thread that was
+        // open has no meaning on the DM list.
+        filters.setConversationType(value);
         setSelectedId(null);
         updateSelectedConversationParam(null);
       }}
@@ -413,7 +431,7 @@ export default function MessagesPage() {
         filters.setSearch(value);
       }}
       onSelect={handleSelectConversation}
-      onSync={handleSyncYoutube}
+      onSync={handleSync}
       onViewChange={filters.setInboxView}
       pagination={conversationPagination}
       platform={filters.platform}
@@ -485,11 +503,13 @@ export default function MessagesPage() {
                     <p className="mt-1 text-xs font-medium text-primary/70">
                       Social conversation · separate from agent thread
                     </p>
-                    <p className="mt-1 truncate text-xs text-white/38">
-                      {selectedConversation.sourceContentTitle ||
-                        selectedConversation.sourceContentUrl ||
-                        selectedConversation.externalConversationId}
-                    </p>
+                    {isDmThread ? null : (
+                      <p className="mt-1 truncate text-xs text-white/38">
+                        {selectedConversation.sourceContentTitle ||
+                          selectedConversation.sourceContentUrl ||
+                          selectedConversation.externalConversationId}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -677,11 +697,14 @@ export default function MessagesPage() {
                 <>
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-white/60">
-                      Social inbox is empty
+                      {isDmSurface
+                        ? 'No direct messages yet'
+                        : 'No comments yet'}
                     </p>
                     <p className="max-w-sm text-xs leading-5 text-white/38">
-                      Connect a channel and sync to pull comments and DMs. Pick
-                      a conversation here once threads appear in the list.
+                      {isDmSurface
+                        ? 'Connect an Instagram account and sync to pull DM threads. Pick a thread here once they appear in the list.'
+                        : 'Connect a channel and sync to pull comments. Pick a conversation here once threads appear in the list.'}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
@@ -696,7 +719,7 @@ export default function MessagesPage() {
                       isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
                       isLoading={busyAction === 'sync'}
                       onClick={() => {
-                        void handleSyncYoutube();
+                        void handleSync();
                       }}
                       size={ButtonSize.SM}
                       variant={ButtonVariant.GHOST}

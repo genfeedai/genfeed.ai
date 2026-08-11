@@ -1,5 +1,6 @@
 'use client';
 
+import { SocialConversationType } from '@genfeedai/enums';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
@@ -7,7 +8,10 @@ import type {
   SocialPlatform,
 } from '@genfeedai/interfaces';
 import { useCallback, useMemo, useReducer } from 'react';
-import type { MessagesInboxView } from './messages-conversation-sidebar';
+import type {
+  MessagesInboxView,
+  MessagesSurface,
+} from './messages-conversation-sidebar';
 import { ALL_BRANDS_FILTER } from './messages-page.helpers';
 
 type MessagesInboxFiltersState = {
@@ -16,6 +20,7 @@ type MessagesInboxFiltersState = {
   brandFilterOverride: string | null;
   brandFilterRouteKey: string | undefined;
   conversationPage: number;
+  conversationType: MessagesSurface;
   credentialId: string;
   needsReviewOnly: boolean;
   platform: SocialPlatform | 'all';
@@ -32,6 +37,7 @@ type MessagesInboxFiltersAction =
     }
   | { type: 'set-brand-filter'; brandFilter: string }
   | { type: 'set-conversation-page'; page: number }
+  | { type: 'set-conversation-type'; conversationType: MessagesSurface }
   | { type: 'set-credential-id'; credentialId: string }
   | { type: 'set-inbox-view'; view: MessagesInboxView }
   | { type: 'set-platform'; platform: SocialPlatform | 'all' }
@@ -48,6 +54,7 @@ function createInitialFiltersState(
     brandFilterOverride: null,
     brandFilterRouteKey: brandSlug,
     conversationPage: 1,
+    conversationType: SocialConversationType.COMMENT,
     credentialId: '',
     needsReviewOnly: false,
     platform: 'all',
@@ -122,6 +129,12 @@ function messagesInboxFiltersReducer(
         unreadOnly: next.unreadOnly,
       };
     }
+    case 'set-conversation-type':
+      return {
+        ...state,
+        conversationPage: 1,
+        conversationType: action.conversationType,
+      };
     case 'set-automation-state':
       return {
         ...state,
@@ -209,6 +222,9 @@ export function useMessagesInboxFilters({
     const isOrgWideBrandFilter = brandFilter === ALL_BRANDS_FILTER;
 
     return {
+      // Comments and DMs are separate destinations, never a merged stream, so
+      // the surface is always on the wire.
+      conversationType: state.conversationType,
       limit: 50,
       page: state.conversationPage,
       // Org-scoped Messages must not inherit a stale session brand.
@@ -244,6 +260,13 @@ export function useMessagesInboxFilters({
     dispatch({ type: 'set-inbox-view', view });
   }, []);
 
+  const setConversationType = useCallback(
+    (conversationType: MessagesSurface) => {
+      dispatch({ conversationType, type: 'set-conversation-type' });
+    },
+    [],
+  );
+
   const setAutomationState = useCallback(
     (automationState: SocialAutomationState | 'all') => {
       dispatch({ automationState, type: 'set-automation-state' });
@@ -276,6 +299,7 @@ export function useMessagesInboxFilters({
     automationState: state.automationState,
     brandFilter,
     conversationPage: state.conversationPage,
+    conversationType: state.conversationType,
     credentialId: state.credentialId,
     inboxView,
     platform: state.platform,
@@ -285,6 +309,7 @@ export function useMessagesInboxFilters({
     setAutomationState,
     setBrandFilter,
     setConversationPage,
+    setConversationType,
     setCredentialId,
     setInboxView,
     setPlatform,

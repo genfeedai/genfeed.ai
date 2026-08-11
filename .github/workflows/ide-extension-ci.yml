@@ -32,7 +32,7 @@ jobs:
         run: bunx turbo run test --filter=extension-ide
 
       - name: E2E tests
-        run: bun run --cwd apps/extensions/ide/app test:e2e
+        run: bunx turbo run test:e2e --filter=extension-ide
 
       - name: Build extension
         run: bunx turbo run build --filter=extension-ide

@@ -3,7 +3,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, Max, Min } from 'class-validator';
 
-export class SocialInboxYoutubeIngestDto {
+/**
+ * Shared body for every inbox sync endpoint. The platform and surface are
+ * carried by the route, not by the payload, so one shape serves them all.
+ */
+export class SocialInboxIngestDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsEntityId()

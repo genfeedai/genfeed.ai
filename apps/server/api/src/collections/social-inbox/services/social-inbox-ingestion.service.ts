@@ -18,9 +18,15 @@ import type {
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { PostStatus } from '@genfeedai/enums';
+import {
+  Platform,
+  PostStatus,
+  SocialConversationType,
+  SocialMessageType,
+} from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -38,6 +44,7 @@ export class SocialInboxIngestionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly youtubeService: YoutubeService,
+    private readonly instagramService: InstagramService,
     private readonly realtimeService: SocialInboxRealtimeService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
@@ -90,7 +97,10 @@ export class SocialInboxIngestionService {
           externalMessageId: input.externalMessageId,
           externalParentMessageId: input.externalParentMessageId,
           metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-          messageType: input.conversationType === 'dm' ? 'dm' : 'comment',
+          messageType:
+            input.conversationType === SocialConversationType.DM
+              ? SocialMessageType.DM
+              : SocialMessageType.COMMENT,
           organizationId: input.organizationId,
           platform,
           postId: input.postId,
@@ -154,8 +164,9 @@ export class SocialInboxIngestionService {
     options: { credentialId?: string; limit?: number } = {},
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     const limit = boundLimit(options.limit ?? 25);
-    const credentials = await this.findYoutubeCredentials(
+    const credentials = await this.findConnectedCredentials(
       scope,
+      PrismaCredentialPlatform.YOUTUBE,
       options.credentialId,
     );
     let messagesCreated = 0;
@@ -169,7 +180,7 @@ export class SocialInboxIngestionService {
           brandId: credential.brandId ?? undefined,
           credentialId: credential.id,
           externalId: { not: null },
-          platform: 'youtube',
+          platform: Platform.YOUTUBE,
           status: { in: [PostStatus.PUBLIC] },
         }),
       });
@@ -190,8 +201,9 @@ export class SocialInboxIngestionService {
         // whole post instead of a findFirst pair per comment. The sets are
         // seeded from the DB snapshot and grown as we ingest so duplicates
         // sharing a thread within the same batch are only counted once.
-        const existing = await this.findExistingYoutubeExternalIds(
+        const existing = await this.findExistingExternalIds(
           scope.organizationId,
+          Platform.YOUTUBE,
           comments.map((comment) => comment.threadId),
           comments.map((comment) => comment.commentId),
         );
@@ -210,7 +222,7 @@ export class SocialInboxIngestionService {
               credential.externalName ?? credential.label ?? undefined,
             body: comment.text,
             brandId: post.brandId,
-            conversationType: 'comment',
+            conversationType: SocialConversationType.COMMENT,
             credentialId: credential.id,
             createdAt: comment.createdAt,
             externalConversationId: comment.threadId,
@@ -222,7 +234,7 @@ export class SocialInboxIngestionService {
             participantExternalId: comment.authorChannelId,
             participantHandle: comment.authorChannelUrl,
             participantName: comment.authorDisplayName,
-            platform: 'youtube',
+            platform: Platform.YOUTUBE,
             postId: post.id,
             sourceContentId: String(post.externalId),
             sourceContentTitle: post.label ?? post.description.slice(0, 120),
@@ -247,15 +259,201 @@ export class SocialInboxIngestionService {
     return { conversationsCreated, messagesCreated };
   }
 
+  async ingestInstagramComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const limit = boundLimit(options.limit ?? 25);
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.INSTAGRAM,
+      options.credentialId,
+    );
+    let messagesCreated = 0;
+    let conversationsCreated = 0;
+
+    for (const credential of credentials) {
+      const posts = await this.prisma.post.findMany({
+        orderBy: { publishedAt: 'desc' },
+        take: 20,
+        where: scopedWhere(scope.organizationId, {
+          brandId: credential.brandId ?? undefined,
+          credentialId: credential.id,
+          externalId: { not: null },
+          platform: Platform.INSTAGRAM,
+          status: { in: [PostStatus.PUBLIC] },
+        }),
+      });
+
+      for (const post of posts) {
+        const comments = await this.instagramService.listMediaComments(
+          scope.organizationId,
+          post.brandId,
+          String(post.externalId),
+          limit,
+        );
+
+        if (comments.length === 0) {
+          continue;
+        }
+
+        const existing = await this.findExistingExternalIds(
+          scope.organizationId,
+          Platform.INSTAGRAM,
+          comments.map((comment) => comment.threadId),
+          comments.map((comment) => comment.commentId),
+        );
+
+        for (const comment of comments) {
+          const isNewConversation = !existing.conversationIds.has(
+            comment.threadId,
+          );
+          const isNewMessage = !existing.messageIds.has(comment.commentId);
+
+          await this.ingestInboundMessage({
+            accountExternalId: credential.externalId ?? undefined,
+            accountHandle:
+              credential.externalHandle ?? credential.username ?? undefined,
+            accountName:
+              credential.externalName ?? credential.label ?? undefined,
+            body: comment.text,
+            brandId: post.brandId,
+            conversationType: SocialConversationType.COMMENT,
+            createdAt: comment.createdAt,
+            credentialId: credential.id,
+            externalConversationId: comment.threadId,
+            externalMessageId: comment.commentId,
+            externalParentId: comment.commentId,
+            externalThreadId: comment.threadId,
+            organizationId: scope.organizationId,
+            participantExternalId: comment.authorExternalId,
+            participantHandle: comment.authorUsername,
+            participantName: comment.authorUsername,
+            platform: Platform.INSTAGRAM,
+            postId: post.id,
+            sourceContentId: String(post.externalId),
+            sourceContentTitle: post.label ?? post.description.slice(0, 120),
+            sourceContentType: 'media',
+            sourceContentUrl: post.url ?? undefined,
+            userId: credential.userId ?? scope.userId,
+          });
+
+          if (isNewMessage) {
+            messagesCreated++;
+            existing.messageIds.add(comment.commentId);
+          }
+          if (isNewConversation) {
+            conversationsCreated++;
+            existing.conversationIds.add(comment.threadId);
+          }
+        }
+      }
+    }
+
+    return { conversationsCreated, messagesCreated };
+  }
+
   /**
-   * Batched dedup lookup for a single post's comments: one findMany per entity
-   * keyed by the external ids, replacing the per-comment findFirst pair. Org
-   * scoping ({ organizationId, isDeleted: false }) is preserved. Returns the
-   * sets of external ids that already exist so the caller can decide which
-   * ingests are net-new without re-querying.
+   * Poll Graph conversations into DM threads. Unlike comments there is no post
+   * anchor: the conversation is keyed by the Graph conversation id, so the
+   * inbox row carries a participant instead of source content.
    */
-  private async findExistingYoutubeExternalIds(
+  async ingestInstagramDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const limit = boundLimit(options.limit ?? 25);
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.INSTAGRAM,
+      options.credentialId,
+    );
+    let messagesCreated = 0;
+    let conversationsCreated = 0;
+
+    for (const credential of credentials) {
+      // The Graph conversations edge is reached through the brand's token, so
+      // a credential with no brand has no path to poll.
+      const brandId = credential.brandId;
+      if (!brandId) {
+        continue;
+      }
+
+      const threads = await this.instagramService.listConversations(
+        scope.organizationId,
+        brandId,
+        limit,
+      );
+
+      if (threads.length === 0) {
+        continue;
+      }
+
+      const existing = await this.findExistingExternalIds(
+        scope.organizationId,
+        Platform.INSTAGRAM,
+        threads.map((thread) => thread.conversationId),
+        threads.flatMap((thread) =>
+          thread.messages.map((message) => message.messageId),
+        ),
+      );
+
+      for (const thread of threads) {
+        for (const message of thread.messages) {
+          const isNewConversation = !existing.conversationIds.has(
+            thread.conversationId,
+          );
+          const isNewMessage = !existing.messageIds.has(message.messageId);
+
+          await this.ingestInboundMessage({
+            accountExternalId: credential.externalId ?? undefined,
+            accountHandle:
+              credential.externalHandle ?? credential.username ?? undefined,
+            accountName:
+              credential.externalName ?? credential.label ?? undefined,
+            body: message.text,
+            brandId,
+            conversationType: SocialConversationType.DM,
+            createdAt: message.createdAt,
+            credentialId: credential.id,
+            externalConversationId: thread.conversationId,
+            externalMessageId: message.messageId,
+            externalThreadId: thread.conversationId,
+            organizationId: scope.organizationId,
+            participantExternalId:
+              message.senderExternalId ?? thread.participantExternalId,
+            participantHandle:
+              message.senderUsername ?? thread.participantUsername,
+            participantName: message.senderName ?? thread.participantName,
+            platform: Platform.INSTAGRAM,
+            userId: credential.userId ?? scope.userId,
+          });
+
+          if (isNewMessage) {
+            messagesCreated++;
+            existing.messageIds.add(message.messageId);
+          }
+          if (isNewConversation) {
+            conversationsCreated++;
+            existing.conversationIds.add(thread.conversationId);
+          }
+        }
+      }
+    }
+
+    return { conversationsCreated, messagesCreated };
+  }
+
+  /**
+   * Batched dedup lookup for one sync batch: one findMany per entity keyed by
+   * the external ids, replacing the per-item findFirst pair. Org scoping
+   * ({ organizationId, isDeleted: false }) is preserved. Returns the sets of
+   * external ids that already exist so the caller can decide which ingests are
+   * net-new without re-querying.
+   */
+  private async findExistingExternalIds(
     organizationId: string,
+    platform: string,
     threadIds: string[],
     commentIds: string[],
   ): Promise<{ conversationIds: Set<string>; messageIds: Set<string> }> {
@@ -268,7 +466,7 @@ export class SocialInboxIngestionService {
             select: { externalConversationId: true },
             where: scopedWhere(organizationId, {
               externalConversationId: { in: uniqueThreadIds },
-              platform: 'youtube',
+              platform,
             }),
           })
         : Promise.resolve([]),
@@ -277,7 +475,7 @@ export class SocialInboxIngestionService {
             select: { externalMessageId: true },
             where: scopedWhere(organizationId, {
               externalMessageId: { in: uniqueCommentIds },
-              platform: 'youtube',
+              platform,
             }),
           })
         : Promise.resolve([]),
@@ -297,8 +495,9 @@ export class SocialInboxIngestionService {
     };
   }
 
-  private async findYoutubeCredentials(
+  private async findConnectedCredentials(
     scope: SocialInboxScope,
+    platform: PrismaCredentialPlatform,
     credentialId?: string,
   ) {
     return this.prisma.credential.findMany({
@@ -306,7 +505,7 @@ export class SocialInboxIngestionService {
         ...(credentialId ? { id: credentialId } : {}),
         ...(scope.brandId ? { brandId: scope.brandId } : {}),
         isConnected: true,
-        platform: PrismaCredentialPlatform.YOUTUBE,
+        platform,
       }),
     });
   }

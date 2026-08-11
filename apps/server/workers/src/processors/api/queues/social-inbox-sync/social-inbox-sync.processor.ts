@@ -1,7 +1,10 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { Platform, SocialConversationType } from '@genfeedai/enums';
 import {
   SOCIAL_INBOX_SYNC_QUEUE,
+  SocialInboxSyncConversationType,
   SocialInboxSyncJobData,
+  SocialInboxSyncPlatform,
   SocialInboxSyncResult,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -45,25 +48,56 @@ export class SocialInboxSyncProcessor extends WorkerHost {
   private async processInternal(
     job: Job<SocialInboxSyncJobData>,
   ): Promise<SocialInboxSyncResult> {
-    const { organizationId, brandId, userId, credentialId, limit } = job.data;
+    const {
+      organizationId,
+      brandId,
+      userId,
+      credentialId,
+      limit,
+      // Jobs enqueued before the Instagram surfaces shipped carry neither
+      // discriminator, so the defaults reproduce the original YouTube sweep.
+      platform = Platform.YOUTUBE,
+      conversationType = SocialConversationType.COMMENT,
+    } = job.data;
+
+    const surface = `${platform} ${conversationType}`;
 
     this.logger.log(
-      `Processing YouTube inbox sync for org=${organizationId}${brandId ? ` brand=${brandId}` : ''}`,
+      `Processing ${surface} inbox sync for org=${organizationId}${brandId ? ` brand=${brandId}` : ''}`,
     );
 
     await job.updateProgress(10);
 
-    const result = await this.socialInboxService.ingestYoutubeComments(
-      { brandId, organizationId, userId },
-      { credentialId, limit },
+    const scope = { brandId, organizationId, userId };
+    const options = { credentialId, limit };
+    const result = await this.ingest(
+      scope,
+      options,
+      platform,
+      conversationType,
     );
 
     await job.updateProgress(100);
 
     this.logger.log(
-      `YouTube inbox sync completed for org=${organizationId}: conversations=${result.conversationsCreated}, messages=${result.messagesCreated}`,
+      `${surface} inbox sync completed for org=${organizationId}: conversations=${result.conversationsCreated}, messages=${result.messagesCreated}`,
     );
 
     return result;
+  }
+
+  private ingest(
+    scope: { brandId?: string; organizationId: string; userId?: string },
+    options: { credentialId?: string; limit?: number },
+    platform: SocialInboxSyncPlatform,
+    conversationType: SocialInboxSyncConversationType,
+  ): Promise<SocialInboxSyncResult> {
+    if (platform === Platform.INSTAGRAM) {
+      return conversationType === SocialConversationType.DM
+        ? this.socialInboxService.ingestInstagramDms(scope, options)
+        : this.socialInboxService.ingestInstagramComments(scope, options);
+    }
+
+    return this.socialInboxService.ingestYoutubeComments(scope, options);
   }
 }

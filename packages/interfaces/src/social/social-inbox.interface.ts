@@ -200,7 +200,8 @@ export interface SocialActionInput {
   workflowRunId?: string;
 }
 
-export interface YoutubeSyncResult {
+/** Receipt returned by every inbox sync route — the sweep runs on a worker. */
+export interface SocialInboxSyncEnqueueResult {
   jobId?: string;
   status: string;
 }

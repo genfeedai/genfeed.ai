@@ -1,5 +1,6 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import { buildArticleJsonLd } from '@genfeedai/helpers';
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
@@ -138,7 +139,7 @@ export default async function ArticleDetail({
       .filter((label): label is string => Boolean(label)),
     mainEntityUrl: `${EnvironmentService.apps.website}/articles/${slug}`,
     publisher: {
-      logoUrl: 'https://cdn.genfeed.ai/assets/logo.png',
+      logoUrl: cdnAsset('/assets/branding/logo.jpg'),
       name: 'Genfeed',
       url: 'https://genfeed.ai',
     },

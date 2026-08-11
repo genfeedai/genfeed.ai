@@ -10,7 +10,7 @@
     "commands": [
       {
         "command": "genfeed.openPanel",
-        "icon": "$(genfeed-icon)",
+        "icon": "$(broadcast)",
         "title": "GenFeed: Open Panel"
       },
       {
