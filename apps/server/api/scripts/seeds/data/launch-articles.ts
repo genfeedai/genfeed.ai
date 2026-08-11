@@ -15,7 +15,11 @@
  */
 
 import { ArticleCategory } from '@genfeedai/enums';
-import { cdnAsset } from '@genfeedai/helpers';
+// Imported by source path, as every other `cdnAsset` caller does. The
+// `@genfeedai/helpers` barrel resolves to the package's prebuilt `dist`, so a
+// seed run would depend on that build being current — it is not, on a checkout
+// where the package has not been rebuilt since the helper was added.
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 
 export type LaunchArticle = {
   category: ArticleCategory;
