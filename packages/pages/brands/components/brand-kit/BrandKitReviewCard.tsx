@@ -130,7 +130,7 @@ function formatSelectedAssetCount(count: number): string {
 }
 
 function formatSelectedFieldSummary(count: number): string {
-  return `${count} supported fields selected. Images are imported from the asset picker above; social links are review only.`;
+  return `${count} supported ${count === 1 ? 'field' : 'fields'} selected. Images are imported from the asset picker above; social links are review only.`;
 }
 
 function hasObjectValue(value: unknown): value is Record<string, unknown> {

@@ -15,6 +15,14 @@ export const generalAiSchema = {
     'deepseek/deepseek-v4-flash-0731',
   ),
   AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
+  // Coalescing window (#2517): live `agent:token` deltas are buffered per
+  // run and flushed as one larger Redis publish either when this window
+  // elapses or AGENT_STREAM_COALESCE_MAX_BYTES is hit, whichever is first.
+  // Keeps perceived latency low (25-100ms) while collapsing what would
+  // otherwise be one Redis publish + socket.io emit per LLM token into a
+  // handful of publishes per response.
+  AGENT_STREAM_COALESCE_MAX_BYTES: Joi.number().integer().min(1).default(2048),
+  AGENT_STREAM_COALESCE_WINDOW_MS: Joi.number().integer().min(1).default(50),
   // Feature flag: real token-by-token LLM streaming for agent chat. When
   // 'false' (default) the orchestrator keeps the legacy simulated word-split
   // streaming. Toggle to 'true' to stream real provider deltas via agent:token.

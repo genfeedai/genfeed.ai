@@ -18,6 +18,10 @@ import {
 } from '@genfeedai/enums';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -313,8 +317,17 @@ async function main(): Promise<void> {
     throw new Error('DATABASE_URL is required to run this retirement.');
   }
 
+  // TLS is resolved through the same factory `PrismaService` uses rather than
+  // handing the raw URL to the adapter. RDS forces SSL and pg 8.22 treats
+  // `sslmode=require` as `verify-full`, so a connection string that works for
+  // the deployed API fails from a laptop, which has no bundled CA at
+  // `/certs/rds-ca.pem`.
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+      }),
+    ),
     log: ['error'],
   });
   // PrismaClient structurally satisfies the service's narrowed delegate view

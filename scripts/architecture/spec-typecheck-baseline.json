@@ -2985,14 +2985,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/helpers/utils/response/response.util.spec.ts",
-      "fingerprint": "4cea1aca68b01d683ba7",
-      "message": "Argument of type '{ originalUrl: string; }' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type '{ originalUrl: string; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 102 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",

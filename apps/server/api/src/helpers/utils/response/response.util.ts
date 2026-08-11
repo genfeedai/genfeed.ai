@@ -68,7 +68,12 @@ export const returnInternalServerError = (
 };
 
 export const setTopLinks = (
-  req: Request,
+  // `originalUrl` is the only thing this reads, and stating that is what the
+  // type should say. A full `Request` structurally satisfies it, so both
+  // callers below pass unchanged — while callers holding just a URL (specs
+  // most of all) no longer need to fabricate 100+ unused express members or
+  // launder a stub through `as unknown as Request`.
+  req: Pick<Request, 'originalUrl'>,
   serializerOptions: Record<string, unknown>,
   data: Record<string, unknown>,
 ) => {
@@ -81,6 +86,13 @@ export const setTopLinks = (
     'page' in data &&
     Array.isArray(data.docs);
 
+  // Keyset/cursor-paginated response: caller attached `hasMore` alongside
+  // `docs` (see AgentThreadsController#getMessages). Additive to the offset
+  // `pagination` link above — never emitted together, since cursor callers
+  // never set `totalDocs`/`page`.
+  const isCursorPaginated =
+    data && typeof data === 'object' && typeof data.hasMore === 'boolean';
+
   const topLevelLinks = isPaginated
     ? {
         pagination: {
@@ -91,9 +103,18 @@ export const setTopLinks = (
         },
         self: req.originalUrl,
       }
-    : {
-        self: req.originalUrl,
-      };
+    : isCursorPaginated
+      ? {
+          cursor: {
+            hasMore: data.hasMore,
+            limit: data.limit,
+            nextCursor: data.nextCursor ?? null,
+          },
+          self: req.originalUrl,
+        }
+      : {
+          self: req.originalUrl,
+        };
 
   // IMPORTANT: Return a NEW object to avoid race conditions.
   // Serializers are singletons - mutating serializerOptions directly
