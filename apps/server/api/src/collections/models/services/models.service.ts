@@ -7,7 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import { withLiveModelCreditPricing } from '@genfeedai/helpers';
+import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

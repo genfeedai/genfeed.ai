@@ -1,4 +1,4 @@
-import { contentServiceOffering } from '@helpers/business/pricing/pricing.helper';
+import { contentServiceOffering } from '@genfeedai/pricing';
 import {
   BadgeCheck,
   CalendarRange,

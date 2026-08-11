@@ -10,6 +10,7 @@
     "@genfeedai/helpers": "*",
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
+    "@genfeedai/pricing": "*",
     "@genfeedai/types": "*",
     "@genfeedai/workflows": "*",
     "@remotion/player": "4.0.507",

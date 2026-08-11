@@ -3,7 +3,7 @@ import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
 import {
   getRuntimeMarginMultiplier,
   setRuntimeMarginMultiplier,
-} from '@genfeedai/helpers';
+} from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

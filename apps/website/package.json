@@ -8,6 +8,7 @@
     "@genfeedai/helpers": "*",
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
+    "@genfeedai/pricing": "*",
     "@genfeedai/types": "*",
     "@tiptap/core": "3.29.2",
     "@tiptap/extension-image": "3.29.2",

@@ -1,5 +1,5 @@
 import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
-import { setRuntimeMarginMultiplier } from '@genfeedai/helpers';
+import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';

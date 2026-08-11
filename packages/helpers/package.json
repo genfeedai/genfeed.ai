@@ -4,7 +4,6 @@
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/pricing": "workspace:*",
     "clsx": "2.1.1",
     "lucide-react": "1.31.0",
     "sanitize-html": "2.17.6",

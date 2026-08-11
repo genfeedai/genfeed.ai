@@ -6,7 +6,7 @@ import {
   creditPackTotalCredits,
   getProPlan,
   WEBSITE_CREDIT_PACKS,
-} from '@helpers/business/pricing/pricing.helper';
+} from '@genfeedai/pricing';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';

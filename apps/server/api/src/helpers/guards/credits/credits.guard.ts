@@ -22,11 +22,9 @@ import {
 } from '@api/services/byok/byok-provider-map.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
-import {
-  billCreditsFromProviderCost,
-  getDeserializer,
-} from '@genfeedai/helpers';
+import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
+import { billCreditsFromProviderCost } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

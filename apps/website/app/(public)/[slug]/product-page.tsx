@@ -1,6 +1,6 @@
 import { getRelatedProducts, type Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
-import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
+import { getPlanLabel } from '@genfeedai/pricing';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import EditorialPoster from '@ui/marketing/EditorialPoster';

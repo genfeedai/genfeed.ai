@@ -1,9 +1,6 @@
 import { stringifyJsonLd } from '@data/json-ld';
-import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
-import {
-  PLAN_COPY,
-  websitePlans,
-} from '@helpers/business/pricing/pricing.helper';
+import type { PlanTier } from '@genfeedai/pricing';
+import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';

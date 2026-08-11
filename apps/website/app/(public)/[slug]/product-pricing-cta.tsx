@@ -1,7 +1,7 @@
 import type { Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
-import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
+import { getPlanLabel } from '@genfeedai/pricing';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';

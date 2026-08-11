@@ -15,8 +15,6 @@
       "@genfeedai/auth-client/*": ["../auth-client/src/*"],
       "@genfeedai/constants": ["../constants/src/index.ts"],
       "@genfeedai/constants/*": ["../constants/src/*"],
-      "@genfeedai/pricing": ["../pricing/src/index.ts"],
-      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../serializers/src/*"],
       "@genfeedai/enums": ["../enums/src/index.ts"],
@@ -56,9 +54,6 @@
     },
     {
       "path": "../interfaces/tsconfig.json"
-    },
-    {
-      "path": "../pricing/tsconfig.json"
     }
   ]
 }

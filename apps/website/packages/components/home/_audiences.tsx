@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize } from '@genfeedai/enums';
-import { getProPlan } from '@helpers/business/pricing/pricing.helper';
+import { getProPlan } from '@genfeedai/pricing';
 import type { AudienceBenefit } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';

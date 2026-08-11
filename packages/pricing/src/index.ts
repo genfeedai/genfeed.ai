@@ -11,7 +11,7 @@
  *
  * Propagation is verified by:
  *   packages/pricing/src/provider-pricing.spec.ts
- *   packages/helpers/src/business/pricing/pricing.helper.test.ts
+ *   packages/pricing/__tests__/plans-pricing.test.ts
  *
  * Downstream Joi env defaults in packages/config/src/schemas/stripe.schema.ts
  * consume BYOK_FEE_PERCENTAGE and BYOK_FREE_THRESHOLD_CREDITS from this package.

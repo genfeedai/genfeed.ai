@@ -133,6 +133,7 @@ describe('applyMargin and runtime margin multiplier', () => {
   it('applies the base 70% margin and converts to credits', () => {
     expect(applyMargin(0.15)).toBe(50);
     expect(applyMargin(0.5)).toBe(167);
+    expect(applyMargin(0.04)).toBe(14);
   });
 
   it('scales by an explicit margin multiplier', () => {
@@ -225,6 +226,14 @@ describe('creditsToOutputEstimate', () => {
 });
 
 describe('pricing constants', () => {
+  it('prices every metered unit at its published credit cost', () => {
+    expect(INTERNAL_CREDIT_COSTS.image).toBe(50);
+    expect(INTERNAL_CREDIT_COSTS.image4k).toBe(100);
+    expect(INTERNAL_CREDIT_COSTS.videoPerSecond).toBe(75);
+    expect(INTERNAL_CREDIT_COSTS.avatarPerSecond).toBe(100);
+    expect(INTERNAL_CREDIT_COSTS.voicePerMinute).toBe(17);
+  });
+
   it('derives duration helpers from the per-second costs', () => {
     expect(VIDEO_CREDIT_COSTS.video4s).toBe(
       INTERNAL_CREDIT_COSTS.videoPerSecond * 4,
@@ -252,11 +261,93 @@ describe('pricing constants', () => {
 
   it('keeps auxiliary offerings well-formed', () => {
     expect(dedicatedServerPlan.price).toBeNull();
+    expect(dedicatedServerPlan.label).toBe('Dedicated');
+    expect(dedicatedServerPlan.type).toBe('enterprise');
+    expect(dedicatedServerPlan.outputs).toBeNull();
     expect(contentServiceOffering.process.length).toBeGreaterThan(0);
     expect(TRAINING_PACKAGES.map((pkg) => pkg.priceLabel)).toEqual([
       '$299',
       '$499',
       '$999',
     ]);
+  });
+});
+
+describe('website plan catalogue', () => {
+  it('publishes the four plans in presentation order', () => {
+    expect(websitePlans.map((plan) => plan.label)).toEqual([
+      'Pay As You Go',
+      'Pro',
+      'Scale',
+      'Enterprise',
+    ]);
+    expect(websitePlans.map((plan) => plan.type)).toEqual([
+      'payg',
+      'subscription',
+      'subscription',
+      'enterprise',
+    ]);
+    expect(websitePlans.map((plan) => plan.price)).toEqual([0, 49, 499, null]);
+  });
+
+  it('labels every plan from PLAN_LABELS', () => {
+    for (const plan of websitePlans) {
+      expect(plan.label).toBe(PLAN_LABELS[plan.tier]);
+      expect(getPlanLabel(plan.tier)).toBe(plan.label);
+    }
+  });
+
+  it('sells pay-as-you-go for free with no included credits', () => {
+    const payg = getPlanByTier('payg');
+
+    expect(payg.price).toBe(0);
+    expect(payg.outputs).toBeNull();
+    expect(payg.includedCredits).toBeUndefined();
+  });
+
+  it('bills Pro monthly against an included credit grant', () => {
+    const pro = getProPlan();
+
+    expect(pro.interval).toBe('month');
+    expect(pro.includedCredits).toBe(8_000);
+    expect(pro.outputs).toBeNull();
+  });
+
+  it('sells Scale as multi-organization B2B with a shared credit pool', () => {
+    const scale = getScalePlan();
+
+    expect(scale.includedCredits).toBe(80_000);
+    expect(scale.features).toContain('Multi-organization account model');
+    expect(scale.features).toContain('Unlimited brands');
+    expect(scale.outputs).toBeNull();
+  });
+
+  it('leaves Enterprise outputs open for custom terms', () => {
+    expect(getEnterprisePlan().outputs).toBeNull();
+  });
+});
+
+describe('launch pricing', () => {
+  it('discounts Pro for the first 12 months', () => {
+    const pro = getProPlan();
+
+    expect(pro.launchPrice).toBe(39);
+    expect(pro.launchNote).toBe(
+      'Launch pricing (code EARLYGENFEED) for the first 12 months, then $49/month',
+    );
+  });
+
+  it('promises no redemption cap in the launch note', () => {
+    const note = getProPlan().launchNote?.toLowerCase() ?? '';
+
+    expect(note).not.toMatch(/cap/);
+    expect(note).not.toMatch(/limited/);
+    expect(note).not.toMatch(/first \d+ (subscribers|customers|users)/);
+  });
+
+  it('offers launch pricing on Pro alone', () => {
+    const discounted = websitePlans.filter((plan) => plan.launchPrice != null);
+
+    expect(discounted.map((plan) => plan.tier)).toEqual(['pro']);
   });
 });

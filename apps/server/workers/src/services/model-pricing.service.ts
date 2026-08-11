@@ -1,5 +1,5 @@
 import { ModelCategory, PricingType } from '@genfeedai/enums';
-import { applyMargin } from '@genfeedai/helpers';
+import { applyMargin } from '@genfeedai/pricing';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

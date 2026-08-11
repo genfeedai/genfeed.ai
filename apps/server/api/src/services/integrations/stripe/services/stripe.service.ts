@@ -5,7 +5,7 @@ import {
   PAYG_CREDIT_PACKS,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
-} from '@genfeedai/helpers';
+} from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

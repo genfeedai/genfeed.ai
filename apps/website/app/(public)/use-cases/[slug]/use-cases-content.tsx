@@ -1,5 +1,5 @@
 import type { UseCase } from '@data/use-cases.data';
-import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
+import { getPlanLabel } from '@genfeedai/pricing';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
