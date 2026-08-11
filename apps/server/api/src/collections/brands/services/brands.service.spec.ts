@@ -99,6 +99,8 @@ describe('BrandsService', () => {
     };
 
     const prisma = {
+      // Brand kit asset relations resolve through a single ranked raw query.
+      $queryRaw: vi.fn().mockResolvedValue([]),
       asset: assetDelegate,
       brand: delegate,
     } as unknown as PrismaService;

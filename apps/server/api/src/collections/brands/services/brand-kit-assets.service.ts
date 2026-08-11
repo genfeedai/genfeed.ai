@@ -1,6 +1,7 @@
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
+  BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
   PRISMA_ASSET_CATEGORY_BY_ROLE,
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -45,10 +46,10 @@ const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
   '.png',
   '.webp',
 ]);
-const BRAND_KIT_ASSET_ORDER_BY = [
-  { updatedAt: 'desc' },
-  { id: 'asc' },
-] satisfies Prisma.AssetOrderByWithRelationInput[];
+/**
+ * The columns the resolver reads, kept as a Prisma select so the row type stays
+ * tied to the schema even though the batched read goes through `$queryRaw`.
+ */
 const BRAND_KIT_ASSET_SELECT = {
   category: true,
   cloudObjectKey: true,
@@ -60,6 +61,17 @@ const BRAND_KIT_ASSET_SELECT = {
 type BrandKitAssetRecord = Prisma.AssetGetPayload<{
   select: typeof BRAND_KIT_ASSET_SELECT;
 }>;
+/**
+ * The subset `toResolvedBrandKitAsset` actually reads.
+ *
+ * The batched resolver goes through `$queryRaw`, so its `category` arrives as a
+ * plain string rather than the generated `AssetCategory` union. Everything the
+ * mapper touches is shared, so it takes the narrower shape and both callers fit.
+ */
+type BrandKitAssetFields = Omit<BrandKitAssetRecord, 'category'>;
+type BrandKitAssetRankedRow = BrandKitAssetFields & {
+  category: string;
+};
 type BrandKitAssetBrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
@@ -96,11 +108,18 @@ export class BrandKitAssetsService {
   }
 
   /**
-   * The same bounded read for a whole set of brands.
+   * The same bounded read for a whole set of brands, in exactly one query.
    *
-   * Each brand resolves at most one logo, one banner and ten references. The
-   * role reads run concurrently, so a noisy asset history cannot inflate the
-   * authenticated bootstrap response or the query result held in memory.
+   * Each brand resolves at most one logo, one banner and ten references, so a
+   * noisy asset history cannot inflate the authenticated bootstrap response or
+   * the query result held in memory. Those per-brand bounds used to cost three
+   * queries per brand — a genuine N+1 that Sentry flagged on
+   * `GET /v1/auth/bootstrap`, where the whole org's brand list is resolved on
+   * every cold bootstrap. A `ROW_NUMBER()` window partitioned by brand and
+   * category applies the same per-brand cap server-side, which a plain
+   * `parentBrandId IN (...)` read cannot do: a single `take` is a global cap,
+   * so one brand with a deep asset history would starve the others.
+   *
    * Brands with no assets still get an entry so callers can attach
    * unconditionally.
    */
@@ -117,58 +136,65 @@ export class BrandKitAssetsService {
       return resolved;
     }
 
-    await Promise.all(
-      uniqueBrandIds.map(async (brandId) => {
-        const where = {
-          isDeleted: false,
-          parentBrandId: brandId,
-          parentOrgId: organizationId,
-          parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-        };
-        const [logo, banner, references] = await Promise.all([
-          this.prisma.asset.findFirst({
-            orderBy: BRAND_KIT_ASSET_ORDER_BY,
-            select: BRAND_KIT_ASSET_SELECT,
-            where: {
-              ...where,
-              category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
-            },
-          }),
-          this.prisma.asset.findFirst({
-            orderBy: BRAND_KIT_ASSET_ORDER_BY,
-            select: BRAND_KIT_ASSET_SELECT,
-            where: {
-              ...where,
-              category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
-            },
-          }),
-          this.prisma.asset.findMany({
-            orderBy: BRAND_KIT_ASSET_ORDER_BY,
-            select: BRAND_KIT_ASSET_SELECT,
-            take: BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
-            where: {
-              ...where,
-              category: PRISMA_ASSET_CATEGORY_BY_ROLE.reference,
-            },
-          }),
-        ]);
-        const kit = resolved.get(brandId);
+    const referenceCategory = String(PRISMA_ASSET_CATEGORY_BY_ROLE.reference);
+    const rankedCategories = [
+      String(PRISMA_ASSET_CATEGORY_BY_ROLE.logo),
+      String(PRISMA_ASSET_CATEGORY_BY_ROLE.banner),
+      referenceCategory,
+    ];
 
-        if (!kit) {
-          return;
-        }
+    const rows = await this.prisma.$queryRaw<BrandKitAssetRankedRow[]>`
+      SELECT
+        ranked."id",
+        ranked."category",
+        ranked."cloudObjectKey",
+        ranked."displayName",
+        ranked."mimeType",
+        ranked."parentBrandId"
+      FROM (
+        SELECT
+          asset."id",
+          asset."category"::text AS "category",
+          asset."cloudObjectKey",
+          asset."displayName",
+          asset."mimeType",
+          asset."parentBrandId",
+          ROW_NUMBER() OVER (
+            PARTITION BY asset."parentBrandId", asset."category"
+            ORDER BY asset."updatedAt" DESC, asset."id" ASC
+          ) AS "roleRank"
+        FROM "assets" AS asset
+        WHERE asset."isDeleted" = false
+          AND asset."parentType"::text = 'BRAND'
+          AND asset."parentOrgId" = ${organizationId}
+          AND asset."parentBrandId" = ANY(${uniqueBrandIds}::text[])
+          AND asset."category"::text = ANY(${rankedCategories}::text[])
+      ) AS ranked
+      WHERE ranked."roleRank" <= CASE
+        WHEN ranked."category" = ${referenceCategory}
+          THEN ${BRAND_KIT_RESOLVED_REFERENCE_LIMIT}::int
+        ELSE 1
+      END
+      ORDER BY ranked."parentBrandId" ASC, ranked."roleRank" ASC
+    `;
 
-        if (logo) {
-          kit.logo = this.toResolvedBrandKitAsset(logo, 'logo');
-        }
-        if (banner) {
-          kit.banner = this.toResolvedBrandKitAsset(banner, 'banner');
-        }
-        kit.references = references.map((reference) =>
-          this.toResolvedBrandKitAsset(reference, 'reference'),
-        );
-      }),
-    );
+    for (const row of rows) {
+      const kit = row.parentBrandId
+        ? resolved.get(row.parentBrandId)
+        : undefined;
+      const role = BRAND_KIT_ROLE_BY_PRISMA_CATEGORY.get(row.category);
+
+      if (!kit || !role) {
+        continue;
+      }
+
+      if (role === 'reference') {
+        kit.references.push(this.toResolvedBrandKitAsset(row, role));
+        continue;
+      }
+
+      kit[role] = this.toResolvedBrandKitAsset(row, role);
+    }
 
     return resolved;
   }
@@ -653,7 +679,7 @@ export class BrandKitAssetsService {
   }
 
   private toResolvedBrandKitAsset(
-    asset: BrandKitAssetRecord,
+    asset: BrandKitAssetFields,
     role: BrandKitAssetRole,
   ): IBrandKitResolvedAsset {
     return {
