@@ -586,14 +586,18 @@ export class BrandsController extends BaseCRUDController<
       organizationId,
     });
 
-    brand.credentials = credentials.map((credential) => ({
-      ...credential,
-      platform:
-        fromPrismaCredentialPlatform(credential.platform) ??
-        credential.platform,
-    }));
-
-    return brand;
+    // Copy rather than assign onto the argument: the brand row reaching here is
+    // whatever the service returned, and mutating it writes the relation into
+    // any cache entry or caller-held reference pointing at the same object.
+    return {
+      ...brand,
+      credentials: credentials.map((credential) => ({
+        ...credential,
+        platform:
+          fromPrismaCredentialPlatform(credential.platform) ??
+          credential.platform,
+      })),
+    };
   }
 
   /**

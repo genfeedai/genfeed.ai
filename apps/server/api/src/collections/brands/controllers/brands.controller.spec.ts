@@ -268,7 +268,9 @@ describe('BrandsController', () => {
         text: 'Tone: Bold.',
       },
     );
-    expect(result).toEqual({ data: { ...mockBrand, label: 'Moonrise' } });
+    expect(result).toEqual({
+      data: { ...mockBrand, credentials: [], label: 'Moonrise' },
+    });
   });
 
   it('does not forward client-supplied ownership fields on a normal patch', async () => {
@@ -293,8 +295,11 @@ describe('BrandsController', () => {
       { label: 'Renamed Brand' },
       [],
     );
+    // `decorateForResponse` resolves the declared `credentials` relation on every
+    // single-brand response, patches included — empty here because this brand has
+    // no connected accounts.
     expect(result).toEqual({
-      data: { ...mockBrand, label: 'Renamed Brand' },
+      data: { ...mockBrand, credentials: [], label: 'Renamed Brand' },
     });
   });
 
@@ -511,6 +516,25 @@ describe('BrandsController', () => {
         expect.objectContaining({ platform: 'google_ads' }),
         expect.objectContaining({ platform: 'devto' }),
       ]);
+    });
+
+    it('returns a copy rather than writing the relation onto the brand row', async () => {
+      credentialsService.find.mockResolvedValue([
+        { id: 'credential-1', platform: 'INSTAGRAM' },
+      ] as never);
+      const row = { ...mockBrand };
+
+      const decorated = await controller.decorateForResponse(
+        row as never,
+        mockUser,
+      );
+
+      // The row handed in is whatever the service returned — a cached object or
+      // a caller-held reference. Stamping `credentials` onto it leaks the
+      // relation into every other reader of the same object.
+      expect(row).not.toHaveProperty('credentials');
+      expect(decorated).not.toBe(row);
+      expect(decorated.credentials).toHaveLength(1);
     });
 
     it('leaves a brand without an organization untouched', async () => {
