@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
 import {
   formatPlanIncludedCredits,
+  formatPlanLaunchPriceLabel,
   formatPlanPriceLabel,
   getPlanByTier,
   type PlanTier,
@@ -19,6 +20,7 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /**
@@ -40,19 +42,24 @@ function formatCurrencyFromCents(amountInCents: number, currency: string) {
   }).format(Math.abs(amountInCents) / 100);
 }
 
-function describeProration(preview: SubscriptionChangePreview): string {
+/**
+ * The proration message key that applies, plus the amount it interpolates.
+ * Returned rather than translated here so the catalog lookup stays in the
+ * component, where the `useTranslations` binding lives.
+ */
+function describeProration(preview: SubscriptionChangePreview) {
   const currency = preview.upcomingInvoice?.currency || 'usd';
   const amount = formatCurrencyFromCents(preview.prorationAmount, currency);
 
   if (preview.isUpgrade) {
-    return `You'll be charged about ${amount} more per month, prorated for the rest of this period.`;
+    return { amount, key: 'subscription.plans.prorationUpgrade' };
   }
 
   if (preview.isDowngrade) {
-    return `Your bill goes down by about ${amount} per month. Credit is applied to the next invoice.`;
+    return { amount, key: 'subscription.plans.prorationDowngrade' };
   }
 
-  return 'This change does not affect your monthly bill.';
+  return { amount, key: 'subscription.plans.prorationNoChange' };
 }
 
 /**
@@ -60,6 +67,7 @@ function describeProration(preview: SubscriptionChangePreview): string {
  * org that has never subscribed, a prorated in-place change for one that has.
  */
 export default function PlansCard() {
+  const translate = useTranslations('common');
   const { settings } = useBrand();
   const { subscription, previewPlanChange, changeSubscriptionPlan } =
     useSubscription();
@@ -84,6 +92,8 @@ export default function PlansCard() {
     const service = await getStripeService();
     const result = await service.createCheckoutSession({
       cancelUrl: window.location.href,
+      // Subscriptions bill one seat of a fixed price; quantity is for credit packs.
+      quantity: null,
       stripePriceId,
       successUrl: `${window.location.origin}${window.location.pathname}?plan=${tier}`,
     });
@@ -115,7 +125,7 @@ export default function PlansCard() {
     } catch (error) {
       logger.error('Failed to start plan change', error);
       NotificationsService.getInstance().error(
-        'Could not start the plan change. Please try again.',
+        translate('subscription.plans.changeError'),
       );
     } finally {
       setBusyTier(null);
@@ -150,6 +160,8 @@ export default function PlansCard() {
     }
   };
 
+  const proration = preview ? describeProration(preview) : null;
+
   return (
     <Card label="Plans" bodyClassName="gap-4 p-4">
       <div className="grid gap-3 md:grid-cols-2">
@@ -157,6 +169,7 @@ export default function PlansCard() {
           const plan = getPlanByTier(tier);
           const isCurrentPlan = currentTier === tier;
           const isUnavailable = !plan.stripePriceId;
+          const launchPriceLabel = formatPlanLaunchPriceLabel(tier);
 
           return (
             <div
@@ -167,17 +180,37 @@ export default function PlansCard() {
                 <div className="flex flex-col gap-1">
                   <Text weight="medium">{plan.label}</Text>
                   <Text size="sm" color="muted">
-                    {formatPlanIncludedCredits(tier)} / month
+                    {translate('subscription.plans.creditsPerMonth', {
+                      credits: formatPlanIncludedCredits(tier),
+                    })}
                   </Text>
                 </div>
                 {isCurrentPlan ? (
-                  <Badge variant="success">Current</Badge>
+                  <Badge variant="success">
+                    {translate('subscription.plans.current')}
+                  </Badge>
                 ) : null}
               </div>
 
-              <Text as="p" size="xl" weight="bold">
-                {formatPlanPriceLabel(tier)}
-              </Text>
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <Text as="p" size="xl" weight="bold">
+                    {launchPriceLabel ?? formatPlanPriceLabel(tier)}
+                  </Text>
+                  {launchPriceLabel ? (
+                    <Text size="sm" color="muted" className="line-through">
+                      {translate('subscription.plans.listPrice', {
+                        price: formatPlanPriceLabel(tier),
+                      })}
+                    </Text>
+                  ) : null}
+                </div>
+                {launchPriceLabel && plan.launchNote ? (
+                  <Text size="xs" color="muted">
+                    {plan.launchNote}
+                  </Text>
+                ) : null}
+              </div>
 
               <ul className="flex flex-col gap-1">
                 {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
@@ -202,14 +235,18 @@ export default function PlansCard() {
                   onClick={() => handleSelectPlan(tier)}
                 >
                   {hasStripeSubscription
-                    ? `Switch to ${plan.label}`
-                    : `Upgrade to ${plan.label}`}
+                    ? translate('subscription.plans.switchTo', {
+                        plan: plan.label,
+                      })
+                    : translate('subscription.plans.upgradeTo', {
+                        plan: plan.label,
+                      })}
                 </Button>
               )}
 
               {isUnavailable ? (
                 <Text size="xs" color="muted">
-                  This plan is not available in this environment yet.
+                  {translate('subscription.plans.unavailable')}
                 </Text>
               ) : null}
             </div>
@@ -217,13 +254,15 @@ export default function PlansCard() {
         })}
       </div>
 
-      {pendingTier && preview ? (
+      {pendingTier && proration ? (
         <div className="flex flex-col gap-3 rounded bg-muted/50 p-4">
           <Text as="p" size="sm" weight="medium">
-            Switch to {getPlanByTier(pendingTier).label}?
+            {translate('subscription.plans.confirmTitle', {
+              plan: getPlanByTier(pendingTier).label,
+            })}
           </Text>
           <Text as="p" size="sm" color="muted">
-            {describeProration(preview)}
+            {translate(proration.key, { amount: proration.amount })}
           </Text>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -232,22 +271,21 @@ export default function PlansCard() {
               isDisabled={isConfirming}
               onClick={handleConfirmPlanChange}
             >
-              Confirm change
+              {translate('subscription.plans.confirmChange')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
               isDisabled={isConfirming}
               onClick={cancelPlanChange}
             >
-              Cancel
+              {translate('actions.cancel')}
             </Button>
           </div>
         </div>
       ) : null}
 
       <Text as="p" size="xs" color="muted">
-        Need higher limits, custom terms, or an enterprise deployment? Email{' '}
-        {SALES_EMAIL}.
+        {translate('subscription.plans.salesContact', { email: SALES_EMAIL })}
       </Text>
     </Card>
   );

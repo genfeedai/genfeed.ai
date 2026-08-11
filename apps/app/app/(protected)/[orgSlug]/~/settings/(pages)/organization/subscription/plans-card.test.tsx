@@ -3,6 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlansCard from './plans-card';
 import '@testing-library/jest-dom/vitest';
 
+// Resolve against the real catalog so these assertions stay on the copy a user
+// reads, not on message keys.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const useBrandMock = vi.fn();
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
@@ -76,6 +86,17 @@ describe('PlansCard', () => {
     expect(screen.getByText('Scale')).toBeInTheDocument();
     expect(screen.queryByText('Pay As You Go')).not.toBeInTheDocument();
     expect(screen.queryByText('Enterprise')).not.toBeInTheDocument();
+  });
+
+  it('leads with launch pricing and strikes the list price where one applies', () => {
+    render(<PlansCard />);
+
+    expect(screen.getByText('$39/mo')).toBeInTheDocument();
+    expect(screen.getByText('was $49/mo')).toBeInTheDocument();
+    expect(screen.getByText(/EARLYGENFEED/)).toBeInTheDocument();
+    // Scale carries no launch offer, so it shows its list price plainly.
+    expect(screen.getByText('$499/mo')).toBeInTheDocument();
+    expect(screen.queryByText('was $499/mo')).not.toBeInTheDocument();
   });
 
   it('badges the current plan and drops its call to action', () => {

@@ -4,6 +4,16 @@ import SettingsSubscriptionPage from './content';
 import '@testing-library/jest-dom/vitest';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 
+// PlansCard renders inside this page, so the catalog-backed stub keeps the
+// assertions on real copy without a NextIntlClientProvider.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     isReady: true,

@@ -431,6 +431,21 @@ export function formatPlanPriceLabel(tier: PlanTier): string {
 }
 
 /**
+ * Discounted launch price for a tier, e.g. "$39/mo", or `null` when the tier
+ * carries no launch offer. Callers render `formatPlanPriceLabel` as the struck
+ * list price next to it, plus the plan's `launchNote` for the terms.
+ */
+export function formatPlanLaunchPriceLabel(tier: PlanTier): string | null {
+  const { launchPrice } = getPlanByTier(tier);
+
+  if (launchPrice == null) {
+    return null;
+  }
+
+  return `$${formatPricingNumber(launchPrice)}/mo`;
+}
+
+/**
  * Long-form price for prose, e.g. "$49/month", "free", "custom".
  */
 export function formatPlanMonthlyPrice(tier: PlanTier): string {
