@@ -59,7 +59,7 @@ function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
 
 describe('useAgentThreadPrefetch', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
 
