@@ -31,6 +31,10 @@ import { isEntityId } from '@api-types/helpers/entity-id';
 import { ArticleScope } from '@genfeedai/enums';
 import { ArticleStatus, PrismaClient } from '@genfeedai/prisma';
 import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
+import {
   buildIoRedisClientOptions,
   parseRedisConnectionForWorkload,
   RedisWorkload,
@@ -159,13 +163,26 @@ function parseOptionalId(value?: string): string | null {
   return value;
 }
 
+/**
+ * TLS is resolved through the same factory `PrismaService` uses, rather than
+ * handing the raw URL to the adapter. RDS Postgres forces SSL, and pg 8.22
+ * now treats `sslmode=require` as `verify-full` — so a connection string that
+ * works for the deployed API fails from a laptop, which has no bundled RDS CA
+ * at `/certs/rds-ca.pem`. The factory reads `PRISMA_POSTGRES_CA_FILE` /
+ * `PGSSLROOTCERT` when set, falls back to the bundled CA, and strips the
+ * resolved params so pg never re-interprets them.
+ */
 function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+      }),
+    ),
   });
 }
 
@@ -199,7 +216,7 @@ async function resolveOwner(params: {
     throw new Error(`No active user found for email ${params.ownerEmail}`);
   }
 
-  const organization = await params.prisma.organization.findFirst({
+  const candidates = await params.prisma.organization.findMany({
     orderBy: { createdAt: 'asc' },
     select: { id: true, label: true, userId: true },
     where: params.organizationId
@@ -208,6 +225,21 @@ async function resolveOwner(params: {
         ? { isDeleted: false, userId: ownerByEmail.id }
         : { isDeleted: false },
   });
+
+  const [organization] = candidates;
+
+  // Picking the oldest of several organizations is a coin flip dressed up as a
+  // default — and the loser is invisible, because the articles simply publish
+  // somewhere the reader never looks. Name every candidate so the wrong one is
+  // obvious in the log rather than discovered on a live site.
+  if (!params.organizationId && candidates.length > 1) {
+    logger.log(
+      `${candidates.length} organizations match; using the oldest. Pass --organizationId=<id> to choose another:`,
+    );
+    for (const candidate of candidates) {
+      logger.log(`  ${candidate.id}  ${candidate.label}`);
+    }
+  }
 
   if (!organization) {
     throw new Error(
