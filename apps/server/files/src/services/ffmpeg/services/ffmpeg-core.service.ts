@@ -28,6 +28,12 @@ export class FifoSemaphore {
   private readonly queue: Array<() => void> = [];
 
   constructor(limit: number) {
+    if (!Number.isSafeInteger(limit) || limit < 1) {
+      throw new RangeError(
+        'FFmpeg concurrency limit must be a positive safe integer',
+      );
+    }
+
     this.available = limit;
   }
 
@@ -66,9 +72,14 @@ export class FFmpegCoreService implements OnModuleInit {
     private readonly binaryValidationService: BinaryValidationService,
     private readonly configService: ConfigService,
   ) {
+    const configuredMaxConcurrency = this.configService.get(
+      'FFMPEG_MAX_CONCURRENCY',
+    );
     const maxConcurrency =
-      Number(this.configService.get('FFMPEG_MAX_CONCURRENCY')) ||
-      DEFAULT_FFMPEG_MAX_CONCURRENCY;
+      configuredMaxConcurrency === undefined ||
+      configuredMaxConcurrency.trim() === ''
+        ? DEFAULT_FFMPEG_MAX_CONCURRENCY
+        : Number(configuredMaxConcurrency);
     this.ffmpegSemaphore = new FifoSemaphore(maxConcurrency);
   }
 
