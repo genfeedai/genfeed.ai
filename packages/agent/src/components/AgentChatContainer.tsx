@@ -14,6 +14,7 @@ import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conve
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   readPreferredAgentChatModel,
@@ -88,7 +89,12 @@ export function AgentChatContainer({
     toRouterPriority(currentUser?.settings?.generationPriority) ??
     RouterPriority.BALANCED;
   const messages = useAgentChatStore((state) => state.messages);
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
+  const stickyGenerationActionRef = useRef<{
+    action: AgentUiAction;
+    threadId: string | null;
+  } | null>(null);
   const persistSettingsInFlight = useRef(false);
   const pendingSettingsPatch = useRef<{
     defaultAgentModel?: string;
@@ -358,7 +364,7 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
-  const pendingGenerationAction = useMemo(
+  const resolvedGenerationAction = useMemo(
     () =>
       [...container.streamState.pendingUiActions]
         .reverse()
@@ -366,6 +372,28 @@ export function AgentChatContainer({
       findPendingGenerationAction(messages),
     [container.streamState.pendingUiActions, messages],
   );
+
+  // Hold the card across the hand-off gap.
+  //
+  // The action lives in `pendingUiActions` while streaming and in the persisted
+  // message metadata afterwards. Finalization clears the stream state and loads
+  // the messages in two separate store writes, so there is a render where both
+  // sources are empty. That unmounted the card and silently discarded whatever
+  // the user had typed or picked in it — which is why a chosen model appeared
+  // to snap back to Auto. Retain the last action for the same thread instead.
+  if (resolvedGenerationAction) {
+    stickyGenerationActionRef.current = {
+      action: resolvedGenerationAction,
+      threadId: activeThreadId,
+    };
+  } else if (stickyGenerationActionRef.current?.threadId !== activeThreadId) {
+    stickyGenerationActionRef.current = null;
+  }
+
+  const pendingGenerationAction =
+    resolvedGenerationAction ??
+    stickyGenerationActionRef.current?.action ??
+    null;
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
   const isComposerDocked =
@@ -530,11 +558,12 @@ export function AgentChatContainer({
               clearAllAttachments={container.clearAllAttachments}
               dragHandlers={container.dragHandlers}
               dragState={container.dragState}
-              error={
-                isComposerDocked && container.error
-                  ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
-                  : null
-              }
+              // Pass the raw error through. AgentComposerStatusStack runs
+              // formatAgentError itself; pre-formatting here produced
+              // "Title: Summary", which no longer matched any classifier
+              // pattern on the second pass, so a real provider 401 degraded
+              // into the generic "Run failed / The agent hit an error".
+              error={isComposerDocked ? container.error : null}
               getCompletedAttachments={container.getCompletedAttachments}
               isAttachmentUploading={container.isAttachmentUploading}
               isBusy={

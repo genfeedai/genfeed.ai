@@ -130,6 +130,11 @@ export function AgentChatPromptBar({
       {!isReadOnly && activeGenerationAction ? (
         <div className="pb-2">
           <GenerationActionCard
+            // Card state (prompt edits, chosen model, aspect ratio) is
+            // initialized once from the action. Keying on the action id makes a
+            // genuinely new request start clean while re-renders of the same
+            // request preserve everything the user has changed.
+            key={activeGenerationAction.id}
             action={activeGenerationAction}
             apiService={apiService}
             className="mt-0 rounded-lg shadow-sm"

@@ -471,6 +471,110 @@ export function useAgentChatStream(
     scheduleCompletionWatchdog();
   }, [scheduleCompletionWatchdog]);
 
+  const attachSubscriptions = useCallback(() => {
+    unsubscribersRef.current.push(
+      ...attachAgentStreamSubscriptions({
+        activeStreamThreadRef,
+        addActiveToolCall,
+        addPendingUiActions,
+        addWorkEvent,
+        appendStreamToken,
+        bufferedEventsRef,
+        cleanupSubscriptions,
+        clearCompletionWatchdog,
+        clearPendingInputRequest,
+        completeOnboardingIfNeeded,
+        finalizeStream,
+        isThreadVisible,
+        markThreadRunning,
+        pendingCompletionRef,
+        resetStreamState,
+        setActiveRun,
+        setActiveRunStatus,
+        setCreditsRemaining,
+        setError,
+        setPendingInputRequest,
+        setRunStartedAt,
+        setStreamingReasoning,
+        subscribe,
+        touchCompletionWatchdog,
+        updateActiveToolCall,
+        updateThreadSummary,
+      }),
+    );
+  }, [
+    addActiveToolCall,
+    addPendingUiActions,
+    addWorkEvent,
+    appendStreamToken,
+    cleanupSubscriptions,
+    clearCompletionWatchdog,
+    clearPendingInputRequest,
+    completeOnboardingIfNeeded,
+    finalizeStream,
+    isThreadVisible,
+    markThreadRunning,
+    resetStreamState,
+    setActiveRun,
+    setActiveRunStatus,
+    setCreditsRemaining,
+    setError,
+    setPendingInputRequest,
+    setRunStartedAt,
+    setStreamingReasoning,
+    subscribe,
+    touchCompletionWatchdog,
+    updateActiveToolCall,
+    updateThreadSummary,
+  ]);
+
+  // Adopt a run that is already in flight for this thread.
+  //
+  // Subscriptions, the buffered-event queue, and `pendingCompletionRef` all live
+  // in refs, so they die with the component instance. Sending the first message
+  // on `/agent/new` makes the layout `replace()` to `/agent/:id`, and a route
+  // *segment* swap remounts this whole subtree mid-run: the unmount effect tears
+  // the socket listeners down, every remaining event (including `agent:done`)
+  // lands on dead handlers, and the module-level store stays `isStreaming: true`
+  // forever. The user sees an empty track stuck on WORKING until a hard refresh.
+  //
+  // Re-attaching here — and rebuilding the watchdog state from the store, which
+  // *does* survive the remount — makes the new instance take over the live run.
+  useEffect(() => {
+    if (!isReady || !activeThreadId) {
+      return;
+    }
+
+    const state = useAgentChatStore.getState();
+
+    if (!state.stream.isStreaming) {
+      return;
+    }
+
+    // Already the owner of this stream — `sendMessage` attached on this instance.
+    if (activeStreamThreadRef.current === activeThreadId) {
+      return;
+    }
+
+    activeStreamThreadRef.current = activeThreadId;
+    attachSubscriptions();
+    pendingCompletionRef.current = {
+      initiatedAt: Date.now(),
+      preAssistantIds: collectAssistantMessageIds(state.messages),
+      runId: state.activeRunId,
+      startedAt: state.runStartedAt,
+      threadId: activeThreadId,
+    };
+    scheduleCompletionWatchdog();
+    flushBufferedEvents(activeThreadId);
+  }, [
+    activeThreadId,
+    attachSubscriptions,
+    flushBufferedEvents,
+    isReady,
+    scheduleCompletionWatchdog,
+  ]);
+
   const sendMessage = useCallback(
     async (content: string, sendOptions?: SendStreamMessageOptions) => {
       if (sendOptions?.signal?.aborted) {
@@ -549,36 +653,7 @@ export function useAgentChatStream(
       }));
 
       try {
-        unsubscribersRef.current.push(
-          ...attachAgentStreamSubscriptions({
-            activeStreamThreadRef,
-            addActiveToolCall,
-            addPendingUiActions,
-            addWorkEvent,
-            appendStreamToken,
-            bufferedEventsRef,
-            cleanupSubscriptions,
-            clearCompletionWatchdog,
-            clearPendingInputRequest,
-            completeOnboardingIfNeeded,
-            finalizeStream,
-            isThreadVisible,
-            markThreadRunning,
-            pendingCompletionRef,
-            resetStreamState,
-            setActiveRun,
-            setActiveRunStatus,
-            setCreditsRemaining,
-            setError,
-            setPendingInputRequest,
-            setRunStartedAt,
-            setStreamingReasoning,
-            subscribe,
-            touchCompletionWatchdog,
-            updateActiveToolCall,
-            updateThreadSummary,
-          }),
-        );
+        attachSubscriptions();
 
         const resolvedModel = model?.trim() || undefined;
         const requestPageContext = toAgentRequestPageContext(pageContext);
@@ -660,36 +735,24 @@ export function useAgentChatStream(
       pageContext,
       apiService,
       isReady,
-      subscribe,
+      attachSubscriptions,
       addMessage,
       setError,
-      setCreditsRemaining,
-      addWorkEvent,
       setWorkEvents,
-      appendStreamToken,
       clearPendingInputRequest,
-      setStreamingReasoning,
-      addActiveToolCall,
-      addPendingUiActions,
-      updateActiveToolCall,
-      finalizeStream,
       resetStreamState,
       cleanupSubscriptions,
       clearCompletionWatchdog,
       completeNonStreamingTurn,
-      completeOnboardingIfNeeded,
       flushBufferedEvents,
       getSocketManager,
       scheduleCompletionWatchdog,
       setActiveRun,
       setActiveRunStatus,
-      setPendingInputRequest,
       setRunStartedAt,
       updateThreadSummary,
-      isThreadVisible,
       markThreadRunning,
       syncThreadState,
-      touchCompletionWatchdog,
     ],
   );
 

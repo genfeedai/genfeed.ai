@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
   buildAgentGenerationRequestBody,
   DEFAULT_AGENT_GENERATION_PRIORITY,
@@ -56,18 +57,6 @@ function formatGenerationError(
   return message;
 }
 
-function formatStructuredPrompt(prompt: string): string {
-  if (!prompt.trim()) {
-    return prompt;
-  }
-
-  return prompt
-    .replace(/\\n/g, '\n')
-    .replace(/([^\n])\s+([A-Z][A-Z0-9/&()' -]{1,40}:\s)/g, '$1\n$2')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
 interface UseGenerationActionCardParams {
   action: AgentUiAction;
   apiService: AgentApiService;
@@ -102,6 +91,8 @@ export function useGenerationActionCard({
   );
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [modelsReloadToken, setModelsReloadToken] = useState(0);
   /** Ingredient IDs selected on the generation canvas as model references. */
   const [referenceIds, setReferenceIds] = useState<string[]>([]);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -110,22 +101,45 @@ export function useGenerationActionCard({
   const busyThreadIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch models on mount
+  // Fetch models on mount.
+  //
+  // A failure here used to write into the card's generation `error` slot and
+  // leave `models` empty while `modelsLoading` flipped false — the picker then
+  // rendered fully enabled with nothing in it, so clicking a model did nothing
+  // and the card looked stuck on Auto. Track load failure separately so the
+  // control can say so and offer a retry.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: modelsReloadToken intentionally re-fires the fetch after a manual retry
   useEffect(() => {
     const controller = new AbortController();
     setModelsLoading(true);
+    setModelsError(null);
     runAgentApiEffect(apiService.getModelsEffect(controller.signal))
-      .then((data) => setModels(data))
+      .then((data) => {
+        setModels(data);
+        setModelsError(null);
+      })
       .catch((loadError) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         const message =
           loadError instanceof Error
             ? loadError.message
             : 'Failed to load generation models';
-        setError(message);
+        setModelsError(message);
       })
-      .finally(() => setModelsLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setModelsLoading(false);
+        }
+      });
     return () => controller.abort();
-  }, [apiService]);
+  }, [apiService, modelsReloadToken]);
+
+  const retryLoadModels = useCallback(
+    () => setModelsReloadToken((token) => token + 1),
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -377,6 +391,8 @@ export function useGenerationActionCard({
     setPrioritize,
     models,
     modelsLoading,
+    modelsError,
+    retryLoadModels,
     filteredModels,
     autoModelLabel,
     availableAspectRatios,
