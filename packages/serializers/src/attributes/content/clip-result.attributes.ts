@@ -26,4 +26,5 @@ export const clipResultAttributes = createEntityAttributes([
   'terminalAt',
   'providerJobId',
   'providerName',
+  'referenceProvenance',
 ]);

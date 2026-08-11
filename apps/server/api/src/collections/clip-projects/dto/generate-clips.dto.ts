@@ -1,6 +1,9 @@
 import {
+  CLIP_REFERENCE_POLICIES,
   CLIP_RESULT_MODES,
+  type ClipReferencePolicy,
   type ClipResultMode,
+  DEFAULT_CLIP_REFERENCE_POLICY,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
 import {
@@ -42,6 +45,18 @@ export class GenerateClipHighlightDto {
 }
 
 export class GenerateClipsDto {
+  @IsOptional()
+  @IsIn([...CLIP_REFERENCE_POLICIES])
+  @ApiProperty({
+    default: DEFAULT_CLIP_REFERENCE_POLICY,
+    description:
+      'How to handle a selected reference when the generation route cannot apply it',
+    enum: CLIP_REFERENCE_POLICIES,
+    enumName: 'ClipReferencePolicy',
+    required: false,
+  })
+  readonly referencePolicy?: ClipReferencePolicy;
+
   @IsOptional()
   @IsIn([...CLIP_RESULT_MODES])
   @ApiProperty({

@@ -21,10 +21,11 @@ function createMockLogger(): LoggerService {
 }
 
 function createMockClipResultsService(): Mocked<
-  Pick<ClipResultsService, 'create' | 'patch'>
+  Pick<ClipResultsService, 'create' | 'createGenerated' | 'patch'>
 > {
   return {
     create: vi.fn().mockResolvedValue({ id: 'clip-result-1' }),
+    createGenerated: vi.fn().mockResolvedValue({ id: 'clip-result-1' }),
     patch: vi.fn().mockResolvedValue({}),
   };
 }
@@ -157,6 +158,67 @@ describe('ClipGenerationService', () => {
         voiceId: 'voice-456',
       }),
     );
+  });
+
+  it('forwards a resolved reference only through the provider reference field', async () => {
+    await service.generateClips(
+      makeInput({
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+      }),
+    );
+
+    expect(provider.generateVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+      }),
+    );
+  });
+
+  it('persists stable redacted reference provenance on every result', async () => {
+    const referenceProvenance = {
+      application: {
+        mode: 'avatar',
+        nativeField: 'photo_url',
+        provider: 'heygen',
+        state: 'applied' as const,
+      },
+      schemaVersion: 1 as const,
+      source: {
+        candidateId: 'frame-1',
+        storageKey: 'ingredients/images/org-1/frame-1.jpg',
+        timestampSeconds: 12.5,
+      },
+    };
+
+    await service.generateClips(
+      makeInput({
+        highlights: [makeHighlight(), makeHighlight({ title: 'Second' })],
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+        referenceProvenance,
+      }),
+    );
+
+    expect(clipResultsService.createGenerated).toHaveBeenCalledTimes(2);
+    for (const call of clipResultsService.createGenerated.mock.calls) {
+      expect(call[1]).toEqual(referenceProvenance);
+      expect(JSON.stringify(call[1])).not.toContain('cdn.example.com');
+    }
+  });
+
+  it('does not add reference fields when no candidate was selected', async () => {
+    await service.generateClips(makeInput());
+
+    expect(provider.generateVideo).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        referenceImageUrl: expect.anything(),
+      }),
+    );
+    expect(clipResultsService.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        referenceProvenance: expect.anything(),
+      }),
+    );
+    expect(clipResultsService.createGenerated).not.toHaveBeenCalled();
   });
 
   it('should default to heygen when no provider specified', async () => {

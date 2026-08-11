@@ -162,6 +162,58 @@ describe('ClipResultsService', () => {
     expect(createArgs.data.data.mode).toBeUndefined();
   });
 
+  it('persists selected-reference provenance in the result data without URLs or provider responses', async () => {
+    prisma.clipResult.create.mockResolvedValue({
+      data: {},
+      id: 'clip-1',
+      isSelected: false,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      readiness: {},
+      status: 'pending',
+    });
+
+    const referenceProvenance = {
+      application: {
+        mode: 'avatar',
+        nativeField: 'photo_url',
+        provider: 'heygen',
+        state: 'applied' as const,
+      },
+      schemaVersion: 1 as const,
+      source: {
+        assetId: 'asset-frame-1',
+        candidateId: 'frame-1',
+        storageKey: 'ingredients/images/org-1/frame-1.jpg',
+        timestampSeconds: 12.5,
+      },
+    };
+
+    await service.createGenerated(
+      {
+        duration: 30,
+        endTime: 45,
+        index: 0,
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        startTime: 15,
+        title: 'Referenced clip',
+        userId: 'user-1',
+      },
+      referenceProvenance,
+    );
+
+    const createArgs = prisma.clipResult.create.mock.calls[0]?.[0] as {
+      data: { data: Record<string, unknown> };
+    };
+    expect(createArgs.data.data.referenceProvenance).toEqual(
+      referenceProvenance,
+    );
+    expect(
+      JSON.stringify(createArgs.data.data.referenceProvenance),
+    ).not.toMatch(/https?:\/\/|apiKey|providerResponse/);
+  });
+
   it('creates an externally requested result only for a project in the organization', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({ id: 'project-1' });
     prisma.clipResult.create.mockResolvedValue({

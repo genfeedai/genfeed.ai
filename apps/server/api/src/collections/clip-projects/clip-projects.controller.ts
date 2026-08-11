@@ -34,6 +34,7 @@ import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-q
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   AgentClipRunIdentity,
+  ClipReferenceApplication,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -306,7 +307,12 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
     @Body() dto: GenerateClipsDto,
-  ): Promise<{ clipCount: number; clipResultIds: string[]; status: string }> {
+  ): Promise<{
+    clipCount: number;
+    clipResultIds: string[];
+    reference?: ClipReferenceApplication;
+    status: string;
+  }> {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
@@ -316,6 +322,7 @@ export class ClipProjectsController {
       mode,
       persistedHighlights,
       project,
+      reference,
       selectedHighlights: selectedEditedHighlights,
     } = await this.clipGenerationRequestService.prepare({
       dto,
@@ -340,6 +347,12 @@ export class ClipProjectsController {
       orgId,
       projectId,
       provider: dto.avatarProvider ?? 'heygen',
+      ...(reference.referenceImageUrl
+        ? { referenceImageUrl: reference.referenceImageUrl }
+        : {}),
+      ...(reference.application
+        ? { referenceProvenance: reference.application.provenance }
+        : {}),
       sourceVideoS3Key: project.sourceVideoS3Key,
       sourceVideoUrl: project.sourceVideoUrl,
       transcriptSegments: Array.isArray(project.transcriptSegments)
@@ -361,6 +374,7 @@ export class ClipProjectsController {
     return {
       clipCount: selectedEditedHighlights.length,
       clipResultIds: result.clipResultIds,
+      ...(reference.application ? { reference: reference.application } : {}),
       status: result.queuedClipCount > 0 ? 'generating' : 'failed',
     };
   }
