@@ -635,14 +635,17 @@ export class TiktokAuthorizedSignalsService {
         : undefined,
     };
     const fieldAvailability = Object.fromEntries(
-      Object.entries(PROFILE_FIELDS).map(([field, scope]) => [
-        field,
-        !grantedScopes.includes(scope)
-          ? 'permission_limited'
-          : value[field as keyof typeof value] === undefined
-            ? 'unavailable'
-            : 'available',
-      ]),
+      Object.entries(PROFILE_FIELDS).map(
+        ([field, scope]) =>
+          [
+            field,
+            !grantedScopes.includes(scope)
+              ? 'permission_limited'
+              : value[field as keyof typeof value] === undefined
+                ? 'unavailable'
+                : 'available',
+          ] as const,
+      ),
     );
     const scope = this.buildScope(requiredScopes, grantedScopes);
 
@@ -696,14 +699,17 @@ export class TiktokAuthorizedSignalsService {
         : undefined,
     };
     const fieldAvailability = Object.fromEntries(
-      Object.entries(STATISTICS_FIELDS).map(([field, scope]) => [
-        field,
-        !grantedScopes.includes(scope)
-          ? 'permission_limited'
-          : value[field as keyof typeof value] === undefined
-            ? 'unavailable'
-            : 'available',
-      ]),
+      Object.entries(STATISTICS_FIELDS).map(
+        ([field, scope]) =>
+          [
+            field,
+            !grantedScopes.includes(scope)
+              ? 'permission_limited'
+              : value[field as keyof typeof value] === undefined
+                ? 'unavailable'
+                : 'available',
+          ] as const,
+      ),
     );
     const scope = this.buildScope(requiredScopes, grantedScopes);
 
@@ -751,13 +757,16 @@ export class TiktokAuthorizedSignalsService {
 
     const scope = this.buildScope(requiredScopes, grantedScopes);
     const fieldAvailability = Object.fromEntries(
-      VIDEO_FIELDS.map((field) => [
-        field,
-        result.value?.videos.length === 0 ||
-        result.value?.videos.every((video) => video[field] !== undefined)
-          ? 'available'
-          : 'unavailable',
-      ]),
+      VIDEO_FIELDS.map(
+        (field) =>
+          [
+            field,
+            result.value?.videos.length === 0 ||
+            result.value?.videos.every((video) => video[field] !== undefined)
+              ? 'available'
+              : 'unavailable',
+          ] as const,
+      ),
     );
     const malformedResponse =
       result.value.rawVideoCount > 0 && result.value.videos.length === 0;
@@ -812,10 +821,13 @@ export class TiktokAuthorizedSignalsService {
       stitchDisabled: readBoolean(result.value.stitch_disabled),
     };
     const fieldAvailability = Object.fromEntries(
-      CREATOR_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
+      CREATOR_FIELDS.map(
+        (field) =>
+          [
+            field,
+            value[field] === undefined ? 'unavailable' : 'available',
+          ] as const,
+      ),
     );
 
     return {

@@ -272,6 +272,9 @@ export type TikTokAuthorizedSignalReason = z.infer<
 export type TikTokAuthorizedSignalEvidence = z.infer<
   typeof tiktokAuthorizedSignalEvidenceSchema
 >;
+export type TikTokOwnedVideoSignal = z.infer<
+  typeof tiktokOwnedVideoSignalSchema
+>;
 export type TikTokAuthorizedSignalsSnapshot = z.infer<
   typeof tiktokAuthorizedSignalsSnapshotSchema
 >;

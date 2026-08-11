@@ -17,8 +17,8 @@ const BaseModule = createServiceModule(TiktokService, {
 
 @Module({
   controllers: [TiktokController],
-  exports: [...BaseModule.exports, TiktokAuthorizedSignalsService],
+  exports: [...(BaseModule.exports ?? []), TiktokAuthorizedSignalsService],
   imports: BaseModule.imports,
-  providers: [...BaseModule.providers, TiktokAuthorizedSignalsService],
+  providers: [...(BaseModule.providers ?? []), TiktokAuthorizedSignalsService],
 })
 export class TiktokModule {}
