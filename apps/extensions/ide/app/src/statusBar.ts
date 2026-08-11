@@ -1,6 +1,7 @@
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import * as vscode from 'vscode';
+import { STATUS_BAR_ICON } from '@/codicons';
 
 /**
  * Status bar item that shows "GenFeed: N drafts" and polls the API every
@@ -19,7 +20,7 @@ export class GenFeedStatusBar {
     );
     this.item.command = 'genfeed.openPanel';
     this.item.tooltip = 'Open GenFeed panel';
-    this.item.text = '$(genfeed-icon) GenFeed';
+    this.item.text = `${STATUS_BAR_ICON} GenFeed`;
     this.item.show();
 
     context.subscriptions.push(this.item);
@@ -47,7 +48,7 @@ export class GenFeedStatusBar {
   /** Force an immediate refresh (e.g. after saving a draft). */
   async refresh(): Promise<void> {
     if (!AuthService.getInstance().isAuthenticated()) {
-      this.item.text = '$(genfeed-icon) GenFeed';
+      this.item.text = `${STATUS_BAR_ICON} GenFeed`;
       return;
     }
 
@@ -60,11 +61,11 @@ export class GenFeedStatusBar {
       const pending = runs.length;
       this.item.text =
         pending > 0
-          ? `$(genfeed-icon) GenFeed: ${pending} draft${pending === 1 ? '' : 's'}`
-          : '$(genfeed-icon) GenFeed';
+          ? `${STATUS_BAR_ICON} GenFeed: ${pending} draft${pending === 1 ? '' : 's'}`
+          : `${STATUS_BAR_ICON} GenFeed`;
     } catch {
       // Silently swallow — network blip shouldn't thrash the status bar.
-      this.item.text = '$(genfeed-icon) GenFeed';
+      this.item.text = `${STATUS_BAR_ICON} GenFeed`;
     }
   }
 }
