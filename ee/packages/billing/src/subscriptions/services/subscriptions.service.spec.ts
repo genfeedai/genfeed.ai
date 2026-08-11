@@ -9,6 +9,7 @@ import type {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -90,7 +91,7 @@ function buildStripeSubscription(options: {
 
 describe('SubscriptionsService', () => {
   let subscriptionDelegate: Delegate;
-  let customerDelegate: { findUnique: MockFn };
+  let customerDelegate: { findFirst: MockFn };
   let organizationSettingDelegate: { updateMany: MockFn };
   let stripeService: {
     changeSubscriptionPlan: MockFn;
@@ -101,10 +102,11 @@ describe('SubscriptionsService', () => {
     retrieveCustomer: MockFn;
   };
   let customersService: {
-    create: MockFn;
     findByOrganizationId: MockFn;
     findByStripeCustomerId: MockFn;
     patch: MockFn;
+    provisionForOrganization: MockFn;
+    upsertForOrganization: MockFn;
   };
   let creditsUtilsService: { resetOrganizationCredits: MockFn };
   let configService: { get: MockFn };
@@ -113,7 +115,7 @@ describe('SubscriptionsService', () => {
 
   beforeEach(() => {
     subscriptionDelegate = createDelegate();
-    customerDelegate = { findUnique: vi.fn().mockResolvedValue(null) };
+    customerDelegate = { findFirst: vi.fn().mockResolvedValue(null) };
     organizationSettingDelegate = {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
@@ -126,10 +128,34 @@ describe('SubscriptionsService', () => {
       retrieveCustomer: vi.fn(),
     };
     customersService = {
-      create: vi.fn(),
       findByOrganizationId: vi.fn().mockResolvedValue(null),
       findByStripeCustomerId: vi.fn().mockResolvedValue(null),
       patch: vi.fn(),
+      provisionForOrganization: vi.fn(
+        async (
+          organizationId: string,
+          provision: (current: string | null) => Promise<string>,
+        ) => {
+          const current =
+            await customersService.findByOrganizationId(organizationId);
+          const stripeCustomerId = await provision(
+            current?.stripeCustomerId ?? null,
+          );
+          if (current) {
+            if (current.stripeCustomerId === stripeCustomerId) {
+              return current;
+            }
+            return await customersService.patch(String(current.id), {
+              stripeCustomerId,
+            });
+          }
+          return await customersService.upsertForOrganization(
+            organizationId,
+            stripeCustomerId,
+          );
+        },
+      ),
+      upsertForOrganization: vi.fn(),
     };
     creditsUtilsService = { resetOrganizationCredits: vi.fn() };
     configService = { get: vi.fn().mockReturnValue(undefined) };
@@ -255,7 +281,7 @@ describe('SubscriptionsService', () => {
       stripeService.createOrganizationCustomer.mockResolvedValue({
         id: 'cus_new',
       } as unknown as StripeCustomer);
-      customersService.create.mockResolvedValue({
+      customersService.upsertForOrganization.mockResolvedValue({
         id: 'cust_row_new',
         stripeCustomerId: 'cus_new',
       });
@@ -274,11 +300,12 @@ describe('SubscriptionsService', () => {
         'billing@acme.test',
         ORGANIZATION_ID,
         'user_1',
+        null,
       );
-      expect(customersService.create).toHaveBeenCalledWith({
-        organizationId: ORGANIZATION_ID,
-        stripeCustomerId: 'cus_new',
-      });
+      expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        'cus_new',
+      );
       const createArgs = subscriptionDelegate.create.mock.calls[0] as [
         { data: Record<string, unknown> },
       ];
@@ -314,7 +341,7 @@ describe('SubscriptionsService', () => {
         'cus_existing',
       );
       expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
-      expect(customersService.create).not.toHaveBeenCalled();
+      expect(customersService.upsertForOrganization).not.toHaveBeenCalled();
     });
 
     it('re-creates the Stripe customer and repoints the local row when Stripe no longer has it', async () => {
@@ -343,11 +370,120 @@ describe('SubscriptionsService', () => {
       });
     });
 
-    it('rejects an existing customer row that carries no Stripe customer id', async () => {
+    it('returns the freshly created subscription carrying the derived stripeCustomerId', async () => {
+      // Regression: `stripeCustomerId` is derived from the customer row, never
+      // persisted on the subscription. `BaseService.create` skipped that
+      // resolution, so callers read `undefined`, concluded the org had no
+      // Stripe customer, and created a second one on every first checkout.
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.upsertForOrganization.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockResolvedValue(
+        buildSubscription({ customerId: 'cust_row_new', id: 'sub_created' }),
+      );
+      customerDelegate.findFirst.mockResolvedValue({
+        stripeCustomerId: 'cus_new',
+      });
+
+      const result = await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(result.stripeCustomerId).toBe('cus_new');
+      expect(customerDelegate.findFirst).toHaveBeenCalledWith({
+        select: { stripeCustomerId: true },
+        where: {
+          id: 'cust_row_new',
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
+      });
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledTimes(1);
+    });
+
+    it('provisions an existing customer row that carries no Stripe customer id', async () => {
       customersService.findByOrganizationId.mockResolvedValue({
         id: 'cust_row_1',
         stripeCustomerId: null,
       });
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.patch.mockResolvedValue({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockResolvedValue(buildSubscription());
+
+      await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledWith(
+        'Acme Inc',
+        'billing@acme.test',
+        ORGANIZATION_ID,
+        'user_1',
+        null,
+      );
+    });
+
+    it('returns the winning row when a concurrent checkout wins the subscription insert race', async () => {
+      // Partial unique index `subscriptions_organizationId_active_key`
+      // guarantees one active subscription row per org; the losing insert
+      // converges on the winner instead of surfacing a 500.
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.upsertForOrganization.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          clientVersion: 'test',
+          code: 'P2002',
+        }),
+      );
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ id: 'sub_winner' }),
+      );
+      customerDelegate.findFirst.mockResolvedValue({
+        stripeCustomerId: 'cus_new',
+      });
+
+      const result = await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(result.id).toBe('sub_winner');
+    });
+
+    it('rethrows a non-P2002 subscription insert failure even when a row exists', async () => {
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.upsertForOrganization.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockRejectedValue(new Error('db down'));
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ id: 'unrelated_existing_row' }),
+      );
 
       await expect(
         service.createForOrganization(
@@ -355,8 +491,7 @@ describe('SubscriptionsService', () => {
           'billing@acme.test',
           'user_1',
         ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(subscriptionDelegate.create).not.toHaveBeenCalled();
+      ).rejects.toThrow('db down');
     });
   });
 
@@ -372,20 +507,24 @@ describe('SubscriptionsService', () => {
         where: { isDeleted: false, organizationId: ORGANIZATION_ID },
       });
       expect(result?.stripeCustomerId).toBeUndefined();
-      expect(customerDelegate.findUnique).not.toHaveBeenCalled();
+      expect(customerDelegate.findFirst).not.toHaveBeenCalled();
     });
 
     it('derives stripeCustomerId from the related customer row', async () => {
       subscriptionDelegate.findFirst.mockResolvedValue(buildSubscription());
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
 
       const result = await service.findByOrganizationId(ORGANIZATION_ID);
 
-      expect(customerDelegate.findUnique).toHaveBeenCalledWith({
+      expect(customerDelegate.findFirst).toHaveBeenCalledWith({
         select: { stripeCustomerId: true },
-        where: { id: 'cust_row_1' },
+        where: {
+          id: 'cust_row_1',
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
       });
       expect(result?.stripeCustomerId).toBe('cus_1');
     });
@@ -443,7 +582,7 @@ describe('SubscriptionsService', () => {
     };
 
     it('returns the subscription once the Stripe customer resolves', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.retrieveCustomer.mockResolvedValue({
@@ -455,7 +594,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws NotFound when Stripe has no such customer', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.retrieveCustomer.mockResolvedValue(null);
@@ -467,7 +606,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws BadRequest when the subscription has no Stripe customer id', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: null,
       });
 
@@ -661,7 +800,7 @@ describe('SubscriptionsService', () => {
   describe('previewSubscriptionChange', () => {
     beforeEach(() => {
       subscriptionDelegate.findFirst.mockResolvedValue(buildSubscription());
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: 'cus_1',
       });
       stripeService.getUpcomingInvoice.mockResolvedValue({
@@ -750,7 +889,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws BadRequest when no Stripe customer id can be resolved', async () => {
-      customerDelegate.findUnique.mockResolvedValue({
+      customerDelegate.findFirst.mockResolvedValue({
         stripeCustomerId: null,
       });
 

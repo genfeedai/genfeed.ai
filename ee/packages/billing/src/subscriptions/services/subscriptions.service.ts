@@ -2,12 +2,12 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import {
-  type StripeCustomer,
-  StripeService,
-} from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   SubscriptionPlan,
@@ -20,6 +20,7 @@ import type {
   ISubscriptionOssReadModel,
   ISubscriptionsService,
 } from '@genfeedai/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -68,14 +69,15 @@ export class SubscriptionsService
 
   private async resolveStripeCustomerId(
     customerId: string | null | undefined,
+    organizationId: string | null | undefined,
   ): Promise<string | undefined> {
-    if (!customerId) {
+    if (!customerId || !organizationId) {
       return undefined;
     }
 
-    const customer = await this.prisma.customer.findUnique({
+    const customer = await this.prisma.customer.findFirst({
       select: { stripeCustomerId: true },
-      where: { id: customerId },
+      where: { id: customerId, isDeleted: false, organizationId },
     });
 
     return customer?.stripeCustomerId ?? undefined;
@@ -88,7 +90,10 @@ export class SubscriptionsService
 
     const stripeCustomerId =
       normalized.stripeCustomerId ??
-      (await this.resolveStripeCustomerId(normalized.customerId));
+      (await this.resolveStripeCustomerId(
+        normalized.customerId,
+        normalized.organizationId,
+      ));
 
     return {
       ...normalized,
@@ -106,6 +111,22 @@ export class SubscriptionsService
     private readonly creditsUtilsService: CreditsUtilsService,
   ) {
     super(prisma, 'subscription', logger);
+  }
+
+  /**
+   * `stripeCustomerId` is derived from the related customer, never persisted on
+   * the subscription row, so `BaseService.create` returns it as `undefined`.
+   * Callers treat an absent `stripeCustomerId` as "no Stripe customer yet" and
+   * create one — which duplicated the org's Stripe customer on every first
+   * checkout. Every read path normalizes; so must this one.
+   */
+  override async create(
+    createDto: CreateSubscriptionDto,
+    populate: PopulateInput = [],
+  ): Promise<SubscriptionDocument> {
+    const created = await super.create(createDto, populate);
+
+    return await this.normalizeSubscriptionDocument(created);
   }
 
   override async findAll(
@@ -169,54 +190,38 @@ export class SubscriptionsService
   ): Promise<SubscriptionDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // Check if customer already exists for this organization
-    let customer = await this.customersService.findByOrganizationId(
-      organization.id.toString(),
-    );
-    let stripeCustomer: StripeCustomer | null;
+    const organizationId = organization.id.toString();
+    let hasExistingCustomer = false;
+    const customer = await this.customersService.provisionForOrganization(
+      organizationId,
+      async (currentStripeCustomerId) => {
+        hasExistingCustomer = Boolean(currentStripeCustomerId);
+        if (currentStripeCustomerId) {
+          this.logger.log(`${url} using existing customer`, {
+            organizationId,
+            stripeCustomerId: currentStripeCustomerId,
+          });
+          const existingStripeCustomer =
+            await this.stripeService.retrieveCustomer(currentStripeCustomerId);
+          if (existingStripeCustomer) {
+            return existingStripeCustomer.id;
+          }
+        }
 
-    if (customer) {
-      // Customer exists, retrieve from Stripe to ensure it's valid
-      this.logger.log(`${url} using existing customer`, {
-        customerId: customer.id,
-        organizationId: organization.id,
-        stripeCustomerId: customer.stripeCustomerId,
-      });
-
-      stripeCustomer = await this.stripeService.retrieveCustomer(
-        this.requireString(
-          customer.stripeCustomerId,
-          'Customer stripeCustomerId',
-        ),
-      );
-
-      if (!stripeCustomer) {
-        // Stripe customer doesn't exist, create new one and update our record
-        stripeCustomer = await this.stripeService.createOrganizationCustomer(
+        const created = await this.stripeService.createOrganizationCustomer(
           organization.label,
           billingEmail,
-          organization.id.toString(),
+          organizationId,
           userId,
+          currentStripeCustomerId,
         );
-
-        customer = await this.customersService.patch(customer.id.toString(), {
-          stripeCustomerId: stripeCustomer.id,
-        });
-      }
-    } else {
-      // No customer exists, create new one
-      stripeCustomer = await this.stripeService.createOrganizationCustomer(
-        organization.label,
-        billingEmail,
-        organization.id.toString(),
-        userId,
-      );
-
-      customer = await this.customersService.create({
-        organizationId: organization.id.toString(),
-        stripeCustomerId: stripeCustomer.id,
-      });
-    }
+        return created.id;
+      },
+    );
+    const stripeCustomerId = this.requireString(
+      customer.stripeCustomerId,
+      'Customer stripeCustomerId',
+    );
 
     const subscriptionData = {
       customerId: customer.id.toString(),
@@ -226,13 +231,32 @@ export class SubscriptionsService
       userId,
     } satisfies CreateSubscriptionDto;
 
-    const savedSubscription = await this.create(subscriptionData);
+    // One active subscription row per org (partial unique index
+    // `subscriptions_organizationId_active_key`): a concurrent createForOrganization
+    // that loses the insert race returns the winner's row.
+    let savedSubscription: SubscriptionDocument;
+    try {
+      savedSubscription = await this.create(subscriptionData);
+    } catch (error: unknown) {
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== 'P2002'
+      ) {
+        throw error;
+      }
+
+      const winner = await this.findByOrganizationId(organizationId);
+      if (!winner) {
+        throw error;
+      }
+      savedSubscription = winner;
+    }
 
     this.logger.log(`${url} success`, {
       customerId: customer.id,
-      existingCustomer: !!customer,
+      existingCustomer: hasExistingCustomer,
       organizationId: organization.id,
-      stripeCustomerId: stripeCustomer.id,
+      stripeCustomerId,
       subscriptionId: savedSubscription.id,
     });
 
@@ -271,7 +295,10 @@ export class SubscriptionsService
     try {
       const stripeCustomer = await this.stripeService.retrieveCustomer(
         this.requireString(
-          await this.resolveStripeCustomerId(subscription.customerId),
+          await this.resolveStripeCustomerId(
+            subscription.customerId,
+            subscription.organizationId,
+          ),
           'Subscription stripeCustomerId',
         ),
       );
@@ -412,7 +439,10 @@ export class SubscriptionsService
       // Get the upcoming invoice preview
       const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
         this.requireString(
-          await this.resolveStripeCustomerId(subscription.customerId),
+          await this.resolveStripeCustomerId(
+            subscription.customerId,
+            subscription.organizationId,
+          ),
           'Subscription stripeCustomerId',
         ),
         subscription.stripeSubscriptionId,

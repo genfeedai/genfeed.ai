@@ -2,6 +2,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { CustomersModule } from '@api/collections/customers/customers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
@@ -34,6 +35,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     forwardRef(() => BrandsModule),
     forwardRef(() => CommonModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => CustomersModule),
     forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),

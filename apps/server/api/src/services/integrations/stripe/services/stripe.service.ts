@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
@@ -101,24 +102,48 @@ export class StripeService {
     }
   }
 
+  /** Owner-and-input-scoped idempotency key for consumer customer creation. */
+  private buildCustomerIdempotencyKey(
+    ownerKey: string,
+    params: Record<string, string | undefined>,
+  ): string {
+    const paramsHash = createHash('sha256')
+      .update(JSON.stringify(params))
+      .digest('hex')
+      .slice(0, 16);
+
+    return `${ownerKey}-${paramsHash}`;
+  }
+
   public async createOrganizationCustomer(
     organizationName: string,
     billingEmail: string,
     organizationId: string,
     userId: string,
+    replacesStripeCustomerId?: string | null,
   ): Promise<StripeCustomer> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const customer = await this.stripe.customers.create({
-        email: billingEmail,
-        metadata: {
-          organizationId,
-          type: 'organization',
-          userId,
+      const customer = await this.stripe.customers.create(
+        {
+          email: billingEmail,
+          metadata: {
+            organizationId,
+            type: 'organization',
+            userId,
+          },
+          name: organizationName,
         },
-        name: organizationName,
-      });
+        {
+          idempotencyKey: this.buildCustomerIdempotencyKey(
+            `org-customer-${organizationId}`,
+            {
+              generation: replacesStripeCustomerId ?? 'initial',
+            },
+          ),
+        },
+      );
 
       this.loggerService.log(`${url} success`, {
         billingEmail,
@@ -144,14 +169,22 @@ export class StripeService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const customer = await this.stripe.customers.create({
-        email,
-        metadata: {
-          type: 'user',
-          userId,
+      const customer = await this.stripe.customers.create(
+        {
+          email,
+          metadata: {
+            type: 'user',
+            userId,
+          },
+          name: name || email,
         },
-        name: name || email,
-      });
+        {
+          idempotencyKey: this.buildCustomerIdempotencyKey(
+            `user-customer-${userId}`,
+            { email, name },
+          ),
+        },
+      );
 
       this.loggerService.log(`${url} success`, {
         customerId: customer.id,

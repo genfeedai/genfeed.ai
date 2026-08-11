@@ -136,7 +136,9 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_org');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       const result = await service.createOrganizationCustomer(
         'Acme Inc',
@@ -145,17 +147,85 @@ describe('StripeService — coverage spec', () => {
         'user_1',
       );
 
-      expect(createSpy).toHaveBeenCalledWith({
-        email: 'billing@acme.com',
-        metadata: {
-          organizationId: 'org_1',
-          type: 'organization',
-          userId: 'user_1',
+      expect(createSpy).toHaveBeenCalledWith(
+        {
+          email: 'billing@acme.com',
+          metadata: {
+            organizationId: 'org_1',
+            type: 'organization',
+            userId: 'user_1',
+          },
+          name: 'Acme Inc',
         },
-        name: 'Acme Inc',
-      });
+        {
+          idempotencyKey: expect.stringMatching(
+            /^org-customer-org_1-[0-9a-f]{16}$/,
+          ),
+        },
+      );
       expect(result).toBe(mockCustomer);
       expect(loggerMock.log).toHaveBeenCalled();
+    });
+
+    it('uses one organization-generation key for concurrent members with different details', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.customers, 'create')
+        .mockResolvedValue(
+          makeMockCustomer(
+            'cus_org',
+          ) as unknown as Stripe.Response<Stripe.Customer>,
+        );
+
+      await Promise.all([
+        service.createOrganizationCustomer(
+          'Acme Inc',
+          'owner@acme.com',
+          'org_1',
+          'user_owner',
+          null,
+        ),
+        service.createOrganizationCustomer(
+          'Acme Renamed',
+          'member@acme.com',
+          'org_1',
+          'user_member',
+          null,
+        ),
+      ]);
+
+      const firstKey = createSpy.mock.calls[0]?.[1]?.idempotencyKey;
+      const secondKey = createSpy.mock.calls[1]?.[1]?.idempotencyKey;
+      expect(firstKey).toBe(secondKey);
+    });
+
+    it('uses a new key when replacing a stale Stripe customer generation', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.customers, 'create')
+        .mockResolvedValue(
+          makeMockCustomer(
+            'cus_replacement',
+          ) as unknown as Stripe.Response<Stripe.Customer>,
+        );
+
+      await service.createOrganizationCustomer(
+        'Acme Inc',
+        'owner@acme.com',
+        'org_1',
+        'user_owner',
+        null,
+      );
+      await service.createOrganizationCustomer(
+        'Acme Inc',
+        'owner@acme.com',
+        'org_1',
+        'user_owner',
+        'cus_stale',
+      );
+
+      const initialKey = createSpy.mock.calls[0]?.[1]?.idempotencyKey;
+      const replacementKey = createSpy.mock.calls[1]?.[1]?.idempotencyKey;
+      expect(replacementKey).not.toBe(initialKey);
+      expect(replacementKey).toMatch(/^org-customer-org_1-[0-9a-f]{16}$/);
     });
 
     it('re-throws and logs on Stripe error', async () => {
@@ -180,18 +250,27 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_user1');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       const result = await service.createUserCustomer(
         'user_1',
         'hello@test.com',
       );
 
-      expect(createSpy).toHaveBeenCalledWith({
-        email: 'hello@test.com',
-        metadata: { type: 'user', userId: 'user_1' },
-        name: 'hello@test.com',
-      });
+      expect(createSpy).toHaveBeenCalledWith(
+        {
+          email: 'hello@test.com',
+          metadata: { type: 'user', userId: 'user_1' },
+          name: 'hello@test.com',
+        },
+        {
+          idempotencyKey: expect.stringMatching(
+            /^user-customer-user_1-[0-9a-f]{16}$/,
+          ),
+        },
+      );
       expect(result).toBe(mockCustomer);
     });
 
@@ -199,12 +278,15 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_user2');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       await service.createUserCustomer('user_2', 'hello@test.com', 'Vincent');
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Vincent' }),
+        expect.objectContaining({ idempotencyKey: expect.any(String) }),
       );
     });
 

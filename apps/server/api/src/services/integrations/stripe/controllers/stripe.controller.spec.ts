@@ -64,8 +64,9 @@ describe('StripeController', () => {
     recordCheckoutStarted: ReturnType<typeof vi.fn>;
   };
   let customersService: {
-    create: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
+    findByOrganizationId: ReturnType<typeof vi.fn>;
+    provisionForOrganization: ReturnType<typeof vi.fn>;
+    upsertForOrganization: ReturnType<typeof vi.fn>;
   };
 
   const mockRequest = {
@@ -125,9 +126,33 @@ describe('StripeController', () => {
     lifecycleEmailService = {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
     };
+
+    const findByOrganizationId = vi.fn(async (_organizationId: string) => ({
+      id: 'cust_row_1',
+      stripeCustomerId: 'cus_test123',
+    }));
+    const upsertForOrganization = vi.fn(
+      async (_organizationId: string, stripeCustomerId: string) => ({
+        id: 'cust_row_1',
+        stripeCustomerId,
+      }),
+    );
+
     customersService = {
-      create: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
-      patch: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
+      findByOrganizationId,
+      provisionForOrganization: vi.fn(
+        async (
+          organizationId: string,
+          provision: (current: string | null) => Promise<string>,
+        ) => {
+          const current = await findByOrganizationId(organizationId);
+          const stripeCustomerId = await provision(
+            current?.stripeCustomerId ?? null,
+          );
+          return await upsertForOrganization(organizationId, stripeCustomerId);
+        },
+      ),
+      upsertForOrganization,
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -226,6 +251,85 @@ describe('StripeController', () => {
       });
     });
 
+    it('never creates a second Stripe customer for an org that already has one', async () => {
+      // Regression: an organization owns exactly one Stripe customer. When the
+      // subscription projection carries no stripeCustomerId, the org's customer
+      // row is authoritative — treating the gap as "no customer" duplicated the
+      // org on Stripe on every first checkout.
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce(null);
+      subscriptionsService.createForOrganization.mockResolvedValueOnce({
+        customerId: 'cust_row_1',
+        id: 'test-object-id',
+        stripeCustomerId: undefined,
+      });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_test123',
+      });
+
+      await controller.createCheckoutSession(mockUser, dto, mockRequest);
+
+      expect(customersService.findByOrganizationId).toHaveBeenCalledWith(orgId);
+      expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_test123',
+        'price_abc123',
+        'https://app.genfeed.ai',
+        1,
+        undefined,
+      );
+    });
+
+    it('rebinds the single org customer row when the Stripe customer is stale', async () => {
+      // Recreate path: the org's customer no longer resolves on the active
+      // Stripe account. The replacement must converge on the org's ONE
+      // customer row (upsert) and repoint the subscription at it — never
+      // insert a second row.
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce({
+        customerId: 'cust_row_old',
+        id: 'test-object-id',
+        stripeCustomerId: 'cus_stale',
+      });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_old',
+        stripeCustomerId: 'cus_stale',
+      });
+      stripeService.retrieveCustomer.mockResolvedValueOnce(null);
+      organizationsService.findOne.mockResolvedValueOnce({
+        id: orgId,
+        label: 'Acme Inc',
+      });
+      customersService.upsertForOrganization.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_recreated',
+      });
+
+      await controller.createCheckoutSession(mockUser, dto, mockRequest);
+
+      expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
+        orgId,
+        'cus_recreated',
+      );
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledWith(
+        'Acme Inc',
+        'test@example.com',
+        orgId,
+        userId,
+        'cus_stale',
+      );
+      expect(subscriptionsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        { customerId: 'cust_row_1' },
+      );
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_recreated',
+        'price_abc123',
+        'https://app.genfeed.ai',
+        1,
+        undefined,
+      );
+    });
+
     it('should throw NOT_FOUND if subscription missing and org not found', async () => {
       subscriptionsService.findByOrganizationId.mockResolvedValueOnce(null);
       organizationsService.findOne.mockResolvedValueOnce(null);
@@ -265,6 +369,25 @@ describe('StripeController', () => {
   });
 
   describe('createSetupCheckout', () => {
+    it('prefers the organization customer row over a conflicting subscription projection', async () => {
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce({
+        ...mockSubscription,
+        stripeCustomerId: 'cus_stale_projection',
+      });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_authoritative',
+      });
+
+      await controller.createSetupCheckout(mockUser, mockRequest);
+
+      expect(stripeService.createSetupCheckoutSession).toHaveBeenCalledWith(
+        'cus_authoritative',
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
     it('should create a setup checkout session', async () => {
       const result = await controller.createSetupCheckout(
         mockUser,
