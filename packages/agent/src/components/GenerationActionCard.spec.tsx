@@ -198,10 +198,15 @@ describe('GenerationActionCard', () => {
       expect(screen.getByRole('textbox')).toHaveValue(
         [
           'SCENE: Professional boxing ring.',
+          '',
           'SUBJECT: Athletic boxer in black gear.',
+          '',
           'BACKGROUND: Blurred arena crowd.',
+          '',
           'LIGHTING: Dramatic overhead spotlights.',
+          '',
           'STYLE: Photorealistic sports photography.',
+          '',
           'NEGATIVE: No text or watermarks.',
         ].join('\n'),
       );
@@ -227,7 +232,7 @@ describe('GenerationActionCard', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toHaveValue(
-        'SCENE: Professional boxing ring.\nSUBJECT: Athletic boxer in black gear.',
+        'SCENE: Professional boxing ring.\n\nSUBJECT: Athletic boxer in black gear.',
       );
     });
   });
@@ -276,6 +281,11 @@ describe('GenerationActionCard', () => {
   });
 
   it('maps auto priority state into the shared selector label', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+
     render(
       <GenerationActionCard
         action={{
@@ -287,7 +297,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({ models: [imageModel] })}
       />,
     );
 
@@ -309,6 +319,11 @@ describe('GenerationActionCard', () => {
   });
 
   it('allows leaving auto mode without forcing auto back on', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+
     render(
       <GenerationActionCard
         action={{
@@ -320,7 +335,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({ models: [imageModel] })}
       />,
     );
 
