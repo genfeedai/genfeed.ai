@@ -8,7 +8,7 @@
     "@genfeedai/serializers": "workspace:*"
   },
   "devDependencies": {
-    "@nestjs/testing": "11.1.28",
+    "@nestjs/testing": "11.1.29",
     "@types/multer": "^2.2.0",
     "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",

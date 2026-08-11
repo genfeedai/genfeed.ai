@@ -6,7 +6,7 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/ui": "workspace:*",
-    "@posthog/mcp": "0.11.0",
+    "@posthog/mcp": "0.11.4",
     "posthog-node": "5.48.1",
     "tsconfig-paths": "4.2.0"
   },

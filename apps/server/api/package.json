@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.116.0",
-    "@aws-sdk/client-cloudfront": "3.1106.0",
-    "@aws-sdk/client-ec2": "3.1106.0",
+    "@aws-sdk/client-cloudfront": "3.1107.0",
+    "@aws-sdk/client-ec2": "3.1107.0",
     "@better-auth/infra": "0.3.7",
     "@genfeedai/agent": "workspace:*",
     "@genfeedai/auth-client": "workspace:*",
@@ -33,7 +33,7 @@
     "cookie-parser": "1.4.7",
     "effect": "3.22.1",
     "express": "5.2.1",
-    "google-auth-library": "11.0.0",
+    "google-auth-library": "11.0.1",
     "htmlparser2": "12.0.0",
     "jose": "^6.2.8",
     "jsonapi-serializer": "3.6.9",
@@ -47,7 +47,7 @@
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.28",
+    "@nestjs/testing": "11.1.29",
     "@types/archiver": "8.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
