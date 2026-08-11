@@ -522,7 +522,7 @@ jobs:
       issues: write
     steps:
       - name: Open or update tracking issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const label = 'post-deploy-smoke';

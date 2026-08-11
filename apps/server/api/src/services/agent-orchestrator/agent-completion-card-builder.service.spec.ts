@@ -380,6 +380,80 @@ describe('AgentCompletionCardBuilderService', () => {
     ]);
   });
 
+  describe('oauth connect card collapse', () => {
+    function connectCard(
+      platform: string,
+      id = `oauth-connect-${platform}`,
+    ): AgentUiAction {
+      return {
+        ctas: [
+          { href: `/api/${platform}/connect`, label: `Connect ${platform}` },
+        ],
+        id,
+        platform,
+        title: `${platform} not connected`,
+        type: 'oauth_connect_card',
+      };
+    }
+
+    it('collapses one card per connection probe into a single picker', () => {
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: AgentToolName.GET_CONNECTION_STATUS,
+          },
+        ],
+        uiActions: [
+          connectCard('twitter'),
+          connectCard('instagram'),
+          connectCard('youtube'),
+          connectCard('tiktok'),
+          connectCard('linkedin'),
+          connectCard('facebook'),
+        ],
+      });
+
+      const connectCards = result.uiActions.filter(
+        (action) => action.type === 'oauth_connect_card',
+      );
+
+      expect(connectCards).toHaveLength(1);
+      expect(connectCards[0]?.platforms).toEqual([
+        'twitter',
+        'instagram',
+        'youtube',
+        'tiktok',
+        'linkedin',
+        'facebook',
+      ]);
+      expect(connectCards[0]?.platform).toBeUndefined();
+      expect(connectCards[0]?.title).toBe('Connect an account');
+    });
+
+    it('leaves a single connect card untouched', () => {
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: AgentToolName.GET_CONNECTION_STATUS,
+          },
+        ],
+        uiActions: [connectCard('twitter')],
+      });
+
+      const connectCards = result.uiActions.filter(
+        (action) => action.type === 'oauth_connect_card',
+      );
+
+      expect(connectCards).toHaveLength(1);
+      expect(connectCards[0]?.platform).toBe('twitter');
+      expect(connectCards[0]?.platforms).toBeUndefined();
+    });
+  });
+
   it.each([
     {
       expectedId: 'analytics-repeat',

@@ -449,16 +449,22 @@ export class StripeService {
     }
   }
 
+  /**
+   * `returnUrl` is the absolute URL Stripe sends the customer back to. The
+   * caller composes it from the trusted request origin — this service never
+   * appends a path of its own, which is how the portal used to return to a
+   * nonexistent `/billing` route.
+   */
   public async getBillingPortalUrl(
     customerId: string,
-    origin: string,
+    returnUrl: string,
   ): Promise<StripeResponse<StripeBillingPortalSession>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       return await this.stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${origin}/billing`,
+        return_url: returnUrl,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

@@ -201,7 +201,7 @@ export function AgentSetupPanel({
                   : 'Connect a channel to publish'}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {unconnectedPlatforms.map((item) => (
+                {unconnectedPlatforms.map(({ Icon, ...item }) => (
                   <Button
                     // Meta Ads + Facebook (and YT Ads + Google Ads) share a
                     // CredentialPlatform — connectId is the unique tile key.
@@ -212,7 +212,7 @@ export function AgentSetupPanel({
                     isLoading={connectingPlatform === item.platform}
                     isDisabled={connectingPlatform !== null}
                   >
-                    {item.icon}
+                    <Icon className={`mr-1.5 size-3.5 ${item.iconClassName}`} />
                     {item.label}
                   </Button>
                 ))}

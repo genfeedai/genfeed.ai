@@ -1,7 +1,13 @@
 import type {
   AgentChatMessage,
+  AgentInputRequest,
   AgentMemoryEntry,
   AgentProposedPlan,
+  AgentWorkEvent,
+} from '@genfeedai/agent/models/agent-chat.model';
+import {
+  AgentWorkEventStatus,
+  AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { TerminalSessionDto } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -591,5 +597,133 @@ describe('agent-chat.store terminal sessions', () => {
     expect(
       useAgentChatStore.getState().activeTerminalSessionByThread['thread-1'],
     ).toBe('sess-1');
+  });
+});
+
+describe('agent-chat.store conversation cache', () => {
+  function makeInputRequest(id: string): AgentInputRequest {
+    return {
+      inputRequestId: id,
+      prompt: 'Pick one',
+      threadId: 'thread-1',
+      title: 'Input needed',
+    };
+  }
+
+  function makeWorkEvent(id: string): AgentWorkEvent {
+    return {
+      createdAt: '2026-03-26T10:00:00.000Z',
+      event: AgentWorkEventType.TOOL_COMPLETED,
+      id,
+      label: `Work ${id}`,
+      status: AgentWorkEventStatus.COMPLETED,
+      threadId: 'thread-1',
+    };
+  }
+
+  it('caches the visible conversation and restores it verbatim', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1'), makeMessage('m-2')]);
+    store.setLatestProposedPlan(makePlan('plan-1'));
+    store.setWorkEvents([makeWorkEvent('w-1')]);
+    store.setPendingInputRequest(makeInputRequest('req-1'));
+
+    useAgentChatStore.getState().cacheConversation('thread-1');
+    useAgentChatStore.getState().resetActiveConversationState();
+    expect(useAgentChatStore.getState().messages).toHaveLength(0);
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-1'),
+    ).toBe(true);
+
+    const state = useAgentChatStore.getState();
+    expect(state.messages.map((message) => message.id)).toEqual(['m-1', 'm-2']);
+    expect(state.latestProposedPlan?.summary).toBe('Plan plan-1');
+    expect(state.workEvents.map((event) => event.id)).toEqual(['w-1']);
+    expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
+  });
+
+  it('restoreCachedConversation reports a miss without touching state', () => {
+    useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-absent'),
+    ).toBe(false);
+    expect(useAgentChatStore.getState().messages).toHaveLength(1);
+  });
+
+  it('never caches an empty conversation', () => {
+    useAgentChatStore.getState().cacheConversation('thread-empty');
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-empty'),
+    ).toBe(false);
+  });
+
+  it('restoring never revives stream or run state from the thread being left', () => {
+    useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+    useAgentChatStore.getState().cacheConversation('thread-1');
+
+    useAgentChatStore.getState().setActiveRun('run-9');
+    useAgentChatStore.getState().appendStreamToken('half a sentence');
+
+    useAgentChatStore.getState().restoreCachedConversation('thread-1');
+
+    const state = useAgentChatStore.getState();
+    expect(state.stream.streamingContent).toBe('');
+    expect(state.stream.isStreaming).toBe(false);
+    expect(state.activeRunId).toBeNull();
+    expect(state.activeRunStatus).toBe('idle');
+  });
+
+  it('evicts the least recently cached thread past the limit', () => {
+    for (let index = 0; index < 11; index += 1) {
+      useAgentChatStore.getState().setMessages([makeMessage(`m-${index}`)]);
+      useAgentChatStore.getState().cacheConversation(`thread-${index}`);
+    }
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-0'),
+    ).toBe(false);
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-10'),
+    ).toBe(true);
+  });
+
+  it('re-caching an existing thread refreshes its recency', () => {
+    useAgentChatStore.getState().setMessages([makeMessage('m-0')]);
+    useAgentChatStore.getState().cacheConversation('thread-0');
+
+    for (let index = 1; index < 10; index += 1) {
+      useAgentChatStore.getState().setMessages([makeMessage(`m-${index}`)]);
+      useAgentChatStore.getState().cacheConversation(`thread-${index}`);
+    }
+
+    // thread-0 is the oldest entry — touching it must move it out of the
+    // eviction slot, otherwise the next cache write would drop it.
+    useAgentChatStore.getState().setMessages([makeMessage('m-0-again')]);
+    useAgentChatStore.getState().cacheConversation('thread-0');
+
+    useAgentChatStore.getState().setMessages([makeMessage('m-10')]);
+    useAgentChatStore.getState().cacheConversation('thread-10');
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-0'),
+    ).toBe(true);
+    expect(useAgentChatStore.getState().messages[0]?.id).toBe('m-0-again');
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-1'),
+    ).toBe(false);
+  });
+
+  it('clearConversationCache drops every cached thread', () => {
+    useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+    useAgentChatStore.getState().cacheConversation('thread-1');
+
+    useAgentChatStore.getState().clearConversationCache();
+
+    expect(
+      useAgentChatStore.getState().restoreCachedConversation('thread-1'),
+    ).toBe(false);
   });
 });

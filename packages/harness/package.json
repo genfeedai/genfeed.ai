@@ -24,10 +24,7 @@
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/harness",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/harness",
     "type": "git",

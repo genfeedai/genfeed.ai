@@ -71,7 +71,9 @@ vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
 
 interface StoreState {
   activeThreadId: string | null;
+  cacheConversation: ReturnType<typeof vi.fn>;
   clearComposerSeed: ReturnType<typeof vi.fn>;
+  clearConversationCache: ReturnType<typeof vi.fn>;
   creditsRemaining: number | null;
   composerSeed: null;
   messages: Array<{
@@ -114,6 +116,7 @@ interface StoreState {
   } | null;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  restoreCachedConversation: ReturnType<typeof vi.fn>;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveThread: ReturnType<typeof vi.fn>;
@@ -134,7 +137,9 @@ interface StoreState {
 
 const storeState: StoreState = {
   activeThreadId: null,
+  cacheConversation: vi.fn(),
   clearComposerSeed: vi.fn(),
+  clearConversationCache: vi.fn(),
   clearThreadAttention: vi.fn(),
   composerSeed: null,
   creditsRemaining: null,
@@ -147,6 +152,7 @@ const storeState: StoreState = {
   pageContext: null,
   resetActiveConversationState: vi.fn(),
   resetStreamState: vi.fn(),
+  restoreCachedConversation: vi.fn(() => false),
   seedComposer: vi.fn(),
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn(),
@@ -192,6 +198,10 @@ vi.mock('@genfeedai/agent/components/useAgentSetupStatus', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentSetupPanel', () => ({
   AgentSetupPanel: () => <div>agent-setup-panel</div>,
+}));
+
+vi.mock('@genfeedai/agent/components/AgentThreadContextPanel', () => ({
+  AgentThreadContextPanel: () => <div>agent-thread-context-panel</div>,
 }));
 
 let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;
@@ -562,6 +572,33 @@ describe('AgentFullPage', () => {
       expect(onPanelPresenceChange).toHaveBeenLastCalledWith(false);
     });
     expect(portalTarget).toBeEmptyDOMElement();
+    portalTarget.remove();
+  });
+
+  it('projects thread context into the inspector when there are no outputs and no setup panel', async () => {
+    // The rail used to fall through to a placeholder sentence in exactly this
+    // state — a finished (or brandless) setup with a conversation that has not
+    // produced outputs yet. Context is the floor, so the rail is never empty.
+    setupStatusState.showSetupPanel = false;
+    storeState.messages = [];
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+    const onPanelPresenceChange = vi.fn();
+
+    render(
+      <ConversationInspectorShellProvider
+        isActive
+        onPanelPresenceChange={onPanelPresenceChange}
+        portalTarget={portalTarget}
+      >
+        <AgentFullPage apiService={createApiService() as never} />
+      </ConversationInspectorShellProvider>,
+    );
+
+    await waitFor(() => {
+      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(true);
+    });
+    expect(portalTarget).toHaveTextContent('agent-thread-context-panel');
     portalTarget.remove();
   });
 

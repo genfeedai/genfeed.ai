@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
@@ -295,6 +294,8 @@ export default function BrandDetailSocialMediaCard({
 
   const renderConnectButton = (item: OAuthConnectPlatform) => {
     const connectKey = item.connectId ?? item.platform;
+    const { Icon } = item;
+
     return (
       <Button
         key={connectKey}
@@ -304,7 +305,7 @@ export default function BrandDetailSocialMediaCard({
         isLoading={connectingPlatform === item.platform}
         isDisabled={connectingPlatform !== null}
       >
-        {item.icon}
+        <Icon className={`mr-1.5 size-3.5 ${item.iconClassName}`} />
         {item.label}
       </Button>
     );
@@ -324,11 +325,10 @@ export default function BrandDetailSocialMediaCard({
   const renderIntegrationCard = (item: OAuthConnectPlatform) => {
     const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
     const isConnected = platformConnections.length > 0;
-    const platformIcon = getPlatformIcon(
-      item.platform,
-      // block + equal size so FA-style viewBoxes center in the tile
-      'block size-4 shrink-0',
-    );
+    // The tile owns its brand mark: YouTube Ads and Google Ads share the
+    // GOOGLE_ADS credential, so resolving the icon from the platform drew a
+    // Google "G" on the YouTube Ads card.
+    const { Icon } = item;
 
     return (
       <div
@@ -340,7 +340,9 @@ export default function BrandDetailSocialMediaCard({
             <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-background shadow-border">
               {/* Square tile: force SVG to a fixed box so FA 448×512 glyphs center. */}
               <span className="inline-flex size-4 items-center justify-center overflow-hidden leading-none [&_svg]:block [&_svg]:size-4">
-                {platformIcon}
+                <Icon
+                  className={`block size-4 shrink-0 ${item.iconClassName}`}
+                />
               </span>
             </span>
             <div className="min-w-0">

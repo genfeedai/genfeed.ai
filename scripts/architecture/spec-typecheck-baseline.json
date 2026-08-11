@@ -2425,38 +2425,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
-      "fingerprint": "b5e40cfa6802293ab1fc",
-      "message": "Type '{ limit: number; page: number; tag: string; }' is missing the following properties from type 'ArticlesQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
-      "fingerprint": "d3afed23ee8884c67a37",
-      "message": "Type '{ category: ArticleCategory.POST; limit: number; page: number; }' is missing the following properties from type 'ArticlesQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
-      "fingerprint": "d6b25ecf0b4a85b0181f",
-      "message": "Type '{ limit: number; page: number; search: string; }' is missing the following properties from type 'ArticlesQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
-      "fingerprint": "ddf78e4a655560b791bb",
-      "message": "Type '{ limit: number; page: number; }' is missing the following properties from type 'ArticlesQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",

@@ -104,6 +104,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.PRESENT_PAYMENT_OPTIONS,
   AgentToolName.RENDER_DASHBOARD,
   AgentToolName.RESOLVE_HANDLE,
+  AgentToolName.SUGGEST_NEXT_STEPS,
 ]);
 
 /**
@@ -469,6 +470,9 @@ export class AgentToolExecutorService {
 
       case AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES:
         return this.qualityHandler.suggestIngredientAlternatives(params);
+
+      case AgentToolName.SUGGEST_NEXT_STEPS:
+        return this.prepareHandler.suggestNextSteps(params);
 
       case AgentToolName.SPAWN_CONTENT_AGENT:
         return this.spawnHandler.spawnContentAgent(params, ctx);

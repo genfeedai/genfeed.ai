@@ -49,11 +49,20 @@ export class StripeService extends HTTPBaseService {
   }
 
   /**
-   * Get Stripe billing portal URL for organization
+   * Get Stripe billing portal URL for organization.
+   *
+   * `returnPath` is the app-relative path Stripe returns the customer to
+   * (e.g. `/acme/~/settings/organization/subscription`). The server can't
+   * derive it — the org slug only exists client-side — and rejects anything
+   * that isn't origin-relative.
    */
-  public async getPortalUrl(): Promise<IBillingPortalResponse> {
+  public async getPortalUrl(
+    returnPath?: string,
+  ): Promise<IBillingPortalResponse> {
     return await this.instance
-      .get<JsonApiResponseDocument>('/portal')
+      .get<JsonApiResponseDocument>('/portal', {
+        params: returnPath ? { returnPath } : undefined,
+      })
       .then((res) => deserializeResource<IBillingPortalResponse>(res.data));
   }
 

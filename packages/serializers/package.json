@@ -25,14 +25,10 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.js",
   "license": "AGPL-3.0",
+  "main": "./dist/index.js",
   "name": "@genfeedai/serializers",
-  "type": "module",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/serializers",
     "type": "git",
@@ -50,6 +46,7 @@
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "2.3.1"
 }

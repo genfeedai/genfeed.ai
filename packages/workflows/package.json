@@ -132,10 +132,7 @@
     "zundo": ">=2.0.0",
     "zustand": ">=5.0.0"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/workflows",
     "type": "git",

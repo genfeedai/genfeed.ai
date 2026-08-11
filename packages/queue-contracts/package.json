@@ -24,11 +24,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/queue-contracts",
-  "type": "module",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/queue-contracts",
     "type": "git",
@@ -42,6 +38,7 @@
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.1.0"
 }

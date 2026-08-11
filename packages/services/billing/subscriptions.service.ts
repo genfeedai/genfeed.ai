@@ -2,16 +2,11 @@ import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   ISubscriptionPreview,
   OrganizationCreditUsageResponse,
+  SubscriptionChangePreview,
 } from '@genfeedai/interfaces';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
-import {
-  SubscriptionPreviewSerializer,
-  SubscriptionSerializer,
-} from '@genfeedai/serializers';
-import {
-  BaseService,
-  type JsonApiResponseDocument,
-} from '@services/core/base.service';
+import { SubscriptionSerializer } from '@genfeedai/serializers';
+import { BaseService } from '@services/core/base.service';
 
 export class SubscriptionsService extends BaseService<Subscription> {
   constructor(token: string) {
@@ -34,12 +29,19 @@ export class SubscriptionsService extends BaseService<Subscription> {
     return res.data;
   }
 
-  public async postSubscriptionPreview(body: Partial<ISubscriptionPreview>) {
-    const data = SubscriptionPreviewSerializer.serialize(body);
+  /**
+   * The subscriptions controller takes a plain `{ price }` body and answers
+   * `{ success, message, data }` — not JSON:API — so this mirrors
+   * `getCreditsBreakdown` rather than the serializer round-trip.
+   */
+  public async previewSubscriptionChange(
+    newPriceId: string,
+  ): Promise<SubscriptionChangePreview> {
+    const res = await this.instance.post('current/preview', {
+      price: newPriceId,
+    } satisfies ISubscriptionPreview);
 
-    return await this.instance
-      .post<JsonApiResponseDocument>('current/preview', data)
-      .then((res) => this.extractResource<ISubscriptionPreview>(res.data));
+    return res.data.data as SubscriptionChangePreview;
   }
 
   public async getCreditsBreakdown(): Promise<{

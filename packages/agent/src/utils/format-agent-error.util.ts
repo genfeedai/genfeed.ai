@@ -90,7 +90,12 @@ const CONFIG_PATTERNS: Array<{
       'Wait for the API to finish restarting, then retry. Avoid generating while the backend is rebuilding.',
   },
   {
-    match: /401|unauthorized|invalid.*api.?key|invalid token/i,
+    // Also match this rule's own copy. Errors reach the composer from several
+    // layers and one of them used to hand over an already-formatted
+    // "Title: Summary" string, which matched nothing on the second pass and
+    // degraded a real 401 into the generic "Run failed".
+    match:
+      /401|unauthorized|invalid.*api.?key|invalid token|authentication failed|rejected the credentials/i,
     title: 'Provider authentication failed',
     summary: 'The model provider rejected the credentials for this request.',
     recovery: 'Verify the provider API key, then retry.',

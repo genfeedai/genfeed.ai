@@ -36,10 +36,7 @@
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/types",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/types",
     "type": "git",

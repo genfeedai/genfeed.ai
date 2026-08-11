@@ -211,6 +211,7 @@ export function useAgentChatContainer({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wasLoadingThreadRef = useRef(isLoadingThread);
+  const scrolledThreadIdRef = useRef<string | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [elapsedNow, setElapsedNow] = useState(() => Date.now());
   const [isSubmittingInputRequest, setIsSubmittingInputRequest] =
@@ -613,20 +614,37 @@ export function useAgentChatContainer({
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Scroll-to-bottom when thread load completes (imperative DOM, not derived UI).
+  // Scroll-to-bottom when a thread first becomes readable (imperative DOM, not
+  // derived UI). A thread restored from cache paints without ever flipping
+  // isLoadingThread, so keying only off the loading transition would leave the
+  // switch parked at the scroll offset of the thread the user just left.
   useEffect(() => {
+    if (activeThreadId === null) {
+      // Leaving for the no-thread surface ends this thread's claim on the
+      // scroll position. Holding the id would mean re-entering that same
+      // thread from cache matches neither branch below and never scrolls.
+      scrolledThreadIdRef.current = null;
+      wasLoadingThreadRef.current = isLoadingThread;
+      return;
+    }
+
+    const hasFinishedLoading = wasLoadingThreadRef.current && !isLoadingThread;
+    const isNewlyRenderedThread =
+      activeThreadId !== scrolledThreadIdRef.current;
+
     if (
-      wasLoadingThreadRef.current &&
+      (hasFinishedLoading || isNewlyRenderedThread) &&
       !isLoadingThread &&
       messages.length > 0
     ) {
+      scrolledThreadIdRef.current = activeThreadId;
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change
       setIsAtBottom(true);
     }
 
     wasLoadingThreadRef.current = isLoadingThread;
-  }, [isLoadingThread, messages.length]);
+  }, [activeThreadId, isLoadingThread, messages.length]);
 
   // Elapsed timer for run duration
   useEffect(() => {

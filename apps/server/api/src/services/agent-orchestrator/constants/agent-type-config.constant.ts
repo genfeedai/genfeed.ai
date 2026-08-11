@@ -53,6 +53,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.RATE_INGREDIENT,
   AgentToolName.GET_TOP_INGREDIENTS,
   AgentToolName.REPLICATE_TOP_INGREDIENT,
+  AgentToolName.SUGGEST_NEXT_STEPS,
 ];
 
 export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {

@@ -183,9 +183,30 @@ jobs:
             --tag "${IMAGE}:latest" \
             "${IMAGE}:${IMAGE_TAG}"
 
+  # npm is the one irreversible lane, so it runs after community and SaaS are
+  # green rather than beside them. It publishes every enrolled package whose
+  # repo version the registry has not seen, which is what keeps npm from drifting
+  # behind master between releases.
+  publish-packages:
+    name: Publish npm Packages
+    needs: [validate-release, publish-community, deploy-saas]
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-packages.yml
+    with:
+      checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
+      dry_run: false
+    secrets: inherit
+
   publish-release:
     name: Publish GitHub release
-    needs: [validate-release, publish-community, deploy-saas, promote-community]
+    needs:
+      - validate-release
+      - publish-community
+      - deploy-saas
+      - promote-community
+      - publish-packages
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -207,4 +228,5 @@ jobs:
             echo "- SHA: \`${RELEASE_SHA}\`"
             echo "- Community: published and smoke-tested"
             echo "- SaaS: ECS, Vercel frontends, and production smoke completed"
+            echo "- npm: enrolled public packages published from this SHA"
           } >>"${GITHUB_STEP_SUMMARY}"

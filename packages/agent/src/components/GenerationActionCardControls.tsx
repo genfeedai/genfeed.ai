@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Play } from 'lucide-react';
+import { Play, RefreshCw } from 'lucide-react';
 import type { ReactElement, RefObject } from 'react';
 
 type GenerationActionCardControlsProps = {
@@ -29,6 +29,8 @@ type GenerationActionCardControlsProps = {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   isDisabled: boolean;
   modelsLoading: boolean;
+  modelsError: string | null;
+  onRetryLoadModels: () => void;
   filteredModels: GenerationModel[];
   isAutoMode: boolean;
   modelKey: string;
@@ -55,6 +57,8 @@ export function GenerationActionCardControls({
   textareaRef,
   isDisabled,
   modelsLoading,
+  modelsError,
+  onRetryLoadModels,
   filteredModels,
   isAutoMode,
   modelKey,
@@ -75,6 +79,10 @@ export function GenerationActionCardControls({
   onGenerate,
 }: GenerationActionCardControlsProps): ReactElement {
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  // An empty catalog is indistinguishable from a failed fetch at the picker —
+  // both render a control the user can open but never select anything from.
+  // Treat them as one explicit, recoverable state instead.
+  const hasNoSelectableModels = !modelsLoading && filteredModels.length === 0;
 
   return (
     <>
@@ -92,8 +100,11 @@ export function GenerationActionCardControls({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           disabled={isDisabled}
-          rows={2}
-          className="w-full resize-none"
+          // Structured prompts arrive as SCENE/SUBJECT/BACKGROUND/... blocks
+          // separated by blank lines. Two rows hid that structure entirely and
+          // made a well-formed prompt read as a wall of text.
+          rows={6}
+          className="max-h-64 w-full resize-y overflow-y-auto"
           placeholder="Describe what you want to generate…"
         />
       </div>
@@ -119,6 +130,20 @@ export function GenerationActionCardControls({
                 </SelectItem>
               </SelectContent>
             </Select>
+          ) : modelsError || hasNoSelectableModels ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={onRetryLoadModels}
+              disabled={isDisabled}
+              className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
+              title={modelsError ?? 'No models available for this generation'}
+            >
+              <RefreshCw className="mr-2 h-3 w-3 shrink-0" />
+              <span className="truncate text-xs">
+                {modelsError ? 'Models failed — retry' : 'No models — retry'}
+              </span>
+            </Button>
           ) : (
             <div className={isDisabled ? 'pointer-events-none opacity-50' : ''}>
               <ModelSelectorPopover

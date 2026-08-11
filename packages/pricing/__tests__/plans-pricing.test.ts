@@ -13,6 +13,7 @@ import {
   dedicatedServerPlan,
   formatOutputs,
   formatPlanIncludedCredits,
+  formatPlanLaunchPriceLabel,
   formatPlanMonthlyPrice,
   formatPlanPriceLabel,
   formatPrice,
@@ -77,6 +78,13 @@ describe('plan price formatting', () => {
     expect(formatPlanPriceLabel('pro')).toBe('$49/mo');
     expect(formatPlanPriceLabel('scale')).toBe('$499/mo');
     expect(formatPlanPriceLabel('enterprise')).toBe('Custom');
+  });
+
+  it('formats a launch price only for the tiers that carry one', () => {
+    expect(formatPlanLaunchPriceLabel('pro')).toBe('$39/mo');
+    expect(formatPlanLaunchPriceLabel('scale')).toBeNull();
+    expect(formatPlanLaunchPriceLabel('payg')).toBeNull();
+    expect(formatPlanLaunchPriceLabel('enterprise')).toBeNull();
   });
 
   it('formats prose monthly prices per tier', () => {

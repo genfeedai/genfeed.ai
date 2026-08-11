@@ -49,5 +49,6 @@ export const TOOL_LABELS: Record<string, string> = {
   save_dashboard_layout: 'Save Dashboard Layout',
   schedule_post: 'Schedule Post',
   start_campaign: 'Start Campaign',
+  suggest_next_steps: 'Suggest Next Steps',
   upscale_image: 'Upscale Image',
 };

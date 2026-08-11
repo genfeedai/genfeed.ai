@@ -143,6 +143,8 @@ export function AgentOAuthConnectMenu({
               <div className="grid grid-cols-2 gap-1">
                 {group.platforms.map((item) => {
                   const connectKey = item.connectId ?? item.platform;
+                  const { Icon } = item;
+
                   return (
                     <Button
                       key={connectKey}
@@ -153,7 +155,9 @@ export function AgentOAuthConnectMenu({
                       isLoading={connectingPlatform === connectKey}
                       className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
                     >
-                      {item.icon}
+                      <Icon
+                        className={`mr-1.5 size-3.5 ${item.iconClassName}`}
+                      />
                       {item.label}
                     </Button>
                   );

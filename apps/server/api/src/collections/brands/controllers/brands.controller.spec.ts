@@ -63,6 +63,7 @@ describe('BrandsController', () => {
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
+  let credentialsService: vi.Mocked<CredentialsService>;
   let _loggerService: vi.Mocked<LoggerService>;
 
   const mockUser = {
@@ -152,7 +153,13 @@ describe('BrandsController', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findAll: vi.fn(), findOne: vi.fn() },
+          useValue: {
+            // `decorateForResponse` resolves the brand's connected accounts,
+            // so `find` has to resolve to a list rather than undefined.
+            find: vi.fn(() => Promise.resolve([])),
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+          },
         },
         {
           provide: IngredientsService,
@@ -208,6 +215,7 @@ describe('BrandsController', () => {
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
+    credentialsService = module.get(CredentialsService);
     _loggerService = module.get(LoggerService);
 
     vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
@@ -260,7 +268,9 @@ describe('BrandsController', () => {
         text: 'Tone: Bold.',
       },
     );
-    expect(result).toEqual({ data: { ...mockBrand, label: 'Moonrise' } });
+    expect(result).toEqual({
+      data: { ...mockBrand, credentials: [], label: 'Moonrise' },
+    });
   });
 
   it('does not forward client-supplied ownership fields on a normal patch', async () => {
@@ -285,8 +295,11 @@ describe('BrandsController', () => {
       { label: 'Renamed Brand' },
       [],
     );
+    // `decorateForResponse` resolves the declared `credentials` relation on every
+    // single-brand response, patches included — empty here because this brand has
+    // no connected accounts.
     expect(result).toEqual({
-      data: { ...mockBrand, label: 'Renamed Brand' },
+      data: { ...mockBrand, credentials: [], label: 'Renamed Brand' },
     });
   });
 
@@ -456,6 +469,82 @@ describe('BrandsController', () => {
       );
 
       expect(cacheMetadata).toBeUndefined();
+    });
+  });
+
+  describe('decorateForResponse', () => {
+    it('attaches the brand credentials the serializer declares', async () => {
+      credentialsService.find.mockResolvedValue([
+        {
+          brandId: mockBrand.id,
+          id: 'cmcredential00000000000001',
+          isConnected: true,
+          platform: 'INSTAGRAM',
+        },
+      ] as never);
+
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.find).toHaveBeenCalledWith({
+        brandId: mockBrand.id,
+        isDeleted: false,
+        organizationId: mockBrand.organizationId,
+      });
+      expect(decorated.credentials).toEqual([
+        expect.objectContaining({ id: 'cmcredential00000000000001' }),
+      ]);
+    });
+
+    it('normalizes the Prisma credential platform to the domain vocabulary', async () => {
+      credentialsService.find.mockResolvedValue([
+        { id: 'credential-1', platform: 'GOOGLE_ADS' },
+        { id: 'credential-2', platform: 'DEVTO' },
+      ] as never);
+
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand } as never,
+        mockUser,
+      );
+
+      // The UI, posts and OAuth routes all key off lowercase platform ids;
+      // leaking the SCREAMING Prisma labels made every account read
+      // "Not connected" on brand social settings.
+      expect(decorated.credentials).toEqual([
+        expect.objectContaining({ platform: 'google_ads' }),
+        expect.objectContaining({ platform: 'devto' }),
+      ]);
+    });
+
+    it('returns a copy rather than writing the relation onto the brand row', async () => {
+      credentialsService.find.mockResolvedValue([
+        { id: 'credential-1', platform: 'INSTAGRAM' },
+      ] as never);
+      const row = { ...mockBrand };
+
+      const decorated = await controller.decorateForResponse(
+        row as never,
+        mockUser,
+      );
+
+      // The row handed in is whatever the service returned — a cached object or
+      // a caller-held reference. Stamping `credentials` onto it leaks the
+      // relation into every other reader of the same object.
+      expect(row).not.toHaveProperty('credentials');
+      expect(decorated).not.toBe(row);
+      expect(decorated.credentials).toHaveLength(1);
+    });
+
+    it('leaves a brand without an organization untouched', async () => {
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand, organizationId: null } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.find).not.toHaveBeenCalled();
+      expect(decorated.credentials).toBeUndefined();
     });
   });
 

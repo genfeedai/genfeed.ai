@@ -11,8 +11,9 @@ export interface ArticleViralityAnalysis {
 
 export interface ArticleDocument
   extends Omit<PrismaArticle, 'category' | 'scope'> {
-  label?: string | null;
-  summary?: string | null;
+  // `label` and `summary` are real Prisma columns since #2767 — they are
+  // inherited from PrismaArticle and must never be redeclared here as optional
+  // aliases (see .agents/memory/rules/prisma_legacy_alias_fields.md).
   category?: ArticleCategory | string | null;
   content: PrismaArticle['content'];
   scope?: ArticleScope | string | null;

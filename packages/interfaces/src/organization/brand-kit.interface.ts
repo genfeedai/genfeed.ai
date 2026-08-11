@@ -506,3 +506,14 @@ export const BRAND_KIT_FIELD_OWNERSHIP: readonly IBrandKitFieldOwner[] = [
     valueKind: 'asset[]',
   },
 ];
+
+/**
+ * `asset` vs `asset[]` records cardinality, not picture-ness — a brand owns one
+ * logo and one banner but many references, exactly like `string` vs `string[]`.
+ * Consumers that only care whether a field holds pictures ask this instead of
+ * re-deriving the union at every call site.
+ */
+export const BRAND_KIT_ASSET_FIELD_KEYS: readonly BrandKitFieldKey[] =
+  BRAND_KIT_FIELD_OWNERSHIP.filter(
+    (owner) => owner.valueKind === 'asset' || owner.valueKind === 'asset[]',
+  ).map((owner) => owner.key);

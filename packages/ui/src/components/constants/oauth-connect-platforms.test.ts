@@ -1,7 +1,12 @@
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  GoogleColorIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { describe, expect, it } from 'vitest';
 
 import {
+  groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
   resolveOAuthServicePath,
 } from './oauth-connect-platforms';
@@ -38,5 +43,44 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
     expect(youtubeAds?.platform).toBe(CredentialPlatform.GOOGLE_ADS);
     expect(youtubeAds?.servicePath).toBe('google-ads');
     expect(googleAds?.servicePath).toBe('google-ads');
+  });
+
+  it('gives each ads tile its own brand mark even when they share a platform', () => {
+    const googleAds = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.connectId === 'google-ads',
+    );
+    const youtubeAds = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.connectId === 'youtube-ads',
+    );
+    const youtube = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.platform === CredentialPlatform.YOUTUBE,
+    );
+
+    // Both tiles authenticate through GOOGLE_ADS; resolving the icon from the
+    // platform painted a Google "G" on the YouTube Ads card.
+    expect(googleAds?.Icon).toBe(GoogleColorIcon);
+    expect(youtubeAds?.Icon).toBe(YoutubeIcon);
+    expect(youtubeAds?.Icon).toBe(youtube?.Icon);
+    expect(googleAds?.Icon).not.toBe(youtubeAds?.Icon);
+  });
+});
+
+describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
+  it('omits Fanvue, which has no OAuth connect route', () => {
+    expect(
+      OAUTH_CONNECT_PLATFORMS.some(
+        (p) => p.platform === CredentialPlatform.FANVUE,
+      ),
+    ).toBe(false);
+    expect(
+      groupOAuthConnectPlatforms().some((group) => group.label === 'Creator'),
+    ).toBe(false);
+  });
+
+  it('carries an icon and colour for every tile', () => {
+    for (const platform of OAUTH_CONNECT_PLATFORMS) {
+      expect(typeof platform.Icon).toBe('function');
+      expect(platform.iconClassName).toBeTruthy();
+    }
   });
 });

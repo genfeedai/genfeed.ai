@@ -475,7 +475,7 @@ describe('PostsService.listContentMentions', () => {
         description: 'Article fallback',
         entityArticle: {
           coverImageUrl: 'https://cdn.test/article.png',
-          title: 'Article title',
+          label: 'Article title',
         },
         entityIngredient: null,
         id: 'post-2',

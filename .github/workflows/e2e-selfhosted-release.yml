@@ -285,7 +285,7 @@ jobs:
           persist-credentials: false
 
       - name: Open or update tracking issue (Priority P0)
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
@@ -350,7 +350,7 @@ jobs:
           persist-credentials: false
 
       - name: Close open release-e2e trackers
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}

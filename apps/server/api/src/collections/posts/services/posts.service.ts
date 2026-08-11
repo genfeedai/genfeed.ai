@@ -84,7 +84,7 @@ type ContentMentionPostRecord = {
   description: string;
   entityArticle: {
     coverImageUrl: string | null;
-    title: string;
+    label: string;
   } | null;
   entityIngredient: {
     cdnUrl: string | null;
@@ -358,7 +358,7 @@ export class PostsService extends BaseService<
         entityArticle: {
           select: {
             coverImageUrl: true,
-            title: true,
+            label: true,
           },
         },
         entityIngredient: {
@@ -389,7 +389,7 @@ export class PostsService extends BaseService<
   private formatContentMentionTitle(post: ContentMentionPostRecord): string {
     const title =
       post.label?.trim() ||
-      post.entityArticle?.title.trim() ||
+      post.entityArticle?.label.trim() ||
       post.description.trim();
 
     if (title.length <= 80) {

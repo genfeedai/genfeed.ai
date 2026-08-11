@@ -2405,10 +2405,14 @@ model Article {
   organization   Organization  @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?        @relation(fields: [brandId], references: [id])
-  title          String
+  // `label`/`summary` are the domain, DTO, serializer, and wire names for an
+  // article's title and excerpt (matching Brand.label, Organization.label).
+  // The columns were `title`/`excerpt` until #2767; nothing outside Prisma ever
+  // used those spellings, so persistence now matches the rest of the stack.
+  label          String
   slug           String?
   content        String?
-  excerpt        String?
+  summary        String?
   coverImageUrl  String?
   status         ArticleStatus @default(DRAFT)
   publishedAt    DateTime?

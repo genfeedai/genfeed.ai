@@ -120,10 +120,10 @@ export class SeoScorerService {
 
     const scorecard = await this.scoreContent({
       content: article.content,
-      metaDescription: article.excerpt,
+      metaDescription: article.summary,
       slug: article.slug,
       targetKeyword: targetKeyword ?? null,
-      title: article.title,
+      title: article.label,
     });
 
     await this.persist('article', article.id, organizationId, scorecard);

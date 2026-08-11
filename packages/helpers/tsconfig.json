@@ -11,8 +11,6 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/auth-client": ["../auth-client/src/index.ts"],
-      "@genfeedai/auth-client/*": ["../auth-client/src/*"],
       "@genfeedai/constants": ["../constants/src/index.ts"],
       "@genfeedai/constants/*": ["../constants/src/*"],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],
@@ -43,9 +41,6 @@
   ],
   "include": ["src/**/*.ts"],
   "references": [
-    {
-      "path": "../auth-client/tsconfig.json"
-    },
     {
       "path": "../constants/tsconfig.json"
     },

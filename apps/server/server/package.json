@@ -10,14 +10,14 @@
     "@genfeedai/serializers": "workspace:*",
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.5",
-    "@nestjs/common": "11.1.28",
-    "bullmq": "6.0.9",
+    "@nestjs/common": "11.1.29",
+    "bullmq": "6.0.11",
     "jsonwebtoken": "9.0.3",
     "rxjs": "7.8.2"
   },
   "description": "Server-tier services shared by Genfeed API and workers",
   "devDependencies": {
-    "@nestjs/testing": "11.1.28",
+    "@nestjs/testing": "11.1.29",
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",

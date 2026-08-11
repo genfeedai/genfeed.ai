@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "better-auth": "1.6.23",
+    "better-auth": "1.6.26",
     "zod": "4.4.3"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
@@ -37,10 +37,7 @@
   "peerDependencies": {
     "react": ">=19"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/auth-client",
     "type": "git",
