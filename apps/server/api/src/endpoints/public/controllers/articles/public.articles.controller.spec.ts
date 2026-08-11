@@ -30,6 +30,27 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
   };
 });
 
+/**
+ * `page`/`limit`/`pagination`/`isDeleted`/`sort` are non-optional on
+ * `BaseQueryDto` — they carry initializers, not `?`. A partial object literal
+ * annotated `ArticlesQueryDto` is therefore a TS2739, which is why this file
+ * held four baselined spec-typecheck errors. Building the query through a
+ * factory supplies the framework defaults once and keeps each test's literal
+ * down to the field under test.
+ */
+function buildArticlesQuery(
+  overrides: Partial<ArticlesQueryDto> = {},
+): ArticlesQueryDto {
+  return {
+    isDeleted: false,
+    limit: 10,
+    page: 1,
+    pagination: true,
+    sort: 'createdAt: -1',
+    ...overrides,
+  };
+}
+
 describe('PublicArticlesController', () => {
   let controller: PublicArticlesController;
   let articlesService: ArticlesService;
@@ -115,10 +136,7 @@ describe('PublicArticlesController', () => {
   describe('findPublicArticles', () => {
     it('should return public articles', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-      };
+      const query = buildArticlesQuery();
 
       const articles = [mockArticle];
       mockArticlesService.findAll.mockResolvedValue({
@@ -137,11 +155,7 @@ describe('PublicArticlesController', () => {
 
     it('should filter by search term', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-        search: 'technology',
-      };
+      const query = buildArticlesQuery({ search: 'technology' });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [mockArticle],
@@ -168,11 +182,7 @@ describe('PublicArticlesController', () => {
 
     it('should filter by category', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        category: ArticleCategory.POST,
-        limit: 10,
-        page: 1,
-      };
+      const query = buildArticlesQuery({ category: ArticleCategory.POST });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [mockArticle],
@@ -193,11 +203,7 @@ describe('PublicArticlesController', () => {
     it('should filter by tag through the Tag[] relation', async () => {
       const request = {} as Request;
       const tag = 'clz1a2b3c4d5e6f7g8h9i0j1n';
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-        tag,
-      };
+      const query = buildArticlesQuery({ tag });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [],
@@ -218,11 +224,7 @@ describe('PublicArticlesController', () => {
 
     it('should ignore a tag that is not a valid entity id', async () => {
       const request = {} as Request;
-      const query: ArticlesQueryDto = {
-        limit: 10,
-        page: 1,
-        tag: 'not-an-id',
-      };
+      const query = buildArticlesQuery({ tag: 'not-an-id' });
 
       mockArticlesService.findAll.mockResolvedValue({
         docs: [],
