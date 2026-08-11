@@ -1,6 +1,7 @@
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
+import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Mocked } from 'vitest';
 import {
@@ -188,7 +189,7 @@ describe('ClipGenerationService', () => {
         storageKey: 'ingredients/images/org-1/frame-1.jpg',
         timestampSeconds: 12.5,
       },
-    };
+    } satisfies ClipReferenceProvenance;
 
     await service.generateClips(
       makeInput({

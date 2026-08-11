@@ -13,6 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -187,7 +188,7 @@ describe('ClipResultsService', () => {
         storageKey: 'ingredients/images/org-1/frame-1.jpg',
         timestampSeconds: 12.5,
       },
-    };
+    } satisfies ClipReferenceProvenance;
 
     await service.createGenerated(
       {
