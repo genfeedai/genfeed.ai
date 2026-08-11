@@ -2,10 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import {
-  type StripeCustomer,
-  StripeService,
-} from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -23,6 +20,7 @@ import type {
   ISubscriptionOssReadModel,
   ISubscriptionsService,
 } from '@genfeedai/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -192,58 +190,38 @@ export class SubscriptionsService
   ): Promise<SubscriptionDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // Check if customer already exists for this organization
-    let customer = await this.customersService.findByOrganizationId(
-      organization.id.toString(),
-    );
-    const hasExistingCustomer = Boolean(customer);
-    let stripeCustomer: StripeCustomer | null;
+    const organizationId = organization.id.toString();
+    let hasExistingCustomer = false;
+    const customer = await this.customersService.provisionForOrganization(
+      organizationId,
+      async (currentStripeCustomerId) => {
+        hasExistingCustomer = Boolean(currentStripeCustomerId);
+        if (currentStripeCustomerId) {
+          this.logger.log(`${url} using existing customer`, {
+            organizationId,
+            stripeCustomerId: currentStripeCustomerId,
+          });
+          const existingStripeCustomer =
+            await this.stripeService.retrieveCustomer(currentStripeCustomerId);
+          if (existingStripeCustomer) {
+            return existingStripeCustomer.id;
+          }
+        }
 
-    if (customer) {
-      // Customer exists, retrieve from Stripe to ensure it's valid
-      this.logger.log(`${url} using existing customer`, {
-        customerId: customer.id,
-        organizationId: organization.id,
-        stripeCustomerId: customer.stripeCustomerId,
-      });
-
-      stripeCustomer = await this.stripeService.retrieveCustomer(
-        this.requireString(
-          customer.stripeCustomerId,
-          'Customer stripeCustomerId',
-        ),
-      );
-
-      if (!stripeCustomer) {
-        // Stripe customer doesn't exist, create new one and update our record
-        stripeCustomer = await this.stripeService.createOrganizationCustomer(
+        const created = await this.stripeService.createOrganizationCustomer(
           organization.label,
           billingEmail,
-          organization.id.toString(),
+          organizationId,
           userId,
+          currentStripeCustomerId,
         );
-
-        customer = await this.customersService.patch(customer.id.toString(), {
-          stripeCustomerId: stripeCustomer.id,
-        });
-      }
-    } else {
-      // No customer exists, create new one. `upsertForOrganization` converges
-      // on the org's single active customer row — a concurrent first checkout
-      // that wins the insert race just gets its row patched, never a second
-      // row (partial unique index `customers_organizationId_active_key`).
-      stripeCustomer = await this.stripeService.createOrganizationCustomer(
-        organization.label,
-        billingEmail,
-        organization.id.toString(),
-        userId,
-      );
-
-      customer = await this.customersService.upsertForOrganization(
-        organization.id.toString(),
-        stripeCustomer.id,
-      );
-    }
+        return created.id;
+      },
+    );
+    const stripeCustomerId = this.requireString(
+      customer.stripeCustomerId,
+      'Customer stripeCustomerId',
+    );
 
     const subscriptionData = {
       customerId: customer.id.toString(),
@@ -260,9 +238,14 @@ export class SubscriptionsService
     try {
       savedSubscription = await this.create(subscriptionData);
     } catch (error: unknown) {
-      const winner = await this.findByOrganizationId(
-        organization.id.toString(),
-      );
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== 'P2002'
+      ) {
+        throw error;
+      }
+
+      const winner = await this.findByOrganizationId(organizationId);
       if (!winner) {
         throw error;
       }
@@ -273,7 +256,7 @@ export class SubscriptionsService
       customerId: customer.id,
       existingCustomer: hasExistingCustomer,
       organizationId: organization.id,
-      stripeCustomerId: stripeCustomer.id,
+      stripeCustomerId,
       subscriptionId: savedSubscription.id,
     });
 

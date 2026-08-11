@@ -165,6 +165,61 @@ describe('StripeService — coverage spec', () => {
       expect(loggerMock.log).toHaveBeenCalled();
     });
 
+    it('uses one organization-generation key for concurrent members with different details', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.customers, 'create')
+        .mockResolvedValue(makeMockCustomer('cus_org') as Stripe.Customer);
+
+      await Promise.all([
+        service.createOrganizationCustomer(
+          'Acme Inc',
+          'owner@acme.com',
+          'org_1',
+          'user_owner',
+          null,
+        ),
+        service.createOrganizationCustomer(
+          'Acme Renamed',
+          'member@acme.com',
+          'org_1',
+          'user_member',
+          null,
+        ),
+      ]);
+
+      const firstKey = createSpy.mock.calls[0]?.[1]?.idempotencyKey;
+      const secondKey = createSpy.mock.calls[1]?.[1]?.idempotencyKey;
+      expect(firstKey).toBe(secondKey);
+    });
+
+    it('uses a new key when replacing a stale Stripe customer generation', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.customers, 'create')
+        .mockResolvedValue(
+          makeMockCustomer('cus_replacement') as Stripe.Customer,
+        );
+
+      await service.createOrganizationCustomer(
+        'Acme Inc',
+        'owner@acme.com',
+        'org_1',
+        'user_owner',
+        null,
+      );
+      await service.createOrganizationCustomer(
+        'Acme Inc',
+        'owner@acme.com',
+        'org_1',
+        'user_owner',
+        'cus_stale',
+      );
+
+      const initialKey = createSpy.mock.calls[0]?.[1]?.idempotencyKey;
+      const replacementKey = createSpy.mock.calls[1]?.[1]?.idempotencyKey;
+      expect(replacementKey).not.toBe(initialKey);
+      expect(replacementKey).toMatch(/^org-customer-org_1-[0-9a-f]{16}$/);
+    });
+
     it('re-throws and logs on Stripe error', async () => {
       const stripeError = new Error('Stripe unavailable');
       vi.spyOn(service.stripe.customers, 'create').mockRejectedValue(

@@ -15,9 +15,34 @@ describe('CustomersService.upsertForOrganization', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     };
+    let locked = false;
+    const cacheService = {
+      generateKey: vi.fn(
+        (namespace: string, ...parts: string[]) =>
+          `${namespace}:${parts.join(':')}`,
+      ),
+      withLock: vi.fn(
+        async (_key: string, callback: () => Promise<unknown>) => {
+          if (locked) {
+            return null;
+          }
+          locked = true;
+          try {
+            return await callback();
+          } finally {
+            locked = false;
+          }
+        },
+      ),
+    };
     return {
+      cacheService,
       customer,
-      service: new CustomersService({ customer } as never, logger as never),
+      service: new CustomersService(
+        { customer } as never,
+        logger as never,
+        cacheService as never,
+      ),
     };
   }
 
@@ -123,5 +148,47 @@ describe('CustomersService.upsertForOrganization', () => {
     await expect(
       service.upsertForOrganization('org_1', 'cus_new'),
     ).rejects.toThrow('db down');
+  });
+
+  it('serializes concurrent provisioning and reuses the winning Stripe customer', async () => {
+    const { customer, service } = makeService();
+    let persistedCustomer: {
+      id: string;
+      organizationId: string;
+      stripeCustomerId: string;
+    } | null = null;
+    customer.findFirst.mockImplementation(async () => persistedCustomer);
+    customer.create.mockImplementation(
+      async ({
+        data,
+      }: {
+        data: { organizationId: string; stripeCustomerId: string };
+      }) => {
+        persistedCustomer = { id: 'cust_row_1', ...data };
+        return persistedCustomer;
+      },
+    );
+    const createStripeCustomer = vi.fn(async (billingEmail: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return billingEmail === 'first@acme.test' ? 'cus_first' : 'cus_second';
+    });
+
+    const [first, second] = await Promise.all([
+      service.provisionForOrganization(
+        'org_1',
+        async (current) =>
+          current ?? (await createStripeCustomer('first@acme.test')),
+      ),
+      service.provisionForOrganization(
+        'org_1',
+        async (current) =>
+          current ?? (await createStripeCustomer('second@acme.test')),
+      ),
+    ]);
+
+    expect(createStripeCustomer).toHaveBeenCalledTimes(1);
+    expect(first.stripeCustomerId).toBe('cus_first');
+    expect(second.stripeCustomerId).toBe('cus_first');
+    expect(customer.create).toHaveBeenCalledTimes(1);
   });
 });

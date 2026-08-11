@@ -6,10 +6,10 @@
 -- the org's `customers` row authoritative; this migration makes the invariant
 -- structural and repairs any rows the bug left behind.
 --
--- 1) Dedupe active `customers` rows per organization: keep the row that live
---    subscriptions reference (else the newest), soft-delete the rest.
--- 2) Dedupe active `subscriptions` rows per organization: keep the row bound
+-- 1) Dedupe active `subscriptions` rows per organization: keep the row bound
 --    to a Stripe subscription (else the newest), soft-delete the rest.
+-- 2) Dedupe active `customers` rows per organization: keep the row that the
+--    retained subscription references (else the newest), soft-delete the rest.
 -- 3) Enforce both invariants with partial unique indexes. Partial predicates
 --    cannot be represented in schema.prisma — same pattern as
 --    20260804231500_canonicalize_model_registry.
@@ -20,6 +20,29 @@
 --    clobbered on each managed checkout, and the user-level billing portal
 --    would open an org customer. The consumer flow lazily re-creates a proper
 --    `type: 'user'` customer on next use.
+
+WITH ranked_subscriptions AS (
+  SELECT
+    s."id",
+    ROW_NUMBER() OVER (
+      PARTITION BY s."organizationId"
+      ORDER BY
+        (s."stripeSubscriptionId" IS NOT NULL) DESC,
+        s."updatedAt" DESC,
+        s."id" DESC
+    ) AS rank
+  FROM "subscriptions" s
+  WHERE s."isDeleted" = false
+)
+UPDATE "subscriptions"
+SET "isDeleted" = true, "updatedAt" = now()
+FROM ranked_subscriptions
+WHERE "subscriptions"."id" = ranked_subscriptions."id"
+  AND ranked_subscriptions.rank > 1;
+
+CREATE UNIQUE INDEX "subscriptions_organizationId_active_key"
+ON "subscriptions"("organizationId")
+WHERE "isDeleted" = false;
 
 WITH ranked_customers AS (
   SELECT
@@ -45,29 +68,6 @@ WHERE "customers"."id" = ranked_customers."id" AND ranked_customers.rank > 1;
 
 CREATE UNIQUE INDEX "customers_organizationId_active_key"
 ON "customers"("organizationId")
-WHERE "isDeleted" = false;
-
-WITH ranked_subscriptions AS (
-  SELECT
-    s."id",
-    ROW_NUMBER() OVER (
-      PARTITION BY s."organizationId"
-      ORDER BY
-        (s."stripeSubscriptionId" IS NOT NULL) DESC,
-        s."updatedAt" DESC,
-        s."id" DESC
-    ) AS rank
-  FROM "subscriptions" s
-  WHERE s."isDeleted" = false
-)
-UPDATE "subscriptions"
-SET "isDeleted" = true, "updatedAt" = now()
-FROM ranked_subscriptions
-WHERE "subscriptions"."id" = ranked_subscriptions."id"
-  AND ranked_subscriptions.rank > 1;
-
-CREATE UNIQUE INDEX "subscriptions_organizationId_active_key"
-ON "subscriptions"("organizationId")
 WHERE "isDeleted" = false;
 
 UPDATE "users"

@@ -9,6 +9,7 @@ import type {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -104,6 +105,7 @@ describe('SubscriptionsService', () => {
     findByOrganizationId: MockFn;
     findByStripeCustomerId: MockFn;
     patch: MockFn;
+    provisionForOrganization: MockFn;
     upsertForOrganization: MockFn;
   };
   let creditsUtilsService: { resetOrganizationCredits: MockFn };
@@ -129,6 +131,30 @@ describe('SubscriptionsService', () => {
       findByOrganizationId: vi.fn().mockResolvedValue(null),
       findByStripeCustomerId: vi.fn().mockResolvedValue(null),
       patch: vi.fn(),
+      provisionForOrganization: vi.fn(
+        async (
+          organizationId: string,
+          provision: (current: string | null) => Promise<string>,
+        ) => {
+          const current =
+            await customersService.findByOrganizationId(organizationId);
+          const stripeCustomerId = await provision(
+            current?.stripeCustomerId ?? null,
+          );
+          if (current) {
+            if (current.stripeCustomerId === stripeCustomerId) {
+              return current;
+            }
+            return await customersService.patch(String(current.id), {
+              stripeCustomerId,
+            });
+          }
+          return await customersService.upsertForOrganization(
+            organizationId,
+            stripeCustomerId,
+          );
+        },
+      ),
       upsertForOrganization: vi.fn(),
     };
     creditsUtilsService = { resetOrganizationCredits: vi.fn() };
@@ -274,6 +300,7 @@ describe('SubscriptionsService', () => {
         'billing@acme.test',
         ORGANIZATION_ID,
         'user_1',
+        null,
       );
       expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
         ORGANIZATION_ID,
@@ -381,20 +408,33 @@ describe('SubscriptionsService', () => {
       expect(stripeService.createOrganizationCustomer).toHaveBeenCalledTimes(1);
     });
 
-    it('rejects an existing customer row that carries no Stripe customer id', async () => {
+    it('provisions an existing customer row that carries no Stripe customer id', async () => {
       customersService.findByOrganizationId.mockResolvedValue({
         id: 'cust_row_1',
         stripeCustomerId: null,
       });
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.patch.mockResolvedValue({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockResolvedValue(buildSubscription());
 
-      await expect(
-        service.createForOrganization(
-          organization,
-          'billing@acme.test',
-          'user_1',
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(subscriptionDelegate.create).not.toHaveBeenCalled();
+      await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledWith(
+        'Acme Inc',
+        'billing@acme.test',
+        ORGANIZATION_ID,
+        'user_1',
+        null,
+      );
     });
 
     it('returns the winning row when a concurrent checkout wins the subscription insert race', async () => {
@@ -410,7 +450,10 @@ describe('SubscriptionsService', () => {
         stripeCustomerId: 'cus_new',
       });
       subscriptionDelegate.create.mockRejectedValue(
-        new Error('Unique constraint failed'),
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          clientVersion: 'test',
+          code: 'P2002',
+        }),
       );
       subscriptionDelegate.findFirst.mockResolvedValue(
         buildSubscription({ id: 'sub_winner' }),
@@ -428,7 +471,7 @@ describe('SubscriptionsService', () => {
       expect(result.id).toBe('sub_winner');
     });
 
-    it('rethrows the subscription insert failure when no winning row exists', async () => {
+    it('rethrows a non-P2002 subscription insert failure even when a row exists', async () => {
       customersService.findByOrganizationId.mockResolvedValue(null);
       stripeService.createOrganizationCustomer.mockResolvedValue({
         id: 'cus_new',
@@ -438,7 +481,9 @@ describe('SubscriptionsService', () => {
         stripeCustomerId: 'cus_new',
       });
       subscriptionDelegate.create.mockRejectedValue(new Error('db down'));
-      subscriptionDelegate.findFirst.mockResolvedValue(null);
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ id: 'unrelated_existing_row' }),
+      );
 
       await expect(
         service.createForOrganization(

@@ -65,6 +65,7 @@ describe('StripeController', () => {
   };
   let customersService: {
     findByOrganizationId: ReturnType<typeof vi.fn>;
+    provisionForOrganization: ReturnType<typeof vi.fn>;
     upsertForOrganization: ReturnType<typeof vi.fn>;
   };
 
@@ -126,8 +127,32 @@ describe('StripeController', () => {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
     };
     customersService = {
-      findByOrganizationId: vi.fn().mockResolvedValue(null),
-      upsertForOrganization: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
+      findByOrganizationId: vi.fn().mockResolvedValue({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_test123',
+      }),
+      provisionForOrganization: vi.fn(
+        async (
+          organizationId: string,
+          provision: (current: string | null) => Promise<string>,
+        ) => {
+          const current =
+            await customersService.findByOrganizationId(organizationId);
+          const stripeCustomerId = await provision(
+            current?.stripeCustomerId ?? null,
+          );
+          return await customersService.upsertForOrganization(
+            organizationId,
+            stripeCustomerId,
+          );
+        },
+      ),
+      upsertForOrganization: vi.fn(
+        async (_organizationId: string, stripeCustomerId: string) => ({
+          id: 'cust_row_1',
+          stripeCustomerId,
+        }),
+      ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -265,6 +290,10 @@ describe('StripeController', () => {
         id: 'test-object-id',
         stripeCustomerId: 'cus_stale',
       });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_old',
+        stripeCustomerId: 'cus_stale',
+      });
       stripeService.retrieveCustomer.mockResolvedValueOnce(null);
       organizationsService.findOne.mockResolvedValueOnce({
         id: orgId,
@@ -280,6 +309,13 @@ describe('StripeController', () => {
       expect(customersService.upsertForOrganization).toHaveBeenCalledWith(
         orgId,
         'cus_recreated',
+      );
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledWith(
+        'Acme Inc',
+        'test@example.com',
+        orgId,
+        userId,
+        'cus_stale',
       );
       expect(subscriptionsService.patch).toHaveBeenCalledWith(
         'test-object-id',
@@ -333,6 +369,25 @@ describe('StripeController', () => {
   });
 
   describe('createSetupCheckout', () => {
+    it('prefers the organization customer row over a conflicting subscription projection', async () => {
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce({
+        ...mockSubscription,
+        stripeCustomerId: 'cus_stale_projection',
+      });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_authoritative',
+      });
+
+      await controller.createSetupCheckout(mockUser, mockRequest);
+
+      expect(stripeService.createSetupCheckoutSession).toHaveBeenCalledWith(
+        'cus_authoritative',
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
     it('should create a setup checkout session', async () => {
       const result = await controller.createSetupCheckout(
         mockUser,

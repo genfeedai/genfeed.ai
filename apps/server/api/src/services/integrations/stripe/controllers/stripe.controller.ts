@@ -62,14 +62,14 @@ export class StripeController {
     organizationId: string,
     subscription: { stripeCustomerId?: string | null },
   ): Promise<string | null> {
-    if (subscription.stripeCustomerId) {
-      return subscription.stripeCustomerId;
-    }
-
     const organizationCustomer =
       await this.customersService.findByOrganizationId(organizationId);
 
-    return organizationCustomer?.stripeCustomerId ?? null;
+    if (organizationCustomer) {
+      return organizationCustomer.stripeCustomerId ?? null;
+    }
+
+    return subscription.stripeCustomerId ?? null;
   }
 
   @Post('checkout')
@@ -144,48 +144,50 @@ export class StripeController {
 
       // Stale stripeCustomerId from another Stripe account (e.g. Vitae / old
       // local key) must be recreated on the active Genfeed account.
-      let stripeCustomerId = await this.resolveOrgStripeCustomerId(
+      let replacedStripeCustomerId: string | null = null;
+      const customer = await this.customersService.provisionForOrganization(
         publicMetadata.organization,
-        subscription,
-      );
+        async (currentStripeCustomerId) => {
+          const liveCustomer = currentStripeCustomerId
+            ? await this.stripeService.retrieveCustomer(currentStripeCustomerId)
+            : null;
+          if (liveCustomer) {
+            return liveCustomer.id;
+          }
 
-      const liveCustomer = stripeCustomerId
-        ? await this.stripeService.retrieveCustomer(stripeCustomerId)
-        : null;
-      if (!liveCustomer) {
-        const organization = await this.organizationsService.findOne({
-          id: publicMetadata.organization,
-          isDeleted: false,
-        });
-        if (!organization) {
-          return returnNotFound('Organization', publicMetadata.organization);
-        }
-
-        const recreated = await this.stripeService.createOrganizationCustomer(
-          organization.label,
-          email,
-          organization.id.toString(),
-          dbUser.id.toString(),
-        );
-        stripeCustomerId = recreated.id;
-
-        // Rebind the org's single customer row (never insert a second one)
-        // and repoint the subscription if it referenced a different row.
-        const customer = await this.customersService.upsertForOrganization(
-          organization.id.toString(),
-          stripeCustomerId,
-        );
-        if (subscription.customerId !== String(customer.id)) {
-          await this.subscriptionsService.patch(subscription.id, {
-            customerId: String(customer.id),
+          const organization = await this.organizationsService.findOne({
+            id: publicMetadata.organization,
+            isDeleted: false,
           });
-        }
+          if (!organization) {
+            return returnNotFound('Organization', publicMetadata.organization);
+          }
 
+          replacedStripeCustomerId = currentStripeCustomerId;
+          const recreated = await this.stripeService.createOrganizationCustomer(
+            organization.label,
+            email,
+            organization.id.toString(),
+            dbUser.id.toString(),
+            currentStripeCustomerId,
+          );
+          return recreated.id;
+        },
+      );
+      const stripeCustomerId = customer.stripeCustomerId;
+
+      if (subscription.customerId !== String(customer.id)) {
+        await this.subscriptionsService.patch(subscription.id, {
+          customerId: String(customer.id),
+        });
+      }
+
+      if (replacedStripeCustomerId !== null) {
         this.loggerService.warn(
           `${url} recreated missing Stripe customer for org checkout`,
           {
             organizationId: publicMetadata.organization,
-            previousStripeCustomerId: subscription.stripeCustomerId,
+            previousStripeCustomerId: replacedStripeCustomerId,
             stripeCustomerId,
           },
         );

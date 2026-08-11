@@ -102,12 +102,7 @@ export class StripeService {
     }
   }
 
-  /**
-   * Owner-scoped idempotency key: two concurrent creates for the same owner
-   * with the same params collapse into ONE Stripe customer (Stripe replays the
-   * first response for 24h), while a later legitimate re-create with changed
-   * params gets a fresh key instead of Stripe's idempotency-conflict 400.
-   */
+  /** Owner-and-input-scoped idempotency key for consumer customer creation. */
   private buildCustomerIdempotencyKey(
     ownerKey: string,
     params: Record<string, string | undefined>,
@@ -125,6 +120,7 @@ export class StripeService {
     billingEmail: string,
     organizationId: string,
     userId: string,
+    replacesStripeCustomerId?: string | null,
   ): Promise<StripeCustomer> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -142,7 +138,9 @@ export class StripeService {
         {
           idempotencyKey: this.buildCustomerIdempotencyKey(
             `org-customer-${organizationId}`,
-            { billingEmail, organizationName, userId },
+            {
+              generation: replacesStripeCustomerId ?? 'initial',
+            },
           ),
         },
       );
