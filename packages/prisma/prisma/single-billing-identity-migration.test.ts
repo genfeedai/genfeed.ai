@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SQL } from 'bun';
+import { Pool } from 'pg';
 import { describe, expect, it } from 'vitest';
 
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
@@ -70,16 +70,15 @@ const describePostgres = databaseUrl ? describe : describe.skip;
 
 describePostgres('single billing identity migration on PostgreSQL', () => {
   it('keeps the Stripe-bound subscription and its customer as a coupled pair', async () => {
-    const sql = new SQL(databaseUrl as string, { max: 1 });
+    const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+    const client = await pool.connect();
     const schemaName = `billing_migration_${process.pid}_${Date.now()}`;
 
     try {
-      await sql.begin(async (transaction) => {
-        await transaction.unsafe(`CREATE SCHEMA "${schemaName}"`);
-        await transaction.unsafe(
-          `SET LOCAL search_path TO "${schemaName}", public`,
-        );
-        await transaction.unsafe(`
+      await client.query(`CREATE SCHEMA "${schemaName}"`);
+      await client.query('BEGIN');
+      await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
+      await client.query(`
           CREATE TABLE "customers" (
             "id" text PRIMARY KEY,
             "organizationId" text NOT NULL,
@@ -107,57 +106,59 @@ describePostgres('single billing identity migration on PostgreSQL', () => {
             ('subscription_stripe_bound', 'org_1', 'customer_stripe_bound', 'sub_live', false, '2026-08-10'),
             ('subscription_newer', 'org_1', 'customer_newer', NULL, false, '2026-08-11');
           INSERT INTO "users" VALUES ('user_1', 'cus_bound');
-        `);
+      `);
 
-        await transaction.unsafe(migrationSource);
+      await client.query(migrationSource);
 
-        const subscriptions = await transaction.unsafe<
-          Array<{ customerId: string; id: string; isDeleted: boolean }>
-        >(`
+      const subscriptions = await client.query<{
+        customerId: string;
+        id: string;
+        isDeleted: boolean;
+      }>(`
           SELECT "id", "customerId", "isDeleted"
           FROM "subscriptions"
           ORDER BY "id"
-        `);
-        const customers = await transaction.unsafe<
-          Array<{
-            id: string;
-            isDeleted: boolean;
-            stripeCustomerId: string | null;
-          }>
-        >(`
+      `);
+      const customers = await client.query<{
+        id: string;
+        isDeleted: boolean;
+        stripeCustomerId: string | null;
+      }>(`
           SELECT "id", "stripeCustomerId", "isDeleted"
           FROM "customers"
           ORDER BY "id"
-        `);
+      `);
 
-        expect(subscriptions).toEqual([
-          {
-            customerId: 'customer_newer',
-            id: 'subscription_newer',
-            isDeleted: true,
-          },
-          {
-            customerId: 'customer_stripe_bound',
-            id: 'subscription_stripe_bound',
-            isDeleted: false,
-          },
-        ]);
-        expect(customers).toEqual([
-          {
-            id: 'customer_newer',
-            isDeleted: true,
-            stripeCustomerId: 'cus_newer',
-          },
-          {
-            id: 'customer_stripe_bound',
-            isDeleted: false,
-            stripeCustomerId: 'cus_bound',
-          },
-        ]);
-      });
+      expect(subscriptions.rows).toEqual([
+        {
+          customerId: 'customer_newer',
+          id: 'subscription_newer',
+          isDeleted: true,
+        },
+        {
+          customerId: 'customer_stripe_bound',
+          id: 'subscription_stripe_bound',
+          isDeleted: false,
+        },
+      ]);
+      expect(customers.rows).toEqual([
+        {
+          id: 'customer_newer',
+          isDeleted: true,
+          stripeCustomerId: 'cus_newer',
+        },
+        {
+          id: 'customer_stripe_bound',
+          isDeleted: false,
+          stripeCustomerId: 'cus_bound',
+        },
+      ]);
+      await client.query('COMMIT');
     } finally {
-      await sql.unsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
-      await sql.close();
+      await client.query('ROLLBACK');
+      await client.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+      client.release();
+      await pool.end();
     }
   });
 });
