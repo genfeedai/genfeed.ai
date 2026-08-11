@@ -193,8 +193,14 @@ export type { AgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboar
 export { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
 export type { AgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 export { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
+export type { StableTimelineEntriesState } from '@genfeedai/agent/utils/compute-stable-timeline-entries';
+export {
+  computeStableTimelineEntries,
+  EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+} from '@genfeedai/agent/utils/compute-stable-timeline-entries';
 export type {
   EnrichedWorkEvent,
+  HistoricalTimeline,
   TimelineAssistantMessage,
   TimelineEntry,
   TimelineStreaming,
@@ -202,7 +208,11 @@ export type {
   TimelineWorkGroup as TimelineWorkGroupEntry,
 } from '@genfeedai/agent/utils/derive-timeline';
 // Utils
-export { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
+export {
+  composeTimelineWithStream,
+  deriveHistoricalTimeline,
+  deriveTimeline,
+} from '@genfeedai/agent/utils/derive-timeline';
 export { formatDuration } from '@genfeedai/agent/utils/format-duration';
 export { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 export type {

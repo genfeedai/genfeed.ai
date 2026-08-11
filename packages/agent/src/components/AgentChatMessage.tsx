@@ -17,7 +17,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { memo, type ReactElement, useCallback, useMemo, useState } from 'react';
 
 // Re-export for consumers that import UiActionRenderer from this module
 export { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
@@ -76,7 +76,7 @@ function formatTime(dateStr: string): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function AgentChatMessage({
+function AgentChatMessageInner({
   message,
   messageIndex = 0,
   apiService,
@@ -222,6 +222,14 @@ export function AgentChatMessage({
     },
     [onUiAction],
   );
+  // Stabilize the entrance-animation delay object so `React.memo` sees a
+  // reference-equal `style` prop across re-renders where `messageIndex`
+  // hasn't changed — an inline `{ animationDelay: ... }` literal would defeat
+  // memoization on every render regardless of prop equality elsewhere.
+  const entranceAnimationStyle = useMemo(
+    () => ({ animationDelay: `${Math.min(messageIndex * 25, 150)}ms` }),
+    [messageIndex],
+  );
 
   return (
     <div
@@ -230,9 +238,7 @@ export function AgentChatMessage({
         'mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
         isUser ? 'justify-end' : 'justify-start',
       )}
-      style={{
-        animationDelay: `${Math.min(messageIndex * 25, 150)}ms`,
-      }}
+      style={entranceAnimationStyle}
     >
       <div
         data-message-role={message.role}
@@ -392,3 +398,5 @@ export function AgentChatMessage({
     </div>
   );
 }
+
+export const AgentChatMessage = memo(AgentChatMessageInner);

@@ -373,6 +373,87 @@ function deriveLatestProposedPlanFromMessages(
   return null;
 }
 
+// A `requestAnimationFrame` per streamed token forces every historical
+// timeline row to re-render/re-parse markdown dozens of times a second
+// (#2517). rAF is throttled/paused on a hidden tab, so it is raced against
+// this timer fallback rather than used alone. Whichever fires first flushes
+// the buffer and cancels the other.
+const STREAM_TOKEN_FLUSH_FALLBACK_MS = 50;
+
+/**
+ * Schedules `flush` to run once, via `requestAnimationFrame` (when available
+ * — jsdom test environments do not polyfill it) raced against a `setTimeout`
+ * fallback. Returns a cancel function that guarantees `flush` never runs
+ * after it is called, even if a callback is already queued.
+ */
+function schedulePendingStreamFlush(flush: () => void): () => void {
+  let hasRun = false;
+  let rafHandle: number | null = null;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  const runOnce = () => {
+    if (hasRun) {
+      return;
+    }
+    hasRun = true;
+    flush();
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    rafHandle = requestAnimationFrame(runOnce);
+  }
+  timeoutHandle = setTimeout(runOnce, STREAM_TOKEN_FLUSH_FALLBACK_MS);
+
+  return () => {
+    hasRun = true;
+    if (rafHandle !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(rafHandle);
+    }
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
+  };
+}
+
+// Closure-scoped, non-reactive token buffer — deliberately outside the
+// Zustand state tree. Tokens accumulate here between animation frames and are
+// joined into a single `setState()` call on flush, so a fast stream no
+// longer forces a state write (and therefore a timeline re-render) per
+// token. `useAgentChatStore` is referenced lazily (only once these functions
+// actually run) rather than destructuring `set`/`get` from the store
+// factory, so this buffering logic never has to touch the factory's large
+// object-literal body. The final assistant message is server-authoritative
+// (`payload.fullContent` in agent-chat-stream.subscriptions.ts) — this
+// buffer only ever affects the live-typing display, never the persisted
+// message, so discarding it on reset is safe.
+let pendingStreamTokens: string[] = [];
+let cancelPendingStreamFlush: (() => void) | null = null;
+
+function flushPendingStreamTokens(): void {
+  cancelPendingStreamFlush = null;
+  if (pendingStreamTokens.length === 0) {
+    return;
+  }
+  const chunk = pendingStreamTokens.join('');
+  pendingStreamTokens = [];
+  useAgentChatStore.setState((state) => ({
+    stream: {
+      ...state.stream,
+      streamingContent: state.stream.streamingContent + chunk,
+    },
+  }));
+}
+
+// Called from every `stream` reset path so a flush already in flight cannot
+// land after the reset and resurrect stale streaming content.
+function discardPendingStreamTokens(): void {
+  pendingStreamTokens = [];
+  if (cancelPendingStreamFlush) {
+    cancelPendingStreamFlush();
+    cancelPendingStreamFlush = null;
+  }
+}
+
 export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   activeRunId: null,
   activeRunStatus: 'idle',
@@ -478,13 +559,14 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
       return { workEvents: next };
     }),
-  appendStreamToken: (token) =>
-    set((state) => ({
-      stream: {
-        ...state.stream,
-        streamingContent: state.stream.streamingContent + token,
-      },
-    })),
+  appendStreamToken: (token) => {
+    pendingStreamTokens.push(token);
+    if (!cancelPendingStreamFlush) {
+      cancelPendingStreamFlush = schedulePendingStreamFlush(
+        flushPendingStreamTokens,
+      );
+    }
+  },
   beginOverlaySession: (overlayId) =>
     set((state) => {
       if (state.overlayActiveIds.includes(overlayId)) {
@@ -601,7 +683,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     }),
   error: null,
-  finalizeStream: (message) =>
+  finalizeStream: (message) => {
+    // The assistant message below is server-authoritative
+    // (`payload.fullContent` in agent-chat-stream.subscriptions.ts), never the
+    // locally buffered `streamingContent` — a stale in-flight flush landing
+    // after this must not resurrect pre-finalize streaming text (#2517).
+    discardPendingStreamTokens();
     set((state) => {
       const mergedUiActions = [
         ...(message.metadata?.uiActions ?? []),
@@ -652,7 +739,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         stream: { ...DEFAULT_STREAM_STATE },
         workEvents: [],
       };
-    }),
+    });
+  },
   isGenerating: false,
   isOpen: readPanelPreference(),
   latestProposedPlan: null,
@@ -673,7 +761,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     set((state) => ({
       memoryEntries: state.memoryEntries.filter((item) => item.id !== entryId),
     })),
-  resetActiveConversationState: () =>
+  resetActiveConversationState: () => {
+    discardPendingStreamTokens();
     set({
       activeRunId: null,
       activeRunStatus: 'idle',
@@ -686,14 +775,17 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       stream: { ...DEFAULT_STREAM_STATE },
       threadUiBusyById: {},
       workEvents: [],
-    }),
-  resetStreamState: () =>
+    });
+  },
+  resetStreamState: () => {
+    discardPendingStreamTokens();
     set((state) => ({
       activeRunStatus:
         state.activeRunStatus === 'cancelling' ? 'cancelling' : 'idle',
       stream: { ...DEFAULT_STREAM_STATE },
       workEvents: [],
-    })),
+    }));
+  },
   restoreCachedConversation: (threadId) => {
     const cached = get().conversationCacheByThread[threadId];
 
@@ -703,6 +795,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
 
     // Mirrors resetActiveConversationState for everything the cache does not
     // carry, so no run/stream state leaks across from the thread being left.
+    discardPendingStreamTokens();
     set({
       activeRunId: null,
       activeRunStatus: 'idle',
