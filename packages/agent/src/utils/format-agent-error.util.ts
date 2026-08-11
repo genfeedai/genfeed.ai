@@ -124,7 +124,13 @@ function scrubSecrets(text: string): string {
 
 function extractSafeContext(text: string): string | null {
   const lines = text.split(/\r?\n/).map((line) => line.trim());
-  const failedAt = lines.find((line) => /^Failed at:\s*[^\r\n]+$/i.test(line));
+  // `\s*[^\r\n]+` overlaps on spaces, so a line of nothing but padding forced
+  // the engine to retry every split of it. Requiring a non-space after the
+  // optional padding makes the two classes disjoint; lines are trimmed above,
+  // so a padding-only tail could never have satisfied the old form either.
+  const failedAt = lines.find((line) =>
+    /^Failed at:[^\S\r\n]*\S[^\r\n]*$/i.test(line),
+  );
   if (!failedAt) {
     return null;
   }

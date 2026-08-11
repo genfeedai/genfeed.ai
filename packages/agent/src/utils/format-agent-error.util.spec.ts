@@ -83,6 +83,32 @@ describe('formatAgentError', () => {
     ).toBe('Data save failed');
   });
 
+  it('still extracts a Failed at: context line as safe detail', () => {
+    const formatted = formatAgentError(
+      ['rate limit exceeded', 'Failed at: generate_image', ''].join('\n'),
+    );
+
+    expect(formatted.detail).toBe('Failed at: generate_image');
+  });
+
+  it('ignores a Failed at: line with nothing after the label', () => {
+    expect(
+      formatAgentError(['rate limit exceeded', 'Failed at:'].join('\n')).detail,
+    ).toBeNull();
+  });
+
+  it('scans a padding-only Failed at: line in linear time', () => {
+    // `\s*[^\r\n]+` overlapped on spaces, so a line of pure padding forced the
+    // engine to retry every split of it. Budget is generous — the old form took
+    // seconds on this input, the new one is sub-millisecond.
+    const started = performance.now();
+    formatAgentError(
+      ['rate limit exceeded', `Failed at:${' '.repeat(40_000)}`].join('\n'),
+    );
+
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {
     expect(formatAgentError('prompt used 512 tokens').title).not.toBe(
       'Provider temporarily unavailable',
