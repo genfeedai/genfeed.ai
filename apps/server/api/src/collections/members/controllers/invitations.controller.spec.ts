@@ -1,6 +1,6 @@
 import { InvitationsController } from '@api/collections/members/controllers/invitations.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
-import { BadRequestException } from '@nestjs/common';
+import { GoneException } from '@nestjs/common';
 import type { Response } from 'express';
 
 const acceptResult = {
@@ -14,6 +14,7 @@ const acceptResult = {
     organizationId: 'org_123',
     revokedAt: null,
     roleId: 'role_user',
+    roleKey: 'user',
     status: 'accepted' as const,
     updatedAt: new Date('2026-06-23T12:00:00.000Z'),
   },
@@ -25,6 +26,9 @@ const acceptResult = {
 
 const invitationService = {
   acceptInvitation: vi.fn(),
+  resolveInvitationOutcomeRedirectUrl: vi.fn(
+    (outcome: string) => `https://app.test/login?invitation=${outcome}`,
+  ),
 } as unknown as InvitationService;
 
 function buildController() {
@@ -56,14 +60,38 @@ describe('InvitationsController', () => {
     );
   });
 
-  it('rejects blank tokens before redirecting', async () => {
+  it('redirects blank tokens to a recoverable invalid state', async () => {
     const controller = buildController();
     const response = { redirect: vi.fn() } as unknown as Response;
 
-    await expect(
-      controller.acceptInvitationRedirect('   ', response),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await controller.acceptInvitationRedirect('   ', response);
+
     expect(invitationService.acceptInvitation).not.toHaveBeenCalled();
-    expect(response.redirect).not.toHaveBeenCalled();
+    expect(response.redirect).toHaveBeenCalledWith(
+      303,
+      'https://app.test/login?invitation=invalid',
+    );
   });
+
+  it.each([
+    ['Invitation has already been accepted', 'already-accepted'],
+    ['Invitation has expired', 'expired'],
+    ['Invitation has been revoked', 'revoked'],
+  ])(
+    'redirects %s errors to the %s recovery state',
+    async (message, outcome) => {
+      const controller = buildController();
+      const response = { redirect: vi.fn() } as unknown as Response;
+      vi.mocked(invitationService.acceptInvitation).mockRejectedValue(
+        new GoneException(message),
+      );
+
+      await controller.acceptInvitationRedirect('token-123', response);
+
+      expect(response.redirect).toHaveBeenCalledWith(
+        303,
+        `https://app.test/login?invitation=${outcome}`,
+      );
+    },
+  );
 });

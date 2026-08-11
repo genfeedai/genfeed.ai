@@ -27,6 +27,7 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { MemberRole } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -258,15 +259,10 @@ describe('OrganizationsMembersController', () => {
 
     it('should invite a member to organization', async () => {
       mockOrganizationsService.findOne.mockResolvedValue(mockOrganization);
-      mockUsersService.findOne.mockResolvedValue(null);
-      mockRolesService.findOne.mockResolvedValue({
-        id: '507f1f77bcf86cd799439014',
-        key: 'user',
-      });
-      mockMembersService.create.mockResolvedValue(mockMember);
       mockInvitationService.createInvitation.mockResolvedValue({
+        email: inviteDto.email,
         id: 'inv_123',
-        status: 'pending',
+        status: 'delivered',
       });
 
       const request = {
@@ -290,10 +286,29 @@ describe('OrganizationsMembersController', () => {
           email: inviteDto.email,
           invitedByUserId: '507f1f77bcf86cd799439012',
           organizationId: '507f1f77bcf86cd799439013',
-          roleId: '507f1f77bcf86cd799439014',
+          roleId: undefined,
         }),
       );
-      expect(result).toBeDefined();
+      expect(mockUsersService.findOne).not.toHaveBeenCalled();
+      expect(mockUsersService.create).not.toHaveBeenCalled();
+      expect(mockMembersService.create).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        email: inviteDto.email,
+        id: 'inv_123',
+        status: 'delivered',
+      });
+      expect(JSON.stringify(mockLoggerService.log.mock.calls)).not.toContain(
+        inviteDto.email,
+      );
+    });
+
+    it('restricts member invitations to organization owners and admins', () => {
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          OrganizationsMembersController.prototype.inviteMember,
+        ),
+      ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
     });
   });
 

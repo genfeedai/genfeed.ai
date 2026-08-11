@@ -235,7 +235,9 @@ describe('InvitationService', () => {
         label: 'Acme',
       });
       prisma.user.findFirst.mockResolvedValue(null);
-      prisma.invitation.updateMany.mockResolvedValue({ count: 0 });
+      prisma.invitation.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
       prisma.invitation.create.mockImplementation((args: unknown) => {
         const data = (args as { data: Partial<InvitationRow> }).data;
         return Promise.resolve(makeInvitation(data));
@@ -279,7 +281,7 @@ describe('InvitationService', () => {
         email: 'new@example.com',
         organizationId: orgId,
         roleId,
-        status: 'pending',
+        status: 'delivered',
       });
     });
 
@@ -315,7 +317,9 @@ describe('InvitationService', () => {
         label: 'Acme',
       });
       prisma.user.findFirst.mockResolvedValue(null);
-      prisma.invitation.updateMany.mockResolvedValue({ count: 0 });
+      prisma.invitation.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
       prisma.invitation.create.mockImplementation((args: unknown) => {
         const data = (args as { data: Partial<InvitationRow> }).data;
         return Promise.resolve(makeInvitation(data));
@@ -333,7 +337,7 @@ describe('InvitationService', () => {
         organizationId: orgId,
       });
 
-      expect(result.status).toBe('pending');
+      expect(result.status).toBe('delivery-failed');
       expect(errorLog).toHaveBeenCalledWith(
         'Failed to send invitation email',
         deliveryError,
@@ -348,6 +352,19 @@ describe('InvitationService', () => {
         'invitee@example.com',
       );
       expect(JSON.stringify(errorLog.mock.calls)).not.toContain('invitee');
+      expect(prisma.invitation.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          status: 'delivery-failed',
+          updatedAt: now,
+        },
+        where: {
+          acceptedAt: null,
+          id: 'inv_123',
+          isDeleted: false,
+          revokedAt: null,
+          tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        },
+      });
     });
   });
 
@@ -366,6 +383,7 @@ describe('InvitationService', () => {
           isDeleted: false,
           organizationId: orgId,
           revokedAt: null,
+          status: 'pending',
         },
       });
       expect(result).toEqual([
@@ -403,7 +421,7 @@ describe('InvitationService', () => {
       const result = await service.revokeInvitation('inv_123', orgId);
 
       expect(prisma.invitation.update).toHaveBeenCalledWith({
-        data: { isDeleted: true, revokedAt: now, status: 'canceled' },
+        data: { revokedAt: now, status: 'canceled' },
         where: { id: 'inv_123' },
       });
       expect(result.status).toBe('revoked');
@@ -416,6 +434,84 @@ describe('InvitationService', () => {
       await expect(
         service.revokeInvitation('missing', orgId),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('resendInvitation', () => {
+    it('rotates delivery on the same invitation record', async () => {
+      const { notificationsService, prisma, service } = buildService();
+      prisma.invitation.findFirst.mockResolvedValue(
+        makeInvitation({ status: 'delivery-failed' }),
+      );
+      prisma.organization.findFirst.mockResolvedValue({
+        id: orgId,
+        label: 'Acme',
+      });
+      prisma.invitation.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 });
+
+      const result = await service.resendInvitation({
+        invitationId: 'inv_123',
+        invitedByUserId: 'user_admin',
+        organizationId: orgId,
+      });
+
+      expect(result).toMatchObject({
+        id: 'inv_123',
+        invitedByUserId: 'user_admin',
+        status: 'delivered',
+      });
+      expect(prisma.invitation.create).not.toHaveBeenCalled();
+      expect(notificationsService.sendEmail).toHaveBeenCalledOnce();
+      expect(prisma.invitation.updateMany).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            invitedByUserId: 'user_admin',
+            status: 'pending',
+          }),
+          where: expect.objectContaining({
+            id: 'inv_123',
+            tokenHash: hashToken('token-123'),
+          }),
+        }),
+      );
+    });
+
+    it('restores the prior token and marks delivery failed when retry transport fails', async () => {
+      const { notificationsService, prisma, service } = buildService();
+      const invitation = makeInvitation({ status: 'delivered' });
+      prisma.invitation.findFirst.mockResolvedValue(invitation);
+      prisma.organization.findFirst.mockResolvedValue({
+        id: orgId,
+        label: 'Acme',
+      });
+      prisma.invitation.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 });
+      const sendEmail = notificationsService.sendEmail as unknown as MockFn;
+      sendEmail.mockRejectedValue(new Error('smtp unavailable'));
+
+      const result = await service.resendInvitation({
+        invitationId: 'inv_123',
+        invitedByUserId: 'user_admin',
+        organizationId: orgId,
+      });
+
+      expect(result).toMatchObject({
+        id: 'inv_123',
+        status: 'delivery-failed',
+      });
+      expect(prisma.invitation.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          expiresAt: invitation.expiresAt,
+          status: 'delivery-failed',
+          tokenHash: invitation.tokenHash,
+          updatedAt: now,
+        },
+        where: expect.objectContaining({ id: 'inv_123' }),
+      });
     });
   });
 
@@ -535,6 +631,33 @@ describe('InvitationService', () => {
       ).rejects.toBeInstanceOf(GoneException);
 
       expect(prisma.invitation.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects duplicate acceptance without creating another member', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findUnique.mockResolvedValue(
+        makeInvitation({ acceptedAt: now, acceptedByUserId: userId }),
+      );
+
+      await expect(
+        service.acceptInvitation('token-123'),
+      ).rejects.toBeInstanceOf(GoneException);
+
+      expect(prisma.member.create).not.toHaveBeenCalled();
+      expect(prisma.member.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a concurrent consume that already claimed the invitation', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findUnique.mockResolvedValue(makeInvitation());
+      prisma.invitation.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.acceptInvitation('token-123'),
+      ).rejects.toBeInstanceOf(GoneException);
+
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(prisma.member.create).not.toHaveBeenCalled();
     });
   });
 });

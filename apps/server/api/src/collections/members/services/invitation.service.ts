@@ -13,7 +13,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   GoneException,
   Injectable,
 } from '@nestjs/common';
@@ -23,7 +22,20 @@ const INVITATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_API_PORT = '3010';
 
-type InvitationStatus = 'accepted' | 'expired' | 'pending' | 'revoked';
+export type InvitationStatus =
+  | 'accepted'
+  | 'delivered'
+  | 'delivery-failed'
+  | 'expired'
+  | 'pending'
+  | 'revoked';
+
+export type InvitationAcceptanceOutcome =
+  | 'accepted'
+  | 'already-accepted'
+  | 'expired'
+  | 'invalid'
+  | 'revoked';
 
 export interface CreateInvitationInput {
   email: string;
@@ -46,6 +58,7 @@ export interface InvitationView {
   organizationId: string;
   invitedByUserId: string;
   roleId: string;
+  roleKey: string;
   status: InvitationStatus;
   redirectUrl?: string;
   expiresAt: Date;
@@ -69,6 +82,10 @@ type InvitationWithOrganization = Invitation & {
 
 type InvitationTransaction = Prisma.TransactionClient;
 type RoleAssignment = { roleId: string; roleKey: string };
+type InvitationDeliveryRollback = Pick<
+  Invitation,
+  'expiresAt' | 'status' | 'tokenHash'
+>;
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -95,7 +112,10 @@ function generateHandle(email: string): string {
 }
 
 function getInvitationStatus(
-  invitation: Pick<Invitation, 'acceptedAt' | 'expiresAt' | 'revokedAt'>,
+  invitation: Pick<
+    Invitation,
+    'acceptedAt' | 'expiresAt' | 'revokedAt' | 'status'
+  >,
   now = new Date(),
 ): InvitationStatus {
   if (invitation.acceptedAt) {
@@ -106,6 +126,12 @@ function getInvitationStatus(
   }
   if (invitation.expiresAt <= now) {
     return 'expired';
+  }
+  if (invitation.status === 'delivered') {
+    return 'delivered';
+  }
+  if (invitation.status === 'delivery-failed') {
+    return 'delivery-failed';
   }
   return 'pending';
 }
@@ -124,6 +150,7 @@ function toInvitationView(invitation: Invitation): InvitationView {
     redirectUrl: invitation.redirectUrl ?? undefined,
     revokedAt: invitation.revokedAt,
     roleId: invitation.roleId,
+    roleKey: invitation.roleKey ?? 'user',
     status: getInvitationStatus(invitation),
     updatedAt: invitation.updatedAt,
   };
@@ -192,32 +219,16 @@ export class InvitationService {
       });
     });
 
-    if (input.sendEmail !== false) {
-      try {
-        await this.sendInvitationEmail({
-          invitation: { ...invitation, organization },
-          token,
-        });
-      } catch (error) {
-        // The invitation row is already committed. A delivery failure must not
-        // bubble as a 500 — that would make the caller believe the invite failed
-        // and re-invite, which supersedes (revokes) this committed token and
-        // leaves it permanently unacceptable. Log and continue; it can be resent.
-        //
-        // Redacted to the domain like the dispatch path below: the invitee is a
-        // third party with no account and no relationship to this log sink, and
-        // error paths carry the highest retention and alerting exposure of any
-        // branch. `invitationId` stays — it is the support correlation key.
-        this.logger.error('Failed to send invitation email', error, {
-          ...this.context,
-          emailDomain: email.split('@')[1] ?? 'unknown',
-          invitationId: invitation.id,
-          organizationId: input.organizationId,
-        });
-      }
+    if (input.sendEmail === false) {
+      return toInvitationView(invitation);
     }
 
-    return toInvitationView(invitation);
+    return toInvitationView(
+      await this.deliverInvitation({
+        invitation: { ...invitation, organization },
+        token,
+      }),
+    );
   }
 
   async listInvitations(
@@ -236,7 +247,7 @@ export class InvitationService {
     status: InvitationStatus | undefined,
   ): Pick<
     Prisma.InvitationWhereInput,
-    'acceptedAt' | 'expiresAt' | 'revokedAt'
+    'acceptedAt' | 'expiresAt' | 'revokedAt' | 'status'
   > {
     const now = new Date();
 
@@ -256,6 +267,15 @@ export class InvitationService {
           acceptedAt: null,
           expiresAt: { gt: now },
           revokedAt: null,
+          status: 'pending',
+        };
+      case 'delivered':
+      case 'delivery-failed':
+        return {
+          acceptedAt: null,
+          expiresAt: { gt: now },
+          revokedAt: null,
+          status,
         };
       default:
         return {};
@@ -279,7 +299,7 @@ export class InvitationService {
     }
 
     const revoked = await this.prisma.invitation.update({
-      data: { isDeleted: true, revokedAt: new Date(), status: 'canceled' },
+      data: { revokedAt: new Date(), status: 'canceled' },
       where: { id: invitation.id },
     });
 
@@ -304,18 +324,58 @@ export class InvitationService {
       throw new GoneException('Invitation has already been revoked');
     }
 
-    await this.revokeInvitation(input.invitationId, input.organizationId);
-
-    return this.createInvitation({
-      defaultRoleKey: 'member',
-      email: invitation.email,
-      firstName: invitation.firstName ?? undefined,
-      invitedByUserId: input.invitedByUserId,
-      lastName: invitation.lastName ?? undefined,
-      organizationId: input.organizationId,
-      redirectUrl: invitation.redirectUrl ?? undefined,
-      roleId: invitation.roleId,
+    const organization = await this.prisma.organization.findFirst({
+      select: { id: true, label: true },
+      where: { id: input.organizationId, isDeleted: false },
     });
+
+    if (!organization) {
+      throw new NotFoundException('Organization');
+    }
+
+    const token = generateInvitationToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_MS);
+    const rotateResult = await this.prisma.invitation.updateMany({
+      data: {
+        expiresAt,
+        invitedByUserId: input.invitedByUserId,
+        status: 'pending',
+        tokenHash,
+      },
+      where: {
+        acceptedAt: null,
+        id: invitation.id,
+        isDeleted: false,
+        revokedAt: null,
+        tokenHash: invitation.tokenHash,
+      },
+    });
+
+    if (rotateResult.count !== 1) {
+      throw new GoneException('Invitation is no longer available');
+    }
+
+    const rotatedInvitation: InvitationWithOrganization = {
+      ...invitation,
+      expiresAt,
+      invitedByUserId: input.invitedByUserId,
+      organization,
+      status: 'pending',
+      tokenHash,
+    };
+
+    return toInvitationView(
+      await this.deliverInvitation({
+        invitation: rotatedInvitation,
+        rollback: {
+          expiresAt: invitation.expiresAt,
+          status: invitation.status,
+          tokenHash: invitation.tokenHash,
+        },
+        token,
+      }),
+    );
   }
 
   async acceptInvitation(token: string): Promise<AcceptInvitationResult> {
@@ -380,9 +440,18 @@ export class InvitationService {
   }
 
   resolveFallbackRedirectUrl(organizationId: string): string {
+    return this.resolveInvitationOutcomeRedirectUrl('accepted', organizationId);
+  }
+
+  resolveInvitationOutcomeRedirectUrl(
+    outcome: InvitationAcceptanceOutcome,
+    organizationId?: string,
+  ): string {
     const url = new URL('/login', this.getAppBaseUrl());
-    url.searchParams.set('invitation', 'accepted');
-    url.searchParams.set('org', organizationId);
+    url.searchParams.set('invitation', outcome);
+    if (organizationId) {
+      url.searchParams.set('org', organizationId);
+    }
     return url.toString();
   }
 
@@ -448,17 +517,11 @@ export class InvitationService {
     organizationId: string,
   ): Promise<Invitation> {
     const invitation = await this.prisma.invitation.findFirst({
-      where: { id: invitationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: invitationId }),
     });
 
     if (!invitation) {
       throw new NotFoundException('Invitation');
-    }
-
-    if (invitation.organizationId !== organizationId) {
-      throw new ForbiddenException(
-        'Invitation does not belong to this organization',
-      );
     }
 
     return invitation;
@@ -552,6 +615,78 @@ export class InvitationService {
     });
   }
 
+  private async deliverInvitation(input: {
+    invitation: InvitationWithOrganization;
+    rollback?: InvitationDeliveryRollback;
+    token: string;
+  }): Promise<Invitation> {
+    let deliveryError: unknown;
+
+    try {
+      await this.sendInvitationEmail(input);
+    } catch (error) {
+      deliveryError = error;
+    }
+
+    if (!deliveryError) {
+      const deliveredAt = new Date();
+      const delivered = await this.prisma.invitation.updateMany({
+        data: { status: 'delivered', updatedAt: deliveredAt },
+        where: {
+          acceptedAt: null,
+          id: input.invitation.id,
+          isDeleted: false,
+          revokedAt: null,
+          tokenHash: input.invitation.tokenHash,
+        },
+      });
+
+      if (delivered.count !== 1) {
+        throw new GoneException('Invitation is no longer available');
+      }
+
+      return {
+        ...input.invitation,
+        status: 'delivered',
+        updatedAt: deliveredAt,
+      };
+    }
+
+    const failedAt = new Date();
+    const failed = await this.prisma.invitation.updateMany({
+      data: {
+        ...(input.rollback ?? {}),
+        status: 'delivery-failed',
+        updatedAt: failedAt,
+      },
+      where: {
+        acceptedAt: null,
+        id: input.invitation.id,
+        isDeleted: false,
+        revokedAt: null,
+        tokenHash: input.invitation.tokenHash,
+      },
+    });
+
+    if (failed.count !== 1) {
+      throw new GoneException('Invitation is no longer available');
+    }
+
+    this.logger.error('Failed to send invitation email', deliveryError, {
+      ...this.context,
+      emailDomain: input.invitation.email.split('@')[1] ?? 'unknown',
+      invitationId: input.invitation.id,
+      organizationId: input.invitation.organizationId,
+    });
+
+    return {
+      ...input.invitation,
+      ...(input.rollback ?? {}),
+      status: 'delivery-failed',
+      updatedAt: failedAt,
+    };
+  }
+
   private async sendInvitationEmail(input: {
     invitation: InvitationWithOrganization;
     token: string;
@@ -598,10 +733,13 @@ export class InvitationService {
   }
 
   private resolveRedirectUrl(invitation: Invitation): string {
-    return (
-      invitation.redirectUrl ??
-      this.resolveFallbackRedirectUrl(invitation.organizationId)
-    );
+    if (!invitation.redirectUrl) {
+      return this.resolveFallbackRedirectUrl(invitation.organizationId);
+    }
+
+    const redirectUrl = new URL(invitation.redirectUrl, this.getAppBaseUrl());
+    redirectUrl.searchParams.set('invitation', 'accepted');
+    return redirectUrl.toString();
   }
 
   private getApiBaseUrl(): string {

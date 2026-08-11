@@ -1,7 +1,11 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IMemberInvitation } from '@genfeedai/interfaces';
 import { Member } from '@genfeedai/models/organization/member.model';
 import { MemberSerializer } from '@genfeedai/serializers';
-import { BaseService } from '@services/core/base.service';
+import {
+  BaseService,
+  type JsonApiResponseDocument,
+} from '@services/core/base.service';
 
 export class MembersService extends BaseService<Member> {
   constructor(token: string) {
@@ -10,5 +14,37 @@ export class MembersService extends BaseService<Member> {
 
   public static getInstance(token: string): MembersService {
     return BaseService.getDataServiceInstance(MembersService, token);
+  }
+
+  public async listInvitations(
+    status?: IMemberInvitation['status'],
+  ): Promise<IMemberInvitation[]> {
+    return this.instance
+      .get<JsonApiResponseDocument>('/invitations', {
+        params: status ? { status } : undefined,
+      })
+      .then((response) =>
+        this.extractCollection<IMemberInvitation>(response.data),
+      );
+  }
+
+  public async resendInvitation(
+    invitationId: string,
+  ): Promise<IMemberInvitation> {
+    return this.instance
+      .post<JsonApiResponseDocument>(`/invitations/${invitationId}/resend`)
+      .then((response) =>
+        this.extractResource<IMemberInvitation>(response.data),
+      );
+  }
+
+  public async revokeInvitation(
+    invitationId: string,
+  ): Promise<IMemberInvitation> {
+    return this.instance
+      .delete<JsonApiResponseDocument>(`/invitations/${invitationId}`)
+      .then((response) =>
+        this.extractResource<IMemberInvitation>(response.data),
+      );
   }
 }
