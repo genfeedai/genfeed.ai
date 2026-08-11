@@ -172,6 +172,9 @@ export function useAgentFullPage({
   const restoreCachedConversation = useAgentChatStore(
     (s) => s.restoreCachedConversation,
   );
+  const isConversationCacheFresh = useAgentChatStore(
+    (s) => s.isConversationCacheFresh,
+  );
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
   const setOnboardingChecklist = useAgentChatStore(
@@ -428,12 +431,44 @@ export function useAgentFullPage({
       );
     };
 
-    const threadRequest = runAgentApiEffect(
-      apiService.getThreadEffect(threadId, controller.signal),
-    );
-    const snapshotRequest = runAgentApiEffect(
-      apiService.getThreadSnapshotEffect(threadId, controller.signal),
-    );
+    // #2790: a warm, still-fresh cache entry means the thread record and
+    // snapshot the user is about to see are already the ones this switch
+    // would fetch. Skip those two requests entirely — freshness is
+    // time-bounded (`CONVERSATION_CACHE_FRESHNESS_MS`), so a thread that
+    // changed server-side while the tab was open still converges shortly
+    // after the user returns to it.
+    const isThreadDataFresh = isConversationCacheFresh(threadId);
+
+    // Everything else the thread response feeds has a second source (the
+    // cached conversation, `storeThreadStatus`, `useAgentThreadList`'s prompt
+    // write). These two do not: `workspacePlanningTaskId` is local state whose
+    // only populating writer is the skipped handler below, and
+    // `restoreCachedConversation` forces `draftPlanModeEnabled` to false. Left
+    // unset, a warm open hides the follow-up-tasks affordance and shows the
+    // composer's plan-mode toggle off. A thread can only be cache-fresh if it
+    // was prefetched or opened from the list, so its row is in the store — and
+    // the list serializes both `source` and `planModeEnabled`. Read at effect
+    // time rather than through a selector so this never re-runs the switch.
+    if (isThreadDataFresh) {
+      const listedThread = useAgentChatStore
+        .getState()
+        .threads.find((thread) => thread.id === threadId);
+      setWorkspacePlanningTaskId(
+        parseWorkspacePlanningTaskId(listedThread?.source),
+      );
+      setDraftPlanModeEnabled(listedThread?.planModeEnabled ?? false);
+    }
+
+    const threadRequest = isThreadDataFresh
+      ? null
+      : runAgentApiEffect(
+          apiService.getThreadEffect(threadId, controller.signal),
+        );
+    const snapshotRequest = isThreadDataFresh
+      ? null
+      : runAgentApiEffect(
+          apiService.getThreadSnapshotEffect(threadId, controller.signal),
+        );
 
     // The conversation body is the whole perceived cost of a switch, and it
     // needs only this one response. Awaiting the thread record and the snapshot
@@ -449,58 +484,71 @@ export function useAgentFullPage({
       return msgs;
     });
 
+    // The two Promise.all chains below only report a failure when the thread
+    // or snapshot request they're chained to also rejects. When both are
+    // skipped for a fresh cache, a messages-only failure would otherwise go
+    // unreported — this catch covers that path. `reportLoadFailure` is
+    // dedup-guarded, so it is harmless if a chain below also fires it.
+    messagesRequest.catch(reportLoadFailure);
+
     // Chained on the messages paint, not raced with it: resetStreamState above
     // clears workEvents and run status, so it must never land after the
     // snapshot has filled them in.
-    Promise.all([messagesRequest, snapshotRequest])
-      .then(([, snapshot]) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
-        setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
-        setActiveRun(snapshot.activeRun?.runId ?? null, {
-          startedAt: snapshot.activeRun?.startedAt ?? null,
-          status: mapSnapshotRunStatus(snapshot.activeRun?.status),
-        });
-        setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
-        setWorkEvents(mapSnapshotWorkEvents(snapshot));
-      })
-      .catch(reportLoadFailure);
+    if (snapshotRequest) {
+      Promise.all([messagesRequest, snapshotRequest])
+        .then(([, snapshot]) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
+          setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
+          setActiveRun(snapshot.activeRun?.runId ?? null, {
+            startedAt: snapshot.activeRun?.startedAt ?? null,
+            status: mapSnapshotRunStatus(snapshot.activeRun?.status),
+          });
+          setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
+          setWorkEvents(mapSnapshotWorkEvents(snapshot));
+        })
+        .catch(reportLoadFailure);
+    }
 
-    Promise.all([threadRequest, messagesRequest, snapshotRequest])
-      .then(([thread, msgs, snapshot]) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setActiveThreadStatus(thread.status);
-        setWorkspacePlanningTaskId(parseWorkspacePlanningTaskId(thread.source));
-        setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-        const now = new Date().toISOString();
-        const firstUserMessage = msgs.find((msg) => msg.role === 'user');
-        upsertThread({
-          brandId: thread.brandId,
-          createdAt: now,
-          contextVersion: thread.contextVersion,
-          id: threadId,
-          organizationId: thread.organizationId,
-          planModeEnabled: thread.planModeEnabled,
-          source: thread.source,
-          status: thread.status,
-          title:
-            thread.title ??
-            firstUserMessage?.content?.slice(0, 60) ??
-            msgs[0]?.content?.slice(0, 60) ??
-            'Current chat',
-          updatedAt: now,
-          ...buildThreadSummaryFromSnapshot(snapshot, {
-            isVisible: true,
-            now,
-          }),
-        });
-        setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
-      })
-      .catch(reportLoadFailure);
+    if (threadRequest && snapshotRequest) {
+      Promise.all([threadRequest, messagesRequest, snapshotRequest])
+        .then(([thread, msgs, snapshot]) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          setActiveThreadStatus(thread.status);
+          setWorkspacePlanningTaskId(
+            parseWorkspacePlanningTaskId(thread.source),
+          );
+          setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
+          const now = new Date().toISOString();
+          const firstUserMessage = msgs.find((msg) => msg.role === 'user');
+          upsertThread({
+            brandId: thread.brandId,
+            createdAt: now,
+            contextVersion: thread.contextVersion,
+            id: threadId,
+            organizationId: thread.organizationId,
+            planModeEnabled: thread.planModeEnabled,
+            source: thread.source,
+            status: thread.status,
+            title:
+              thread.title ??
+              firstUserMessage?.content?.slice(0, 60) ??
+              msgs[0]?.content?.slice(0, 60) ??
+              'Current chat',
+            updatedAt: now,
+            ...buildThreadSummaryFromSnapshot(snapshot, {
+              isVisible: true,
+              now,
+            }),
+          });
+          setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+        })
+        .catch(reportLoadFailure);
+    }
 
     return () => controller.abort();
   }, [
@@ -509,6 +557,7 @@ export function useAgentFullPage({
     authReady,
     cacheConversation,
     clearThreadAttention,
+    isConversationCacheFresh,
     restoreCachedConversation,
     setActiveThread,
     setActiveRun,
