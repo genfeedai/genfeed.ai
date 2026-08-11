@@ -207,6 +207,112 @@ async function resolveOwner(params: {
   };
 }
 
+/**
+ * Columns introduced by `20260811160000_rename_article_title_excerpt_to_label_summary`.
+ * The seed writes `label`/`summary`, so a database still holding the pre-#2767
+ * `title`/`excerpt` spelling rejects every insert with Postgres 42703.
+ */
+const REQUIRED_ARTICLE_COLUMNS = ['label', 'summary'] as const;
+
+function isLocalDatabase(): boolean {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return false;
+  }
+
+  try {
+    return ['0.0.0.0', '127.0.0.1', '::1', 'localhost'].includes(
+      new URL(url).hostname,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function runMigrateDeploy(): boolean {
+  const prismaPackageDir = resolve(
+    scriptDir,
+    '..',
+    '..',
+    '..',
+    '..',
+    '..',
+    'packages',
+    'prisma',
+  );
+
+  const result = spawnSync('bunx', ['prisma', 'migrate', 'deploy'], {
+    cwd: prismaPackageDir,
+    env: process.env,
+    stdio: 'inherit',
+  });
+
+  return result.status === 0;
+}
+
+/**
+ * Fail — or self-heal — before the first write rather than part-way through it.
+ *
+ * A dry run issues no writes, so without this check it reports a clean
+ * `created=8` against a database that cannot accept a single one of those rows;
+ * the mismatch then surfaces only on the `--live` run, as a raw driver error
+ * mid-loop. A dry run that cannot catch this is worse than no dry run, because
+ * it manufactures confidence.
+ *
+ * Against a loopback database the fix is unambiguous and reversible, so apply it
+ * directly. Against anything remote, migrations belong to the deploy pipeline —
+ * report the exact command and stop.
+ */
+async function assertArticleSchemaReady(prisma: PrismaClient): Promise<void> {
+  const findMissingColumns = async (): Promise<string[]> => {
+    const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'articles'
+        AND table_schema = current_schema()
+    `;
+    const present = new Set(rows.map((row) => row.column_name));
+
+    return REQUIRED_ARTICLE_COLUMNS.filter((column) => !present.has(column));
+  };
+
+  const missing = await findMissingColumns();
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  if (!isLocalDatabase()) {
+    throw new Error(
+      `articles is missing ${missing.join(', ')} — the target database has not applied ` +
+        '20260811160000_rename_article_title_excerpt_to_label_summary. Migrations for ' +
+        'non-local databases run through the deploy pipeline, not this seed. Merge the ' +
+        'migration to master and let the deploy apply it, then re-run this seed.',
+    );
+  }
+
+  logger.warn(
+    `articles is missing ${missing.join(', ')}; applying pending migrations to the local database`,
+  );
+
+  if (!runMigrateDeploy()) {
+    throw new Error(
+      'prisma migrate deploy failed — resolve the migration state before seeding.',
+    );
+  }
+
+  const stillMissing = await findMissingColumns();
+
+  if (stillMissing.length > 0) {
+    throw new Error(
+      `articles is still missing ${stillMissing.join(', ')} after migrate deploy.`,
+    );
+  }
+
+  logger.log('Local migrations applied; articles schema is ready');
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
 
@@ -220,6 +326,8 @@ async function main(): Promise<void> {
   const prisma = createPrismaClient();
 
   try {
+    await assertArticleSchemaReady(prisma);
+
     const owner = await resolveOwner({
       organizationId: parseOptionalId(args.organizationId),
       prisma,
