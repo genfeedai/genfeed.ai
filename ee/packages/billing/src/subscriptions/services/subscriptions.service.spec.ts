@@ -343,6 +343,36 @@ describe('SubscriptionsService', () => {
       });
     });
 
+    it('returns the freshly created subscription carrying the derived stripeCustomerId', async () => {
+      // Regression: `stripeCustomerId` is derived from the customer row, never
+      // persisted on the subscription. `BaseService.create` skipped that
+      // resolution, so callers read `undefined`, concluded the org had no
+      // Stripe customer, and created a second one on every first checkout.
+      customersService.findByOrganizationId.mockResolvedValue(null);
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.create.mockResolvedValue({
+        id: 'cust_row_new',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockResolvedValue(
+        buildSubscription({ id: 'sub_created' }),
+      );
+      customerDelegate.findUnique.mockResolvedValue({
+        stripeCustomerId: 'cus_new',
+      });
+
+      const result = await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(result.stripeCustomerId).toBe('cus_new');
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledTimes(1);
+    });
+
     it('rejects an existing customer row that carries no Stripe customer id', async () => {
       customersService.findByOrganizationId.mockResolvedValue({
         id: 'cust_row_1',

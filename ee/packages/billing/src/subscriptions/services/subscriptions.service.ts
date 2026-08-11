@@ -7,7 +7,10 @@ import {
   StripeService,
 } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   SubscriptionPlan,
@@ -108,6 +111,22 @@ export class SubscriptionsService
     super(prisma, 'subscription', logger);
   }
 
+  /**
+   * `stripeCustomerId` is derived from the related customer, never persisted on
+   * the subscription row, so `BaseService.create` returns it as `undefined`.
+   * Callers treat an absent `stripeCustomerId` as "no Stripe customer yet" and
+   * create one — which duplicated the org's Stripe customer on every first
+   * checkout. Every read path normalizes; so must this one.
+   */
+  override async create(
+    createDto: CreateSubscriptionDto,
+    populate: PopulateInput = [],
+  ): Promise<SubscriptionDocument> {
+    const created = await super.create(createDto, populate);
+
+    return await this.normalizeSubscriptionDocument(created);
+  }
+
   override async findAll(
     input: unknown,
     options: ISubscriptionFindAllOptions,
@@ -173,6 +192,7 @@ export class SubscriptionsService
     let customer = await this.customersService.findByOrganizationId(
       organization.id.toString(),
     );
+    const hasExistingCustomer = Boolean(customer);
     let stripeCustomer: StripeCustomer | null;
 
     if (customer) {
@@ -230,7 +250,7 @@ export class SubscriptionsService
 
     this.logger.log(`${url} success`, {
       customerId: customer.id,
-      existingCustomer: !!customer,
+      existingCustomer: hasExistingCustomer,
       organizationId: organization.id,
       stripeCustomerId: stripeCustomer.id,
       subscriptionId: savedSubscription.id,

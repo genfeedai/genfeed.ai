@@ -124,7 +124,20 @@ export class StripeController {
 
       // Stale stripeCustomerId from another Stripe account (e.g. Vitae / old
       // local key) must be recreated on the active Genfeed account.
+      //
+      // An organization owns exactly one Stripe customer. Before concluding
+      // that none exists, fall back to the org's customer row — the
+      // subscription projection is derived, and treating a gap in it as
+      // "no Stripe customer" duplicates the org's customer on Stripe.
       let stripeCustomerId = subscription.stripeCustomerId ?? null;
+      if (!stripeCustomerId) {
+        const organizationCustomer =
+          await this.customersService.findByOrganizationId(
+            publicMetadata.organization,
+          );
+        stripeCustomerId = organizationCustomer?.stripeCustomerId ?? null;
+      }
+
       const liveCustomer = stripeCustomerId
         ? await this.stripeService.retrieveCustomer(stripeCustomerId)
         : null;

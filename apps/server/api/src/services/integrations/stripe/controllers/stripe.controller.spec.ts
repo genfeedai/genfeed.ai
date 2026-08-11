@@ -65,6 +65,7 @@ describe('StripeController', () => {
   };
   let customersService: {
     create: ReturnType<typeof vi.fn>;
+    findByOrganizationId: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
 
@@ -127,6 +128,7 @@ describe('StripeController', () => {
     };
     customersService = {
       create: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
+      findByOrganizationId: vi.fn().mockResolvedValue(null),
       patch: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
     };
 
@@ -224,6 +226,35 @@ describe('StripeController', () => {
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
       });
+    });
+
+    it('never creates a second Stripe customer for an org that already has one', async () => {
+      // Regression: an organization owns exactly one Stripe customer. When the
+      // subscription projection carries no stripeCustomerId, the org's customer
+      // row is authoritative — treating the gap as "no customer" duplicated the
+      // org on Stripe on every first checkout.
+      subscriptionsService.findByOrganizationId.mockResolvedValueOnce(null);
+      subscriptionsService.createForOrganization.mockResolvedValueOnce({
+        customerId: 'cust_row_1',
+        id: 'test-object-id',
+        stripeCustomerId: undefined,
+      });
+      customersService.findByOrganizationId.mockResolvedValueOnce({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_test123',
+      });
+
+      await controller.createCheckoutSession(mockUser, dto, mockRequest);
+
+      expect(customersService.findByOrganizationId).toHaveBeenCalledWith(orgId);
+      expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_test123',
+        'price_abc123',
+        'https://app.genfeed.ai',
+        1,
+        undefined,
+      );
     });
 
     it('should throw NOT_FOUND if subscription missing and org not found', async () => {
