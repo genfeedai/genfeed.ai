@@ -214,7 +214,7 @@ export class LifecycleEmailService {
         scheduledFor: new Date(Date.now() + 7 * DAY_MS),
         sequence: 'win-back',
         step: 'win-back',
-        triggerKey: `${SUBSCRIPTION_TRIGGER_PREFIX}:${input.subscriptionId}`,
+        triggerKey: `${SUBSCRIPTION_TRIGGER_PREFIX}-${input.subscriptionId}`,
         user,
       });
     });
