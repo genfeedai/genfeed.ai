@@ -68,7 +68,7 @@ jobs:
 
       - name: Checkout master
         if: steps.enabled_guard.outputs.should_continue == 'true'
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           ref: master
           fetch-depth: 1
@@ -280,7 +280,7 @@ jobs:
       deployed_sha: ${{ steps.deploy.outputs.deployed_sha }}
     steps:
       - name: Checkout workflow helpers
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
