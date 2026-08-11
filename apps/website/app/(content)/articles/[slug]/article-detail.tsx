@@ -16,7 +16,6 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
-import { createMarkup } from '@utils/sanitize-html';
 import {
   ArrowRight,
   Calendar,
@@ -29,6 +28,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import ArticleCover from '../article-cover';
+import ArticleContent from './article-content';
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -72,12 +73,6 @@ export default function ArticleDetail({
   const { push } = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const articleContentProps = useMemo(
-    () => ({
-      dangerouslySetInnerHTML: createMarkup(article?.content || ''),
-    }),
-    [article?.content],
-  );
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -136,18 +131,12 @@ export default function ArticleDetail({
           </Button>
         </div>
 
-        {article.bannerUrl && (
-          <div className="relative mb-6 h-48 overflow-hidden bg-muted md:mb-8 md:h-64 lg:h-80">
-            <Image
-              src={article.bannerUrl}
-              alt={`${article.label} banner`}
-              className="h-full w-full object-cover object-center"
-              fill
-              sizes="(max-width: 1024px) 100vw, 896px"
-              priority
-            />
-          </div>
-        )}
+        <ArticleCover
+          category={article.category}
+          coverImageUrl={article.bannerUrl}
+          label={article.label}
+          seed={article.slug || article.id}
+        />
 
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
@@ -199,9 +188,7 @@ export default function ArticleDetail({
               </div>
             </header>
 
-            <div className="prose prose-invert prose-lg max-w-none">
-              <div {...articleContentProps} />
-            </div>
+            <ArticleContent html={article.content || ''} />
           </div>
 
           <aside className="order-first lg:order-last lg:col-span-1">

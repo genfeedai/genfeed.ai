@@ -47,7 +47,11 @@ export async function generateMetadata({
     };
   }
 
-  const articleImage = article.bannerUrl || metadata.cards.default;
+  // Falling back to the shared default card made every article link in a feed
+  // look like the same link. `og/route.tsx` composes the article's own artwork
+  // with its headline — the raw artwork carries no title, so the card and not
+  // the artwork is what gets shared.
+  const articleImage = `${EnvironmentService.apps.website}/articles/${slug}/og`;
   // Coerce missing strings so metadata helpers never see undefined values
   // (GENFEED-AI-44: trim/string ops on absent article fields).
   const articleTitle =
@@ -70,7 +74,7 @@ export async function generateMetadata({
       images: {
         alt: articleTitle,
         height: 630,
-        type: 'image/jpeg',
+        type: 'image/png',
         url: articleImage,
         width: 1200,
       },
@@ -132,7 +136,12 @@ export default async function ArticleDetail({
       typeof article.label === 'string' && article.label.trim().length > 0
         ? article.label.trim()
         : 'Article',
-    imageUrls: [article.bannerUrl || metadata.cards.default],
+    // The artwork first — it is the article's own image — then the composed
+    // social card, which is what a share preview actually renders.
+    imageUrls: [
+      article.bannerUrl,
+      `${EnvironmentService.apps.website}/articles/${slug}/og`,
+    ],
     inLanguage: 'en-US',
     keywords: article.tags
       ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))

@@ -105,6 +105,30 @@ describe('generateMetadata', () => {
     expect(meta.alternates?.canonical).toContain('/articles/article-meta');
     expect(meta.openGraph?.type).toBe('article');
     expect(meta.twitter?.creator).toBe('@genfeedai');
+    // The raw artwork carries no headline, so the shared image is the composed
+    // card, not the banner.
+    expect(meta.openGraph?.images).toMatchObject({
+      type: 'image/png',
+      url: expect.stringContaining('/articles/article-meta/og'),
+    });
+  });
+
+  // Every article without artwork used to share one default card, so a feed of
+  // Genfeed links all looked like the same link.
+  it('points an artworkless article at its own generated card', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ bannerUrl: undefined }));
+
+    const meta = await generateMetadata({
+      params: Promise.resolve({ slug: 'no-artwork' }),
+    });
+
+    expect(meta.openGraph?.images).toMatchObject({
+      type: 'image/png',
+      url: expect.stringContaining('/articles/no-artwork/og'),
+    });
+    expect(meta.twitter?.images).toEqual([
+      expect.stringContaining('/articles/no-artwork/og'),
+    ]);
   });
 
   it('falls back to placeholder copy when label and summary are blank', async () => {
@@ -158,11 +182,20 @@ describe('ArticleDetailRoute', () => {
     });
 
     const [articleJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [
-      { headline: string; keywords?: string; author: unknown },
+      {
+        headline: string;
+        image?: string[];
+        keywords?: string;
+        author: unknown;
+      },
       { itemListElement: Array<{ name: string }> },
     ];
 
     expect(articleJsonLd.headline).toBe('How agents ship content');
+    expect(articleJsonLd.image).toEqual([
+      'https://cdn.genfeed.ai/banner.jpg',
+      expect.stringContaining('/articles/route-published/og'),
+    ]);
     expect(articleJsonLd.keywords).toBe('agents');
     expect(articleJsonLd.author).toMatchObject({ name: 'Ada Lovelace' });
     expect(breadcrumbJsonLd.itemListElement.map((item) => item.name)).toEqual([
@@ -191,12 +224,20 @@ describe('ArticleDetailRoute', () => {
     });
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
-      { author: { name: string }; headline: string; wordCount?: number },
+      {
+        author: { name: string };
+        headline: string;
+        image?: string[];
+        wordCount?: number;
+      },
     ];
 
     expect(articleJsonLd.author).toMatchObject({ name: 'Genfeed' });
     expect(articleJsonLd.headline).toBe('Article');
     expect(articleJsonLd.wordCount).toBeUndefined();
+    expect(articleJsonLd.image).toEqual([
+      expect.stringContaining('/articles/route-anonymous/og'),
+    ]);
   });
 
   it('passes the preview token through and flags an unpublished article', async () => {

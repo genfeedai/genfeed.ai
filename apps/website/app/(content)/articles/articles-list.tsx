@@ -5,6 +5,7 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
+import ArticleCover from './article-cover';
 
 interface ArticlesListProps {
   articles: Article[];
@@ -53,6 +54,15 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                 className="group block"
               >
                 <Card className="h-full border border-edge/[0.08] transition-all hover:shadow-lg">
+                  <ArticleCover
+                    category={article.category}
+                    className="mb-4 h-32 md:h-40"
+                    coverImageUrl={article.bannerUrl}
+                    isCompact
+                    label={article.label}
+                    seed={article.slug || article.id}
+                  />
+
                   <h2 className="mb-2 text-2xl font-semibold transition-colors group-hover:text-primary">
                     {article.label}
                   </h2>

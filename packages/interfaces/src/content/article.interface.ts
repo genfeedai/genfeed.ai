@@ -4,7 +4,6 @@ import type {
   AssetScope,
 } from '@genfeedai/enums';
 import type {
-  IAsset,
   IBaseEntity,
   IBrand,
   IEvaluation,
@@ -20,7 +19,8 @@ export interface IArticle extends IBaseEntity {
   organization: IOrganization;
   brand?: IBrand;
   tags?: ITag[];
-  banner?: IAsset;
+  /** Persisted cover image (`articles.coverImageUrl`). */
+  coverImageUrl?: string;
   label: string;
   slug: string;
   summary: string;
@@ -33,6 +33,7 @@ export interface IArticle extends IBaseEntity {
   wordCount?: number;
   scope: AssetScope;
   generationPrompt?: string;
+  /** Derived from {@link IArticle.coverImageUrl} — read-only on the model. */
   bannerUrl?: string;
   evaluation?: IEvaluation | null;
   seoScore?: number | null;
@@ -51,7 +52,7 @@ export interface IArticleCreateInput {
   readingTime?: number;
   wordCount?: number;
   scope?: AssetScope;
-  banner?: string; // Asset ID
+  coverImageUrl?: string;
   generationPrompt?: string;
 }
 

@@ -21,7 +21,7 @@ export class Article extends BaseArticle {
   }
 
   get bannerUrl(): string | undefined {
-    return this.banner?.url;
+    return this.coverImageUrl || undefined;
   }
 
   get wordCount(): number {

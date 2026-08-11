@@ -5,7 +5,6 @@ export const articleAttributes = createEntityAttributes([
   'organization',
   'brand',
   'tags',
-  'banner',
   'label',
   'slug',
   'summary',
@@ -14,7 +13,10 @@ export const articleAttributes = createEntityAttributes([
   'status',
   'scope',
   'publishedAt',
-  'bannerUrl',
+  // The real Prisma column. `bannerUrl` is derived from it on the model, so it
+  // is not listed here — a serializer attribute with no backing column always
+  // emits `undefined`, which is how the article cover stayed invisible.
+  'coverImageUrl',
   'aiGeneration',
   'viralityAnalysis',
   'performanceMetrics',

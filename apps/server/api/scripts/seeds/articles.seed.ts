@@ -29,8 +29,14 @@ import { fileURLToPath } from 'node:url';
 import { isEntityId } from '@api-types/helpers/entity-id';
 import { ArticleScope } from '@genfeedai/enums';
 import { ArticleStatus, PrismaClient } from '@genfeedai/prisma';
+import {
+  buildIoRedisClientOptions,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
+} from '@libs/redis/redis-connection.utils';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import Redis from 'ioredis';
 import { LAUNCH_ARTICLES } from './data/launch-articles';
 
 const logger = new Logger('ArticlesSeed');
@@ -313,6 +319,65 @@ async function assertArticleSchemaReady(prisma: PrismaClient): Promise<void> {
   logger.log('Local migrations applied; articles schema is ready');
 }
 
+/**
+ * Tags on the public article endpoints (`@Cache({ tags: [...] })`), whose
+ * responses this seed changes underneath the API.
+ */
+const PUBLIC_ARTICLE_CACHE_TAGS = ['articles', 'public'] as const;
+
+/**
+ * Writing rows with Prisma skips every service that would normally bust the
+ * response cache, and `GET articles/slug/:slug` holds its payload for 30
+ * minutes. Without this the seed reports success while the site keeps serving
+ * the previous copy — the failure mode is invisible precisely because the
+ * script says it worked.
+ *
+ * Mirrors `CacheTagsService.invalidateByTags`: read each `tag:{tag}` set, drop
+ * the keys it names, then drop the set. Redis being unreachable is not a seed
+ * failure — the rows are already written, and the cache expires on its own.
+ */
+async function invalidatePublicArticleCache(): Promise<void> {
+  const connection = parseRedisConnectionForWorkload(
+    { get: (key: string) => process.env[key] },
+    RedisWorkload.CACHE,
+  );
+  const client = new Redis(
+    buildIoRedisClientOptions(connection, { lazyConnect: true }),
+  );
+
+  try {
+    await client.connect();
+
+    let invalidated = 0;
+
+    for (const tag of PUBLIC_ARTICLE_CACHE_TAGS) {
+      const keys = await client.smembers(`tag:${tag}`);
+
+      if (!keys.length) {
+        continue;
+      }
+
+      const pipeline = client.multi();
+      for (const key of keys) {
+        pipeline.del(key);
+      }
+      pipeline.del(`tag:${tag}`);
+      await pipeline.exec();
+
+      invalidated += keys.length;
+    }
+
+    logger.log(`Invalidated ${invalidated} cached public article response(s)`);
+  } catch (error: unknown) {
+    logger.warn(
+      `Could not invalidate the public article cache (${error instanceof Error ? error.message : String(error)}). ` +
+        'Seeded content appears once the 30-minute response cache expires.',
+    );
+  } finally {
+    client.disconnect();
+  }
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
 
@@ -360,6 +425,7 @@ async function main(): Promise<void> {
             data: {
               category: article.category,
               content: article.content,
+              coverImageUrl: article.coverImageUrl,
               label: article.label,
               // Never move an existing publication date — only backfill one.
               publishedAt: existing.publishedAt ?? publishedAt,
@@ -385,6 +451,7 @@ async function main(): Promise<void> {
         data: {
           category: article.category,
           content: article.content,
+          coverImageUrl: article.coverImageUrl,
           isDeleted: false,
           label: article.label,
           organizationId: owner.organizationId,
@@ -403,6 +470,10 @@ async function main(): Promise<void> {
     logger.log(
       `Articles seed summary: created=${created}, refreshed=${updated}`,
     );
+
+    if (!args.dryRun && created + updated > 0) {
+      await invalidatePublicArticleCache();
+    }
   } finally {
     await prisma.$disconnect();
   }
