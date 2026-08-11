@@ -16,6 +16,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -29,6 +30,7 @@ describe('TiktokController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
@@ -36,6 +38,9 @@ describe('TiktokController', () => {
   let tiktokService: {
     getTiktokInfo: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
+  };
+  let tiktokAuthorizedSignalsService: {
+    refresh: ReturnType<typeof vi.fn>;
   };
   let httpService: { post: ReturnType<typeof vi.fn> };
 
@@ -58,6 +63,15 @@ describe('TiktokController', () => {
       beginOAuthForBrand: vi.fn().mockResolvedValue({
         credential: { id: credentialId },
         state: 'opaque-oauth-state',
+      }),
+      findOne: vi.fn().mockResolvedValue({
+        externalAvatar: 'https://tiktok.example/avatar.jpg',
+        externalHandle: 'tiktok_handle',
+        externalId: 'tiktok_ext_id',
+        externalName: 'TikTok Creator',
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'tiktok',
       }),
       findPendingOAuthCredential: vi.fn().mockResolvedValue({
         brandId,
@@ -91,6 +105,9 @@ describe('TiktokController', () => {
       }),
       getTrends: vi.fn().mockResolvedValue([{ title: 'trend1' }]),
     };
+    tiktokAuthorizedSignalsService = {
+      refresh: vi.fn().mockResolvedValue({ state: 'full' }),
+    };
     httpService = { post: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -105,10 +122,17 @@ describe('TiktokController', () => {
             }),
           },
         },
-        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
         { provide: BrandsService, useValue: brandsService },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: TiktokService, useValue: tiktokService },
+        {
+          provide: TiktokAuthorizedSignalsService,
+          useValue: tiktokAuthorizedSignalsService,
+        },
         { provide: HttpService, useValue: httpService },
       ],
     })
@@ -174,6 +198,8 @@ describe('TiktokController', () => {
             expires_in: 86400,
             refresh_expires_in: 2592000,
             refresh_token: 'tt_refresh',
+            scope:
+              'user.info.basic,user.info.profile,user.info.stats,video.list,video.publish',
           },
         }),
       );
@@ -199,6 +225,7 @@ describe('TiktokController', () => {
         orgId.toString(),
         brandId.toString(),
         'tt_access',
+        'user.info.basic,user.info.profile,user.info.stats,video.list,video.publish',
       );
       expect(result).toEqual(
         expect.objectContaining({
@@ -216,6 +243,19 @@ describe('TiktokController', () => {
           name: 'TikTok Creator',
         }),
       );
+    });
+
+    it('refreshes authorized evidence with the exact granted scopes', async () => {
+      await controller.verify(mockRequest, dto);
+
+      expect(tiktokAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        accessToken: 'tt_access',
+        credentialId,
+        force: true,
+        grantedScopes:
+          'user.info.basic,user.info.profile,user.info.stats,video.list,video.publish',
+        organizationId: orgId,
+      });
     });
 
     it('should throw BAD_REQUEST when code is missing', async () => {
@@ -254,6 +294,27 @@ describe('TiktokController', () => {
         Record<string, unknown>,
       ];
       expect(patchCall[1].isDeleted).toBe(false);
+    });
+  });
+
+  describe('refreshAuthorizedSignals', () => {
+    it('refreshes and returns only the caller organization credential', async () => {
+      const result = await controller.refreshAuthorizedSignals(
+        mockRequest,
+        mockUser,
+        credentialId,
+      );
+
+      expect(tiktokAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        credentialId,
+        organizationId: orgId,
+      });
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'tiktok',
+      });
+      expect(result).toEqual(expect.objectContaining({ id: credentialId }));
     });
   });
 

@@ -10,6 +10,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -25,6 +26,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Req,
 } from '@nestjs/common';
@@ -57,6 +59,7 @@ export class TiktokController {
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
+    private readonly tiktokAuthorizedSignalsService: TiktokAuthorizedSignalsService,
     private readonly tiktokService: TiktokService,
     private readonly httpService: HttpService,
   ) {
@@ -177,6 +180,7 @@ export class TiktokController {
         refresh_expires_in,
         refresh_token,
         refresh_token_expires_in,
+        scope,
       } = tokenRes.data || {};
       const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
 
@@ -214,6 +218,7 @@ export class TiktokController {
         organizationId,
         brandId,
         access_token,
+        scope,
       );
 
       credential = await this.credentialsService.updateExternalProfile(
@@ -227,11 +232,64 @@ export class TiktokController {
         },
       );
 
+      try {
+        await this.tiktokAuthorizedSignalsService.refresh({
+          accessToken: access_token,
+          credentialId: credential.id.toString(),
+          force: true,
+          grantedScopes: scope,
+          organizationId,
+        });
+        credential =
+          (await this.credentialsService.findOne({
+            id: credential.id.toString(),
+            organizationId,
+            platform: CredentialPlatform.TIKTOK,
+          })) ?? credential;
+      } catch (signalError: unknown) {
+        this.loggerService.warn(
+          `${url} authorized signal refresh failed after connection`,
+          signalError,
+        );
+      }
+
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  @Post(':credentialId/authorized-signals/refresh')
+  async refreshAuthorizedSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    await this.tiktokAuthorizedSignalsService.refresh({
+      credentialId,
+      organizationId: publicMetadata.organization,
+    });
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: publicMetadata.organization,
+      platform: CredentialPlatform.TIKTOK,
+    });
+
+    if (!credential) {
+      throw new HttpException(
+        {
+          detail: 'TikTok credential not found',
+          title: 'Credential not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   @Get('trends')

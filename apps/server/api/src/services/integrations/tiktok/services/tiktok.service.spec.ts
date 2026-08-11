@@ -389,6 +389,110 @@ describe('TiktokService', () => {
         ),
       ).rejects.toThrow('No refresh token available');
     });
+
+    it('persists the exact scopes returned by token refresh', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        id: 'credential-id',
+        refreshToken: 'ref',
+        warmupSignals: { connectedDays: 2 },
+      });
+      (httpService.post as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            access_token: 'nac',
+            expires_in: 10,
+            refresh_token: 'nref',
+            refresh_expires_in: 20,
+            scope: 'video.list,user.info.basic,video.list',
+          },
+        }),
+      );
+      (credentialsMock.patch as vi.Mock).mockResolvedValue({
+        id: 'credential-id',
+        oauthTokenHash: '',
+      });
+
+      await service.refreshToken('org-id', 'brand-id');
+
+      expect(credentialsMock.patch).toHaveBeenCalledWith(
+        'credential-id',
+        expect.objectContaining({
+          warmupSignals: {
+            connectedDays: 2,
+            tiktokAuthorization: {
+              grantedScopes: ['user.info.basic', 'video.list'],
+              observedAt: expect.any(String),
+            },
+          },
+        }),
+      );
+    });
+  });
+
+  describe('getTiktokInfo', () => {
+    it('requests only user fields exposed by the exact granted scopes', async () => {
+      (httpService.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: {
+              user: {
+                avatar_url: 'https://example.com/avatar.jpg',
+                display_name: 'Creator',
+                open_id: 'creator-id',
+              },
+            },
+          },
+        }),
+      );
+
+      await service.getTiktokInfo(
+        'org-id',
+        'brand-id',
+        'access-token',
+        'user.info.basic',
+      );
+
+      expect(httpService.get).toHaveBeenCalledWith(
+        expect.stringContaining('/user/info/'),
+        expect.objectContaining({
+          params: {
+            fields: 'open_id,union_id,avatar_url,display_name',
+          },
+        }),
+      );
+    });
+  });
+
+  describe('handleAuthorizationError', () => {
+    it('reuses the reconnect lifecycle only for revoked credentials', async () => {
+      const revoked = await service.handleAuthorizationError(
+        'credential-id',
+        {
+          response: {
+            data: { error: { code: 'access_token_invalid' } },
+            status: 401,
+          },
+        },
+        'signal refresh',
+      );
+      const permissionLimited = await service.handleAuthorizationError(
+        'credential-id',
+        {
+          response: {
+            data: { error: { code: 'scope_not_authorized' } },
+            status: 401,
+          },
+        },
+        'signal refresh',
+      );
+
+      expect(revoked).toBe(true);
+      expect(permissionLimited).toBe(false);
+      expect(credentialsMock.patch).toHaveBeenCalledTimes(1);
+      expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
+        isConnected: false,
+      });
+    });
   });
 
   describe('getValidCredential', () => {
