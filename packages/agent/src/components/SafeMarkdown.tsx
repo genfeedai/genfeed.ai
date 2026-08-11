@@ -1,7 +1,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Code } from '@genfeedai/ui';
-import type { ReactElement, ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { memo, type ReactElement, type ReactNode, useMemo } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 function isSafeHref(href?: string): boolean {
@@ -162,14 +162,115 @@ interface SafeMarkdownProps {
   enhanceStructure?: boolean;
 }
 
-export function SafeMarkdown({
+// Hoisted to module scope rather than `useMemo`d inside the component: every
+// renderer below only closes over its own render-prop arguments (`href`,
+// `children`, `codeClassName`) — none reference `content`, `className`, or
+// `enhanceStructure` — so this object can be built once for the whole
+// module instead of once per `SafeMarkdown` render. Passing the same
+// `components` reference on every render also lets `ReactMarkdown` skip
+// re-registering its renderer map.
+const SAFE_MARKDOWN_COMPONENTS: Components = {
+  a: ({ href, children }): ReactElement => {
+    if (!isSafeHref(href)) {
+      return <span>{children as ReactNode}</span>;
+    }
+
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="font-medium text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:decoration-primary"
+      >
+        {children}
+      </a>
+    );
+  },
+  p: ({ children }): ReactElement => (
+    <p className="my-1.5 first:mt-0 last:mb-0 leading-6 text-foreground/92">
+      {children}
+    </p>
+  ),
+  ul: ({ children }): ReactElement => (
+    <ul className="my-2 list-disc space-y-1 pl-5 marker:text-foreground/35">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }): ReactElement => (
+    <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-foreground/45">
+      {children}
+    </ol>
+  ),
+  li: ({ children }): ReactElement => (
+    <li className="leading-6 text-foreground/90 pl-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
+      {children}
+    </li>
+  ),
+  strong: ({ children }): ReactElement => (
+    <strong className="font-semibold text-foreground">{children}</strong>
+  ),
+  h1: ({ children }): ReactElement => (
+    <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
+      {children}
+    </h3>
+  ),
+  h2: ({ children }): ReactElement => (
+    <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
+      {children}
+    </h3>
+  ),
+  h3: ({ children }): ReactElement => (
+    <h4 className="mb-1 mt-3 text-sm font-semibold tracking-tight text-foreground first:mt-0">
+      {children}
+    </h4>
+  ),
+  code: ({ className: codeClassName, children }): ReactElement => {
+    const isBlockCode =
+      typeof codeClassName === 'string' && codeClassName.includes('language-');
+
+    if (!isBlockCode) {
+      // Inline code must wrap — mono tokens are the #1 horizontal overflow
+      // source in agent failure dumps.
+      return (
+        <Code className="break-all text-[0.9em] [overflow-wrap:anywhere]">
+          {children}
+        </Code>
+      );
+    }
+
+    return (
+      <Code
+        display="block"
+        size="sm"
+        className="max-w-full min-w-0 overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
+      >
+        {children}
+      </Code>
+    );
+  },
+  pre: ({ children }): ReactElement => (
+    <pre className="my-2 max-w-full overflow-x-auto rounded-lg">{children}</pre>
+  ),
+  br: (): ReactElement => <br className="leading-none" />,
+};
+
+// Same rationale as `SAFE_MARKDOWN_COMPONENTS` — a fresh `[remarkGfm]` array
+// literal on every render defeats `react-markdown`'s own memoization of its
+// processor pipeline.
+const SAFE_MARKDOWN_REMARK_PLUGINS = [remarkGfm];
+
+function SafeMarkdownInner({
   content,
   className,
   enhanceStructure = false,
 }: SafeMarkdownProps): ReactElement {
-  const renderedContent = enhanceStructure
-    ? enhanceAssistantMarkdown(content)
-    : content;
+  // `enhanceAssistantMarkdown` walks the full string (list normalization +
+  // capability-line detection) on every call — cache it per `content` so a
+  // parent re-render with unchanged `content` doesn't re-run the transform.
+  const renderedContent = useMemo(
+    () => (enhanceStructure ? enhanceAssistantMarkdown(content) : content),
+    [content, enhanceStructure],
+  );
 
   return (
     <div
@@ -179,100 +280,14 @@ export function SafeMarkdown({
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={SAFE_MARKDOWN_REMARK_PLUGINS}
         skipHtml
-        components={{
-          a: ({ href, children }): ReactElement => {
-            if (!isSafeHref(href)) {
-              return <span>{children as ReactNode}</span>;
-            }
-
-            return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="font-medium text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:decoration-primary"
-              >
-                {children}
-              </a>
-            );
-          },
-          p: ({ children }): ReactElement => (
-            <p className="my-1.5 first:mt-0 last:mb-0 leading-6 text-foreground/92">
-              {children}
-            </p>
-          ),
-          ul: ({ children }): ReactElement => (
-            <ul className="my-2 list-disc space-y-1 pl-5 marker:text-foreground/35">
-              {children}
-            </ul>
-          ),
-          ol: ({ children }): ReactElement => (
-            <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-foreground/45">
-              {children}
-            </ol>
-          ),
-          li: ({ children }): ReactElement => (
-            <li className="leading-6 text-foreground/90 pl-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
-              {children}
-            </li>
-          ),
-          strong: ({ children }): ReactElement => (
-            <strong className="font-semibold text-foreground">
-              {children}
-            </strong>
-          ),
-          h1: ({ children }): ReactElement => (
-            <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
-              {children}
-            </h3>
-          ),
-          h2: ({ children }): ReactElement => (
-            <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
-              {children}
-            </h3>
-          ),
-          h3: ({ children }): ReactElement => (
-            <h4 className="mb-1 mt-3 text-sm font-semibold tracking-tight text-foreground first:mt-0">
-              {children}
-            </h4>
-          ),
-          code: ({ className: codeClassName, children }): ReactElement => {
-            const isBlockCode =
-              typeof codeClassName === 'string' &&
-              codeClassName.includes('language-');
-
-            if (!isBlockCode) {
-              // Inline code must wrap — mono tokens are the #1 horizontal
-              // overflow source in agent failure dumps.
-              return (
-                <Code className="break-all text-[0.9em] [overflow-wrap:anywhere]">
-                  {children}
-                </Code>
-              );
-            }
-
-            return (
-              <Code
-                display="block"
-                size="sm"
-                className="max-w-full min-w-0 overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
-              >
-                {children}
-              </Code>
-            );
-          },
-          pre: ({ children }): ReactElement => (
-            <pre className="my-2 max-w-full overflow-x-auto rounded-lg">
-              {children}
-            </pre>
-          ),
-          br: (): ReactElement => <br className="leading-none" />,
-        }}
+        components={SAFE_MARKDOWN_COMPONENTS}
       >
         {renderedContent}
       </ReactMarkdown>
     </div>
   );
 }
+
+export const SafeMarkdown = memo(SafeMarkdownInner);

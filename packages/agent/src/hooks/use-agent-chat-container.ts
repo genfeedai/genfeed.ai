@@ -23,7 +23,15 @@ import {
   readConversationComposerDraft,
   writeConversationComposerAttachments,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
-import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
+import {
+  computeStableTimelineEntries,
+  EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+  type StableTimelineEntriesState,
+} from '@genfeedai/agent/utils/compute-stable-timeline-entries';
+import {
+  composeTimelineWithStream,
+  deriveHistoricalTimeline,
+} from '@genfeedai/agent/utils/derive-timeline';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import type {
   AttachmentItem,
@@ -262,15 +270,51 @@ export function useAgentChatContainer({
     return `${minutes}m ${seconds}s`;
   }, [elapsedNow, isRunActive, runStartedAt]);
 
+  // Historical entries depend only on `messages` + `workEvents`, never on
+  // `streamState` — so streamed tokens (which mutate `streamState` on every
+  // chunk) no longer force this memo, or anything downstream of it, to
+  // recompute. See packages/agent/src/utils/derive-timeline.ts.
+  const historicalTimeline = useMemo(
+    () =>
+      deriveHistoricalTimeline(messages, workEvents, streamState.isStreaming),
+    [messages, workEvents, streamState.isStreaming],
+  );
+
+  // `deriveHistoricalTimeline` rebuilds every entry object on each call, so
+  // even with the memo above scoped correctly, a genuine `messages`/
+  // `workEvents` change still produces a brand-new array of brand-new
+  // objects. Structural sharing reuses the previous entry reference for any
+  // entry whose content did not actually change, so memoized row components
+  // downstream (`AgentChatMessage`, `TimelineWorkGroup`) can bail out via
+  // `React.memo` instead of re-rendering the entire history.
+  const stableTimelineEntriesRef = useRef<StableTimelineEntriesState>(
+    EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+  );
+  const stableHistoricalEntries = useMemo(() => {
+    const nextState = computeStableTimelineEntries(
+      stableTimelineEntriesRef.current,
+      historicalTimeline.entries,
+    );
+    stableTimelineEntriesRef.current = nextState;
+    return nextState.result;
+  }, [historicalTimeline.entries]);
+
   const timeline = useMemo(
     () =>
-      deriveTimeline(
-        messages,
-        workEvents,
-        streamState as Parameters<typeof deriveTimeline>[2],
+      composeTimelineWithStream(
+        {
+          activeEvents: historicalTimeline.activeEvents,
+          entries: stableHistoricalEntries,
+        },
+        streamState,
         runDurationLabel,
       ),
-    [messages, workEvents, streamState, runDurationLabel],
+    [
+      historicalTimeline.activeEvents,
+      stableHistoricalEntries,
+      streamState,
+      runDurationLabel,
+    ],
   );
 
   const followLatestTurn = useCallback(
