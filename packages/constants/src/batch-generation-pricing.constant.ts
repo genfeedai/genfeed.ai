@@ -14,6 +14,12 @@ import { ContentFormat } from '@genfeedai/enums';
 /** Base credits for one caption/text draft (before model multiplier). */
 export const BATCH_CAPTION_BASE_CREDITS = 1;
 
+/** Shared estimate/final-charge arithmetic for source-post variations. */
+export function sourcePostVariationCredits(outputCount: number): number {
+  if (!Number.isInteger(outputCount) || outputCount < 0) return 0;
+  return outputCount * BATCH_CAPTION_BASE_CREDITS;
+}
+
 /**
  * Planned media / packaging cost by content format.
  * Tweet-like text slots use image format with caption-only when no media.
@@ -62,7 +68,6 @@ export function batchCaptionModelMultiplier(
       return 1;
     case 'high_quality':
       return 2.5;
-    case 'balanced':
     default:
       return 1.5;
   }

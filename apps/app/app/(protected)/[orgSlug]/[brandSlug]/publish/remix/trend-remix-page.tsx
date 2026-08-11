@@ -1,244 +1,264 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { isDesktopClient } from '@genfeedai/config/deployment';
-import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
-import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { APP_ROUTES, sourcePostVariationCredits } from '@genfeedai/constants';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type ContentIntelligencePlatform,
+} from '@genfeedai/enums';
+import type {
+  GenerateSourcePostVariationsInput,
+  IPostVariationResult,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { getDesktopBridge } from '@/lib/desktop/runtime';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util';
+import { ArrowRight, Layers3, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo, useState } from 'react';
 
-function buildTwitterRemixTopic(params: {
-  sourceAuthor?: string;
-  sourceText?: string;
-  sourceUrl?: string;
-  topic?: string;
-}): string {
-  const parts = [
-    params.topic ? `Trend: ${params.topic}.` : undefined,
-    params.sourceAuthor
-      ? `Remix inspiration from @${params.sourceAuthor}.`
-      : undefined,
-    params.sourceText ? `Source content: ${params.sourceText}` : undefined,
-    params.sourceUrl ? `Source URL: ${params.sourceUrl}.` : undefined,
-    'Write an original Twitter/X draft for my brand inspired by this source, not copied from it.',
-  ];
+const COUNT_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1);
 
-  return parts.filter(Boolean).join(' ');
-}
-
-async function generateDesktopRemix(params: {
-  bridge: IGenfeedDesktopBridge;
-  mode: 'thread' | 'tweet';
-  topic: string;
-}) {
-  return params.bridge.cloud.generateContent({
-    platform: 'twitter',
-    prompt: params.topic,
-    publishIntent: 'review',
-    type: params.mode === 'thread' ? 'thread' : 'caption',
-  });
+function resolvePlatform(
+  value: string | null,
+): ContentIntelligencePlatform | null {
+  return isSourcePostVariationPlatform(value)
+    ? (value as ContentIntelligencePlatform)
+    : null;
 }
 
 function TrendRemixPageContent() {
-  const { push, replace } = useRouter();
-  const { href, orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
-  const { credentials, isReady } = useBrand();
-  const hasStartedRef = useRef(false);
-  const notificationsService = useMemo(
-    () => NotificationsService.getInstance(),
-    [],
-  );
+  const { href } = useOrgUrl();
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
-
+  const notifications = useMemo(() => NotificationsService.getInstance(), []);
+  const [count, setCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<IPostVariationResult | null>(null);
 
-  const mode = searchParams.get('mode') === 'thread' ? 'thread' : 'tweet';
-  const topic = searchParams.get('topic')?.trim() || '';
-  const trendId = searchParams.get('trendId')?.trim() || '';
-  const sourceReferenceId = searchParams.get('sourceReferenceId')?.trim() || '';
-  const sourceText = searchParams.get('sourceText')?.trim() || '';
-  const sourceAuthor = searchParams.get('sourceAuthor')?.trim() || '';
-  const sourceUrl = searchParams.get('sourceUrl')?.trim() || '';
+  const platform = resolvePlatform(searchParams.get('platform'));
+  const sourceInput = useMemo<GenerateSourcePostVariationsInput | null>(() => {
+    if (!platform) return null;
+    const postId = searchParams.get('postId')?.trim();
+    const sourcePostId = searchParams.get('sourcePostId')?.trim();
+    const sourceReferenceId = searchParams.get('sourceReferenceId')?.trim();
+    const trendId = searchParams.get('trendId')?.trim();
+    const selectors = [postId, sourcePostId, sourceReferenceId].filter(Boolean);
+    if (selectors.length !== 1 || (sourceReferenceId && !trendId)) return null;
 
-  const twitterCredential = useMemo(
-    () =>
-      credentials.find(
-        (credential) => credential.platform === CredentialPlatform.TWITTER,
-      ),
-    [credentials],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const desktop = isDesktopClient();
-
-    if ((!isReady && !desktop) || hasStartedRef.current) {
-      return () => controller.abort();
-    }
-
-    hasStartedRef.current = true;
-
-    const desktopBridge = desktop ? getDesktopBridge() : null;
-
-    if (!twitterCredential?.id && !desktopBridge) {
-      const nextError = 'Connect a Twitter/X account for this brand first.';
-      setError(nextError);
-      setIsSubmitting(false);
-      notificationsService.error(nextError);
-      return () => controller.abort();
-    }
-
-    const remixTopic = buildTwitterRemixTopic({
-      sourceAuthor,
-      sourceText,
-      sourceUrl,
-      topic,
-    });
-
-    const run = async () => {
-      try {
-        if (!twitterCredential?.id && desktopBridge) {
-          const generated = await generateDesktopRemix({
-            bridge: desktopBridge,
-            mode,
-            topic: remixTopic,
-          });
-          if (controller.signal.aborted) {
-            return;
-          }
-          notificationsService.success(
-            mode === 'thread'
-              ? 'Thread remix draft created'
-              : 'Tweet remix draft created',
-          );
-          // The desktop bridge produced the draft locally — hand it to the
-          // Agent to polish and publish, since the composer is gone.
-          replace(
-            href(
-              buildAgentPromptHref(
-                `Polish and publish this Twitter remix draft. Topic: "${topic || 'Twitter remix'}". Draft: "${generated.content}".`,
-              ),
-            ),
-          );
-          return;
-        }
-
-        if (!twitterCredential?.id) {
-          throw new Error('Connect a Twitter/X account for this brand first.');
-        }
-
-        const postsService = await getPostsService();
-
-        if (mode === 'thread') {
-          await postsService.generateThread({
-            count: 5,
-            credentialId: twitterCredential.id,
-            sourceReferenceIds: sourceReferenceId
-              ? [sourceReferenceId]
-              : undefined,
-            sourceUrl: sourceUrl || undefined,
-            tone: 'professional',
-            topic: remixTopic,
-            trendId: trendId || undefined,
-          });
-        } else {
-          await postsService.generateTweets({
-            count: 1,
-            credentialId: twitterCredential.id,
-            sourceReferenceIds: sourceReferenceId
-              ? [sourceReferenceId]
-              : undefined,
-            sourceUrl: sourceUrl || undefined,
-            tone: 'professional',
-            topic: remixTopic,
-            trendId: trendId || undefined,
-          });
-        }
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        notificationsService.success(
-          mode === 'thread'
-            ? 'Thread remix draft created'
-            : 'Tweet remix draft created',
-        );
-        replace(href('/publish?platform=twitter'));
-      } catch (runError) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        logger.error('Failed to create trend remix draft', runError);
-        setError('Failed to create the remix draft.');
-        setIsSubmitting(false);
-        notificationsService.error('Failed to create the remix draft.');
-      }
+    return {
+      platform,
+      ...(postId && { postId }),
+      ...(sourcePostId && { sourcePostId }),
+      ...(sourceReferenceId && { sourceReferenceId, trendId }),
     };
+  }, [platform, searchParams]);
 
-    run().catch(() => {
-      /* handled above */
-    });
+  const generate = async () => {
+    if (!sourceInput) {
+      setError('This remix link does not identify an available source post.');
+      return;
+    }
 
-    return () => controller.abort();
-  }, [
-    getPostsService,
-    href,
-    isReady,
-    mode,
-    notificationsService,
-    replace,
-    sourceAuthor,
-    sourceReferenceId,
-    sourceText,
-    sourceUrl,
-    topic,
-    trendId,
-    twitterCredential?.id,
-  ]);
+    try {
+      setError(null);
+      setIsSubmitting(true);
+      const service = await getPostsService();
+      const nextResult = await service.generateSourceVariations({
+        ...sourceInput,
+        count,
+      });
+      setResult(nextResult);
+      if (nextResult.meta.partialReason) {
+        notifications.warning(nextResult.meta.partialReason);
+      } else {
+        notifications.success(
+          `${nextResult.meta.actualCount} variations ready for review`,
+        );
+      }
+    } catch (generationError) {
+      logger.error(
+        'Failed to generate source post variations',
+        generationError,
+      );
+      const message =
+        (generationError as Error)?.message ||
+        'Failed to generate post variations.';
+      setError(message);
+      notifications.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  return isSubmitting ? (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <div className="text-center">
-        <div className="mx-auto size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
-        <p className="mt-4 text-sm text-foreground/70">
-          Creating your Twitter remix draft…
-        </p>
-      </div>
-    </div>
-  ) : (
-    <div className="flex min-h-[50vh] items-center justify-center px-6">
-      <div className="max-w-md space-y-4 text-center">
-        <h2 className="text-xl font-semibold">Unable to create remix draft</h2>
-        <p className="text-sm text-foreground/70">
-          {error || 'Something went wrong while creating the remix draft.'}
-        </p>
-        <div className="flex justify-center gap-3">
-          <Button
-            label="Go to Drafts"
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => push(href('/publish?platform=twitter'))}
-          />
-          <Button
-            label="Go to Credentials"
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => push(orgHref('/settings/api-keys'))}
-          />
+  const reviewHref = result
+    ? href(
+        `${APP_ROUTES.PUBLISH.REVIEW}?batch=${encodeURIComponent(result.meta.reviewBatchId)}`,
+      )
+    : null;
+  const visibleError =
+    error ||
+    (!sourceInput
+      ? 'This remix link does not identify an available, supported source post.'
+      : null);
+
+  return (
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+      <header className="max-w-2xl space-y-2">
+        <div className="flex items-center gap-2 text-sm text-foreground/55">
+          <Layers3 className="size-4" />
+          Source-aware generation
         </div>
-      </div>
-    </div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Generate brand-voice variations
+        </h1>
+        <p className="text-sm leading-6 text-foreground/62">
+          Create distinct, platform-ready posts from this source and compare
+          them together before publishing.
+        </p>
+      </header>
+
+      <section aria-labelledby="setup-title">
+        <Card bodyClassName="p-5">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-sm font-semibold" id="setup-title">
+                  Variation count
+                </h2>
+                <p className="mt-1 text-xs text-foreground/55">
+                  Each variation uses a different angle, opener, and structure.
+                </p>
+              </div>
+              <Select
+                value={String(count)}
+                onValueChange={(value) => setCount(Number(value))}
+              >
+                <SelectTrigger className="w-48" aria-label="Variation count">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNT_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={String(option)}>
+                      {option} {option === 1 ? 'variation' : 'variations'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 sm:items-end">
+              <Badge variant="secondary">
+                Estimated cost: {sourcePostVariationCredits(count)} credits (
+                {sourcePostVariationCredits(1)} each)
+              </Badge>
+              <Button
+                icon={<Sparkles className="size-4" />}
+                isDisabled={!sourceInput}
+                isLoading={isSubmitting}
+                label={`Generate ${count} ${count === 1 ? 'variation' : 'variations'}`}
+                onClick={() => {
+                  generate().catch(() => undefined);
+                }}
+                variant={ButtonVariant.DEFAULT}
+              />
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {visibleError ? (
+        <p
+          className="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+          role="alert"
+        >
+          {visibleError}
+        </p>
+      ) : null}
+
+      {result ? (
+        <section className="space-y-4" aria-labelledby="variations-title">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold" id="variations-title">
+                  {result.meta.actualCount} of {result.meta.requestedCount}{' '}
+                  variations ready
+                </h2>
+                <Badge variant="outline">{result.meta.voiceModeLabel}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-foreground/55">
+                Group {result.meta.groupId.slice(0, 8)} ·{' '}
+                {result.meta.creditCost} credits charged
+              </p>
+            </div>
+            {reviewHref ? (
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              >
+                <Link href={reviewHref}>
+                  Review all
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+
+          {result.meta.partialReason ? (
+            <p
+              className="border border-warning/35 bg-warning/10 p-3 text-sm text-warning"
+              role="status"
+            >
+              {result.meta.partialReason} No duplicate placeholder was added.
+            </p>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {result.posts.map((post, index) => (
+              <article key={post.id}>
+                <Card bodyClassName="p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge variant="secondary">
+                      Variation {index + 1} of {result.meta.actualCount}
+                    </Badge>
+                    <span className="text-xs capitalize text-foreground/45">
+                      {post.platform}
+                    </span>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-foreground/80">
+                    {post.description}
+                  </p>
+                  <p className="mt-2 text-xs text-foreground/45">
+                    Source retained · review batch{' '}
+                    {result.meta.reviewBatchId.slice(0, 8)}
+                  </p>
+                </Card>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </main>
   );
 }
 

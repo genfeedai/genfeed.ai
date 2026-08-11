@@ -80,11 +80,11 @@ export class GenerateContentDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Max(5)
+  @Max(10)
   @ApiProperty({
     default: 3,
     description: 'Number of content variations to generate',
-    maximum: 5,
+    maximum: 10,
     minimum: 1,
     required: false,
   })

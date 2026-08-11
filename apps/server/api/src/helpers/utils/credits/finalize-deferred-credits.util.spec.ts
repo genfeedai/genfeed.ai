@@ -4,6 +4,7 @@ import type { Request } from 'express';
 
 import {
   finalizeDeferredTextCredits,
+  finalizeOutputCredits,
   TEXT_MAX_OVERDRAFT_CREDITS,
 } from './finalize-deferred-credits.util';
 
@@ -76,6 +77,25 @@ describe('finalizeDeferredTextCredits', () => {
       amount: 0,
       deferred: false,
       maxOverdraftCredits: TEXT_MAX_OVERDRAFT_CREDITS,
+    });
+  });
+});
+
+describe('finalizeOutputCredits', () => {
+  it('reduces a preflighted multi-output charge to persisted output count', () => {
+    const request = {
+      creditsConfig: {
+        amount: 3,
+        description: 'Source post variations',
+      },
+    } as TestCreditsRequest;
+
+    finalizeOutputCredits(request, 2);
+
+    expect(request.creditsConfig).toEqual({
+      amount: 2,
+      deferred: false,
+      description: 'Source post variations',
     });
   });
 });

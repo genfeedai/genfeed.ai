@@ -21,4 +21,11 @@ describe('ReleasePostsList', () => {
     expect(source).toContain('getPublisherPostHref(target.id)');
     expect(source).toContain('returnUrl');
   });
+
+  it('offers a target-specific variation action beside published navigation', () => {
+    expect(source).toContain('buildSourcePostVariationsHref');
+    expect(source).toContain('postId: target.id');
+    expect(source).toContain('target.executionState === TargetState.PUBLISHED');
+    expect(source).toContain('Generate variations from');
+  });
 });
