@@ -26,6 +26,7 @@ describe('desktop boot screen', () => {
     const html = buildDesktopFailureScreenHtml();
 
     expect(html).toContain('Genfeed could not start');
+    expect(html).toContain('Your local data is still safe');
     expect(html).toContain('background: #000000');
   });
 
