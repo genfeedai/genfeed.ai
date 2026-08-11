@@ -92,6 +92,21 @@ function compactStandaloneDependencies(root) {
   });
 }
 
+function pruneDisabledImageOptimizer(root) {
+  const nodeModulesRoot = path.join(root, 'node_modules');
+  const sharpPackagesRoot = path.join(nodeModulesRoot, '@img');
+
+  // Next declares sharp as an optional dependency even when its image
+  // optimizer is disabled. Bun's standalone tree therefore still carries the
+  // wrapper and every platform-specific libvips package unless we remove them
+  // from this desktop-only bundle.
+  fs.rmSync(path.join(nodeModulesRoot, 'sharp'), {
+    force: true,
+    recursive: true,
+  });
+  fs.rmSync(sharpPackagesRoot, { force: true, recursive: true });
+}
+
 function findServerDirectory(root) {
   const queue = [root];
 
@@ -123,6 +138,7 @@ if (!fs.existsSync(standaloneRoot)) {
 fs.rmSync(outputRoot, { force: true, recursive: true });
 copyDirectory(standaloneRoot, outputRoot);
 compactStandaloneDependencies(outputRoot);
+pruneDisabledImageOptimizer(outputRoot);
 
 const serverDirectory = findServerDirectory(standaloneRoot);
 

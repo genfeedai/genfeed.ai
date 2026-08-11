@@ -69,6 +69,10 @@ assertMissing(
   path.join(appShellRoot, 'node_modules', 'sharp'),
   'Desktop bundle unexpectedly includes the disabled native image optimizer',
 );
+assertMissing(
+  path.join(appShellRoot, 'node_modules', '@img'),
+  'Desktop bundle unexpectedly includes sharp native image packages',
+);
 
 assertWithinBudget(
   'app shell',
