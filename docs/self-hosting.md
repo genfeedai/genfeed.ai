@@ -27,7 +27,8 @@ This starts:
 
 - **Web** (port 3000) — Studio UI
 - **API** (port 3010) — Core REST API
-- **MCP** (port 3014) — local MCP surface
+- **MCP** (port 3014) — local MCP surface, served at `http://localhost:3014/mcp`
+  ([Agent Surface](./agent-surface.md))
 - **PostgreSQL** (internal container port 5432; not published to the host)
 - **Redis** — embedded in the Genfeed container and persisted under `/data`
 
