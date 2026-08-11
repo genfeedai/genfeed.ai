@@ -25,16 +25,12 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/pricing",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/pricing",
     "type": "git",
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
-  "type": "module",
   "scripts": {
     "build": "bun run clean && tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
@@ -43,6 +39,7 @@
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.1.0"
 }

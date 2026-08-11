@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
@@ -58,11 +57,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/helpers",
-  "type": "module",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/helpers",
     "type": "git",
@@ -81,6 +76,7 @@
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "2.2.13"
 }

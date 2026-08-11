@@ -21,10 +21,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/errors",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/errors",
     "type": "git",

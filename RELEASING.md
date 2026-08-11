@@ -63,11 +63,9 @@ workflow push the corrected exact image first, change that package to public,
 then rerun only the failed artifact job; this avoids exposing the stale image.
 Do not change the visibility of the internal `genfeed.ai/server` package.
 
-After the release is green, publish `packages/create` through the package
-publishing workflow so npm users receive the installer tested by this contract.
-Use `[{"path":"packages/create","version":"0.2.0"}]` for `packages_json` — the
-exact version already merged to `master`, never a `bump` request (see the npm
-section below) — and set `dry_run=false` only for the approved publish run.
+`packages/create` and every other enrolled public package are published by the
+release itself, from the same pinned SHA — see the npm section below. No manual
+follow-up dispatch is required.
 
 Standalone production recovery/fallback deploys remain available through
 `.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
@@ -152,42 +150,91 @@ The version numbers should match, but the workflows are intentionally separate s
 
 ## Public npm Packages
 
-npm versions are release state and follow the same trunk gate as code:
+**npm publishing is automatic. There is no separate npm release step.**
 
-1. Update every package version in a normal PR to `master`. Include all
-   unpublished workspace dependencies needed by the release.
-2. From the `master` Actions page, run `Publish Packages` with `dry_run=true`
-   and exact merged versions, for example:
+The canonical `Release` workflow calls `publish-packages.yml` after Community and
+SaaS are green and before the GitHub release leaves draft. That lane compares
+every enrolled package's `master` version against the registry and publishes
+whatever npm has not seen. Bump a version in a normal PR and the next stable
+release ships it — nobody has to remember a dispatch, which is how the registry
+previously fell months behind `master`.
 
-   ```json
-   [{"path":"packages/enums","version":"2.3.3"},{"path":"packages/constants","version":"2.2.10"}]
-   ```
+npm failure blocks the release: the GitHub release stays a draft, so a red npm
+lane is visible instead of silent.
 
-3. Inspect the preflight artifact and summary. The workflow builds from clean
-   outputs, orders workspace dependencies, packs with Bun, validates the
-   resolved tarball, injects the matching complete license text, and runs
-   `npm publish --dry-run` before registry access is granted. An abbreviated
-   root AGPL notice fails preflight instead of producing an incomplete package.
-4. Rerun the same input with `dry_run=false`. The publish job uploads only the
-   preflighted tarballs and never commits or pushes to `master`. If npm fails
-   partway through, rerun the exact release: matching registry tarballs are
-   verified and skipped before pending packages continue.
+### The public surface is two packages
 
-Do not pass `bump` requests to the workflow and do not publish a workspace
-directory with npm. Bun resolves `workspace:*` while creating the immutable
-tarball; npm 11.5.1 or newer uploads that tarball with trusted-publisher OIDC
-and provenance.
+Only the installable products are public:
 
-An npm owner must configure each existing `@genfeedai/*` package with this
-trusted publisher before its first workflow release:
+- `@genfeedai/cli` — the terminal client (`npm install -g @genfeedai/cli`).
+  Its `dist` is bundled by `bun build`, so workspace packages are
+  `devDependencies` and nothing internal leaks into the install graph.
+- `@genfeedai/create` — the self-hosted scaffolder
+  (`npx @genfeedai/create my-genfeed`).
+
+Every other `packages/*` workspace is `private: true`. The pre-monorepo repos
+published internals (`enums`, `helpers`, `ui`, …) to npm as a transport between
+repos; `workspace:*` replaced that at the 2026-04 migration, and those names are
+deprecated on the registry rather than kept current.
+
+### Enrollment
+
+`scripts/npm-release-enrollment.json` decides which public packages the lane
+publishes. Every package under `packages/` with a public `publishConfig` must be
+listed in exactly one of:
+
+- `enrolled` — published automatically on every stable release.
+- `excluded` — never published, with a written reason.
+
+`bun run check:npm-release` enforces that on every PR. It also rejects an
+enrolled package with a runtime `workspace:` dependency on an excluded or
+private one, which would publish a manifest pointing at a version npm has never
+seen: installable, broken on `require`. Making a package publishable is
+therefore a deliberate release decision rather than a silent one.
+
+### Trusted publisher configuration
+
+npm matches the trusted publisher against the **caller** workflow filename and
+allows one workflow per package, so the entry point is `release.yml`. An npm
+owner must configure `@genfeedai/cli` and `@genfeedai/create` with:
 
 - organization: `genfeedai`
 - repository: `genfeed.ai`
-- workflow: `publish-packages.yml`
+- workflow: `release.yml`
 - environment: unset unless the workflow is updated to use one
 
-Package names that do not yet exist on npm (`api-types`, `auth-client`,
-`harness`, `pricing`, and `queue-contracts` as of July 2026) require one
-owner-authenticated bootstrap publication before npm allows trusted-publisher
-configuration. Bootstrap from a preflight tarball; never bypass the version PR
-or publish directly from a workspace directory.
+A package configured against another workflow filename fails authorization at
+publish time.
+
+### First publish of a new package name
+
+npm OIDC cannot create a package name, so a name that does not yet exist on npm
+needs one owner-authenticated bootstrap publication before it can be enrolled.
+The release lane fails fast and names the packages when an enrolled name is
+missing from the registry. Bootstrap from a preflight tarball, then configure the
+trusted publisher; never bypass the version PR or publish a workspace directory
+directly. Both currently enrolled names already exist on npm, so no bootstrap is
+pending.
+
+### Local preflight
+
+```bash
+bun run publish:package packages/cli
+```
+
+That builds from clean outputs, orders workspace dependencies, packs with Bun,
+validates the resolved tarball, injects the matching complete license text, and
+runs `npm publish --dry-run`. An abbreviated root AGPL notice fails preflight
+instead of producing an incomplete package. It never writes to the registry —
+publish credentials live in CI only.
+
+To preflight a whole release without publishing, dispatch `Publish Packages`
+from `master` with `dry_run=true`; leave `packages_json` empty to preflight
+exactly the drift the next release would ship. A dispatched `dry_run=false` is
+rejected, because that path is not the registered publisher.
+
+Do not pass `bump` requests to the workflow. Bun resolves `workspace:*` while
+creating the immutable tarball; npm 11.5.1 or newer uploads that tarball with
+trusted-publisher OIDC and provenance. If npm fails partway through a release,
+rerun it: matching registry tarballs are verified and skipped before pending
+packages continue.

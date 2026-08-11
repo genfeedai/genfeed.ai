@@ -263,10 +263,28 @@ test('keeps one canonical release contract for community and SaaS', () => {
     releaseWorkflow,
     /promote-community:[\s\S]*?needs: \[validate-release, publish-community, deploy-saas\]/,
   );
+  // npm is the release's one irreversible lane: it runs only after community and
+  // SaaS are green, and the GitHub release cannot leave draft without it.
   assert.match(
     releaseWorkflow,
-    /needs: \[validate-release, publish-community, deploy-saas, promote-community\]/,
+    /publish-packages:[\s\S]*?needs: \[validate-release, publish-community, deploy-saas\][\s\S]*?id-token: write[\s\S]*?uses: \.\/\.github\/workflows\/publish-packages\.yml[\s\S]*?dry_run: false/,
   );
+  const releasePublishRelease = releaseWorkflow.match(
+    /\n {2}publish-release:[\s\S]*$/,
+  )?.[0];
+  assert.ok(releasePublishRelease);
+  for (const dependency of [
+    'validate-release',
+    'publish-community',
+    'deploy-saas',
+    'promote-community',
+    'publish-packages',
+  ]) {
+    assert.match(
+      releasePublishRelease,
+      new RegExp(`^ {6}- ${dependency}$`, 'm'),
+    );
+  }
   assert.match(
     releaseWorkflow,
     /gh release edit "\$\{RELEASE_TAG\}" --draft=false/,

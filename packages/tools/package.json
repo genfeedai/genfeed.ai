@@ -15,11 +15,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/tools",
-  "type": "module",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/tools",
     "type": "git",
@@ -34,6 +30,7 @@
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.1.4"
 }

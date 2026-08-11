@@ -1,0 +1,5 @@
+{
+  "$schema-note": "Single source of truth for which public packages the automated npm release lane publishes. Every package under packages/ with a public publishConfig must appear in exactly one of enrolled/excluded, so adding a publishable package is a deliberate release decision instead of a silent one. Enforced by scripts/npm-release-plan.mjs (bun run check:npm-release). The public surface is intentionally just the installable products: the CLI and the self-hosted scaffolder. Everything else in packages/ is internal (private: true) — the pre-monorepo repos published internals to npm as a transport between repos, and workspace:* replaced that in 2026-04.",
+  "enrolled": ["packages/cli", "packages/create"],
+  "excluded": {}
+}

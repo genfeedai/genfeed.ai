@@ -37,10 +37,7 @@
   "peerDependencies": {
     "react": ">=19"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
+  "private": true,
   "repository": {
     "directory": "packages/auth-client",
     "type": "git",

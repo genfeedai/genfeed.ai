@@ -4,6 +4,8 @@ import path from 'node:path';
 
 const EXPECTED_REPOSITORY_URL =
   'git+https://github.com/genfeedai/genfeed.ai.git';
+const EXPECTED_HOMEPAGE_PREFIX =
+  'https://github.com/genfeedai/genfeed.ai/tree/master';
 const SUPPORTED_LICENSES = new Set(['AGPL-3.0', 'AGPL-3.0-or-later', 'MIT']);
 const RUNTIME_DEPENDENCY_FIELDS = [
   'dependencies',
@@ -109,6 +111,15 @@ function validatePublicPackage({ dir, pkg, packageByName, root, violations }) {
     }
     if (pkg.repository.directory !== packageRel) {
       violations.push(`${rel}: repository.directory must be ${packageRel}`);
+    }
+  }
+
+  // Optional, but when set it is the "Homepage" link on the npm page — it must
+  // resolve to this monorepo rather than a retired repo or a bare domain.
+  if (pkg.homepage !== undefined) {
+    const expectedHomepage = `${EXPECTED_HOMEPAGE_PREFIX}/${packageRel}`;
+    if (pkg.homepage !== expectedHomepage) {
+      violations.push(`${rel}: homepage must be ${expectedHomepage}`);
     }
   }
 

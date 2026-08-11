@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 #
-# Prepare or publish one already-versioned @genfeedai/* package.
-# Version changes must land on master through a pull request first.
+# Preflight one already-versioned @genfeedai/* package locally: build, pack, and
+# dry-run it exactly the way the release lane does.
+#
+# This script never writes to the registry. Publication is owned by the Release
+# workflow, which is the registered npm trusted publisher — a laptop has no
+# publish credential and should not have one. Version changes must land on
+# master through a pull request first.
 #
 # Usage:
-#   ./scripts/publish-package.sh packages/enums
-#   ./scripts/publish-package.sh packages/enums --dry-run
-#   ./scripts/publish-package.sh packages/enums --publish
+#   ./scripts/publish-package.sh packages/cli
 
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <package-dir> [--dry-run|--publish]"
+  echo "Usage: $0 <package-dir>"
+  echo
+  echo "Builds, packs, and dry-runs the package. Publishing runs in the Release workflow."
   exit 1
 }
 
@@ -21,14 +26,14 @@ if [ -z "${PKG_DIR}" ]; then
 fi
 shift
 
-MODE="dry-run"
 for arg in "$@"; do
   case "${arg}" in
     --dry-run)
-      MODE="dry-run"
+      # Preflight is the only mode; accepted so existing muscle memory works.
       ;;
     --publish)
-      MODE="publish"
+      echo "Error: local publishing is not supported. Run the Release workflow, which holds the npm trusted-publisher identity."
+      exit 1
       ;;
     patch|minor|major|--no-bump)
       echo "Error: version bumps are not allowed during publication. Merge the version through a PR first."
@@ -63,8 +68,3 @@ cd "${REPO_ROOT}"
 node scripts/publish-packages-from-json.mjs \
   --packages-json "${PACKAGE_REQUEST}" \
   --output-dir "${OUTPUT_DIR}"
-
-if [ "${MODE}" = "publish" ]; then
-  node scripts/publish-packages-from-json.mjs \
-    --publish-plan "${OUTPUT_DIR}/release-plan.json"
-fi
