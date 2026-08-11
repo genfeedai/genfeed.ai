@@ -49,6 +49,24 @@ describe('check-public-package-manifests', () => {
     });
   });
 
+  it('rejects a homepage that points away from this monorepo', () => {
+    writePackage('cli', {
+      ...publicManifest('cli'),
+      homepage: 'https://genfeed.ai',
+    });
+
+    expect(checkPublicPackageManifests({ root }).violations).toEqual([
+      'packages/cli/package.json: homepage must be https://github.com/genfeedai/genfeed.ai/tree/master/packages/cli',
+    ]);
+
+    writePackage('cli', {
+      ...publicManifest('cli'),
+      homepage:
+        'https://github.com/genfeedai/genfeed.ai/tree/master/packages/cli',
+    });
+    expect(checkPublicPackageManifests({ root }).violations).toEqual([]);
+  });
+
   it('rejects ambiguous license metadata', () => {
     writePackage('enums', {
       ...publicManifest('enums'),

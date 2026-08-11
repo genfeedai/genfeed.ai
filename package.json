@@ -82,6 +82,7 @@
     "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",
+    "check:npm-release": "node scripts/npm-release-plan.mjs --validate",
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",
     "check:pages-boundary": "bun run scripts/check-pages-boundary.ts",
     "check:package-api-surface": "bun run scripts/check-package-api-surface.ts",

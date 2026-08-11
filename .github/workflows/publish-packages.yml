@@ -1,14 +1,39 @@
 name: Publish Packages
 
+# Reusable npm release lane. `release.yml` calls this for every stable release so
+# tagged releases publish whatever package versions merged to master, and the
+# registry can no longer silently fall months behind the repo.
+#
+# npm trusted publishing matches the CALLER workflow filename and allows one per
+# package, so `release.yml` is the registered publisher. A direct dispatch here
+# is therefore preflight-only: it proves a release would publish cleanly without
+# touching the registry.
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      packages_json:
-        description: 'Exact versions already merged to master, e.g. [{"path":"packages/ui","version":"2.0.2"}]'
+      checkout_ref:
+        description: 'Pinned master SHA the release verified'
         required: true
         type: string
       dry_run:
-        description: 'Build, pack, inspect, and simulate every publish without registry changes'
+        description: 'Preflight only, no registry writes'
+        required: false
+        default: true
+        type: boolean
+      packages_json:
+        description: 'Optional explicit release set; empty means detect registry drift'
+        required: false
+        default: ''
+        type: string
+  workflow_dispatch:
+    inputs:
+      packages_json:
+        description: 'Optional override, e.g. [{"path":"packages/ui","version":"2.0.2"}]. Empty detects drift automatically.'
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: 'Must stay true — real publishes run through the Release workflow'
         required: false
         default: true
         type: boolean
@@ -18,8 +43,67 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    name: Plan npm release from registry drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      has_packages: ${{ steps.plan.outputs.has_packages }}
+      packages_json: ${{ steps.plan.outputs.packages_json }}
+    steps:
+      # npm authorizes the caller workflow, so a dispatched publish would fail at
+      # the registry with an opaque auth error. Fail here with the real reason.
+      - name: Reject real publishes outside the release workflow
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false }}
+        run: |
+          echo "::error::Real package publishes run through the Release workflow, which is the registered npm trusted publisher. Dispatch this workflow with dry_run=true for preflight only."
+          exit 1
+
+      - name: Require a master ref
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Package releases must run from master. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - name: Checkout the pinned commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '24.x'
+          bun-version: '1.3.14'
+
+      - name: Validate npm release enrollment
+        run: bun run check:npm-release
+
+      - name: Resolve packages to publish
+        id: plan
+        env:
+          PACKAGES_JSON_OVERRIDE: ${{ inputs.packages_json }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PACKAGES_JSON_OVERRIDE}" ]; then
+            echo "Using the explicitly supplied release set."
+            {
+              echo "has_packages=true"
+              echo "packages_json=${PACKAGES_JSON_OVERRIDE}"
+            } >>"${GITHUB_OUTPUT}"
+          else
+            node scripts/npm-release-plan.mjs
+          fi
+
   preflight:
     name: Preflight immutable package tarballs
+    needs: plan
+    if: ${{ needs.plan.outputs.has_packages == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -27,17 +111,10 @@ jobs:
     env:
       RELEASE_DIR: ${{ github.workspace }}/.package-release
     steps:
-      - name: Require a master dispatch
-        run: |
-          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
-            echo "::error::Package releases must be dispatched from master. Current ref: ${GITHUB_REF}"
-            exit 1
-          fi
-
-      - name: Checkout the dispatched master commit
+      - name: Checkout the pinned commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.checkout_ref || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -62,7 +139,7 @@ jobs:
 
       - name: Build, pack, and dry-run the complete release
         env:
-          PACKAGES_JSON: ${{ inputs.packages_json }}
+          PACKAGES_JSON: ${{ needs.plan.outputs.packages_json }}
         run: |
           node scripts/publish-packages-from-json.mjs \
             --packages-json "${PACKAGES_JSON}" \
@@ -92,8 +169,8 @@ jobs:
 
   publish:
     name: Publish preflighted package tarballs
-    if: ${{ inputs.dry_run == false }}
-    needs: preflight
+    if: ${{ inputs.dry_run == false && needs.plan.outputs.has_packages == 'true' }}
+    needs: [plan, preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -105,7 +182,7 @@ jobs:
       - name: Checkout the preflighted commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.checkout_ref || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -135,7 +212,7 @@ jobs:
           fi
           git fetch origin master
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
-            echo "::error::Master advanced after this release was dispatched. Run a new dry-run from current master."
+            echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
             exit 1
           fi
 

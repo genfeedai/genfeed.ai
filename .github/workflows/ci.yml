@@ -278,6 +278,8 @@ jobs:
         run: bun run audit:api:sql:ci
       - name: Public Package Manifests
         run: bun run check:public-packages
+      - name: npm Release Enrollment
+        run: bun run check:npm-release
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contracts

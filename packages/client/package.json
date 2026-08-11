@@ -38,6 +38,7 @@
   "files": [
     "dist"
   ],
+  "homepage": "https://github.com/genfeedai/genfeed.ai/tree/master/packages/client",
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@genfeedai/client",
