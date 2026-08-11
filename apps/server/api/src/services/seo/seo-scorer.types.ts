@@ -25,9 +25,9 @@ export {
  * the Article/Post DB shape so the deterministic core is trivially testable.
  */
 export interface SeoScorableContent {
-  /** Page title / H1 (Article.title, Post.label). */
+  /** Page title / H1 (Article.label, Post.label). */
   title?: string | null;
-  /** Meta description / excerpt (Article.excerpt). */
+  /** Meta description / excerpt (Article.summary). */
   metaDescription?: string | null;
   /** URL slug. */
   slug?: string | null;

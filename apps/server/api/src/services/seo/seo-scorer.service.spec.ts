@@ -349,11 +349,11 @@ describe('SeoScorerService', () => {
   it('scores and persists an article', async () => {
     prisma.article.findFirst.mockResolvedValue({
       content: goodInput.content,
-      excerpt: goodInput.metaDescription,
       id: 'art_1',
+      label: goodInput.title,
       organizationId: 'org_1',
       slug: goodInput.slug,
-      title: goodInput.title,
+      summary: goodInput.metaDescription,
     });
     prisma.article.update.mockResolvedValue({});
 
@@ -381,11 +381,11 @@ describe('SeoScorerService', () => {
   it('busts article collection cache after scoring an article', async () => {
     prisma.article.findFirst.mockResolvedValue({
       content: goodInput.content,
-      excerpt: goodInput.metaDescription,
       id: 'art_1',
+      label: goodInput.title,
       organizationId: 'org_1',
       slug: goodInput.slug,
-      title: goodInput.title,
+      summary: goodInput.metaDescription,
     });
     prisma.article.update.mockResolvedValue({});
 

@@ -85,9 +85,9 @@ export class GenerateArticleTask {
         data: {
           content: articleContent,
           isDeleted: false,
+          label: title,
           organizationId,
           status: ArticleStatus.DRAFT as never,
-          title,
           userId,
         },
       });

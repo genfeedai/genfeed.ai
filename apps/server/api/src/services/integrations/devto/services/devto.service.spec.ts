@@ -40,9 +40,9 @@ describe('DevtoService', () => {
     id: 'article-1',
     content: '# Hello dev.to\n\nBody in markdown.',
     coverImageUrl: 'https://cdn.example.com/cover.png',
-    excerpt: 'A short summary',
+    label: 'Hello dev.to',
     slug: 'hello-devto',
-    title: 'Hello dev.to',
+    summary: 'A short summary',
   };
 
   const mockDevtoArticle = {
@@ -150,11 +150,11 @@ describe('DevtoService', () => {
         {
           article: {
             body_markdown: mockArticle.content,
-            description: mockArticle.excerpt,
+            description: mockArticle.summary,
             main_image: mockArticle.coverImageUrl,
             published: true,
             tags: ['typescript', 'webdev'],
-            title: mockArticle.title,
+            title: mockArticle.label,
           },
         },
         expect.objectContaining({
