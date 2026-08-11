@@ -128,7 +128,13 @@ describe('AgentThreadContextPanel', () => {
 
     expect(screen.getByTestId('platform-badge-instagram')).toBeInTheDocument();
     expect(screen.getByText('Koro Official')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Manage' })).toBeInTheDocument();
+    // Brand and Channels both say "Manage" once each is populated — the second
+    // one is the channels link, and it has to reach social settings.
+    expect(
+      screen
+        .getAllByRole('link', { name: 'Manage' })
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/test-org/~/settings/brands', '/test-org/~/settings/social']);
   });
 
   it('describes the thread itself from the store', () => {
