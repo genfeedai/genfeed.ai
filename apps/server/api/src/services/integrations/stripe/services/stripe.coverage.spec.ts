@@ -136,7 +136,9 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_org');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       const result = await service.createOrganizationCustomer(
         'Acme Inc',
@@ -168,7 +170,11 @@ describe('StripeService — coverage spec', () => {
     it('uses one organization-generation key for concurrent members with different details', async () => {
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(makeMockCustomer('cus_org') as Stripe.Customer);
+        .mockResolvedValue(
+          makeMockCustomer(
+            'cus_org',
+          ) as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       await Promise.all([
         service.createOrganizationCustomer(
@@ -196,7 +202,9 @@ describe('StripeService — coverage spec', () => {
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
         .mockResolvedValue(
-          makeMockCustomer('cus_replacement') as Stripe.Customer,
+          makeMockCustomer(
+            'cus_replacement',
+          ) as unknown as Stripe.Response<Stripe.Customer>,
         );
 
       await service.createOrganizationCustomer(
@@ -242,7 +250,9 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_user1');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       const result = await service.createUserCustomer(
         'user_1',
@@ -268,7 +278,9 @@ describe('StripeService — coverage spec', () => {
       const mockCustomer = makeMockCustomer('cus_user2');
       const createSpy = vi
         .spyOn(service.stripe.customers, 'create')
-        .mockResolvedValue(mockCustomer as Stripe.Customer);
+        .mockResolvedValue(
+          mockCustomer as unknown as Stripe.Response<Stripe.Customer>,
+        );
 
       await service.createUserCustomer('user_2', 'hello@test.com', 'Vincent');
 

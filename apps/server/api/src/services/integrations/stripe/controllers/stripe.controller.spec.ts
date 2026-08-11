@@ -126,33 +126,33 @@ describe('StripeController', () => {
     lifecycleEmailService = {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
     };
-    customersService = {
-      findByOrganizationId: vi.fn().mockResolvedValue({
+
+    const findByOrganizationId = vi.fn(async (_organizationId: string) => ({
+      id: 'cust_row_1',
+      stripeCustomerId: 'cus_test123',
+    }));
+    const upsertForOrganization = vi.fn(
+      async (_organizationId: string, stripeCustomerId: string) => ({
         id: 'cust_row_1',
-        stripeCustomerId: 'cus_test123',
+        stripeCustomerId,
       }),
+    );
+
+    customersService = {
+      findByOrganizationId,
       provisionForOrganization: vi.fn(
         async (
           organizationId: string,
           provision: (current: string | null) => Promise<string>,
         ) => {
-          const current =
-            await customersService.findByOrganizationId(organizationId);
+          const current = await findByOrganizationId(organizationId);
           const stripeCustomerId = await provision(
             current?.stripeCustomerId ?? null,
           );
-          return await customersService.upsertForOrganization(
-            organizationId,
-            stripeCustomerId,
-          );
+          return await upsertForOrganization(organizationId, stripeCustomerId);
         },
       ),
-      upsertForOrganization: vi.fn(
-        async (_organizationId: string, stripeCustomerId: string) => ({
-          id: 'cust_row_1',
-          stripeCustomerId,
-        }),
-      ),
+      upsertForOrganization,
     };
 
     const module: TestingModule = await Test.createTestingModule({
