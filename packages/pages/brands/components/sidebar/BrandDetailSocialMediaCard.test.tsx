@@ -222,6 +222,46 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('marks a platform as linked on the page variant when it has a connection', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            handle: 'genfeed',
+            name: 'Genfeed',
+            platform: CredentialPlatform.INSTAGRAM,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    // Connections arrive with the lowercase domain platform id; tiles key off
+    // the same vocabulary, so a linked account must not read "Not connected".
+    expect(screen.getByText('Linked')).toBeInTheDocument();
+    expect(screen.getByText('1 connected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Reconnect Instagram' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not offer Fanvue, which has no OAuth connect route', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    expect(screen.queryByText('Fanvue')).not.toBeInTheDocument();
+    expect(screen.queryByText('Creator')).not.toBeInTheDocument();
+  });
+
   it('renders connected social links', () => {
     render(
       <BrandDetailSocialMediaCard

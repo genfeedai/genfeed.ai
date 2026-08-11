@@ -34,7 +34,11 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ActivityKey, ActivitySource } from '@genfeedai/enums';
+import {
+  ActivityKey,
+  ActivitySource,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -557,7 +561,39 @@ export class BrandsController extends BaseCRUDController<
       organizationId,
     );
 
-    return decorated;
+    return this.attachBrandCredentialRelations(decorated, organizationId);
+  }
+
+  /**
+   * Resolve the brand's connected accounts onto the response.
+   *
+   * `brandSerializerConfig` declares `credentials` as a relation, but nothing
+   * ever populated it — `findOne`/`findOneBySlug` fetch the brand row with no
+   * populate — so every brand came back with zero connected accounts and brand
+   * social settings reported "Not connected" for platforms that are linked.
+   *
+   * `platform` crosses to the domain vocabulary here: the column is the
+   * SCREAMING `CredentialPlatform` Prisma enum, while the UI, posts and OAuth
+   * routes all speak the lowercase domain `Platform` ids.
+   */
+  private async attachBrandCredentialRelations(
+    brand: BrandDocument,
+    organizationId: string,
+  ): Promise<BrandDocument> {
+    const credentials = await this.credentialsService.find({
+      brandId: String(brand.id),
+      isDeleted: false,
+      organizationId,
+    });
+
+    brand.credentials = credentials.map((credential) => ({
+      ...credential,
+      platform:
+        fromPrismaCredentialPlatform(credential.platform) ??
+        credential.platform,
+    }));
+
+    return brand;
   }
 
   /**

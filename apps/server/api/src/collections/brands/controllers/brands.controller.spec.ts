@@ -63,6 +63,7 @@ describe('BrandsController', () => {
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
+  let credentialsService: vi.Mocked<CredentialsService>;
   let _loggerService: vi.Mocked<LoggerService>;
 
   const mockUser = {
@@ -152,7 +153,13 @@ describe('BrandsController', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findAll: vi.fn(), findOne: vi.fn() },
+          useValue: {
+            // `decorateForResponse` resolves the brand's connected accounts,
+            // so `find` has to resolve to a list rather than undefined.
+            find: vi.fn(() => Promise.resolve([])),
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+          },
         },
         {
           provide: IngredientsService,
@@ -208,6 +215,7 @@ describe('BrandsController', () => {
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
+    credentialsService = module.get(CredentialsService);
     _loggerService = module.get(LoggerService);
 
     vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
@@ -456,6 +464,63 @@ describe('BrandsController', () => {
       );
 
       expect(cacheMetadata).toBeUndefined();
+    });
+  });
+
+  describe('decorateForResponse', () => {
+    it('attaches the brand credentials the serializer declares', async () => {
+      credentialsService.find.mockResolvedValue([
+        {
+          brandId: mockBrand.id,
+          id: 'cmcredential00000000000001',
+          isConnected: true,
+          platform: 'INSTAGRAM',
+        },
+      ] as never);
+
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.find).toHaveBeenCalledWith({
+        brandId: mockBrand.id,
+        isDeleted: false,
+        organizationId: mockBrand.organizationId,
+      });
+      expect(decorated.credentials).toEqual([
+        expect.objectContaining({ id: 'cmcredential00000000000001' }),
+      ]);
+    });
+
+    it('normalizes the Prisma credential platform to the domain vocabulary', async () => {
+      credentialsService.find.mockResolvedValue([
+        { id: 'credential-1', platform: 'GOOGLE_ADS' },
+        { id: 'credential-2', platform: 'DEVTO' },
+      ] as never);
+
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand } as never,
+        mockUser,
+      );
+
+      // The UI, posts and OAuth routes all key off lowercase platform ids;
+      // leaking the SCREAMING Prisma labels made every account read
+      // "Not connected" on brand social settings.
+      expect(decorated.credentials).toEqual([
+        expect.objectContaining({ platform: 'google_ads' }),
+        expect.objectContaining({ platform: 'devto' }),
+      ]);
+    });
+
+    it('leaves a brand without an organization untouched', async () => {
+      const decorated = await controller.decorateForResponse(
+        { ...mockBrand, organizationId: null } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.find).not.toHaveBeenCalled();
+      expect(decorated.credentials).toBeUndefined();
     });
   });
 

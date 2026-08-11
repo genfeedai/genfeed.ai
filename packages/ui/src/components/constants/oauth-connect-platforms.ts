@@ -1,7 +1,7 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   FacebookIcon,
-  GoogleIcon,
+  GoogleColorIcon,
   InstagramIcon,
   LinkedinIcon,
   RedditIcon,
@@ -10,14 +10,12 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import { Star } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 export type OAuthConnectPlatformCategoryId =
   | 'social'
   | 'video'
   | 'communities'
-  | 'creator'
   | 'ads';
 
 export interface OAuthConnectPlatformCategory {
@@ -32,7 +30,14 @@ export interface OAuthConnectPlatform {
    * (e.g. Meta Ads + Facebook organic both use FACEBOOK credentials).
    */
   connectId?: string;
-  icon: ReactNode;
+  /**
+   * Brand mark for this tile. It belongs to the tile, not to {@link platform}:
+   * YouTube Ads authenticates through Google Ads, so resolving the icon from
+   * the credential platform drew a Google "G" on the YouTube Ads card.
+   */
+  Icon: ComponentType<{ className?: string }>;
+  /** Brand colour for {@link Icon}. */
+  iconClassName: string;
   label: string;
   platform: CredentialPlatform;
   /**
@@ -68,7 +73,6 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
     { id: 'social', label: 'Social networks' },
     { id: 'video', label: 'Video' },
     { id: 'communities', label: 'Communities' },
-    { id: 'creator', label: 'Creator' },
     { id: 'ads', label: 'Advertising' },
   ];
 
@@ -77,7 +81,8 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
  * settings Connect button actually calls.
  *
  * Not listed (service helpers exist, but no UI-compatible connect route yet):
- * Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only).
+ * Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
+ * Fanvue (no OAuth connect route — the tile only ever offered a dead button).
  *
  * Ads notes:
  * - Meta Ads reuses Facebook OAuth (ads_management scopes on FACEBOOK).
@@ -89,62 +94,65 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
 export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'social',
-    icon: <XTwitterIcon className="mr-1.5 size-3.5" />,
+    Icon: XTwitterIcon,
+    iconClassName: 'text-foreground',
     label: 'Twitter',
     platform: CredentialPlatform.TWITTER,
   },
   {
     category: 'social',
-    icon: <InstagramIcon className="mr-1.5 size-3.5" />,
+    Icon: InstagramIcon,
+    iconClassName: 'text-pink-500',
     label: 'Instagram',
     platform: CredentialPlatform.INSTAGRAM,
   },
   {
     category: 'social',
-    icon: <FacebookIcon className="mr-1.5 size-3.5" />,
+    Icon: FacebookIcon,
+    iconClassName: 'text-blue-600',
     label: 'Facebook',
     platform: CredentialPlatform.FACEBOOK,
   },
   {
     category: 'social',
-    icon: <LinkedinIcon className="mr-1.5 size-3.5" />,
+    Icon: LinkedinIcon,
+    iconClassName: 'text-blue-700',
     label: 'LinkedIn',
     platform: CredentialPlatform.LINKEDIN,
   },
   {
     category: 'social',
-    icon: <ThreadsIcon className="mr-1.5 size-3.5" />,
+    Icon: ThreadsIcon,
+    iconClassName: 'text-foreground',
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
   },
   {
     category: 'video',
-    icon: <YoutubeIcon className="mr-1.5 size-3.5" />,
+    Icon: YoutubeIcon,
+    iconClassName: 'text-red-500',
     label: 'YouTube',
     platform: CredentialPlatform.YOUTUBE,
   },
   {
     category: 'video',
-    icon: <TiktokIcon className="mr-1.5 size-3.5" />,
+    Icon: TiktokIcon,
+    iconClassName: 'text-foreground',
     label: 'TikTok',
     platform: CredentialPlatform.TIKTOK,
   },
   {
     category: 'communities',
-    icon: <RedditIcon className="mr-1.5 size-3.5" />,
+    Icon: RedditIcon,
+    iconClassName: 'text-orange-500',
     label: 'Reddit',
     platform: CredentialPlatform.REDDIT,
   },
   {
-    category: 'creator',
-    icon: <Star className="mr-1.5 size-3.5" />,
-    label: 'Fanvue',
-    platform: CredentialPlatform.FANVUE,
-  },
-  {
     category: 'ads',
     connectId: 'meta-ads',
-    icon: <FacebookIcon className="mr-1.5 size-3.5" />,
+    Icon: FacebookIcon,
+    iconClassName: 'text-blue-600',
     label: 'Meta Ads',
     // Marketing API reuses the Facebook credential + ads scopes.
     platform: CredentialPlatform.FACEBOOK,
@@ -153,7 +161,9 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'ads',
     connectId: 'google-ads',
-    icon: <GoogleIcon className="mr-1.5 size-3.5" />,
+    Icon: GoogleColorIcon,
+    // GoogleColorIcon carries its own brand fills; the class only sizes it.
+    iconClassName: 'text-foreground',
     label: 'Google Ads',
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
@@ -161,7 +171,8 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'ads',
     connectId: 'youtube-ads',
-    icon: <YoutubeIcon className="mr-1.5 size-3.5" />,
+    Icon: YoutubeIcon,
+    iconClassName: 'text-red-500',
     label: 'YouTube Ads',
     // YouTube campaigns are bought through Google Ads OAuth.
     platform: CredentialPlatform.GOOGLE_ADS,
