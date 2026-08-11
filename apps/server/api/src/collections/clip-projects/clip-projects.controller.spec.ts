@@ -557,18 +557,6 @@ describe('ClipProjectsController', () => {
       );
     });
 
-    it('should reject unknown selected-reference policies', () => {
-      const dto = plainToInstance(GenerateClipsDto, {
-        editedHighlights,
-        referencePolicy: 'best-effort',
-        selectedHighlightIds: ['highlight-1'],
-      });
-
-      expect(validateSync(dto).map((error) => error.property)).toContain(
-        'referencePolicy',
-      );
-    });
-
     it('should reject non-youtube URLs', () => {
       const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
         avatarId: 'avatar-1',
@@ -671,6 +659,18 @@ describe('ClipProjectsController', () => {
 
       expect(validateSync(dto).map((error) => error.property)).toContain(
         'mode',
+      );
+    });
+
+    it('should reject unknown selected-reference policies', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        referencePolicy: 'best-effort',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'referencePolicy',
       );
     });
 
