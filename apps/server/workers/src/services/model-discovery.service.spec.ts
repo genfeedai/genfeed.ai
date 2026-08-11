@@ -24,6 +24,8 @@ vi.mock('@libs/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+// Stub only the margin calculation. Config imports other pricing exports, so a
+// full module replacement would break unrelated transitive imports.
 vi.mock('@genfeedai/pricing', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/pricing')>();
 

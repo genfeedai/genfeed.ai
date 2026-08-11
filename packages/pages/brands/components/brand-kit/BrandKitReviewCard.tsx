@@ -126,7 +126,7 @@ function formatReadinessScore(score: number): string {
 }
 
 function formatSelectedAssetCount(count: number): string {
-  return `${count} assets selected.`;
+  return `${count} ${count === 1 ? 'asset' : 'assets'} selected.`;
 }
 
 function formatSelectedFieldSummary(count: number): string {
