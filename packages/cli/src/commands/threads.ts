@@ -4,6 +4,7 @@ import { requireAuth } from '@/api/client';
 import { listThreads } from '@/api/threads';
 import { answerPendingInput } from '@/shell/agent-run';
 import { archiveThreadAndPrint, runAgentShell, showThreadSummary } from '@/shell/agent-shell';
+import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 
@@ -115,20 +116,35 @@ export const threadsCommand = new Command('threads')
             throw new Error('Provide an answer argument or use --stdin.');
           }
 
-          const result = await answerPendingInput(
-            threadId,
-            finalAnswer,
-            options.request,
-            options.timeout
-          );
+          const renderer = options.json ? undefined : createAssistantStreamRenderer();
+          if (renderer) {
+            print(formatHeader('Agent Response\n'));
+          }
+
+          let result: Awaited<ReturnType<typeof answerPendingInput>>;
+          try {
+            result = await answerPendingInput(
+              threadId,
+              finalAnswer,
+              options.request,
+              options.timeout,
+              renderer
+                ? {
+                    onAssistantDelta: (token) => renderer.onDelta(token),
+                    onAssistantFinalized: (finalContent) => renderer.onFinal(finalContent),
+                  }
+                : undefined
+            );
+          } finally {
+            renderer?.finish();
+          }
 
           if (options.json) {
             printJson(result);
             return;
           }
 
-          print(formatHeader('Agent Response\n'));
-          if (result.assistantMessage) {
+          if (result.assistantMessage && !renderer?.hasRenderedContent()) {
             print(result.assistantMessage);
             print();
           }
