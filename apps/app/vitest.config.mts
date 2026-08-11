@@ -27,6 +27,11 @@ export default mergeConfig(
       ],
     },
     test: {
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
+        reportsDirectory: './coverage',
+      },
       // Memory hygiene: the forks pool reuses one worker process across every
       // file in a shard, and isolate:true does NOT reclaim retained references
       // left behind per test (mock call args holding rendered React/DOM trees,
