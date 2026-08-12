@@ -5,7 +5,7 @@ import type {
 
 export class GoalEntity {
   readonly id!: string;
-  readonly organization!: string;
+  readonly organizationId!: string;
   readonly title!: string;
   readonly description?: string;
   readonly status!: GoalStatus;
