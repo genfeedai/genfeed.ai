@@ -12,6 +12,7 @@ import { BotsLivestreamRuntimeService } from '@api/collections/bots/services/bot
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { RestreamModule } from '@api/services/integrations/restream/restream.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -20,6 +21,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => ReplicateModule),
+    forwardRef(() => RestreamModule),
   ],
   providers: [
     BotsService,

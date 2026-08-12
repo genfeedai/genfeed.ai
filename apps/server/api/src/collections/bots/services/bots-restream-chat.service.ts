@@ -1,8 +1,10 @@
 import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
-import { LivestreamTranscriptSource } from '@genfeedai/enums';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
+import { LivestreamTranscriptSource, Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Restream Chat WebSocket action (subset). The official API is one-way
@@ -42,8 +44,11 @@ export class BotsRestreamChatService {
   private readonly logContext = 'BotsRestreamChatService';
 
   constructor(
+    @Inject(forwardRef(() => BotsLivestreamService))
     private readonly botsLivestreamService: BotsLivestreamService,
     private readonly logger: LoggerService,
+    @Optional() private readonly restreamService?: RestreamService,
+    @Optional() private readonly credentialsService?: CredentialsService,
   ) {}
 
   /**
@@ -163,8 +168,96 @@ export class BotsRestreamChatService {
     ) {
       return raw as LivestreamTranscriptSource;
     }
-    return bot.livestreamSettings?.transcriptEnabled === false
-      ? LivestreamTranscriptSource.MANUAL
-      : LivestreamTranscriptSource.MANUAL;
+    return LivestreamTranscriptSource.MANUAL;
   }
+
+  /**
+   * Pull Restream Chat for a short window and ingest into the livestream session.
+   * Called from minute-cadence session processing when transcriptSource is restream_chat.
+   */
+  async syncActiveSessionChat(
+    bot: BotDocument,
+  ): Promise<RestreamChatIngestResult> {
+    const source = this.resolveTranscriptSource(bot);
+    if (
+      source !== LivestreamTranscriptSource.RESTREAM_CHAT ||
+      bot.livestreamSettings?.transcriptEnabled === false
+    ) {
+      return { ingested: 0, sessionId: null, skipped: 1 };
+    }
+
+    if (!this.restreamService || !this.credentialsService) {
+      this.logger.warn(
+        'Restream services unavailable for chat sync',
+        this.logContext,
+      );
+      return { ingested: 0, sessionId: null, skipped: 1 };
+    }
+
+    const accessToken = await this.resolveRestreamAccessToken(bot);
+    if (!accessToken) {
+      return { ingested: 0, sessionId: null, skipped: 1 };
+    }
+
+    try {
+      const frames = await this.restreamService.collectChatActions(
+        accessToken,
+        {
+          listenMs: 6_000,
+          maxMessages: 30,
+        },
+      );
+      return this.ingestChatActions(bot, frames as RestreamChatAction[]);
+    } catch (error) {
+      this.logger.warn('Restream chat sync failed', {
+        context: this.logContext,
+        error,
+      });
+      return { ingested: 0, sessionId: null, skipped: 1 };
+    }
+  }
+
+  private async resolveRestreamAccessToken(
+    bot: BotDocument,
+  ): Promise<string | null> {
+    if (!this.credentialsService) {
+      return null;
+    }
+
+    const credentialId = bot.livestreamSettings?.restreamCredentialId;
+    if (credentialId) {
+      const byId = await this.credentialsService.findOne({
+        id: credentialId,
+        organizationId: bot.organizationId,
+        isDeleted: false,
+      } as never);
+      const token = readAccessToken(byId);
+      if (token) {
+        return token;
+      }
+    }
+
+    // Brand-scoped Restream credential fallback.
+    if (bot.brandId) {
+      const byBrand = await this.credentialsService.findOne({
+        brandId: bot.brandId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId: bot.organizationId,
+        platform: Platform.RESTREAM,
+      } as never);
+      return readAccessToken(byBrand);
+    }
+
+    return null;
+  }
+}
+
+function readAccessToken(credential: unknown): string | null {
+  if (!credential || typeof credential !== 'object') {
+    return null;
+  }
+  const record = credential as Record<string, unknown>;
+  const token = record.accessToken ?? record.access_token;
+  return typeof token === 'string' && token.trim() ? token.trim() : null;
 }

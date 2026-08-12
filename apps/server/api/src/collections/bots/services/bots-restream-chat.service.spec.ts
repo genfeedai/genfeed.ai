@@ -9,6 +9,8 @@ describe('BotsRestreamChatService', () => {
   const service = new BotsRestreamChatService(
     livestream as never,
     logger as never,
+    undefined,
+    undefined,
   );
 
   it('builds the official Restream chat websocket URL', () => {

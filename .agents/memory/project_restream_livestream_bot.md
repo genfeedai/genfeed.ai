@@ -52,8 +52,21 @@ YouTube Live auto-captions are **not** a public real-time consumer API. Do not d
 - Per-destination **replies** may still use YouTube/Twitch APIs (quota)  
 - Host STT: provider $/min  
 
+## Integration (shipped)
+
+| Surface | Path |
+| --- | --- |
+| OAuth connect | `POST /services/restream/connect` + `verify` |
+| Credential platform | `CredentialPlatform` / domain `Platform.RESTREAM` |
+| Env | `RESTREAM_CLIENT_ID`, `RESTREAM_CLIENT_SECRET`, `RESTREAM_REDIRECT_URI` |
+| Chat ingest API | `POST /bots/:id/livestream-session/restream-chat` |
+| Host captions | `POST /bots/:id/livestream-session/transcript` (`source` field) |
+| Minute processing | Active livestream sessions sync Restream Chat when `transcriptSource=restream_chat` |
+| Workflow node | `restreamChatIngest` + catalog template `restream-chat-context-ingest` |
+
 ## How to apply
 
 - Prefer Restream Chat for audience context when the brand multistreams.  
 - Never document OBS as the only host-speech path.  
-- Keep destination delivery (YouTube/Twitch post) separate from context ingest.
+- Keep destination delivery (YouTube/Twitch post) separate from context ingest.  
+- Connect Restream OAuth per brand; set bot `restreamCredentialId` or auto-resolve brand RESTREAM credential.

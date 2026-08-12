@@ -16,6 +16,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
+import type {
+  AgentStrategyWorkflowBinding,
+  RunAgentStrategyWorkflowInput,
+} from '@services/automation/agent-strategies.service';
 import {
   AgentStrategiesService,
   type AgentStrategyOpportunity,
@@ -37,12 +41,13 @@ import {
   Sparkles,
   User,
   Video,
+  Workflow,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
-
+import AgentWorkflowRunDialog from '../library/AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentRunHistorySection from './AgentRunHistorySection';
 
@@ -119,12 +124,57 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     try {
       const service = await getService();
       await service.runNow(agentId);
-      notificationsService.success('Agent run triggered');
+      notificationsService.success('Autopilot run triggered');
     } catch (error) {
       logger.error('Failed to trigger run', { error });
       notificationsService.error('Failed to trigger run');
     }
   }, [agentId, getService, notificationsService]);
+
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowBinding, setWorkflowBinding] =
+    useState<AgentStrategyWorkflowBinding | null>(null);
+  const [isLoadingBinding, setIsLoadingBinding] = useState(false);
+  const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
+
+  const handleOpenWorkflow = useCallback(async () => {
+    setWorkflowDialogOpen(true);
+    setWorkflowBinding(null);
+    setIsLoadingBinding(true);
+    try {
+      const service = await getService();
+      const binding = await service.getWorkflowBinding(agentId);
+      setWorkflowBinding(binding);
+    } catch (error) {
+      logger.error('Failed to load workflow binding', { error });
+      notificationsService.error('Could not load workflow binding');
+    } finally {
+      setIsLoadingBinding(false);
+    }
+  }, [agentId, getService, notificationsService]);
+
+  const handleSubmitWorkflow = useCallback(
+    async (input: RunAgentStrategyWorkflowInput) => {
+      setIsSubmittingWorkflow(true);
+      try {
+        const service = await getService();
+        const result = await service.runWorkflow(agentId, input);
+        notificationsService.success(
+          `Workflow started (${result.status}). Execution ${result.executionId.slice(0, 8)}…`,
+        );
+        setWorkflowDialogOpen(false);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to run agent workflow', { error });
+        notificationsService.error(
+          error instanceof Error ? error.message : 'Failed to run workflow',
+        );
+      } finally {
+        setIsSubmittingWorkflow(false);
+      }
+    },
+    [agentId, getService, notificationsService, refresh],
+  );
 
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
@@ -204,10 +254,17 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleToggle}
           />
           <Button
-            label="Run Now"
-            icon={<CirclePlay />}
+            label="Run workflow"
+            icon={<Workflow />}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
+            onClick={handleOpenWorkflow}
+          />
+          <Button
+            label="Autopilot"
+            icon={<CirclePlay />}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
             onClick={handleRunNow}
           />
         </div>
@@ -231,6 +288,17 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             </p>
           </div>
         </div>
+
+        {(strategy.preferredWorkflowId ||
+          strategy.preferredWorkflowTemplateId) && (
+          <p className="text-sm text-foreground/60">
+            Bound workflow:{' '}
+            <span className="font-medium text-foreground">
+              {strategy.preferredWorkflowTemplateId ||
+                strategy.preferredWorkflowId}
+            </span>
+          </p>
+        )}
 
         <KPISection
           title="Usage"
@@ -261,6 +329,16 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                   : 'text-success',
             },
           ]}
+        />
+
+        <AgentWorkflowRunDialog
+          strategy={strategy}
+          binding={workflowBinding}
+          isLoadingBinding={isLoadingBinding}
+          isOpen={workflowDialogOpen}
+          isSubmitting={isSubmittingWorkflow}
+          onOpenChange={setWorkflowDialogOpen}
+          onSubmit={handleSubmitWorkflow}
         />
 
         {requestedOpportunityId && (

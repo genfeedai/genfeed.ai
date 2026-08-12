@@ -27,4 +27,6 @@ export enum Platform {
   DEV_TO = 'devto',
   PRODUCT_HUNT = 'product_hunt',
   HACKER_NEWS = 'hacker_news',
+  /** Multistream + unified chat (OAuth / credentials), not a social post target. */
+  RESTREAM = 'restream',
 }

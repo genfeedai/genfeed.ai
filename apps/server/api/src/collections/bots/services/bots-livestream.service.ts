@@ -15,11 +15,11 @@ import type {
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BotPlatform } from '@genfeedai/enums';
+import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
 import {
@@ -28,6 +28,7 @@ import {
   type LivestreamPlatform,
   type ResolvedLivestreamContext,
 } from './bots-livestream-runtime.service';
+import { BotsRestreamChatService } from './bots-restream-chat.service';
 
 type LivestreamMessageType = BotLivestreamMessageType;
 
@@ -149,6 +150,9 @@ export class BotsLivestreamService {
     private readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
     private readonly runtimeService: BotsLivestreamRuntimeService,
+    @Optional()
+    @Inject(forwardRef(() => BotsRestreamChatService))
+    private readonly restreamChatService?: BotsRestreamChatService,
   ) {}
 
   private normalizeBotDocument(bot: BotDocument): BotDocument {
@@ -724,6 +728,24 @@ export class BotsLivestreamService {
     const now = new Date();
     const cadenceMinutes =
       bot.livestreamSettings?.scheduledCadenceMinutes ?? 10;
+
+    // Restream-first: pull unified multistream chat into session context before posts.
+    const transcriptSource = bot.livestreamSettings?.transcriptSource;
+    if (
+      this.restreamChatService &&
+      (transcriptSource === LivestreamTranscriptSource.RESTREAM_CHAT ||
+        transcriptSource === 'restream_chat')
+    ) {
+      try {
+        await this.restreamChatService.syncActiveSessionChat(bot);
+      } catch (error) {
+        this.loggerService.warn('Restream chat sync skipped for session', {
+          botId: bot.id,
+          error,
+          sessionId: session.id,
+        });
+      }
+    }
 
     for (const target of bot.targets ?? []) {
       const platform = target.platform;

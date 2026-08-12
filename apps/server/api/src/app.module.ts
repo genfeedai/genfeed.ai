@@ -168,6 +168,7 @@ import { OpenRouterModule } from '@api/services/integrations/openrouter/openrout
 import { OpusProModule } from '@api/services/integrations/opuspro/opuspro.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
+import { RestreamModule } from '@api/services/integrations/restream/restream.module';
 import { ShopifyModule } from '@api/services/integrations/shopify/shopify.module';
 import { SnapchatModule } from '@api/services/integrations/snapchat/snapchat.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
@@ -394,6 +395,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     PinterestModule,
     PublicModule,
     RedditModule,
+    RestreamModule,
     ShopifyModule,
     SnapchatModule,
     SolanaModule,

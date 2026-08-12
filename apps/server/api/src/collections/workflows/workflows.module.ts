@@ -5,6 +5,7 @@ dependency management, and workflow execution tracking.
  */
 
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -34,6 +35,7 @@ import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapte
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
+import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
@@ -103,6 +105,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => AgentThreadsModule),
+    forwardRef(() => BotsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => CredentialsCoreModule),
@@ -169,6 +172,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     ReplyPollingWorkflowService,
+    LivestreamBotWorkflowService,
     ReviewGateNotificationService,
     WorkflowRunControlService,
     WorkflowSchedulerService,

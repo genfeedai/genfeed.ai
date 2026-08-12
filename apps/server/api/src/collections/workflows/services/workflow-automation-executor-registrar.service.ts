@@ -241,6 +241,48 @@ export class WorkflowAutomationExecutorRegistrarService {
               context,
             ),
     );
+
+    engine.registerExecutor('restreamChatIngest', (node, inputs, context) => {
+      if (!this.livestreamBotWorkflowService) {
+        return this.livestreamBotUnavailable('restreamChatIngest', context);
+      }
+
+      const inputRecord =
+        inputs && typeof inputs === 'object' && !Array.isArray(inputs)
+          ? (inputs as Record<string, unknown>)
+          : {};
+      const contextRecord = context as Record<string, unknown>;
+      const triggerData =
+        contextRecord.inputValues &&
+        typeof contextRecord.inputValues === 'object' &&
+        !Array.isArray(contextRecord.inputValues)
+          ? (contextRecord.inputValues as Record<string, unknown>)
+          : contextRecord.triggerData &&
+              typeof contextRecord.triggerData === 'object' &&
+              !Array.isArray(contextRecord.triggerData)
+            ? (contextRecord.triggerData as Record<string, unknown>)
+            : {};
+
+      const botId =
+        this.helper.readConfigString(node.config, 'botId') ||
+        (typeof inputRecord.botId === 'string' ? inputRecord.botId : '') ||
+        (typeof triggerData.botId === 'string' ? triggerData.botId : '');
+
+      if (!botId) {
+        return Promise.resolve({
+          action: 'restreamChatIngest',
+          ingested: 0,
+          organizationId: context.organizationId,
+          reason: 'botId_required',
+          status: 'failed',
+        });
+      }
+
+      return this.livestreamBotWorkflowService.runRestreamChatIngest(
+        context.organizationId,
+        botId,
+      );
+    });
   }
 
   private registerLegacyCronJobExecutors(engine: WorkflowEngine): void {

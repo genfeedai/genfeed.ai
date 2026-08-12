@@ -222,6 +222,7 @@ enum CredentialPlatform {
   BEEHIIV
   UNIPILE
   DEVTO
+  RESTREAM
 }
 
 enum TagCategory {
@@ -272,6 +273,7 @@ enum IntegrationPlatform {
   SLACK
   DISCORD
   UNIPILE
+  RESTREAM
 }
 
 enum IntegrationStatus {

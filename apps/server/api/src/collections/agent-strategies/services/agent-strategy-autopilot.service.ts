@@ -10,8 +10,10 @@ import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-s
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
+import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { Injectable } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 
 export type {
   AgentStrategyPerformanceSnapshot,
@@ -27,6 +29,10 @@ export class AgentStrategyAutopilotService {
     private readonly performanceService: AgentStrategyAutopilotPerformanceService,
     private readonly planningService: AgentStrategyAutopilotPlanningService,
     private readonly executionService: AgentStrategyAutopilotExecutionService,
+    @Optional()
+    private readonly workflowRunService?: AgentStrategyWorkflowRunService,
+    @Optional()
+    private readonly logger?: LoggerService,
   ) {}
 
   async listStrategyOpportunities(
@@ -73,6 +79,46 @@ export class AgentStrategyAutopilotService {
       input.strategyId,
       input.organizationId,
     );
+
+    // Prefer bound deterministic workflow when the strategy has a workflow pin.
+    const preferredWorkflowId =
+      typeof strategy.preferredWorkflowId === 'string'
+        ? strategy.preferredWorkflowId.trim()
+        : '';
+    const preferredTemplateId =
+      typeof strategy.preferredWorkflowTemplateId === 'string'
+        ? strategy.preferredWorkflowTemplateId.trim()
+        : '';
+
+    if (
+      this.workflowRunService &&
+      (preferredWorkflowId || preferredTemplateId)
+    ) {
+      try {
+        const topic =
+          Array.isArray(strategy.topics) && strategy.topics[0]
+            ? String(strategy.topics[0])
+            : strategy.label;
+        const workflowResult = await this.workflowRunService.run(
+          input.strategyId,
+          input.organizationId,
+          input.userId,
+          { topic: topic || undefined },
+        );
+        return {
+          contentGenerated: 1,
+          creditsUsed: 0,
+          summary: `Workflow-backed autopilot started execution ${workflowResult.executionId} on workflow ${workflowResult.workflowId}.`,
+        };
+      } catch (error) {
+        // Fall through to skill/opportunity path if workflow fill fails.
+        this.logger?.warn('Workflow-backed autopilot failed; using skills', {
+          error,
+          strategyId: input.strategyId,
+        });
+      }
+    }
+
     const pacing = this.planningService.computeBudgetPacingState(strategy);
 
     await this.opportunitiesService.expireStaleOpportunities(strategy);
