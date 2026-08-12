@@ -7,7 +7,6 @@ export class ArticleEntity extends BaseEntity implements Article {
   organizationId!: string;
   brandId!: string | null;
   coverImageUrl!: string | null;
-  banner?: string;
 
   label!: string;
   description!: string | null;

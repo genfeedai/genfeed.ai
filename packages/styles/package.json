@@ -7,5 +7,8 @@
   "private": true,
   "sideEffects": true,
   "type": "module",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "devDependencies": {
+    "@tailwindcss/typography": "0.5.20"
+  }
 }

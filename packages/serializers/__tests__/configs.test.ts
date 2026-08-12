@@ -135,9 +135,8 @@ describe('Serializer Configurations', () => {
       });
 
       const testData = {
-        banner: 'banner-123',
-        bannerUrl: 'https://example.com/image.jpg',
         content: 'Test content',
+        coverImageUrl: 'https://example.com/image.jpg',
         id: 'art-123',
         label: 'Test Article',
         publishedAt: '2023-01-01T00:00:00Z',
@@ -159,6 +158,10 @@ describe('Serializer Configurations', () => {
       expect(result.data.attributes).toHaveProperty('slug', 'test-article');
       expect(result.data.attributes).toHaveProperty('summary', 'Test summary');
       expect(result.data.attributes).toHaveProperty('content', 'Test content');
+      expect(result.data.attributes).toHaveProperty(
+        'cover-image-url',
+        'https://example.com/image.jpg',
+      );
     });
   });
 
@@ -260,6 +263,7 @@ describe('Serializer Configurations', () => {
       expect(articleAttributes).toContain('slug');
       expect(articleAttributes).toContain('summary');
       expect(articleAttributes).toContain('content');
+      expect(articleAttributes).toContain('coverImageUrl');
       expect(articleAttributes).toContain('status');
     });
   });

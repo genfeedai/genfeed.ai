@@ -120,7 +120,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'article:Article': [
     'aiGeneration',
-    'bannerUrl',
     'evaluation',
     'generationPrompt',
     'performanceMetrics',

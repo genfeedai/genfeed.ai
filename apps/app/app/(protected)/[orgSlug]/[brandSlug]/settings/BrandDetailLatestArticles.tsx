@@ -47,10 +47,10 @@ export default function BrandDetailLatestArticles({
               key={article.id}
               className="overflow-hidden rounded-lg border border-border/50"
             >
-              {article.bannerUrl ? (
+              {article.coverImageUrl ? (
                 <div className="relative h-36 w-full">
                   <Image
-                    src={article.bannerUrl}
+                    src={article.coverImageUrl}
                     alt={article.label || 'Article'}
                     width={800}
                     height={400}

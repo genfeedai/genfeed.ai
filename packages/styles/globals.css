@@ -1,10 +1,17 @@
 @import "tailwindcss";
+
 @import "./keyframes.css";
 @import "./animate.css";
 @import "./theme.css";
 @import "./shadcn-theme.css";
 @import "./calendar.css";
 @import "./genfeed.css";
+
+/* Long-form prose (article bodies) arrives as sanitized HTML through
+   `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a
+   typography layer supplies the heading/list/code rules. Declared after the
+   imports because an `@import` that follows any other rule is invalid CSS. */
+@plugin "@tailwindcss/typography";
 
 @source "../../node_modules/@shipshitdev/ui/dist";
 

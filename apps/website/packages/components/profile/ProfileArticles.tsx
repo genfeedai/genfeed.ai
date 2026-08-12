@@ -16,11 +16,11 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
           href={`/articles/${article.slug}`}
           className="gen-card-spotlight block"
         >
-          {article.bannerUrl && (
+          {article.coverImageUrl && (
             <div className="relative h-48 w-full">
               <Image
                 className="object-cover"
-                src={article.bannerUrl}
+                src={article.coverImageUrl}
                 alt={article.label}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"

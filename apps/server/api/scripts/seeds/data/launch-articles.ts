@@ -15,15 +15,35 @@
  */
 
 import { ArticleCategory } from '@genfeedai/enums';
+// Imported by source path, as every other `cdnAsset` caller does. The
+// `@genfeedai/helpers` barrel resolves to the package's prebuilt `dist`, so a
+// seed run would depend on that build being current — it is not, on a checkout
+// where the package has not been rebuilt since the helper was added.
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 
 export type LaunchArticle = {
   category: ArticleCategory;
   /** Sanitized HTML body. See the module note above — this is not markdown. */
   content: string;
+  /** Article artwork on the CDN. See `articleArtwork()`. */
+  coverImageUrl: string;
   label: string;
   slug: string;
   summary: string;
 };
+
+/**
+ * Every launch article ships a generated header image. The path is derived from
+ * the slug rather than stored per article so the seed and the upload that puts
+ * the file on the CDN cannot drift apart.
+ *
+ * Artwork lives on `cdn.genfeed.ai` — one stable host in every environment,
+ * because social crawlers reading the OG card need a publicly reachable URL and
+ * never a per-env or localhost one.
+ */
+function articleArtwork(slug: string): string {
+  return cdnAsset(`/assets/cards/articles/${slug}.jpg`);
+}
 
 const CLEAR_FRAMEWORK = `
 <p>Most bad AI output is not a model problem. It is a brief problem. The model
@@ -187,8 +207,8 @@ faster than any single clever trick.</p>
   <li><a href="/articles/how-to-prompt-ai-images-videos-and-audio">How to prompt
   AI images, videos, and audio</a> — the same discipline applied to visual and
   audio generation.</li>
-  <li><a href="/articles/ai-image-prompt-templates">12 copy-paste AI image prompt
-  templates</a> — fill in the brackets and generate.</li>
+  <li><a href="/articles/ai-image-prompt-templates">12 AI image prompt briefs to
+  hand your agent</a> — describe the job, let the agent write the prompt.</li>
 </ul>
 `;
 
@@ -306,6 +326,76 @@ type, direction, speed, focus changes, and any added elements.</p>
 rotation, 5 seconds, add floating dust particles, subtle focus pull from
 background to foreground."</p>
 
+<h2>The filmmaking lexicon: effects you can direct on purpose</h2>
+
+<p>Cinematic vocabulary is useful only when it changes the instruction you give
+the model. "Make it cinematic" hands every decision back to the generator.
+Naming the movement or optical effect tells it what changes, what stays stable,
+and where the viewer should look. Use the interactive effect lab above to see
+each principle before you add it to a prompt.</p>
+
+<h3>Film grain</h3>
+
+<p>Film grain is fine luminance and colour variation inherited from photosensitive
+film stock. In generated video it can soften a clinically digital image and
+help separate a memory, period setting, or documentary texture from the rest of
+a sequence. Ask for the stock character and restraint: <code>fine 35mm grain,
+mostly luminance noise, preserved skin detail</code>. Heavy uniform noise looks
+like compression damage rather than film.</p>
+
+<h3>Vignette</h3>
+
+<p>A vignette gradually darkens the frame toward its edges. It guides attention
+without changing the composition, but only while the viewer does not notice
+the mechanism. Prompt for a <code>restrained natural vignette with preserved
+edge detail</code>; avoid it when information at the edge of frame matters.</p>
+
+<h3>Rack focus</h3>
+
+<p>A rack focus changes the focal plane during one shot. The camera can remain
+locked while attention moves from a foreground subject to a background subject,
+revealing a relationship without a cut. Name both endpoints and the order:
+<code>begin focused on the foreground glass, then smoothly shift focus to the
+person in the doorway</code>.</p>
+
+<h3>Dolly zoom</h3>
+
+<p>A dolly zoom moves the camera while changing focal length in the opposite
+direction. The subject stays nearly the same size while background perspective
+stretches or compresses. It signals shock, unease, or a sudden change in
+perception. A usable instruction specifies both coordinated moves: <code>dolly
+backward while zooming in, keep the subject size locked, let the corridor
+expand behind them</code>.</p>
+
+<h3>Whip pan</h3>
+
+<p>A whip pan crosses the scene fast enough to create directional motion blur.
+It adds energy, redirects attention, or hides a transition between two shots
+with matched direction. Include the launch direction, landing subject, and
+speed curve: <code>fast left-to-right whip pan, clean acceleration, settle on
+the product in a stable final frame</code>.</p>
+
+<h3>Colour grade</h3>
+
+<p>Colour grading shapes contrast and colour after capture. Describe a
+relationship rather than one global tint: <code>warm amber highlights, slightly
+cool shadows, natural skin tones, neutral whites</code>. That gives the model a
+palette while preserving believable materials.</p>
+
+<h3>Combine effects with one visual priority</h3>
+
+<p>Effects multiply each other. A dolly zoom, heavy grain, hard vignette, flare,
+and aggressive grade in the same five-second clip give the viewer five competing
+instructions. Start with one narrative job, choose the effect that performs it,
+and add a second only when it supports the first.</p>
+
+<pre><code>Scene: A founder alone in a bright office after the team leaves.
+Camera: Slow dolly backward while zooming in; keep the founder the same size.
+Focus: Founder remains sharp; background perspective expands.
+Grade: Restrained cool shadows with neutral skin tones.
+Texture: Fine 35mm luminance grain at low strength.
+Duration: 6 seconds, smooth movement, stable final frame.</code></pre>
+
 <h2>Audio</h2>
 
 <h3>Voice</h3>
@@ -394,135 +484,201 @@ image.</p>
 `;
 
 const IMAGE_PROMPT_TEMPLATES = `
-<p>Twelve image prompt templates you can copy, fill in, and run. Replace every
-<code>[BRACKETED_PLACEHOLDER]</code> with your own specifics before generating —
-a template with placeholders left in produces exactly the literal nonsense you
-would expect.</p>
+<p>Fill-in-the-blank prompt templates have a failure mode nobody admits to:
+almost nobody fills them in. The brackets survive into the generator, and
+<code>[YOUR_PRODUCT]</code> comes back rendered as literal text on a shopping
+bag. Even when someone does replace them, they replace them badly — the
+template asks for a lighting type and gets "good lighting".</p>
 
-<p>If you want the reasoning behind the structure rather than the finished
-patterns, start with
+<p>So these twelve are not templates. They are <strong>briefs you hand to an
+agent</strong>. Each one states the job, hands the creative decisions to
+whatever already knows your brand, and pins the two or three constraints that
+actually break the image if they slip. The agent writes the prompt. You run the
+prompt.</p>
+
+<h2>How to run a brief</h2>
+
+<ol>
+  <li>Paste the brief into your Genfeed agent, or any agent holding your brand
+  context — palette, product photography, audience, tone.</li>
+  <li>The agent returns a finished image prompt with every specific already
+  chosen.</li>
+  <li>Read it. Change anything you disagree with — you are reviewing a draft,
+  not accepting an oracle.</li>
+  <li>Run it in your image model.</li>
+</ol>
+
+<p>The agent supplies what a template structurally cannot: it knows your palette
+is warm neutrals, that your audience skews B2B, that your last six product shots
+used hard side light. A bracket cannot know any of that, which is why the brief
+outperforms the template even when the template is filled in honestly.</p>
+
+<p>If you want the reasoning underneath — why lighting, style, and composition
+have to be named at all — start with
 <a href="/articles/how-to-prompt-ai-images-videos-and-audio">how to prompt AI
 images, videos, and audio</a>.</p>
 
 <h2>1. Product shot</h2>
 
-<p>Drops your product into any scene with matching light and shadow.</p>
+<p>Drops your product into a real scene with light that agrees.</p>
 
-<pre><code>Place [YOUR_PRODUCT] in [SCENE_DESCRIPTION]. Match the [LIGHTING_TYPE]
-lighting from the scene. Position the product at [ANGLE] showing
-[KEY_FEATURES]. Add [ENVIRONMENTAL_DETAILS] and soft shadows that match
-the lighting direction. The final image should look like [DESIRED_OUTCOME].</code></pre>
+<pre><code>Write one image-generation prompt for a product shot placing our hero
+product in a real-world scene.
 
-<p>Example: "Place the running shoe in the desert sand dunes. Match the warm
-golden hour lighting from the scene. Position the product at a dynamic angle
-showing the sole and side profile. Add subtle sand particles around the shoe and
-soft shadows that match the lighting direction. The final image should look like
-a professional outdoor product shoot."</p>
+Choose the scene, camera angle, and lighting from what you know about our
+brand and who buys from us. Non-negotiable: shadow direction and colour
+temperature on the product must match the scene's light source, and the
+product's shape, materials, and branding stay unmodified.
+
+Return the prompt only, as a single paragraph.</code></pre>
 
 <h2>2. Model and product</h2>
 
-<pre><code>Create a [PHOTOGRAPHY_STYLE] advertisement showing [MODEL_DESCRIPTION]
-wearing/using [YOUR_PRODUCT]. The model should be in a [POSE] with the
-product [PRODUCT_PLACEMENT]. Use [BACKGROUND] as the background. Match the
-lighting to create a [MOOD] shot. The result should look like
-[CAMPAIGN_STYLE].</code></pre>
+<pre><code>Write one image-generation prompt for an advertising shot of a person
+using our product.
 
-<h2>3. Colour variations</h2>
+Pick the model's demographic, wardrobe, pose, and setting to match who
+actually buys from us, not who we wish bought from us. Non-negotiable: the
+product stays unobstructed and recognisable at thumbnail size.
 
-<p>Generate colourways for an existing product from a reference palette.</p>
+Return the prompt only.</code></pre>
 
-<pre><code>Create a new version of [YOUR_PRODUCT] using the [COLOR_STYLE] color
-palette from the reference images. Apply a [APPLICATION_STYLE] design
-inspired by these colors. Keep the [PRESERVED_FEATURES] intact. The result
-should look like [PRODUCT_LINE_DESCRIPTION].</code></pre>
+<h2>3. Colourways</h2>
+
+<pre><code>Write one image-generation prompt rendering our product in a new colourway
+drawn from our brand palette.
+
+Choose the colour and where it is applied. Non-negotiable: silhouette,
+materials, hardware, and logo placement stay identical to the reference —
+colour is the only thing that changes.
+
+Return the prompt only.</code></pre>
 
 <h2>4. Background swap</h2>
 
-<pre><code>Place [YOUR_SUBJECT] in front of [NEW_BACKGROUND]. Adjust the lighting on
-the subject to match the [LIGHTING_QUALITY] in the background scene.
-Position the subject [POSITIONING]. Ensure [BLENDING_REQUIREMENTS]
-throughout the composite.</code></pre>
+<pre><code>Write one image-generation prompt moving an existing subject of ours into
+a new background.
+
+Choose a background that fits the campaign we are currently running.
+Non-negotiable: re-light the subject to match the new scene — edge light,
+contact shadow, and colour cast all have to agree, or the composite reads
+as a cut-out.
+
+Return the prompt only.</code></pre>
 
 <h2>5. Style transfer</h2>
 
-<pre><code>Transform [YOUR_IMAGE] into a [TARGET_STYLE], matching
-[STYLE_REFERENCE_DESCRIPTION]. [ADDITIONAL_INSTRUCTIONS].</code></pre>
+<pre><code>Write one image-generation prompt restyling an existing image of ours.
 
-<p>Example: "Transform the uploaded owl photo into a soft watercolour children's
-book illustration, matching a delicate hand-painted storybook style. Show me only
-the owl with no background."</p>
+Choose a style our audience reads as quality rather than as novelty. Name
+the medium, the era, and the surface qualities explicitly; do not name a
+living artist. Non-negotiable: the subject stays recognisable.
+
+Return the prompt only.</code></pre>
 
 <h2>6. Scene composite</h2>
 
-<pre><code>Create a new [SCENE_TYPE] that combines [ELEMENTS_FROM_IMAGE_1] with
-[ELEMENTS_FROM_IMAGE_2]. Imagine [CREATIVE_CONCEPT]. [SPECIFIC_DETAILS].
-Unify the lighting to suggest [TIME_OF_DAY].</code></pre>
+<pre><code>Write one image-generation prompt combining two of our reference images
+into a single scene.
+
+State explicitly which element comes from which reference, and decide which
+reference sets the lighting. Non-negotiable: one light direction and one
+colour temperature across the whole frame.
+
+Return the prompt only.</code></pre>
 
 <h2>7. Hero banner</h2>
 
-<p>Wide compositions need deliberate empty space, or your headline lands on
+<p>Wide compositions need deliberate empty space, or the headline lands on
 someone's face.</p>
 
-<pre><code>Create a [ASPECT_RATIO] hero banner for [PRODUCT_OR_CAMPAIGN].
-Composition: subject on the [LEFT/RIGHT] third, with clean negative space
-on the opposite side for headline text. Style: [VISUAL_STYLE]. Lighting:
-[LIGHTING]. Color palette: [BRAND_COLORS]. Keep the horizon and focal point
-clear of the [TOP/BOTTOM] [N]% where the navigation sits.</code></pre>
+<pre><code>Write one image-generation prompt for a wide hero banner for our current
+campaign.
+
+Choose subject, style, and palette from our brand. Non-negotiable: the
+subject sits on one third, the opposite third stays clean negative space
+for a headline, and nothing load-bearing falls in the top 15% where the
+navigation sits. State the aspect ratio inside the prompt.
+
+Return the prompt only.</code></pre>
 
 <h2>8. Video thumbnail</h2>
 
-<pre><code>Design a 16:9 thumbnail for a video about [TOPIC]. High contrast,
-[SUBJECT] with a clear [EMOTION] expression filling the [LEFT/RIGHT] half.
-Leave the opposite half clean for a bold text overlay. Saturated
-[COLOR_PALETTE], strong rim lighting to separate subject from background.
-Readable at 320px wide.</code></pre>
+<pre><code>Write one image-generation prompt for a 16:9 thumbnail for our next video.
+
+You know the topic and our channel's visual language — set expression,
+colour, and framing from that. Non-negotiable: high contrast, one focal
+subject filling one half, the other half clean for a text overlay, and the
+whole thing legible at 320px wide.
+
+Return the prompt only.</code></pre>
 
 <h2>9. Flat lay</h2>
 
-<pre><code>Overhead flat lay of [ITEMS] arranged on [SURFACE]. Even, diffused
-[LIGHTING] with minimal shadows. [COLOR_PALETTE] palette. Arrange with
-[TIGHT/GENEROUS] spacing and [SYMMETRICAL/ORGANIC] balance. Leave
-[NEGATIVE_SPACE_LOCATION] empty for text.</code></pre>
+<pre><code>Write one image-generation prompt for an overhead flat lay of our products.
+
+Choose which items, the surface, and the arrangement. Non-negotiable: even
+diffused light with minimal shadow, our brand palette, and one clear empty
+region reserved for copy.
+
+Return the prompt only.</code></pre>
 
 <h2>10. Character consistency</h2>
 
-<p>Repeat the identity block verbatim across every generation. Vary only the
-scene line.</p>
+<p>The one brief that returns two artefacts. The identity block is the asset —
+the scene prompt is disposable.</p>
 
-<pre><code>Identity block (reuse exactly): [AGE] [GENDER] with [HAIR], [EYES],
-[DISTINGUISHING_FEATURES], wearing [SIGNATURE_OUTFIT].
-Scene: [NEW_SCENE_DESCRIPTION].
-Style: [CONSISTENT_RENDER_STYLE]. Same facial structure, same proportions,
-same wardrobe as the identity block.</code></pre>
+<pre><code>Write two things for our recurring character: a reusable identity block,
+and one scene prompt that uses it.
+
+The identity block fixes age, build, hair, eyes, distinguishing features,
+wardrobe, and render style in specific, repeatable language — no adjectives
+a second reader could interpret differently. The scene prompt varies only
+setting and action.
+
+Save the identity block to brand context so every future generation reuses
+it verbatim.</code></pre>
 
 <h2>11. Explainer graphic</h2>
 
-<pre><code>Create a clean [STYLE] diagram explaining [CONCEPT]. [N] labelled stages
-arranged [HORIZONTALLY/VERTICALLY], connected by [ARROWS/LINES]. Flat
-vector style, [BRAND_COLORS] palette, generous white space, no decorative
-clutter. Text labels: [LABEL_1], [LABEL_2], [LABEL_3].</code></pre>
+<pre><code>Write one image-generation prompt for a diagram explaining a single concept
+from our product.
 
-<h2>12. Seasonal campaign</h2>
+Choose the concept, the number of stages, and the wording of each label.
+Non-negotiable: flat vector, our brand palette, generous whitespace, no
+decorative clutter, and every label spelled out verbatim in the prompt so
+the model does not invent its own text.
 
-<pre><code>Adapt [EXISTING_PRODUCT_OR_SCENE] for [SEASON_OR_HOLIDAY]. Add
-[SEASONAL_ELEMENTS] without obscuring the product. Shift the palette toward
-[SEASONAL_COLORS] and the lighting toward [SEASONAL_LIGHT_QUALITY]. Keep
-the product's shape, materials, and branding unchanged.</code></pre>
+Return the prompt only.</code></pre>
 
-<h2>Getting more out of every template</h2>
+<h2>12. Seasonal adaptation</h2>
+
+<pre><code>Write one image-generation prompt adapting an existing campaign image of
+ours for the season we are heading into.
+
+Choose the seasonal cues and how far to shift palette and light quality.
+Non-negotiable: the product's shape, materials, and branding are untouched,
+and seasonal elements never overlap the product.
+
+Return the prompt only.</code></pre>
+
+<h2>When to overrule the agent</h2>
+
+<p>The brief hands over the creative decisions on purpose, but three of them are
+worth taking back by hand:</p>
 
 <ul>
-  <li><strong>Be specific about lighting.</strong> Direction, quality
-  (soft or hard), and colour temperature — all three.</li>
-  <li><strong>Name materials.</strong> Matte, glossy, brushed metal, raw linen.
-  Material words do more work than adjectives like "nice".</li>
-  <li><strong>Define the outcome.</strong> "Campaign photo", "editorial spread",
-  "e-commerce listing" each imply a whole set of conventions.</li>
-  <li><strong>Say what to pull from each reference.</strong> With multiple
-  reference images, name which contributes what.</li>
-  <li><strong>Clear every placeholder.</strong> Obvious, and still the most
-  common mistake.</li>
+  <li><strong>Anything legally load-bearing.</strong> Claims, certifications,
+  and pack copy get typed by you, not inferred.</li>
+  <li><strong>A look you have already validated.</strong> If a shot converted,
+  pin its lighting and framing in the brief instead of re-rolling the dice.</li>
+  <li><strong>Faces you reuse.</strong> Character identity belongs in a saved
+  identity block, not in whatever the agent improvises this session.</li>
 </ul>
+
+<p>Everything else is better delegated. An agent that has read your last fifty
+posts has a sharper sense of your visual language than a bracket does — and,
+unlike a bracket, it never ships to the generator unfilled.</p>
 `;
 
 const INSTAGRAM_GROWTH = `
@@ -1168,30 +1324,36 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
   {
     category: ArticleCategory.TUTORIAL,
     content: CLEAR_FRAMEWORK,
+    coverImageUrl: articleArtwork('how-to-prompt-ai-content-clear-framework'),
     label: 'How to prompt AI content: the CLEAR framework',
     slug: 'how-to-prompt-ai-content-clear-framework',
     summary:
-      'A repeatable structure for writing prompts that produce usable text first time: context, length, expectations, audience, role — plus the advanced techniques and the four mistakes that cause most bad output.',
+      'A repeatable prompt structure — context, length, expectations, audience, role — plus the four mistakes behind most unusable AI output.',
   },
   {
     category: ArticleCategory.TUTORIAL,
     content: ASSET_PROMPTING,
+    coverImageUrl: articleArtwork('how-to-prompt-ai-images-videos-and-audio'),
     label: 'How to prompt AI images, videos, and audio',
     slug: 'how-to-prompt-ai-images-videos-and-audio',
     summary:
-      'Prompt skeletons for image, video, and audio generation — subject, style, environment, lighting, composition — with filled-in examples and the model-matching mistake that wastes the most time.',
+      'Prompt skeletons for image, video, and audio generation, plus an interactive filmmaking lexicon for previewing and applying cinematic effects.',
   },
   {
     category: ArticleCategory.LISTICLE,
     content: IMAGE_PROMPT_TEMPLATES,
-    label: '12 copy-paste AI image prompt templates',
+    coverImageUrl: articleArtwork('ai-image-prompt-templates'),
+    label: '12 AI image prompt briefs to hand your agent',
     slug: 'ai-image-prompt-templates',
     summary:
-      'Twelve fill-in-the-blank prompt templates for product shots, lifestyle campaigns, colourways, background swaps, style transfer, composites, banners, thumbnails, flat lays, character consistency, explainers, and seasonal adaptations.',
+      'Twelve image briefs you hand to an agent that already knows your brand. It writes the prompt, you run it — no placeholders left to fill in.',
   },
   {
     category: ArticleCategory.GUIDE,
     content: INSTAGRAM_GROWTH,
+    coverImageUrl: articleArtwork(
+      'how-to-grow-on-instagram-with-ai-generated-content',
+    ),
     label: 'How to grow on Instagram with AI-generated content',
     slug: 'how-to-grow-on-instagram-with-ai-generated-content',
     summary:
@@ -1200,6 +1362,9 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
   {
     category: ArticleCategory.GUIDE,
     content: TIKTOK_GROWTH,
+    coverImageUrl: articleArtwork(
+      'how-to-grow-on-tiktok-with-ai-generated-content',
+    ),
     label: 'How to grow on TikTok with AI-generated content',
     slug: 'how-to-grow-on-tiktok-with-ai-generated-content',
     summary:
@@ -1208,25 +1373,34 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
   {
     category: ArticleCategory.GUIDE,
     content: LINKEDIN_GROWTH,
+    coverImageUrl: articleArtwork(
+      'how-to-grow-on-linkedin-with-ai-generated-content',
+    ),
     label: 'How to grow on LinkedIn with AI-generated content',
     slug: 'how-to-grow-on-linkedin-with-ai-generated-content',
     summary:
-      'Dwell time is the top LinkedIn signal, and it explains every stylistic convention on the platform. What to post, when, and why the last 20% of human editing carries most of the value.',
+      "Dwell time is LinkedIn's top ranking signal, and it explains every stylistic convention on the platform. What to post, when, and why.",
   },
   {
     category: ArticleCategory.GUIDE,
     content: YOUTUBE_GROWTH,
+    coverImageUrl: articleArtwork(
+      'how-to-grow-on-youtube-with-ai-generated-content',
+    ),
     label: 'How to grow on YouTube with AI-generated content',
     slug: 'how-to-grow-on-youtube-with-ai-generated-content',
     summary:
-      'YouTube is a search engine with a recommendation layer. Titles, thumbnails, retention, Shorts — and how to read click-through rate against view duration to know which half to fix.',
+      'YouTube is a search engine with a recommendation layer. Titles, thumbnails, retention, Shorts — and how to read CTR against view duration.',
   },
   {
     category: ArticleCategory.GUIDE,
     content: OSS_LAUNCH_PLAYBOOK,
+    coverImageUrl: articleArtwork(
+      'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+    ),
     label: 'How to launch an open-source product on Show HN and Product Hunt',
     slug: 'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
     summary:
-      'Two launches, staged a week apart, for audiences that want opposite things. Readiness gates, timing, first-comment structure, attribution, and the launch-week calendar.',
+      'Two launches a week apart, for audiences that want opposite things. Readiness gates, timing, first-comment structure, and the week calendar.',
   },
 ];

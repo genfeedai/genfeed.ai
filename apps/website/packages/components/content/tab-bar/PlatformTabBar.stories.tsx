@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import PlatformTabBar from '@website/packages/components/content/tab-bar/PlatformTabBar';
+import PlatformTabBar from '@web-components/content/tab-bar/PlatformTabBar';
 
 const meta: Meta<typeof PlatformTabBar> = {
   argTypes: {},

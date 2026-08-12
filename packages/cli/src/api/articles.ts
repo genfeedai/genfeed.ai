@@ -37,7 +37,7 @@ export interface Article {
   summary?: string;
   content?: string;
   category?: string;
-  bannerUrl?: string;
+  coverImageUrl?: string;
   publishedAt?: string;
   xArticleMetadata?: XArticleMetadata;
   createdAt: string;
