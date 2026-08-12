@@ -180,12 +180,15 @@ export class AccountHealthService {
         warmupHoldReason: summary.holdReason ?? null,
         warmupRiskLevel: summary.riskLevel,
         warmupScore: summary.score,
-        warmupSignals: summary.signals as unknown as Prisma.InputJsonValue,
+        warmupSignals: {
+          ...readJsonRecord(credential.warmupSignals),
+          ...summary.signals,
+        } as unknown as Prisma.InputJsonValue,
         warmupState: summary.state,
         warmupThresholds:
           summary.thresholds as unknown as Prisma.InputJsonValue,
       },
-      where: { id: credential.id },
+      where: scopedWhere(params.organizationId, { id: credential.id }),
     });
 
     return summary;

@@ -547,14 +547,6 @@
     {
       "delegate": "credential",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "024e3495f63aa7714798",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "177a03b409923a10ec75",
       "method": "update",
       "model": "Credential",
@@ -564,14 +556,6 @@
       "delegate": "credential",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "7f2cd8e329a398d416af",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "7fca44c817dc8ecd9967",
       "method": "update",
       "model": "Credential",
       "reason": "missing-organization-id"

@@ -2,6 +2,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
@@ -16,8 +17,8 @@ const BaseModule = createServiceModule(TiktokService, {
 
 @Module({
   controllers: [TiktokController],
-  exports: BaseModule.exports,
+  exports: [...(BaseModule.exports ?? []), TiktokAuthorizedSignalsService],
   imports: BaseModule.imports,
-  providers: BaseModule.providers,
+  providers: [...(BaseModule.providers ?? []), TiktokAuthorizedSignalsService],
 })
 export class TiktokModule {}
