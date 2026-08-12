@@ -2,7 +2,7 @@
 
 import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import { type ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@genfeedai/props/content/article-editor.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
@@ -46,7 +46,7 @@ const DEFAULT_FORM_STATE: ArticleFormState = {
   content: '',
   label: '',
   slug: '',
-  status: 'draft' as ArticleStatus,
+  status: ArticleStatus.DRAFT,
   summary: '',
   tags: '',
 };
@@ -116,7 +116,7 @@ export function useArticleDetail({
         content: data.content || '',
         label: data.label || '',
         slug: data.slug || '',
-        status: data.status || ('draft' as ArticleStatus),
+        status: data.status || ArticleStatus.DRAFT,
         summary: data.summary || '',
         tags: data.tags?.map((t) => t.label || t.id).join(', ') || '',
       };
@@ -210,7 +210,7 @@ export function useArticleDetail({
       const service = await getArticlesService();
       const updated = await service.publish(resolvedId);
       setArticle(updated);
-      setForm((prev) => ({ ...prev, status: 'public' as ArticleStatus }));
+      setForm((prev) => ({ ...prev, status: ArticleStatus.PUBLISHED }));
       notificationsService.success('Article published');
     } catch (err) {
       logger.error('Failed to publish article', err);
@@ -227,7 +227,7 @@ export function useArticleDetail({
       const service = await getArticlesService();
       const updated = await service.archive(resolvedId);
       setArticle(updated);
-      setForm((prev) => ({ ...prev, status: 'archived' as ArticleStatus }));
+      setForm((prev) => ({ ...prev, status: ArticleStatus.ARCHIVED }));
       notificationsService.success('Article archived');
     } catch (err) {
       logger.error('Failed to archive article', err);

@@ -1,4 +1,4 @@
-import { PublishStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/enums';
 import { Article } from '@genfeedai/models/content/article.model';
 import {
   axiosResponse,
@@ -70,27 +70,27 @@ describe('ArticlesService', () => {
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
         publishedAt: expect.any(Date),
-        status: PublishStatus.PUBLISHED,
+        status: ArticleStatus.PUBLISHED,
       });
     });
 
-    it('archive PATCHes status archived', async () => {
+    it('archive PATCHes status ARCHIVED', async () => {
       mockArticle('patch');
 
       await service.archive(articleId);
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
-        status: 'archived',
+        status: ArticleStatus.ARCHIVED,
       });
     });
 
-    it('unarchive PATCHes status draft', async () => {
+    it('unarchive PATCHes status DRAFT', async () => {
       mockArticle('patch');
 
       await service.unarchive(articleId);
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
-        status: 'draft',
+        status: ArticleStatus.DRAFT,
       });
     });
   });

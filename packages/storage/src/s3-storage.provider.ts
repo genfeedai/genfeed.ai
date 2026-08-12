@@ -1,5 +1,5 @@
-import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, stat } from 'node:fs/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -11,6 +11,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import {
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
@@ -104,19 +105,26 @@ export class S3StorageProvider implements StorageProvider {
     contentType?: string,
   ): Promise<string> {
     const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
-    const fileBuffer = await readFile(localPath);
     const fileStats = await stat(localPath);
     const resolvedContentType = contentType ?? mimeFromPath(localPath);
+    const fileStream = createReadStream(localPath);
 
-    const command = new PutObjectCommand({
-      Body: fileBuffer,
-      Bucket: this.bucket,
-      ContentLength: fileStats.size,
-      ContentType: resolvedContentType,
-      Key: safeFilePath,
-    });
-    await this.client.send(command);
-    return safeFilePath;
+    try {
+      const upload = new Upload({
+        client: this.client,
+        params: {
+          Body: fileStream,
+          Bucket: this.bucket,
+          ContentLength: fileStats.size,
+          ContentType: resolvedContentType,
+          Key: safeFilePath,
+        },
+      });
+      await upload.done();
+      return safeFilePath;
+    } finally {
+      fileStream.destroy();
+    }
   }
 
   async download(filePath: string, localPath: string): Promise<void> {

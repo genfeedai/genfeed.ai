@@ -533,7 +533,7 @@ export class AuthorReplyLoopService {
       );
     }
 
-    // YouTube reply API needs org/brand for token refresh; Instagram-style path.
+    // X OAuth2 send + YouTube reply both refresh via org/brand.
     credential.organizationId = params.organizationId;
     credential.brandId = params.brandId;
 
@@ -676,13 +676,10 @@ export class AuthorReplyLoopService {
     if (!config) {
       return undefined;
     }
-    const userId =
-      typeof config.userId === 'string'
-        ? config.userId
-        : typeof (config as unknown as { user?: string }).user === 'string'
-          ? (config as unknown as { user: string }).user
-          : undefined;
-    return userId || undefined;
+    // Scalar FK only — the Document `user` alias is undefined at runtime.
+    return typeof config.userId === 'string' && config.userId
+      ? config.userId
+      : undefined;
   }
 
   private async findAuthorResponderConfig(

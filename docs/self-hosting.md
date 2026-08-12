@@ -28,7 +28,9 @@ This starts:
 - **Web** (port 3000) — Studio UI
 - **API** (port 3010) — Core REST API
 - **MCP** (port 3014) — local MCP surface, served at `http://localhost:3014/mcp`
-  ([Agent Surface](./agent-surface.md))
+  ([Agent Surface](./agent-surface.md)). The endpoint still requires
+  `Authorization: Bearer <gf_... API key>` when the web login wall is off;
+  see [Local MCP authentication](#local-mcp-authentication).
 - **PostgreSQL** (internal container port 5432; not published to the host)
 - **Redis** — embedded in the Genfeed container and persisted under `/data`
 
@@ -113,6 +115,47 @@ https://your-api.example.com/v1/auth/callback/google
 
 Better Auth runs inside your Genfeed API against your Postgres database. A
 Better Auth dashboard/API key is optional and not required for Community.
+
+## Local MCP authentication
+
+Turning off the login wall (`BETTER_AUTH_ENABLED=false`) does **not** disable
+MCP authentication. `apps/server/mcp` still requires
+`Authorization: Bearer <gf_... API key>` on `/mcp`. Missing or invalid tokens
+return JSON-RPC `-32001` with a `WWW-Authenticate` header.
+
+The Community seed creates organization slug `default`
+(`apps/server/api/src/seeds/self-hosted-seed.service.ts`). After the stack is
+up:
+
+1. Open `http://localhost:3000/default/~/settings/api-keys`.
+2. Create a Genfeed API key and pick the **MCP** preset.
+3. Copy the key once. Export it in the **MCP client** environment (your shell,
+   Claude Code, or Codex). Do not put this user key in the Genfeed container
+   `.env` — that file's `GENFEED_API_KEY` is the optional Cloud execution key,
+   a different secret.
+4. Point the client at `http://localhost:3014/mcp`.
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+Codex equivalent: set `url = "http://localhost:3014/mcp"` and
+`bearer_token_env_var = "GENFEED_API_KEY"` so the key stays in the environment
+instead of the config file.
+
+For the CLI against the same deployment, inject the key and the local API URL
+and run the command directly — do not pass the key as a `-k` / `--key` flag:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+export GENFEED_API_URL=http://localhost:3010/v1
+gf whoami
+```
+
+`gf login -i` is the interactive alternative when you want to paste the key at
+a hidden prompt. See [Agent Surface](./agent-surface.md) for scopes, the
+approval gate, and why `posts:approve` is not `resolve_approval`.
 
 ## Optional Services
 

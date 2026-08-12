@@ -1,22 +1,19 @@
+import {
+  getStripeWebhookErrorDiagnostics,
+  mapStripeWebhookError,
+  StripeWebhookErrorKind,
+  toStripeWebhookException,
+} from '@api/endpoints/webhooks/stripe/stripe-webhook-error.util';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  BadRequestException,
-  Controller,
-  HttpCode,
-  HttpException,
-  HttpStatus,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Controller, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
 
@@ -30,7 +27,6 @@ export class StripeWebhookController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly redisService: RedisService,
     private readonly stripeService: StripeService,
@@ -44,33 +40,21 @@ export class StripeWebhookController {
     if (isSelfHostedDeployment()) throw new NotFoundException('Route');
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let event: Stripe.Event | undefined;
     let idempotencyKey: string | null = null;
     let idempotencyKeyAcquired = false;
     const publisher = this.redisService.getPublisher();
 
     try {
-      const rawBody = request.body;
-      const secret = this.configService.get('STRIPE_WEBHOOK_SIGNING_SECRET');
-      let event: Stripe.Event;
+      event = await this.stripeService.constructWebhookEvent(
+        request.body,
+        request.headers['stripe-signature'] as string | undefined,
+      );
 
-      const signature = request.headers['stripe-signature'] as string;
-
-      try {
-        event = await this.stripeService.stripe.webhooks.constructEventAsync(
-          rawBody,
-          signature,
-          // @ts-expect-error TS2345
-          secret,
-        );
-
-        this.loggerService.log(`${url} webhook validated`, {
-          id: event.id,
-          type: event.type,
-        });
-      } catch (error: unknown) {
-        this.loggerService.error(`${url} invalid signature`, error);
-        throw new BadRequestException('Invalid Stripe signature');
-      }
+      this.loggerService.log(`${url} webhook validated`, {
+        id: event.id,
+        type: event.type,
+      });
 
       // Idempotency: skip if this event was already processed
       idempotencyKey = `stripe:webhook:${event.id}`;
@@ -89,6 +73,7 @@ export class StripeWebhookController {
         if (!acquired) {
           this.loggerService.log(`${url} duplicate event skipped`, {
             id: event.id,
+            kind: StripeWebhookErrorKind.IDEMPOTENT,
             type: event.type,
           });
           return { success: true };
@@ -99,7 +84,15 @@ export class StripeWebhookController {
 
       await this.stripeWebhookService.handleWebhookEvent(event, url);
     } catch (error: unknown) {
-      if (publisher && idempotencyKeyAcquired && idempotencyKey) {
+      const mapping = mapStripeWebhookError(error);
+      const diagnostics = getStripeWebhookErrorDiagnostics(error, event);
+
+      if (
+        mapping.shouldReleaseIdempotencyKey &&
+        publisher &&
+        idempotencyKeyAcquired &&
+        idempotencyKey
+      ) {
         try {
           await publisher.del(idempotencyKey);
         } catch (cleanupError: unknown) {
@@ -110,12 +103,28 @@ export class StripeWebhookController {
         }
       }
 
-      this.loggerService.error(`${url} processing failed`, error);
+      if (mapping.shouldAcknowledge) {
+        this.loggerService.warn(
+          `${url} webhook ${mapping.kind.toLowerCase()} acknowledged`,
+          diagnostics,
+        );
+        return { success: true };
+      }
 
-      throw new HttpException(
-        'Webhook processing failed',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      if (mapping.shouldReportAsFault) {
+        this.loggerService.error(
+          `${url} processing failed`,
+          error,
+          diagnostics,
+        );
+        throw error;
+      }
+
+      this.loggerService.warn(
+        `${url} webhook ${mapping.kind.toLowerCase()} rejected`,
+        diagnostics,
       );
+      throw toStripeWebhookException(error);
     }
 
     return { success: true };

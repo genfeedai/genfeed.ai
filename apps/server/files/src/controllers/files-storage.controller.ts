@@ -1,4 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
 import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,11 +17,87 @@ import {
   Post,
   Res,
   StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { diskStorage } from 'multer';
 
 type S3KeyGenerator = (type: string, key: string) => string;
 const SKILLS_PRO_DOWNLOAD_KEY_PREFIX = 'skills/v1/';
+const MULTIPART_UPLOAD_ROOT = path.join(FILES_TMP_ROOT, 'multipart-uploads');
+const MULTIPART_UPLOAD_LIMIT_BYTES = 200 * 1024 * 1024;
+
+function multipartUploadStorage() {
+  return diskStorage({
+    destination: (_request, _file, callback) => {
+      if (!fs.existsSync(MULTIPART_UPLOAD_ROOT)) {
+        fs.mkdirSync(MULTIPART_UPLOAD_ROOT, { recursive: true });
+      }
+      callback(null, MULTIPART_UPLOAD_ROOT);
+    },
+    filename: (_request, file, callback) => {
+      const extension = path.extname(file.originalname || '').slice(0, 16);
+      callback(null, `${randomUUID()}${extension}`);
+    },
+  });
+}
+
+function extensionForContentType(contentType: string | undefined): string {
+  const mime = contentType?.split(';')[0]?.trim().toLowerCase();
+  switch (mime) {
+    case 'application/zip':
+      return '.zip';
+    case 'audio/mpeg':
+      return '.mp3';
+    case 'image/gif':
+      return '.gif';
+    case 'image/jpeg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    case 'image/webp':
+      return '.webp';
+    case 'video/mp4':
+    case 'video/quicktime':
+    case 'video/webm':
+      return '.mp4';
+    default:
+      return '';
+  }
+}
+
+function resolveMultipartPath(
+  file: Express.Multer.File,
+  contentType?: string,
+): string {
+  if (path.extname(file.path) || path.extname(file.originalname || '')) {
+    return file.path;
+  }
+
+  const extension = extensionForContentType(contentType || file.mimetype);
+  if (!extension) {
+    return file.path;
+  }
+
+  const renamedPath = `${file.path}${extension}`;
+  fs.renameSync(file.path, renamedPath);
+  return renamedPath;
+}
+
+function unlinkUploadedTemp(filePath: string | undefined): void {
+  if (!filePath) {
+    return;
+  }
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch {
+    // Temp cleanup must not mask the upload result.
+  }
+}
 
 export function resolvePresignedDownloadKey(
   type: string,
@@ -139,6 +218,63 @@ export class FilesStorageController {
         (error as Error)?.message || 'Failed to upload file',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Stream a multipart file to disk, then upload from that path.
+   * Avoids the JSON + base64 buffer path used by POST /files/upload.
+   */
+  @Post('upload/multipart')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MULTIPART_UPLOAD_LIMIT_BYTES },
+      storage: multipartUploadStorage(),
+    }),
+  )
+  async uploadMultipart(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { key?: string; type?: string; contentType?: string },
+  ) {
+    if (!file?.path || !body.key || !body.type) {
+      unlinkUploadedTemp(file?.path);
+      throw new HttpException(
+        'key, type, and file are required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let uploadPath = file.path;
+    try {
+      uploadPath = resolveMultipartPath(file, body.contentType);
+      this.logger.log('Multipart upload request received', {
+        contentType: file.mimetype || body.contentType,
+        key: body.key,
+        originalname: file.originalname,
+        size: file.size,
+        type: body.type,
+      });
+
+      return await this.uploadService.uploadToS3(body.key, body.type, {
+        path: uploadPath,
+        type: 'file',
+      });
+    } catch (error: unknown) {
+      this.logger.error('Failed to upload multipart file:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        (error as Error)?.message || 'Failed to upload file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      unlinkUploadedTemp(uploadPath);
+      if (uploadPath !== file.path) {
+        unlinkUploadedTemp(file.path);
+      }
     }
   }
 

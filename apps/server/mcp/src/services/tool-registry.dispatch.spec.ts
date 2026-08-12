@@ -49,6 +49,9 @@ describe('ToolRegistryService.classify', () => {
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_content_batch', 'agent-executor'],
     ['list_instagram_inspiration', 'agent-executor'],
+    ['search_x_posts', 'agent-executor'],
+    ['fetch_x_post', 'agent-executor'],
+    ['list_x_account_activity', 'agent-executor'],
     ['create_instagram_remix_workflow', 'agent-executor'],
     ['create_ad_remix_workflow', 'agent-executor'],
     ['analyze_clip_project', 'clip-projects'],

@@ -3,10 +3,14 @@ import {
   APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAG_KEYS,
   type AppSwitcherFeatureFlagKey,
+  REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/constants';
 
 export type CoreAppId = 'agent' | 'automate' | 'studio';
-export type CoreAppFeatureFlagKey = 'studio' | AppSwitcherFeatureFlagKey;
+export type CoreAppFeatureFlagKey =
+  | 'studio'
+  | typeof REPLY_BOT_FEATURE_FLAG
+  | AppSwitcherFeatureFlagKey;
 
 export interface CoreAppDefinition {
   description: string;
@@ -83,6 +87,9 @@ export function getCoreAppFeatureFlagFallbacks(): Record<
       // Capability flags stay independent from app-switcher discovery flags.
       // A hidden module remains reachable by direct URL for internal testing.
       studio: true,
+      // Replies fail open when PostHog is absent (Community, Desktop, SaaS
+      // before flags load). PostHog can still set an explicit false.
+      [REPLY_BOT_FEATURE_FLAG]: true,
     } as Record<CoreAppFeatureFlagKey, boolean>,
   );
 }

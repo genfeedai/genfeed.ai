@@ -1,9 +1,11 @@
+import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
+import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConversationInspectorShellProvider } from './ConversationInspectorShellContext';
 
 vi.mock('@ui/primitives', () => ({
@@ -313,6 +315,11 @@ describe('AgentFullPage', () => {
     storeState.setPendingInputRequest.mockReset();
     storeState.setRunStartedAt.mockReset();
     setupStatusState.showSetupPanel = false;
+    conversationHydrationFlights.clear();
+  });
+
+  afterEach(() => {
+    conversationHydrationFlights.clear();
   });
 
   it('loads thread messages under React Strict Mode', async () => {
@@ -475,6 +482,183 @@ describe('AgentFullPage', () => {
 
     expect(apiService.getThread).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('adopts an in-flight prefetch instead of stacking a second messages set (#2790)', async () => {
+    const messages = [
+      {
+        content: 'Prefetched prompt',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-1',
+        role: 'user',
+        threadId: 'thread-1',
+      },
+    ];
+    let resolvePrefetch:
+      | ((result: {
+          page: {
+            hasMore: boolean;
+            messages: typeof messages;
+            nextCursor: string | null;
+          };
+          snapshot: {
+            activeRun: null;
+            lastAssistantMessage: null;
+            lastSequence: number;
+            latestProposedPlan: null;
+            latestUiBlocks: null;
+            memorySummaryRefs: never[];
+            pendingApprovals: never[];
+            pendingInputRequests: never[];
+            profileSnapshot: null;
+            sessionBinding: null;
+            source: string;
+            threadId: string;
+            threadStatus: typeof AgentThreadStatus.ACTIVE;
+            timeline: never[];
+            title: string;
+          };
+        }) => void)
+      | undefined;
+    conversationHydrationFlights.begin(
+      'thread-1',
+      () =>
+        new Promise((resolve) => {
+          resolvePrefetch = resolve;
+        }),
+    );
+    const apiService = createApiService({
+      getMessages: vi.fn(),
+      getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            createdAt: '2026-03-10T10:00:00.000Z',
+            id: threadId,
+            status: AgentThreadStatus.ACTIVE,
+            title: 'Loaded thread',
+            updatedAt: '2026-03-10T10:00:00.000Z',
+          },
+          signal,
+        ),
+      ),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+
+    resolvePrefetch?.({
+      page: { hasMore: false, messages, nextCursor: null },
+      snapshot: {
+        activeRun: null,
+        lastAssistantMessage: null,
+        lastSequence: 0,
+        latestProposedPlan: null,
+        latestUiBlocks: null,
+        memorySummaryRefs: [],
+        pendingApprovals: [],
+        pendingInputRequests: [],
+        profileSnapshot: null,
+        sessionBinding: null,
+        source: 'agent',
+        threadId: 'thread-1',
+        threadStatus: AgentThreadStatus.ACTIVE,
+        timeline: [],
+        title: 'Prefetched thread',
+      },
+    });
+
+    await waitFor(() => {
+      expect(storeState.setMessagesPage).toHaveBeenCalledWith({
+        hasMore: false,
+        messages,
+        nextCursor: null,
+      });
+    });
+
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(apiService.getThread).toHaveBeenCalledTimes(1);
+  });
+
+  it('debounces a rapid bounce so the intermediate thread never starts a request set (#2790)', async () => {
+    const apiService = createApiService({
+      getMessages: vi.fn(
+        (threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue(
+            [
+              {
+                content: threadId,
+                createdAt: '2026-03-10T10:00:00.000Z',
+                id: `msg-${threadId}`,
+                role: 'user',
+                threadId,
+              },
+            ],
+            signal,
+          ),
+      ),
+      getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            createdAt: '2026-03-10T10:00:00.000Z',
+            id: threadId,
+            status: AgentThreadStatus.ACTIVE,
+            title: threadId,
+            updatedAt: '2026-03-10T10:00:00.000Z',
+          },
+          signal,
+        ),
+      ),
+      getThreadSnapshot: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            activeRun: null,
+            lastAssistantMessage: null,
+            lastSequence: 0,
+            latestProposedPlan: null,
+            latestUiBlocks: null,
+            memorySummaryRefs: [],
+            pendingApprovals: [],
+            pendingInputRequests: [],
+            profileSnapshot: null,
+            sessionBinding: null,
+            source: 'agent',
+            threadId,
+            threadStatus: AgentThreadStatus.ACTIVE,
+            timeline: [],
+            title: threadId,
+          },
+          signal,
+        ),
+      ),
+    });
+
+    const view = render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
+    );
+    view.rerender(
+      <AgentFullPage apiService={apiService as never} threadId="thread-b" />,
+    );
+    view.rerender(
+      <AgentFullPage apiService={apiService as never} threadId="thread-c" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setMessagesPage).toHaveBeenCalled();
+    });
+
+    const requestedThreadIds = (
+      apiService.getMessages as ReturnType<typeof vi.fn>
+    ).mock.calls.map((call) => call[0]);
+    expect(requestedThreadIds).toContain('thread-a');
+    expect(requestedThreadIds).toContain('thread-c');
+    expect(requestedThreadIds).not.toContain('thread-b');
+    expect(THREAD_SWITCH_DEBOUNCE_MS).toBeGreaterThan(0);
   });
 
   it('fires all three requests when the conversation cache is not fresh (#2790 regression)', async () => {

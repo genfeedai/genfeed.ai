@@ -149,22 +149,26 @@ export class WorkflowSocialExecutorRegistrarService {
         if (!query) {
           throw new Error('query is required for socialRead search mode');
         }
-        const tweets = await twitterService.searchRecentTweets(query, {
-          maxResults: Math.min(Math.max(limit, 5), 25),
-          sortOrder: 'recency',
-        });
-        return tweets.map((tweet) => ({
-          authorName: tweet.authorName,
-          authorUsername: tweet.authorUsername,
-          createdAt: tweet.createdAt,
-          engagement: tweet.engagement,
-          id: tweet.id,
-          likes: tweet.likes,
-          replies: tweet.replies,
-          retweets: tweet.retweets,
-          text: tweet.text,
-          url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
-        }));
+        try {
+          const tweets = await twitterService.searchRecentTweets(query, {
+            maxResults: Math.min(Math.max(limit, 5), 25),
+            sortOrder: 'recency',
+          });
+          return tweets.map((tweet) => ({
+            authorName: tweet.authorName,
+            authorUsername: tweet.authorUsername,
+            createdAt: tweet.createdAt,
+            engagement: tweet.engagement,
+            id: tweet.id,
+            likes: tweet.likes,
+            replies: tweet.replies,
+            retweets: tweet.retweets,
+            text: tweet.text,
+            url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
+          }));
+        } catch (error: unknown) {
+          throw formatSocialReadProviderError(error);
+        }
       }
 
       if (params.mode === 'mentions') {
@@ -173,22 +177,29 @@ export class WorkflowSocialExecutorRegistrarService {
             'username or a brand with a connected X account is required for mentions mode',
           );
         }
-        const tweets = await twitterService.searchRecentTweets(`@${username}`, {
-          maxResults: Math.min(Math.max(limit, 5), 25),
-          sortOrder: 'recency',
-        });
-        return tweets.map((tweet) => ({
-          authorName: tweet.authorName,
-          authorUsername: tweet.authorUsername,
-          createdAt: tweet.createdAt,
-          engagement: tweet.engagement,
-          id: tweet.id,
-          likes: tweet.likes,
-          replies: tweet.replies,
-          retweets: tweet.retweets,
-          text: tweet.text,
-          url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
-        }));
+        try {
+          const tweets = await twitterService.searchRecentTweets(
+            `@${username}`,
+            {
+              maxResults: Math.min(Math.max(limit, 5), 25),
+              sortOrder: 'recency',
+            },
+          );
+          return tweets.map((tweet) => ({
+            authorName: tweet.authorName,
+            authorUsername: tweet.authorUsername,
+            createdAt: tweet.createdAt,
+            engagement: tweet.engagement,
+            id: tweet.id,
+            likes: tweet.likes,
+            replies: tweet.replies,
+            retweets: tweet.retweets,
+            text: tweet.text,
+            url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
+          }));
+        } catch (error: unknown) {
+          throw formatSocialReadProviderError(error);
+        }
       }
 
       // timeline
@@ -198,22 +209,26 @@ export class WorkflowSocialExecutorRegistrarService {
         );
       }
 
-      const posts = await twitterService.getUserTimelineByUsername(username, {
-        accessToken,
-        maxResults: limit,
-      });
+      try {
+        const posts = await twitterService.getUserTimelineByUsername(username, {
+          accessToken,
+          maxResults: limit,
+        });
 
-      return posts.map((post) => ({
-        authorName: post.authorName,
-        authorUsername: post.authorUsername ?? username,
-        createdAt: post.createdAt?.toISOString?.() ?? undefined,
-        id: post.id,
-        likes: post.metrics?.likes,
-        replies: post.metrics?.comments,
-        retweets: post.metrics?.shares,
-        text: post.text,
-        url: buildTwitterStatusUrl(post.id, post.authorUsername ?? username),
-      }));
+        return posts.map((post) => ({
+          authorName: post.authorName,
+          authorUsername: post.authorUsername ?? username,
+          createdAt: post.createdAt?.toISOString?.() ?? undefined,
+          id: post.id,
+          likes: post.metrics?.likes,
+          replies: post.metrics?.comments,
+          retweets: post.metrics?.shares,
+          text: post.text,
+          url: buildTwitterStatusUrl(post.id, post.authorUsername ?? username),
+        }));
+      } catch (error: unknown) {
+        throw formatSocialReadProviderError(error);
+      }
     });
   }
 
@@ -227,21 +242,29 @@ export class WorkflowSocialExecutorRegistrarService {
     }
 
     executor.setNotificationSender(async ({ userId, title, body }) => {
-      await notifications.sendNotification({
-        action: 'workflow_report',
-        payload: {
-          card: {
-            description: body,
-            title,
-          },
-        } satisfies INotificationPayloadTypes,
-        type: 'discord',
-        userId,
-      });
+      try {
+        await notifications.sendNotification({
+          action: 'workflow_report',
+          payload: {
+            card: {
+              description: body,
+              title,
+            },
+          } satisfies INotificationPayloadTypes,
+          type: 'discord',
+          userId,
+        });
+      } catch (error: unknown) {
+        throw formatReportDeliveryError('notification', error);
+      }
     });
 
     executor.setEmailSender(async ({ to, subject, html }) => {
-      await notifications.sendEmail(to, subject, html);
+      try {
+        await notifications.sendEmail(to, subject, html);
+      } catch (error: unknown) {
+        throw formatReportDeliveryError(`email:${to}`, error);
+      }
     });
 
     executor.setOwnerResolver(async ({ userId }) => {
@@ -464,4 +487,82 @@ function requireSocialAdapter(
   }
 
   return socialAdapterFactory.getAdapter(platform);
+}
+
+interface TwitterProviderErrorShape {
+  code?: number;
+  message?: string;
+  rateLimit?: { reset?: string | number };
+  rateLimitReset?: Date | string;
+}
+
+function readProviderErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as TwitterProviderErrorShape).message === 'string'
+  ) {
+    return (error as TwitterProviderErrorShape).message ?? String(error);
+  }
+  return String(error);
+}
+
+function readRateLimitResetIso(
+  error: TwitterProviderErrorShape,
+): string | undefined {
+  const resetRaw = error.rateLimitReset ?? error.rateLimit?.reset;
+  if (resetRaw instanceof Date) {
+    return resetRaw.toISOString();
+  }
+  if (typeof resetRaw === 'number' || typeof resetRaw === 'string') {
+    const numeric = Number(resetRaw);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      const millis = numeric > 1e12 ? numeric : numeric * 1000;
+      return new Date(millis).toISOString();
+    }
+    if (typeof resetRaw === 'string') {
+      const parsed = new Date(resetRaw);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Diagnosable socialRead provider failure (#2664 phase 3). */
+export function formatSocialReadProviderError(error: unknown): Error {
+  const shape = (
+    typeof error === 'object' && error !== null ? error : {}
+  ) as TwitterProviderErrorShape;
+  const message = readProviderErrorMessage(error);
+  const isRateLimit =
+    shape.code === 429 ||
+    Boolean(shape.rateLimit) ||
+    /rate[\s_-]?limit/i.test(message);
+
+  if (isRateLimit) {
+    const resetIso = readRateLimitResetIso(shape);
+    return new Error(
+      resetIso
+        ? `socialRead twitter rate limited; reset at ${resetIso}`
+        : 'socialRead twitter rate limited',
+    );
+  }
+
+  return new Error(`socialRead twitter provider failed: ${message}`);
+}
+
+/** Diagnosable reportDelivery failure with destination (#2664 phase 3). */
+export function formatReportDeliveryError(
+  destination: string,
+  error: unknown,
+): Error {
+  return new Error(
+    `reportDelivery ${destination} failed: ${readProviderErrorMessage(error)}`,
+  );
 }

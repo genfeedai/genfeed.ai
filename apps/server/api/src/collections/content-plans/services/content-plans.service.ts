@@ -11,6 +11,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ContentPlanStatus } from '@genfeedai/enums';
 import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
 import { Prisma } from '@genfeedai/prisma';
@@ -118,20 +119,20 @@ export class ContentPlansService extends BaseService<
   async patch(
     id: string,
     updateDto: UpdateContentPlanDto & {
-      organization?: string;
       organizationId?: string;
       brandId?: string;
     },
   ): Promise<ContentPlanDocument> {
-    const organizationId = updateDto.organizationId ?? updateDto.organization;
-    const brandId = updateDto.brandId;
+    const organizationId = requireRelationId(
+      updateDto.organizationId,
+      'organizationId',
+      `ContentPlan ${id}`,
+    );
     const existing = (await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id,
-        isDeleted: false,
-        ...(organizationId ? { organizationId } : {}),
         ...(updateDto.brandId ? { brandId: updateDto.brandId } : {}),
-      },
+      }),
     })) as PrismaContentPlan | null;
 
     if (!existing) {

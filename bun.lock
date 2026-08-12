@@ -1162,6 +1162,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@aws-sdk/client-s3": "3.1108.0",
+        "@aws-sdk/lib-storage": "3.1108.0",
         "@genfeedai/config": "workspace:*",
       },
     },

@@ -1,3 +1,4 @@
+import { ArticleStatus } from '@genfeedai/enums';
 import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,7 +75,7 @@ describe('useArticleDetail', () => {
       id: 'article-1',
       label: 'Existing article',
       slug: 'existing-article',
-      status: 'draft',
+      status: ArticleStatus.DRAFT,
       summary: '',
       tags: [],
     });
@@ -86,7 +87,7 @@ describe('useArticleDetail', () => {
       label: 'Existing article',
       seoScore: 82,
       slug: 'existing-article',
-      status: 'draft',
+      status: ArticleStatus.DRAFT,
       summary: '',
       tags: [],
     });
@@ -135,6 +136,7 @@ describe('useArticleDetail', () => {
     expect(result.current.form).toHaveProperty('status');
     expect(result.current.form.content).toBe('');
     expect(result.current.form.label).toBe('');
+    expect(result.current.form.status).toBe(ArticleStatus.DRAFT);
   });
 
   it('all handlers are functions', () => {
@@ -295,8 +297,11 @@ describe('useArticleDetail', () => {
     expect(result.current.isSaving).toBe(false);
   });
 
-  it('publishes the article and updates the status', async () => {
-    publishMock.mockResolvedValue({ id: 'article-1', status: 'public' });
+  it('publishes the article and stores ArticleStatus.PUBLISHED', async () => {
+    publishMock.mockResolvedValue({
+      id: 'article-1',
+      status: ArticleStatus.PUBLISHED,
+    });
     const { result } = renderHook(() =>
       useArticleDetail({ articleId: 'article-1' }),
     );
@@ -310,14 +315,37 @@ describe('useArticleDetail', () => {
     });
 
     expect(publishMock).toHaveBeenCalledWith('article-1');
-    expect(result.current.form.status).toBe('public');
+    expect(result.current.form.status).toBe(ArticleStatus.PUBLISHED);
+    expect(result.current.form.status).not.toBe('public');
+    expect(result.current.form.status).not.toBe('published');
     expect(notificationsServiceMock.success).toHaveBeenCalledWith(
       'Article published',
     );
   });
 
-  it('archives the article and updates the status', async () => {
-    archiveMock.mockResolvedValue({ id: 'article-1', status: 'archived' });
+  it('keeps PUBLISHED after publish even if the API echoes a legacy status', async () => {
+    publishMock.mockResolvedValue({ id: 'article-1', status: 'public' });
+    const { result } = renderHook(() =>
+      useArticleDetail({ articleId: 'article-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handlePublish();
+    });
+
+    expect(result.current.form.status).toBe(ArticleStatus.PUBLISHED);
+    expect(result.current.form.status).not.toBe('public');
+  });
+
+  it('archives the article and stores ArticleStatus.ARCHIVED', async () => {
+    archiveMock.mockResolvedValue({
+      id: 'article-1',
+      status: ArticleStatus.ARCHIVED,
+    });
     const { result } = renderHook(() =>
       useArticleDetail({ articleId: 'article-1' }),
     );
@@ -331,7 +359,8 @@ describe('useArticleDetail', () => {
     });
 
     expect(archiveMock).toHaveBeenCalledWith('article-1');
-    expect(result.current.form.status).toBe('archived');
+    expect(result.current.form.status).toBe(ArticleStatus.ARCHIVED);
+    expect(result.current.form.status).not.toBe('archived');
   });
 
   it('deletes the article and navigates to publish', async () => {
@@ -378,7 +407,7 @@ describe('useArticleDetail', () => {
       id: 'article-1',
       label: 'Enhanced label',
       slug: 'existing-article',
-      status: 'draft',
+      status: ArticleStatus.DRAFT,
       summary: 'Enhanced summary',
     });
     const { result } = renderHook(() =>

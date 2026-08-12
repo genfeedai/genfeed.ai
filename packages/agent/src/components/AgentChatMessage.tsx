@@ -2,6 +2,7 @@ import { AgentChatMessageFooter } from '@genfeedai/agent/components/AgentChatMes
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
+import { USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS } from '@genfeedai/agent/constants/agent-message-collapse.constant';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
@@ -9,6 +10,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collapseOAuthConnectCards } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
+import { shouldCollapseUserMessage } from '@genfeedai/agent/utils/should-collapse-user-message';
 import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
@@ -148,7 +150,8 @@ function AgentChatMessageInner({
       ? message.content
       : (generatedContent ?? '').trim();
   const [isExpanded, setIsExpanded] = useState(false);
-  const shouldTruncateContent = isUser && (message.content ?? '').length > 500;
+  const shouldTruncateContent =
+    isUser && shouldCollapseUserMessage(message.content ?? '');
   const generatedContentTitle = useMemo<string>(() => {
     const normalizedType = generatedContentType?.trim().toLowerCase();
     if (!normalizedType) {
@@ -267,11 +270,10 @@ function AgentChatMessageInner({
           <div
             className={cn(
               'relative overflow-hidden',
-              !isExpanded && shouldTruncateContent && 'rounded-b-xl',
+              !isExpanded &&
+                shouldTruncateContent &&
+                `rounded-b-xl ${USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS}`,
             )}
-            style={{
-              maxHeight: !isExpanded && shouldTruncateContent ? 200 : undefined,
-            }}
           >
             <SafeMarkdown
               content={visibleMessageContent}

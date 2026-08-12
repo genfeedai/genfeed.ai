@@ -260,12 +260,23 @@ function legacyNewsletterRedirects() {
 }
 
 const config = createAppNextConfig({
-  // Defense in depth alongside app/robots.ts and the root layout metadata: the
+  // Defense in depth alongside app/robots.txt/route.ts and root metadata: the
   // header also covers responses that carry no HTML head (API routes, redirects,
   // assets), so nothing under app.genfeed.ai is indexable.
   headers: async () => [
     {
       headers: [
+        {
+          key: 'Content-Signal',
+          value: 'ai-train=no, search=no, ai-input=no',
+        },
+        {
+          key: 'Link',
+          value: [
+            '<https://genfeed.ai/.well-known/api-catalog>; rel="service-desc"; type="application/linkset+json"',
+            '<https://genfeed.ai/.well-known/mcp/server-card.json>; rel="service-desc"; type="application/json"',
+          ].join(', '),
+        },
         {
           key: 'X-Robots-Tag',
           value: 'noindex, nofollow',

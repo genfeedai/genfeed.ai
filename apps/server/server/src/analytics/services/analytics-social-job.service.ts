@@ -14,8 +14,6 @@ import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 @Injectable()
 export class AnalyticsSocialJobService {
-  private readonly DEFAULT_DELAY_MS = 2000;
-
   constructor(
     @Inject(SERVER_TOKENS.instagram)
     private readonly instagramService: ServerSocialAnalytics,
@@ -170,9 +168,6 @@ export class AnalyticsSocialJobService {
       }
 
       await this.recordAnalyticsReady(post, attemptKey);
-      if (processed < posts.length) {
-        await this.delay(this.DEFAULT_DELAY_MS);
-      }
     }
 
     this.logger.log(
@@ -206,9 +201,6 @@ export class AnalyticsSocialJobService {
       }
 
       await this.recordAnalyticsReady(post, attemptKey);
-      if (processed < posts.length) {
-        await this.delay(this.DEFAULT_DELAY_MS);
-      }
     }
 
     this.logger.log(
@@ -242,9 +234,6 @@ export class AnalyticsSocialJobService {
       }
 
       await this.recordAnalyticsReady(post, attemptKey);
-      if (processed < posts.length) {
-        await this.delay(this.DEFAULT_DELAY_MS);
-      }
     }
 
     this.logger.log(
@@ -285,9 +274,6 @@ export class AnalyticsSocialJobService {
       }
 
       await this.recordAnalyticsReady(post, attemptKey);
-      if (processed < posts.length) {
-        await this.delay(this.DEFAULT_DELAY_MS);
-      }
     }
 
     this.logger.log(
@@ -321,9 +307,6 @@ export class AnalyticsSocialJobService {
       }
 
       await this.recordAnalyticsReady(post, attemptKey);
-      if (processed < posts.length) {
-        await this.delay(this.DEFAULT_DELAY_MS);
-      }
     }
 
     this.logger.log(
@@ -392,9 +375,5 @@ export class AnalyticsSocialJobService {
         error,
       );
     }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

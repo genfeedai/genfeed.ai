@@ -95,10 +95,11 @@ async function buildModule(configGetMock = buildConfigGet()): Promise<{
   loggerMock: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
   service: StripeService;
 }> {
-  const loggerMock = { error: vi.fn(), log: vi.fn() };
+  const loggerMock = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -624,6 +625,18 @@ describe('StripeService — coverage spec', () => {
         'retrieve error',
       );
       expect(loggerMock.error).toHaveBeenCalled();
+    });
+
+    it('returns null for Stripe resource_missing without treating it as a fault', async () => {
+      vi.spyOn(service.stripe.customers, 'retrieve').mockRejectedValue({
+        code: 'resource_missing',
+        type: 'StripeInvalidRequestError',
+      });
+
+      const result = await service.retrieveCustomer('cus_stale');
+
+      expect(result).toBeNull();
+      expect(loggerMock.error).not.toHaveBeenCalled();
     });
   });
 

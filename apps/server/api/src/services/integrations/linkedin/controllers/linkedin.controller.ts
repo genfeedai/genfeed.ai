@@ -10,11 +10,14 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
-  returnInternalServerError,
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import {
+  getSafeLinkedInOAuthErrorLog,
+  throwMappedLinkedInOAuthError,
+} from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -22,7 +25,7 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, HttpException, Post, Req } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -76,8 +79,14 @@ export class LinkedInController {
         url: authUrl,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      return returnInternalServerError('Failed to initiate LinkedIn OAuth');
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeLinkedInOAuthErrorLog(error),
+      );
+      return throwMappedLinkedInOAuthError(
+        error,
+        'Failed to initiate LinkedIn OAuth',
+      );
     }
   }
 
@@ -88,7 +97,10 @@ export class LinkedInController {
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(url, {
+      hasCode: Boolean(createCredentialVerifyDto.code),
+      hasState: Boolean(createCredentialVerifyDto.state),
+    });
 
     const { code, state } = createCredentialVerifyDto;
 
@@ -157,13 +169,14 @@ export class LinkedInController {
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnInternalServerError('Failed to verify LinkedIn OAuth');
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeLinkedInOAuthErrorLog(error),
+      );
+      return throwMappedLinkedInOAuthError(
+        error,
+        'Failed to verify LinkedIn OAuth',
+      );
     }
   }
 }

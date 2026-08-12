@@ -43,14 +43,21 @@ vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: safeFetchMock,
 }));
 
+const pipelineMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock('node:stream/promises', () => ({
+  pipeline: pipelineMock,
+}));
+
 vi.mock('fs', () => ({
   createReadStream: vi.fn(),
+  createWriteStream: vi.fn(),
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
 }));
 
 import * as fs from 'node:fs';
+import { Readable } from 'node:stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function asyncIterableOf(chunks: Buffer[]) {
@@ -206,19 +213,25 @@ describe('S3Service', () => {
   });
 
   describe('downloadFile', () => {
-    it('streams the object body to disk', async () => {
+    it('pipelines the object body to disk without concatenating chunks', async () => {
+      const body = Readable.from([
+        Buffer.from('chunk-1'),
+        Buffer.from('chunk-2'),
+      ]);
       s3SendMock.mockResolvedValue({
-        Body: asyncIterableOf([Buffer.from('chunk-1'), Buffer.from('chunk-2')]),
+        Body: body,
       });
       (fs.existsSync as Mock).mockReturnValue(false);
+      (fs.createWriteStream as Mock).mockReturnValue({ path: 'dest' });
 
       await service.downloadFile('videos/input.mp4', 'videos/input.mp4');
 
       expect(fs.mkdirSync).toHaveBeenCalled();
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
+      expect(fs.createWriteStream).toHaveBeenCalledWith(
         expect.stringContaining('videos/input.mp4'),
-        Buffer.concat([Buffer.from('chunk-1'), Buffer.from('chunk-2')]),
       );
+      expect(pipelineMock).toHaveBeenCalledWith(body, expect.anything());
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
     it('logs and rethrows when S3 send fails', async () => {
@@ -231,12 +244,14 @@ describe('S3Service', () => {
   });
 
   describe('downloadFromUrl', () => {
-    it('downloads and writes the response body', async () => {
+    it('pipelines the remote body to disk without buffering it', async () => {
+      const body = Readable.from(Buffer.from('remote-data'));
       safeFetchMock.mockResolvedValue({
-        arrayBuffer: async () => Buffer.from('remote-data').buffer,
+        body,
         ok: true,
       });
       (fs.existsSync as Mock).mockReturnValue(false);
+      (fs.createWriteStream as Mock).mockReturnValue({ path: 'dest' });
 
       await service.downloadFromUrl(
         'https://example.com/file.mp4',
@@ -244,7 +259,8 @@ describe('S3Service', () => {
       );
 
       expect(fs.mkdirSync).toHaveBeenCalled();
-      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(pipelineMock).toHaveBeenCalledWith(body, expect.anything());
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
     it('rejects a local path outside the temp root before fetching', async () => {

@@ -6,9 +6,15 @@ import type {
   ExecutableWorkflow,
   NodeStatusChangeEvent,
 } from '@genfeedai/workflows/engine';
-import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
+import {
+  applyWorkflowEtaProgress,
+  precomputeWorkflowEtaPlan,
+  type WorkflowEtaPlan,
+} from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
+
+const ETA_WRITE_MIN_INTERVAL_MS = 1_000;
 
 export interface WorkflowEtaSnapshot {
   currentPhase?: string;
@@ -21,12 +27,40 @@ export interface WorkflowEtaSnapshot {
 
 export class WorkflowExecutionProgressService {
   private readonly logContext = 'WorkflowExecutorService';
+  private readonly etaPlans = new Map<string, WorkflowEtaPlan>();
+  private readonly lastEtaWrites = new Map<
+    string,
+    { at: number; phase?: string; remainingDurationMs?: number }
+  >();
 
   constructor(
     private readonly executionsService: WorkflowExecutionsService,
     private readonly logger: LoggerService,
     private readonly websocketService?: NotificationsPublisherService,
   ) {}
+
+  rememberEtaPlan(executionId: string, plan: WorkflowEtaPlan): void {
+    this.etaPlans.set(executionId, plan);
+  }
+
+  clearEtaPlan(executionId: string): void {
+    this.etaPlans.delete(executionId);
+    this.lastEtaWrites.delete(executionId);
+  }
+
+  private resolveEtaPlan(
+    executionId: string,
+    workflow: ExecutableWorkflow,
+  ): WorkflowEtaPlan {
+    const existing = this.etaPlans.get(executionId);
+    if (existing) {
+      return existing;
+    }
+
+    const plan = precomputeWorkflowEtaPlan(workflow.nodes, workflow.edges);
+    this.etaPlans.set(executionId, plan);
+    return plan;
+  }
 
   async trackNodeResult(
     executionId: string,
@@ -154,17 +188,27 @@ export class WorkflowExecutionProgressService {
       error?: string;
     },
   ): Promise<void> {
-    const eta = buildWorkflowEtaSnapshot({
-      baselineEstimatedDurationMs: options.baselineEstimatedDurationMs,
+    const plan = this.resolveEtaPlan(executionId, workflow);
+    const eta = applyWorkflowEtaProgress(plan, {
+      baselineEstimatedDurationMs:
+        options.baselineEstimatedDurationMs ?? plan.estimatedDurationMs,
       completedNodeIds: options.completedNodeIds,
       currentPhase: options.currentPhase,
-      edges: workflow.edges,
-      nodes: workflow.nodes,
       skippedNodeIds: options.skippedNodeIds,
       startedAt: options.startedAt,
     });
 
-    await this.executionsService.updateExecutionMetadata(executionId, { eta });
+    if (this.shouldPersistEta(executionId, eta)) {
+      await this.executionsService.updateExecutionProgress(executionId, {
+        eta,
+        progress: options.progress,
+      });
+      this.lastEtaWrites.set(executionId, {
+        at: Date.now(),
+        phase: eta.currentPhase,
+        remainingDurationMs: eta.remainingDurationMs,
+      });
+    }
 
     await this.publishWorkflowTaskUpdate({
       error: options.error,
@@ -176,6 +220,29 @@ export class WorkflowExecutionProgressService {
       workflowId: options.workflowId,
       workflowLabel: options.workflowLabel,
     });
+  }
+
+  private shouldPersistEta(
+    executionId: string,
+    eta: WorkflowEtaSnapshot,
+  ): boolean {
+    const lastWrite = this.lastEtaWrites.get(executionId);
+    if (!lastWrite) {
+      return true;
+    }
+
+    if (eta.currentPhase && eta.currentPhase !== lastWrite.phase) {
+      return true;
+    }
+
+    if (Date.now() - lastWrite.at < ETA_WRITE_MIN_INTERVAL_MS) {
+      return false;
+    }
+
+    const remainingDelta = Math.abs(
+      (eta.remainingDurationMs ?? 0) - (lastWrite.remainingDurationMs ?? 0),
+    );
+    return remainingDelta >= 500;
   }
 
   extractEstimatedDurationMs(

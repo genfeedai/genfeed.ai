@@ -208,6 +208,52 @@ describe('AuthorReplyLoopService', () => {
     expect(result.harnessApplied).toBe(true);
   });
 
+  it('sends X replies via OAuth2 brand credential and executor', async () => {
+    replyBotConfigsService.find.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        config: { credentialId: 'x-cred' },
+        id: 'bot-x',
+        platform: 'twitter',
+        type: 'comment_responder',
+      },
+    ]);
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      id: 'x-cred',
+      username: 'brandx',
+    });
+    botActionExecutorService.postReply.mockResolvedValue({
+      contentId: 'x-reply-1',
+      contentUrl: 'https://x.com/brandx/status/x-reply-1',
+      success: true,
+    });
+
+    const result = await service.sendReply({
+      brandId: 'brand-1',
+      commentAuthor: 'reader',
+      commentAuthorId: 'u2',
+      commentId: 'c1',
+      commentText: 'Great point',
+      organizationId: 'org-1',
+      parentPostId: 'p1',
+      replyText: 'Thanks!',
+      userId: 'user-1',
+    });
+
+    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'twitter',
+      }),
+      expect.objectContaining({ id: 'c1' }),
+      'Thanks!',
+    );
+    expect(result.success).toBe(true);
+    expect(result.contentId).toBe('x-reply-1');
+  });
+
   it('sends YouTube replies via YouTube credential and executor', async () => {
     replyBotConfigsService.find.mockResolvedValue([
       {
@@ -271,5 +317,35 @@ describe('AuthorReplyLoopService', () => {
         userId: 'user-1',
       }),
     ).rejects.toThrow(/YouTube credential/i);
+  });
+
+  describe('findResponderOwnerUserId', () => {
+    it('returns the scalar userId FK', async () => {
+      replyBotConfigsService.find.mockResolvedValue([
+        {
+          platform: 'twitter',
+          type: 'comment_responder',
+          userId: 'user-1',
+        },
+      ]);
+
+      await expect(
+        service.findResponderOwnerUserId('org-1', 'brand-1'),
+      ).resolves.toBe('user-1');
+    });
+
+    it('does not fall back to the Document user alias', async () => {
+      replyBotConfigsService.find.mockResolvedValue([
+        {
+          platform: 'twitter',
+          type: 'comment_responder',
+          user: 'user-1',
+        },
+      ]);
+
+      await expect(
+        service.findResponderOwnerUserId('org-1', 'brand-1'),
+      ).resolves.toBeUndefined();
+    });
   });
 });

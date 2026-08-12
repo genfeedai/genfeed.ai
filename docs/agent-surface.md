@@ -153,8 +153,11 @@ creation, batch generation, the brand interview writes, external social sends
 creation and analysis, remix workflow creation, and every scheduled-release
 mutation.
 
-Every entry must be MCP-surfaced or boot fails. `resolve_approval` is
-admin-gated.
+Every entry must be MCP-surfaced or boot fails.
+
+These queued writes are **not** approved by the `posts:approve` API-key scope.
+That scope and the `resolve_approval` MCP tool are separate paths; see
+[Approval paths](#approval-paths).
 
 ### Role filtering and credit visibility
 
@@ -162,6 +165,12 @@ admin-gated.
 (`filterToolsByRole`); the authoritative gate is still the per-call role check in
 `handleToolCall`, and a registry instance resolved without a per-request role
 falls back to `user`, denying admin tools by default.
+
+MCP maps the caller's organization membership from `/auth/whoami`
+(`apps/server/mcp/src/services/auth.service.ts`): `owner` and `admin` become MCP
+`admin`; anything else, including an empty membership, becomes `user`. The MCP
+`superadmin` tier is not granted to organization owners or admins. Org
+reviewers therefore see user- and admin-tier tools, but not `resolve_approval`.
 
 Each tool advertises its minimum credit charge at
 `_meta['genfeed.ai/creditCost']`. `_meta` is the only place vendor data survives
@@ -174,8 +183,26 @@ Presets are defined in `packages/constants/src/api-key-presets.constant.ts`:
 
 The **`mcp` preset is approval-first**: it carries `posts:create`, `posts:draft`,
 `posts:schedule`, and `posts:approve`, but **not** `posts:publish`. An MCP client
-can compose, schedule, and approve; direct publish requires a `full`-scope key,
-which is how the CLI and API cover the last step.
+can compose and schedule; `posts:approve` covers approval-scoped REST actions
+below, not the `resolve_approval` MCP tool. Direct publish requires a
+`full`-scope key, which is how the CLI and API cover the last step.
+
+### Approval paths
+
+`posts:approve`, REST MCP-approval resolve, and the `resolve_approval` MCP tool
+are three different grants. Do not treat them as one "approve" permission.
+
+| Path | Who can call it | What it authorizes |
+| ---- | --------------- | ------------------ |
+| REST / MCP **`approve_social_draft`**, `POST /publish-approvals`, and other approval-scoped product APIs | API key with **`posts:approve`**. Social-inbox REST also requires organization owner or admin. | Approve a social reply/DM draft or a publish-approval. This is **not** `resolve_approval`. |
+| REST **`POST /mcp-approvals/:id/resolve`** | Organization **owners** and **admins** (`RolesDecorator(OWNER, ADMIN)` on `McpApprovalsController.resolve`). Session callers use membership. API-key callers that approve a publishing MCP tool also need `posts:approve` (`assertApiKeyPublishingScope(..., 'approve')`). | Approve or decline a pending MCP write. This is the path for organization reviewers. |
+| MCP tool **`resolve_approval`** | MCP role **`superadmin`** (`requiredRole` in `packages/tools/src/registry/source/mcp-only/admin.tools.ts`). Org `owner`/`admin` map to MCP `admin` and **do not** satisfy this gate. | The same resolve, exposed as an MCP tool. A `posts:approve` key does not grant it. |
+
+An MCP client holding the `mcp` preset can therefore draft, schedule, and call
+approval-scoped REST actions. It cannot discover or invoke `resolve_approval`
+unless `/auth/whoami` reports the MCP `superadmin` role. Organization owners
+and admins map to MCP `admin` and resolve the queued write from the REST
+endpoint or the product UI, not by handing the client `resolve_approval`.
 
 `SELF_SERVICE_API_KEY_SCOPES` is the union of all presets and bounds what a user
 may request through the public endpoint. Privileged scopes (`admin`,
@@ -196,11 +223,26 @@ and `gf`. Twenty-four command groups are registered in `packages/cli/src/index.t
 `profile`, `batch`, `template`, `credits`, `insights`, `schedule`,
 `performance`, `posts`, `config`, `tools`.
 
-`gf login` runs a browser PKCE flow against `https://app.genfeed.ai/oauth/cli`.
-`gf login -k gf_live_xxx` and `gf login -i` cover CI, containers, agent runtimes,
-and self-hosted deployments; point those at your own deployment with
+`gf login` runs a browser PKCE flow against `https://app.genfeed.ai/oauth/cli`
+(or against a self-hosted app when you pass `--api-url` / `--app-url`).
+`gf login -i` opens a hidden prompt for pasting a key — use that for manual
+self-hosted or headless sign-in. Point the CLI at your own deployment with
 `GENFEED_API_URL` or `gf config set api-url`. The Cloud default is
 `https://api.genfeed.ai/v1` (`packages/cli/src/config/endpoints.ts`).
+
+Do not pass the key as a command-line flag. `-k` / `--key` puts the secret in
+`process.argv`, where process listings and shell history can capture it.
+
+For CI, containers, and agent runtimes, inject the key through the secret
+environment and run the `gf` command directly.
+`packages/cli/src/config/store.ts` reads `GENFEED_API_KEY` at runtime, so a
+login step is not required:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx   # from the secret store, not argv
+export GENFEED_API_URL=http://localhost:3010/v1   # self-hosted only
+gf generate image "product shot on a concrete plinth"
+```
 
 ## Typed packages
 

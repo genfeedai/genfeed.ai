@@ -4,6 +4,7 @@ import { BetterAuthProvider } from '@genfeedai/auth-client/react';
 import { dark } from '@genfeedai/auth-client/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
+import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
@@ -76,6 +77,7 @@ export default function AppProviders({
     >
       <ThemedBetterAuthProvider authProps={authProps}>
         <ThemeCookieSync />
+        <WebMcpProvider />
         {children}
         {includeToaster ? (
           <Toaster richColors closeButton position="top-right" />

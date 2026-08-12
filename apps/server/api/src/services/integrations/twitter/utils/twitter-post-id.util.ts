@@ -34,7 +34,7 @@ export function parseTwitterPostId(
   }
 
   const match = candidate.match(
-    /(?:^|\/)(?:x\.com|twitter\.com)\/(?:i|[^/?#]+)\/status(?:es)?\/(\d{5,25})(?:\/|$|\?|#)/i,
+    /(?:^|\/)(?:(?:www|mobile)\.)?(?:x\.com|twitter\.com)\/(?:i|[^/?#]+)\/status(?:es)?\/(\d{5,25})(?:\/|$|\?|#)/i,
   );
   if (match?.[1]) {
     return match[1];

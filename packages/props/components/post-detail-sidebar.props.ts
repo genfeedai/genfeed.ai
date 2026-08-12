@@ -33,6 +33,7 @@ export interface PostDetailSidebarProps {
   reviewSummary?: PostReviewSummary;
   onScheduleChange: (value: string) => void;
   onScheduleSave: () => void;
+  onPublishNow?: () => void;
   onScoreSeo?: () => void | Promise<void>;
   className?: string;
 }

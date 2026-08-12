@@ -52,6 +52,32 @@ describe('AgentProactiveToolHandler', () => {
     });
   });
 
+  it('maps X tier-limit failures instead of returning empty success', async () => {
+    const twitterService = {
+      searchRecentTweets: vi.fn().mockRejectedValue({
+        code: 453,
+        message: 'You currently have access to a subset of X API V2 endpoints',
+      }),
+    };
+    const handler = new AgentProactiveToolHandler(
+      { error: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      twitterService as never,
+    );
+
+    const result = await handler.discoverEngagements(
+      { keywords: ['agents'], platform: 'twitter' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      creditsUsed: 0,
+      success: false,
+    });
+    expect(result.error).toMatch(/cannot do that yet/i);
+  });
+
   it('fails closed when the X integration is unavailable', async () => {
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,

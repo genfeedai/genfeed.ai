@@ -92,6 +92,7 @@ describe('usePostDetailState', () => {
     expect(result.current).toHaveProperty('viewMode');
     expect(result.current).toHaveProperty('setViewMode');
     expect(result.current).toHaveProperty('getPostsService');
+    expect(result.current).toHaveProperty('getReleaseGroupsService');
     expect(result.current).toHaveProperty('notificationsService');
   });
 

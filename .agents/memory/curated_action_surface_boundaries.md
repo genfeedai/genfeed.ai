@@ -4,7 +4,7 @@ description: Reviewed agent-only and MCP-only boundaries in the curated action c
 type: decision
 ---
 
-**last_verified: 2026-08-06**
+**last_verified: 2026-08-12**
 
 Companion to [curated_agent_mcp_actions](curated_agent_mcp_actions.md): that rule says surface
 transitions must be intentional, this file records the intent behind the asymmetries that remain
@@ -13,11 +13,12 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 ## Both surfaces
 
 `analyze_performance`, `generate_voice`, `get_analytics`, `get_content_calendar`, `reframe_image`,
-and `upscale_image` are headless-safe: each returns data or an asset URL from a concrete
-`AgentToolExecutorService` case, so an MCP client reaches them through the existing
-`/agent-tools/:name/execute` proxy with no new handler. They match peers already on both surfaces
-(`generate_image` / `generate_music` / `generate_video`), and none of them publishes, so they carry
-no approval gate.
+`upscale_image`, `search_x_posts`, `fetch_x_post`, and `list_x_account_activity` are headless-safe:
+each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
+reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
+peers already on both surfaces (`generate_image` / `generate_music` / `generate_video`), and none of
+them publishes, so they carry no approval gate. `draft_x_quote` and `draft_x_repost` stay agent-only
+because they create in-product review drafts rather than a headless publish.
 
 ## Agent only, by design
 

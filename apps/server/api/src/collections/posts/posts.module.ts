@@ -30,8 +30,10 @@ import { ReviewablePostsService } from '@api/collections/posts/services/reviewab
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -58,6 +60,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
   ],
   exports: [
     AnalyticsAggregationService,
+    AnalyticsSyncWorkflowService,
     PostAnalyticsCollectionStateService,
     PostAnalyticsService,
     PostLifecycleModule,
@@ -66,6 +69,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     ReviewablePostsService,
   ],
   imports: [
+    forwardRef(() => QueuesModule),
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => ByokModule),
@@ -88,6 +92,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
   ],
   providers: [
     AnalyticsAggregationService,
+    AnalyticsSyncWorkflowService,
     CreditsGuard,
     CreditsInterceptor,
     PostAnalyticsCollectionStateService,

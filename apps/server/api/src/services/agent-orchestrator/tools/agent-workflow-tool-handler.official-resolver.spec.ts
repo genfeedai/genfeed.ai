@@ -1,5 +1,5 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
+import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * 8 of the 9 code-owned catalog families were unreachable from the
  * conversational path even after #2249 added the explicit catalog tools.
  */
-describe('AgentWorkflowToolHandler official workflow resolution', () => {
+describe('AgentWorkflowToolInstallService official workflow resolution', () => {
   const workflowsService = {
     createWorkflow: vi.fn(),
     findOne: vi.fn().mockResolvedValue(null),
@@ -22,13 +22,16 @@ describe('AgentWorkflowToolHandler official workflow resolution', () => {
     listCatalogForOrganization: vi.fn(),
   };
   const brandsService = { findOne: vi.fn().mockResolvedValue(null) };
+  const createService = {
+    createWorkflowFromRecurringScaffold: vi.fn(),
+  };
 
   const ctx: ToolExecutionContext = {
     organizationId: 'org-1',
     userId: 'user-1',
   } as ToolExecutionContext;
 
-  let handler: AgentWorkflowToolHandler;
+  let handler: AgentWorkflowToolInstallService;
 
   function buildCatalog() {
     return [
@@ -69,14 +72,12 @@ describe('AgentWorkflowToolHandler official workflow resolution', () => {
     systemWorkflowCatalogService.listCatalogForOrganization.mockResolvedValue(
       buildCatalog(),
     );
-    handler = new AgentWorkflowToolHandler(
+    handler = new AgentWorkflowToolInstallService(
       {} as never,
       workflowsService as never,
-      {} as never,
-      {} as never,
-      {} as never,
       brandsService as never,
       systemWorkflowCatalogService as never,
+      createService as never,
     );
   });
 
@@ -200,6 +201,33 @@ describe('AgentWorkflowToolHandler official workflow resolution', () => {
     expect(result).toMatchObject({
       error: 'catalog unavailable',
       success: false,
+    });
+  });
+
+  it('falls back to the create scaffold when a confirmed install has no official source', async () => {
+    systemWorkflowCatalogService.listCatalogForOrganization.mockResolvedValue(
+      [],
+    );
+    createService.createWorkflowFromRecurringScaffold.mockResolvedValue({
+      creditsUsed: 1,
+      success: true,
+    });
+
+    const result = await handler.installOfficialWorkflow(
+      {
+        confirmed: true,
+        prompt: 'invent a unique sunrise mural nobody has catalogued',
+        schedule: '0 9 * * 1-5',
+      },
+      ctx,
+    );
+
+    expect(
+      createService.createWorkflowFromRecurringScaffold,
+    ).toHaveBeenCalled();
+    expect(result).toEqual({
+      creditsUsed: 1,
+      success: true,
     });
   });
 });

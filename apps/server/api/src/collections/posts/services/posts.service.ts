@@ -144,6 +144,7 @@ const POST_SCALAR_FIELDS = [
   'analyticsCollectionError',
   'analyticsCollectionRequestedAt',
   'analyticsCollectionState',
+  'analyticsNextCollectAt',
   'brandId',
   'category',
   'contentRunId',

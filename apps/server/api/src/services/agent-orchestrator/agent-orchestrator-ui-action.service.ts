@@ -6,6 +6,7 @@ import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/ut
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -54,6 +55,8 @@ import { AgentScopeContextService } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Optional,
@@ -317,7 +320,7 @@ export class AgentOrchestratorUiActionService {
           runId: context.runId,
           threadId,
         });
-        throw error;
+        this.rethrowUiActionError(error);
       }
     });
   }
@@ -608,8 +611,9 @@ export class AgentOrchestratorUiActionService {
         });
 
         if (!result.success) {
-          throw new InternalServerErrorException(
-            result.error ?? `Failed to ${params.operation} brand.`,
+          this.throwFailedUiActionResult(
+            result.error,
+            `Failed to ${params.operation} brand.`,
           );
         }
         return { result, summary };
@@ -971,6 +975,122 @@ export class AgentOrchestratorUiActionService {
       : {};
   }
 
+  /**
+   * Confirmed UI actions used to wrap every tool failure as 500, including
+   * swallowed upstream 401/403s. Auth failures stay on the existing
+   * ErrorResponse 401/403 path; unexpected failures remain 500.
+   */
+  private throwFailedUiActionResult(
+    error: string | undefined,
+    fallback: string,
+  ): never {
+    const status = this.inferAuthFailureStatus(error);
+    if (status === HttpStatus.UNAUTHORIZED) {
+      ErrorResponse.unauthorized();
+    }
+    if (status === HttpStatus.FORBIDDEN) {
+      ErrorResponse.forbidden();
+    }
+    throw new InternalServerErrorException(error?.trim() || fallback);
+  }
+
+  private rethrowUiActionError(error: unknown): never {
+    if (error instanceof HttpException) {
+      if (error.getStatus() !== HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw error;
+      }
+      const message = this.readHttpExceptionMessage(error);
+      if (this.inferAuthFailureStatus(message)) {
+        this.throwFailedUiActionResult(message, message);
+      }
+      throw error;
+    }
+
+    const upstreamStatus = this.readUpstreamHttpStatus(error);
+    if (upstreamStatus === HttpStatus.UNAUTHORIZED) {
+      ErrorResponse.unauthorized();
+    }
+    if (upstreamStatus === HttpStatus.FORBIDDEN) {
+      ErrorResponse.forbidden();
+    }
+
+    const message = error instanceof Error ? error.message : undefined;
+    if (this.inferAuthFailureStatus(message)) {
+      this.throwFailedUiActionResult(message, 'Thread UI action failed.');
+    }
+    throw error;
+  }
+
+  private inferAuthFailureStatus(
+    error: string | undefined,
+  ): HttpStatus.UNAUTHORIZED | HttpStatus.FORBIDDEN | null {
+    if (!error) {
+      return null;
+    }
+
+    if (
+      /status code 401\b|\bHTTP\s*401\b|\bunauthorized\b|\bunauthenticated\b|invalid(?:\s+\w+)?\s+token|authentication (?:failed|required)|rejected the credentials|(?:failed with status|generation failed:)\s*401\b|:\s*401\s*$/i.test(
+        error,
+      )
+    ) {
+      return HttpStatus.UNAUTHORIZED;
+    }
+
+    if (
+      /status code 403\b|\bHTTP\s*403\b|\bforbidden\b|insufficient permissions|(?:failed with status|generation failed:)\s*403\b|:\s*403\s*$/i.test(
+        error,
+      )
+    ) {
+      return HttpStatus.FORBIDDEN;
+    }
+
+    return null;
+  }
+
+  private readHttpExceptionMessage(error: HttpException): string | undefined {
+    const response = error.getResponse();
+    if (typeof response === 'string') {
+      return response;
+    }
+    if (typeof response === 'object' && response !== null) {
+      if (
+        'detail' in response &&
+        typeof response.detail === 'string' &&
+        response.detail.trim()
+      ) {
+        return response.detail;
+      }
+      if (
+        'message' in response &&
+        typeof response.message === 'string' &&
+        response.message.trim()
+      ) {
+        return response.message;
+      }
+    }
+    return error.message;
+  }
+
+  private readUpstreamHttpStatus(error: unknown): number | null {
+    if (typeof error !== 'object' || error === null) {
+      return null;
+    }
+
+    if (
+      'response' in error &&
+      typeof error.response === 'object' &&
+      error.response !== null &&
+      'status' in error.response &&
+      typeof error.response.status === 'number'
+    ) {
+      return error.response.status;
+    }
+    if ('status' in error && typeof error.status === 'number') {
+      return error.status;
+    }
+    return null;
+  }
+
   private async executeConfirmedInstallOfficialWorkflowAction(params: {
     context: AgentChatContext;
     model: string;
@@ -1027,9 +1147,10 @@ export class AgentOrchestratorUiActionService {
     });
 
     if (!result.success) {
-      const errorMessage =
-        result.error ?? 'Failed to execute workflow install confirmation.';
-      throw new InternalServerErrorException(errorMessage);
+      this.throwFailedUiActionResult(
+        result.error,
+        'Failed to execute workflow install confirmation.',
+      );
     }
 
     return await this.finalizeStructuredAssistantTurn({
@@ -1098,8 +1219,10 @@ export class AgentOrchestratorUiActionService {
     });
 
     if (!result.success) {
-      const errorMessage = result.error ?? 'Failed to publish content.';
-      throw new InternalServerErrorException(errorMessage);
+      this.throwFailedUiActionResult(
+        result.error,
+        'Failed to publish content.',
+      );
     }
 
     const totalCreated =
@@ -1252,8 +1375,9 @@ export class AgentOrchestratorUiActionService {
       });
 
       if (!result.success) {
-        throw new InternalServerErrorException(
-          result.error ?? `Failed to generate ${generationType}.`,
+        this.throwFailedUiActionResult(
+          result.error,
+          `Failed to generate ${generationType}.`,
         );
       }
 
@@ -1334,8 +1458,10 @@ export class AgentOrchestratorUiActionService {
     });
 
     if (!result.success) {
-      const errorMessage = result.error ?? 'Failed to save brand voice.';
-      throw new InternalServerErrorException(errorMessage);
+      this.throwFailedUiActionResult(
+        result.error,
+        'Failed to save brand voice.',
+      );
     }
 
     return await this.finalizeStructuredAssistantTurn({

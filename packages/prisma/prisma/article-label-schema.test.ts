@@ -27,6 +27,18 @@ describe('article + mongoId schema parity (Sentry 71/72, #2420)', () => {
     expect(articleBlock).not.toMatch(/^\s*excerpt\s+/m);
   });
 
+  it('does not persist generate metadata as Article columns (#2859)', () => {
+    const articleBlock = schemaSource.match(
+      /model Article \{[\s\S]*?\n\}/,
+    )?.[0];
+    expect(articleBlock).toBeDefined();
+    expect(articleBlock).toContain('label');
+    expect(articleBlock).toContain('summary');
+    expect(articleBlock).toContain('content');
+    expect(articleBlock).not.toMatch(/^\s*aiGeneration\s+/m);
+    expect(articleBlock).not.toMatch(/^\s*xArticleMetadata\s+/m);
+  });
+
   it('does not reintroduce mongoId on EditorProject or Trend', () => {
     const editor = schemaSource.match(
       /model EditorProject \{[\s\S]*?\n\}/,

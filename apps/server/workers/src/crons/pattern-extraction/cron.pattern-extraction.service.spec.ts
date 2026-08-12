@@ -40,43 +40,18 @@ describe('CronPatternExtractionService', () => {
   });
 
   describe('computeDailyPatterns', () => {
-    it('should enqueue jobs for all platforms', async () => {
+    it('should enqueue one scan that derives every platform', async () => {
       await service.computeDailyPatterns();
 
-      expect(queueService.add).toHaveBeenCalledTimes(6);
-    });
-
-    it('should enqueue jobs for tiktok platform', async () => {
-      await service.computeDailyPatterns();
-
+      expect(queueService.add).toHaveBeenCalledTimes(1);
       expect(queueService.add).toHaveBeenCalledWith(
         'pattern-extraction',
-        { platform: 'tiktok' },
+        {},
         expect.objectContaining({ attempts: 2 }),
       );
     });
 
-    it('should enqueue jobs for instagram platform', async () => {
-      await service.computeDailyPatterns();
-
-      expect(queueService.add).toHaveBeenCalledWith(
-        'pattern-extraction',
-        { platform: 'instagram' },
-        expect.any(Object),
-      );
-    });
-
-    it('should enqueue jobs for the "all" aggregation platform', async () => {
-      await service.computeDailyPatterns();
-
-      expect(queueService.add).toHaveBeenCalledWith(
-        'pattern-extraction',
-        { platform: 'all' },
-        expect.any(Object),
-      );
-    });
-
-    it('should enqueue jobs with exponential backoff config', async () => {
+    it('should enqueue the scan with exponential backoff config', async () => {
       await service.computeDailyPatterns();
 
       expect(queueService.add).toHaveBeenCalledWith(
@@ -111,22 +86,6 @@ describe('CronPatternExtractionService', () => {
 
       await expect(service.computeDailyPatterns()).resolves.toBeUndefined();
       expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should enqueue exactly the expected platform list', async () => {
-      await service.computeDailyPatterns();
-
-      const platforms = queueService.add.mock.calls.map(
-        (call: [string, { platform: string }]) => call[1].platform,
-      );
-      expect(platforms).toEqual([
-        'tiktok',
-        'instagram',
-        'facebook',
-        'youtube',
-        'google_ads',
-        'all',
-      ]);
     });
   });
 });

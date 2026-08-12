@@ -15,6 +15,7 @@ describe('OAuth metadata', () => {
     const serviceConfig = config({
       GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai/',
       GENFEEDAI_API_URL: 'http://api.genfeed.internal:3010',
+      GENFEEDAI_MCP_PUBLIC_URL: 'https://mcp.genfeed.ai/mcp',
     });
     const metadata = buildOAuthAuthorizationServerMetadata(serviceConfig);
 
@@ -24,6 +25,9 @@ describe('OAuth metadata', () => {
     );
     expect(metadata.code_challenge_methods_supported).toEqual(['S256']);
     expect(metadata.token_endpoint_auth_methods_supported).toEqual(['none']);
+    expect(metadata.protected_resources).toEqual([
+      'https://mcp.genfeed.ai/mcp',
+    ]);
   });
 
   it('falls back to service URLs for self-hosted deployments', () => {

@@ -27,6 +27,7 @@ describe('StripeService', () => {
         STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
         STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
         STRIPE_SECRET_KEY: 'sk_test',
+        STRIPE_WEBHOOK_SIGNING_SECRET: 'whsec_test_secret',
       };
       return map[key];
     });
@@ -463,6 +464,88 @@ describe('StripeService', () => {
           mode: 'payment',
         }),
       );
+    });
+  });
+
+  describe('constructWebhookEvent', () => {
+    const webhookSecret = 'whsec_test_secret';
+    const payload = JSON.stringify({
+      api_version: '2026-03-25.dahlia',
+      created: 1_700_000_000,
+      data: { object: { id: 'in_test', object: 'invoice' } },
+      id: 'evt_test_signed',
+      livemode: false,
+      object: 'event',
+      pending_webhooks: 1,
+      request: { id: null, idempotency_key: null },
+      type: 'invoice.paid',
+    });
+
+    it('accepts a representative Stripe-signed payload', async () => {
+      const signature = Stripe.webhooks.generateTestHeaderString({
+        payload,
+        secret: webhookSecret,
+      });
+
+      const event = await service.constructWebhookEvent(payload, signature);
+
+      expect(event.id).toBe('evt_test_signed');
+      expect(event.type).toBe('invoice.paid');
+    });
+
+    it('rejects an invalid signature as BadRequestException', async () => {
+      await expect(
+        service.constructWebhookEvent(payload, 't=1,v1=deadbeef'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects a missing signature as BadRequestException', async () => {
+      await expect(
+        service.constructWebhookEvent(payload, undefined),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('treats a missing signing secret as a retryable fault', async () => {
+      const configGetMock = vi.fn((key: string) => {
+        if (key === 'STRIPE_WEBHOOK_SIGNING_SECRET') {
+          return undefined;
+        }
+
+        const map: Record<string, string> = {
+          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_SECRET_KEY: 'sk_test',
+        };
+        return map[key];
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          StripeService,
+          { provide: ConfigService, useValue: { get: configGetMock } },
+          {
+            provide: LoggerService,
+            useValue: { error: vi.fn(), log: vi.fn() },
+          },
+        ],
+      }).compile();
+
+      const unconfigured = module.get<StripeService>(StripeService);
+
+      await expect(
+        unconfigured.constructWebhookEvent(payload, 't=1,v1=deadbeef'),
+      ).rejects.toThrow('Stripe webhook signing secret is not configured');
+    });
+
+    it('re-throws unexpected construction errors', async () => {
+      const unexpected = new Error('sdk exploded');
+      vi.spyOn(
+        service.stripe.webhooks,
+        'constructEventAsync',
+      ).mockRejectedValue(unexpected);
+
+      await expect(
+        service.constructWebhookEvent(payload, 't=1,v1=deadbeef'),
+      ).rejects.toBe(unexpected);
     });
   });
 });

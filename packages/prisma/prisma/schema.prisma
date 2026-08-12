@@ -1981,6 +1981,9 @@ model Post {
   analyticsCollectionRequestedAt DateTime?
   analyticsCollectedAt           DateTime?
   analyticsCollectionError       Json?
+  // Next time the hourly producer may enqueue this post. Default now() so a
+  // newly published row is due on the next tick without a publish-path write.
+  analyticsNextCollectAt         DateTime           @default(now())
   retryCount                     Int                @default(0)
   lastAttemptAt                  DateTime?
   targetSettings                 Json               @default("{}")
@@ -2055,6 +2058,7 @@ model Post {
   @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
+  @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
   @@map("posts")
 }
 
@@ -3329,12 +3333,51 @@ model WorkflowExecution {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 
-  posts Post[]
+  /// Scalar progress/ETA so node transitions do not rewrite `result` JSON (#2512).
+  progress            Int       @default(0)
+  durationMs          Int?
+  creditsUsed         Int       @default(0)
+  failedNodeId        String?
+  totalNodes          Int?
+  estimatedDurationMs Int?
+  remainingDurationMs Int?
+  etaConfidence       String?
+  etaCurrentPhase     String?
+  etaUpdatedAt        DateTime?
+
+  posts       Post[]
+  nodeResults WorkflowExecutionNodeResult[]
 
   trigger String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("workflow_executions")
+}
+
+/// Per-node execution results, unique on (executionId, nodeId). One upsert
+/// per transition — the execution `result` JSON is no longer rewritten (#2512).
+model WorkflowExecutionNodeResult {
+  id             String             @id @default(cuid())
+  organizationId String
+  executionId    String
+  execution      WorkflowExecution  @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId         String
+  nodeType       String
+  status         String
+  input          Json?
+  output         Json?
+  error          String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  progress       Int?
+  retryCount     Int?
+  creditsUsed    Int?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([executionId, nodeId])
+  @@index([organizationId, executionId])
+  @@map("workflow_execution_node_results")
 }
 
 /// Durable per-node idempotency claims for workflow execution (#2359).
@@ -3931,6 +3974,22 @@ model CreativePattern {
   @@map("creative_patterns")
 }
 
+/// Durable (measuredAt, sourceId) cursor for incremental pattern extraction (#2513).
+/// `measuredAt` stores the last scanned source `updatedAt` — AdPerformance has
+/// no measuredAt column (#2511 owns that model).
+model PatternExtractionCheckpoint {
+  id          String   @id @default(cuid())
+  source      String   @unique
+  measuredAt  DateTime
+  sourceId    String
+  data        Json     @default("{}")
+  lastRunAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pattern_extraction_checkpoints")
+}
+
 model ContentPlan {
   id             String       @id @default(cuid())
   organizationId String
@@ -4159,6 +4218,13 @@ model AdPerformance {
   credentialId              String?
   credential                Credential?  @relation(fields: [credentialId], references: [id])
   data                      Json         @default("{}")
+  date                      DateTime?
+  granularity               String?
+  externalAccountId         String?
+  externalCampaignId        String?
+  externalAdSetId           String?
+  externalAdId              String?
+  identityKey               String
   headlineText              String?
   ctaText                   String?
   adPlatform                String?
@@ -4179,10 +4245,14 @@ model AdPerformance {
   createdAt                 DateTime     @default(now())
   updatedAt                 DateTime     @updatedAt
 
+  @@unique([organizationId, identityKey], map: "ad_performance_organizationId_identityKey_key")
   @@index([isDeleted, scope, industry])
   @@index([isDeleted, scope, adPlatform, industry])
   @@index([isDeleted, scope, spendBucket, adPlatform, industry])
   @@index([organizationId, isDeleted])
+  @@index([organizationId, isDeleted, date(sort: Desc)], map: "ad_performance_org_deleted_date_idx")
+  @@index([organizationId, isDeleted, adPlatform, granularity, date(sort: Desc)], map: "ad_performance_org_deleted_platform_granularity_date_idx")
+  @@index([credentialId, isDeleted, date(sort: Desc)], map: "ad_performance_credential_deleted_date_idx")
   @@map("ad_performance")
 }
 

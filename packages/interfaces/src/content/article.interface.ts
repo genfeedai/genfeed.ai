@@ -96,30 +96,16 @@ export interface ArticleGenerationResponse {
 }
 
 /**
- * Payload for creating an article from AI generation
+ * Payload for creating an article from AI generation.
+ * Keys must be persistable Article scalars — `aiGeneration` and
+ * `xArticleMetadata` are not Article columns (#2859).
  */
 export interface ArticleCreatePayload {
-  aiGeneration: {
-    completedAt: Date;
-    prompt: string;
-    startedAt: Date;
-  };
   category: ArticleCategory;
   content: string;
   label: string;
   slug: string;
   status: ArticleStatus;
   summary: string;
-  tags: string[];
-  xArticleMetadata?: {
-    wordCount: number;
-    estimatedReadTime: number;
-    sections: Array<{
-      id: string;
-      heading: string;
-      content: string;
-      order: number;
-      pullQuote?: string;
-    }>;
-  };
+  tags?: string[];
 }

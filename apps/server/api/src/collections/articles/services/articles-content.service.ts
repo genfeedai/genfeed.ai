@@ -287,18 +287,12 @@ export class ArticlesContentService {
           type: ArticleGenerationType.STANDARD,
         });
         const articlePayload: ArticleCreatePayload = {
-          aiGeneration: {
-            completedAt: new Date(),
-            prompt: generateDto.prompt,
-            startedAt: new Date(),
-          },
           category,
           content: cycle.updated.content,
           label: cycle.updated.label,
           slug: generated.slug || `article-${Date.now()}-${i}`,
           status: ArticleStatus.DRAFT,
           summary: cycle.updated.summary,
-          tags: generated.tags || [],
         };
 
         const article = await createArticleFn(
@@ -449,12 +443,10 @@ export class ArticlesContentService {
         throw new Error('Unexpected response format from AI service');
       }
 
-      // Build full HTML content + reading metadata from the returned sections
-      const {
-        content: fullContent,
-        metadata: xArticleMetadata,
-        wordCount,
-      } = this.buildXArticleContentAndMetadata(response.sections);
+      // Sections are folded into `content`. Do not persist `xArticleMetadata` —
+      // Article has no such column (#2859).
+      const { content: fullContent, wordCount } =
+        this.buildXArticleContentAndMetadata(response.sections);
 
       const cycle = await this.articleReviewService.runReviewUpdateCycle({
         draft: {
@@ -471,19 +463,12 @@ export class ArticlesContentService {
       });
 
       const articlePayload: ArticleCreatePayload = {
-        aiGeneration: {
-          completedAt: new Date(),
-          prompt: generateDto.prompt,
-          startedAt: new Date(),
-        },
         category: ArticleCategory.X_ARTICLE,
         content: cycle.updated.content,
         label: cycle.updated.label,
         slug: response.slug || `x-article-${Date.now()}`,
         status: ArticleStatus.DRAFT,
         summary: cycle.updated.summary,
-        tags: response.tags || [],
-        xArticleMetadata,
       };
 
       const article = await createArticleFn(

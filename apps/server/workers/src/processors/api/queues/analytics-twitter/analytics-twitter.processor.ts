@@ -10,9 +10,10 @@ import {
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
+import { ANALYTICS_TWITTER_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
-@Processor(ANALYTICS_TWITTER_QUEUE)
+@Processor(ANALYTICS_TWITTER_QUEUE, { limiter: ANALYTICS_TWITTER_JOB_LIMITER })
 export class AnalyticsTwitterProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

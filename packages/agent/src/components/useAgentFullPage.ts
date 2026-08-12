@@ -11,8 +11,14 @@ import {
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
+import {
+  planThreadSwitchFetches,
+  shouldDelayThreadSwitchFetch,
+  THREAD_SWITCH_DEBOUNCE_MS,
+} from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import { AgentThreadStatus, type MemberRole } from '@genfeedai/enums';
 import {
@@ -204,6 +210,8 @@ export function useAgentFullPage({
       : null,
   );
   const activeThreadRef = useRef(activeStoreThreadId);
+  const lastSwitchAtRef = useRef<number | null>(null);
+  const lastSwitchThreadIdRef = useRef<string | null>(null);
   const messageCountRef = useRef(existingMessages.length);
   const threadOutputs = useMemo(
     () => extractThreadOutputs(existingMessages),
@@ -460,102 +468,174 @@ export function useAgentFullPage({
       setDraftPlanModeEnabled(listedThread?.planModeEnabled ?? false);
     }
 
-    const threadRequest = isThreadDataFresh
-      ? null
-      : runAgentApiEffect(
-          apiService.getThreadEffect(threadId, controller.signal),
-        );
-    const snapshotRequest = isThreadDataFresh
-      ? null
-      : runAgentApiEffect(
-          apiService.getThreadSnapshotEffect(threadId, controller.signal),
-        );
-
-    // The conversation body is the whole perceived cost of a switch, and it
-    // needs only this one response. Awaiting the thread record and the snapshot
-    // alongside it held the track blank for the slowest of three round trips.
-    const messagesRequest = runAgentApiEffect(
-      apiService.getMessagesPageEffect(
-        threadId,
-        { limit: AGENT_MESSAGE_PAGE_SIZE },
-        controller.signal,
-      ),
-    ).then((page) => {
-      if (!controller.signal.aborted) {
-        resetStreamState();
-        setMessagesPage(page);
-        setIsLoadingThread(false);
-      }
-      return page.messages;
+    const switchStartedAt = Date.now();
+    const shouldDelay = shouldDelayThreadSwitchFetch({
+      debounceMs: THREAD_SWITCH_DEBOUNCE_MS,
+      lastSwitchAt: lastSwitchAtRef.current,
+      lastThreadId: lastSwitchThreadIdRef.current,
+      now: switchStartedAt,
+      threadId,
     });
+    lastSwitchAtRef.current = switchStartedAt;
+    lastSwitchThreadIdRef.current = threadId;
 
-    // The two Promise.all chains below only report a failure when the thread
-    // or snapshot request they're chained to also rejects. When both are
-    // skipped for a fresh cache, a messages-only failure would otherwise go
-    // unreported — this catch covers that path. `reportLoadFailure` is
-    // dedup-guarded, so it is harmless if a chain below also fires it.
-    messagesRequest.catch(reportLoadFailure);
+    const startThreadRequests = () => {
+      if (controller.signal.aborted) {
+        return;
+      }
 
-    // Chained on the messages paint, not raced with it: resetStreamState above
-    // clears workEvents and run status, so it must never land after the
-    // snapshot has filled them in.
-    if (snapshotRequest) {
-      Promise.all([messagesRequest, snapshotRequest])
-        .then(([, snapshot]) => {
-          if (controller.signal.aborted) {
-            return;
-          }
-          setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
-          setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
-          setActiveRun(snapshot.activeRun?.runId ?? null, {
-            startedAt: snapshot.activeRun?.startedAt ?? null,
-            status: mapSnapshotRunStatus(snapshot.activeRun?.status),
-          });
-          setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
-          setWorkEvents(mapSnapshotWorkEvents(snapshot));
-        })
-        .catch(reportLoadFailure);
+      const existingFlight = conversationHydrationFlights.get(threadId);
+      const plan = planThreadSwitchFetches({
+        hasInFlightHydration: Boolean(existingFlight),
+        isCacheFresh: isThreadDataFresh,
+      });
+
+      const hydrationFlight =
+        existingFlight ??
+        (plan.shouldFetchMessages
+          ? conversationHydrationFlights.begin(threadId, async (signal) => {
+              const [page, snapshot] = await Promise.all([
+                runAgentApiEffect(
+                  apiService.getMessagesPageEffect(
+                    threadId,
+                    { limit: AGENT_MESSAGE_PAGE_SIZE },
+                    signal,
+                  ),
+                ),
+                plan.shouldFetchSnapshot
+                  ? runAgentApiEffect(
+                      apiService.getThreadSnapshotEffect(threadId, signal),
+                    )
+                  : Promise.resolve(null),
+              ]);
+              return { page, snapshot };
+            })
+          : null);
+
+      const messagesRequest = hydrationFlight
+        ? hydrationFlight.promise.then(({ page }) => {
+            if (!controller.signal.aborted) {
+              resetStreamState();
+              setMessagesPage(page);
+              setIsLoadingThread(false);
+            }
+            return page.messages;
+          })
+        : Promise.resolve([]);
+
+      // The two Promise.all chains below only report a failure when the thread
+      // or snapshot request they're chained to also rejects. When both are
+      // skipped for a fresh cache, a messages-only failure would otherwise go
+      // unreported — this catch covers that path. `reportLoadFailure` is
+      // dedup-guarded, so it is harmless if a chain below also fires it.
+      if (hydrationFlight) {
+        messagesRequest.catch(reportLoadFailure);
+      }
+
+      const snapshotRequest =
+        hydrationFlight && !isThreadDataFresh
+          ? hydrationFlight.promise.then(({ snapshot }) => {
+              if (!snapshot) {
+                throw new Error(LOAD_THREAD_ERROR_MESSAGE);
+              }
+              return snapshot;
+            })
+          : null;
+
+      // Chained on the messages paint, not raced with it: resetStreamState above
+      // clears workEvents and run status, so it must never land after the
+      // snapshot has filled them in.
+      if (snapshotRequest) {
+        Promise.all([messagesRequest, snapshotRequest])
+          .then(([, snapshot]) => {
+            if (controller.signal.aborted) {
+              return;
+            }
+            setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
+            setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
+            setActiveRun(snapshot.activeRun?.runId ?? null, {
+              startedAt: snapshot.activeRun?.startedAt ?? null,
+              status: mapSnapshotRunStatus(snapshot.activeRun?.status),
+            });
+            setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
+            setWorkEvents(mapSnapshotWorkEvents(snapshot));
+          })
+          .catch(reportLoadFailure);
+      }
+
+      const threadRequest = plan.shouldFetchThread
+        ? runAgentApiEffect(
+            apiService.getThreadEffect(threadId, controller.signal),
+          )
+        : null;
+
+      if (threadRequest && snapshotRequest) {
+        Promise.all([threadRequest, messagesRequest, snapshotRequest])
+          .then(([thread, msgs, snapshot]) => {
+            if (controller.signal.aborted) {
+              return;
+            }
+            setActiveThreadStatus(thread.status);
+            setWorkspacePlanningTaskId(
+              parseWorkspacePlanningTaskId(thread.source),
+            );
+            setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
+            const now = new Date().toISOString();
+            const firstUserMessage = msgs.find((msg) => msg.role === 'user');
+            upsertThread({
+              brandId: thread.brandId,
+              createdAt: now,
+              contextVersion: thread.contextVersion,
+              id: threadId,
+              organizationId: thread.organizationId,
+              planModeEnabled: thread.planModeEnabled,
+              source: thread.source,
+              status: thread.status,
+              title:
+                thread.title ??
+                firstUserMessage?.content?.slice(0, 60) ??
+                msgs[0]?.content?.slice(0, 60) ??
+                'Current chat',
+              updatedAt: now,
+              ...buildThreadSummaryFromSnapshot(snapshot, {
+                isVisible: true,
+                now,
+              }),
+            });
+            setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+          })
+          .catch(reportLoadFailure);
+      } else if (threadRequest) {
+        threadRequest
+          .then((thread) => {
+            if (controller.signal.aborted) {
+              return;
+            }
+            setActiveThreadStatus(thread.status);
+            setWorkspacePlanningTaskId(
+              parseWorkspacePlanningTaskId(thread.source),
+            );
+            setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
+            setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+          })
+          .catch(reportLoadFailure);
+      }
+    };
+
+    const timeoutId = shouldDelay
+      ? window.setTimeout(startThreadRequests, THREAD_SWITCH_DEBOUNCE_MS)
+      : undefined;
+    if (!shouldDelay) {
+      startThreadRequests();
     }
 
-    if (threadRequest && snapshotRequest) {
-      Promise.all([threadRequest, messagesRequest, snapshotRequest])
-        .then(([thread, msgs, snapshot]) => {
-          if (controller.signal.aborted) {
-            return;
-          }
-          setActiveThreadStatus(thread.status);
-          setWorkspacePlanningTaskId(
-            parseWorkspacePlanningTaskId(thread.source),
-          );
-          setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-          const now = new Date().toISOString();
-          const firstUserMessage = msgs.find((msg) => msg.role === 'user');
-          upsertThread({
-            brandId: thread.brandId,
-            createdAt: now,
-            contextVersion: thread.contextVersion,
-            id: threadId,
-            organizationId: thread.organizationId,
-            planModeEnabled: thread.planModeEnabled,
-            source: thread.source,
-            status: thread.status,
-            title:
-              thread.title ??
-              firstUserMessage?.content?.slice(0, 60) ??
-              msgs[0]?.content?.slice(0, 60) ??
-              'Current chat',
-            updatedAt: now,
-            ...buildThreadSummaryFromSnapshot(snapshot, {
-              isVisible: true,
-              now,
-            }),
-          });
-          setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
-        })
-        .catch(reportLoadFailure);
-    }
-
-    return () => controller.abort();
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      controller.abort();
+      conversationHydrationFlights.abort(threadId);
+    };
   }, [
     threadId,
     apiService,

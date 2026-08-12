@@ -12,7 +12,7 @@ function createContext(request: Record<string, unknown> = {}) {
 }
 
 describe('FeatureFlagGuard', () => {
-  it('allows requests when no feature flag metadata is present', () => {
+  it('allows requests when no feature flag metadata is present', async () => {
     const reflector = {
       getAllAndOverride: vi.fn().mockReturnValue(undefined),
     };
@@ -24,16 +24,18 @@ describe('FeatureFlagGuard', () => {
       featureFlagService as never,
     );
 
-    expect(guard.canActivate(createContext() as never)).toBe(true);
+    await expect(guard.canActivate(createContext() as never)).resolves.toBe(
+      true,
+    );
     expect(featureFlagService.isEnabled).not.toHaveBeenCalled();
   });
 
-  it('allows requests when the feature flag is enabled', () => {
+  it('allows requests when the feature flag is enabled', async () => {
     const reflector = {
       getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
     };
     const featureFlagService = {
-      isEnabled: vi.fn().mockReturnValue(true),
+      isEnabled: vi.fn().mockResolvedValue(true),
     };
     const guard = new FeatureFlagGuard(
       reflector as never,
@@ -47,7 +49,7 @@ describe('FeatureFlagGuard', () => {
       },
     });
 
-    expect(guard.canActivate(context as never)).toBe(true);
+    await expect(guard.canActivate(context as never)).resolves.toBe(true);
     expect(featureFlagService.isEnabled).toHaveBeenCalledWith('new-dashboard', {
       id: 'user-123',
       organizationId: 'org-123',
@@ -55,12 +57,12 @@ describe('FeatureFlagGuard', () => {
     });
   });
 
-  it('throws NotFoundException when the feature flag is disabled', () => {
+  it('throws NotFoundException when the feature flag is disabled', async () => {
     const reflector = {
       getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
     };
     const featureFlagService = {
-      isEnabled: vi.fn().mockReturnValue(false),
+      isEnabled: vi.fn().mockResolvedValue(false),
     };
     const guard = new FeatureFlagGuard(
       reflector as never,
@@ -68,17 +70,17 @@ describe('FeatureFlagGuard', () => {
     );
 
     // Canonical 404 shape (#1147): NotFoundException('Route') → "Route not found".
-    expect(() => guard.canActivate(createContext() as never)).toThrowError(
+    await expect(guard.canActivate(createContext() as never)).rejects.toThrow(
       'Route not found',
     );
   });
 
-  it('falls back to alternate request user identifiers', () => {
+  it('falls back to alternate request user identifiers', async () => {
     const reflector = {
       getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
     };
     const featureFlagService = {
-      isEnabled: vi.fn().mockReturnValue(true),
+      isEnabled: vi.fn().mockResolvedValue(true),
     };
     const guard = new FeatureFlagGuard(
       reflector as never,
@@ -92,10 +94,37 @@ describe('FeatureFlagGuard', () => {
       },
     });
 
-    guard.canActivate(context as never);
+    await guard.canActivate(context as never);
 
     expect(featureFlagService.isEnabled).toHaveBeenCalledWith('new-dashboard', {
       id: 'auth-user',
+    });
+  });
+
+  it('passes is_internal from the canonical users.id identify contract', async () => {
+    const reflector = {
+      getAllAndOverride: vi.fn().mockReturnValue('reply_bot'),
+    };
+    const featureFlagService = {
+      isEnabled: vi.fn().mockResolvedValue(true),
+    };
+    const guard = new FeatureFlagGuard(
+      reflector as never,
+      featureFlagService as never,
+    );
+    const context = createContext({
+      user: {
+        emailAddresses: [{ emailAddress: 'vincent@genfeed.ai', id: 'email-1' }],
+        id: 'user-123',
+        primaryEmailAddressId: 'email-1',
+      },
+    });
+
+    await guard.canActivate(context as never);
+
+    expect(featureFlagService.isEnabled).toHaveBeenCalledWith('reply_bot', {
+      id: 'user-123',
+      is_internal: true,
     });
   });
 });

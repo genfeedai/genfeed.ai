@@ -33,7 +33,10 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
+import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
+import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
@@ -899,17 +902,28 @@ describe('AgentToolExecutorService', () => {
       articlesService as never,
       articleAnalyticsService as never,
     );
-    const workflowHandler = new AgentWorkflowToolHandler(
-      configService as never,
+    const workflowCreateService = new AgentWorkflowToolCreateService(
       workflowsService as never,
-      workflowExecutorService as never,
-      workflowSchedulerService as never,
-      internalApi,
       brandsService as never,
-      systemWorkflowCatalogService as never,
       workflowGenerationService as never,
-      marketplaceApiClient as never,
-      marketplaceInstallService as never,
+    );
+    const workflowHandler = new AgentWorkflowToolHandler(
+      new AgentWorkflowToolInstallService(
+        configService as never,
+        workflowsService as never,
+        brandsService as never,
+        systemWorkflowCatalogService as never,
+        workflowCreateService,
+        marketplaceApiClient as never,
+        marketplaceInstallService as never,
+      ),
+      workflowCreateService,
+      new AgentWorkflowToolExecuteService(
+        workflowsService as never,
+        workflowExecutorService as never,
+        workflowSchedulerService as never,
+        internalApi,
+      ),
     );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(
       loggerService,
@@ -5275,13 +5289,26 @@ describe('AgentToolExecutorService', () => {
         undefined,
       ),
       new AgentWorkflowToolHandler(
-        { get: vi.fn() } as never,
-        workflowsService as never,
-        { findOne: vi.fn() } as never,
-        { updateSchedule: vi.fn() } as never,
-        internalApiWithoutScorer,
-        brandsService as never,
-        { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
+        new AgentWorkflowToolInstallService(
+          { get: vi.fn() } as never,
+          workflowsService as never,
+          brandsService as never,
+          { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
+          new AgentWorkflowToolCreateService(
+            workflowsService as never,
+            brandsService as never,
+          ),
+        ),
+        new AgentWorkflowToolCreateService(
+          workflowsService as never,
+          brandsService as never,
+        ),
+        new AgentWorkflowToolExecuteService(
+          workflowsService as never,
+          { findOne: vi.fn() } as never,
+          { updateSchedule: vi.fn() } as never,
+          internalApiWithoutScorer,
+        ),
       ),
       new AgentMediaGenerationToolHandler(
         loggerService,

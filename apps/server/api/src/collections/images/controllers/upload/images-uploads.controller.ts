@@ -7,6 +7,10 @@
  * - Confirm completed uploads
  */
 
+import { randomUUID } from 'node:crypto';
+import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
@@ -53,7 +57,39 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
+import { diskStorage } from 'multer';
 import { firstValueFrom } from 'rxjs';
+
+const LARGE_MEDIA_BYTES = 1 * 1024 * 1024;
+const IMAGE_UPLOAD_TMP_ROOT = path.join(tmpdir(), 'genfeed-image-uploads');
+
+function imageUploadDiskStorage() {
+  return diskStorage({
+    destination: (_request, _file, callback) => {
+      if (!existsSync(IMAGE_UPLOAD_TMP_ROOT)) {
+        mkdirSync(IMAGE_UPLOAD_TMP_ROOT, { recursive: true });
+      }
+      callback(null, IMAGE_UPLOAD_TMP_ROOT);
+    },
+    filename: (_request, file, callback) => {
+      const extension = path.extname(file.originalname || '').slice(0, 16);
+      callback(null, `${randomUUID()}${extension}`);
+    },
+  });
+}
+
+function unlinkImageUploadTemp(filePath: string | undefined): void {
+  if (!filePath) {
+    return;
+  }
+  try {
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+  } catch {
+    // Temp cleanup must not mask the upload result.
+  }
+}
 
 /**
  * ImagesUploadsController
@@ -78,6 +114,54 @@ export class ImagesUploadsController {
     return fallback;
   }
 
+  private async transferUploadedMedia(params: {
+    contentType: string;
+    file: Express.Multer.File;
+    folder: string;
+    key: string;
+  }): Promise<void> {
+    const source = params.file.path
+      ? createReadStream(params.file.path)
+      : params.file.buffer;
+
+    if (!source) {
+      throw new HttpException(
+        {
+          detail: 'File is required',
+          title: 'File validation failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const isLargeMedia = params.file.size >= LARGE_MEDIA_BYTES;
+    if (isLargeMedia) {
+      const presigned = await this.filesClientService.getPresignedUploadUrl(
+        params.key,
+        params.folder,
+        params.contentType,
+      );
+      if (presigned.uploadMethod !== 'POST_JSON') {
+        await this.filesClientService.putStreamToUrl(
+          presigned.uploadUrl,
+          source,
+          params.contentType,
+        );
+        await this.filesClientService.uploadToS3(params.key, params.folder, {
+          type: FileInputType.URL,
+          url: presigned.publicUrl,
+        });
+        return;
+      }
+    }
+
+    await this.filesClientService.uploadStreamToS3(params.key, params.folder, {
+      contentType: params.contentType,
+      data: source,
+      filename: params.file.originalname || 'upload',
+    });
+  }
+
   constructor(
     private readonly filesClientService: FilesClientService,
     private readonly httpService: HttpService,
@@ -95,6 +179,7 @@ export class ImagesUploadsController {
       limits: {
         fileSize: 50 * 1024 * 1024, // 50MB max file size
       },
+      storage: imageUploadDiskStorage(),
     }),
   )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -171,15 +256,19 @@ export class ImagesUploadsController {
       },
     );
 
-    await this.filesClientService.uploadToS3(
-      ingredientData.id,
-      categoryToPlural(category),
-      {
-        contentType: validatedFile.mimetype || contentType,
-        data: validatedFile.buffer,
-        type: FileInputType.BUFFER,
-      },
-    );
+    const folder = categoryToPlural(category);
+    const resolvedContentType = validatedFile.mimetype || contentType;
+
+    try {
+      await this.transferUploadedMedia({
+        contentType: resolvedContentType,
+        file: validatedFile,
+        folder,
+        key: ingredientData.id,
+      });
+    } finally {
+      unlinkImageUploadTemp(validatedFile.path);
+    }
 
     return serializeSingle(request, IngredientUploadSerializer, ingredientData);
   }

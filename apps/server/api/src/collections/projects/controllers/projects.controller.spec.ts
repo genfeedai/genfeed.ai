@@ -138,4 +138,26 @@ describe('ProjectsController', () => {
       );
     });
   });
+
+  describe('canUserModifyEntity', () => {
+    it('allows modification when the canonical organization ID matches', () => {
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          organizationId: CALLER_ORG_ID,
+        } as never),
+      ).toBe(true);
+    });
+
+    it('does not authorize from the legacy organization relation alias', () => {
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          organization: { id: CALLER_ORG_ID },
+        } as never),
+      ).toBe(false);
+    });
+
+    it('denies when the entity organizationId is missing', () => {
+      expect(controller.canUserModifyEntity(mockUser, {} as never)).toBe(false);
+    });
+  });
 });

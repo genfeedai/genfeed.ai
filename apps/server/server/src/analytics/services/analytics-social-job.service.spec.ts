@@ -182,29 +182,22 @@ describe('AnalyticsSocialJobService', () => {
     );
   });
 
-  it('paces multi-post platform batches with a delay between posts', async () => {
-    vi.useFakeTimers();
-    try {
-      const harness = createHarness();
-      const job = makeJob([
-        makePost(CredentialPlatform.TIKTOK, { id: 'post-a' }),
-        makePost(CredentialPlatform.TIKTOK, { id: 'post-b' }),
-      ]);
+  it('collects multi-post platform batches without sleeping between posts', async () => {
+    const harness = createHarness();
+    const job = makeJob([
+      makePost(CredentialPlatform.TIKTOK, { id: 'post-a' }),
+      makePost(CredentialPlatform.TIKTOK, { id: 'post-b' }),
+    ]);
 
-      const processing = harness.service.process(job);
-      await vi.runAllTimersAsync();
-      await processing;
+    await harness.service.process(job);
 
-      expect(
-        harness.postAnalytics.processTikTokAnalytics,
-      ).toHaveBeenCalledTimes(2);
-      expect(harness.collectionState.markReady).toHaveBeenCalledTimes(2);
-      expect(harness.logger.log).toHaveBeenCalledWith(
-        'TikTok analytics completed - 2/2 posts',
-      );
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(harness.postAnalytics.processTikTokAnalytics).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(harness.collectionState.markReady).toHaveBeenCalledTimes(2);
+    expect(harness.logger.log).toHaveBeenCalledWith(
+      'TikTok analytics completed - 2/2 posts',
+    );
   });
 
   it('disables analytics tracking after a non-retryable provider failure', async () => {

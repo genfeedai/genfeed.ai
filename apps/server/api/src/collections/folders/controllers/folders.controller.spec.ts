@@ -660,4 +660,32 @@ describe('FoldersController', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe('canUserModifyEntity', () => {
+    it('allows modification when the canonical organization ID matches', () => {
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          isDeleted: false,
+          organizationId: mockOrganizationId,
+        } as never),
+      ).toBe(true);
+    });
+
+    it('does not authorize from the legacy organization relation alias', () => {
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          isDeleted: false,
+          organization: { id: mockOrganizationId },
+        } as never),
+      ).toBe(false);
+    });
+
+    it('denies when the entity organizationId is missing', () => {
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          isDeleted: false,
+        } as never),
+      ).toBe(false);
+    });
+  });
 });

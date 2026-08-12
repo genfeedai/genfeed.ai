@@ -59,10 +59,11 @@ describe('AnalyticsSyncWorkflowService', () => {
     expect(queueService.add).not.toHaveBeenCalled();
   });
 
-  it('queries Facebook posts by organization and enqueues analytics chunks', async () => {
+  it('queries due Facebook posts by organization and enqueues credential chunks', async () => {
     postsService.findAll.mockResolvedValue({
       docs: Array.from({ length: 51 }, (_, index) => ({
         id: `post-${index}`,
+        analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
         brandId: 'brand-1',
         credentialId: 'credential-1',
         externalId: `facebook-${index}`,
@@ -75,7 +76,9 @@ describe('AnalyticsSyncWorkflowService', () => {
 
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
+        orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
         where: expect.objectContaining({
+          analyticsNextCollectAt: { lte: new Date('2026-06-24T09:00:00.000Z') },
           isAnalyticsEnabled: { not: false },
           organizationId: 'org-1',
           platform: CredentialPlatform.FACEBOOK,
@@ -126,9 +129,10 @@ describe('AnalyticsSyncWorkflowService', () => {
     });
   });
 
-  it('pages through analytics posts instead of one unbounded findMany', async () => {
+  it('keyset-pages due posts and enqueues each page before fetching the next', async () => {
     const firstPage = Array.from({ length: 500 }, (_, index) => ({
-      id: `post-${index}`,
+      id: `post-${String(index).padStart(3, '0')}`,
+      analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
       brandId: 'brand-1',
       credentialId: 'credential-1',
       externalId: `facebook-${index}`,
@@ -138,6 +142,7 @@ describe('AnalyticsSyncWorkflowService', () => {
     const secondPage = [
       {
         id: 'post-500',
+        analyticsNextCollectAt: new Date('2026-06-24T08:30:00.000Z'),
         brandId: 'brand-1',
         credentialId: 'credential-1',
         externalId: 'facebook-500',
@@ -145,34 +150,67 @@ describe('AnalyticsSyncWorkflowService', () => {
         platform: CredentialPlatform.FACEBOOK,
       },
     ];
-    postsService.findAll
-      .mockResolvedValueOnce({
-        docs: firstPage,
-        hasNextPage: true,
-      })
-      .mockResolvedValueOnce({
-        docs: secondPage,
-        hasNextPage: false,
-      });
+    const callOrder: string[] = [];
+    postsService.findAll.mockImplementation(async () => {
+      callOrder.push('findAll');
+      return postsService.findAll.mock.calls.length === 1
+        ? { docs: firstPage }
+        : { docs: secondPage };
+    });
+    queueService.add.mockImplementation(async () => {
+      callOrder.push('enqueue');
+      return { id: 'job-1' };
+    });
 
     const result = await service.runFacebookAnalytics('org-1');
 
     expect(postsService.findAll).toHaveBeenCalledTimes(2);
     expect(postsService.findAll).toHaveBeenNthCalledWith(
       1,
-      expect.any(Object),
+      expect.objectContaining({
+        orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
+      }),
       expect.objectContaining({ limit: 500, page: 1, pagination: true }),
       false,
     );
     expect(postsService.findAll).toHaveBeenNthCalledWith(
       2,
-      expect.any(Object),
-      expect.objectContaining({ limit: 500, page: 2, pagination: true }),
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            {
+              OR: [
+                {
+                  analyticsNextCollectAt: {
+                    gt: new Date('2026-06-24T08:00:00.000Z'),
+                  },
+                },
+                {
+                  AND: [
+                    {
+                      analyticsNextCollectAt: new Date(
+                        '2026-06-24T08:00:00.000Z',
+                      ),
+                    },
+                    { id: { gt: 'post-499' } },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+      expect.objectContaining({ limit: 500, page: 1, pagination: true }),
       false,
     );
     expect(result.posts).toBe(501);
-    // 500 posts → 10 chunks of 50, plus 1 leftover → 11 enqueued jobs
     expect(result.enqueued).toBe(11);
+    expect(callOrder.slice(0, 3)).toEqual(['findAll', 'enqueue', 'enqueue']);
+    expect(callOrder).toContain('enqueue');
+    const firstEnqueue = callOrder.indexOf('enqueue');
+    const secondFind = callOrder.indexOf('findAll', 1);
+    expect(firstEnqueue).toBeGreaterThan(-1);
+    expect(secondFind).toBeGreaterThan(firstEnqueue);
   });
 
   it('groups Twitter analytics batches by credential and skips malformed posts', async () => {
@@ -180,6 +218,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
           credentialId: 'credential-1',
           externalId: 'tweet-1',
@@ -187,6 +226,7 @@ describe('AnalyticsSyncWorkflowService', () => {
         },
         {
           id: 'post-2',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
           credentialId: 'credential-1',
           externalId: 'tweet-2',
@@ -194,6 +234,7 @@ describe('AnalyticsSyncWorkflowService', () => {
         },
         {
           id: 'post-without-credential',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
           externalId: 'tweet-3',
           platform: CredentialPlatform.TWITTER,
@@ -205,8 +246,9 @@ describe('AnalyticsSyncWorkflowService', () => {
 
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
-        orderBy: { publishedAt: 'desc' },
+        orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
         where: expect.objectContaining({
+          analyticsNextCollectAt: { lte: new Date('2026-06-24T09:00:00.000Z') },
           organizationId: 'org-1',
           platform: CredentialPlatform.TWITTER,
         }),
@@ -274,23 +316,29 @@ describe('AnalyticsSyncWorkflowService', () => {
     });
   });
 
-  it('groups YouTube analytics batches by brand within the workflow organization', async () => {
+  it('groups YouTube analytics batches by credential within the workflow organization', async () => {
     postsService.findAll.mockResolvedValue({
       docs: [
         {
           id: 'post-1',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'video-1',
           platform: CredentialPlatform.YOUTUBE,
         },
         {
           id: 'post-2',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'video-2',
           platform: CredentialPlatform.YOUTUBE,
         },
         {
-          id: 'post-without-brand',
+          id: 'post-without-credential',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
+          brandId: 'brand-1',
           externalId: 'video-3',
           platform: CredentialPlatform.YOUTUBE,
         },
@@ -304,6 +352,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       expect.objectContaining({
         attemptKey: 'youtubeAnalyticsSync:org-1:495081',
         brandId: 'brand-1',
+        credentialId: 'credential-1',
         organizationId: 'org-1',
         posts: [
           {
@@ -331,11 +380,36 @@ describe('AnalyticsSyncWorkflowService', () => {
     });
   });
 
+  it('enqueues an organization refresh page-by-page without pagination:false', async () => {
+    postsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.runOrganizationRefresh('org-1');
+
+    expect(result).toEqual({
+      enqueued: 0,
+      organizationId: 'org-1',
+      posts: 0,
+      skipped: 0,
+    });
+    expect(postsService.findAll).toHaveBeenCalled();
+    for (const [query, options] of postsService.findAll.mock.calls) {
+      expect(query.where).not.toHaveProperty('analyticsNextCollectAt');
+      expect(options).toEqual(
+        expect.objectContaining({
+          page: 1,
+          pagination: true,
+        }),
+      );
+      expect(options.pagination).not.toBe(false);
+    }
+  });
+
   it('records a retryable scoped failure when queue dispatch fails', async () => {
     postsService.findAll.mockResolvedValue({
       docs: [
         {
           id: 'post-1',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
           credentialId: 'credential-1',
           externalId: 'facebook-1',
@@ -375,6 +449,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
+          analyticsNextCollectAt: new Date('2026-06-24T08:00:00.000Z'),
           brandId: 'brand-1',
           credentialId: 'credential-1',
           externalId: 'facebook-1',

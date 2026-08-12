@@ -33,6 +33,7 @@ const fsMock = vi.hoisted(() => ({
   existsSync: vi.fn().mockReturnValue(true),
   mkdirSync: vi.fn(),
   readFileSync: vi.fn().mockReturnValue(Buffer.from('test-content')),
+  renameSync: vi.fn(),
   unlinkSync: vi.fn(),
   writeFileSync: vi.fn(),
 }));
@@ -415,6 +416,8 @@ describe('FilesController', () => {
       resizeImage: processingController.resizeImage.bind(processingController),
       splitImage: processingController.splitImage.bind(processingController),
       uploadFile: storageController.uploadFile.bind(storageController),
+      uploadMultipart:
+        storageController.uploadMultipart.bind(storageController),
     };
     videoQueueService = module.get<VideoQueueService>(VideoQueueService);
     imageQueueService = module.get<ImageQueueService>(ImageQueueService);
@@ -1603,6 +1606,67 @@ describe('FilesController', () => {
       };
 
       await expect(controller.uploadFile(body)).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('uploadMultipart', () => {
+    it('uploads from the disk path and unlinks the temp file', async () => {
+      const file = {
+        mimetype: 'video/mp4',
+        originalname: 'clip.mp4',
+        path: '/tmp/genfeed-multipart/clip.mp4',
+        size: 2048,
+      } as Express.Multer.File;
+
+      const result = await controller.uploadMultipart(file, {
+        key: 'test-file.mp4',
+        type: 'videos',
+      });
+
+      expect(uploadService.uploadToS3).toHaveBeenCalledWith(
+        'test-file.mp4',
+        'videos',
+        { path: file.path, type: 'file' },
+      );
+      expect(result.publicUrl).toBeDefined();
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(file.path);
+    });
+
+    it('renames an extensionless temp file from the declared content type', async () => {
+      const file = {
+        mimetype: 'application/octet-stream',
+        originalname: 'upload',
+        path: '/tmp/genfeed-multipart/uuid',
+        size: 2048,
+      } as Express.Multer.File;
+
+      await controller.uploadMultipart(file, {
+        contentType: 'image/jpeg',
+        key: 'photo',
+        type: 'images',
+      });
+
+      expect(fsMock.renameSync).toHaveBeenCalledWith(
+        file.path,
+        `${file.path}.jpg`,
+      );
+      expect(uploadService.uploadToS3).toHaveBeenCalledWith('photo', 'images', {
+        path: `${file.path}.jpg`,
+        type: 'file',
+      });
+    });
+
+    it('rejects a missing file before contacting storage', async () => {
+      await expect(
+        controller.uploadMultipart(
+          undefined as unknown as Express.Multer.File,
+          {
+            key: 'test-file.mp4',
+            type: 'videos',
+          },
+        ),
+      ).rejects.toThrow('key, type, and file are required');
+      expect(uploadService.uploadToS3).not.toHaveBeenCalled();
     });
   });
 

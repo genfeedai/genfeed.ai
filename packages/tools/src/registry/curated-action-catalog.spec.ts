@@ -134,6 +134,27 @@ describe('curated action catalog', () => {
     }
   });
 
+  it('exposes headless-safe X read actions on both surfaces and keeps drafts agent-only', () => {
+    for (const name of [
+      'fetch_x_post',
+      'list_x_account_activity',
+      'search_x_posts',
+    ]) {
+      expect(getToolByName(name)?.surfaces, name).toMatchObject({
+        agent: true,
+        mcp: true,
+      });
+      expect(getToolByName(name)?.creditCost, name).toBe(1);
+    }
+
+    for (const name of ['draft_x_quote', 'draft_x_repost']) {
+      expect(getToolByName(name)?.surfaces, name).toMatchObject({
+        agent: true,
+        mcp: false,
+      });
+    }
+  });
+
   it('keeps in-product guided flows on the agent surface only', () => {
     // Deliberate boundaries — see `.agents/memory/curated_action_surface_boundaries.md`.
     for (const name of [

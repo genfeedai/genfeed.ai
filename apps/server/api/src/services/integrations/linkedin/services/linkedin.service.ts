@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingString,
@@ -16,7 +17,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';
 import { firstValueFrom } from 'rxjs';
 
@@ -198,6 +199,25 @@ export class LinkedInService {
   }
 
   public generateAuthUrl(state: string): string {
+    const clientId = this.configService.get('LINKEDIN_CLIENT_ID');
+    const redirectUri = this.configService.get('LINKEDIN_REDIRECT_URI');
+
+    if (
+      typeof clientId !== 'string' ||
+      clientId.trim() === '' ||
+      typeof redirectUri !== 'string' ||
+      redirectUri.trim() === ''
+    ) {
+      throw new HttpException(
+        {
+          detail:
+            'The linkedin integration is missing its provider credentials on this server.',
+          title: 'Integration not configured',
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     return this.authClient.generateMemberAuthorizationUrl(
       ['openid', 'profile', 'email', 'w_member_social'],
       state,
@@ -219,7 +239,10 @@ export class LinkedInService {
         expiresIn: tokenResponse.expires_in,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeLinkedInOAuthErrorLog(error),
+      );
       throw error;
     }
   }
@@ -313,7 +336,10 @@ export class LinkedInService {
         ...(response.picture ? { picture: response.picture } : {}),
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeLinkedInOAuthErrorLog(error),
+      );
       throw error;
     }
   }

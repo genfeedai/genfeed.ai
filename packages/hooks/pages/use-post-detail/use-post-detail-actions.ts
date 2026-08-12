@@ -7,6 +7,7 @@ import type {
   PostsService,
   PostUpdateInput,
 } from '@genfeedai/services/content/posts.service';
+import type { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -17,6 +18,7 @@ export interface UsePostDetailActionsOptions {
   post: IPost | null;
   setPost: React.Dispatch<React.SetStateAction<IPost | null>>;
   getPostsService: () => Promise<PostsService>;
+  getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
   notificationsService: NotificationsService;
   router: AppRouterInstance;
   fetchPost: (isRefresh?: boolean) => Promise<void>;
@@ -47,6 +49,7 @@ export interface UsePostDetailActionsOptions {
 export interface UsePostDetailActionsReturn {
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
+  handlePublishNow: () => Promise<void>;
   handleDeletePost: () => void;
   handleQuickAction: (
     postId: string,
@@ -65,6 +68,7 @@ export function usePostDetailActions({
   post,
   setPost,
   getPostsService,
+  getReleaseGroupsService,
   notificationsService,
   router,
   fetchPost,
@@ -119,48 +123,90 @@ export function usePostDetailActions({
     setIsSavingDescription,
   ]);
 
-  // Schedule save handler
+  const resolveReleaseGroupId = useCallback(async (): Promise<string> => {
+    if (!post) {
+      throw new Error('Post is required');
+    }
+    if (post.groupId) {
+      return post.groupId;
+    }
+    const releases = await getReleaseGroupsService();
+    const release = await releases.ensureFromPost(post.id);
+    return release.id;
+  }, [getReleaseGroupsService, post]);
+
+  const commitSchedule = useCallback(
+    async (scheduledAt: string, successMessage: string) => {
+      if (!post) {
+        return;
+      }
+
+      setIsSavingSchedule(true);
+      try {
+        const releases = await getReleaseGroupsService();
+        const groupId = await resolveReleaseGroupId();
+        await releases.scheduleTarget(groupId, post.id, scheduledAt);
+        await fetchPost(true);
+        notificationsService.success(successMessage);
+      } catch (err) {
+        logger.error('Failed to update schedule', err);
+        notificationsService.error('Failed to update schedule');
+      } finally {
+        setIsSavingSchedule(false);
+      }
+    },
+    [
+      fetchPost,
+      getReleaseGroupsService,
+      notificationsService,
+      post,
+      resolveReleaseGroupId,
+      setIsSavingSchedule,
+    ],
+  );
+
   const handleScheduleSave = useCallback(async () => {
     if (!post || !isScheduleDirty) {
       return;
     }
 
-    setIsSavingSchedule(true);
-
-    try {
-      const updates: {
-        scheduledDate: string;
-        targetExecutionState: TargetExecutionState;
-      } = {
-        scheduledDate: scheduleDraft,
-        targetExecutionState: scheduleDraft
-          ? TargetExecutionState.SCHEDULED
-          : TargetExecutionState.DRAFT,
-      };
-
-      await updateActivePost(updates, 'Schedule updated', true);
-      await fetchPost(true);
-
-      if (scheduleDraft) {
-        notificationsService.success('Schedule date updated');
-      } else {
+    if (!scheduleDraft) {
+      setIsSavingSchedule(true);
+      try {
+        await updateActivePost(
+          {
+            scheduledDate: '',
+            targetExecutionState: TargetExecutionState.DRAFT,
+          },
+          'Schedule updated',
+          true,
+        );
+        await fetchPost(true);
         notificationsService.success('Schedule date cleared');
+      } catch (err) {
+        logger.error('Failed to update schedule', err);
+        notificationsService.error('Failed to update schedule');
+      } finally {
+        setIsSavingSchedule(false);
       }
-    } catch (err) {
-      logger.error('Failed to update schedule', err);
-      notificationsService.error('Failed to update schedule');
-    } finally {
-      setIsSavingSchedule(false);
+      return;
     }
+
+    await commitSchedule(scheduleDraft, 'Schedule date updated');
   }, [
-    post,
-    isScheduleDirty,
-    scheduleDraft,
-    updateActivePost,
+    commitSchedule,
     fetchPost,
+    isScheduleDirty,
     notificationsService,
+    post,
+    scheduleDraft,
     setIsSavingSchedule,
+    updateActivePost,
   ]);
+
+  const handlePublishNow = useCallback(async () => {
+    await commitSchedule(new Date().toISOString(), 'Publishing now');
+  }, [commitSchedule]);
 
   // Delete post handler
   const handleDeletePost = useCallback(() => {
@@ -323,6 +369,7 @@ export function usePostDetailActions({
     handleContentSave,
     handleDeletePost,
     handlePerTweetEnhance,
+    handlePublishNow,
     handleQuickAction,
     handleScheduleSave,
   };

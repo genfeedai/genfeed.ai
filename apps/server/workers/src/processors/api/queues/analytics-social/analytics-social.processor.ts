@@ -10,9 +10,10 @@ import {
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
+import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
-@Processor(ANALYTICS_SOCIAL_QUEUE)
+@Processor(ANALYTICS_SOCIAL_QUEUE, { limiter: ANALYTICS_JOB_LIMITER })
 export class AnalyticsSocialProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

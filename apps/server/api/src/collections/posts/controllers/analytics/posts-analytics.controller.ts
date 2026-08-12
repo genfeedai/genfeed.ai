@@ -3,15 +3,14 @@ import { CredentialEntity } from '@api/collections/credentials/entities/credenti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
-import { MemberRole, TargetExecutionState } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -63,6 +62,7 @@ export class PostsAnalyticsController {
     private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
     private readonly postAnalyticsService: PostAnalyticsService,
+    private readonly analyticsSyncWorkflowService: AnalyticsSyncWorkflowService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -269,73 +269,10 @@ export class PostsAnalyticsController {
         }
       }
 
-      // Find all published posts for the organization
-      const posts = await this.postsService.findAll(
-        {
-          where: {
-            externalId: { not: null },
-            isDeleted: false,
-            organizationId: publicMetadata.organization,
-            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-          },
-        },
-        { customLabels, pagination: false },
-      );
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      // `findAll` loads no relations, so `post.credential` was always
-      // `undefined` here — every post in the batch reached the analytics
-      // service without a credential. Resolve it from the scalar FK instead,
-      // memoized per credential id so one connected account is fetched once
-      // rather than once per post.
-      const credentialCache = new Map<string, CredentialEntity | null>();
-
-      for (const post of posts.docs || []) {
-        try {
-          const credentialId = post.credentialId;
-
-          if (!credentialId) {
-            errorCount++;
-            this.loggerService.error(
-              `Post ${post.id} has no resolvable credential id`,
-            );
-            continue;
-          }
-
-          let credential = credentialCache.get(credentialId);
-          if (credential === undefined) {
-            credential = (await this.credentialsService.findOne({
-              id: credentialId,
-              organizationId: publicMetadata.organization,
-            })) as unknown as CredentialEntity | null;
-            credentialCache.set(credentialId, credential);
-          }
-
-          if (!credential) {
-            errorCount++;
-            this.loggerService.error(
-              `Credential ${credentialId} is not available for post ${post.id}`,
-            );
-            continue;
-          }
-
-          const trackUrl = `${url} trackPostAnalytics:${post.id}`;
-          await this.postAnalyticsService.trackPostAnalytics(
-            post,
-            credential,
-            trackUrl,
-          );
-          successCount++;
-        } catch (error: unknown) {
-          errorCount++;
-          this.loggerService.error(
-            `Failed to refresh analytics for post ${post.id}`,
-            error,
-          );
-        }
-      }
+      const refresh =
+        await this.analyticsSyncWorkflowService.runOrganizationRefresh(
+          publicMetadata.organization,
+        );
 
       // Set rate limit cache
       await this.postsService.setCachedData(
@@ -347,10 +284,10 @@ export class PostsAnalyticsController {
       return {
         data: {
           attributes: {
-            errorCount,
+            errorCount: refresh.skipped,
             lastRefreshed: new Date(),
-            successCount,
-            totalPosts: posts.docs?.length || 0,
+            successCount: refresh.enqueued,
+            totalPosts: refresh.posts,
           },
           id: publicMetadata.organization,
           type: 'analytics-refresh',
