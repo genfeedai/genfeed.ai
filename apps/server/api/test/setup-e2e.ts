@@ -72,6 +72,7 @@ console.warn = (...args: unknown[]) => {
   // Detect potential real API calls
   if (
     message.includes('api.openai.com') ||
+    message.includes('api.argil.ai') ||
     message.includes('api.replicate.com') ||
     message.includes('api.stripe.com') ||
     message.includes('api.elevenlabs.io')

@@ -23,6 +23,8 @@ import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { CommonModule } from '@api/common/common.module';
+import { ArgilWebhookController } from '@api/endpoints/webhooks/argil/webhooks.argil.controller';
+import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argil.service';
 import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
 import { FleetWebhookController } from '@api/endpoints/webhooks/fleet/webhooks.fleet.controller';
@@ -57,6 +59,7 @@ import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
@@ -69,6 +72,7 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 
 @Module({
   controllers: [
+    ArgilWebhookController,
     ChromaticWebhookController,
     FleetWebhookController,
     GitHubWebhookController,
@@ -82,6 +86,7 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
   ],
   exports: [WebhooksService],
   imports: [
+    forwardRef(() => ArgilModule),
     forwardRef(() => ActivitiesModule),
     forwardRef(() => ApiKeysModule),
     forwardRef(() => AssetsModule),
@@ -118,6 +123,7 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
     forwardRef(() => VoicesModule),
   ],
   providers: [
+    ArgilWebhookService,
     ActivityUpdateService,
     AutoMergeService,
     ChromaticWebhookService,

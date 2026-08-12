@@ -1,4 +1,5 @@
 import {
+  argilSchema,
   elevenlabsSchema,
   falSchema,
   fleetSchema,
@@ -328,6 +329,24 @@ describe('Config Schemas', () => {
       if (error) {
         expect(error.message).toContain('required');
       }
+    });
+  });
+
+  describe('argilSchema', () => {
+    it('should be a non-empty object of Joi schemas', () => {
+      expect(typeof argilSchema).toBe('object');
+      const keys = Object.keys(argilSchema);
+      expect(keys.length).toBeGreaterThan(0);
+      for (const key of keys) {
+        expect(
+          Joi.isSchema((argilSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
+      }
+    });
+
+    it('should validate without optional Argil credentials', () => {
+      const schema = Joi.object(argilSchema);
+      expect(schema.validate({}, { allowUnknown: true }).error).toBeUndefined();
     });
   });
 

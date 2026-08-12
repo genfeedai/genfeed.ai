@@ -1,0 +1,106 @@
+---
+description: 'Connect Argil to Genfeed, configure signed callbacks, select Argil Atom in Studio Clips, and verify avatar-video generation in production.'
+---
+
+# Argil
+
+Argil is an additive avatar-video provider in Genfeed. It does not replace
+HeyGen and it is not routed through the generic cinematic video adapter.
+Genfeed registers the provider as `argil` and the initial model as
+`argil/atom`.
+
+## What the integration supports
+
+- Argil Atom video projects using `ARGIL_ATOM`.
+- One Argil moment per selected Studio Clips highlight.
+- Argil avatar and voice identifiers supplied by the user.
+- Organization BYOK with a self-hosted environment fallback.
+- Asynchronous success and failure callbacks.
+- Status reads for an existing Argil video ID.
+
+The model registry advertises `16:9` and `9:16`. The initial Studio Clips path
+renders vertical `9:16` video. Reference images, avatar creation, avatar
+training, B-roll, music, and Argil editor features are outside this integration.
+
+## Prerequisites
+
+- An Argil account with API access.
+- An Argil API key.
+- An existing Argil avatar ID and voice ID.
+- A publicly reachable Genfeed webhook base URL for callback delivery.
+
+## Connect Argil
+
+The preferred setup is organization BYOK:
+
+1. Open **Organization settings → Integrations**.
+2. Expand **Argil**.
+3. Paste the Argil API key.
+4. Select **Validate and save**.
+
+Genfeed validates the key by listing Argil avatars. The saved credential is
+encrypted and scoped to the organization.
+
+Self-hosted deployments can instead configure:
+
+```dotenv
+ARGIL_KEY=your_argil_api_key
+ARGIL_WEBHOOK_SECRET=generate_a_long_random_secret
+GENFEEDAI_WEBHOOKS_URL=https://api.example.com
+```
+
+An organization BYOK key takes precedence over `ARGIL_KEY`.
+
+## Configure callbacks
+
+Genfeed supplies the callback URL when it starts an Argil render:
+
+```text
+POST /v1/webhooks/argil/callback?token=...
+```
+
+The token is an HMAC derived from the local video ID and
+`ARGIL_WEBHOOK_SECRET`. The secret itself is never included in the callback
+URL. Genfeed accepts Argil's `VIDEO_GENERATION_SUCCESS` and
+`VIDEO_GENERATION_FAILED` terminal events, verifies their correlation data, and
+reconciles the owning clip project idempotently.
+
+If `GENFEEDAI_WEBHOOKS_URL` is not publicly reachable or the webhook secret is
+missing, callback delivery cannot complete the normal production path.
+
+## Generate with Studio Clips
+
+1. Open a brand's **Studio → Clips** workflow.
+2. Select **Avatar** as the result mode.
+3. Select **Argil** as the avatar provider.
+4. Enter the Argil avatar ID and voice ID.
+5. Choose or generate the highlights, then start generation.
+
+Each selected highlight creates one Argil video project containing its
+transcript, avatar ID, and voice ID. Genfeed starts the render, stores the Argil
+video ID as the provider job ID, and ingests the returned video after a valid
+success callback.
+
+## Production smoke test
+
+1. Confirm the Argil provider card validates successfully.
+2. Use a short, non-sensitive transcript and known working avatar and voice IDs.
+3. Generate one highlight only.
+4. Confirm Argil receives one `ARGIL_ATOM` project and one render request.
+5. Confirm the Genfeed clip result stores provider `argil` and the Argil video
+   ID.
+6. Confirm the signed callback changes the result to completed and the output
+   video appears in Genfeed media.
+
+## Troubleshooting
+
+| Symptom                              | Check                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| API key is rejected                  | Confirm API access in Argil and create a fresh key.                                          |
+| Avatar or voice is rejected          | Copy the provider IDs exactly; display names are not accepted as IDs.                        |
+| Render remains processing            | Confirm the callback base URL is public and routes to the API.                               |
+| Callback returns unauthorized        | Confirm every API and worker instance shares the same `ARGIL_WEBHOOK_SECRET`.                |
+| Reference-image request fails        | The initial Argil adapter intentionally does not accept clip reference images.               |
+| Success event has no playable output | Inspect the Argil video status; Genfeed fails closed when a terminal event has no video URL. |
+
+See [AI Providers](/integrations/ai-providers) for the common BYOK lifecycle.

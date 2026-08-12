@@ -1,7 +1,20 @@
 import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 
-import { resolveStudioClipIdentityDefaults } from './useStudioClipsPage';
+import {
+  resolveAvatarProviderSelection,
+  resolveQuickAvatarIdentity,
+  resolveStudioClipIdentityDefaults,
+} from './useStudioClipsPage';
+
+const identityDefaults = {
+  avatarId: 'saved-heygen-avatar',
+  avatarProvider: 'heygen' as const,
+  isComplete: true,
+  missing: [],
+  source: 'brand' as const,
+  voiceId: 'saved-heygen-voice',
+};
 
 describe('resolveStudioClipIdentityDefaults', () => {
   it('prefills saved brand HeyGen avatar and voice defaults', () => {
@@ -71,6 +84,58 @@ describe('resolveStudioClipIdentityDefaults', () => {
       missing: ['voice'],
       source: 'brand',
       voiceId: undefined,
+    });
+  });
+});
+
+describe('avatar provider selection', () => {
+  it('preserves manually entered IDs when the active provider is selected again', () => {
+    expect(
+      resolveAvatarProviderSelection({
+        avatarProvider: 'argil',
+        identityDefaults,
+        provider: 'argil',
+      }),
+    ).toBeNull();
+  });
+
+  it('loads HeyGen defaults only when switching back to their provider', () => {
+    expect(
+      resolveAvatarProviderSelection({
+        avatarProvider: 'argil',
+        identityDefaults,
+        provider: 'heygen',
+      }),
+    ).toEqual({
+      avatarId: 'saved-heygen-avatar',
+      voiceId: 'saved-heygen-voice',
+    });
+  });
+});
+
+describe('quick avatar identity', () => {
+  it('does not mix saved HeyGen IDs into an Argil request', () => {
+    expect(
+      resolveQuickAvatarIdentity({
+        avatarId: '',
+        avatarProvider: 'argil',
+        identityDefaults,
+        voiceId: '',
+      }),
+    ).toEqual({ avatarId: undefined, voiceId: undefined });
+  });
+
+  it('preserves saved defaults for HeyGen quick start', () => {
+    expect(
+      resolveQuickAvatarIdentity({
+        avatarId: '',
+        avatarProvider: 'heygen',
+        identityDefaults,
+        voiceId: '',
+      }),
+    ).toEqual({
+      avatarId: 'saved-heygen-avatar',
+      voiceId: 'saved-heygen-voice',
     });
   });
 });

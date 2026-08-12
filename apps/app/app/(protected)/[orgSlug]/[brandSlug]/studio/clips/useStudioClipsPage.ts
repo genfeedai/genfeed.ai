@@ -131,6 +131,50 @@ export function resolveStudioClipIdentityDefaults({
   };
 }
 
+export function resolveQuickAvatarIdentity({
+  avatarId,
+  avatarProvider,
+  identityDefaults,
+  voiceId,
+}: {
+  avatarId: string;
+  avatarProvider: AvatarProvider;
+  identityDefaults: StudioClipIdentityDefaults;
+  voiceId: string;
+}): { avatarId?: string; voiceId?: string } {
+  const usesIdentityDefaults =
+    avatarProvider === identityDefaults.avatarProvider;
+
+  return {
+    avatarId:
+      avatarId ||
+      (usesIdentityDefaults ? identityDefaults.avatarId : undefined),
+    voiceId:
+      voiceId || (usesIdentityDefaults ? identityDefaults.voiceId : undefined),
+  };
+}
+
+export function resolveAvatarProviderSelection({
+  avatarProvider,
+  identityDefaults,
+  provider,
+}: {
+  avatarProvider: AvatarProvider;
+  identityDefaults: StudioClipIdentityDefaults;
+  provider: AvatarProvider;
+}): { avatarId: string; voiceId: string } | null {
+  if (provider === avatarProvider) {
+    return null;
+  }
+
+  return provider === identityDefaults.avatarProvider
+    ? {
+        avatarId: identityDefaults.avatarId ?? '',
+        voiceId: identityDefaults.voiceId ?? '',
+      }
+    : { avatarId: '', voiceId: '' };
+}
+
 export function useStudioClipsPage() {
   const { getToken } = useAuthIdentity();
   const { selectedBrand, settings } = useBrand();
@@ -207,17 +251,44 @@ export function useStudioClipsPage() {
     [localIdentityDefaults, resolvedIdentity],
   );
 
+  const selectAvatarProvider = useCallback(
+    (provider: AvatarProvider) => {
+      const selection = resolveAvatarProviderSelection({
+        avatarProvider,
+        identityDefaults,
+        provider,
+      });
+      if (!selection) {
+        return;
+      }
+
+      setAvatarProvider(provider);
+      setAvatarId(selection.avatarId);
+      setVoiceId(selection.voiceId);
+    },
+    [avatarProvider, identityDefaults],
+  );
+
   useEffect(() => {
-    if (identityDefaults.avatarId && !avatarId) {
+    if (
+      avatarProvider === identityDefaults.avatarProvider &&
+      identityDefaults.avatarId &&
+      !avatarId
+    ) {
       setAvatarId(identityDefaults.avatarId);
       setAvatarProvider(identityDefaults.avatarProvider);
     }
 
-    if (identityDefaults.voiceId && !voiceId) {
+    if (
+      avatarProvider === identityDefaults.avatarProvider &&
+      identityDefaults.voiceId &&
+      !voiceId
+    ) {
       setVoiceId(identityDefaults.voiceId);
     }
   }, [
     avatarId,
+    avatarProvider,
     identityDefaults.avatarId,
     identityDefaults.avatarProvider,
     identityDefaults.voiceId,
@@ -273,8 +344,13 @@ export function useStudioClipsPage() {
       return;
     }
 
-    const quickAvatarId = avatarId || identityDefaults.avatarId;
-    const quickVoiceId = voiceId || identityDefaults.voiceId;
+    const { avatarId: quickAvatarId, voiceId: quickVoiceId } =
+      resolveQuickAvatarIdentity({
+        avatarId,
+        avatarProvider,
+        identityDefaults,
+        voiceId,
+      });
 
     if (generationMode === 'avatar' && (!quickAvatarId || !quickVoiceId)) {
       setError(
@@ -335,8 +411,7 @@ export function useStudioClipsPage() {
     youtubeUrl,
     avatarId,
     voiceId,
-    identityDefaults.avatarId,
-    identityDefaults.voiceId,
+    identityDefaults,
     selectedBrand?.id,
     generationMode,
     avatarProvider,
@@ -717,7 +792,7 @@ export function useStudioClipsPage() {
     selectedCount,
     selectedIds,
     setAvatarId,
-    setAvatarProvider,
+    setAvatarProvider: selectAvatarProvider,
     setGenerationMode,
     setMaxClips,
     setMinViralityScore,

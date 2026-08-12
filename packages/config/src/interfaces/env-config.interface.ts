@@ -139,6 +139,10 @@ export interface IEnvConfig {
   HEYGEN_KEY?: string;
   HEYGEN_WEBHOOK_SECRET?: string;
 
+  // === Argil ===
+  ARGIL_KEY?: string;
+  ARGIL_WEBHOOK_SECRET?: string;
+
   // === OpusPro ===
   OPUSPRO_WEBHOOK_SECRET?: string;
 

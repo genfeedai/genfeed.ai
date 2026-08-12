@@ -1,4 +1,5 @@
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
+import { ArgilAvatarProvider } from '@api/services/avatar-video/providers/argil-avatar.provider';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
@@ -26,6 +27,7 @@ export class AvatarVideoService {
   >;
 
   constructor(
+    private readonly argilProvider: ArgilAvatarProvider,
     private readonly heygenProvider: HeygenAvatarProvider,
     private readonly didProvider: DidAvatarProvider,
     private readonly tavusProvider: TavusAvatarProvider,
@@ -33,6 +35,7 @@ export class AvatarVideoService {
     private readonly logger: LoggerService,
   ) {
     this.providers = {
+      argil: this.argilProvider,
       did: this.didProvider,
       heygen: this.heygenProvider,
       musetalk: this.musetalkProvider,

@@ -1,4 +1,5 @@
 export const ASPECT_RATIOS = {
+  ARGIL: ['16:9', '9:16'] as const,
   FLUX_KONTEXT: [
     'match_input_image',
     '1:1',

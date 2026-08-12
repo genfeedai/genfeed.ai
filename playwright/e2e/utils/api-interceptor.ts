@@ -1851,6 +1851,13 @@ export async function setupApiMocks(
       status: 200,
     });
   });
+  await page.route('**/api.argil.ai/**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({ mock: true, success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   // Apply custom mocks if provided
   if (customMocks) {

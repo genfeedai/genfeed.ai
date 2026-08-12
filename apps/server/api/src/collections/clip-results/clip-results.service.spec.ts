@@ -59,6 +59,7 @@ function createPrisma() {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
   };
 }
@@ -316,6 +317,61 @@ describe('ClipResultsService', () => {
       }),
       where: { id: 'clip-1' },
     });
+  });
+
+  it('claims a matching provider terminal transition only once', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue({
+      data: { providerName: 'argil', title: 'Existing' },
+      organizationId: 'org-1',
+    });
+    prisma.clipResult.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.transitionProviderTerminal({
+        clipResultId: 'clip-1',
+        providerJobId: 'video-1',
+        providerName: 'argil',
+        status: 'completed',
+        videoUrl: 'https://cdn.argil.ai/video-1.mp4',
+      }),
+    ).resolves.toBe(true);
+
+    expect(prisma.clipResult.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        data: {
+          providerName: 'argil',
+          title: 'Existing',
+          videoUrl: 'https://cdn.argil.ai/video-1.mp4',
+        },
+        providerJobId: 'video-1',
+        readiness: expect.objectContaining({ terminal: true }),
+        status: 'completed',
+        terminalAt: expect.any(Date),
+      }),
+      where: {
+        data: { equals: 'argil', path: ['providerName'] },
+        id: 'clip-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        providerJobId: 'video-1',
+        status: { notIn: ['completed', 'failed'] },
+      },
+    });
+  });
+
+  it('reports a terminal replay when no nonterminal row matches', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.transitionProviderTerminal({
+        clipResultId: 'clip-1',
+        providerJobId: 'video-1',
+        providerName: 'argil',
+        status: 'failed',
+      }),
+    ).resolves.toBe(false);
+
+    expect(prisma.clipResult.updateMany).not.toHaveBeenCalled();
   });
 
   it('scopes project lookup by organization when provided', async () => {

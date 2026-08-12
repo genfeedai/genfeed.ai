@@ -10,6 +10,11 @@
 
 import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 
+export interface AvatarVideoJobCreated {
+  jobId: string;
+  providerName: AvatarVideoProviderName;
+}
+
 export interface AvatarVideoJobInput {
   avatarId: string;
   callbackId: string;
@@ -18,6 +23,7 @@ export interface AvatarVideoJobInput {
   userId: string;
   voiceId: string;
   language?: string;
+  onJobCreated?: (job: AvatarVideoJobCreated) => Promise<void>;
   referenceImageUrl?: string;
 }
 

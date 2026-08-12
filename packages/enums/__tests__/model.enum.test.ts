@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 112 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(112);
+    it('should have 113 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(113);
     });
 
     it('should have correct values', () => {
@@ -183,6 +183,7 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_META_MUSICGEN).toBe('meta/musicgen');
       expect(MODEL_KEYS.HEYGEN_AVATAR).toBe('heygen/avatar');
+      expect(MODEL_KEYS.ARGIL_ATOM).toBe('argil/atom');
       expect(MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1).toBe(
         'deepseek-ai/deepseek-r1',
       );

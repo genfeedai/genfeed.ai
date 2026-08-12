@@ -110,6 +110,16 @@ export const heygenSchema = {
 };
 
 /**
+ * Argil avatar video generation
+ */
+export const argilSchema = {
+  ARGIL_KEY: Joi.string().optional().allow(''),
+  ARGIL_WEBHOOK_SECRET: conditionalRequired().description(
+    'Private secret used to derive per-video HMAC tokens for Argil callback URLs',
+  ),
+};
+
+/**
  * OpusPro clip generation (API key lives in the api-keys collection;
  * only the webhook shared secret is environment config)
  */

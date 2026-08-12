@@ -1,5 +1,6 @@
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
+import { ArgilAvatarProvider } from '@api/services/avatar-video/providers/argil-avatar.provider';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
@@ -9,14 +10,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-const makeProvider = (): vi.Mocked<AvatarVideoProvider> => ({
+const makeProvider = (
+  providerName: AvatarVideoProviderName = 'heygen',
+): vi.Mocked<AvatarVideoProvider> => ({
   generateVideo: vi.fn(),
   getStatus: vi.fn(),
-  providerName: 'heygen',
+  providerName,
 });
 
 describe('AvatarVideoService', () => {
   let service: AvatarVideoService;
+  let argilProvider: vi.Mocked<AvatarVideoProvider>;
   let heygenProvider: vi.Mocked<AvatarVideoProvider>;
   let didProvider: vi.Mocked<AvatarVideoProvider>;
   let tavusProvider: vi.Mocked<AvatarVideoProvider>;
@@ -29,6 +33,7 @@ describe('AvatarVideoService', () => {
   };
 
   beforeEach(async () => {
+    argilProvider = makeProvider('argil');
     heygenProvider = makeProvider();
     didProvider = makeProvider();
     tavusProvider = makeProvider();
@@ -38,6 +43,7 @@ describe('AvatarVideoService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AvatarVideoService,
+        { provide: ArgilAvatarProvider, useValue: argilProvider },
         { provide: HeygenAvatarProvider, useValue: heygenProvider },
         { provide: DidAvatarProvider, useValue: didProvider },
         { provide: TavusAvatarProvider, useValue: tavusProvider },
@@ -60,6 +66,10 @@ describe('AvatarVideoService', () => {
   describe('getProvider', () => {
     it('should return heygen provider when name is heygen', () => {
       expect(service.getProvider('heygen')).toBe(heygenProvider);
+    });
+
+    it('should return argil provider when name is argil', () => {
+      expect(service.getProvider('argil')).toBe(argilProvider);
     });
 
     it('should default to heygen when no name supplied', () => {
@@ -90,6 +100,7 @@ describe('AvatarVideoService', () => {
 
     it('should not log a warning for known providers', () => {
       service.getProvider('heygen');
+      service.getProvider('argil');
       expect(logger.warn).not.toHaveBeenCalled();
     });
   });
@@ -97,7 +108,7 @@ describe('AvatarVideoService', () => {
   describe('getSupportedProviders', () => {
     it('should return only production-ready provider names', () => {
       const providers = service.getSupportedProviders();
-      expect(providers).toEqual(['heygen']);
+      expect(providers).toEqual(['heygen', 'argil']);
     });
 
     it('should return an array of strings', () => {

@@ -3,8 +3,8 @@ import { ByokProvider } from '../src/byok-provider.enum';
 
 describe('byok-provider.enum', () => {
   describe('ByokProvider', () => {
-    it('should have 12 members', () => {
-      expect(Object.values(ByokProvider)).toHaveLength(12);
+    it('should have 13 members', () => {
+      expect(Object.values(ByokProvider)).toHaveLength(13);
     });
 
     it('should have correct values', () => {
@@ -14,6 +14,7 @@ describe('byok-provider.enum', () => {
       expect(ByokProvider.ELEVENLABS).toBe('elevenlabs');
       expect(ByokProvider.REPLICATE).toBe('replicate');
       expect(ByokProvider.FAL).toBe('fal');
+      expect(ByokProvider.ARGIL).toBe('argil');
       expect(ByokProvider.HEYGEN).toBe('heygen');
       expect(ByokProvider.HEDRA).toBe('hedra');
       expect(ByokProvider.KLINGAI).toBe('klingai');

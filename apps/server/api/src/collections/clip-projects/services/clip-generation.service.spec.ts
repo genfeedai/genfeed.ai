@@ -161,6 +161,32 @@ describe('ClipGenerationService', () => {
     );
   });
 
+  it('persists provider metadata before a provider can deliver its callback', async () => {
+    provider.generateVideo.mockImplementation(async (input) => {
+      await input.onJobCreated?.({
+        jobId: 'argil-job-1',
+        providerName: 'argil',
+      });
+      return {
+        jobId: 'argil-job-1',
+        providerName: 'argil',
+        status: 'processing',
+      };
+    });
+
+    await service.generateClips(makeInput({ provider: 'argil' }));
+
+    expect(clipResultsService.patch).toHaveBeenCalledTimes(2);
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      2,
+      'clip-result-1',
+      {
+        providerJobId: 'argil-job-1',
+        providerName: 'argil',
+      },
+    );
+  });
+
   it('forwards a resolved reference only through the provider reference field', async () => {
     await service.generateClips(
       makeInput({
@@ -235,6 +261,7 @@ describe('ClipGenerationService', () => {
     await service.generateClips(makeInput());
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
+      providerName: 'heygen',
       status: 'extracting',
     });
   });
@@ -372,9 +399,11 @@ describe('ClipGenerationService', () => {
     );
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
+      providerName: 'heygen',
       status: 'extracting',
     });
     expect(clipResultsService.patch).toHaveBeenCalledWith('cr-2', {
+      providerName: 'heygen',
       status: 'extracting',
     });
   });
@@ -501,6 +530,7 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     await service.generateClips(makeRawCutInput());
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
+      providerName: 'raw-cut',
       status: 'extracting',
     });
     expect(clipResultsService.patch).toHaveBeenCalledWith(

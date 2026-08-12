@@ -40,6 +40,7 @@ describe('clip reference generation policy', () => {
   it('declares reference-image support for every current mode/provider route', () => {
     expect(CLIP_REFERENCE_CAPABILITIES).toEqual({
       avatar: {
+        argil: expect.objectContaining({ supported: false }),
         did: expect.objectContaining({ supported: false }),
         heygen: { nativeField: 'photo_url', supported: true },
         musetalk: expect.objectContaining({ supported: false }),
@@ -99,7 +100,7 @@ describe('clip reference generation policy', () => {
     );
   });
 
-  it.each(['did', 'tavus', 'musetalk'] as const)(
+  it.each(['argil', 'did', 'tavus', 'musetalk'] as const)(
     'blocks strict reference use for unsupported avatar provider %s',
     (provider) => {
       expect(() =>

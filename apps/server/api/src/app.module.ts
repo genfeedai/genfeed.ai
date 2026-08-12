@@ -152,6 +152,7 @@ import { ContentEngineModule } from '@api/services/content-engine/content-engine
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
+import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
@@ -375,6 +376,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     GhostModule,
     GoogleSearchConsoleModule,
     HedraModule,
+    ArgilModule,
     HeyGenModule,
     InstagramModule,
     IntegrationsModule,
