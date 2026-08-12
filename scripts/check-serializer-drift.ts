@@ -99,10 +99,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'agent-strategy:AgentStrategy': [
     'autoPublishConfidenceThreshold',
-    'consecutiveFailures',
     'creditsUsedToday',
-    'displayRole',
-    'engagementEnabled',
     'engagementKeywords',
     'engagementTone',
     'expectedSpendToDate',
@@ -110,12 +107,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'maxEngagementsPerDay',
     'minCreditThreshold',
     'nextRunAt',
-    'preferredPostingTimes',
-    'reportsToLabel',
-    'runFrequency',
-    'teamGroup',
-    'timezone',
-    'voice',
     'weeklyResetAt',
   ],
   'article:Article': [
