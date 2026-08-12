@@ -1561,7 +1561,7 @@ describe('PostGroupsService', () => {
         'target-1',
         '2026-07-08T22:25:11.000Z',
       ),
-    ).rejects.toThrow('must be in the future');
+    ).rejects.toThrow('must be now or in the future');
     await expect(
       service.scheduleTarget(
         'org-1',
