@@ -77,12 +77,9 @@ export class GoalsController extends BaseCRUDController<
     user: User,
     entity: GoalDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-    const entityOrganizationId =
-      (entity.organizationId as unknown as { id?: string })?.id?.toString() ||
-      entity.organizationId?.toString();
-
-    return entityOrganizationId === publicMetadata.organization;
+    // Both ids must exist: `undefined === undefined` granted write access.
+    const { organization: userOrgId } = getPublicMetadata(user);
+    return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 
   @Patch(':id')

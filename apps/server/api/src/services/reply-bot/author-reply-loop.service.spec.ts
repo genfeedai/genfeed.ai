@@ -272,4 +272,34 @@ describe('AuthorReplyLoopService', () => {
       }),
     ).rejects.toThrow(/YouTube credential/i);
   });
+
+  describe('findResponderOwnerUserId', () => {
+    it('returns the scalar userId FK', async () => {
+      replyBotConfigsService.find.mockResolvedValue([
+        {
+          platform: 'twitter',
+          type: 'comment_responder',
+          userId: 'user-1',
+        },
+      ]);
+
+      await expect(
+        service.findResponderOwnerUserId('org-1', 'brand-1'),
+      ).resolves.toBe('user-1');
+    });
+
+    it('does not fall back to the Document user alias', async () => {
+      replyBotConfigsService.find.mockResolvedValue([
+        {
+          platform: 'twitter',
+          type: 'comment_responder',
+          user: 'user-1',
+        },
+      ]);
+
+      await expect(
+        service.findResponderOwnerUserId('org-1', 'brand-1'),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

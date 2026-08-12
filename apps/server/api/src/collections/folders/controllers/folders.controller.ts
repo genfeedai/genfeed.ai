@@ -237,7 +237,8 @@ export class FoldersController extends BaseCRUDController<
 
     return (
       folder.isDeleted !== true &&
-      folder.organizationId?.toString() === organizationId &&
+      Boolean(organizationId) &&
+      folder.organizationId === organizationId &&
       (!folderBrandId || folderBrandId === brandId)
     );
   }
