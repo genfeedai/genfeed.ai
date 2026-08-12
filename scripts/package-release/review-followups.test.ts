@@ -117,6 +117,23 @@ describe('package and worktree review follow-ups', () => {
       expect(runNodeGuard(guard, '12.0.0').status).toBe(0);
     }
   });
+
+  it('authorizes real npm publishes through an explicit release-call contract', () => {
+    const packageWorkflow = readText('.github/workflows/publish-packages.yml');
+    const releaseWorkflow = readText('.github/workflows/release.yml');
+
+    expect(packageWorkflow).toContain('trusted_release_call:');
+    expect(packageWorkflow).toContain(
+      'inputs.dry_run == false && inputs.trusted_release_call != true',
+    );
+    expect(packageWorkflow).toContain(
+      "inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true'",
+    );
+    expect(packageWorkflow).not.toContain(
+      "github.event_name == 'workflow_dispatch' && inputs.dry_run == false",
+    );
+    expect(releaseWorkflow).toContain('trusted_release_call: true');
+  });
 });
 
 function readJson(relativePath: string): PackageManifest {
