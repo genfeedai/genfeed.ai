@@ -351,6 +351,7 @@ export class AdPerformanceService {
   async findLatestSyncDateForCredential(
     credentialId: string,
   ): Promise<Date | null> {
+    // tenant-scope-ignore: credential ids are globally unique and this internal sync cursor lookup returns only the latest scalar date for that credential
     const record = await this.prisma.adPerformance.findFirst({
       orderBy: { date: { sort: 'desc' } },
       select: { date: true },

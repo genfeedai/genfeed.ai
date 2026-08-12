@@ -438,6 +438,7 @@ export class WorkflowExecutionsService extends BaseService<
   async startExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
+    // tenant-scope-ignore: the internal workflow runner starts an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
         startedAt: new Date(),
@@ -548,6 +549,7 @@ export class WorkflowExecutionsService extends BaseService<
   async cancelExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
+    // tenant-scope-ignore: the internal workflow runner cancels an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
         completedAt: new Date(),

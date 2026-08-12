@@ -3475,14 +3475,6 @@
     {
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "e2195c6d56a8408b9c55",
-      "method": "findFirst",
-      "model": "AdPerformance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "eabf7261866e87b7a58e",
       "method": "findMany",
       "model": "AdPerformance",
