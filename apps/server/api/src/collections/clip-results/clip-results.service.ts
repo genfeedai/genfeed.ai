@@ -196,7 +196,7 @@ export class ClipResultsService extends BaseService<
       status: { notIn: [...CLIP_TERMINAL_STATUSES] },
     };
     const existing = await this.delegate.findFirst({
-      select: { data: true },
+      select: { data: true, organizationId: true },
       where,
     });
     if (!existing) {
@@ -216,7 +216,10 @@ export class ClipResultsService extends BaseService<
         'update',
         this.readRecord(existing.data),
       ),
-      where,
+      where: {
+        ...where,
+        organizationId: existing.organizationId,
+      },
     });
 
     return result.count === 1;

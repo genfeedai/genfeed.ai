@@ -322,6 +322,7 @@ describe('ClipResultsService', () => {
   it('claims a matching provider terminal transition only once', async () => {
     prisma.clipResult.findFirst.mockResolvedValue({
       data: { providerName: 'argil', title: 'Existing' },
+      organizationId: 'org-1',
     });
     prisma.clipResult.updateMany.mockResolvedValue({ count: 1 });
 
@@ -351,6 +352,7 @@ describe('ClipResultsService', () => {
         data: { equals: 'argil', path: ['providerName'] },
         id: 'clip-1',
         isDeleted: false,
+        organizationId: 'org-1',
         providerJobId: 'video-1',
         status: { notIn: ['completed', 'failed'] },
       },
