@@ -77,7 +77,10 @@ import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
+import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
+import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
@@ -155,7 +158,10 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentMediaGenerationToolHandler,
     AgentOnboardingToolHandler,
     AgentToolInternalApiService,
+    AgentWorkflowToolCreateService,
+    AgentWorkflowToolExecuteService,
     AgentWorkflowToolHandler,
+    AgentWorkflowToolInstallService,
     AgentBrandContentToolHandler,
     AgentBrandInterviewToolHandler,
     AgentPrepareToolHandler,

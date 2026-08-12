@@ -190,7 +190,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
 
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {
     const source = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-handler.service.ts',
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-execute.service.ts',
     );
     const executeIdx = source.indexOf('async executeWorkflow(');
     const slice = source.slice(executeIdx, executeIdx + 1200);

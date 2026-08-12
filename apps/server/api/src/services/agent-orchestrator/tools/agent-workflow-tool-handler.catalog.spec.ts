@@ -1,5 +1,5 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
+import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * The catalog shipped in #2223 with only a REST + app-UI surface; these cover
  * the agent half of `system_workflows_content_os`.
  */
-describe('AgentWorkflowToolHandler system workflow catalog', () => {
+describe('AgentWorkflowToolInstallService system workflow catalog', () => {
   const systemWorkflowCatalogService = {
     install: vi.fn(),
     listCatalogForOrganization: vi.fn(),
@@ -25,7 +25,7 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
     userId: 'user-1',
   } as ToolExecutionContext;
 
-  let handler: AgentWorkflowToolHandler;
+  let handler: AgentWorkflowToolInstallService;
 
   function canonicalIds(data: Record<string, unknown> | undefined): string[] {
     const entries = (data?.entries ?? []) as Array<{ canonicalId: string }>;
@@ -84,14 +84,12 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       buildCatalog(),
     );
 
-    handler = new AgentWorkflowToolHandler(
-      {} as never,
-      {} as never,
-      {} as never,
+    handler = new AgentWorkflowToolInstallService(
       {} as never,
       {} as never,
       brandsService as never,
       systemWorkflowCatalogService as never,
+      {} as never,
     );
   });
 
