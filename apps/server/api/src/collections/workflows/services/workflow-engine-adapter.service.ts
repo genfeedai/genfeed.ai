@@ -48,6 +48,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
@@ -140,6 +141,7 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
     @Optional() private readonly socialInboxService?: SocialInboxService,
     @Optional() private readonly sourcePostsService?: SourcePostsService,
+    @Optional() private readonly twitterService?: TwitterService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -165,6 +167,9 @@ export class WorkflowEngineAdapterService {
       this.socialAdapterFactory,
       this.youtubeSocialAdapter,
       this.socialInboxService,
+      this.twitterService,
+      this.credentialsService,
+      this.notificationsService,
     );
     const mediaProcessingRegistrar =
       new WorkflowMediaProcessingExecutorRegistrarService(

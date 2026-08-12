@@ -10,7 +10,9 @@ export * from './keyword-trigger';
 export * from './music-source';
 export * from './post-reply';
 export * from './publish';
+export * from './report-delivery';
 export * from './send-dm';
+export * from './social-read';
 export * from './sound-overlay';
 export * from './trend-hashtag-inspiration';
 // Trend automation nodes - shared types first

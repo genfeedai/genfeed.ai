@@ -50,7 +50,9 @@ const RETAINED_SAAS_TYPES = [
   'trendVideoInspiration',
   'postReply',
   'publish',
+  'reportDelivery',
   'sendDm',
+  'socialRead',
 ] as const;
 
 describe('#481 SaaS node pruning', () => {

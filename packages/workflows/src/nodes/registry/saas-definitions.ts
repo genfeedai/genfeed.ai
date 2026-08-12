@@ -10,7 +10,9 @@ import {
   DEFAULT_MUSIC_SOURCE_DATA,
   DEFAULT_POST_REPLY_DATA,
   DEFAULT_PUBLISH_DATA,
+  DEFAULT_REPORT_DELIVERY_DATA,
   DEFAULT_SEND_DM_DATA,
+  DEFAULT_SOCIAL_READ_DATA,
   DEFAULT_SOUND_OVERLAY_DATA,
   DEFAULT_TREND_HASHTAG_INSPIRATION_DATA,
   DEFAULT_TREND_SOUND_INSPIRATION_DATA,
@@ -48,7 +50,10 @@ export type SaaSNodeType =
   // output / publish
   | 'postReply'
   | 'publish'
-  | 'sendDm';
+  | 'reportDelivery'
+  | 'sendDm'
+  // on-demand social input (#2664)
+  | 'socialRead';
 
 /**
  * SaaS node category (extends core categories)
@@ -242,6 +247,24 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     outputs: [],
     type: 'publish',
   },
+  reportDelivery: {
+    category: 'output',
+    defaultData: DEFAULT_REPORT_DELIVERY_DATA as Record<string, unknown>,
+    description:
+      'Deliver workflow results privately via in-app notification and/or email',
+    icon: 'Bell',
+    inputs: [
+      { id: 'content', label: 'Content', required: true, type: 'text' },
+      { id: 'subject', label: 'Subject', required: false, type: 'text' },
+      { id: 'html', label: 'HTML Body', required: false, type: 'text' },
+    ],
+    label: 'Report Delivery',
+    outputs: [
+      { id: 'delivered', label: 'Delivered', type: 'boolean' },
+      { id: 'destination', label: 'Destination', type: 'text' },
+    ],
+    type: 'reportDelivery',
+  },
   sendDm: {
     category: 'automation',
     defaultData: DEFAULT_SEND_DM_DATA as Record<string, unknown>,
@@ -261,6 +284,25 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     label: 'Send DM',
     outputs: [{ id: 'messageId', label: 'Message ID', type: 'text' }],
     type: 'sendDm',
+  },
+  socialRead: {
+    category: 'input',
+    defaultData: DEFAULT_SOCIAL_READ_DATA as Record<string, unknown>,
+    description:
+      'Fetch recent posts, mentions, or search results from a connected X account on demand',
+    icon: 'Search',
+    inputs: [
+      { id: 'brand', label: 'Brand', required: false, type: 'brand' },
+      { id: 'query', label: 'Search Query', required: false, type: 'text' },
+      { id: 'username', label: 'Username', required: false, type: 'text' },
+    ],
+    label: 'Social Read',
+    outputs: [
+      { id: 'posts', label: 'Posts (JSON)', type: 'text' },
+      { id: 'summary', label: 'Summary', type: 'text' },
+      { id: 'count', label: 'Count', type: 'number' },
+    ],
+    type: 'socialRead',
   },
   soundOverlay: {
     category: 'processing',

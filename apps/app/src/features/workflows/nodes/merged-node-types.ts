@@ -27,7 +27,9 @@ export const cloudNodeTypes: NodeTypes = Object.fromEntries(
     'input-video': CloudVideoInputNode,
     musicSource: TemplateCompatibilityNode,
     postReply: TemplateCompatibilityNode,
+    reportDelivery: TemplateCompatibilityNode,
     sendDm: TemplateCompatibilityNode,
+    socialRead: TemplateCompatibilityNode,
     soundOverlay: TemplateCompatibilityNode,
     ...extendedNodeTypes, // 7 premium nodes
     ...saasNodeTypes, // 5 SaaS nodes

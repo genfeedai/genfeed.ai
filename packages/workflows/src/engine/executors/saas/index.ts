@@ -32,11 +32,13 @@ export * from './prompt-constructor-executor';
 export * from './publish-executor';
 // Reframe executor
 export * from './reframe-executor';
+export * from './report-delivery-executor';
 export * from './send-dm-executor';
 export * from './send-email-executor';
 // SEO scoring + rewrite executors
 export * from './seo-rewrite-executor';
 export * from './seo-score-executor';
+export * from './social-read-executor';
 export * from './sound-overlay-executor';
 // Text to speech executor
 export * from './text-to-speech-executor';
