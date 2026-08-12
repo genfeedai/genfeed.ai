@@ -85,7 +85,7 @@ describe('StripeWebhookController', () => {
         headers: {
           'stripe-signature': signature || 'test-signature',
         },
-      }) as Request;
+      }) as unknown as Request;
 
     it('should handle webhook successfully', async () => {
       const rawBody = Buffer.from('{"type":"payment_intent.succeeded"}');

@@ -239,6 +239,7 @@ describe('WorkflowExecutionsService', () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findUnique.mockResolvedValue({
       estimatedDurationMs: 1000,
+      organizationId: 'org-1',
       result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       workflowId: 'workflow-1',
@@ -264,7 +265,11 @@ describe('WorkflowExecutionsService', () => {
           remainingDurationMs: 0,
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
-        where: { id: 'execution-1' },
+        where: {
+          id: 'execution-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
     expect(

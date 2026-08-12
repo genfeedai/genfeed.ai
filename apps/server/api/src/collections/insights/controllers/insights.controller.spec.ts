@@ -17,13 +17,15 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+const ORGANIZATION_ID = '507f1f77bcf86cd799439012';
+
 describe('InsightsController', () => {
   let controller: InsightsController;
   let service: InsightsService;
 
   const mockUser: User = {
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
+      organization: ORGANIZATION_ID,
       user: '507f1f77bcf86cd799439011',
     },
   } as unknown as User;
@@ -106,10 +108,7 @@ describe('InsightsController', () => {
 
       const result = await controller.getForecast(dto, mockUser);
 
-      expect(service.getForecast).toHaveBeenCalledWith(
-        dto,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.getForecast).toHaveBeenCalledWith(dto, ORGANIZATION_ID);
       expect(result).toEqual(forecast);
     });
   });
@@ -143,13 +142,10 @@ describe('InsightsController', () => {
 
       const result = await controller.getInsights(mockReq, mockUser);
 
-      expect(service.getInsights).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        5,
-      );
+      expect(service.getInsights).toHaveBeenCalledWith(ORGANIZATION_ID, 5);
       expect(
         mockInsightsService.enqueueInsightGenerationIfNeeded,
-      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization, 5);
+      ).toHaveBeenCalledWith(ORGANIZATION_ID, 5);
       expect(result).toEqual(insights);
     });
 
@@ -159,13 +155,10 @@ describe('InsightsController', () => {
 
       await controller.getInsights(mockReq, mockUser, '10');
 
-      expect(service.getInsights).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        10,
-      );
+      expect(service.getInsights).toHaveBeenCalledWith(ORGANIZATION_ID, 10);
       expect(
         mockInsightsService.enqueueInsightGenerationIfNeeded,
-      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization, 10);
+      ).toHaveBeenCalledWith(ORGANIZATION_ID, 10);
     });
   });
 
@@ -187,7 +180,7 @@ describe('InsightsController', () => {
 
       expect(service.predictViral).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
         expect.any(Function),
       );
       expect(result).toEqual(prediction);
@@ -206,7 +199,7 @@ describe('InsightsController', () => {
       const result = await controller.getContentGaps(mockReq, mockUser);
 
       expect(service.getContentGaps).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
         expect.any(Function),
       );
       expect(result).toEqual(gaps);
@@ -228,7 +221,7 @@ describe('InsightsController', () => {
       expect(service.getBestTimes).toHaveBeenCalledWith(
         'instagram',
         'UTC',
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
         expect.any(Function),
       );
       expect(result).toEqual(times);
@@ -253,7 +246,7 @@ describe('InsightsController', () => {
       expect(service.getBestTimes).toHaveBeenCalledWith(
         'twitter',
         'America/New_York',
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
         expect.any(Function),
       );
     });
@@ -274,7 +267,7 @@ describe('InsightsController', () => {
 
       expect(service.getGrowthPrediction).toHaveBeenCalledWith(
         'instagram',
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
       );
       expect(result).toEqual(prediction);
     });
@@ -293,7 +286,7 @@ describe('InsightsController', () => {
 
       expect(service.getGrowthPrediction).toHaveBeenCalledWith(
         'youtube',
-        mockUser.publicMetadata.organization,
+        ORGANIZATION_ID,
       );
     });
   });

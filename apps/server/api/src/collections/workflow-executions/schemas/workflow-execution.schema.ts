@@ -17,7 +17,10 @@ export type WorkflowNodeResult = {
 };
 
 export interface WorkflowExecutionDocument
-  extends Omit<PrismaWorkflowExecution, 'result'> {
+  extends Omit<
+    PrismaWorkflowExecution,
+    'creditsUsed' | 'durationMs' | 'failedNodeId' | 'progress' | 'result'
+  > {
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   nodeResults: WorkflowNodeResult[];

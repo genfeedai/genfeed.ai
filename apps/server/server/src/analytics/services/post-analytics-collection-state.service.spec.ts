@@ -117,7 +117,11 @@ describe('PostAnalyticsCollectionStateService', () => {
 
       expect(findMany).toHaveBeenCalledWith({
         select: { id: true, publishedAt: true },
-        where: { id: { in: ['post-1'] } },
+        where: {
+          id: { in: ['post-1'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
       expect(updateMany).toHaveBeenCalledWith({
         data: {

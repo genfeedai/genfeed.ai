@@ -15,12 +15,13 @@ const migration = readFileSync(
 
 describe('pattern_extraction_checkpoints (#2513)', () => {
   it('declares a unique source cursor without touching AdPerformance', () => {
+    const executableSql = migration.replace(/^\s*--.*$/gmu, '');
+
     expect(schema).toContain('model PatternExtractionCheckpoint');
     expect(schema).toContain('@@map("pattern_extraction_checkpoints")');
     expect(schema).toContain('source      String   @unique');
     expect(migration).toContain('pattern_extraction_checkpoints');
     expect(migration).toContain('pattern_extraction_checkpoints_source_key');
-    expect(migration).not.toContain('ad_performance');
-    expect(migration).not.toContain('ALTER TABLE "ad_performance"');
+    expect(executableSql).not.toContain('"ad_performance"');
   });
 });

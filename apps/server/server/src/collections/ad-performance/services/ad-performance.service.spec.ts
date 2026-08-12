@@ -61,6 +61,8 @@ describe('AdPerformanceService', () => {
 
       const call = upsert.mock.calls[0][0];
       expect(call.where).toEqual({
+        isDeleted: false,
+        organizationId: 'org-1',
         organizationId_identityKey: {
           identityKey: 'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||',
           organizationId: 'org-1',
@@ -150,7 +152,7 @@ describe('AdPerformanceService', () => {
 
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||campaign|acct-1|camp-1||');
+      ).toBe('v1|||campaign|acct-1|camp-1||');
     });
 
     it('falls back to externalAdGroupId for adset granularity', async () => {
@@ -164,7 +166,7 @@ describe('AdPerformanceService', () => {
       expect(upsert.mock.calls[0][0].create.externalAdSetId).toBe('group-1');
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||adset|acct-1||group-1|');
+      ).toBe('v1|||adset|acct-1||group-1|');
     });
 
     it('includes the ad id in the key for ad granularity', async () => {
@@ -177,7 +179,7 @@ describe('AdPerformanceService', () => {
 
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||ad|acct-1|||ad-1');
+      ).toBe('v1|||ad|acct-1|||ad-1');
     });
 
     it('defaults brand and credential ids to null when absent', async () => {
@@ -430,21 +432,25 @@ describe('AdPerformanceService', () => {
 
   describe('findById', () => {
     it('returns null when the record does not exist', async () => {
-      await expect(service.findById('missing')).resolves.toBeNull();
+      await expect(service.findById('missing', 'org-1')).resolves.toBeNull();
     });
 
     it('excludes soft-deleted records', async () => {
-      await service.findById('perf-1');
+      await service.findById('perf-1', 'org-1');
 
       expect(findFirst).toHaveBeenCalledWith({
-        where: { id: 'perf-1', isDeleted: false },
+        where: {
+          id: 'perf-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
     it('flattens the JSON payload onto the returned document', async () => {
       findFirst.mockResolvedValueOnce(makeRow({ ctr: 0.05 }));
 
-      const result = await service.findById('perf-1');
+      const result = await service.findById('perf-1', 'org-1');
 
       expect(result?.ctr).toBe(0.05);
       expect(result?.id).toBe('perf-1');

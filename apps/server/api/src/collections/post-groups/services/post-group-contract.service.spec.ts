@@ -294,7 +294,7 @@ describe('PostGroupContractService', () => {
       BadRequestException,
     );
     expect(() =>
-      service.parseFutureScheduleDate('2026-07-19T11:59:59.000Z'),
+      service.parseFutureScheduleDate('2026-07-19T11:59:58.000Z'),
     ).toThrow('must be now or in the future');
     expect(
       service.parseFutureScheduleDate(new Date().toISOString()).getTime(),

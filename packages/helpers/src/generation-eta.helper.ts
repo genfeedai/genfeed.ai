@@ -47,8 +47,15 @@ export interface WorkflowEtaEdgeLike {
   target: string;
 }
 
-export interface WorkflowEtaEstimate extends GenerationEtaSnapshot {
+export interface WorkflowEtaEstimate
+  extends Omit<
+    GenerationEtaSnapshot,
+    'estimatedDurationMs' | 'etaConfidence' | 'remainingDurationMs'
+  > {
   criticalPathNodeIds: string[];
+  estimatedDurationMs: number;
+  etaConfidence: EtaConfidence;
+  remainingDurationMs: number;
 }
 
 interface DurationEstimate {

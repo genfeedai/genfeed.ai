@@ -1,11 +1,14 @@
-const mockTweet = vi.fn();
+const { mockTweet, MockTwitterApi } = vi.hoisted(() => {
+  const mockTweet = vi.fn();
+  const MockTwitterApi = vi.fn(function TwitterApiMock() {
+    return {
+      v2: {
+        tweet: mockTweet,
+      },
+    };
+  });
 
-const MockTwitterApi = vi.fn(function TwitterApiMock() {
-  return {
-    v2: {
-      tweet: mockTweet,
-    },
-  };
+  return { mockTweet, MockTwitterApi };
 });
 
 vi.mock('twitter-api-v2', () => ({

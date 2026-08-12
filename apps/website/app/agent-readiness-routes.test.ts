@@ -1,9 +1,41 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GET as getAgentContent } from './.well-known/agent-content/home/route';
 import { GET as getAgentSkillsIndex } from './.well-known/agent-skills/index.json/route';
+import {
+  dynamic as authAliasDynamic,
+  revalidate as authAliasRevalidate,
+  GET as getAuthAlias,
+} from './.well-known/auth.md/route';
 import { GET as getMcpServerCard } from './.well-known/mcp/server-card.json/route';
+import {
+  GET as getMcpCardsAlias,
+  dynamic as mcpCardsAliasDynamic,
+  revalidate as mcpCardsAliasRevalidate,
+} from './.well-known/mcp/server-cards.json/route';
+import {
+  GET as getMcpAlias,
+  dynamic as mcpAliasDynamic,
+  revalidate as mcpAliasRevalidate,
+} from './.well-known/mcp.json/route';
 
 describe('website discovery routes', () => {
+  it.each([
+    '.well-known/auth.md/route.ts',
+    '.well-known/mcp.json/route.ts',
+    '.well-known/mcp/server-cards.json/route.ts',
+  ])('declares static route config locally in %s', (relativePath) => {
+    const source = readFileSync(
+      join(import.meta.dirname, relativePath),
+      'utf8',
+    );
+
+    expect(source).toContain("export const dynamic = 'force-static';");
+    expect(source).toContain('export const revalidate = false;');
+    expect(source).not.toMatch(/export\s*\{[^}]*\b(dynamic|revalidate)\b/);
+  });
+
   it('serves negotiated homepage content as markdown', async () => {
     const response = getAgentContent();
 
@@ -30,5 +62,25 @@ describe('website discovery routes', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe('*');
     expect(body.serverInfo.name).toBe('genfeed-mcp-server');
     expect(body.transport.endpoint).toBe('https://mcp.genfeed.ai/mcp');
+  });
+
+  it('keeps compatibility aliases static while sharing canonical handlers', async () => {
+    expect([authAliasDynamic, mcpAliasDynamic, mcpCardsAliasDynamic]).toEqual([
+      'force-static',
+      'force-static',
+      'force-static',
+    ]);
+    expect([
+      authAliasRevalidate,
+      mcpAliasRevalidate,
+      mcpCardsAliasRevalidate,
+    ]).toEqual([false, false, false]);
+
+    const authResponse = getAuthAlias();
+    const mcpResponse = getMcpAlias();
+    const mcpCardsResponse = getMcpCardsAlias();
+
+    expect(authResponse.headers.get('content-type')).toContain('text/markdown');
+    expect(await mcpResponse.json()).toEqual(await mcpCardsResponse.json());
   });
 });

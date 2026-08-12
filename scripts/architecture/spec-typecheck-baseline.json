@@ -537,14 +537,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/credits/controllers/credits.controller.spec.ts",
-      "fingerprint": "35ee592a9dafa71b6fc1",
-      "message": "Argument of type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<string, any>; ... 76 more ...; files?: Express.Multer.File[] | ... 1 more ... | undefined; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ context: { hydratedAt: number; isSuperAdmin: false; organizationId: string; stripeSubscriptionStatus: string; subscriptionTier: string; userId: string; }; secret?: string | undefined; cookies: Record<...>; ... 76 more ...; files?: File[] | ... 1 more ... | undefined; }' is missing the following properties from type 'RequestWithContext': setTimeout, destroy, _read, read, and 33 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/credits/entities/credit-balance.entity.spec.ts",
@@ -1134,14 +1126,6 @@
       "file": "apps/server/api/src/collections/insights/controllers/insights.controller.spec.ts",
       "fingerprint": "c4a08df4dcd34d041a81",
       "message": "Variable 'insights' implicitly has type 'any[]' in some locations where its type cannot be determined.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 9,
-      "file": "apps/server/api/src/collections/insights/controllers/insights.controller.spec.ts",
-      "fingerprint": "f7dcd84d55deeff5c17a",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -2571,14 +2555,6 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/api/src/endpoints/webhooks/services/media-upload.service.spec.ts",
-      "fingerprint": "9c00a262accf8ce740fc",
-      "message": "Argument of type 'Record<string, Mock<Procedure | Constructable>>' is not assignable to parameter of type 'FilesClientService'.   Type 'Record<string, Mock<Procedure | Constructable>>' is missing the following properties from type 'FilesClientService': filesServiceUrl, httpService, configService, loggerService, and 12 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/services/metadata-lookup.service.spec.ts",
       "fingerprint": "9eb4fb82a0ac41837bd0",
       "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': constructorName, prisma, logger, create, and 36 more.",
@@ -2590,30 +2566,6 @@
       "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler.spec.ts",
       "fingerprint": "604d6a08952d38c7de07",
       "message": "Argument of type 'Invoice' is not assignable to parameter of type 'Invoice & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Invoice' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 4,
-      "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.controller.spec.ts",
-      "fingerprint": "08e45c70587ff905f6c1",
-      "message": "Property 'mockResolvedValue' does not exist on type '(payload: WebhookPayload, header: WebhookHeader, secret: string, tolerance?: number | undefined, cryptoProvider?: CryptoProvider | undefined, receivedAt?: number | undefined) => Promise<...>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.controller.spec.ts",
-      "fingerprint": "dad0a9903ae9a851eb1e",
-      "message": "Property 'mockRejectedValue' does not exist on type '(payload: WebhookPayload, header: WebhookHeader, secret: string, tolerance?: number | undefined, cryptoProvider?: CryptoProvider | undefined, receivedAt?: number | undefined) => Promise<...>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.controller.spec.ts",
-      "fingerprint": "166d87226547f85713c5",
-      "message": "Conversion of type '{ body: unknown; headers: { 'stripe-signature': string; }; }' to type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ body: unknown; headers: { 'stripe-signature': string; }; }' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 101 more.",
       "workspace": "api"
     },
     {
@@ -4321,30 +4273,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/workflow-executor/processors/sound-overlay.processor.spec.ts",
-      "fingerprint": "2e2ab7b9bf62e6a552a1",
-      "message": "Argument of type '{ publicUrl: string; s3Key: string; }' is not assignable to parameter of type '{ uploadMethod?: \"POST_JSON\" | \"PUT\" | undefined; uploadUrl: string; publicUrl: string; s3Key: string; }'.   Property 'uploadUrl' is missing in type '{ publicUrl: string; s3Key: string; }' but required in type '{ uploadMethod?: \"POST_JSON\" | \"PUT\" | undefined; uploadUrl: string; publicUrl: string; s3Key: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/workflow-executor/processors/sound-overlay.processor.spec.ts",
-      "fingerprint": "5e8b4cf62596466d85f1",
-      "message": "Argument of type '{ publicUrl: string; }' is not assignable to parameter of type '{ publicUrl: string; s3Key: string; duration?: number | undefined; }'.   Property 's3Key' is missing in type '{ publicUrl: string; }' but required in type '{ publicUrl: string; s3Key: string; duration?: number | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/services/workflow-executor/processors/sound-overlay.processor.spec.ts",
-      "fingerprint": "b40a37a5b8cd07eaa1f2",
-      "message": "Argument of type '{ duration: number; publicUrl: string; }' is not assignable to parameter of type '{ publicUrl: string; s3Key: string; duration?: number | undefined; }'.   Property 's3Key' is missing in type '{ duration: number; publicUrl: string; }' but required in type '{ publicUrl: string; s3Key: string; duration?: number | undefined; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2416,
       "count": 1,
       "file": "apps/server/api/src/shared/controllers/base-crud/base-crud.controller.spec.ts",
@@ -5526,14 +5454,6 @@
       "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
       "fingerprint": "b2e29e712c510012d3f8",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/pattern-extraction/cron.pattern-extraction.service.spec.ts",
-      "fingerprint": "c31570a35e3fe482be3d",
-      "message": "Argument of type '(call: [string, { platform: string; }]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string, { platform: string; }]'.       Target requires 2 element(s) but source may have fewer.",
       "workspace": "workers"
     },
     {

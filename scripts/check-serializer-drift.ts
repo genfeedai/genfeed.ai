@@ -294,13 +294,9 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'insight:Insight': [
     'actionableSteps',
-    'category',
     'confidence',
     'description',
-    'expiresAt',
     'impact',
-    'isDismissed',
-    'isRead',
     'relatedMetrics',
     'title',
   ],

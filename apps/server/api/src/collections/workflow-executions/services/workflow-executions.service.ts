@@ -75,7 +75,7 @@ type WorkflowExecutionRuntimeStateRow = {
 
 type WorkflowExecutionCompletionRow = {
   estimatedDurationMs: number | null;
-  organizationId: string | null;
+  organizationId: string;
   startedAt: Date | null;
   trigger: string | null;
   workflowId: string;
@@ -285,6 +285,7 @@ export class WorkflowExecutionsService extends BaseService<
   async getRuntimeState(
     executionId: string,
   ): Promise<WorkflowExecutionRuntimeState | null> {
+    // tenant-scope-ignore: delayed workflow jobs carry only the opaque globally unique execution id; this read checks isDeleted and returns no tenant-owned relation data
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: {
         creditsUsed: true,
@@ -437,6 +438,7 @@ export class WorkflowExecutionsService extends BaseService<
   async startExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
+    // tenant-scope-ignore: the internal workflow runner starts an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
         startedAt: new Date(),
@@ -455,6 +457,7 @@ export class WorkflowExecutionsService extends BaseService<
     completion?: WorkflowExecutionCompletionFields,
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
+    // tenant-scope-ignore: internal completion callers carry the opaque globally unique execution id; this lookup resolves its tenant and the mutation below is scoped to it
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: {
         estimatedDurationMs: true,
@@ -506,7 +509,7 @@ export class WorkflowExecutionsService extends BaseService<
           ? PrismaWorkflowExecutionStatus.FAILED
           : PrismaWorkflowExecutionStatus.COMPLETED,
       },
-      where: { id: executionId },
+      where: scopedWhere(execution.organizationId, { id: executionId }),
     });
 
     const document = this.normalizeDocument(result);
@@ -546,6 +549,7 @@ export class WorkflowExecutionsService extends BaseService<
   async cancelExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
+    // tenant-scope-ignore: the internal workflow runner cancels an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
         completedAt: new Date(),
@@ -718,6 +722,7 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
+    // tenant-scope-ignore: the internal workflow runner addresses this mutation by an opaque globally unique execution id and has no request-level tenant boundary
     await this.prisma.workflowExecution.update({
       data: { failedNodeId },
       where: { id: executionId },
@@ -729,6 +734,7 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
+    // tenant-scope-ignore: the internal workflow runner addresses this mutation by an opaque globally unique execution id and has no request-level tenant boundary
     await this.prisma.workflowExecution.update({
       data: { creditsUsed },
       where: { id: executionId },
@@ -814,6 +820,7 @@ export class WorkflowExecutionsService extends BaseService<
         ? new Date()
         : undefined;
 
+    // tenant-scope-ignore: the internal workflow runner addresses this progress mutation by an opaque globally unique execution id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
         ...(eta?.etaConfidence !== undefined

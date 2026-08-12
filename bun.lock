@@ -461,6 +461,7 @@
         "@remotion/bundler": "4.0.508",
         "@remotion/renderer": "4.0.508",
         "bullmq": "6.1.0",
+        "multer": "2.2.0",
         "react": "19.2.8",
         "react-dom": "19.2.8",
         "remotion": "4.0.508",
@@ -468,6 +469,7 @@
       },
       "devDependencies": {
         "@types/ffprobe-static": "2.0.3",
+        "@types/multer": "2.2.0",
       },
     },
     "apps/server/images": {

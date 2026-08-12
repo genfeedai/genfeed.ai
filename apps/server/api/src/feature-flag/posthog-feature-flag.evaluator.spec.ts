@@ -6,9 +6,12 @@ const mocks = vi.hoisted(() => ({
   safeFetch: vi.fn(),
 }));
 
-vi.mock('@genfeedai/config/deployment', () => ({
-  isSaaS: mocks.isSaaS,
-}));
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/config/deployment')>();
+
+  return { ...actual, isSaaS: mocks.isSaaS };
+});
 
 vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: mocks.safeFetch,
