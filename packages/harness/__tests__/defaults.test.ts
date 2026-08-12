@@ -44,6 +44,27 @@ describe('CORE_CONTENT_HARNESS_PACK', () => {
     ]);
   });
 
+  it('adds visual brand criteria for image and ad-creative kinds', () => {
+    const image = contribute({
+      intent: { contentType: 'image', objective: 'awareness' },
+    });
+    expect(image.evaluationCriteria).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Visual brand readiness'),
+      ]),
+    );
+
+    const ad = contribute({
+      intent: { contentType: 'ad-creative', objective: 'conversion' },
+    });
+    expect(ad.systemDirectives).toEqual(
+      expect.arrayContaining([expect.stringContaining('paid creative')]),
+    );
+    expect(ad.evaluationCriteria).toEqual(
+      expect.arrayContaining([expect.stringContaining('Ad usefulness')]),
+    );
+  });
+
   it('mentions the platform in evaluation criteria when provided', () => {
     const contribution = contribute({
       intent: {

@@ -83,6 +83,7 @@ import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SeoModule } from '@api/services/seo/seo.module';
@@ -119,6 +120,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ConfigModule),
     forwardRef(() => ContentIntelligenceModule),
     forwardRef(() => ContentQualityModule),
+    forwardRef(() => ContentHarnessModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => DashboardLayoutsModule),

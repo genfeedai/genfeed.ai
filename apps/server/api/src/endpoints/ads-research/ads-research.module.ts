@@ -5,6 +5,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -16,6 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => AdsGatewayModule),
     forwardRef(() => WorkflowsModule),
+    forwardRef(() => ContentHarnessModule),
   ],
   providers: [AdsResearchService],
 })

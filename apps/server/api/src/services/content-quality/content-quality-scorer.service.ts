@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -85,8 +86,43 @@ export class ContentQualityScorerService {
     private readonly ingredientsService: IngredientsService,
     @Optional()
     private readonly postsService: PostsService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {
     this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+  }
+
+  private async resolveHarnessScoringContext(
+    context: Record<string, unknown> | undefined,
+  ): Promise<string | undefined> {
+    if (!this.harnessGenerationService || !context) {
+      return undefined;
+    }
+    const brandId =
+      typeof context.brandId === 'string' ? context.brandId : undefined;
+    const organizationId =
+      typeof context.organizationId === 'string'
+        ? context.organizationId
+        : undefined;
+    if (!brandId || !organizationId) {
+      return undefined;
+    }
+    const contentTypeRaw =
+      typeof context.contentType === 'string' ? context.contentType : 'image';
+    const contentType =
+      contentTypeRaw === 'video'
+        ? 'video'
+        : contentTypeRaw === 'ad-creative'
+          ? 'ad-creative'
+          : 'image';
+    const brief = await this.harnessGenerationService.resolveBrief({
+      brandId,
+      contentType,
+      objective: 'engagement',
+      organizationId,
+    });
+    const formatted = this.harnessGenerationService.formatBrief(brief);
+    return formatted || undefined;
   }
 
   /**
@@ -136,10 +172,11 @@ export class ContentQualityScorerService {
       typeof context?.organizationId === 'string'
         ? context.organizationId
         : undefined;
+    const harnessContext = await this.resolveHarnessScoringContext(context);
     const result = await this.scoreContent(
       ingredientId,
       contentType,
-      undefined,
+      harnessContext,
       organizationId,
     );
     const status = ContentQualityScorerService.resolveStatus(result.score);

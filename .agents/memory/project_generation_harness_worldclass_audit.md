@@ -4,6 +4,7 @@ description: Map of image/video/ads generation vs content harness; gaps to best-
 type: project
 status: active
 last_verified: 2026-08-12
+implementation_note: Media/ads harness wiring + profile seed + winner promotion landed on qa/260812 (2026-08-12). Private pack examples still need real copy.
 topics: [harness, generation, image, video, ads, quality, private-packs]
 ---
 

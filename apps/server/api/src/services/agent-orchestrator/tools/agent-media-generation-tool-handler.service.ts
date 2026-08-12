@@ -24,6 +24,7 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
@@ -174,7 +175,31 @@ export class AgentMediaGenerationToolHandler {
     private readonly batchStreamService?: BatchGenerationStreamService,
     @Optional()
     private readonly batchGenerationQueueService?: BatchGenerationQueueService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {}
+
+  private async applyBrandHarnessToPrompt(params: {
+    contentType: 'image' | 'video';
+    ctx: ToolExecutionContext;
+    prompt: string;
+    topic?: string;
+  }): Promise<string> {
+    if (!this.harnessGenerationService || !params.ctx.brandId) {
+      return params.prompt;
+    }
+    try {
+      return await this.harnessGenerationService.applyToMediaPrompt({
+        brandId: params.ctx.brandId,
+        contentType: params.contentType,
+        organizationId: params.ctx.organizationId,
+        prompt: params.prompt,
+        topic: params.topic,
+      });
+    } catch {
+      return params.prompt;
+    }
+  }
 
   private resolveBatchPricingOptions(ctx: ToolExecutionContext): {
     includeMedia: boolean;
@@ -566,14 +591,20 @@ export class AgentMediaGenerationToolHandler {
     // - Credit deduction via CreditsInterceptor
     // - Synchronous polling (3min timeout, 2s interval)
 
-    const prompt =
+    const rawPrompt =
       (params.prompt as string | undefined) ??
       (params.description as string | undefined) ??
       (params.text as string | undefined) ??
       '';
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'image',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
     const aspectRatio = (params.aspectRatio as string) || '1:1';
     const dimensions = this.aspectRatioToDimensions(aspectRatio);
-    const promptPreview = prompt.substring(0, 80);
+    const promptPreview = rawPrompt.substring(0, 80);
 
     // Use attachment as reference image when no explicit imageUrl is provided
     const imageUrl =
@@ -811,12 +842,19 @@ export class AgentMediaGenerationToolHandler {
       (params.imageUrl as string | undefined) ||
       (ctx.attachmentUrls?.length ? ctx.attachmentUrls[0] : undefined);
     const audioUrl = params.audioUrl as string | undefined;
+    const rawPrompt = String(params.prompt ?? '');
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'video',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
 
     const body: Record<string, unknown> = {
       duration,
       height: dimensions.height,
-      prompt: params.prompt as string,
-      text: params.prompt as string,
+      prompt,
+      text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),

@@ -184,18 +184,28 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('nodeClaimService.complete');
   });
 
-  it('content harness loads core pack and optional private packages', () => {
+  it('content harness loads core pack, media kinds, and generation wiring', () => {
     const service = readRepo(
       'apps/server/api/src/services/harness/harness.service.ts',
     );
     const types = readRepo('packages/harness/src/types.ts');
+    const mediaPrompt = readRepo('packages/harness/src/media-prompt.ts');
+    const mediaHandler = readRepo(
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service.ts',
+    );
+    const ads = readRepo(
+      'apps/server/api/src/endpoints/ads-research/ads-research.service.ts',
+    );
     expect(service).toContain('CORE_CONTENT_HARNESS_PACK');
     expect(service).toContain('CONTENT_HARNESS_PACKAGES');
     expect(service).toContain('composeContentHarnessBrief');
-    // Visual/ad kinds are a known gap — contract documents current text-first kinds.
     expect(types).toContain("'post'");
-    expect(types).toContain("'video-script'");
-    expect(types).not.toContain("'image'");
-    expect(types).not.toContain("'ad-creative'");
+    expect(types).toContain("'image'");
+    expect(types).toContain("'ad-creative'");
+    expect(types).toContain("'video'");
+    expect(mediaPrompt).toContain('buildMediaPromptFromHarness');
+    expect(mediaHandler).toContain('applyBrandHarnessToPrompt');
+    expect(ads).toContain('resolveAdHarnessNotes');
+    expect(ads).toContain("'ad-creative'");
   });
 });
