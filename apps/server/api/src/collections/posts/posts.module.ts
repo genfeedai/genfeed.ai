@@ -17,12 +17,14 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
+import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
@@ -94,6 +96,8 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostGenerationService,
     PostRepurposeService,
     PostThreadGenerationService,
+    PostVariationService,
+    PostVariationSourceGuard,
     PostsService,
     ReviewablePostsService,
   ],

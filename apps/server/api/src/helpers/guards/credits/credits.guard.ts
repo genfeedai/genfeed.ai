@@ -48,6 +48,7 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
     modelKey?: string;
     deferred?: boolean;
   };
+  creditsOutputCount?: number;
 }
 
 // DTO for credits body validation
@@ -126,7 +127,9 @@ export class CreditsGuard implements CanActivate {
         rawAttributes?.modelKey ||
         rawBody?.model ||
         rawBody?.modelKey;
-      outputs = Number(rawAttributes?.outputs ?? rawBody?.outputs) || 1;
+      outputs =
+        request.creditsOutputCount ??
+        (Number(rawAttributes?.outputs ?? rawBody?.outputs) || 1);
 
       // Extract dimensions and duration for dynamic pricing
       let width = Number(rawAttributes?.width ?? rawBody?.width) || 0;
@@ -158,7 +161,8 @@ export class CreditsGuard implements CanActivate {
           (attributes?.model as string) ||
           (attributes?.modelKey as string);
         outputs =
-          Number(body?.outputs ?? attributes?.outputs ?? outputs) || outputs;
+          request.creditsOutputCount ??
+          (Number(body?.outputs ?? attributes?.outputs ?? outputs) || outputs);
 
         // Update dimensions and duration from deserialized body
         width = Number(body?.width ?? attributes?.width ?? width) || width;
@@ -421,8 +425,9 @@ export class CreditsGuard implements CanActivate {
       // Multiply credits by outputs for non-trained models (each output = separate API call)
       // Trained models use num_outputs in single API call, so no multiplication needed
       const keyForMultiplier = modelKey || creditsConfig.modelKey;
-      if (keyForMultiplier && outputs > 1) {
-        const shouldMultiply = !isTrainingKey(keyForMultiplier);
+      if (outputs > 1) {
+        const shouldMultiply =
+          !keyForMultiplier || !isTrainingKey(keyForMultiplier);
 
         if (shouldMultiply) {
           requiredCredits *= outputs;

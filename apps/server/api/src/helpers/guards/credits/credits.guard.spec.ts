@@ -93,6 +93,22 @@ describe('CreditsGuard', () => {
     ).toHaveBeenCalledWith(orgId, 10);
   });
 
+  it('multiplies a fixed per-output amount using a trusted guard override', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 2 });
+    const context = createContext();
+    const request = context.switchToHttp().getRequest() as Record<
+      string,
+      unknown
+    >;
+    request.creditsOutputCount = 3;
+
+    await guard.canActivate(context);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 6);
+  });
+
   it('throws InsufficientCreditsException when credits insufficient', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 10 });
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(

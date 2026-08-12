@@ -13,6 +13,8 @@ type PostsRemixPageProps = {
 
 const LEGACY_TREND_REMIX_QUERY_KEYS = [
   'sourceAuthor',
+  'sourcePostId',
+  'postId',
   'sourceReferenceId',
   'sourceText',
   'sourceUrl',

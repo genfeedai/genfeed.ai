@@ -74,6 +74,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [adaptive-pr-validation](spec-adaptive-pr-validation.md) · [decisions](decisions-adaptive-pr-validation.md) — #1850
 - [pipeline-posts-filters](spec-pipeline-posts-filters.md) · [decisions](decisions-pipeline-posts-filters.md) — #2612
 - [messages-engagement-surfaces](spec-messages-engagement-surfaces.md) · [decisions](decisions-messages-engagement-surfaces.md) — #2742
+- [source-post-variations](spec-source-post-variations.md) · [decisions](decisions-source-post-variations.md) — #2662
 
 ## Project state
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -25,9 +25,10 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import {
+  buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
   buildTrendSourcePrompt,
-  buildTrendSourceTwitterDraftHref,
+  isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 import {
   ClipboardList,
@@ -145,13 +146,14 @@ export default function TrendContentCard({
   }, [router, sourceItem, trend]);
 
   const handleRemix = useCallback(() => {
-    if (item.platform === Platform.TWITTER) {
-      router.push(buildTrendSourceTwitterDraftHref(trend, sourceItem));
-      return;
-    }
-
-    router.push(buildTrendSourceAgentHref(trend, sourceItem));
-  }, [item.platform, router, sourceItem, trend]);
+    router.push(
+      buildSourcePostVariationsHref({
+        platform: item.platform,
+        sourceReferenceId: item.sourceReferenceId,
+        trendId: item.trendId,
+      }),
+    );
+  }, [item.platform, item.sourceReferenceId, item.trendId, router]);
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
@@ -273,14 +275,16 @@ export default function TrendContentCard({
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <Button
-            className="min-w-0 flex-1 sm:flex-none"
-            icon={<Sparkles className="size-3.5" />}
-            label="Remix"
-            onClick={handleRemix}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          />
+          {isSourcePostVariationPlatform(item.platform) ? (
+            <Button
+              className="min-w-0 flex-1 sm:flex-none"
+              icon={<Sparkles className="size-3.5" />}
+              label="Remix"
+              onClick={handleRemix}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+          ) : null}
           {finding && onSelect ? (
             <Button
               aria-pressed={isSelected}

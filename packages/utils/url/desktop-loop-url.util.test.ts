@@ -6,6 +6,7 @@ import {
   buildAgentPromptHref,
   buildClipDraftAgentHref,
   buildPostAnalyticsHref,
+  buildSourcePostVariationsHref,
   buildTrendAgentHref,
   buildTrendSourceAgentHref,
   buildTrendSourceTwitterDraftHref,
@@ -77,6 +78,30 @@ describe('desktop-loop-url.util', () => {
   it('builds a post analytics href', () => {
     expect(buildPostAnalyticsHref('post-123')).toBe(
       '/analytics/posts?postId=post-123',
+    );
+  });
+
+  it('builds canonical variation links for all three source surfaces', () => {
+    expect(
+      buildSourcePostVariationsHref({
+        platform: 'linkedin',
+        postId: 'post-1',
+      }),
+    ).toBe('/publish/remix?platform=linkedin&postId=post-1');
+    expect(
+      buildSourcePostVariationsHref({
+        platform: 'instagram',
+        sourcePostId: 'source-post-1',
+      }),
+    ).toBe('/publish/remix?platform=instagram&sourcePostId=source-post-1');
+    expect(
+      buildSourcePostVariationsHref({
+        platform: 'twitter',
+        sourceReferenceId: 'reference-1',
+        trendId: 'trend-1',
+      }),
+    ).toBe(
+      '/publish/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
     );
   });
 });

@@ -3,12 +3,17 @@ import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
+import { GenerateSourcePostVariationsDto } from '@api/collections/posts/dto/generate-source-post-variations.dto';
 import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
+import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
+import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -21,7 +26,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import {
+  finalizeDeferredTextCredits,
+  finalizeOutputCredits,
+} from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -67,9 +75,53 @@ export class PostsGenerationController {
     private readonly logger: LoggerService,
     private readonly postGenerationService: PostGenerationService,
     private readonly postRepurposeService: PostRepurposeService,
+    private readonly postVariationService: PostVariationService,
     private readonly postsService: PostsService,
     private readonly seoScorerService: SeoScorerService,
   ) {}
+
+  /**
+   * Generate a strict set of source-aware, brand-contextualized variations.
+   * The source guard intentionally runs before CreditsGuard so missing or
+   * foreign source records cannot reserve credits or reach an external model.
+   */
+  @Post('source-variations')
+  @Credits({
+    amount: BATCH_CAPTION_BASE_CREDITS,
+    description: 'Source post variation',
+    source: ActivitySource.POST_ENHANCEMENT,
+  })
+  @UseGuards(PostVariationSourceGuard, SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async generateSourceVariations(
+    @Req() request: SourcePostVariationRequest,
+    @CurrentUser() user: User,
+    @Body() dto: GenerateSourcePostVariationsDto,
+  ): Promise<JsonApiCollectionResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const source = request.resolvedPostVariationSource;
+    if (!source) {
+      throw new NotFoundException('Source post');
+    }
+
+    const result = await this.postVariationService.generate({
+      brandId: publicMetadata.brand,
+      count: dto.count,
+      organizationId: publicMetadata.organization,
+      platform: dto.platform,
+      source,
+      userId: publicMetadata.user,
+    });
+    finalizeOutputCredits(request, result.meta.creditCost);
+
+    return {
+      ...serializeCollection(request, PostListSerializer, {
+        docs: result.posts,
+      }),
+      meta: { ...result.meta },
+    };
+  }
 
   /**
    * Repurpose an existing post into a draft for another channel (#2588).

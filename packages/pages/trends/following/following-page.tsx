@@ -70,8 +70,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import {
+  buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
-  buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
 import {
   AtSign,
@@ -282,12 +282,12 @@ export default function FollowingPage() {
 
   const openRemix = useCallback(
     (post: ISourcePost) => {
-      const { source, trend } = toTrendSource(post);
-      if (post.platform === SocialSourcePlatform.TWITTER) {
-        router.push(buildTrendSourceTwitterDraftHref(trend, source));
-        return;
-      }
-      router.push(buildTrendSourceAgentHref(trend, source));
+      router.push(
+        buildSourcePostVariationsHref({
+          platform: post.platform,
+          sourcePostId: post.id,
+        }),
+      );
     },
     [router],
   );

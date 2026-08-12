@@ -39,8 +39,13 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { ExternalLink } from 'lucide-react';
+import {
+  buildSourcePostVariationsHref,
+  isSourcePostVariationPlatform,
+} from '@utils/url/desktop-loop-url.util';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -407,34 +412,57 @@ export default function ReleasePostsList({
                       returnUrl,
                     );
                     return (
-                      <Link
-                        className={cn(
-                          buttonVariants({
-                            size: ButtonSize.SM,
-                            variant: ButtonVariant.SECONDARY,
-                          }),
-                          'flex h-auto w-full justify-between gap-3 px-3 py-2 text-left',
-                        )}
-                        href={targetHref}
-                        key={target.id}
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <PlatformIcon className="size-4 shrink-0" />
-                          <span className="truncate">
-                            {getPostsPlatformLabel(target.platform)}
+                      <div className="flex items-stretch gap-2" key={target.id}>
+                        <Link
+                          className={cn(
+                            buttonVariants({
+                              size: ButtonSize.SM,
+                              variant: ButtonVariant.SECONDARY,
+                            }),
+                            'flex h-auto min-w-0 flex-1 justify-between gap-3 px-3 py-2 text-left',
+                          )}
+                          href={targetHref}
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <PlatformIcon className="size-4 shrink-0" />
+                            <span className="truncate">
+                              {getPostsPlatformLabel(target.platform)}
+                            </span>
                           </span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1.5">
-                          {target.category ? (
-                            <Badge variant="outline">
-                              {formatEnumLabel(target.category)}
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            {target.category ? (
+                              <Badge variant="outline">
+                                {formatEnumLabel(target.category)}
+                              </Badge>
+                            ) : null}
+                            <Badge
+                              variant={statusVariant(target.executionState)}
+                            >
+                              {formatEnumLabel(target.executionState)}
                             </Badge>
-                          ) : null}
-                          <Badge variant={statusVariant(target.executionState)}>
-                            {formatEnumLabel(target.executionState)}
-                          </Badge>
-                        </span>
-                      </Link>
+                          </span>
+                        </Link>
+                        {target.executionState === TargetState.PUBLISHED &&
+                        isSourcePostVariationPlatform(target.platform) ? (
+                          <Button
+                            ariaLabel={`Generate variations from ${getPostsPlatformLabel(target.platform)} post`}
+                            icon={<Sparkles className="size-4" />}
+                            onClick={() =>
+                              router.push(
+                                href(
+                                  buildSourcePostVariationsHref({
+                                    platform: target.platform,
+                                    postId: target.id,
+                                  }),
+                                ),
+                              )
+                            }
+                            size={ButtonSize.ICON}
+                            variant={ButtonVariant.SECONDARY}
+                            withWrapper={false}
+                          />
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
