@@ -12,10 +12,20 @@ import {
 export class BotLivestreamTranscriptDto {
   @IsString()
   @IsOptional()
+  @MaxLength(64)
+  @ApiProperty({
+    description:
+      'Origin of this chunk: manual | audio_url | external_caption_webhook | restream_chat',
+    required: false,
+  })
+  source?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(5000)
   @ApiProperty({
     description:
-      'Pre-transcribed chunk text. Optional when audioUrl is provided.',
+      'Pre-transcribed chunk text. Optional when audioUrl is provided. Use for host speech while streaming via Restream (external STT/captions).',
     required: false,
   })
   text?: string;

@@ -6,8 +6,8 @@ import {
 
 describe('integration.enum', () => {
   describe('IntegrationPlatform', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(IntegrationPlatform)).toHaveLength(4);
+    it('should have 5 members', () => {
+      expect(Object.values(IntegrationPlatform)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
@@ -15,6 +15,7 @@ describe('integration.enum', () => {
       expect(IntegrationPlatform.SLACK).toBe('SLACK');
       expect(IntegrationPlatform.DISCORD).toBe('DISCORD');
       expect(IntegrationPlatform.UNIPILE).toBe('UNIPILE');
+      expect(IntegrationPlatform.RESTREAM).toBe('RESTREAM');
     });
   });
 

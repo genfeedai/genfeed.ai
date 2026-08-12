@@ -1,6 +1,7 @@
 import { ContentFormat } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
+  allocateByWeights,
   batchItemCredits,
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
@@ -166,5 +167,65 @@ describe('batch-generation-pricing', () => {
 
     expect(settlement.additionalCredits).toBe(0);
     expect(settlement.refundCredits).toBe(0);
+  });
+
+  it('allocates non-negative weights so counts sum exactly to total', () => {
+    const counts = allocateByWeights(10, {
+      image: 60,
+      video: 25,
+      carousel: 10,
+      reel: 5,
+      story: 0,
+    });
+    const sum = Object.values(counts).reduce((acc, n) => acc + n, 0);
+    expect(sum).toBe(10);
+    expect(counts.story).toBe(0);
+  });
+
+  it('clamps negative weights and never overshoots total', () => {
+    const counts = allocateByWeights(7, {
+      image: -40,
+      video: 50,
+      reel: 50,
+    });
+    expect(Object.values(counts).reduce((acc, n) => acc + n, 0)).toBe(7);
+    expect(counts.image).toBe(0);
+  });
+
+  it('returns an empty map for an empty weight set', () => {
+    expect(allocateByWeights(10, {})).toEqual({});
+  });
+
+  it('puts the full total on the first key when every weight is zero', () => {
+    const counts = allocateByWeights(4, {
+      image: 0,
+      video: 0,
+      reel: 0,
+    });
+    expect(counts).toEqual({ image: 4, video: 0, reel: 0 });
+  });
+
+  it('prices a one-item mixed mix as exactly one item', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const estimate = estimateBatchGenerationCredits(
+      {
+        contentMix: {
+          [ContentFormat.IMAGE]: 1,
+          [ContentFormat.VIDEO]: 1,
+          [ContentFormat.REEL]: 1,
+          [ContentFormat.CAROUSEL]: 1,
+          [ContentFormat.STORY]: 1,
+        },
+        count: 1,
+      },
+      options,
+    );
+    // Single largest remainder winner — never multiplies by every format.
+    expect(estimate).toBe(
+      batchItemCredits(
+        { format: ContentFormat.IMAGE, hasMedia: false },
+        options,
+      ),
+    );
   });
 });

@@ -424,6 +424,131 @@ export class TwitterService {
   }
 
   /**
+   * Replies in a tweet conversation via official X API v2 recent search.
+   * Prefer brand OAuth2 user token when provided, else app bearer.
+   * Callers should fall back to Apify when this throws or returns empty
+   * (search access is tier-dependent).
+   */
+  public async getTweetReplies(
+    tweetId: string,
+    options: {
+      maxResults?: number;
+      /** Decrypted OAuth2 user access token (brand credential). */
+      accessToken?: string;
+    } = {},
+  ): Promise<
+    Array<{
+      id: string;
+      text: string;
+      createdAt?: Date;
+      authorId?: string;
+      authorUsername?: string;
+      authorName?: string;
+      authorFollowersCount?: number;
+      inReplyToId: string | null;
+      metrics?: {
+        likes: number;
+        comments: number;
+        shares: number;
+      };
+    }>
+  > {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const cleanId = tweetId.trim();
+    if (!cleanId) {
+      return [];
+    }
+
+    // Recent search requires max_results between 10 and 100.
+    const maxResults = Math.min(Math.max(options.maxResults ?? 25, 10), 100);
+    const client = options.accessToken
+      ? new TwitterApi(options.accessToken)
+      : this.twitterClient;
+
+    try {
+      // conversation_id matches the root tweet id for the whole thread.
+      const result = (await client.v2.get('tweets/search/recent', {
+        expansions: 'author_id',
+        max_results: maxResults,
+        query: `conversation_id:${cleanId}`,
+        'tweet.fields':
+          'author_id,created_at,public_metrics,referenced_tweets,conversation_id,in_reply_to_user_id',
+        'user.fields': 'username,name,public_metrics',
+      })) as {
+        data?: Array<{
+          id: string;
+          text?: string;
+          created_at?: string;
+          author_id?: string;
+          conversation_id?: string;
+          referenced_tweets?: Array<{ type: string; id: string }>;
+          public_metrics?: {
+            like_count?: number;
+            reply_count?: number;
+            retweet_count?: number;
+          };
+        }>;
+        includes?: {
+          users?: Array<{
+            id: string;
+            username?: string;
+            name?: string;
+            public_metrics?: { followers_count?: number };
+          }>;
+        };
+      };
+
+      const usersById = new Map(
+        (result.includes?.users ?? []).map((user) => [user.id, user]),
+      );
+
+      const replies = (result.data ?? [])
+        .filter((tweet) => tweet.id !== cleanId)
+        .map((tweet) => {
+          const author = usersById.get(tweet.author_id ?? '');
+          const repliedTo = tweet.referenced_tweets?.find(
+            (ref) => ref.type === 'replied_to',
+          );
+          return {
+            authorFollowersCount: author?.public_metrics?.followers_count,
+            authorId: tweet.author_id,
+            authorName: author?.name,
+            authorUsername: author?.username,
+            createdAt: tweet.created_at
+              ? new Date(tweet.created_at)
+              : undefined,
+            id: tweet.id,
+            inReplyToId: repliedTo?.id ?? cleanId,
+            metrics: tweet.public_metrics
+              ? {
+                  comments: tweet.public_metrics.reply_count ?? 0,
+                  likes: tweet.public_metrics.like_count ?? 0,
+                  shares: tweet.public_metrics.retweet_count ?? 0,
+                }
+              : undefined,
+            text: tweet.text ?? '',
+          };
+        });
+
+      this.loggerService.log(
+        `${caller} found ${replies.length} replies for conversation ${cleanId}`,
+        {
+          source: options.accessToken ? 'brand-oauth' : 'app-bearer',
+          tweetId: cleanId,
+        },
+      );
+
+      return replies;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${caller} failed for conversation ${cleanId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Get followers for a Twitter user.
    */
   public async getFollowers(
@@ -749,6 +874,102 @@ export class TwitterService {
       this.loggerService.log(`${caller} success`, { tweetId });
 
       return tweetId;
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch a single tweet by id (bearer or brand OAuth when org/brand provided).
+   */
+  public async getTweetById(
+    tweetId: string,
+    options: {
+      brandId?: string;
+      organizationId?: string;
+    } = {},
+  ): Promise<{
+    authorId?: string;
+    authorUsername?: string;
+    createdAt?: string;
+    id: string;
+    likeCount?: number;
+    replyCount?: number;
+    retweetCount?: number;
+    text: string;
+    url: string;
+  }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      let client = this.twitterClient;
+      if (options.organizationId && options.brandId) {
+        const credential = await this.refreshToken(
+          options.organizationId,
+          options.brandId,
+        );
+        const accessToken = requireString(
+          credential.accessToken,
+          'accessToken',
+        );
+        client = new TwitterApi(EncryptionUtil.decrypt(accessToken));
+      }
+
+      const response = await client.v2.singleTweet(tweetId, {
+        'tweet.fields': ['created_at', 'public_metrics', 'author_id', 'text'],
+        expansions: ['author_id'],
+        'user.fields': ['username', 'name'],
+      });
+
+      const tweet = response.data;
+      if (!tweet?.id || !tweet.text) {
+        throw new Error('Tweet not found or incomplete response');
+      }
+
+      const author = response.includes?.users?.find(
+        (user) => user.id === tweet.author_id,
+      );
+      const username = author?.username;
+      const metrics = tweet.public_metrics;
+
+      return {
+        authorId: tweet.author_id,
+        authorUsername: username,
+        createdAt: tweet.created_at,
+        id: tweet.id,
+        likeCount: metrics?.like_count,
+        replyCount: metrics?.reply_count,
+        retweetCount: metrics?.retweet_count,
+        text: tweet.text,
+        url: this.buildTweetUrl(tweet.id, username || 'i'),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Native repost (retweet) without commentary.
+   */
+  public async repostTweet(
+    organizationId: string,
+    brandId: string,
+    tweetId: string,
+  ): Promise<{ reposted: boolean; tweetId: string }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      const credential = await this.refreshToken(organizationId, brandId);
+      const accessToken = requireString(credential.accessToken, 'accessToken');
+      const userClient = new TwitterApi(EncryptionUtil.decrypt(accessToken));
+
+      // v2 retweet: POST /2/users/:id/retweets
+      const me = await userClient.v2.me();
+      const userId = me.data.id;
+      await userClient.v2.retweet(userId, tweetId);
+
+      this.loggerService.log(`${caller} success`, { tweetId, userId });
+      return { reposted: true, tweetId };
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;

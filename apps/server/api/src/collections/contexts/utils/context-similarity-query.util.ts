@@ -36,6 +36,7 @@ export function buildContextSimilarityQuery(
     SELECT
       "contextBaseId",
       "data"->>'content' AS "content",
+      "data"->>'kind' AS "kind",
       "data"->'metadata' AS "metadata",
       1 - ("embedding" <=> ${embedding}::vector) AS "similarity"
     FROM "context_entries"

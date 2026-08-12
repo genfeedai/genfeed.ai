@@ -138,7 +138,7 @@ export class SocialMonitorService {
       platform,
       {
         [ReplyBotPlatform.TWITTER]: () =>
-          this.getTwitterReplies(contentIdentifier, limit),
+          this.getTwitterReplies(contentIdentifier, limit, options),
         [ReplyBotPlatform.INSTAGRAM]: () =>
           this.getInstagramComments(contentIdentifier, limit),
         [ReplyBotPlatform.TIKTOK]: () =>
@@ -378,15 +378,84 @@ export class SocialMonitorService {
   // ==================== Platform-Specific Implementations ====================
 
   // --- Twitter ---
+  /**
+   * Official X API first (conversation search); Apify only as fallback.
+   */
   private async getTwitterReplies(
     tweetId: string,
     limit: number,
+    options: FetchContentOptions = {},
   ): Promise<SocialContentData[]> {
+    const preferOfficialApi = options.preferOfficialApi !== false;
+
+    if (preferOfficialApi && this.twitterService) {
+      let brandAccessToken: string | null = null;
+      if (options.brandId && options.organizationId) {
+        brandAccessToken =
+          await this.twitterService.resolveBrandUserAccessToken(
+            options.organizationId,
+            options.brandId,
+          );
+      }
+
+      try {
+        const official = await this.twitterService.getTweetReplies(tweetId, {
+          accessToken: brandAccessToken ?? undefined,
+          maxResults: limit,
+        });
+        if (official.length > 0) {
+          this.loggerService.log(
+            `${this.constructorName} getTwitterReplies via official X API`,
+            {
+              count: official.length,
+              source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
+              tweetId,
+            },
+          );
+          return official.map((reply) => ({
+            authorDisplayName: reply.authorName,
+            authorFollowersCount: reply.authorFollowersCount,
+            authorId: reply.authorId ?? '',
+            authorUsername: reply.authorUsername ?? 'unknown',
+            contentType: SocialContentType.TWEET,
+            contentUrl: reply.authorUsername
+              ? `https://x.com/${reply.authorUsername}/status/${reply.id}`
+              : undefined,
+            createdAt: reply.createdAt ?? new Date(),
+            id: reply.id,
+            inReplyToId: reply.inReplyToId ?? tweetId,
+            metrics: reply.metrics,
+            parentContentId: tweetId,
+            platform: ReplyBotPlatform.TWITTER,
+            text: reply.text,
+          }));
+        }
+
+        this.loggerService.log(
+          `${this.constructorName} official X replies empty — falling back to Apify`,
+          { tweetId },
+        );
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${this.constructorName} official X replies failed — falling back to Apify`,
+          {
+            error: error instanceof Error ? error.message : 'unknown',
+            source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
+            tweetId,
+          },
+        );
+      }
+    }
+
     const apifyTweets = await this.apifyService.getTwitterTweetReplies(
       tweetId,
       { limit },
     );
-    return this.convertTwitterToSocialContent(apifyTweets);
+    return this.convertTwitterToSocialContent(apifyTweets).map((item) => ({
+      ...item,
+      parentContentId: item.parentContentId ?? tweetId,
+      inReplyToId: item.inReplyToId ?? tweetId,
+    }));
   }
 
   private async getTwitterMentions(

@@ -35,6 +35,7 @@ import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/to
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
+import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
@@ -853,9 +854,24 @@ describe('AgentToolExecutorService', () => {
       configService as never,
       httpService as never,
     );
+    const twitterService = {
+      getTweetById: vi.fn(),
+      getUserTimelineByUsername: vi.fn(),
+      repostTweet: vi.fn(),
+      resolveBrandUserAccessToken: vi.fn(),
+      searchRecentTweets: vi.fn(),
+    };
     const proactiveHandler = new AgentProactiveToolHandler(
       loggerService,
       postsService as never,
+      internalApi,
+      twitterService as never,
+      batchGenerationService as never,
+    );
+    const xActionsHandler = new AgentXActionsToolHandler(
+      loggerService,
+      twitterService as never,
+      credentialsService as never,
       internalApi,
       batchGenerationService as never,
     );
@@ -945,6 +961,7 @@ describe('AgentToolExecutorService', () => {
       campaignHandler,
       livestreamHandler,
       instagramInspirationHandler,
+      xActionsHandler,
       brandInterviewHandler,
       workspaceHandler,
       connectionHandler,
@@ -1003,11 +1020,13 @@ describe('AgentToolExecutorService', () => {
       service,
       streamPublisher,
       trendsService,
+      twitterService,
       usersService,
       voicesService,
       workflowExecutorService,
       workflowGenerationService,
       workflowsService,
+      xActionsHandler,
     };
   };
 
@@ -3989,12 +4008,12 @@ describe('AgentToolExecutorService', () => {
         ],
         primaryCta: {
           href: '/publish/review?batch=c9c2d469368c4314a3cfff32&filter=ready',
-          label: 'Open review queue',
+          label: 'Open reviews',
         },
         status: 'completed',
         summaryText:
           'Loaded 2 items from this batch. 1 item is ready for review right now.',
-        title: 'Review queue loaded',
+        title: 'Reviews loaded',
         type: 'completion_summary_card',
       }),
     ]);
@@ -4052,9 +4071,9 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0]).toMatchObject({
       primaryCta: {
         href: '/publish/review?filter=ready',
-        label: 'Open review queue',
+        label: 'Open reviews',
       },
-      title: 'Review queue loaded',
+      title: 'Reviews loaded',
       type: 'completion_summary_card',
     });
     expect(result.nextActions?.[0]?.summaryText).toContain(
@@ -4089,7 +4108,7 @@ describe('AgentToolExecutorService', () => {
       20,
     );
     expect(result.nextActions?.[0]?.summaryText).toContain(
-      'No items are waiting',
+      'Nothing is waiting for review right now.',
     );
   });
 
@@ -5209,6 +5228,13 @@ describe('AgentToolExecutorService', () => {
         {} as never,
       ),
       instagramInspirationHandler,
+      new AgentXActionsToolHandler(
+        loggerService,
+        {} as never,
+        credentialsService as never,
+        internalApiWithoutScorer,
+        undefined,
+      ),
       new AgentBrandInterviewToolHandler(undefined),
       new AgentWorkspaceToolHandler(
         {} as never,
@@ -5223,6 +5249,7 @@ describe('AgentToolExecutorService', () => {
         loggerService,
         postsService as never,
         internalApiWithoutScorer,
+        {} as never,
         undefined,
       ),
       new AgentQualityToolHandler(

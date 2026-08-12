@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import {
@@ -13,13 +14,8 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 @Processor(REPLY_BOT_POLLING_QUEUE)
 export class ReplyBotPollingProcessor extends WorkerHost {
@@ -53,44 +49,17 @@ export class ReplyBotPollingProcessor extends WorkerHost {
   }
 
   private buildCredentialData(credential: unknown): IReplyBotCredentialData {
-    if (
-      !isPlainObject(credential) ||
-      typeof credential.accessToken !== 'string'
-    ) {
+    if (!credential || typeof credential !== 'object') {
       throw new Error('Reply bot credential missing accessToken');
     }
 
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-      brandId:
-        typeof credential.brandId === 'string' ? credential.brandId : undefined,
-      externalId:
-        typeof credential.externalId === 'string'
-          ? credential.externalId
-          : undefined,
-      organizationId:
-        typeof credential.organizationId === 'string'
-          ? credential.organizationId
-          : undefined,
-      platform:
-        typeof credential.platform === 'string'
-          ? (credential.platform as IReplyBotCredentialData['platform'])
-          : undefined,
-      refreshToken:
-        typeof credential.refreshToken === 'string'
-          ? EncryptionUtil.decrypt(credential.refreshToken)
-          : undefined,
-      username:
-        typeof credential.externalHandle === 'string'
-          ? credential.externalHandle
-          : typeof credential.username === 'string'
-            ? credential.username
-            : undefined,
-    };
+    const shaped = toReplyBotCredentialData(
+      credential as Record<string, unknown>,
+    );
+    if (!shaped) {
+      throw new Error('Reply bot credential missing accessToken');
+    }
+    return shaped;
   }
 
   private async processInternal(
@@ -123,7 +92,7 @@ export class ReplyBotPollingProcessor extends WorkerHost {
         throw new Error(`Credential ${credentialId} not found`);
       }
 
-      // Build credential data for Twitter API
+      // Decrypt once at the load boundary (any platform).
       const credentialData = this.buildCredentialData(credential);
 
       await job.updateProgress(30);

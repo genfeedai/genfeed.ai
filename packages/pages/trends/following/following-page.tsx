@@ -82,6 +82,7 @@ import {
   MessageSquare,
   Plus,
   RefreshCw,
+  Repeat2,
   Send,
   Sparkles,
   Trash2,
@@ -90,6 +91,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 
 const EMPTY_FEED: SocialSourcesResponse = {
@@ -109,6 +111,7 @@ const PLATFORM_OPTIONS = [
 ];
 
 export default function FollowingPage() {
+  const translate = useTranslations('common.following');
   const brandId = useBrandId();
   const surface = useOptionalResearchWorkSurface();
   const router = useRouter();
@@ -344,7 +347,7 @@ export default function FollowingPage() {
         {isError ? (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>Failed to load the following feed.</span>
+              <span>{translate('errors.load')}</span>
               <Button
                 label="Retry"
                 onClick={() => {
@@ -399,7 +402,9 @@ export default function FollowingPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All platforms</SelectItem>
+                      <SelectItem value="all">
+                        {translate('filters.allPlatforms')}
+                      </SelectItem>
                       {PLATFORM_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -495,10 +500,12 @@ export default function FollowingPage() {
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage sources</DialogTitle>
+            <DialogTitle>{translate('manage.title')}</DialogTitle>
             <DialogDescription>
-              {data.summary.activeSources} active of {data.summary.totalSources}{' '}
-              sources
+              {translate('manage.summary', {
+                active: data.summary.activeSources,
+                total: data.summary.totalSources,
+              })}
               {data.summary.lastSyncedAt
                 ? ` · last sync ${getRelativeTime(data.summary.lastSyncedAt)}`
                 : ''}
@@ -517,7 +524,7 @@ export default function FollowingPage() {
               ))
             ) : (
               <div className="p-5 text-sm text-foreground/62">
-                No followed sources yet.
+                {translate('manage.empty')}
               </div>
             )}
           </div>
@@ -658,6 +665,7 @@ function SourcePostCard({
   onSelect?: (finding: AuthorizedResearchFinding) => void;
   post: ISourcePost;
 }) {
+  const translate = useTranslations('common.following');
   const title = post.text?.trim() || `${post.platform} source post`;
   const mediaUrl = getSafeExternalUrl(post.thumbnailUrl || post.mediaUrls?.[0]);
   const isVideo = post.contentType === 'video' || post.contentType === 'reel';
@@ -744,7 +752,7 @@ function SourcePostCard({
                     }}
                   >
                     <MessageSquare className="size-4" />
-                    Reply
+                    {translate('actions.reply')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={
@@ -755,7 +763,18 @@ function SourcePostCard({
                     }}
                   >
                     <Zap className="size-4" />
-                    Quote retweet
+                    {translate('actions.quote')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={
+                      busyId === `${post.id}-${SourcePostActionType.REPOST}`
+                    }
+                    onSelect={() => {
+                      void onCreateDraft(post, SourcePostActionType.REPOST);
+                    }}
+                  >
+                    <Repeat2 className="size-4" />
+                    {translate('actions.repost')}
                   </DropdownMenuItem>
                 </>
               ) : null}
@@ -766,11 +785,11 @@ function SourcePostCard({
                 }}
               >
                 <Send className="size-4" />
-                Create draft
+                {translate('actions.createDraft')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onOpenAgent(post)}>
                 <Zap className="size-4" />
-                Send to agent
+                {translate('actions.sendToAgent')}
               </DropdownMenuItem>
               {sourceUrl ? (
                 <DropdownMenuItem
@@ -779,7 +798,7 @@ function SourcePostCard({
                   }}
                 >
                   <ExternalLink className="size-4" />
-                  Open source
+                  {translate('actions.openSource')}
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

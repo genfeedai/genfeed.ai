@@ -15,6 +15,14 @@ function createMockLogger() {
 
 function createMockExecutorService() {
   return {
+    continueExistingExecution: vi.fn().mockResolvedValue({
+      executionId: 'exec-1',
+      nodeResults: [],
+      startedAt: new Date(),
+      status: WorkflowExecutionStatus.COMPLETED,
+      totalCreditsUsed: 0,
+      workflowId: 'wf-1',
+    }),
     handleTriggerEvent: vi.fn().mockResolvedValue([
       {
         executionId: 'exec-1',
@@ -54,9 +62,11 @@ function createMockJob(
   overrides: Record<string, unknown> = {},
 ) {
   return {
+    attemptsMade: 0,
     data,
     id: 'job-1',
     name: data.type,
+    updateData: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -136,6 +146,170 @@ describe('WorkflowExecutionProcessor', () => {
       await expect(processor.process(job as never)).rejects.toThrow(
         'missing triggerEvent',
       );
+    });
+
+    it('continues prior executions on BullMQ retry instead of re-triggering (#2359)', async () => {
+      mockExecutor.continueExistingExecution
+        .mockResolvedValueOnce({
+          executionId: 'exec-1',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.COMPLETED,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-1',
+        })
+        .mockResolvedValueOnce({
+          executionId: 'exec-2',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.FAILED,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-2',
+        });
+
+      const job = createMockJob(
+        {
+          priorExecutionIds: ['exec-1', 'exec-2'],
+          triggerEvent: {
+            data: {},
+            organizationId: 'org-1',
+            platform: 'twitter',
+            type: 'mentionTrigger',
+            userId: 'user-1',
+          },
+          type: 'trigger',
+        },
+        { attemptsMade: 1 },
+      );
+
+      const result = await processor.process(job as never);
+
+      expect(mockExecutor.handleTriggerEvent).not.toHaveBeenCalled();
+      expect(mockExecutor.continueExistingExecution).toHaveBeenCalledTimes(2);
+      expect(mockExecutor.continueExistingExecution).toHaveBeenNthCalledWith(
+        1,
+        'exec-1',
+        job.data.triggerEvent,
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          continuedOnRetry: true,
+          priorExecutionIds: ['exec-1', 'exec-2'],
+          executionCount: 2,
+        }),
+      );
+    });
+
+    it('persists priorExecutionIds after the first trigger attempt', async () => {
+      const job = createMockJob({
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'twitter',
+          type: 'mentionTrigger',
+          userId: 'user-1',
+        },
+        type: 'trigger',
+      });
+
+      await processor.process(job as never);
+
+      expect(job.updateData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          priorExecutionIds: ['exec-1'],
+        }),
+      );
+    });
+
+    it('falls through to handleTriggerEvent on retry without priorExecutionIds', async () => {
+      const job = createMockJob(
+        {
+          triggerEvent: {
+            data: {},
+            organizationId: 'org-1',
+            platform: 'twitter',
+            type: 'mentionTrigger',
+            userId: 'user-1',
+          },
+          type: 'trigger',
+        },
+        { attemptsMade: 2 },
+      );
+
+      await processor.process(job as never);
+
+      expect(mockExecutor.handleTriggerEvent).toHaveBeenCalledTimes(1);
+      expect(mockExecutor.continueExistingExecution).not.toHaveBeenCalled();
+    });
+
+    it('falls through when priorExecutionIds is an empty array on retry', async () => {
+      const job = createMockJob(
+        {
+          priorExecutionIds: [],
+          triggerEvent: {
+            data: {},
+            organizationId: 'org-1',
+            platform: 'twitter',
+            type: 'mentionTrigger',
+            userId: 'user-1',
+          },
+          type: 'trigger',
+        },
+        { attemptsMade: 1 },
+      );
+
+      await processor.process(job as never);
+
+      expect(mockExecutor.handleTriggerEvent).toHaveBeenCalledTimes(1);
+      expect(mockExecutor.continueExistingExecution).not.toHaveBeenCalled();
+    });
+
+    it('schedules delay resume jobs when continuing prior executions on retry', async () => {
+      const delayJobData = {
+        delayNodeId: 'delay-1',
+        executionId: 'exec-1',
+        nodeOutputCache: {
+          'delay-1': { delayMs: 60000, resumeAt: new Date().toISOString() },
+        },
+        organizationId: 'org-1',
+        remainingNodeIds: ['action-1'],
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'twitter',
+          type: 'mentionTrigger',
+          userId: 'user-1',
+        },
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      };
+
+      mockExecutor.continueExistingExecution.mockResolvedValueOnce({
+        _delayJobData: delayJobData,
+        executionId: 'exec-1',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.RUNNING,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-1',
+      });
+
+      const job = createMockJob(
+        {
+          priorExecutionIds: ['exec-1'],
+          triggerEvent: delayJobData.triggerEvent,
+          type: 'trigger',
+        },
+        { attemptsMade: 1 },
+      );
+
+      await processor.process(job as never);
+
+      expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
+        delayJobData,
+        expect.any(Number),
+      );
+      expect(mockExecutor.handleTriggerEvent).not.toHaveBeenCalled();
     });
 
     it('should detect and schedule delay resume jobs', async () => {

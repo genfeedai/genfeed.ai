@@ -56,6 +56,58 @@ const TEMPLATE_COMPATIBILITY_DEFINITIONS: Record<
     label: 'Sound Overlay',
     outputs: [{ id: 'videoUrl', label: 'Video URL' }],
   },
+  socialRead: {
+    description: 'Get recent posts, mentions, or search results from X.',
+    inputs: [
+      { id: 'brand', label: 'Brand' },
+      { id: 'query', label: 'Search' },
+      { id: 'username', label: 'Username' },
+    ],
+    label: 'Read posts',
+    outputs: [
+      { id: 'posts', label: 'Posts' },
+      { id: 'summary', label: 'Summary' },
+      { id: 'count', label: 'Count' },
+    ],
+  },
+  reportDelivery: {
+    description: 'Send results privately by notification or email.',
+    inputs: [
+      { id: 'content', label: 'Content' },
+      { id: 'subject', label: 'Subject' },
+      { id: 'html', label: 'Email body' },
+    ],
+    label: 'Send report',
+    outputs: [
+      { id: 'delivered', label: 'Sent' },
+      { id: 'destination', label: 'Sent to' },
+    ],
+  },
+  postReply: {
+    description: 'Reply to a social post or Messages conversation.',
+    inputs: [
+      { id: 'brand', label: 'Brand' },
+      { id: 'postId', label: 'Post ID' },
+      { id: 'conversationId', label: 'Conversation ID' },
+      { id: 'text', label: 'Reply Text' },
+    ],
+    label: 'Post Reply',
+    outputs: [
+      { id: 'replyId', label: 'Reply ID' },
+      { id: 'replyUrl', label: 'Reply URL' },
+    ],
+  },
+  sendDm: {
+    description: 'Send a direct message on a connected social account.',
+    inputs: [
+      { id: 'brand', label: 'Brand' },
+      { id: 'recipientId', label: 'Recipient ID' },
+      { id: 'conversationId', label: 'Conversation ID' },
+      { id: 'text', label: 'Message Text' },
+    ],
+    label: 'Send DM',
+    outputs: [{ id: 'messageId', label: 'Message ID' }],
+  },
 };
 
 function handleTopOffset(index: number, total: number): string {

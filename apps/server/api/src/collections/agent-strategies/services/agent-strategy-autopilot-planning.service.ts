@@ -160,14 +160,16 @@ export class AgentStrategyAutopilotPlanningService {
     }
 
     if (strategy.opportunitySources?.evergreenCadenceEnabled) {
-      const recentPublishedCount = strategy.runHistory.filter((item) => {
-        if (!item.completedAt) {
-          return false;
-        }
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
-        return item.completedAt >= sevenDaysAgo;
-      }).length;
+      const recentPublishedCount = (strategy.runHistory ?? []).filter(
+        (item) => {
+          if (!item.completedAt) {
+            return false;
+          }
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+          return item.completedAt >= sevenDaysAgo;
+        },
+      ).length;
 
       if (recentPublishedCount < (strategy.postsPerWeek ?? 0)) {
         created.push(

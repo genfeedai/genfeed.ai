@@ -11,6 +11,10 @@ vi.mock('next/dynamic', () => ({
   default: () => () => <div>Agent Run Content Grid</div>,
 }));
 
+vi.mock('./AgentWorkflowBindCard', () => ({
+  default: () => <div>Workflow bind card</div>,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
@@ -88,10 +92,20 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
+  useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => ({
     get: (key: string) => (key === 'opportunity' ? 'opp-1' : null),
   }),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({

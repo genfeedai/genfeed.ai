@@ -79,6 +79,7 @@ import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/to
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
+import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
@@ -165,6 +166,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentConnectionToolHandler,
     AgentDashboardToolHandler,
     AgentInstagramInspirationToolHandler,
+    AgentXActionsToolHandler,
     AgentMemoryGoalsToolHandler,
     AgentProactiveToolHandler,
     AgentPublishToolHandler,

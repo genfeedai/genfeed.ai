@@ -102,6 +102,34 @@ function buildCoreContribution(
     `Format fit: the output should satisfy the constraints of a ${input.intent.contentType}.`,
   );
 
+  const contentType = input.intent.contentType;
+  if (
+    contentType === 'image' ||
+    contentType === 'video' ||
+    contentType === 'ad-creative' ||
+    contentType === 'ugc'
+  ) {
+    evaluationCriteria.push(
+      'Visual brand readiness: composition, palette, and subject should feel on-brand rather than generic stock AI aesthetics.',
+    );
+    styleDirectives.push(
+      'Prefer distinctive brand-native visuals over generic stock or template looks.',
+    );
+    if (contentType === 'ad-creative') {
+      systemDirectives.push(
+        'This is paid creative: keep the offer clear, the hook scannable, and claims defensible.',
+      );
+      evaluationCriteria.push(
+        'Ad usefulness: a human reviewer should understand the offer and next step within one glance or first three seconds.',
+      );
+    }
+    if (contentType === 'video' || contentType === 'ugc') {
+      styleDirectives.push(
+        'Lead with a strong first-frame / first-three-seconds hook.',
+      );
+    }
+  }
+
   guardrails.push('Avoid bland, generic, over-explained AI phrasing.');
   guardrails.push(
     'Prefer specificity, concrete claims, and lived-in language.',

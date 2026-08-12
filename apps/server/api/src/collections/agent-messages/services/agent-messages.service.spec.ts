@@ -491,4 +491,55 @@ describe('AgentMessagesService', () => {
       }),
     });
   });
+
+  it('loads recent messages with org scope and a slim select for LLM context', async () => {
+    agentMessage.findMany.mockResolvedValue([
+      {
+        content: 'newest',
+        createdAt: new Date('2026-08-12T12:00:00.000Z'),
+        id: 'm2',
+        role: 'assistant',
+      },
+      {
+        content: 'older',
+        createdAt: new Date('2026-08-12T11:00:00.000Z'),
+        id: 'm1',
+        role: 'user',
+      },
+    ]);
+
+    const messages = await service.getRecentMessages('thread-1', 20, 'org-1');
+
+    expect(agentMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: expect.objectContaining({
+          content: true,
+          id: true,
+          role: true,
+        }),
+        take: 20,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+        },
+      }),
+    );
+    // Returned chronological for the model window.
+    expect(messages.map((message) => message.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('falls back to thread-only filter when organizationId is omitted', async () => {
+    await service.getRecentMessages('thread-1', 10);
+
+    expect(agentMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          threadId: 'thread-1',
+        },
+      }),
+    );
+  });
 });

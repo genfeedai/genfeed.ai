@@ -123,6 +123,15 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['twitter-publish-action'],
     },
     {
+      classification: 'pending-system-workflow-migration',
+      file: 'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
+      id: 'author-reply-loop',
+      issue: 1011,
+      reason:
+        'Author-reply closed loop still posts via bot-action-executor while reply automation migrates fully behind system workflows.',
+      systemWorkflowIds: ['reply-dm-automation'],
+    },
+    {
       classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
       id: 'campaign-reply-automation',

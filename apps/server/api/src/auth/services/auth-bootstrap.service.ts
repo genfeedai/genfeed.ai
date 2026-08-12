@@ -272,7 +272,24 @@ export class AuthBootstrapService {
   async getBootstrap(
     request: AuthBootstrapRequest,
   ): Promise<AccessBootstrapCachePayload> {
-    const base = await this.resolveBootstrapBase(request);
+    // Streak only needs ids already on the request — fetch it in parallel with
+    // the base bootstrap resolve so a cold miss is one network hop, not two.
+    const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> =
+      request.user ? getPublicMetadata(request.user) : {};
+    const requestUserId = request.context?.userId ?? publicMetadata.user ?? '';
+    const requestOrganizationId =
+      request.context?.organizationId ?? publicMetadata.organization ?? '';
+
+    const [base, streak] = await Promise.all([
+      this.resolveBootstrapBase(request),
+      requestUserId && requestOrganizationId
+        ? this.streaksService.getStreakSummary(
+            requestUserId,
+            requestOrganizationId,
+          )
+        : Promise.resolve(null),
+    ]);
+
     const userId = base.access.userId;
     const organizationId = base.access.organizationId;
 
@@ -282,11 +299,6 @@ export class AuthBootstrapService {
         fleetCapabilities: null,
       };
     }
-
-    const streak =
-      organizationId && userId
-        ? await this.streaksService.getStreakSummary(userId, organizationId)
-        : null;
 
     const payload: AccessBootstrapCachePayload = {
       access: base.access,

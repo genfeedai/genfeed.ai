@@ -33,6 +33,7 @@ describe('platform.enum', () => {
         'DEV_TO',
         'PRODUCT_HUNT',
         'HACKER_NEWS',
+        'RESTREAM',
       ]);
     });
 
@@ -65,6 +66,7 @@ describe('platform.enum', () => {
       expect(Platform.DEV_TO).toBe('devto');
       expect(Platform.PRODUCT_HUNT).toBe('product_hunt');
       expect(Platform.HACKER_NEWS).toBe('hacker_news');
+      expect(Platform.RESTREAM).toBe('restream');
     });
   });
 });

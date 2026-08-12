@@ -77,9 +77,24 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     ).toBe(false);
   });
 
+  it('includes Restream under video for multistream chat OAuth', () => {
+    const restream = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.platform === CredentialPlatform.RESTREAM,
+    );
+    expect(restream).toBeDefined();
+    expect(restream?.label).toBe('Restream');
+    expect(restream?.category).toBe('video');
+    expect(restream?.servicePath).toBe('restream');
+    expect(
+      resolveOAuthServicePath(restream!.platform, restream?.servicePath),
+    ).toBe('restream');
+  });
+
   it('carries an icon and colour for every tile', () => {
     for (const platform of OAUTH_CONNECT_PLATFORMS) {
-      expect(typeof platform.Icon).toBe('function');
+      // React component types may be functions or wrapper objects such as
+      // forwardRef; the catalog contract is that an icon is present.
+      expect(platform.Icon).toBeTruthy();
       expect(platform.iconClassName).toBeTruthy();
     }
   });

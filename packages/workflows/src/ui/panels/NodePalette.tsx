@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  getNodesByCategory,
-  type NodeCategory,
-  type NodeType,
-} from '@genfeedai/types';
+import { getNodesByCategory, type NodeCategory } from '@genfeedai/types';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,
@@ -127,8 +123,19 @@ const CATEGORY_COLORS: Record<
   },
 };
 
+/** Optional extra node definition (e.g. SaaS socialRead / reportDelivery). */
+export interface PaletteNodeDefinition {
+  category: string;
+  description: string;
+  icon: string;
+  label: string;
+  type: string;
+}
+
+export type PaletteCategory = NodeCategory;
+
 interface NodeCardProps {
-  type: NodeType;
+  type: string;
   label: string;
   description: string;
   icon: string;
@@ -146,7 +153,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
     [type],
   );
 
-  const colors = CATEGORY_COLORS[category];
+  const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.processing;
 
   return (
     <button
@@ -172,19 +179,67 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
   );
 }
 
+function mapToPaletteCategory(category: string): NodeCategory {
+  if (
+    category === 'input' ||
+    category === 'ai' ||
+    category === 'processing' ||
+    category === 'output' ||
+    category === 'composition'
+  ) {
+    return category;
+  }
+  if (category === 'automation' || category === 'saas') {
+    return 'processing';
+  }
+  if (category === 'distribution' || category === 'repurposing') {
+    return 'output';
+  }
+  return 'processing';
+}
+
+function mergeNodesByCategory(
+  additionalNodes: readonly PaletteNodeDefinition[] = [],
+): Record<NodeCategory, PaletteNodeDefinition[]> {
+  const base = getNodesByCategory();
+  const merged: Record<NodeCategory, PaletteNodeDefinition[]> = {
+    ai: [...base.ai],
+    composition: [...base.composition],
+    input: [...base.input],
+    output: [...base.output],
+    processing: [...base.processing],
+  };
+
+  for (const node of additionalNodes) {
+    const category = mapToPaletteCategory(node.category);
+    if (merged[category].some((entry) => entry.type === node.type)) {
+      continue;
+    }
+    merged[category].push({
+      category,
+      description: node.description,
+      icon: node.icon,
+      label: node.label,
+      type: node.type,
+    });
+  }
+
+  return merged;
+}
+
 interface CategorySectionProps {
   category: NodeCategory;
   isExpanded: boolean;
+  nodes: PaletteNodeDefinition[];
   onToggle: () => void;
 }
 
 function CategorySection({
   category,
   isExpanded,
+  nodes,
   onToggle,
 }: CategorySectionProps) {
-  const nodes = getNodesByCategory()[category];
-
   return (
     <div className="border-b border-[var(--border)] last:border-0">
       <Button
@@ -214,7 +269,7 @@ function CategorySection({
               label={node.label}
               description={node.description}
               icon={node.icon}
-              category={node.category}
+              category={category}
             />
           ))}
         </div>
@@ -223,27 +278,29 @@ function CategorySection({
   );
 }
 
-export function NodePalette() {
+export interface NodePaletteProps {
+  /** Extra palette entries (SaaS/cloud nodes) merged into core categories. */
+  additionalNodes?: readonly PaletteNodeDefinition[];
+}
+
+export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
   const { togglePalette } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<
     Set<NodeCategory>
   >(new Set(['input']));
 
-  const nodesByCategory = useMemo(() => getNodesByCategory(), []);
+  const nodesByCategory = useMemo(
+    () => mergeNodesByCategory(additionalNodes),
+    [additionalNodes],
+  );
 
   // Filter nodes across all categories when searching
   const filteredNodes = useMemo(() => {
     if (!searchQuery.trim()) return null;
 
     const query = new RegExp(escapeSearchPattern(searchQuery), 'i');
-    const results: Array<{
-      type: NodeType;
-      label: string;
-      description: string;
-      icon: string;
-      category: NodeCategory;
-    }> = [];
+    const results: PaletteNodeDefinition[] = [];
 
     for (const category of Object.keys(nodesByCategory) as NodeCategory[]) {
       for (const node of nodesByCategory[category]) {
@@ -329,7 +386,7 @@ export function NodePalette() {
                   label={node.label}
                   description={node.description}
                   icon={node.icon}
-                  category={node.category}
+                  category={mapToPaletteCategory(node.category)}
                 />
               ))
             )}
@@ -341,6 +398,7 @@ export function NodePalette() {
               key={category}
               category={category}
               isExpanded={expandedCategories.has(category)}
+              nodes={nodesByCategory[category]}
               onToggle={() => toggleCategory(category)}
             />
           ))

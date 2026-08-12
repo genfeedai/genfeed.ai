@@ -29,6 +29,13 @@ export interface WorkflowExecutionJobData {
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
   workflowId?: string;
+  /**
+   * Execution ids created on the first trigger attempt. BullMQ job retries
+   * must not spawn a second full run (that re-fires completed side-effect
+   * nodes — #2359). On retry the processor short-circuits when these are
+   * already terminal, or continues from their persisted nodeResults.
+   */
+  priorExecutionIds?: string[];
 }
 
 export interface WorkflowSchedulerUpsertInput {

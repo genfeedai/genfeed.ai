@@ -3,6 +3,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -16,7 +17,6 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -39,21 +39,13 @@ export class TwitterPipelineService {
     externalId: string | null;
     refreshToken: string | null;
   }): IReplyBotCredentialData | null {
-    if (!credential.accessToken) {
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
+    return toReplyBotCredentialData({
+      accessToken: credential.accessToken ?? undefined,
+      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      externalHandle: credential.externalHandle ?? undefined,
       externalId: credential.externalId ?? undefined,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username: credential.externalHandle ?? undefined,
-    };
+      refreshToken: credential.refreshToken ?? undefined,
+    });
   }
 
   /**
@@ -123,13 +115,13 @@ export class TwitterPipelineService {
   }
 
   /**
-   * Publish a tweet (original, reply, or quote)
+   * Publish a tweet (original, reply, quote, or native repost)
    */
   async publish(
     orgId: string,
     brandId: string,
     request: {
-      type: 'reply' | 'quote' | 'original';
+      type: 'reply' | 'quote' | 'original' | 'repost';
       text: string;
       targetTweetId?: string;
     },
@@ -235,6 +227,26 @@ export class TwitterPipelineService {
                 success: tweetResult.success,
                 tweetId: tweetResult.contentId,
                 tweetUrl: tweetResult.contentUrl,
+              };
+            }
+
+            case 'repost': {
+              if (!request.targetTweetId) {
+                return {
+                  error: 'targetTweetId required for repost',
+                  success: false,
+                };
+              }
+              const repostResult =
+                await this.botActionExecutorService.repostTweet(
+                  credentialData,
+                  request.targetTweetId,
+                );
+              return {
+                error: repostResult.error,
+                success: repostResult.success,
+                tweetId: repostResult.contentId,
+                tweetUrl: repostResult.contentUrl,
               };
             }
 

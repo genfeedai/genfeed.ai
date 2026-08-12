@@ -15,7 +15,12 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
+import type {
+  AgentStrategyWorkflowBinding,
+  RunAgentStrategyWorkflowInput,
+} from '@services/automation/agent-strategies.service';
 import {
   AgentStrategiesService,
   type AgentStrategyOpportunity,
@@ -37,14 +42,16 @@ import {
   Sparkles,
   User,
   Video,
+  Workflow,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
-
+import AgentWorkflowRunDialog from '../library/AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentRunHistorySection from './AgentRunHistorySection';
+import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -79,6 +86,8 @@ const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { href } = useOrgUrl();
   const requestedOpportunityId = searchParams.get('opportunity');
   const {
     strategy,
@@ -119,12 +128,61 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     try {
       const service = await getService();
       await service.runNow(agentId);
-      notificationsService.success('Agent run triggered');
+      notificationsService.success('Autopilot run triggered');
     } catch (error) {
       logger.error('Failed to trigger run', { error });
       notificationsService.error('Failed to trigger run');
     }
   }, [agentId, getService, notificationsService]);
+
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowBinding, setWorkflowBinding] =
+    useState<AgentStrategyWorkflowBinding | null>(null);
+  const [isLoadingBinding, setIsLoadingBinding] = useState(false);
+  const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
+
+  const handleOpenWorkflow = useCallback(async () => {
+    setWorkflowDialogOpen(true);
+    setWorkflowBinding(null);
+    setIsLoadingBinding(true);
+    try {
+      const service = await getService();
+      const binding = await service.getWorkflowBinding(agentId);
+      setWorkflowBinding(binding);
+    } catch (error) {
+      logger.error('Failed to load workflow binding', { error });
+      notificationsService.error('Could not load workflow binding');
+    } finally {
+      setIsLoadingBinding(false);
+    }
+  }, [agentId, getService, notificationsService]);
+
+  const handleSubmitWorkflow = useCallback(
+    async (input: RunAgentStrategyWorkflowInput) => {
+      setIsSubmittingWorkflow(true);
+      try {
+        const service = await getService();
+        const result = await service.runWorkflow(agentId, input);
+        const executionPath = href(
+          `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${result.executionId}`,
+        );
+        notificationsService.success(
+          `Workflow started (${result.status}). Opening execution…`,
+        );
+        setWorkflowDialogOpen(false);
+        await refresh();
+        router.push(executionPath);
+      } catch (error) {
+        logger.error('Failed to run agent workflow', { error });
+        notificationsService.error(
+          error instanceof Error ? error.message : 'Failed to run workflow',
+        );
+      } finally {
+        setIsSubmittingWorkflow(false);
+      }
+    },
+    [agentId, getService, href, notificationsService, refresh, router],
+  );
 
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
@@ -204,10 +262,17 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleToggle}
           />
           <Button
-            label="Run Now"
-            icon={<CirclePlay />}
+            label="Run workflow"
+            icon={<Workflow />}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
+            onClick={handleOpenWorkflow}
+          />
+          <Button
+            label="Autopilot"
+            icon={<CirclePlay />}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
             onClick={handleRunNow}
           />
         </div>
@@ -231,6 +296,12 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             </p>
           </div>
         </div>
+
+        <AgentWorkflowBindCard
+          agentId={agentId}
+          strategy={strategy}
+          onBound={refresh}
+        />
 
         <KPISection
           title="Usage"
@@ -261,6 +332,16 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                   : 'text-success',
             },
           ]}
+        />
+
+        <AgentWorkflowRunDialog
+          strategy={strategy}
+          binding={workflowBinding}
+          isLoadingBinding={isLoadingBinding}
+          isOpen={workflowDialogOpen}
+          isSubmitting={isSubmittingWorkflow}
+          onOpenChange={setWorkflowDialogOpen}
+          onSubmit={handleSubmitWorkflow}
         />
 
         {requestedOpportunityId && (

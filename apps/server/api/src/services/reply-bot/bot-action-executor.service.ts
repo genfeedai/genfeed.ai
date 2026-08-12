@@ -1,4 +1,5 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
@@ -13,7 +14,8 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { TwitterApi } from 'twitter-api-v2';
 
 @Injectable()
@@ -24,6 +26,8 @@ export class BotActionExecutorService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly instagramService: InstagramService,
+    @Optional() private readonly youtubeService: YoutubeService | undefined,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -68,6 +72,40 @@ export class BotActionExecutorService {
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
       this.loggerService.error(`${url} failed`, { error: errorMessage });
+      return { error: errorMessage, success: false };
+    }
+  }
+
+  /**
+   * Native X repost (retweet) without commentary.
+   */
+  async repostTweet(
+    credential: IReplyBotCredentialData,
+    tweetId: string,
+  ): Promise<IReplyBotReplyResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const client = this.createTwitterClient(credential);
+      const me = await client.v2.me();
+      await client.v2.retweet(me.data.id, tweetId);
+
+      this.loggerService.log(`${url} success`, {
+        platform: ReplyBotPlatform.TWITTER,
+        tweetId,
+      });
+
+      return {
+        contentId: tweetId,
+        contentUrl: `https://x.com/${credential.username ?? 'i'}/status/${tweetId}`,
+        success: true,
+      };
+    } catch (error: unknown) {
+      const errorMessage = (error as Error)?.message || 'Unknown error';
+      this.loggerService.error(`${url} failed`, {
+        error: errorMessage,
+        tweetId,
+      });
       return { error: errorMessage, success: false };
     }
   }
@@ -124,6 +162,12 @@ export class BotActionExecutorService {
         return this.postTwitterReply(credential, targetContent, replyText);
       case ReplyBotPlatform.INSTAGRAM:
         return this.postInstagramComment(credential, targetContent, replyText);
+      case ReplyBotPlatform.YOUTUBE:
+        return this.postYouTubeCommentReply(
+          credential,
+          targetContent,
+          replyText,
+        );
       default:
         return Promise.resolve({
           error: unsupportedReplyBotPlatformMessage(platformInput),
@@ -252,6 +296,70 @@ export class BotActionExecutorService {
         error: errorMessage,
         success: false,
       };
+    }
+  }
+
+  /**
+   * Reply to a top-level YouTube comment (parentId = comment id).
+   */
+  private async postYouTubeCommentReply(
+    credential: IReplyBotCredentialData,
+    targetContent: IReplyBotContentData,
+    replyText: string,
+  ): Promise<IReplyBotReplyResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      if (!credential.organizationId || !credential.brandId) {
+        throw new Error('organizationId and brandId required for YouTube');
+      }
+
+      const youtubeService = this.resolveYoutubeService();
+      if (!youtubeService) {
+        throw new Error('YouTube integration is unavailable');
+      }
+      const result = await youtubeService.replyToComment(
+        credential.organizationId,
+        credential.brandId,
+        targetContent.id,
+        replyText,
+      );
+
+      this.loggerService.log(`${url} success`, {
+        commentId: result.commentId,
+        parentCommentId: targetContent.id,
+        platform: ReplyBotPlatform.YOUTUBE,
+        replyLength: replyText.length,
+      });
+
+      return {
+        contentId: result.commentId,
+        success: true,
+      };
+    } catch (error: unknown) {
+      const errorMessage = (error as Error)?.message || 'Unknown error';
+
+      this.loggerService.error(`${url} failed`, {
+        error: errorMessage,
+        parentCommentId: targetContent.id,
+        platform: ReplyBotPlatform.YOUTUBE,
+      });
+
+      return {
+        error: errorMessage,
+        success: false,
+      };
+    }
+  }
+
+  private resolveYoutubeService(): YoutubeService | undefined {
+    if (this.youtubeService) {
+      return this.youtubeService;
+    }
+    try {
+      return this.moduleRef?.get(YoutubeService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 

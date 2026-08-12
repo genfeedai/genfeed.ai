@@ -174,8 +174,62 @@ export type BatchEstimateInput = {
 };
 
 /**
+ * Largest-remainder allocation so non-negative weights always sum to `total`.
+ * Negative and zero weights are clamped; a zero-weight set puts everything on
+ * the first key so callers never invent phantom over-allocation.
+ */
+export function allocateByWeights(
+  total: number,
+  weights: Readonly<Record<string, number>>,
+): Record<string, number> {
+  const safeTotal = Math.max(0, Math.floor(total));
+  const keys = Object.keys(weights);
+  if (keys.length === 0) {
+    return {};
+  }
+
+  const clamped = keys.map((key, index) => ({
+    fraction: 0,
+    index,
+    key,
+    weight: Math.max(0, weights[key] ?? 0),
+  }));
+  const weightTotal = clamped.reduce((sum, entry) => sum + entry.weight, 0);
+
+  if (weightTotal <= 0) {
+    return Object.fromEntries(
+      keys.map((key, index) => [key, index === 0 ? safeTotal : 0]),
+    );
+  }
+
+  const allocations = clamped.map((entry) => {
+    const exact = (entry.weight / weightTotal) * safeTotal;
+    return {
+      count: Math.floor(exact),
+      fraction: exact % 1,
+      index: entry.index,
+      key: entry.key,
+    };
+  });
+
+  let remaining =
+    safeTotal - allocations.reduce((sum, entry) => sum + entry.count, 0);
+  const byRemainder = [...allocations].sort(
+    (a, b) => b.fraction - a.fraction || a.index - b.index,
+  );
+  for (let index = 0; remaining > 0; index++, remaining--) {
+    byRemainder[index % byRemainder.length].count += 1;
+  }
+
+  return Object.fromEntries(
+    allocations.map((entry) => [entry.key, entry.count]),
+  );
+}
+
+/**
  * Estimate total tool credits for a batch before run.
- * Uses weighted content mix; does not include chat-round cost.
+ * Uses weighted content mix with largest-remainder counts that sum to
+ * `count` exactly; does not include chat-round cost.
  */
 export function estimateBatchGenerationCredits(
   input: BatchEstimateInput,
@@ -191,35 +245,22 @@ export function estimateBatchGenerationCredits(
     ...(input.contentMix ?? {}),
   };
 
-  const percentTotal =
-    mix[ContentFormat.IMAGE] +
-    mix[ContentFormat.VIDEO] +
-    mix[ContentFormat.CAROUSEL] +
-    mix[ContentFormat.REEL] +
-    mix[ContentFormat.STORY];
-
-  if (percentTotal <= 0) {
-    return count * batchItemCredits({ format: ContentFormat.IMAGE }, options);
-  }
+  const formatCounts = allocateByWeights(count, {
+    [ContentFormat.IMAGE]: Math.max(0, mix[ContentFormat.IMAGE] ?? 0),
+    [ContentFormat.VIDEO]: Math.max(0, mix[ContentFormat.VIDEO] ?? 0),
+    [ContentFormat.CAROUSEL]: Math.max(0, mix[ContentFormat.CAROUSEL] ?? 0),
+    [ContentFormat.REEL]: Math.max(0, mix[ContentFormat.REEL] ?? 0),
+    [ContentFormat.STORY]: Math.max(0, mix[ContentFormat.STORY] ?? 0),
+  });
 
   let total = 0;
-  const formats = Object.values(ContentFormat);
-  for (const format of formats) {
-    const share = Math.max(0, mix[format] ?? 0) / percentTotal;
-    const formatCount = Math.round(count * share);
+  for (const format of Object.values(ContentFormat)) {
+    const formatCount = formatCounts[format] ?? 0;
+    if (formatCount <= 0) {
+      continue;
+    }
     total +=
       formatCount * batchItemCredits({ format, hasMedia: false }, options);
-  }
-
-  // Rounding drift: ensure we price at least `count` items.
-  const assigned = formats.reduce((sum, format) => {
-    const share = Math.max(0, mix[format] ?? 0) / percentTotal;
-    return sum + Math.round(count * share);
-  }, 0);
-  if (assigned < count) {
-    total +=
-      (count - assigned) *
-      batchItemCredits({ format: ContentFormat.IMAGE }, options);
   }
 
   return Math.max(1, total);

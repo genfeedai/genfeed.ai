@@ -286,3 +286,219 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
     expect(onboardingHandler.completeJourneyMission).toHaveBeenCalled();
   });
 });
+
+describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
+  function createBatchHandler() {
+    const logger = { error: vi.fn(), warn: vi.fn() };
+    const batchGenerationService = {
+      cancelBatch: vi
+        .fn()
+        .mockResolvedValue({ id: 'batch-1', status: 'CANCELLED' }),
+      createBatch: vi.fn().mockResolvedValue({
+        id: 'batch-1',
+        status: 'PENDING',
+        totalCount: 3,
+      }),
+    };
+    const creditsUtilsService = {
+      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+    };
+    const batchCreditsService = {
+      recordUpfrontCharge: vi.fn().mockResolvedValue(undefined),
+      settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 12 }),
+    };
+    const batchGenerationQueueService = {
+      queueBatch: vi.fn().mockResolvedValue('job-1'),
+    };
+
+    const handler = new AgentMediaGenerationToolHandler(
+      logger as never,
+      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
+      { callInternalApi: vi.fn() } as never,
+      {} as never,
+      { generateContent: vi.fn() } as never,
+      {
+        checkOnboardingStatus: vi.fn(),
+        completeJourneyMission: vi.fn(),
+      } as never,
+      {} as never,
+      batchGenerationService as never,
+      undefined,
+      undefined,
+      undefined,
+      creditsUtilsService as never,
+      batchCreditsService as never,
+      undefined,
+      batchGenerationQueueService as never,
+    );
+
+    return {
+      batchCreditsService,
+      batchGenerationQueueService,
+      batchGenerationService,
+      creditsUtilsService,
+      handler,
+      logger,
+    };
+  }
+
+  it('returns early when batch generation is not wired', async () => {
+    const { handler } = createHandler();
+
+    const result = await handler.generateContentBatch(
+      { count: 3, platforms: ['instagram'] },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'Batch generation service not available',
+      success: false,
+    });
+  });
+
+  it('does not reserve credits when createBatch rejects invalid platforms', async () => {
+    const { batchGenerationService, creditsUtilsService, handler } =
+      createBatchHandler();
+    batchGenerationService.createBatch.mockRejectedValue(
+      new Error('Invalid batch platform(s): myspace'),
+    );
+
+    const result = await handler.generateContentBatch(
+      { count: 3, platforms: ['myspace'] },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Invalid batch platform/);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(batchGenerationService.cancelBatch).not.toHaveBeenCalled();
+  });
+
+  it('cancels the batch when the credit reserve fails after create', async () => {
+    const {
+      batchCreditsService,
+      batchGenerationQueueService,
+      batchGenerationService,
+      creditsUtilsService,
+      handler,
+    } = createBatchHandler();
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new Error('Insufficient credits'),
+    );
+
+    const result = await handler.generateContentBatch(
+      {
+        brandId: 'brand-1',
+        count: 3,
+        platforms: ['instagram'],
+      },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Insufficient credits/);
+    expect(result.creditsUsed).toBe(0);
+    expect(batchGenerationService.createBatch).toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'organization-1',
+      'user-1',
+      expect.any(Number),
+      'Batch generation batch-1',
+      expect.anything(),
+      {
+        referenceId: 'batch-1',
+        referenceType: 'batch-generation:upfront',
+      },
+    );
+    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+      'batch-1',
+      'organization-1',
+    );
+    expect(batchCreditsService.recordUpfrontCharge).not.toHaveBeenCalled();
+    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+  });
+
+  it('still returns the credit error when cancel after reserve failure also fails', async () => {
+    const { batchGenerationService, creditsUtilsService, handler, logger } =
+      createBatchHandler();
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new Error('Insufficient credits'),
+    );
+    batchGenerationService.cancelBatch.mockRejectedValue(
+      new Error('cancel failed'),
+    );
+
+    const result = await handler.generateContentBatch(
+      { brandId: 'brand-1', count: 2, platforms: ['twitter'] },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Insufficient credits/);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'failed to cancel batch after credit reserve failure',
+      ),
+      expect.objectContaining({ batchId: 'batch-1' }),
+    );
+  });
+
+  it('reserves credits, pins the ledger, and queues the batch on the async path', async () => {
+    const {
+      batchCreditsService,
+      batchGenerationQueueService,
+      batchGenerationService,
+      creditsUtilsService,
+      handler,
+    } = createBatchHandler();
+
+    const result = await handler.generateContentBatch(
+      {
+        brandId: 'brand-1',
+        count: 3,
+        platforms: ['instagram'],
+      },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.isBillingDelegated).toBe(true);
+    expect(result.data).toMatchObject({
+      batchId: 'batch-1',
+      totalCount: 3,
+    });
+    expect(result.creditsUsed).toBeGreaterThan(0);
+    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        count: 3,
+        platforms: ['instagram'],
+      }),
+      'user-1',
+      'organization-1',
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalled();
+    expect(batchCreditsService.recordUpfrontCharge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        batchId: 'batch-1',
+        organizationId: 'organization-1',
+      }),
+    );
+    expect(batchGenerationQueueService.queueBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        batchId: 'batch-1',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      }),
+    );
+    // Settlement is deferred to the worker on the async path.
+    expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();
+  });
+});

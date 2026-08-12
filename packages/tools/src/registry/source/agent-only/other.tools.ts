@@ -103,7 +103,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List content waiting in the review queue. batchId is optional — omit it to load the brand/org review inbox. Never invent a batch id; only pass a real entity id when the operator or prior tool result provided one.',
+      'List content waiting for review. batchId is optional — omit it for the whole brand/workspace. Only pass a real batch id from the operator or a prior result; never invent one.',
     name: 'list_review_queue',
     parameters: {
       properties: {

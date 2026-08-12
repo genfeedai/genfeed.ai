@@ -47,6 +47,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ['Campaigns', '/automate/campaigns'],
     ['Outreach', '/automate/outreach-campaigns'],
     ['Launch team', '/automate/orchestrator'],
+    ['Replies', '/automate/replies'],
     ['Reply Campaigns', '/automate/reply-campaigns'],
     ['Workflows', '/automate/workflows'],
   ])('uses the canonical automate route for %s', (label, canonicalHref) => {
@@ -117,6 +118,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(byGroup.get('Campaigns')).toEqual([
       'Campaigns',
       'Outreach',
+      'Replies',
       'Reply Campaigns',
       'Launch team',
     ]);

@@ -28,10 +28,12 @@ export interface BotLivestreamSettings {
   messageTemplates: BotLivestreamMessageTemplate[];
   minimumMessageGapSeconds: number;
   prioritizeYoutube: boolean;
+  restreamCredentialId?: string;
   scheduledCadenceMinutes: number;
   targetAudience: BotLivestreamTargetAudience[];
   transcriptEnabled: boolean;
   transcriptLookbackMinutes: number;
+  transcriptSource?: string;
 }
 
 export interface BotTarget extends IBotTarget {
@@ -84,12 +86,14 @@ function normalizeLivestreamSettings(
     ),
     minimumMessageGapSeconds: settings.minimumMessageGapSeconds ?? 90,
     prioritizeYoutube: settings.prioritizeYoutube ?? true,
+    restreamCredentialId: settings.restreamCredentialId,
     scheduledCadenceMinutes: settings.scheduledCadenceMinutes ?? 10,
     targetAudience: [
       ...(settings.targetAudience ?? [BotLivestreamTargetAudience.AUDIENCE]),
     ],
     transcriptEnabled: settings.transcriptEnabled ?? true,
     transcriptLookbackMinutes: settings.transcriptLookbackMinutes ?? 3,
+    transcriptSource: settings.transcriptSource,
   };
 }
 

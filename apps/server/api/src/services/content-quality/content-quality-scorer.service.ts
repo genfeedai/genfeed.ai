@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -9,6 +10,7 @@ import { QualityStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -85,8 +87,59 @@ export class ContentQualityScorerService {
     private readonly ingredientsService: IngredientsService,
     @Optional()
     private readonly postsService: PostsService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {
     this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+  }
+
+  private async resolveHarnessScoringContext(
+    context: Record<string, unknown> | undefined,
+  ): Promise<string | undefined> {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!harnessGenerationService || !context) {
+      return undefined;
+    }
+    const brandId =
+      typeof context.brandId === 'string' ? context.brandId : undefined;
+    const organizationId =
+      typeof context.organizationId === 'string'
+        ? context.organizationId
+        : undefined;
+    if (!brandId || !organizationId) {
+      return undefined;
+    }
+    const contentTypeRaw =
+      typeof context.contentType === 'string' ? context.contentType : 'image';
+    const contentType =
+      contentTypeRaw === 'video'
+        ? 'video'
+        : contentTypeRaw === 'ad-creative'
+          ? 'ad-creative'
+          : 'image';
+    const brief = await harnessGenerationService.resolveBrief({
+      brandId,
+      contentType,
+      objective: 'engagement',
+      organizationId,
+    });
+    const formatted = harnessGenerationService.formatBrief(brief);
+    return formatted || undefined;
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -136,10 +189,11 @@ export class ContentQualityScorerService {
       typeof context?.organizationId === 'string'
         ? context.organizationId
         : undefined;
+    const harnessContext = await this.resolveHarnessScoringContext(context);
     const result = await this.scoreContent(
       ingredientId,
       contentType,
-      undefined,
+      harnessContext,
       organizationId,
     );
     const status = ContentQualityScorerService.resolveStatus(result.score);

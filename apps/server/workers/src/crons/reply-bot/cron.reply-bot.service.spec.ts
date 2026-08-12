@@ -133,13 +133,45 @@ describe('CronReplyBotService', () => {
     ).toHaveBeenCalledTimes(1);
     expect(
       replyBotOrchestratorService.processOrganizationBots,
-    ).toHaveBeenCalledWith(organizationId, {
+    ).toHaveBeenCalledWith(
+      organizationId,
+      expect.objectContaining({
+        accessToken: 'token',
+        accessTokenSecret: 'secret',
+        externalId: 'external',
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+        refreshToken: 'refresh',
+        username: 'replybot',
+      }),
+    );
+  });
+
+  it('should read root credentialId when nested config bag is empty', async () => {
+    const organizationId = 'org-root';
+    const credentialId = 'cred-root';
+
+    replyBotConfigsService.find.mockResolvedValueOnce([
+      {
+        credentialId,
+        isActive: true,
+        organizationId,
+      },
+    ]);
+    credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'token',
-      accessTokenSecret: 'secret',
-      externalId: 'external',
       platform: CredentialPlatform.TWITTER,
-      refreshToken: 'refresh',
       username: 'replybot',
+    });
+    replyBotOrchestratorService.processOrganizationBots.mockResolvedValueOnce(
+      [],
+    );
+
+    await service.processReplyBots();
+
+    expect(credentialsService.findOne).toHaveBeenCalledWith({
+      id: credentialId,
+      organizationId,
     });
   });
 

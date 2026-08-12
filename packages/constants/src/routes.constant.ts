@@ -137,6 +137,13 @@ export const APP_ROUTES = {
     OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /** Throttled social reply drip campaigns. */
     REPLY_CAMPAIGNS: '/automate/reply-campaigns',
+    /**
+     * Replies surface: reply to comments on *your* posts (X, later YT).
+     * Not reply-guy / outreach on other people's posts.
+     */
+    REPLIES: '/automate/replies',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.REPLIES */
+    AUTHOR_REPLIES: '/automate/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automate/workflows',
     WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',

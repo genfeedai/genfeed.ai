@@ -39,6 +39,29 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.routerPush }),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const messages: Record<string, string> = {
+        'actions.createDraft': 'Create draft',
+        'actions.openSource': 'Open source',
+        'actions.quote': 'Quote',
+        'actions.reply': 'Reply',
+        'actions.repost': 'Repost',
+        'actions.sendToAgent': 'Send to agent',
+        'errors.load': 'Failed to load the following feed.',
+        'filters.allPlatforms': 'All platforms',
+        'manage.empty': 'No followed sources yet.',
+        'manage.summary': '{active} active of {total} sources',
+        'manage.title': 'Manage sources',
+      };
+      return (messages[key] ?? key).replace(
+        /\{(\w+)\}/g,
+        (_match, name: string) => String(values?.[name] ?? ''),
+      );
+    },
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
@@ -448,6 +471,35 @@ describe('FollowingPage', () => {
         { brandId: 'brand-1' },
       );
       expect(mocks.notifySuccess).toHaveBeenCalledWith('Draft created');
+    });
+  });
+
+  it('creates distinct quote and repost drafts for twitter posts', async () => {
+    const user = userEvent.setup();
+    render(<FollowingPage />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'More following actions' }),
+    );
+    await user.click(await screen.findByText('Quote'));
+    await waitFor(() => {
+      expect(mocks.createDraft).toHaveBeenCalledWith(
+        'post-1',
+        { actionType: SourcePostActionType.QUOTE },
+        { brandId: 'brand-1' },
+      );
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: 'More following actions' }),
+    );
+    await user.click(await screen.findByText('Repost'));
+    await waitFor(() => {
+      expect(mocks.createDraft).toHaveBeenCalledWith(
+        'post-1',
+        { actionType: SourcePostActionType.REPOST },
+        { brandId: 'brand-1' },
+      );
     });
   });
 

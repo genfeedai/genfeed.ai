@@ -74,6 +74,131 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
+   * Enable/upsert X author-reply comment_responder for a brand.
+   */
+  async ensureAuthorResponder(params: {
+    brandId: string;
+    credentialId?: string;
+    isActive?: boolean;
+    platform?: 'twitter' | 'youtube';
+  }): Promise<{
+    botConfigId: string;
+    created: boolean;
+    isActive: boolean;
+    maxAgeHours: number;
+    platform: string;
+    xActivity?: {
+      message: string;
+      mode: 'live' | 'skipped';
+    };
+  }> {
+    const response = await this.instance.post<{
+      botConfigId: string;
+      created: boolean;
+      isActive: boolean;
+      maxAgeHours: number;
+      platform: string;
+      xActivity?: {
+        message: string;
+        mode: 'live' | 'skipped';
+      };
+    }>('author-reply/ensure', params);
+    return response.data;
+  }
+
+  /**
+   * Comments on brand posts that still need a reply (X or YouTube).
+   */
+  async getAuthorReplyInbox(params: {
+    brandId: string;
+    hours?: number;
+    platform?: 'twitter' | 'youtube';
+  }): Promise<{
+    hours: number;
+    items: Array<{
+      authorDisplayName?: string;
+      authorId: string;
+      authorUsername: string;
+      commentId: string;
+      commentText: string;
+      commentUrl?: string;
+      createdAt: string;
+      intent: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
+      intentLabel: string;
+      parentPostId: string;
+      parentPostPreview?: string;
+      parentPostUrl?: string;
+      shouldSkipAuto: boolean;
+    }>;
+    platform: string;
+    username?: string;
+  }> {
+    const response = await this.instance.get('author-reply/inbox', {
+      params,
+    });
+    return response.data;
+  }
+
+  async draftAuthorReply(params: {
+    brandId: string;
+    commentAuthor: string;
+    commentId: string;
+    commentText: string;
+    intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
+    parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
+  }): Promise<{
+    commentId: string;
+    draft: string;
+    harnessApplied: boolean;
+    intent: string;
+    intentLabel: string;
+  }> {
+    const response = await this.instance.post('author-reply/draft', params);
+    return response.data;
+  }
+
+  async sendAuthorReply(params: {
+    brandId: string;
+    commentAuthor: string;
+    commentAuthorId?: string;
+    commentId: string;
+    commentText: string;
+    intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
+    parentPostId: string;
+    parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
+    replyText?: string;
+  }): Promise<{
+    commentId: string;
+    contentId?: string;
+    contentUrl?: string;
+    error?: string;
+    intent?: string;
+    replyText: string;
+    success: boolean;
+  }> {
+    const response = await this.instance.post('author-reply/send', params);
+    return response.data;
+  }
+
+  /**
+   * Schedule 24h delayed post-watch series (X publish + YouTube publish hooks).
+   */
+  async schedulePostWatch(params: {
+    brandId: string;
+    platform?: 'twitter' | 'youtube';
+    postId: string;
+    postPreview?: string;
+  }): Promise<{ scheduled: number }> {
+    const response = await this.instance.post<{ scheduled: number }>(
+      'author-reply/schedule-post-watch',
+      params,
+    );
+    return response.data;
+  }
+
+  /**
    * Get queue status for monitoring
    */
   async getQueueStatus(): Promise<{

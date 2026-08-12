@@ -53,6 +53,29 @@ export enum BotLivestreamSessionStatus {
   STOPPED = 'stopped',
 }
 
+/**
+ * Where host/audience context for livestream bots comes from.
+ * Restream-first product path: chat is official WS; host speech is external STT
+ * (or manual) pushed into Genfeed — not OBS-specific.
+ */
+export enum LivestreamTranscriptSource {
+  /** Producer or automation POSTs text/audioUrl chunks. */
+  MANUAL = 'manual',
+  /** Speech-to-text from an audio URL (Replicate/Whisper path). */
+  AUDIO_URL = 'audio_url',
+  /**
+   * Unified multi-destination chat via Restream Chat WebSocket.
+   * Audience context only — not host microphone.
+   */
+  RESTREAM_CHAT = 'restream_chat',
+  /**
+   * External caption/STT provider (SyncWords, Deepgram, etc.) webhooks into
+   * Genfeed while the encoder feeds Restream — preferred host-speech path
+   * without OBS.
+   */
+  EXTERNAL_CAPTION_WEBHOOK = 'external_caption_webhook',
+}
+
 export enum EngagementAction {
   LIKE = 'like',
   FOLLOW = 'follow',

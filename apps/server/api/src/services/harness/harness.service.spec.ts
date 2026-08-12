@@ -35,6 +35,7 @@ describe('ContentHarnessService', () => {
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
+      'platform-x',
     ]);
   });
 
@@ -47,6 +48,7 @@ describe('ContentHarnessService', () => {
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
+      'platform-x',
       'ee-brand-fidelity',
     ]);
     expect(logger.warn).not.toHaveBeenCalled();
@@ -73,6 +75,7 @@ describe('ContentHarnessService', () => {
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
+      'platform-x',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
       'ContentHarnessService failed to load content harness pack',

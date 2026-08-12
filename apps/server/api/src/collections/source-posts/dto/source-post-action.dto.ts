@@ -21,15 +21,32 @@ export class SourcePostDraftActionDto {
 }
 
 export class SourcePostTwitterActionDto {
-  @IsIn([SourcePostActionType.REPLY, SourcePostActionType.QUOTE])
+  @IsIn([
+    SourcePostActionType.REPLY,
+    SourcePostActionType.QUOTE,
+    SourcePostActionType.REPOST,
+  ])
   @ApiProperty({
-    enum: [SourcePostActionType.REPLY, SourcePostActionType.QUOTE],
+    enum: [
+      SourcePostActionType.REPLY,
+      SourcePostActionType.QUOTE,
+      SourcePostActionType.REPOST,
+    ],
     enumName: 'SourcePostTwitterActionType',
   })
-  actionType!: SourcePostActionType.REPLY | SourcePostActionType.QUOTE;
+  actionType!:
+    | SourcePostActionType.REPLY
+    | SourcePostActionType.QUOTE
+    | SourcePostActionType.REPOST;
 
   @IsString()
+  @IsOptional()
   @MaxLength(280)
-  @ApiProperty({ maxLength: 280 })
-  text!: string;
+  @ApiProperty({
+    description:
+      'Required for reply and quote. Optional/ignored for native repost.',
+    maxLength: 280,
+    required: false,
+  })
+  text?: string;
 }

@@ -45,7 +45,8 @@ export class ReplicateWebhookController {
 
   /**
    * Validates the webhook signature from Replicate.
-   * This must be synchronous and fail fast if invalid.
+   * Fails closed when the signing secret is missing — an unauthenticated
+   * public endpoint must not accept callbacks it cannot authenticate.
    */
   private async validateWebhookSignature(
     request: Request,
@@ -54,27 +55,30 @@ export class ReplicateWebhookController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} received`, payload);
 
-    const secret = this.configService.get('REPLICATE_WEBHOOK_SIGNING_SECRET');
+    const secret = this.configService.get('REPLICATE_WEBHOOK_SIGNING_SECRET') as
+      | string
+      | undefined;
 
-    // Validate whenever a signing secret is configured. The old
-    // production-only gate left staging/preview deployments accepting
-    // forged callbacks even with the secret present.
-    if (secret) {
-      const requestData = {
-        body: request.body,
-        id: request.headers['webhook-id'] as string,
-        secret,
-        signature: request.headers['webhook-signature'] as string,
-        timestamp: request.headers['webhook-timestamp'] as string,
-      };
+    // Blank counts as unset (same fail-closed contract as assertWebhookToken).
+    if (!secret?.trim()) {
+      this.loggerService.error(
+        `${url} webhook rejected — REPLICATE_WEBHOOK_SIGNING_SECRET is not configured. Set it so Replicate callbacks can be authenticated.`,
+      );
+      throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
+    }
 
-      const isWebhookValid = await validateWebhook(requestData);
+    const requestData = {
+      body: request.body,
+      id: request.headers['webhook-id'] as string,
+      secret,
+      signature: request.headers['webhook-signature'] as string,
+      timestamp: request.headers['webhook-timestamp'] as string,
+    };
 
-      if (!isWebhookValid) {
-        throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
-      }
-    } else {
-      this.loggerService.warn(`${url} validation skipped (missing secret)`);
+    const isWebhookValid = await validateWebhook(requestData);
+
+    if (!isWebhookValid) {
+      throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
     }
 
     this.loggerService.log(`${url} webhook validated`, payload);
@@ -97,10 +101,7 @@ export class ReplicateWebhookController {
         await this.verificationService.resolveTrustedPayload(signedPayload);
 
       if (!payload) {
-        this.loggerService.warn(
-          `${url} untrusted payload deferred for Replicate reconciliation`,
-          { predictionId: signedPayload.id },
-        );
+        await this.verificationService.deferUntrustedDelivery(signedPayload);
         return;
       }
 

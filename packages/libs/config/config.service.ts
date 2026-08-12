@@ -85,6 +85,9 @@ const apiSpecificSchema = {
   API_SLOW_QUERY_SAMPLE_SIZE: Joi.string().optional().allow(''),
   API_SLOW_QUERY_THRESHOLD_MS: Joi.string().optional().allow(''),
   CONTENT_HARNESS_PACKAGES: Joi.string()
+    .description(
+      'Comma-separated package names for private/EE content harness packs, e.g. @genfeedai/private-harness',
+    )
     .pattern(
       /^(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*(\s*,\s*(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*)*$/i,
     )

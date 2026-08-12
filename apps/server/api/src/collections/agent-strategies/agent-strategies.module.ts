@@ -13,6 +13,7 @@ import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
+import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
@@ -30,6 +31,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentStrategyAutopilotService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
+    AgentStrategyWorkflowRunService,
   ],
   imports: [
     forwardRef(() => ActivitiesModule),
@@ -50,6 +52,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentStrategyAutopilotPerformanceService,
     AgentStrategyAutopilotPlanningService,
     AgentStrategyAutopilotService,
+    AgentStrategyWorkflowRunService,
   ],
 })
 export class AgentStrategiesModule {}

@@ -177,4 +177,20 @@ describe('ReplicateWebhookVerificationService', () => {
       );
     });
   });
+
+  describe('deferUntrustedDelivery', () => {
+    it('registers an untrusted prediction under the reconciliation cache tag', async () => {
+      await service.deferUntrustedDelivery(signedPayload);
+
+      expect(cacheService.claimOnce).toHaveBeenCalledWith(
+        'webhook:replicate:untrusted:pred_123',
+        24 * 60 * 60,
+        ['webhook:replicate:untrusted'],
+      );
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('deferred for reconciliation'),
+        { predictionId: 'pred_123' },
+      );
+    });
+  });
 });

@@ -117,3 +117,91 @@ describe('BatchGenerationCreationService manual review Post linking', () => {
     });
   });
 });
+
+describe('BatchGenerationCreationService platform normalize (#2696)', () => {
+  const prisma = {
+    batch: {
+      create: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    ingredient: { findMany: vi.fn() },
+    post: {
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
+    },
+  };
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const brandsService = { findOne: vi.fn() };
+  const postsService = { create: vi.fn() };
+  const cacheService = {};
+  const summaryService = { toBatchSummary: vi.fn() };
+  const service = new BatchGenerationCreationService(
+    prisma as never,
+    logger as never,
+    brandsService as never,
+    postsService as never,
+    cacheService as never,
+    summaryService as never,
+  );
+
+  const baseDto = {
+    brandId: 'brand-1',
+    count: 2,
+    dateRange: {
+      end: '2026-08-20T00:00:00.000Z',
+      start: '2026-08-12T00:00:00.000Z',
+    },
+    platforms: ['instagram'],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    brandsService.findOne.mockResolvedValue({ id: 'brand-1' });
+    prisma.batch.create.mockImplementation(({ data }) => ({
+      ...data,
+      id: 'batch-1',
+    }));
+    summaryService.toBatchSummary.mockImplementation((batch) => batch);
+  });
+
+  it('persists deduped domain platforms after free-text normalize', async () => {
+    await service.createBatch(
+      {
+        ...baseDto,
+        platforms: ['Instagram', 'x', 'INSTAGRAM', 'twitter'],
+      },
+      'user-1',
+      'org-1',
+    );
+
+    expect(prisma.batch.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            platforms: ['instagram', 'twitter'],
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects an empty platforms list before creating a batch', async () => {
+    await expect(
+      service.createBatch({ ...baseDto, platforms: [] }, 'user-1', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.batch.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects unmappable platform ids so malformed strings never land', async () => {
+    await expect(
+      service.createBatch(
+        { ...baseDto, platforms: ['instagram', 'myspace'] },
+        'user-1',
+        'org-1',
+      ),
+    ).rejects.toThrow(/Invalid batch platform/);
+
+    expect(prisma.batch.create).not.toHaveBeenCalled();
+  });
+});

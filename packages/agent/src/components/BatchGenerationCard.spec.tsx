@@ -35,7 +35,8 @@ describe('BatchGenerationCard', () => {
     expect(screen.queryByText(/flat batch fee/i)).not.toBeInTheDocument();
   });
 
-  it('honors an explicit creditEstimate from the action', () => {
+  it('honors an explicit creditEstimate only while inputs match the suggestion', async () => {
+    const user = userEvent.setup();
     render(
       <BatchGenerationCard
         action={{
@@ -50,6 +51,23 @@ describe('BatchGenerationCard', () => {
     );
 
     expect(screen.getByText(/Estimated cost: 12 credits/i)).toBeInTheDocument();
+
+    const countInput = screen.getByLabelText(/Number of items/i);
+    await user.clear(countInput);
+    await user.type(countInput, '5');
+
+    const recomputed = estimateBatchGenerationCredits(
+      { count: 5, platforms: ['twitter'] },
+      resolveBatchPricingOptions({ hasMediaGeneration: false }),
+    );
+    expect(
+      screen.getByText(
+        new RegExp(`Estimated cost: ${recomputed} credits`, 'i'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Estimated cost: 12 credits/i),
+    ).not.toBeInTheDocument();
   });
 
   it('submits the selected count and platforms', async () => {
@@ -75,5 +93,39 @@ describe('BatchGenerationCard', () => {
       count: 5,
       platforms: ['twitter'],
     });
+  });
+
+  it('recomputes the estimate when the platform selection leaves the suggestion (#2696)', async () => {
+    const user = userEvent.setup();
+    render(
+      <BatchGenerationCard
+        action={{
+          batchCount: 10,
+          creditEstimate: 99,
+          id: 'batch-form-4',
+          platforms: ['twitter'],
+          title: 'Batch generation',
+          type: 'batch_generation_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Estimated cost: 99 credits/i)).toBeInTheDocument();
+
+    // Adding Instagram makes the selection differ from the suggested set.
+    await user.click(screen.getByText('Instagram'));
+
+    const recomputed = estimateBatchGenerationCredits(
+      { count: 10, platforms: ['twitter', 'instagram'] },
+      resolveBatchPricingOptions({ hasMediaGeneration: false }),
+    );
+    expect(
+      screen.getByText(
+        new RegExp(`Estimated cost: ${recomputed} credits`, 'i'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Estimated cost: 99 credits/i),
+    ).not.toBeInTheDocument();
   });
 });

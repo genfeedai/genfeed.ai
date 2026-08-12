@@ -1,3 +1,4 @@
+import { getAgentTypeWorkflowDefault } from '@api/collections/agent-strategies/constants/agent-type-workflow-defaults.constant';
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
@@ -85,6 +86,13 @@ const CONFIG_BACKED_KEYS = [
   'weeklyResetAt',
 ] as const;
 
+/** First-class columns — not config JSON. */
+const COLUMN_BACKED_KEYS = [
+  'preferredWorkflowId',
+  'preferredWorkflowTemplateId',
+  'workflowInputOverrides',
+] as const;
+
 const POLICIES_BACKED_KEYS = [
   'budgetPolicy',
   'goalProfile',
@@ -126,6 +134,17 @@ export class AgentStrategiesService extends BaseService<
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
     const now = new Date();
+    // Pin deterministic graph on create when client omits binding (wizard/autopilot).
+    const typeDefault = getAgentTypeWorkflowDefault(createDto.agentType);
+    const preferredWorkflowTemplateId =
+      typeof createDto.preferredWorkflowTemplateId === 'string' &&
+      createDto.preferredWorkflowTemplateId.trim()
+        ? createDto.preferredWorkflowTemplateId.trim()
+        : (typeDefault?.templateId ?? undefined);
+    const skillSlugs =
+      Array.isArray(createDto.skillSlugs) && createDto.skillSlugs.length > 0
+        ? createDto.skillSlugs
+        : (typeDefault?.skillSlugs ?? createDto.skillSlugs);
 
     const payload: AgentStrategyWriteDto = {
       ...createDto,
@@ -139,6 +158,8 @@ export class AgentStrategiesService extends BaseService<
               createDto.budgetPolicy.reserveTrendBudget,
           }
         : {}),
+      ...(preferredWorkflowTemplateId ? { preferredWorkflowTemplateId } : {}),
+      ...(skillSlugs ? { skillSlugs } : {}),
       // Defaults for counters that live in config
       consecutiveFailures: 0,
       creditsUsedThisWeek: 0,
@@ -441,6 +462,22 @@ export class AgentStrategiesService extends BaseService<
       data.platforms = Array.isArray(dto.platforms) ? dto.platforms : [];
     }
 
+    for (const key of COLUMN_BACKED_KEYS) {
+      if (!Object.hasOwn(dto, key)) {
+        continue;
+      }
+      const value = (dto as Record<string, unknown>)[key];
+      if (key === 'workflowInputOverrides') {
+        data.workflowInputOverrides = normalizeWorkflowInputOverrides(value);
+        continue;
+      }
+      data[key] =
+        typeof value === 'string' && value.trim() ? value.trim() : null;
+      // Keep config clean if a legacy write still carries these keys.
+      delete config[key];
+      delete config.workflowInputDefaults;
+    }
+
     for (const key of CONFIG_BACKED_KEYS) {
       if (Object.hasOwn(dto, key)) {
         config[key] = (dto as Record<string, unknown>)[key];
@@ -482,4 +519,33 @@ export class AgentStrategiesService extends BaseService<
       ? (value as Record<string, unknown>)
       : null;
   }
+}
+
+function normalizeWorkflowInputOverrides(
+  value: unknown,
+): Array<{ key: string; value: string | number | boolean }> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const out: Array<{ key: string; value: string | number | boolean }> = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    const key = typeof record.key === 'string' ? record.key.trim() : '';
+    if (!key) {
+      continue;
+    }
+    const raw = record.value;
+    if (
+      typeof raw === 'string' ||
+      typeof raw === 'number' ||
+      typeof raw === 'boolean'
+    ) {
+      out.push({ key, value: raw });
+    }
+  }
+  return out.slice(0, 40);
 }

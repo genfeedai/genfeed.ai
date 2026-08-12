@@ -1,4 +1,4 @@
-import { BotPlatform } from '@genfeedai/enums';
+import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -154,6 +154,29 @@ export class BotLivestreamSettingsDto {
     required: false,
   })
   transcriptEnabled?: boolean = true;
+
+  @IsEnum(LivestreamTranscriptSource)
+  @IsOptional()
+  @ApiProperty({
+    default: LivestreamTranscriptSource.MANUAL,
+    description:
+      'Context source. Prefer restream_chat for multi-destination audience chat (Restream Studio); host speech via external_caption_webhook while encoding into Restream.',
+    enum: LivestreamTranscriptSource,
+    enumName: 'LivestreamTranscriptSource',
+    required: false,
+  })
+  transcriptSource?: LivestreamTranscriptSource =
+    LivestreamTranscriptSource.MANUAL;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  @ApiProperty({
+    description:
+      'Optional integration/credential id holding the Restream OAuth access token for chat WS.',
+    required: false,
+  })
+  restreamCredentialId?: string;
 
   @IsInt()
   @Min(1)

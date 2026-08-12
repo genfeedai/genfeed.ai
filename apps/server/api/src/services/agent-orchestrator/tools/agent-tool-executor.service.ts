@@ -26,6 +26,7 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
+import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import type { RouterPriority } from '@genfeedai/enums';
 import { ActionOrigin } from '@genfeedai/enums';
 import type {
@@ -123,6 +124,7 @@ export class AgentToolExecutorService {
     private readonly campaignHandler: AgentCampaignToolHandler,
     private readonly livestreamHandler: AgentLivestreamToolHandler,
     private readonly instagramInspirationHandler: AgentInstagramInspirationToolHandler,
+    private readonly xActionsHandler: AgentXActionsToolHandler,
     private readonly brandInterviewHandler: AgentBrandInterviewToolHandler,
     private readonly workspaceHandler: AgentWorkspaceToolHandler,
     private readonly connectionHandler: AgentConnectionToolHandler,
@@ -182,7 +184,9 @@ export class AgentToolExecutorService {
             parameters,
             context,
           )
-        : await this.dispatch(toolName, parameters, context);
+        : this.xActionsHandler.handles(toolName)
+          ? await this.xActionsHandler.execute(toolName, parameters, context)
+          : await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,

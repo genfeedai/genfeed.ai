@@ -3,6 +3,7 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
@@ -23,7 +24,8 @@ import type {
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 
@@ -94,6 +96,10 @@ export class AdsResearchService {
     private readonly credentialsService: CredentialsService,
     private readonly adsGatewayService: AdsGatewayService,
     private readonly workflowsService: WorkflowsService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   async listAds(
@@ -173,10 +179,17 @@ export class AdsResearchService {
       source: input.source,
     });
 
+    const harnessNotes = await this.resolveAdHarnessNotes(
+      organizationId,
+      input.brandId,
+      input.platform ?? ad.platform,
+    );
+
     return this.buildAdPack({
       ad,
       brandName: input.brandName,
       channel: input.channel,
+      harnessNotes,
       industry: input.industry,
       objective: input.objective,
     });
@@ -194,10 +207,16 @@ export class AdsResearchService {
       platform: input.platform,
       source: input.source,
     });
+    const harnessNotes = await this.resolveAdHarnessNotes(
+      input.organizationId,
+      input.brandId,
+      input.platform ?? ad.platform,
+    );
     const adPack = this.buildAdPack({
       ad,
       brandName: input.brandName,
       channel: input.channel,
+      harnessNotes,
       industry: input.industry,
       objective: input.objective,
     });
@@ -606,9 +625,43 @@ export class AdsResearchService {
       }));
   }
 
+  private async resolveAdHarnessNotes(
+    organizationId: string,
+    brandId: string | undefined,
+    platform: string | undefined,
+  ): Promise<string | undefined> {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!brandId || !harnessGenerationService) {
+      return undefined;
+    }
+    const brief = await harnessGenerationService.resolveBrief({
+      brandId,
+      contentType: 'ad-creative',
+      objective: 'conversion',
+      organizationId,
+      platform,
+    });
+    const formatted = harnessGenerationService.formatBrief(brief);
+    return formatted || undefined;
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
   private buildAdPack(params: {
     ad: AdsResearchDetail;
     brandName?: string;
+    harnessNotes?: string;
     industry?: string;
     objective?: string;
     channel?: AdsChannel;
@@ -621,11 +674,14 @@ export class AdsResearchService {
     const sourceBody = params.ad.body?.trim() || 'Strong proof-based ad copy';
     const sourceCta = params.ad.cta?.trim() || 'Learn more';
     const niche = params.industry || params.ad.industry || 'your niche';
+    const harnessSuffix = params.harnessNotes
+      ? `\n\nBRAND HARNESS:\n${params.harnessNotes}`
+      : '';
 
     return {
       assetCreativeBrief: `Build a ${this.toPlatformLabel(
         params.ad.platform,
-      )} creative for ${brandName} in ${niche}. Keep the winning angle from "${sourceHeadline}", make the promise clearer, add brand-specific proof, and leave space for a direct CTA.`,
+      )} creative for ${brandName} in ${niche}. Keep the winning angle from "${sourceHeadline}", make the promise clearer, add brand-specific proof, and leave space for a direct CTA.${harnessSuffix}`,
       campaignRecipe: {
         budgetStrategy:
           params.ad.platform === 'google'
@@ -650,7 +706,7 @@ export class AdsResearchService {
         `Why ${niche} buyers switch to ${brandName}`,
         `${brandName} without the usual ${niche} friction`,
       ],
-      primaryText: `${sourceBody}\n\nAdapt this around ${brandName}, make the offer concrete for ${niche}, and tie every line back to the ${objective.toLowerCase()} goal.`,
+      primaryText: `${sourceBody}\n\nAdapt this around ${brandName}, make the offer concrete for ${niche}, and tie every line back to the ${objective.toLowerCase()} goal.${harnessSuffix}`,
       targetingNotes: `Target ${niche} audiences already showing intent. Mirror the source angle, but replace broad claims with ${brandName}-specific proof, objections, and outcome language.`,
     };
   }

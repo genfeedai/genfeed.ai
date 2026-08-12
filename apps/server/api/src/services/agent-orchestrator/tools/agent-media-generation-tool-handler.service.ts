@@ -24,6 +24,7 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
@@ -40,6 +41,7 @@ import { AgentToolName } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Effect } from 'effect';
 
 interface AgentBrandsServiceLike {
@@ -174,7 +176,47 @@ export class AgentMediaGenerationToolHandler {
     private readonly batchStreamService?: BatchGenerationStreamService,
     @Optional()
     private readonly batchGenerationQueueService?: BatchGenerationQueueService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
+
+  private async applyBrandHarnessToPrompt(params: {
+    contentType: 'image' | 'video';
+    ctx: ToolExecutionContext;
+    prompt: string;
+    topic?: string;
+  }): Promise<string> {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!harnessGenerationService || !params.ctx.brandId) {
+      return params.prompt;
+    }
+    try {
+      return await harnessGenerationService.applyToMediaPrompt({
+        brandId: params.ctx.brandId,
+        contentType: params.contentType,
+        organizationId: params.ctx.organizationId,
+        prompt: params.prompt,
+        topic: params.topic,
+      });
+    } catch {
+      return params.prompt;
+    }
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
 
   private resolveBatchPricingOptions(ctx: ToolExecutionContext): {
     includeMedia: boolean;
@@ -197,12 +239,18 @@ export class AgentMediaGenerationToolHandler {
     if (!this.creditsUtilsService || params.amount <= 0) {
       return;
     }
+    // Serializable deduction + reference claim so concurrent batch starts
+    // cannot over-commit the same balance (#2696).
     await this.creditsUtilsService.deductCreditsFromOrganization(
       params.organizationId,
       params.userId,
       params.amount,
       `Batch generation ${params.batchId}`,
       ActivitySource.SCRIPT,
+      {
+        referenceId: params.batchId,
+        referenceType: 'batch-generation:upfront',
+      },
     );
   }
 
@@ -560,14 +608,20 @@ export class AgentMediaGenerationToolHandler {
     // - Credit deduction via CreditsInterceptor
     // - Synchronous polling (3min timeout, 2s interval)
 
-    const prompt =
+    const rawPrompt =
       (params.prompt as string | undefined) ??
       (params.description as string | undefined) ??
       (params.text as string | undefined) ??
       '';
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'image',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
     const aspectRatio = (params.aspectRatio as string) || '1:1';
     const dimensions = this.aspectRatioToDimensions(aspectRatio);
-    const promptPreview = prompt.substring(0, 80);
+    const promptPreview = rawPrompt.substring(0, 80);
 
     // Use attachment as reference image when no explicit imageUrl is provided
     const imageUrl =
@@ -805,12 +859,19 @@ export class AgentMediaGenerationToolHandler {
       (params.imageUrl as string | undefined) ||
       (ctx.attachmentUrls?.length ? ctx.attachmentUrls[0] : undefined);
     const audioUrl = params.audioUrl as string | undefined;
+    const rawPrompt = String(params.prompt ?? '');
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'video',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
 
     const body: Record<string, unknown> = {
       duration,
       height: dimensions.height,
-      prompt: params.prompt as string,
-      text: params.prompt as string,
+      prompt,
+      text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
@@ -1042,52 +1103,85 @@ export class AgentMediaGenerationToolHandler {
       pricingOptions,
     );
 
-    if (this.creditsUtilsService) {
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          ctx.organizationId,
-        );
-      if (balance < estimatedCredits) {
-        return {
-          creditsUsed: 0,
-          error: `Insufficient credits. This batch needs about ${estimatedCredits} credits (format + caption model tier); balance is ${balance}.`,
-          success: false,
-        };
-      }
-    }
-
     const dateRange = (params.dateRange as Record<string, string>) || {
       end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       start: new Date().toISOString(),
     };
 
-    const batch = await this.batchGenerationService.createBatch(
-      {
-        brandId,
-        contentMix,
-        count,
-        dateRange: {
-          end: dateRange.end,
-          start: dateRange.start,
+    // createBatch validates platforms against the domain enum before any
+    // generation work or credit movement (#2696).
+    let batch: Awaited<ReturnType<BatchGenerationService['createBatch']>>;
+    try {
+      batch = await this.batchGenerationService.createBatch(
+        {
+          brandId,
+          contentMix,
+          count,
+          dateRange: {
+            end: dateRange.end,
+            start: dateRange.start,
+          },
+          platforms,
+          style: params.style as string | undefined,
+          topics: params.topics as string[] | undefined,
         },
-        platforms,
-        style: params.style as string | undefined,
-        topics: params.topics as string[] | undefined,
-      },
-      ctx.userId,
-      ctx.organizationId,
-    );
+        ctx.userId,
+        ctx.organizationId,
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create batch';
+      return {
+        creditsUsed: 0,
+        error: message,
+        success: false,
+      };
+    }
 
     const batchId = String(batch.id);
     const totalCount = batch.totalCount;
     const platformLabel = this.formatBatchPlatformsLabel(platforms);
 
-    // Pin the pricing on the batch before any item runs. A run that is resumed
-    // in another process settles from the batch itself, so the rates have to
-    // outlive this request rather than live in the closure that created it.
+    // Atomic reserve before any generation starts. The balance check alone is
+    // racy under concurrent batch starts; deduction is serializable and keyed
+    // by batch id so a second attempt cannot spend past available credits.
+    try {
+      await this.chargeBatchCredits({
+        amount: estimatedCredits,
+        batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (error: unknown) {
+      // createBatch already persisted items. Without compensation a failed
+      // reserve leaves an orphan PENDING batch the operator cannot run (#2696).
+      try {
+        await this.batchGenerationService.cancelBatch(
+          batchId,
+          ctx.organizationId,
+        );
+      } catch (cancelError: unknown) {
+        this.loggerService.warn(
+          `${this.constructorName} failed to cancel batch after credit reserve failure`,
+          { batchId, cancelError, organizationId: ctx.organizationId },
+        );
+      }
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Insufficient credits. This batch needs about ${estimatedCredits} credits.`;
+      return {
+        creditsUsed: 0,
+        error: message,
+        success: false,
+      };
+    }
+
+    // Pin the pricing + charged estimate on the batch before any item runs so
+    // settlement (streamed or worker) prices the delta only.
     await this.batchCreditsService?.recordUpfrontCharge({
       batchId,
-      credits: 0,
+      credits: estimatedCredits,
       organizationId: ctx.organizationId,
       pricingOptions,
     });
@@ -1303,33 +1397,28 @@ export class AgentMediaGenerationToolHandler {
         readyCount > BATCH_POST_PREVIEW_LIMIT
           ? `View all ${readyCount} posts`
           : readyCount > 0
-            ? 'Open review queue'
+            ? 'Open reviews'
             : 'Open Review Queue';
 
-      // Bill completed drafts only (format packaging + caption model tier).
-      const billableItems = streamedItems
-        .filter((entry) => entry.status === 'completed' && entry.postId)
-        .map((entry) => ({
-          format: entry.format ?? 'image',
-          hasMedia: Boolean(entry.hasMedia),
-        }));
-      const creditsUsed = chargeBatchGenerationCredits(
-        billableItems,
-        pricingOptions,
-      );
-      await this.chargeBatchCredits({
-        amount: creditsUsed,
+      // Estimate was reserved up front; settle to the media-aware cost of
+      // drafts that actually landed so partial failures refund the unused
+      // reservation (#2696).
+      const settlement = await this.batchCreditsService?.settleBatchCredits({
         batchId,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
       });
-      // Put it on the ledger so a later settlement — a sweep, a resume — sees
-      // these drafts as already paid for and moves nothing.
-      await this.batchCreditsService?.recordUpfrontCharge({
-        batchId,
-        credits: creditsUsed,
-        organizationId: ctx.organizationId,
-      });
+      const creditsUsed =
+        settlement?.settledCredits ??
+        chargeBatchGenerationCredits(
+          streamedItems
+            .filter((entry) => entry.status === 'completed' && entry.postId)
+            .map((entry) => ({
+              format: entry.format ?? 'image',
+              hasMedia: Boolean(entry.hasMedia),
+            })),
+          pricingOptions,
+        );
 
       return {
         creditsUsed,
@@ -1380,22 +1469,8 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
-    // Async path: charge the estimate up front so we do not give free async
-    // batches, and record it on the batch's credit ledger *before* the run
-    // starts. Settlement later prices what actually landed and moves only the
-    // delta, so a resumed or redelivered run never bills these drafts twice.
-    await this.chargeBatchCredits({
-      amount: estimatedCredits,
-      batchId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    await this.batchCreditsService?.recordUpfrontCharge({
-      batchId,
-      credits: estimatedCredits,
-      organizationId: ctx.organizationId,
-      pricingOptions,
-    });
+    // Async path: estimate already reserved + ledgered above. Settlement later
+    // prices what actually landed and moves only the delta.
 
     // Hand the run to the workers process. It used to be a bare in-process
     // promise, so an API reload mid-batch killed it and stranded every

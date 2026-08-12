@@ -6,13 +6,17 @@ export type ContentObjective =
   | 'retention';
 
 export type ContentKind =
+  | 'ad-creative'
   | 'article'
   | 'email'
+  | 'image'
   | 'newsletter'
   | 'post'
   | 'reply'
   | 'script'
   | 'thread'
+  | 'ugc'
+  | 'video'
   | 'video-script';
 
 export type HarnessRecordKind =

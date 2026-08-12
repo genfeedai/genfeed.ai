@@ -49,21 +49,32 @@ export interface AgentStrategyRunHistoryItem {
   [key: string]: unknown;
 }
 
-export interface AgentStrategyDocument
-  extends Omit<
-    PrismaAgentStrategy,
-    'config' | 'policies' | 'agentType' | 'platforms'
-  > {
+/**
+ * Document shape for agent strategies.
+ *
+ * Prisma stores most autopilot fields in `config` / `policies` JSON. The service
+ * flattens those onto the row for callers, so this type is Prisma scalars plus
+ * the decoded document fields (not a pure Prisma row).
+ */
+export type AgentStrategyDocument = Omit<
+  PrismaAgentStrategy,
+  'agentType' | 'config' | 'platforms' | 'policies' | 'workflowInputOverrides'
+> & {
   agentType?: string;
   autonomyMode?: AgentAutonomyMode | string;
+  /** Optional populated brand relation (label only used by workflow prompt builder). */
+  brand?: { label?: string | null } | null;
   budgetPolicy?: AgentStrategyBudgetPolicy;
   config?: Record<string, unknown>;
+  consecutiveFailures?: number;
   contentMix?: AgentStrategyContentMix;
   creditsUsedThisWeek: number;
   dailyCreditBudget: number;
   dailyCreditResetAt?: Date | null;
   dailyCreditsUsed: number;
   dailyResetAt?: Date | null;
+  displayRole?: string;
+  engagementEnabled?: boolean;
   goalProfile?: string;
   isEnabled?: boolean;
   model?: string | null;
@@ -73,17 +84,29 @@ export interface AgentStrategyDocument
   platforms?: string[];
   policies?: Record<string, unknown>;
   postsPerWeek?: number;
+  preferredPostingTimes?: string[];
+  preferredWorkflowId?: string | null;
+  preferredWorkflowTemplateId?: string | null;
   publishPolicy?: AgentStrategyPublishPolicy;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   rankingPolicy?: AgentStrategyRankingPolicy;
   reportingPolicy?: AgentStrategyReportingPolicy;
+  reportsToLabel?: string;
   requiresManualReactivation?: boolean;
   reserveTrendBudgetRemaining: number;
+  runFrequency?: string;
   runHistory: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
+  teamGroup?: string;
+  timezone?: string;
   topics?: string[];
+  /** Brand voice string stored in config JSON. */
+  voice?: string | null;
   weeklyCreditBudget: number;
-  [key: string]: unknown;
-}
+  workflowInputOverrides?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
+};
 
 export type AgentStrategy = AgentStrategyDocument;

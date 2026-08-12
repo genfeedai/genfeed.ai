@@ -25,6 +25,8 @@ describe('content-team-presets', () => {
     expect(strategy.teamGroup).toBe('Distribution');
     expect(strategy.reportsToLabel).toBe('Campaign Lead');
     expect(strategy.topics).toEqual(['AI creator growth']);
+    expect(strategy.preferredWorkflowTemplateId).toBe('founder-x-post');
+    expect(strategy.skillSlugs).toEqual(['content-writing']);
   });
 
   it('builds the blueprint strategy set with the expected number of roles', () => {

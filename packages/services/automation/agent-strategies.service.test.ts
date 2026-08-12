@@ -102,6 +102,43 @@ describe('AgentStrategiesService', () => {
     expect(result).toEqual({ message: 'queued' });
   });
 
+  it('runWorkflow POSTs overrides to /run-workflow', async () => {
+    const payload = {
+      executionId: 'exec-1',
+      filledInputs: { topic: 'Launch' },
+      missingRequiredKeys: [],
+      status: 'running',
+      workflowId: 'wf-1',
+      workflowLabel: 'Founder X Post',
+    };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.runWorkflow(strategyId, { topic: 'Launch' });
+
+    expect(http.post).toHaveBeenCalledWith(`/${strategyId}/run-workflow`, {
+      topic: 'Launch',
+    });
+    expect(result).toEqual(payload);
+  });
+
+  it('getWorkflowBinding GETs /workflow-binding', async () => {
+    const binding = {
+      inputs: [],
+      missingRequiredKeys: [],
+      preferredWorkflowId: null,
+      preferredWorkflowTemplateId: 'founder-x-post',
+      templateDescription: null,
+      workflowId: null,
+      workflowLabel: null,
+    };
+    http.get.mockResolvedValue(axiosResponse(binding));
+
+    const result = await service.getWorkflowBinding(strategyId);
+
+    expect(http.get).toHaveBeenCalledWith(`/${strategyId}/workflow-binding`);
+    expect(result).toEqual(binding);
+  });
+
   it('listOpportunities GETs the raw opportunities payload', async () => {
     const opportunities = [{ id: 'opp_1', topic: 'AI' }];
     http.get.mockResolvedValue(axiosResponse(opportunities));

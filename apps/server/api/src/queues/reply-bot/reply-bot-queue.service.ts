@@ -1,6 +1,5 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
 import {
   REPLY_BOT_POLLING_QUEUE,
   ReplyBotPollingJobData,
@@ -11,6 +10,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
+export { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
+
+export type ReplyBotPollTarget = {
+  credentialId: string;
+  organizationId: string;
+};
+
 @Injectable()
 export class ReplyBotQueueService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -20,7 +26,6 @@ export class ReplyBotQueueService implements OnModuleInit {
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
     @Optional()
     private readonly replyBotConfigsService: ReplyBotConfigsService,
-    @Optional() private readonly credentialsService: CredentialsService,
     @Optional() private readonly logger: LoggerService,
   ) {}
 
@@ -37,19 +42,19 @@ export class ReplyBotQueueService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Get all organizations with active reply bot configs
-      const orgsWithActiveBots = await this.getOrganizationsWithActiveBots();
+      // One job per bound credential on an active config (X, YouTube, …).
+      const targets = await this.getActivePollTargets();
 
       this.logger.log(`${url} starting`, {
-        organizationCount: orgsWithActiveBots.length,
+        targetCount: targets.length,
       });
 
-      for (const org of orgsWithActiveBots) {
-        await this.queuePollingJob(org.organizationId, org.credentialId);
+      for (const target of targets) {
+        await this.queuePollingJob(target.organizationId, target.credentialId);
       }
 
       this.logger.log(`${url} completed`, {
-        jobsQueued: orgsWithActiveBots.length,
+        jobsQueued: targets.length,
       });
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
@@ -74,7 +79,10 @@ export class ReplyBotQueueService implements OnModuleInit {
         organizationId,
       });
 
-      return job.id!;
+      if (!job.id) {
+        throw new Error('Polling queue did not return a job id');
+      }
+      return job.id;
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
       throw error;
@@ -95,7 +103,7 @@ export class ReplyBotQueueService implements OnModuleInit {
         organizationId,
       },
       {
-        jobId: `reply-bot-poll-${organizationId}-${Date.now()}`,
+        jobId: `reply-bot-poll-${organizationId}-${credentialId}-${Date.now()}`,
         removeOnComplete: 100,
         removeOnFail: 50,
       },
@@ -103,68 +111,47 @@ export class ReplyBotQueueService implements OnModuleInit {
   }
 
   /**
-   * Get all organizations that have active reply bot configs with valid Twitter credentials
+   * Active reply-bot configs → poll targets by their bound credential.
+   * Dedupes identical org+credential pairs. Does not invent a Twitter
+   * credential when the config has none — that config is skipped + warned.
    */
-  private async getOrganizationsWithActiveBots(): Promise<
-    Array<{ organizationId: string; credentialId: string }>
-  > {
+  private async getActivePollTargets(): Promise<ReplyBotPollTarget[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Drive the fan-out from the scarce entity — active bot configs — rather
-      // than from every tenant. Scanning all organizations cost 2N+1 queries
-      // per tick and discarded almost every org immediately; this is 2 queries
-      // regardless of tenant count.
       const activeConfigs = await this.replyBotConfigsService.findAllActive();
-
-      const organizationIds = [
-        ...new Set(
-          activeConfigs
-            .map((config) => config.organizationId?.toString())
-            .filter(
-              (organizationId): organizationId is string => !!organizationId,
-            ),
-        ),
-      ];
-
-      if (organizationIds.length === 0) {
+      if (activeConfigs.length === 0) {
         return [];
       }
 
-      const credentials = await this.credentialsService.find({
-        organizationId: { in: organizationIds },
-        platform: CredentialPlatform.TWITTER,
-      });
+      const seen = new Set<string>();
+      const results: ReplyBotPollTarget[] = [];
 
-      // First credential wins per organization, mirroring the `findOne` read
-      // this replaced.
-      const credentialIdByOrganizationId = new Map<string, string>();
-      for (const credential of credentials) {
-        const organizationId = credential.organizationId?.toString();
-        const credentialId = credential.id?.toString();
-
-        if (!organizationId || !credentialId) {
+      for (const config of activeConfigs) {
+        const organizationId = config.organizationId?.toString();
+        if (!organizationId) {
           continue;
         }
 
-        if (!credentialIdByOrganizationId.has(organizationId)) {
-          credentialIdByOrganizationId.set(organizationId, credentialId);
-        }
-      }
-
-      const results: Array<{ organizationId: string; credentialId: string }> =
-        [];
-
-      for (const organizationId of organizationIds) {
-        const credentialId = credentialIdByOrganizationId.get(organizationId);
-
-        if (credentialId) {
-          results.push({ credentialId, organizationId });
-        } else {
+        const credentialId = readReplyBotCredentialId(config);
+        if (!credentialId) {
           this.logger.warn(
-            `${url} no Twitter credential found for org ${organizationId}`,
+            `${url} active reply-bot config missing credentialId`,
+            {
+              configId: config.id?.toString(),
+              organizationId,
+              platform: config.platform,
+            },
           );
+          continue;
         }
+
+        const key = `${organizationId}:${credentialId}`;
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        results.push({ credentialId, organizationId });
       }
 
       return results;

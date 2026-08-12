@@ -239,14 +239,33 @@ export class AgentMessagesService extends BaseService<
   async getRecentMessages(
     roomId: string,
     limit = 20,
+    organizationId?: string,
   ): Promise<AgentMessageDocument[]> {
     const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_MESSAGE_LIMIT);
+    // Prefer org-scoped reads so Postgres can use the composite
+    // (organizationId, threadId, isDeleted, createdAt, id) cursor index
+    // instead of a threadId-only filter that may sequential-scan.
     const messages = await this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        threadId: roomId,
-      },
+      where: organizationId
+        ? scopedWhere(organizationId, { threadId: roomId })
+        : {
+            isDeleted: false,
+            threadId: roomId,
+          },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      // Chat context only needs content + role + ids — skip oversized JSON
+      // payloads (toolCalls / artifactReferences) on the hot LLM window path.
+      select: {
+        brandId: true,
+        content: true,
+        createdAt: true,
+        id: true,
+        metadata: true,
+        organizationId: true,
+        role: true,
+        threadId: true,
+        userId: true,
+      },
       take: safeLimit,
     });
 

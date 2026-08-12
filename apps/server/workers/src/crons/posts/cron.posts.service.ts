@@ -10,6 +10,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import type {
   PublishContext,
   PublishResult,
@@ -80,6 +81,7 @@ export class CronPostsService {
     private readonly postRepeatSchedulerService: PostRepeatSchedulerService,
     private readonly scheduledPostExecutionGuardService: ScheduledPostExecutionGuardService,
     private readonly scheduledPostQueueService: ScheduledPostQueueService,
+    private readonly replyInboundQueueService: ReplyInboundQueueService,
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
   ) {}
@@ -731,6 +733,11 @@ export class CronPostsService {
 
         if (!isProviderDraft) {
           this.emitPublishPublishedWebhook(post, result, credential.platform);
+          this.scheduleReplyPostWatchAfterPublish(
+            post,
+            result,
+            credential.platform,
+          );
         }
 
         this.logger.log(
@@ -925,6 +932,72 @@ export class CronPostsService {
       post,
       url: result.url || null,
     });
+  }
+
+  /**
+   * After a successful X or YouTube publish, schedule the 24h reply post-watch series.
+   * Fire-and-forget — failures must not fail the publish path.
+   */
+  private scheduleReplyPostWatchAfterPublish(
+    post: PostEntity,
+    result: PublishResult,
+    platform: CredentialPlatform | string,
+  ): void {
+    const platformKey = String(platform).toLowerCase();
+    const isX =
+      platformKey === 'twitter' ||
+      platformKey === CredentialPlatform.TWITTER.toLowerCase() ||
+      platform === CredentialPlatform.TWITTER;
+    const isYouTube =
+      platformKey === 'youtube' ||
+      platformKey === CredentialPlatform.YOUTUBE.toLowerCase() ||
+      platform === CredentialPlatform.YOUTUBE;
+    if ((!isX && !isYouTube) || !result.externalId) {
+      return;
+    }
+
+    const organizationId = post.organizationId;
+    const brandId = post.brandId;
+    if (!organizationId || !brandId) {
+      return;
+    }
+
+    const postPreview =
+      readPostString(post, ['title']) ||
+      readPostString(post, ['text']) ||
+      readPostString(post, ['content']) ||
+      undefined;
+    const watchPlatform = isYouTube ? 'youtube' : 'twitter';
+
+    void this.replyInboundQueueService
+      .schedulePostWatch({
+        brandId: String(brandId),
+        organizationId: String(organizationId),
+        platform: watchPlatform,
+        postId: result.externalId,
+        postPreview: postPreview?.slice(0, 200),
+      })
+      .then((scheduled) => {
+        this.logger.log(
+          `${this.constructorName} scheduled reply post-watch after publish`,
+          {
+            externalId: result.externalId,
+            platform: watchPlatform,
+            postId: post.id.toString(),
+            scheduled: scheduled.scheduled,
+          },
+        );
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `${this.constructorName} failed to schedule reply post-watch`,
+          {
+            error: error instanceof Error ? error.message : 'unknown',
+            externalId: result.externalId,
+            postId: post.id.toString(),
+          },
+        );
+      });
   }
 
   private emitPublishFailedWebhook(

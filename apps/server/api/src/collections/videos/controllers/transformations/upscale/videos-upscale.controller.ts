@@ -1,10 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -17,6 +15,7 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
@@ -47,7 +46,15 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
@@ -60,12 +67,10 @@ export class VideosUpscaleController {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
-    private readonly modelsService: ModelsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly routerService: RouterService,
@@ -76,11 +81,14 @@ export class VideosUpscaleController {
 
   @Post(':videoId/upscale')
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  // CreditsGuard prices via modelKey; CreditsInterceptor deducts on success only.
+  // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video upscaling',
     modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
     source: ActivitySource.VIDEO_UPSCALE,
   })
+  @UseInterceptors(CreditsInterceptor)
   @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async upscaleVideo(
@@ -225,21 +233,7 @@ export class VideosUpscaleController {
           }),
         );
 
-        const modelData = await this.modelsService.findOne({
-          key: model,
-        });
-
-        const creditsToDeduct = modelData?.cost || 0;
-
-        if (creditsToDeduct > 0) {
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            publicMetadata.organization,
-            publicMetadata.user,
-            creditsToDeduct,
-            `Video upscaling - ${MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE}`,
-            ActivitySource.VIDEO_UPSCALE,
-          );
-        }
+        // Credits are deducted by CreditsInterceptor on successful response.
       } else {
         await this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,

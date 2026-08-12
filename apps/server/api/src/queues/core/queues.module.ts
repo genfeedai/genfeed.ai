@@ -14,6 +14,7 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
+import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
@@ -38,6 +39,8 @@ import {
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  REPLY_INBOUND_QUEUE,
+  REPLY_POST_WATCH_QUEUE,
   SIGNUP_PREFILL_QUEUE,
   SOCIAL_INBOX_SYNC_QUEUE,
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
@@ -64,6 +67,7 @@ import { Module } from '@nestjs/common';
     PostPublishQueueService,
     QueueService,
     ReplyBotQueueService,
+    ReplyInboundQueueService,
     CampaignQueueService,
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
@@ -125,6 +129,24 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: REPLY_BOT_POLLING_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: REPLY_INBOUND_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: REPLY_POST_WATCH_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -321,6 +343,7 @@ import { Module } from '@nestjs/common';
   providers: [
     QueueService,
     ReplyBotQueueService,
+    ReplyInboundQueueService,
     CampaignQueueService,
     AgentRunQueueService,
     BatchGenerationQueueService,

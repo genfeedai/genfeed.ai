@@ -7,6 +7,7 @@ export enum IntegrationPlatform {
   SLACK = 'SLACK',
   DISCORD = 'DISCORD',
   UNIPILE = 'UNIPILE',
+  RESTREAM = 'RESTREAM',
 }
 
 /**

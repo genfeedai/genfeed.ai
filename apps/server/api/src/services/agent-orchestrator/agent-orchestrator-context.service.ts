@@ -384,7 +384,11 @@ export class AgentOrchestratorContextService {
   }> {
     if (!this.threadContextCompressorService) {
       return {
-        messages: await this.agentMessagesService.getRecentMessages(threadId),
+        messages: await this.agentMessagesService.getRecentMessages(
+          threadId,
+          20,
+          organizationId,
+        ),
       };
     }
 
@@ -395,7 +399,11 @@ export class AgentOrchestratorContextService {
 
     if (!state) {
       return {
-        messages: await this.agentMessagesService.getRecentMessages(threadId),
+        messages: await this.agentMessagesService.getRecentMessages(
+          threadId,
+          20,
+          organizationId,
+        ),
       };
     }
 

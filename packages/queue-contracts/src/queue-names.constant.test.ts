@@ -17,6 +17,8 @@ import {
   LIFECYCLE_EMAIL_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  REPLY_INBOUND_QUEUE,
+  REPLY_POST_WATCH_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   WORKSPACE_TASK_QUEUE,
@@ -29,6 +31,8 @@ describe('queue-names.constant', () => {
     expect(DEFAULT_QUEUE).toBe('default');
     expect(ANALYTICS_SOCIAL_QUEUE).toBe('analytics-social');
     expect(REPLY_BOT_POLLING_QUEUE).toBe('reply-bot-polling');
+    expect(REPLY_INBOUND_QUEUE).toBe('reply-inbound');
+    expect(REPLY_POST_WATCH_QUEUE).toBe('reply-post-watch');
     expect(CAMPAIGN_PROCESSING_QUEUE).toBe('campaign-processing');
     expect(AGENT_RUN_QUEUE).toBe('agent-run');
     expect(WORKSPACE_TASK_QUEUE).toBe('workspace-task');

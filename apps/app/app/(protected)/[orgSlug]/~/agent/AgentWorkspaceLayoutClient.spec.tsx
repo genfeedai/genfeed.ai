@@ -405,6 +405,61 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
+  it('releases the one-shot bootstrap guard when brand scope becomes unresolved (#2702)', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    brandState.brands = AUTHORIZED_BRANDS;
+    brandState.isBrandScopeResolved = true;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'branded-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    const view = render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/branded-thread',
+      );
+    });
+
+    const callsAfterFirst = getThreadsEffect.mock.calls.length;
+    routerReplace.mockClear();
+
+    // Org switch / session change: brand scope drops; guard must release so a
+    // later resolve can restore a legitimate branded thread again.
+    brandState.isBrandScopeResolved = false;
+    brandState.brands = [];
+    view.rerender(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    brandState.brands = AUTHORIZED_BRANDS;
+    brandState.isBrandScopeResolved = true;
+    view.rerender(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(getThreadsEffect.mock.calls.length).toBeGreaterThan(
+        callsAfterFirst,
+      );
+    });
+  });
+
   it('looks the returning thread up once while brand scope stays resolved', async () => {
     navigationState.pathname = '/agent';
     storeState.activeThreadId = null;

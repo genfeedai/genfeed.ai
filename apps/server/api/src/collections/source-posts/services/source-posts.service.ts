@@ -320,7 +320,7 @@ export class SourcePostsService {
   async publishTwitterAction(
     id: string,
     context: { organizationId: string; brandId: string },
-    input: { actionType: SourcePostActionType; text: string },
+    input: { actionType: SourcePostActionType; text?: string },
   ): Promise<ITwitterPublishResult> {
     const sourcePost = await this.findOneScoped(id, {
       brandId: context.brandId,
@@ -329,16 +329,36 @@ export class SourcePostsService {
 
     if (sourcePost.platform !== SocialSourcePlatform.TWITTER) {
       throw new BadRequestException(
-        'Replies and quote posts are only supported for X sources',
+        'Reply, quote, and repost actions are only supported for X sources',
       );
     }
 
     if (
       input.actionType !== SourcePostActionType.REPLY &&
-      input.actionType !== SourcePostActionType.QUOTE
+      input.actionType !== SourcePostActionType.QUOTE &&
+      input.actionType !== SourcePostActionType.REPOST
     ) {
       throw new BadRequestException(
-        'Only reply and quote actions can publish to X',
+        'Only reply, quote, and repost actions can publish to X',
+      );
+    }
+
+    if (input.actionType === SourcePostActionType.REPOST) {
+      return this.twitterPipelineService.publish(
+        context.organizationId,
+        context.brandId,
+        {
+          targetTweetId: sourcePost.externalId,
+          text: '',
+          type: 'repost',
+        },
+      );
+    }
+
+    const text = input.text?.trim();
+    if (!text) {
+      throw new BadRequestException(
+        'text is required for reply and quote actions',
       );
     }
 
@@ -347,7 +367,7 @@ export class SourcePostsService {
       context.brandId,
       {
         targetTweetId: sourcePost.externalId,
-        text: input.text,
+        text,
         type:
           input.actionType === SourcePostActionType.QUOTE ? 'quote' : 'reply',
       },
@@ -498,8 +518,10 @@ function buildDraftLabel(
     actionType === SourcePostActionType.REPLY
       ? 'Reply'
       : actionType === SourcePostActionType.QUOTE
-        ? 'QRT'
-        : 'Source draft';
+        ? 'Quote'
+        : actionType === SourcePostActionType.REPOST
+          ? 'Repost'
+          : 'Source draft';
   const handle = sourcePost.authorHandle
     ? `@${sourcePost.authorHandle}`
     : sourcePost.platform;

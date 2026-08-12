@@ -1,10 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
@@ -19,6 +17,7 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -55,6 +54,7 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
@@ -67,11 +67,9 @@ export class VideosReframeController {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
-    private readonly modelsService: ModelsService,
     private readonly promptsService: PromptsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
@@ -82,11 +80,14 @@ export class VideosReframeController {
 
   @Post(':videoId/reframe')
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  // CreditsGuard prices via modelKey; CreditsInterceptor deducts on success only.
+  // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video reframe',
     modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
     source: ActivitySource.VIDEO_REFRAME,
   })
+  @UseInterceptors(CreditsInterceptor)
   @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async reframeVideo(
@@ -279,28 +280,7 @@ export class VideosReframeController {
       );
 
       if (generationId) {
-        const modelData = await this.modelsService.findOne({
-          key: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        });
-        const creditsToDeduct = modelData?.cost || 10;
-
-        if (creditsToDeduct > 0) {
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            publicMetadata.organization,
-            publicMetadata.user,
-            creditsToDeduct,
-            `Video reframe - ${MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO}`,
-            ActivitySource.VIDEO_REFRAME,
-          );
-
-          this.loggerService.log('Credits deducted after video reframe', {
-            credits: creditsToDeduct,
-            generationId,
-            model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
-          });
-        }
+        // Credits are deducted by CreditsInterceptor on successful response.
 
         await this.metadataService.patch(
           metadataData.id,

@@ -28,4 +28,44 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
     schedule: '*/1 * * * *',
     steps: [],
   },
+  {
+    category: 'automation',
+    description:
+      'Ingest Restream Chat (unified multistream audience messages) into livestream bot context for automation and context-aware replies.',
+    edges: [],
+    icon: 'message-circle',
+    id: 'restream-chat-context-ingest',
+    inputVariables: [
+      {
+        description: 'Livestream bot id that owns the Restream credential.',
+        key: 'botId',
+        label: 'Livestream Bot ID',
+        required: true,
+        type: 'text',
+      },
+      {
+        defaultValue: 30,
+        description: 'Max Restream chat frames to collect per run.',
+        key: 'maxMessages',
+        label: 'Max messages',
+        required: false,
+        type: 'number',
+      },
+    ],
+    name: 'Restream Chat Context Ingest',
+    nodes: [
+      {
+        data: {
+          config: {},
+          inputVariableKeys: ['botId', 'maxMessages'],
+          label: 'Ingest Restream Chat',
+        },
+        id: 'restreamChatIngest',
+        position: { x: 0, y: 120 },
+        type: 'restreamChatIngest',
+      },
+    ],
+    schedule: '*/2 * * * *',
+    steps: [],
+  },
 ] satisfies LivestreamBotWorkflowTemplate[];

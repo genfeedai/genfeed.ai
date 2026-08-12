@@ -4,6 +4,7 @@ import {
   History,
   LayoutGrid,
   Megaphone,
+  MessageCircleReply,
   MessageSquare,
   Network,
   Rocket,
@@ -113,6 +114,14 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     ],
     outline: Send,
     solid: Send,
+  },
+  {
+    group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.REPLIES,
+    label: 'Replies',
+    matchPaths: [APP_ROUTES.AUTOMATE.REPLIES],
+    outline: MessageCircleReply,
+    solid: MessageCircleReply,
   },
   {
     group: 'Campaigns',

@@ -14,6 +14,20 @@ const mockOpportunity: ITwitterOpportunity = {
   targetTweet: 'Original tweet text',
 };
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      editBeforePublishing: 'Edit before publishing',
+      published: 'Published successfully',
+      'types.quote': 'Quote',
+      'types.reply': 'Reply',
+      'types.repost': 'Repost',
+      viewTweet: 'View tweet',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 describe('OpportunityCard', () => {
   it('should render without crashing', () => {
     const { container } = render(

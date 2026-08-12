@@ -2,6 +2,11 @@ import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  type HarnessPackSeed,
+  mergeSeedIntoExistingExamples,
+  packSeedToProfilePayload,
+} from '@api/services/harness/harness-profile-seed.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
@@ -224,6 +229,79 @@ export class HarnessProfilesService {
     }
 
     return this.toContribution(profile);
+  }
+
+  /**
+   * Create or merge a seed payload into the brand's default harness profile.
+   * Existing operator examples are preserved; seed examples append when new.
+   */
+  async upsertSeedForBrand(params: {
+    organizationId: string;
+    userId: string;
+    brandId: string;
+    seed: HarnessPackSeed;
+  }): Promise<HarnessProfileDocument> {
+    const existing = await this.getActiveForBrand(
+      params.organizationId,
+      params.brandId,
+    );
+    const payload = packSeedToProfilePayload(params.seed, params.brandId);
+    const examples = mergeSeedIntoExistingExamples(
+      existing?.examples,
+      params.seed,
+    );
+
+    if (!existing) {
+      return this.create(
+        {
+          ...payload,
+          examples,
+        },
+        params.organizationId,
+        params.userId,
+      );
+    }
+
+    return this.update(
+      existing.id,
+      {
+        audience:
+          payload.audience.length > 0 ? payload.audience : existing.audience,
+        description: existing.description ?? payload.description,
+        examples,
+        guardrails:
+          payload.guardrails.length > 0
+            ? Array.from(
+                new Set([
+                  ...(existing.guardrails ?? []),
+                  ...payload.guardrails,
+                ]),
+              )
+            : existing.guardrails,
+        handles: { ...payload.handles, ...existing.handles },
+        isDefault: true,
+        label: existing.label || payload.label,
+        thesis: {
+          ...existing.thesis,
+          offers:
+            payload.thesis.offers.length > 0
+              ? payload.thesis.offers
+              : (existing.thesis?.offers ?? []),
+        },
+        voice: {
+          ...existing.voice,
+          bannedPhrases: Array.from(
+            new Set([
+              ...(existing.voice?.bannedPhrases ?? []),
+              ...payload.voice.bannedPhrases,
+            ]),
+          ),
+          style: existing.voice?.style ?? payload.voice.style,
+          tone: existing.voice?.tone ?? payload.voice.tone,
+        },
+      },
+      params.organizationId,
+    );
   }
 
   private async findOneRaw(

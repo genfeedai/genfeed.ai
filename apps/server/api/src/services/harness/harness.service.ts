@@ -12,6 +12,7 @@ import {
   ContentHarnessRegistry,
   composeContentHarnessBrief,
   isContentHarnessPack,
+  X_PLATFORM_HARNESS_PACK,
 } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -153,6 +154,8 @@ export class ContentHarnessService {
   private async loadRegistry(): Promise<ContentHarnessRegistry> {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(CORE_CONTENT_HARNESS_PACK);
+    // X/Twitter craft rules from open-source ranking signals (no-op off-platform).
+    registry.registerPack(X_PLATFORM_HARNESS_PACK);
 
     if (isEEEnabled()) {
       const eePack = await this.loadPackFromModuleSpecifier(

@@ -2,15 +2,20 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
  * Extracted from AgentToolExecutorService per #519.
  * Includes discover_engagements / draft_engagement_reply via AgentToolInternalApiService.
+ * X search is wired through TwitterService so discovery never silently returns empty
+ * for a missing trends endpoint (#2663).
  */
 @Injectable()
 export class AgentProactiveToolHandler {
@@ -20,8 +25,10 @@ export class AgentProactiveToolHandler {
     private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
     private readonly internalApi: AgentToolInternalApiService,
+    @Optional() private readonly twitterService?: TwitterService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async getApprovalSummary(
@@ -244,8 +251,55 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    // Use internal API to search for tweets/posts matching keywords
     const query = keywords.join(' OR ');
+
+    // X is first-class: call Twitter search directly (no dangling trends route).
+    if (platform === 'twitter' || platform === 'x') {
+      const twitterService = this.resolveTwitterService();
+      if (!twitterService) {
+        return {
+          creditsUsed: 0,
+          error: 'X integration is unavailable right now.',
+          success: false,
+        };
+      }
+
+      try {
+        const tweets = await twitterService.searchRecentTweets(query, {
+          maxResults: Math.min(Math.max(limit, 5), 25),
+          sortOrder: 'relevancy',
+        });
+
+        return {
+          creditsUsed: 1,
+          data: {
+            count: tweets.length,
+            platform: 'twitter',
+            posts: tweets.map((tweet) => ({
+              author: tweet.authorUsername,
+              content: tweet.text,
+              engagement: tweet.engagement,
+              id: tweet.id,
+              url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
+            })),
+            query,
+          },
+          success: true,
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'X search failed';
+        this.loggerService.error(
+          `${this.constructorName} discoverEngagements X search failed`,
+          { error: message, query },
+        );
+        return {
+          creditsUsed: 0,
+          error: message,
+          success: false,
+        };
+      }
+    }
 
     try {
       const response = await this.internalApi.callInternalApi(
@@ -279,19 +333,22 @@ export class AgentProactiveToolHandler {
         success: true,
       };
     } catch {
-      // Fallback: return empty results if search endpoint not available
       return {
-        creditsUsed: 1,
-        data: {
-          count: 0,
-          message:
-            'Engagement discovery search returned no results. The search endpoint may not be configured for this platform yet.',
-          platform,
-          posts: [],
-          query,
-        },
-        success: true,
+        creditsUsed: 0,
+        error: `Engagement discovery is not configured for platform "${platform}".`,
+        success: false,
       };
+    }
+  }
+
+  private resolveTwitterService(): TwitterService | undefined {
+    if (this.twitterService) {
+      return this.twitterService;
+    }
+    try {
+      return this.moduleRef?.get(TwitterService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 
@@ -365,7 +422,8 @@ export class AgentProactiveToolHandler {
       creditsUsed: 1,
       data: {
         batchId,
-        message: 'Engagement reply drafted and added to review queue.',
+        message:
+          'Reply draft is ready for review. Nothing posts until you approve it.',
         platform,
         targetPostId,
       },

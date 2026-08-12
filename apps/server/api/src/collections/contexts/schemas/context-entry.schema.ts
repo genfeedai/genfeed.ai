@@ -19,6 +19,7 @@ export type ContextEntryPendingEmbeddingRow = {
 export type ContextEntrySimilarityRow = {
   content: string | null;
   contextBaseId: string;
+  kind: string | null;
   metadata: unknown;
   similarity: number;
 };
@@ -26,6 +27,7 @@ export type ContextEntrySimilarityRow = {
 export type ContextEntrySimilarityResult = {
   content: string;
   contextBaseId: string;
+  kind?: string;
   metadata?: Record<string, unknown>;
   similarity: number;
 };

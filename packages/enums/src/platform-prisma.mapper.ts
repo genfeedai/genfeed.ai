@@ -45,6 +45,7 @@ export const PRISMA_CREDENTIAL_PLATFORM_VALUES = [
   'BEEHIIV',
   'UNIPILE',
   'DEVTO',
+  'RESTREAM',
 ] as const;
 
 export type PrismaCredentialPlatformValue =

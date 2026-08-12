@@ -4,12 +4,15 @@ import {
   BotLivestreamMessageType,
   BotLivestreamTargetAudience,
   BotPlatform,
+  LivestreamTranscriptSource,
+  Platform,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
 import type { LivestreamSession } from '@models/automation/livestream-session.model';
 import { BotsService } from '@services/automation/bots.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 
 export type LivestreamPagePlatform = 'youtube' | 'twitch';
@@ -23,8 +26,10 @@ export interface LivestreamFormState {
   linkUrl: string;
   maxAutoPostsPerHour: number;
   minimumMessageGapSeconds: number;
+  restreamCredentialId: string;
   scheduledCadenceMinutes: number;
   transcriptEnabled: boolean;
+  transcriptSource: string;
   twitchChannelId: string;
   twitchCredentialId: string;
   twitchSenderId: string;
@@ -44,8 +49,10 @@ const DEFAULT_FORM_STATE: LivestreamFormState = {
   linkUrl: 'https://genfeed.ai/show-notes',
   maxAutoPostsPerHour: 6,
   minimumMessageGapSeconds: 90,
+  restreamCredentialId: '',
   scheduledCadenceMinutes: 10,
   transcriptEnabled: true,
+  transcriptSource: LivestreamTranscriptSource.RESTREAM_CHAT,
   twitchChannelId: '',
   twitchCredentialId: '',
   twitchSenderId: '',
@@ -95,6 +102,7 @@ function buildLivestreamSettings(
     ],
     minimumMessageGapSeconds: form.minimumMessageGapSeconds,
     prioritizeYoutube: true,
+    restreamCredentialId: form.restreamCredentialId || undefined,
     scheduledCadenceMinutes: form.scheduledCadenceMinutes,
     targetAudience: [
       BotLivestreamTargetAudience.HOSTS,
@@ -102,6 +110,7 @@ function buildLivestreamSettings(
     ],
     transcriptEnabled: form.transcriptEnabled,
     transcriptLookbackMinutes: 3,
+    transcriptSource: form.transcriptSource,
   };
 }
 
@@ -180,12 +189,18 @@ function hydrateForm(bot: Bot): LivestreamFormState {
     minimumMessageGapSeconds:
       bot.livestreamSettings?.minimumMessageGapSeconds ??
       DEFAULT_FORM_STATE.minimumMessageGapSeconds,
+    restreamCredentialId:
+      bot.livestreamSettings?.restreamCredentialId ||
+      DEFAULT_FORM_STATE.restreamCredentialId,
     scheduledCadenceMinutes:
       bot.livestreamSettings?.scheduledCadenceMinutes ??
       DEFAULT_FORM_STATE.scheduledCadenceMinutes,
     transcriptEnabled:
       bot.livestreamSettings?.transcriptEnabled ??
       DEFAULT_FORM_STATE.transcriptEnabled,
+    transcriptSource:
+      bot.livestreamSettings?.transcriptSource ||
+      DEFAULT_FORM_STATE.transcriptSource,
     twitchChannelId: twitchTarget?.channelId || '',
     twitchCredentialId: twitchTarget?.credentialId || '',
     twitchSenderId: twitchTarget?.senderId || '',
@@ -195,12 +210,20 @@ function hydrateForm(bot: Bot): LivestreamFormState {
   };
 }
 
+export type RestreamCredentialOption = {
+  id: string;
+  label: string;
+};
+
 export function useLivestreamChatBotPage(
   defaultPlatform: LivestreamPagePlatform,
 ) {
   const { brandId, organizationId } = useBrand();
   const getBotsService = useAuthedService((token: string) =>
     BotsService.getInstance(token),
+  );
+  const getCredentialsService = useAuthedService((token: string) =>
+    CredentialsService.getInstance(token),
   );
   const notificationsService = NotificationsService.getInstance();
 
@@ -213,6 +236,9 @@ export function useLivestreamChatBotPage(
   const [promotionAngle, setPromotionAngle] = useState('');
   const [transcriptChunk, setTranscriptChunk] = useState('');
   const [sendNowMessage, setSendNowMessage] = useState('');
+  const [restreamCredentials, setRestreamCredentials] = useState<
+    RestreamCredentialOption[]
+  >([]);
   const [selectedPlatform, setSelectedPlatform] =
     useState<LivestreamPagePlatform>(defaultPlatform);
 
@@ -229,13 +255,28 @@ export function useLivestreamChatBotPage(
         const service = await getBotsService();
         const bots = await service.findAllByOrganization(organizationId);
         const existingBot =
-          bots.find((candidate) =>
-            candidate.platforms.some(
+          bots.find((candidate) => {
+            const isLivestreamPlatform = candidate.platforms.some(
               (platform) =>
                 platform === BotPlatform.YOUTUBE ||
                 platform === BotPlatform.TWITCH,
-            ),
-          ) || null;
+            );
+            if (!isLivestreamPlatform) {
+              return false;
+            }
+            // Prefer brand-scoped bot when brand context is set.
+            const candidateBrandId =
+              typeof candidate.brand === 'string'
+                ? candidate.brand
+                : 'brandId' in candidate &&
+                    typeof candidate.brandId === 'string'
+                  ? candidate.brandId
+                  : undefined;
+            if (brandId && candidateBrandId) {
+              return candidateBrandId === brandId;
+            }
+            return true;
+          }) || null;
 
         startTransition(() => {
           setBot(existingBot);
@@ -250,6 +291,35 @@ export function useLivestreamChatBotPage(
             setSession(currentSession);
           });
         }
+
+        if (brandId) {
+          try {
+            const credentialsService = await getCredentialsService();
+            const credentials = await credentialsService.findAll({
+              brandId,
+              isConnected: true,
+              isDeleted: false,
+              platform: Platform.RESTREAM,
+              limit: 20,
+            });
+            startTransition(() => {
+              setRestreamCredentials(
+                credentials.map((credential) => ({
+                  id: credential.id,
+                  label:
+                    credential.externalHandle ||
+                    credential.externalId ||
+                    `Restream ${credential.id.slice(0, 6)}`,
+                })),
+              );
+            });
+          } catch {
+            // Optional picker — free-text id remains available.
+            startTransition(() => {
+              setRestreamCredentials([]);
+            });
+          }
+        }
       } catch (_error) {
         notificationsService.error(
           'Failed to load livestream bot configuration',
@@ -260,7 +330,13 @@ export function useLivestreamChatBotPage(
     }
 
     void loadLivestreamBot();
-  }, [getBotsService, notificationsService, organizationId]);
+  }, [
+    brandId,
+    getBotsService,
+    getCredentialsService,
+    notificationsService,
+    organizationId,
+  ]);
 
   const recentDeliveries = useMemo(
     () => (session?.deliveryHistory ?? []).slice(-5).reverse(),
@@ -439,6 +515,7 @@ export function useLivestreamChatBotPage(
     manualTopic,
     promotionAngle,
     recentDeliveries,
+    restreamCredentials,
     selectedPlatform,
     sendNowMessage,
     session,

@@ -4,9 +4,9 @@ import type {
   WorkflowNode,
   WorkflowNodeData,
 } from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { XYPosition } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
+import { getNodeDefinition } from '../../../../nodes/registry/merged-registry';
 import { createIdMap, createTargetMap } from '../../../lib';
 import { generateId } from '../helpers/nodeHelpers';
 import {
@@ -18,7 +18,8 @@ import {
 import type { ImageHistoryItem, WorkflowStore } from '../types';
 
 export interface NodeSlice {
-  addNode: (type: NodeType, position: XYPosition) => string;
+  /** Core or SaaS node type string (SaaS e.g. socialRead, reportDelivery). */
+  addNode: (type: NodeType | string, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(
     nodeId: string,
@@ -39,19 +40,26 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
   get,
 ) => ({
   addNode: (type, position) => {
-    const nodeDef = NODE_DEFINITIONS[type];
+    const nodeDef = getNodeDefinition(String(type));
     if (!nodeDef) return '';
+
+    const defaultData =
+      'defaultData' in nodeDef && nodeDef.defaultData
+        ? (nodeDef.defaultData as Record<string, unknown>)
+        : {};
 
     const id = generateId();
     const newNode: WorkflowNode = {
       data: {
-        ...nodeDef.defaultData,
+        ...defaultData,
         label: nodeDef.label,
         status: 'idle',
       } as WorkflowNodeData,
       id,
       position,
-      type,
+      // Registry validation above proves the runtime node exists. SaaS node
+      // ids extend the OSS NodeType union without widening the shared package.
+      type: type as NodeType,
       ...(type === 'download' && { height: 320, width: 280 }),
     };
 

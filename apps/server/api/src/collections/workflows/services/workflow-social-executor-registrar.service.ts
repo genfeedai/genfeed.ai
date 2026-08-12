@@ -1,8 +1,13 @@
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { Platform } from '@genfeedai/enums';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { CredentialPlatform, Platform } from '@genfeedai/enums';
+import type { INotificationPayloadTypes } from '@genfeedai/interfaces';
 import {
   CommentTriggerExecutor,
   type DmSender,
@@ -14,7 +19,9 @@ import {
   NewRepostTriggerExecutor,
   PostReplyExecutor,
   type ReplyPublisher,
+  ReportDeliveryExecutor,
   SendDmExecutor,
+  SocialReadExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,6 +35,9 @@ export class WorkflowSocialExecutorRegistrarService {
     private readonly socialAdapterFactory?: SocialAdapterFactory,
     private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
     private readonly socialInboxService?: SocialInboxService,
+    private readonly twitterService?: TwitterService,
+    private readonly credentialsService?: CredentialsService,
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -41,6 +51,8 @@ export class WorkflowSocialExecutorRegistrarService {
     const keywordTriggerExecutor = new KeywordTriggerExecutor();
     const engagementTriggerExecutor = new EngagementTriggerExecutor();
     const commentTriggerExecutor = new CommentTriggerExecutor();
+    const socialReadExecutor = new SocialReadExecutor();
+    const reportDeliveryExecutor = new ReportDeliveryExecutor();
 
     if (
       this.socialAdapterFactory ||
@@ -69,6 +81,9 @@ export class WorkflowSocialExecutorRegistrarService {
       }
     }
 
+    this.wireSocialReadExecutor(socialReadExecutor);
+    this.wireReportDeliveryExecutor(reportDeliveryExecutor);
+
     for (const executor of [
       postReplyExecutor,
       sendDmExecutor,
@@ -79,12 +94,160 @@ export class WorkflowSocialExecutorRegistrarService {
       keywordTriggerExecutor,
       engagementTriggerExecutor,
       commentTriggerExecutor,
+      socialReadExecutor,
+      reportDeliveryExecutor,
     ]) {
       engine.registerExecutor(
         executor.nodeType,
         this.helper.wrapEngineExecutor(executor),
       );
     }
+  }
+
+  private wireSocialReadExecutor(executor: SocialReadExecutor): void {
+    if (!this.twitterService) {
+      this.loggerService.warn(
+        `${this.logContext} TwitterService unavailable — socialRead node will fail until wired`,
+      );
+      return;
+    }
+
+    const twitterService = this.twitterService;
+    const credentialsService = this.credentialsService;
+
+    executor.setProvider(async (params) => {
+      if (params.platform !== 'twitter') {
+        throw new Error(
+          `socialRead does not support platform "${params.platform}" yet`,
+        );
+      }
+
+      const limit = Math.min(Math.max(params.limit, 1), 50);
+      let username = params.username?.replace(/^@/, '');
+      let accessToken: string | undefined;
+
+      if (params.brandId) {
+        accessToken =
+          (await twitterService.resolveBrandUserAccessToken(
+            params.organizationId,
+            params.brandId,
+          )) ?? undefined;
+
+        if (!username && credentialsService) {
+          const credential = await credentialsService.findOne({
+            brandId: params.brandId,
+            isDeleted: false,
+            organizationId: params.organizationId,
+            platform: CredentialPlatform.TWITTER,
+          });
+          username = credential?.username?.replace(/^@/, '') || undefined;
+        }
+      }
+
+      if (params.mode === 'search') {
+        const query = params.query?.trim();
+        if (!query) {
+          throw new Error('query is required for socialRead search mode');
+        }
+        const tweets = await twitterService.searchRecentTweets(query, {
+          maxResults: Math.min(Math.max(limit, 5), 25),
+          sortOrder: 'recency',
+        });
+        return tweets.map((tweet) => ({
+          authorName: tweet.authorName,
+          authorUsername: tweet.authorUsername,
+          createdAt: tweet.createdAt,
+          engagement: tweet.engagement,
+          id: tweet.id,
+          likes: tweet.likes,
+          replies: tweet.replies,
+          retweets: tweet.retweets,
+          text: tweet.text,
+          url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
+        }));
+      }
+
+      if (params.mode === 'mentions') {
+        if (!username) {
+          throw new Error(
+            'username or a brand with a connected X account is required for mentions mode',
+          );
+        }
+        const tweets = await twitterService.searchRecentTweets(`@${username}`, {
+          maxResults: Math.min(Math.max(limit, 5), 25),
+          sortOrder: 'recency',
+        });
+        return tweets.map((tweet) => ({
+          authorName: tweet.authorName,
+          authorUsername: tweet.authorUsername,
+          createdAt: tweet.createdAt,
+          engagement: tweet.engagement,
+          id: tweet.id,
+          likes: tweet.likes,
+          replies: tweet.replies,
+          retweets: tweet.retweets,
+          text: tweet.text,
+          url: buildTwitterStatusUrl(tweet.id, tweet.authorUsername),
+        }));
+      }
+
+      // timeline
+      if (!username) {
+        throw new Error(
+          'username or a brand with a connected X account is required for timeline mode',
+        );
+      }
+
+      const posts = await twitterService.getUserTimelineByUsername(username, {
+        accessToken,
+        maxResults: limit,
+      });
+
+      return posts.map((post) => ({
+        authorName: post.authorName,
+        authorUsername: post.authorUsername ?? username,
+        createdAt: post.createdAt?.toISOString?.() ?? undefined,
+        id: post.id,
+        likes: post.metrics?.likes,
+        replies: post.metrics?.comments,
+        retweets: post.metrics?.shares,
+        text: post.text,
+        url: buildTwitterStatusUrl(post.id, post.authorUsername ?? username),
+      }));
+    });
+  }
+
+  private wireReportDeliveryExecutor(executor: ReportDeliveryExecutor): void {
+    const notifications = this.notificationsService;
+    if (!notifications) {
+      this.loggerService.warn(
+        `${this.logContext} NotificationsService unavailable — reportDelivery node will fail until wired`,
+      );
+      return;
+    }
+
+    executor.setNotificationSender(async ({ userId, title, body }) => {
+      await notifications.sendNotification({
+        action: 'workflow_report',
+        payload: {
+          card: {
+            description: body,
+            title,
+          },
+        } satisfies INotificationPayloadTypes,
+        type: 'discord',
+        userId,
+      });
+    });
+
+    executor.setEmailSender(async ({ to, subject, html }) => {
+      await notifications.sendEmail(to, subject, html);
+    });
+
+    executor.setOwnerResolver(async ({ userId }) => {
+      // Recipient defaults to the executing user; callers may override email in node config.
+      return { email: null, userId };
+    });
   }
 
   private wireSocialExecutors(input: {

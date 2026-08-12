@@ -222,6 +222,7 @@ enum CredentialPlatform {
   BEEHIIV
   UNIPILE
   DEVTO
+  RESTREAM
 }
 
 enum TagCategory {
@@ -272,6 +273,7 @@ enum IntegrationPlatform {
   SLACK
   DISCORD
   UNIPILE
+  RESTREAM
 }
 
 enum IntegrationStatus {
@@ -3028,6 +3030,14 @@ model AgentStrategy {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Deterministic content-workflow binding (not config JSON).
+  // preferredWorkflowId is org-scoped by service checks — no FK so soft-deleted
+  // workflows and catalog reinstalls do not cascade-delete strategies.
+  preferredWorkflowId         String?
+  preferredWorkflowTemplateId String?
+  // Typed list only: [{ "key": string, "value": string | number | boolean }]
+  workflowInputOverrides      Json    @default("[]")
+
   runs          AgentRun[]
   ingredients   Ingredient[]               @relation("ingredient_agent_strategy")
   posts         Post[]                     @relation("post_agent_strategy")
@@ -3041,6 +3051,8 @@ model AgentStrategy {
   platforms String[] @default([])
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, preferredWorkflowId])
+  @@index([organizationId, preferredWorkflowTemplateId])
   @@map("agent_strategies")
 }
 
@@ -3313,6 +3325,26 @@ model WorkflowExecution {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("workflow_executions")
+}
+
+/// Durable per-node idempotency claims for workflow execution (#2359).
+/// Unique on (executionId, nodeId): a second insert loses (P2002) and the
+/// runner re-emits the stored output instead of re-firing side effects.
+model WorkflowNodeClaim {
+  id             String   @id @default(cuid())
+  organizationId String
+  executionId    String
+  nodeId         String
+  /// running | completed | failed
+  status         String
+  output         Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([executionId, nodeId])
+  @@index([organizationId, executionId])
+  @@map("workflow_node_claims")
 }
 
 model BatchWorkflowJob {

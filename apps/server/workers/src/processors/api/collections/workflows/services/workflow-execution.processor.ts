@@ -91,12 +91,83 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   private async processTrigger(
     job: Job<WorkflowExecutionJobData>,
   ): Promise<unknown> {
-    const { triggerEvent } = job.data;
+    const { triggerEvent, priorExecutionIds } = job.data;
     if (!triggerEvent) {
       throw new Error('Trigger job missing triggerEvent data');
     }
 
+    // BullMQ retries re-invoke this handler. Re-running handleTriggerEvent
+    // would create *new* executions and re-fire every completed side-effect
+    // node (publish, DM, credits). When a prior attempt recorded execution
+    // ids, continue those same executionIds so durable claims + hydrated
+    // nodeResults skip completed nodes (#2359).
+    if (
+      (job.attemptsMade ?? 0) > 0 &&
+      Array.isArray(priorExecutionIds) &&
+      priorExecutionIds.length > 0
+    ) {
+      this.logger.warn(
+        `${this.logContext} continuing prior executions on job retry (no new trigger fan-out)`,
+        {
+          attemptsMade: job.attemptsMade,
+          jobId: job.id,
+          priorExecutionIds,
+        },
+      );
+
+      const continued: Array<{
+        executionId: string;
+        status: string;
+        workflowId: string;
+      }> = [];
+      for (const executionId of priorExecutionIds) {
+        const result = await this.executorService.continueExistingExecution(
+          executionId,
+          triggerEvent,
+        );
+        continued.push(result);
+      }
+
+      for (const result of continued) {
+        const delayData = (result as unknown as Record<string, unknown>)
+          ._delayJobData as DelayResumeJobData | undefined;
+        if (delayData) {
+          const delayMs = this.calculateDelayMs(delayData);
+          await this.queueService.queueDelayedResume(delayData, delayMs);
+        }
+      }
+
+      return {
+        continuedOnRetry: true,
+        executionCount: continued.length,
+        priorExecutionIds,
+        results: continued.map((r) => ({
+          executionId: r.executionId,
+          status: r.status,
+          workflowId: r.workflowId,
+        })),
+      };
+    }
+
     const results = await this.executorService.handleTriggerEvent(triggerEvent);
+
+    const executionIds = results
+      .map((r) => r.executionId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+    if (executionIds.length > 0) {
+      try {
+        await job.updateData({
+          ...job.data,
+          priorExecutionIds: executionIds,
+        });
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.logContext} failed to persist priorExecutionIds on job`,
+          { error, jobId: job.id },
+        );
+      }
+    }
 
     // Check for delay pauses — schedule resume jobs
     for (const result of results) {

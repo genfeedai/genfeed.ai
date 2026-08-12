@@ -24,6 +24,9 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   keywordTrigger: 0,
   mentionTrigger: 0,
   musicSource: 0, // resolver; cost is in the underlying generation
+  // Private report delivery is free at the node level (notification/email path).
+  reportDelivery: 0,
+  socialRead: 1, // [ESTIMATED] on-demand X read via platform API
   newFollowerTrigger: 0,
   newLikeTrigger: 0,
   newRepostTrigger: 0,
@@ -233,6 +236,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   newRepostTrigger: 'input',
   noop: 'input',
   postPublishTrigger: 'input',
+  socialRead: 'input',
   trendTrigger: 'input',
   videoInput: 'input',
 
@@ -242,6 +246,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
 
   // output
   publish: 'output',
+  reportDelivery: 'output',
   sendDm: 'output',
   webhook: 'output',
   postReply: 'output',
