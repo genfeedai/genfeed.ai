@@ -20,6 +20,11 @@ on:
         required: false
         default: true
         type: boolean
+      trusted_release_call:
+        description: 'True only when the registered release workflow invokes this reusable workflow'
+        required: false
+        default: false
+        type: boolean
       packages_json:
         description: 'Optional explicit release set; empty means detect registry drift'
         required: false
@@ -54,9 +59,12 @@ jobs:
       packages_json: ${{ steps.plan.outputs.packages_json }}
     steps:
       # npm authorizes the caller workflow, so a dispatched publish would fail at
-      # the registry with an opaque auth error. Fail here with the real reason.
+      # the registry with an opaque auth error. Reusable workflows inherit the
+      # caller's originating event, so github.event_name cannot distinguish a
+      # direct dispatch from release.yml. Use an explicit workflow_call-only
+      # trust input instead (the direct-dispatch schema cannot set it).
       - name: Reject real publishes outside the release workflow
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false }}
+        if: ${{ inputs.dry_run == false && inputs.trusted_release_call != true }}
         run: |
           echo "::error::Real package publishes run through the Release workflow, which is the registered npm trusted publisher. Dispatch this workflow with dry_run=true for preflight only."
           exit 1
@@ -169,7 +177,7 @@ jobs:
 
   publish:
     name: Publish preflighted package tarballs
-    if: ${{ inputs.dry_run == false && needs.plan.outputs.has_packages == 'true' }}
+    if: ${{ inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true' }}
     needs: [plan, preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -186,10 +194,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node for npm trusted publishing
-        uses: actions/setup-node@v7
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
         with:
           node-version: '24.x'
+          bun-version: '1.3.14'
+          install-command: 'bun install --frozen-lockfile'
 
       - name: Require npm trusted-publishing support
         run: |

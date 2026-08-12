@@ -1,9 +1,11 @@
 # AWS production monitoring
 
-The `genfeed-production` CloudWatch dashboard and alarms are managed by
-`infra/terraform/genfeed-prod/monitoring.tf`. They use standard AWS service
-metrics and the existing operations SNS topic. Container Insights, Managed
-Prometheus, and Managed Grafana are intentionally disabled at the current scale.
+The `genfeed-production` CloudWatch dashboard is managed by
+`infra/terraform/genfeed-prod/monitoring.tf` and uses standard AWS service
+metrics. Production CloudWatch alarms are operational AWS resources and are not
+provisioned or configured by this public repository. Container Insights,
+Managed Prometheus, and Managed Grafana are intentionally disabled at the
+current scale.
 
 ## Triage order
 
@@ -25,14 +27,12 @@ Prometheus, and Managed Grafana are intentionally disabled at the current scale.
 - Compare target 5xx, connection errors, response time, and request count over the same window.
 - Inspect Sentry and the owning service log group for the first correlated exception or timeout.
 - Check RDS and Redis saturation before scaling an application task.
-- A missing error or latency metric during zero traffic is expected and does not alarm.
 
 ## ECS service health
 
 - Compare live task count with the desired count in `infra/terraform/genfeed-prod/locals.tf`.
 - Inspect stopped-task reasons and the primary deployment rollout state.
 - For sustained CPU or memory pressure, verify request/queue load before changing the Fargate task size.
-- Services configured with desired count zero are intentionally excluded from alarms.
 
 ## RDS PostgreSQL
 
@@ -76,16 +76,10 @@ queues and still attempts the fixed aggregate CloudWatch publish. Investigate
 the workers log for `Queue health processing failed` before changing a
 threshold.
 
-## Missing telemetry
-
-Required ECS, RDS, and Redis resources treat sustained missing telemetry as unhealthy.
-Traffic-dependent ALB error and latency metrics treat missing data as no traffic. Intentionally
-stopped fleet instances use non-breaching missing-data behavior in the private fleet monitoring stack.
-
 ## Cost boundary
 
 - Keep the production dashboard at or below 50 referenced metrics; the current definition uses 38.
 - Prefer standard AWS metrics over custom metrics.
 - Do not enable Container Insights, Managed Prometheus, or Managed Grafana without documenting the capability gap and expected monthly cost.
 - Review the `AmazonCloudWatch` Cost Explorer service monthly, grouped by usage type and operation.
-- This account is outside the applicable CloudWatch free-tier offsets. The baseline estimate while the GPU fleet is stopped is approximately USD 8.60/month: one USD 3 dashboard, 41 standard alarm metrics across the public and private stacks, and five USD 0.30 queue metrics. Fleet agent metrics are hourly-prorated only when an instance runs (up to USD 7.20 for all four instances running an entire month).
+- Alarm and fleet monitoring costs are reviewed with the operational AWS resources rather than specified in this public stack.

@@ -505,7 +505,7 @@ test('pins mocked core E2E builds to Community mode', () => {
   );
 });
 
-test('keeps production monitoring permissions in the deploy-role bootstrap policy', () => {
+test('limits public production monitoring permissions to the dashboard', () => {
   const bootstrap = readFileSync(
     path.join(REPOSITORY_ROOT, 'infra', 'terraform', 'bootstrap', 'main.tf'),
     'utf8',
@@ -522,18 +522,13 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     )?.[0];
 
   for (const action of [
-    'cloudwatch:DeleteAlarms',
     'cloudwatch:DeleteDashboards',
-    'cloudwatch:DescribeAlarms',
     'cloudwatch:GetDashboard',
     'cloudwatch:ListDashboards',
     'cloudwatch:ListTagsForResource',
     'cloudwatch:PutDashboard',
-    'cloudwatch:PutMetricAlarm',
     'cloudwatch:TagResource',
     'cloudwatch:UntagResource',
-    'sns:ListTagsForResource',
-    'sns:ListTopics',
   ]) {
     assert.ok(
       policy.includes(`"${action}"`),
@@ -543,19 +538,10 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
 
   assert.match(
     policy,
-    /arn:\$\{local\.aws_partition\}:cloudwatch:\$\{var\.region\}:\$\{local\.account_id\}:alarm:genfeed-production-\*/,
-  );
-  assert.match(
-    policy,
     /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
   );
 
   for (const [sid, action, resource] of [
-    [
-      'ReadProductionAlarms',
-      'cloudwatch:DescribeAlarms',
-      /alarm:genfeed-production-\*/,
-    ],
     [
       'ReadProductionDashboard',
       'cloudwatch:GetDashboard',
@@ -564,7 +550,7 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     [
       'InspectProductionMonitoringTags',
       'cloudwatch:ListTagsForResource',
-      /alarm:genfeed-production-\*[\s\S]*?dashboard\/genfeed-production/,
+      /dashboard\/genfeed-production/,
     ],
   ]) {
     const scopedStatement = statement(sid);
@@ -578,22 +564,6 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
     assert.doesNotMatch(scopedStatement, /resources\s+= \["\*"\]/);
   }
 
-  const inspectOperationsTopic = statement('InspectOperationsTopic');
-  assert.ok(
-    inspectOperationsTopic,
-    'monitoring policy must inspect the operations topic',
-  );
-  assert.match(inspectOperationsTopic, /effect\s+= "Allow"/);
-  assert.match(
-    inspectOperationsTopic,
-    /actions = \["sns:ListTagsForResource"\]/,
-  );
-  assert.match(
-    inspectOperationsTopic,
-    /resources = \[\n\s+"arn:\$\{local\.aws_partition\}:sns:\$\{var\.region\}:\$\{local\.account_id\}:api-genfeed-ai",\n\s+\]/,
-  );
-  assert.doesNotMatch(inspectOperationsTopic, /resources\s+= \["\*"\]/);
-
   const discoverProductionMonitoring = statement(
     'DiscoverProductionMonitoring',
   );
@@ -603,12 +573,16 @@ test('keeps production monitoring permissions in the deploy-role bootstrap polic
   );
   assert.match(
     discoverProductionMonitoring,
-    /actions = \[\n\s+"cloudwatch:ListDashboards",\n\s+"sns:ListTopics",\n\s+\]/,
+    /actions\s+= \["cloudwatch:ListDashboards"\]/,
   );
   assert.match(discoverProductionMonitoring, /resources = \["\*"\]/);
   assert.doesNotMatch(
     discoverProductionMonitoring,
-    /cloudwatch:(?:DescribeAlarms|GetDashboard|ListTagsForResource)/,
+    /cloudwatch:(?:GetDashboard|ListTagsForResource)/,
+  );
+  assert.doesNotMatch(
+    policy,
+    /cloudwatch:(?:DeleteAlarms|DescribeAlarms|PutMetricAlarm)|alarm:genfeed-production-|sns:/,
   );
   assert.match(
     bootstrap,

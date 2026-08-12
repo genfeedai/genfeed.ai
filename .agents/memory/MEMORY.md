@@ -59,7 +59,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 ## Specs and decisions (per issue)
 
 - [desktop-local-database-boundary](spec-desktop-local-database-boundary.md) · [decisions](decisions-desktop-local-database-boundary.md) — #2824
-- [AWS operational monitoring](spec-aws-operational-monitoring.md) · [decisions](decisions-aws-operational-monitoring.md) — #1
 - [multi-type-posts-library](spec-multi-type-posts-library.md) · [decisions](decisions-multi-type-posts-library.md) — #2604
 - [operational-app-home](spec-operational-app-home.md) · [decisions](decisions-operational-app-home.md) — #1866
 - [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
