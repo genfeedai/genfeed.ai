@@ -66,12 +66,20 @@ describe('desktop release config', () => {
     expect(packageJson.scripts?.['release:manifest']).toBe(
       'node ./scripts/write-release-manifest.cjs',
     );
-    expect(packageJson.scripts?.['release:mac']).toContain(
-      'bun run release:manifest',
+    expect(packageJson.scripts?.['release:metadata']).toBe(
+      'node ./scripts/finalize-macos-release.cjs',
+    );
+    expect(packageJson.scripts?.['release:mac']).not.toContain(
+      'release:manifest',
     );
     expect(
       fs.existsSync(
         path.join(desktopRoot, 'scripts/write-release-manifest.cjs'),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(desktopRoot, 'scripts/finalize-macos-release.cjs'),
       ),
     ).toBe(true);
     const notarizeScript = readReleaseScript('notarize.cjs');

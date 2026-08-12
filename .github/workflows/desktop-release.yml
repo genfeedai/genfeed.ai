@@ -123,6 +123,15 @@ jobs:
             xcrun stapler validate "$dmg"
           done
 
+      # Stapling writes Apple's notarization ticket into the DMG, changing its
+      # checksum after electron-builder generated latest-mac.yml and the release
+      # manifest. Refresh final metadata from the bytes users actually download,
+      # and remove the pre-staple DMG blockmap before publishing.
+      - name: Finalize notarized release metadata
+        run: |
+          bun run --filter=@genfeedai/desktop release:metadata
+          bun run --filter=@genfeedai/desktop release:manifest
+
       - name: Verify Developer ID signature, notarization, and app size
         run: |
           DMG_PATH="$(find apps/desktop/app/release -maxdepth 1 -name '*.dmg' -type f | head -1)"
