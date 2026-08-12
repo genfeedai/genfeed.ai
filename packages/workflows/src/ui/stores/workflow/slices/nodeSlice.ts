@@ -57,7 +57,9 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       } as WorkflowNodeData,
       id,
       position,
-      type: String(type),
+      // Registry validation above proves the runtime node exists. SaaS node
+      // ids extend the OSS NodeType union without widening the shared package.
+      type: type as NodeType,
       ...(type === 'download' && { height: 320, width: 280 }),
     };
 

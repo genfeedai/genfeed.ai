@@ -268,9 +268,9 @@ export function useLivestreamChatBotPage(
             const candidateBrandId =
               typeof candidate.brand === 'string'
                 ? candidate.brand
-                : typeof (candidate as { brandId?: string }).brandId ===
-                    'string'
-                  ? (candidate as { brandId: string }).brandId
+                : 'brandId' in candidate &&
+                    typeof candidate.brandId === 'string'
+                  ? candidate.brandId
                   : undefined;
             if (brandId && candidateBrandId) {
               return candidateBrandId === brandId;

@@ -73,7 +73,9 @@ function intentBadgeVariant(
 export default function RepliesPage() {
   const translate = useTranslations('common.automation.replies');
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
-  const getReplyBotService = useAuthedService(ReplyBotConfigsService);
+  const getReplyBotService = useAuthedService((token: string) =>
+    ReplyBotConfigsService.getInstance(token),
+  );
   const connectPlatform = usePlatformOAuthConnect({ brandId: brand?.id });
   const [isConnecting, setIsConnecting] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
