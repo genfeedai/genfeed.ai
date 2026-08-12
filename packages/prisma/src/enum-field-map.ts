@@ -3149,6 +3149,21 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  PatternExtractionCheckpoint: {
+    allFields: [
+      'createdAt',
+      'data',
+      'id',
+      'lastRunAt',
+      'measuredAt',
+      'source',
+      'sourceId',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   PatternPlaybook: {
     allFields: [
       'createdAt',

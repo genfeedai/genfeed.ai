@@ -1,7 +1,7 @@
 import { QueueService } from '@api/queues/core/queue.service';
 import {
   PATTERN_EXTRACTION_QUEUE,
-  PatternExtractionJobData,
+  type PatternExtractionJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -24,27 +24,14 @@ export class CronPatternExtractionService {
     this.logger.log(`${url} started`);
 
     try {
-      const platforms = [
-        'tiktok',
-        'instagram',
-        'facebook',
-        'youtube',
-        'google_ads',
-        'all',
-      ];
+      const jobData: PatternExtractionJobData = {};
 
-      for (const platform of platforms) {
-        const jobData: PatternExtractionJobData = { platform };
+      await this.queueService.add(this.QUEUE_NAME, jobData, {
+        attempts: 2,
+        backoff: { delay: 10000, type: 'exponential' },
+      });
 
-        await this.queueService.add(this.QUEUE_NAME, jobData, {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-        });
-      }
-
-      this.logger.log(
-        `${url} enqueued ${platforms.length} pattern extraction jobs`,
-      );
+      this.logger.log(`${url} enqueued 1 pattern extraction scan`);
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
     }
