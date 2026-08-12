@@ -1,4 +1,5 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   normalizeReplyBotPlatform,
@@ -27,6 +28,7 @@ export class BotActionExecutorService {
     private readonly loggerService: LoggerService,
     private readonly instagramService: InstagramService,
     @Optional() private readonly youtubeService: YoutubeService | undefined,
+    @Optional() private readonly twitterService: TwitterService | undefined,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
@@ -34,17 +36,83 @@ export class BotActionExecutorService {
    * Create a Twitter client with user credentials.
    * Tokens are expected to be plaintext — callers must decrypt before building
    * IReplyBotCredentialData (decrypt at the credential-loading boundary).
+   *
+   * OAuth 2.0 user tokens (brand X connect) are bearer-only. Never treat
+   * refreshToken as an OAuth 1.0a access secret — that 401s Send/auto-reply.
    */
   private createTwitterClient(credential: IReplyBotCredentialData): TwitterApi {
-    const accessSecret =
-      credential.accessTokenSecret ?? credential.refreshToken ?? null;
+    if (!credential.accessToken) {
+      throw new Error('Twitter credential is missing accessToken');
+    }
 
-    return new TwitterApi({
-      accessSecret,
-      accessToken: credential.accessToken,
-      appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
-      appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
-    } as unknown as ConstructorParameters<typeof TwitterApi>[0]);
+    if (credential.accessTokenSecret) {
+      return new TwitterApi({
+        accessSecret: credential.accessTokenSecret,
+        accessToken: credential.accessToken,
+        appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
+        appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
+      } as unknown as ConstructorParameters<typeof TwitterApi>[0]);
+    }
+
+    return new TwitterApi(credential.accessToken);
+  }
+
+  private resolveTwitterService(): TwitterService | undefined {
+    if (this.twitterService) {
+      return this.twitterService;
+    }
+    try {
+      return this.moduleRef?.get(TwitterService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Publish a tweet or reply. Brand OAuth2 (no access secret) goes through
+   * TwitterService.postTweet so the token is refreshed the same way as Publish.
+   * Quote tweets stay on the user client — postTweet has no quote_tweet_id.
+   */
+  private async publishTwitterStatus(
+    credential: IReplyBotCredentialData,
+    text: string,
+    options?: { inReplyToTweetId?: string; quoteTweetId?: string },
+  ): Promise<string> {
+    const organizationId = credential.organizationId;
+    const brandId = credential.brandId;
+    const twitterService = this.resolveTwitterService();
+    const canUsePublisher =
+      !credential.accessTokenSecret &&
+      Boolean(organizationId) &&
+      Boolean(brandId) &&
+      Boolean(twitterService) &&
+      !options?.quoteTweetId;
+
+    if (canUsePublisher && twitterService && organizationId && brandId) {
+      return twitterService.postTweet(
+        organizationId,
+        brandId,
+        text,
+        options?.inReplyToTweetId,
+      );
+    }
+
+    const client = this.createTwitterClient(credential);
+    if (options?.inReplyToTweetId) {
+      const result = await client.v2.tweet(text, {
+        reply: { in_reply_to_tweet_id: options.inReplyToTweetId },
+      });
+      return result.data.id;
+    }
+    if (options?.quoteTweetId) {
+      const result = await client.v2.tweet(text, {
+        quote_tweet_id: options.quoteTweetId,
+      });
+      return result.data.id;
+    }
+
+    const result = await client.v2.tweet(text);
+    return result.data.id;
   }
 
   /**
@@ -57,9 +125,7 @@ export class BotActionExecutorService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.createTwitterClient(credential);
-      const result = await client.v2.tweet(text);
-      const contentId = result.data.id;
+      const contentId = await this.publishTwitterStatus(credential, text);
       const contentUrl = `https://x.com/${credential.username ?? 'i'}/status/${contentId}`;
 
       this.loggerService.log(`${url} success`, {
@@ -121,11 +187,9 @@ export class BotActionExecutorService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.createTwitterClient(credential);
-      const result = await client.v2.tweet(text, {
-        quote_tweet_id: quoteTweetId,
+      const contentId = await this.publishTwitterStatus(credential, text, {
+        quoteTweetId,
       });
-      const contentId = result.data.id;
       const contentUrl = `https://x.com/${credential.username ?? 'i'}/status/${contentId}`;
 
       this.loggerService.log(`${url} success`, {
@@ -211,15 +275,9 @@ export class BotActionExecutorService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.createTwitterClient(credential);
-
-      const result = await client.v2.tweet(replyText, {
-        reply: {
-          in_reply_to_tweet_id: targetContent.id,
-        },
+      const contentId = await this.publishTwitterStatus(credential, replyText, {
+        inReplyToTweetId: targetContent.id,
       });
-
-      const contentId = result.data.id;
       const contentUrl = `https://x.com/${targetContent.authorUsername}/status/${contentId}`;
 
       this.loggerService.log(`${url} success`, {
@@ -554,9 +612,6 @@ export class BotActionExecutorService {
    * Validate that a credential has the required tokens
    */
   validateCredential(credential: IReplyBotCredentialData): boolean {
-    return !!(
-      credential.accessToken &&
-      (credential.accessTokenSecret || credential.refreshToken)
-    );
+    return Boolean(credential.accessToken);
   }
 }
