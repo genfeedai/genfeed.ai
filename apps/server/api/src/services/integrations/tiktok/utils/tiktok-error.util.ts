@@ -24,10 +24,10 @@ export function parseTikTokGrantedScopes(value: unknown): string[] {
 }
 
 export function getTikTokErrorCode(error: unknown): string | undefined {
-  const axiosError = error as AxiosError<TikTokErrorPayload>;
-  const data = axiosError.response?.data;
+  const axiosError = error as AxiosError<TikTokErrorPayload> | null | undefined;
+  const data = axiosError?.response?.data;
   const errorCode =
-    (typeof data?.error === 'object' ? data.error.code : data?.error) ??
+    (typeof data?.error === 'object' ? data.error?.code : data?.error) ??
     data?.data?.error?.code;
 
   return typeof errorCode === 'string' ? errorCode : undefined;
@@ -50,9 +50,9 @@ export function isTikTokScopeError(error: unknown): boolean {
 }
 
 export function isTikTokRateLimitError(error: unknown): boolean {
-  const axiosError = error as AxiosError<TikTokErrorPayload>;
+  const axiosError = error as AxiosError<TikTokErrorPayload> | null | undefined;
   return (
-    axiosError.response?.status === 429 ||
+    axiosError?.response?.status === 429 ||
     getTikTokErrorCode(error) === 'rate_limit_exceeded'
   );
 }
@@ -62,8 +62,8 @@ export function getTikTokRetryAfterMs(
   fallbackMs: number,
   maximumMs: number,
 ): number {
-  const axiosError = error as AxiosError<TikTokErrorPayload>;
-  const retryAfter = axiosError.response?.headers?.['retry-after'];
+  const axiosError = error as AxiosError<TikTokErrorPayload> | null | undefined;
+  const retryAfter = axiosError?.response?.headers?.['retry-after'];
   const retryAfterSeconds = Number(retryAfter);
 
   if (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds < 0) {
