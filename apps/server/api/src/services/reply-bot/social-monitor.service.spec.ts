@@ -1,6 +1,7 @@
 import type { MonitoredAccountFilters } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   type SocialContentData,
   SocialMonitorService,
@@ -51,6 +52,12 @@ describe('SocialMonitorService', () => {
     searchYouTubeVideos: vi.fn().mockResolvedValue([]),
   };
 
+  const mockTwitterService = {
+    getTweetReplies: vi.fn().mockResolvedValue([]),
+    getUserTimelineByUsername: vi.fn().mockResolvedValue([]),
+    resolveBrandUserAccessToken: vi.fn().mockResolvedValue(null),
+  };
+
   const mockProcessedTweetsService = {
     getProcessedTweetIds: vi.fn().mockResolvedValue(new Set()),
   };
@@ -76,6 +83,7 @@ describe('SocialMonitorService', () => {
           useValue: mockProcessedTweetsService,
         },
         { provide: ApifyService, useValue: mockApifyService },
+        { provide: TwitterService, useValue: mockTwitterService },
       ],
     }).compile();
 
@@ -90,7 +98,38 @@ describe('SocialMonitorService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should fetch twitter replies and normalise them', async () => {
+  it('prefers official X API replies over Apify', async () => {
+    mockTwitterService.getTweetReplies.mockResolvedValueOnce([
+      {
+        authorId: 'u1',
+        authorName: 'Alice',
+        authorUsername: 'alice',
+        createdAt: new Date(),
+        id: 'tweet1',
+        inReplyToId: 'parent1',
+        metrics: { comments: 0, likes: 5, shares: 1 },
+        text: 'Great thread!',
+      },
+    ]);
+
+    const results = await service.getContentComments(
+      ReplyBotPlatform.TWITTER,
+      'parent1',
+      { brandId: 'brand-1', organizationId: 'org-1' },
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0].platform).toBe(ReplyBotPlatform.TWITTER);
+    expect(results[0].text).toBe('Great thread!');
+    expect(results[0].parentContentId).toBe('parent1');
+    expect(mockTwitterService.getTweetReplies).toHaveBeenCalled();
+    expect(mockApifyService.getTwitterTweetReplies).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Apify when official X replies fail', async () => {
+    mockTwitterService.getTweetReplies.mockRejectedValueOnce(
+      new Error('search not available'),
+    );
     mockApifyService.getTwitterTweetReplies.mockResolvedValueOnce([
       {
         authorAvatarUrl: 'https://img.test/a.jpg',
@@ -114,9 +153,9 @@ describe('SocialMonitorService', () => {
     );
 
     expect(results).toHaveLength(1);
-    expect(results[0].platform).toBe(ReplyBotPlatform.TWITTER);
     expect(results[0].text).toBe('Great thread!');
     expect(results[0].contentType).toBe(SocialContentType.TWEET);
+    expect(mockApifyService.getTwitterTweetReplies).toHaveBeenCalled();
   });
 
   it('should throw for unsupported platform in getContentComments', async () => {

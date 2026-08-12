@@ -189,7 +189,12 @@ export class AuthorReplyLoopService {
         comments = await this.socialMonitorService.getContentComments(
           ReplyBotPlatform.TWITTER,
           post.id,
-          { limit: MAX_COMMENTS_PER_POST },
+          {
+            brandId: params.brandId,
+            limit: MAX_COMMENTS_PER_POST,
+            organizationId: params.organizationId,
+            preferOfficialApi: true,
+          },
         );
       } catch (error: unknown) {
         this.logger.warn(`${this.constructorName} comment fetch failed`, {

@@ -403,7 +403,15 @@ export class ReplyBotOrchestratorService {
         const comments = await this.socialMonitorService.getContentComments(
           platform,
           post.id,
-          { limit: 50 },
+          {
+            brandId:
+              typeof botConfig.brandId === 'string'
+                ? botConfig.brandId
+                : undefined,
+            limit: 50,
+            organizationId,
+            preferOfficialApi: true,
+          },
         );
 
         // Stamp parent so author closed-loop tracking can attribute the post.

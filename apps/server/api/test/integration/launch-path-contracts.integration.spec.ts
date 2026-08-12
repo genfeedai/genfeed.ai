@@ -301,4 +301,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(authorLoop).toContain('recordAuthorClosedLoop');
     expect(authorLoop).toContain('COMMENT_RESPONDER');
   });
+
+  it('reads X replies via official API first with Apify fallback only', () => {
+    const twitter = readRepo(
+      'apps/server/api/src/services/integrations/twitter/services/twitter.service.ts',
+    );
+    const monitor = readRepo(
+      'apps/server/api/src/services/reply-bot/social-monitor.service.ts',
+    );
+    expect(twitter).toContain('getTweetReplies');
+    expect(twitter).toContain('tweets/search/recent');
+    expect(twitter).toContain('conversation_id:');
+    expect(monitor).toContain('getTweetReplies');
+    expect(monitor).toContain('falling back to Apify');
+    expect(monitor).toContain('preferOfficialApi');
+  });
 });

@@ -37,3 +37,11 @@ Reply to comments on **your** posts. Product name is just **Replies** (not “au
 ## Feature flag
 
 Reply bot routes still sit behind `reply_bot` feature flag on the controller.
+
+## Comment read path (X)
+
+1. **Official first** — `TwitterService.getTweetReplies` via `tweets/search/recent` + `conversation_id:{tweetId}` (brand OAuth when available, else app bearer).  
+2. **Apify fallback** — only when official throws or returns empty (tier/search not available).  
+3. **Write** — always brand OAuth via `BotActionExecutorService.postReply`.
+
+Timeline listing already preferred official API the same way.
