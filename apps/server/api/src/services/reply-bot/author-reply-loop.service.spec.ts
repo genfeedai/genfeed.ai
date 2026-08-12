@@ -38,7 +38,10 @@ describe('AuthorReplyLoopService', () => {
     markAsProcessed: vi.fn(),
   };
   const xActivitySubscriptionService = {
-    ensureSubscriptionForUser: vi.fn().mockResolvedValue({ mode: 'skipped' }),
+    ensureSubscriptionForUser: vi.fn().mockResolvedValue({
+      message: 'X_ACTIVITY_WEBHOOK_ENABLED is off — subscription skipped',
+      mode: 'skipped',
+    }),
   };
 
   let service: AuthorReplyLoopService;
@@ -81,13 +84,16 @@ describe('AuthorReplyLoopService', () => {
         type: 'comment_responder',
       }),
     );
-    expect(result).toEqual({
-      botConfigId: 'bot-1',
-      created: true,
-      isActive: true,
-      maxAgeHours: 24,
-      platform: 'twitter',
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        botConfigId: 'bot-1',
+        created: true,
+        isActive: true,
+        maxAgeHours: 24,
+        platform: 'twitter',
+        xActivity: expect.objectContaining({ mode: 'skipped' }),
+      }),
+    );
   });
 
   it('lists unreplied comments on brand posts', async () => {
