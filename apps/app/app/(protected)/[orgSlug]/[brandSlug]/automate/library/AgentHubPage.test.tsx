@@ -59,12 +59,13 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../../../tests/next-intl.stub'
+    '../../../../../../tests/next-intl.stub'
   );
   return { useTranslations: () => translateFromCatalog };
 });
