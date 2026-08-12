@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -52,6 +52,14 @@ vi.mock('@services/core/logger.service', () => ({
 import TrendRemixPage from './trend-remix-page';
 
 describe('TrendRemixPage', () => {
+  beforeAll(() => {
+    // Radix Select relies on pointer-capture and layout APIs jsdom omits.
+    Element.prototype.hasPointerCapture = () => false;
+    Element.prototype.setPointerCapture = () => undefined;
+    Element.prototype.releasePointerCapture = () => undefined;
+    Element.prototype.scrollIntoView = () => undefined;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.searchParams.forEach((_, key) => {
@@ -124,7 +132,9 @@ describe('TrendRemixPage', () => {
     render(<TrendRemixPage />);
 
     await user.click(screen.getByRole('combobox', { name: 'Variation count' }));
-    await user.click(screen.getByRole('option', { name: '10 variations' }));
+    await user.click(
+      await screen.findByRole('option', { name: '10 variations' }),
+    );
     await user.click(
       screen.getByRole('button', { name: 'Generate 10 variations' }),
     );
