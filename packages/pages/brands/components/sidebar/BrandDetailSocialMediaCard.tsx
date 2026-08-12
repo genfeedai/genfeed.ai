@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -246,6 +247,18 @@ export default function BrandDetailSocialMediaCard({
     try {
       setConnectingPlatform(platform);
       const token = (await resolveAuthToken(getToken)) ?? '';
+      // Mirror usePlatformOAuthConnect: provider redirects drop query params, so
+      // /oauth/[platform] reads return_to from sessionStorage after verify.
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(
+            OAUTH_RETURN_TO_STORAGE_KEY,
+            `${window.location.pathname}${window.location.search}`,
+          );
+        }
+      } catch {
+        // Private mode — best-effort only.
+      }
       const service = new ServicesService(
         resolveOAuthServicePath(platform, item.servicePath),
         token,
@@ -254,7 +267,7 @@ export default function BrandDetailSocialMediaCard({
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
-      NotificationsService.getInstance().error(`Connect ${platform}`);
+      NotificationsService.getInstance().error(`Connect ${item.label}`);
       setConnectingPlatform(null);
     }
   };
