@@ -418,7 +418,7 @@ export function collectModuleSpecifiers(source, filePath = 'dist/index.js') {
     ast = parse(source, {
       allowHashBang: true,
       ecmaVersion: 'latest',
-      sourceType: 'module',
+      sourceType: filePath.endsWith('.cjs') ? 'script' : 'module',
     });
   } catch (error) {
     fail(

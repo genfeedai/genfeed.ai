@@ -309,6 +309,14 @@ describe('publish package release planning', () => {
       'common-package',
     ]);
   });
+
+  it('parses non-strict CommonJS files as scripts', () => {
+    const source = "with ({}) { require('common-package'); }";
+
+    expect(collectModuleSpecifiers(source, 'dist/index.cjs')).toEqual([
+      'common-package',
+    ]);
+  });
 });
 
 function packageEntry(
