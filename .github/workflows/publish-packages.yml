@@ -194,10 +194,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node for npm trusted publishing
-        uses: actions/setup-node@v7
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
         with:
           node-version: '24.x'
+          bun-version: '1.3.14'
+          install-command: 'bun install --frozen-lockfile'
 
       - name: Require npm trusted-publishing support
         run: |

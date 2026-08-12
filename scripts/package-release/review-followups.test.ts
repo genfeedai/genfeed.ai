@@ -118,6 +118,28 @@ describe('package and worktree review follow-ups', () => {
     }
   });
 
+  it('installs release-script dependencies before publishing tarballs', () => {
+    const workflow = readText('.github/workflows/publish-packages.yml');
+    const publishJob = workflow.split('\n  publish:\n')[1];
+
+    expect(publishJob).toBeDefined();
+    const setupIndex = publishJob?.indexOf(
+      'uses: ./.github/actions/setup-bun-env',
+    );
+    const publishIndex = publishJob?.indexOf(
+      'node scripts/publish-packages-from-json.mjs',
+    );
+
+    expect(setupIndex).toBeGreaterThanOrEqual(0);
+    expect(publishIndex).toBeGreaterThan(setupIndex ?? -1);
+    expect(publishJob).toContain("node-version: '24.x'");
+    expect(publishJob).toContain("bun-version: '1.3.14'");
+    expect(publishJob).toContain(
+      "install-command: 'bun install --frozen-lockfile'",
+    );
+    expect(publishJob).not.toContain('uses: actions/setup-node@');
+  });
+
   it('authorizes real npm publishes through an explicit release-call contract', () => {
     const packageWorkflow = readText('.github/workflows/publish-packages.yml');
     const releaseWorkflow = readText('.github/workflows/release.yml');
