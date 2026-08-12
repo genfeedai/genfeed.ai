@@ -40,7 +40,10 @@ import type {
   SortObject,
 } from '@genfeedai/interfaces';
 import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
-import { ClipProjectSerializer } from '@genfeedai/serializers';
+import {
+  ClipProjectSerializer,
+  serializeClipGenerationResult,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -371,12 +374,12 @@ export class ClipProjectsController {
       });
     }
 
-    return {
+    return serializeClipGenerationResult({
       clipCount: selectedEditedHighlights.length,
       clipResultIds: result.clipResultIds,
       ...(reference.application ? { reference: reference.application } : {}),
       status: result.queuedClipCount > 0 ? 'generating' : 'failed',
-    };
+    });
   }
 
   @Post()

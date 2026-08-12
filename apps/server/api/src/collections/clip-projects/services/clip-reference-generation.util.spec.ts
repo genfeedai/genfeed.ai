@@ -170,8 +170,14 @@ describe('clip reference generation policy', () => {
   });
 
   it.each([
+    { mimeType: undefined },
     { mimeType: 'text/html' },
     { storageKey: '../frame.jpg' },
+    { storageKey: 'https://cdn.example.com/frame.jpg' },
+    { storageKey: 'user:password@cdn.example.com/frame.jpg' },
+    {
+      storageKey: 'ingredients/images/frame.jpg?X-Amz-Signature=secret',
+    },
     {
       url: 'https://cdn.example.com/frame.jpg?X-Amz-Signature=secret',
     },

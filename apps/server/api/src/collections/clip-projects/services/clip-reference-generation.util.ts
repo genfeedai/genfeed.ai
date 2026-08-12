@@ -72,6 +72,10 @@ export const CLIP_REFERENCE_CAPABILITIES = {
 } as const satisfies ClipReferenceCapabilityMatrix;
 
 const unsafeStorageKeySegment = /(^|[\\/])\.\.([\\/]|$)/;
+const urlLikeStorageKey = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const credentialBearingStorageKey =
+  /(?:^|[/?&#;])(?:x-amz-[^=/?&#;]*|x-goog-[^=/?&#;]*|awsaccesskeyid|credential|expires?|signature|sig|token|access_token|api[_-]?key)=/i;
+const embeddedStorageCredentials = /(?:^|[\\/])[^\\/:@\s]+:[^\\/@\s]+@/;
 const sensitiveQueryKey =
   /^(?:x-amz-|x-goog-|awsaccesskeyid$|credential$|expires?$|signature$|sig$|token$|access_token$)/i;
 
@@ -159,6 +163,10 @@ function buildProvenance(
   route: ClipReferenceRoute,
   capability: ClipReferenceCapability,
 ): ClipReferenceProvenance {
+  const storageKey = candidate.storageKey
+    ? requireStableStorageKey(candidate.storageKey)
+    : undefined;
+
   return {
     application: {
       mode: route.mode,
@@ -173,28 +181,21 @@ function buildProvenance(
       ...(candidate.assetId ? { assetId: candidate.assetId } : {}),
       candidateId: candidate.id,
       ...(candidate.mimeType ? { mimeType: candidate.mimeType } : {}),
-      ...(candidate.storageKey ? { storageKey: candidate.storageKey } : {}),
+      ...(storageKey ? { storageKey } : {}),
       timestampSeconds: candidate.timestampSeconds,
     },
   };
 }
 
 function assertSafeCandidate(candidate: ClipReferenceFrameCandidate): void {
-  if (candidate.mimeType && !candidate.mimeType.startsWith('image/')) {
+  if (!candidate.mimeType?.startsWith('image/')) {
     throw new BadRequestException(
       'The selected clip reference is not safe image media.',
     );
   }
 
-  if (
-    candidate.storageKey &&
-    (candidate.storageKey.startsWith('/') ||
-      candidate.storageKey.startsWith('\\') ||
-      unsafeStorageKeySegment.test(candidate.storageKey))
-  ) {
-    throw new BadRequestException(
-      'The selected clip reference has an unsafe storage identity.',
-    );
+  if (candidate.storageKey) {
+    requireStableStorageKey(candidate.storageKey);
   }
 
   if (!candidate.assetId && !candidate.storageKey && !candidate.url) {
@@ -206,6 +207,33 @@ function assertSafeCandidate(candidate: ClipReferenceFrameCandidate): void {
   if (candidate.url) {
     requireStableReferenceUrl(candidate.url);
   }
+}
+
+function requireStableStorageKey(value: string): string {
+  if (
+    value.startsWith('/') ||
+    value.startsWith('\\') ||
+    unsafeStorageKeySegment.test(value) ||
+    hasControlCharacter(value) ||
+    urlLikeStorageKey.test(value) ||
+    value.includes('?') ||
+    value.includes('#') ||
+    credentialBearingStorageKey.test(value) ||
+    embeddedStorageCredentials.test(value)
+  ) {
+    throw new BadRequestException(
+      'The selected clip reference has an unsafe storage identity.',
+    );
+  }
+
+  return value;
+}
+
+function hasControlCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 function requireStableReferenceUrl(value?: string): string {

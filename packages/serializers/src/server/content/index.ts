@@ -4,6 +4,7 @@ export * from '@serializers/server/content/batch.serializer';
 export * from '@serializers/server/content/batch-interpolation.serializer';
 export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/channel-target.serializer';
+export * from '@serializers/server/content/clip-generation-result.serializer';
 export * from '@serializers/server/content/clip-project.serializer';
 export * from '@serializers/server/content/clip-result.serializer';
 export * from '@serializers/server/content/content-performance.serializer';
