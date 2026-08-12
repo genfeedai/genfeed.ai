@@ -11,6 +11,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   assertCleanWorkingTree,
+  collectModuleSpecifiers,
   normalizeReleaseRequests,
   registryAction,
   rewriteDistForNodeResolution,
@@ -289,6 +290,32 @@ describe('publish package release planning', () => {
     } finally {
       rmSync(packageDir, { force: true, recursive: true });
     }
+  });
+
+  it('reads real module specifiers without treating bundled strings as imports', () => {
+    const source = `
+      import value from 'declared-package';
+      export { other } from './other.js';
+      const lazy = import('lazy-package');
+      const common = require('common-package');
+      const bundled = "return import('not-a-real-import')";
+      const help = 'import command from "not-a-real-import-either"';
+    `;
+
+    expect(collectModuleSpecifiers(source)).toEqual([
+      'declared-package',
+      './other.js',
+      'lazy-package',
+      'common-package',
+    ]);
+  });
+
+  it('parses non-strict CommonJS files as scripts', () => {
+    const source = "with ({}) { require('common-package'); }";
+
+    expect(collectModuleSpecifiers(source, 'dist/index.cjs')).toEqual([
+      'common-package',
+    ]);
   });
 });
 

@@ -6,6 +6,7 @@ import { builtinModules } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parse } from 'acorn';
 import { fixEsmRelativeImports } from './fix-esm-relative-imports.mjs';
 
 const RUNTIME_DEPENDENCY_FIELDS = [
@@ -405,6 +406,61 @@ function dependencyNameFromSpecifier(specifier) {
   return specifier.split('/')[0];
 }
 
+export function collectModuleSpecifiers(source, filePath = 'dist/index.js') {
+  if (/\.d\.[cm]?ts$/.test(filePath)) {
+    const declarationPattern =
+      /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\(\s*)['"]([^'"\r\n]+)['"]/g;
+    return Array.from(source.matchAll(declarationPattern), (match) => match[1]);
+  }
+
+  let ast;
+  try {
+    ast = parse(source, {
+      allowHashBang: true,
+      ecmaVersion: 'latest',
+      sourceType: filePath.endsWith('.cjs') ? 'script' : 'module',
+    });
+  } catch (error) {
+    fail(
+      `${filePath} could not be parsed while validating packed imports: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const specifiers = [];
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+
+    if (
+      (node.type === 'ImportDeclaration' ||
+        node.type === 'ExportNamedDeclaration' ||
+        node.type === 'ExportAllDeclaration' ||
+        node.type === 'ImportExpression') &&
+      typeof node.source?.value === 'string'
+    ) {
+      specifiers.push(node.source.value);
+    } else if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'Identifier' &&
+      (node.callee.name === 'require' || node.callee.name === 'import') &&
+      node.arguments?.length === 1 &&
+      typeof node.arguments[0]?.value === 'string'
+    ) {
+      specifiers.push(node.arguments[0].value);
+    }
+
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) {
+        for (const child of value) visit(child);
+      } else if (value && typeof value === 'object') {
+        visit(value);
+      }
+    }
+  };
+
+  visit(ast);
+  return specifiers;
+}
+
 function validatePackedImports(tarballPath, packedManifest) {
   const extractDir = fs.mkdtempSync(path.join(os.tmpdir(), 'package-imports-'));
   try {
@@ -429,12 +485,9 @@ function validatePackedImports(tarballPath, packedManifest) {
     }
 
     const missing = new Set();
-    const importPattern =
-      /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\()\s*['"]([^'"]+)['"]/g;
     for (const filePath of files) {
       const source = fs.readFileSync(filePath, 'utf8');
-      for (const match of source.matchAll(importPattern)) {
-        const specifier = match[1];
+      for (const specifier of collectModuleSpecifiers(source, filePath)) {
         if (specifier?.startsWith('.')) {
           if (
             /\.[cm]?js$/.test(filePath) &&
