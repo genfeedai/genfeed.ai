@@ -30,7 +30,7 @@ type InboxItem = {
 
 type DraftState = Record<string, string>;
 
-export default function AuthorRepliesPage() {
+export default function RepliesPage() {
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
   const getReplyBotService = useAuthedService(ReplyBotConfigsService);
   const abortRef = useRef<AbortController | null>(null);
@@ -69,11 +69,9 @@ export default function AuthorRepliesPage() {
       if (controller.signal.aborted) {
         return;
       }
-      logger.error('Author reply inbox failed', error);
+      logger.error('Replies inbox failed', error);
       toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Could not load author reply inbox',
+        error instanceof Error ? error.message : 'Could not load replies inbox',
       );
     } finally {
       if (!controller.signal.aborted) {
@@ -89,7 +87,7 @@ export default function AuthorRepliesPage() {
     };
   }, [loadInbox]);
 
-  async function handleEnableLoop() {
+  async function handleEnableAuto() {
     if (!brandId) {
       return;
     }
@@ -103,17 +101,11 @@ export default function AuthorRepliesPage() {
       setIsActive(result.isActive);
       setBotConfigId(result.botConfigId);
       toast.success(
-        result.created
-          ? 'Author reply loop enabled for X'
-          : 'Author reply loop updated',
+        result.created ? 'Auto-replies enabled for X' : 'Auto-replies updated',
       );
-      if (result.isActive && result.botConfigId) {
-        // Kick polling so open comments start processing.
-        // credential is resolved server-side on cron; optional trigger needs id.
-      }
       await loadInbox();
     } catch (error: unknown) {
-      logger.error('Enable author responder failed', error);
+      logger.error('Enable auto-replies failed', error);
       toast.error(
         error instanceof Error
           ? error.message
@@ -140,10 +132,10 @@ export default function AuthorRepliesPage() {
       });
       setDrafts((prev) => ({ ...prev, [item.commentId]: result.draft }));
       if (result.harnessApplied) {
-        toast.success('Draft ready (harness applied)');
+        toast.success('Draft ready');
       }
     } catch (error: unknown) {
-      logger.error('Draft author reply failed', error);
+      logger.error('Draft reply failed', error);
       toast.error(
         error instanceof Error ? error.message : 'Could not draft reply',
       );
@@ -172,7 +164,7 @@ export default function AuthorRepliesPage() {
       if (!result.success) {
         throw new Error(result.error || 'Send failed');
       }
-      toast.success('Author reply sent — closed loop recorded');
+      toast.success('Reply sent');
       setItems((prev) =>
         prev.filter((row) => row.commentId !== item.commentId),
       );
@@ -182,7 +174,7 @@ export default function AuthorRepliesPage() {
         return next;
       });
     } catch (error: unknown) {
-      logger.error('Send author reply failed', error);
+      logger.error('Send reply failed', error);
       toast.error(
         error instanceof Error ? error.message : 'Could not send reply',
       );
@@ -198,18 +190,18 @@ export default function AuthorRepliesPage() {
   return (
     <Container className="flex flex-col gap-6 py-6">
       <Card
-        label="Author replies (X)"
-        description="Close the conversation loop on *your* posts — the signal X ranks highest. Not reply-guy. Not @grok."
+        label="Replies"
+        description="Reply to comments on your posts (X first). Uses your connected account. Keeps conversations warm — not outreach on other people's posts."
         bodyClassName="gap-4 p-4"
         headerAction={
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={isEnabling}
-              onClick={() => void handleEnableLoop()}
+              onClick={() => void handleEnableAuto()}
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
             >
-              {isEnabling ? 'Enabling…' : 'Enable auto author replies'}
+              {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
             </Button>
             <Button
               disabled={isLoading}
@@ -232,7 +224,7 @@ export default function AuthorRepliesPage() {
             <Badge variant="outline">@{username.replace(/^@/, '')}</Badge>
           ) : null}
           {isActive ? (
-            <Badge variant="success">auto loop active</Badge>
+            <Badge variant="success">auto on</Badge>
           ) : (
             <Badge variant="warning">manual or enable auto</Badge>
           )}
@@ -241,8 +233,7 @@ export default function AuthorRepliesPage() {
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          Drafts use the brand harness + platform-x rules. Sending records an
-          author closed loop so winners promotion prefers conversation posts.
+          Drafts use your brand harness. Only recent comments (24h) show here.
         </p>
       </Card>
 
@@ -251,7 +242,7 @@ export default function AuthorRepliesPage() {
       ) : items.length === 0 ? (
         <Card
           label="Inbox clear"
-          description="No unreplied comments on your recent X posts in the last 24 hours — or connect X and post first."
+          description="No unreplied comments on your recent posts — connect X and post, or check back after people reply."
           bodyClassName="p-4"
         />
       ) : (
@@ -276,7 +267,7 @@ export default function AuthorRepliesPage() {
                     [item.commentId]: event.target.value,
                   }))
                 }
-                placeholder="Author reply draft…"
+                placeholder="Your reply…"
                 rows={3}
               />
               <div className="flex flex-wrap gap-2">
@@ -286,7 +277,7 @@ export default function AuthorRepliesPage() {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.OUTLINE}
                 >
-                  Draft with harness
+                  Draft
                 </Button>
                 <Button
                   disabled={busyId === item.commentId}
@@ -294,7 +285,7 @@ export default function AuthorRepliesPage() {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.DEFAULT}
                 >
-                  Send as author
+                  Send reply
                 </Button>
               </div>
             </Card>

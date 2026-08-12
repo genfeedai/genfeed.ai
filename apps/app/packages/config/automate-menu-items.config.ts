@@ -117,9 +117,9 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Campaigns',
-    href: APP_ROUTES.AUTOMATE.AUTHOR_REPLIES,
-    label: 'Author Replies',
-    matchPaths: [APP_ROUTES.AUTOMATE.AUTHOR_REPLIES],
+    href: APP_ROUTES.AUTOMATE.REPLIES,
+    label: 'Replies',
+    matchPaths: [APP_ROUTES.AUTOMATE.REPLIES],
     outline: MessageCircleReply,
     solid: MessageCircleReply,
   },

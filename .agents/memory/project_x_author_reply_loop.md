@@ -7,31 +7,31 @@ last_verified: 2026-08-12
 topics: [harness, twitter, x, reply-bot, content-memory]
 ---
 
-# X author-reply loop (product)
+# Replies surface (product)
 
 ## Goal
 
-Close **post → human reply → author reply** for brand posts. That maps to Heavy Ranker `reply_engaged_by_author` — not reply-guy and not @grok tags.
+Reply to comments on **your** posts. Product name is just **Replies** (not “author-loop” jargon). Maps to Heavy Ranker conversation signals — not reply-guy and not @grok tags.
 
 ## Surfaces
 
 | Layer | Path |
 | --- | --- |
-| API ensure / inbox / draft / send | `POST/GET /reply-bot-configs/author-reply/*` |
+| API ensure / inbox / draft / send | `POST/GET /reply-bot-configs/author-reply/*` (internal) |
 | Service | `AuthorReplyLoopService` |
 | Harness in replies | `ReplyGenerationService` + `HarnessGenerationService` |
-| Auto loop | `comment_responder` bot + cron |
+| Auto | `comment_responder` bot + cron |
 | Closed-loop metric | `content_performance.data.authorClosedLoops` |
 | Winners ranking | X score + closed-loop boost |
-| App UI | Automate → **Author Replies** (`/automate/author-replies`) |
+| App UI | Automate → **Replies** (`/automate/replies`) |
 | Promote memory | Settings → Harness → **Promote winners to memory** |
 
 ## Operator flow
 
 1. Connect X credential on the brand.  
-2. Automate → Author Replies → **Enable auto author replies**.  
+2. Automate → **Replies** → **Enable auto-replies**.  
 3. Refresh inbox (24h unreplied comments on your posts).  
-4. **Draft with harness** / **Send as author**.  
+4. **Draft** / **Send reply**.  
 5. Weekly: promote winners from harness settings.
 
 ## Feature flag

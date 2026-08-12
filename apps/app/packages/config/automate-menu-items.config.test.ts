@@ -47,7 +47,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ['Campaigns', '/automate/campaigns'],
     ['Outreach', '/automate/outreach-campaigns'],
     ['Launch team', '/automate/orchestrator'],
-    ['Author Replies', '/automate/author-replies'],
+    ['Replies', '/automate/replies'],
     ['Reply Campaigns', '/automate/reply-campaigns'],
     ['Workflows', '/automate/workflows'],
   ])('uses the canonical automate route for %s', (label, canonicalHref) => {

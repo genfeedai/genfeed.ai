@@ -2,15 +2,15 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
-import AuthorRepliesPage from './author-replies-page';
+import RepliesPage from './replies-page';
 
-export const generateMetadata = createPageMetadata('Author Replies');
+export const generateMetadata = createPageMetadata('Replies');
 
-export default function AuthorRepliesRoute() {
+export default function RepliesRoute() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <AuthorRepliesPage />
+        <RepliesPage />
       </Suspense>
     </ErrorBoundary>
   );

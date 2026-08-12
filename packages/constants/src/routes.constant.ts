@@ -138,10 +138,12 @@ export const APP_ROUTES = {
     /** Throttled social reply drip campaigns. */
     REPLY_CAMPAIGNS: '/automate/reply-campaigns',
     /**
-     * Author-reply conversation loop: close replies on *your* X posts
-     * (Heavy Ranker author-engaged reply signal). Not reply-guy.
+     * Replies surface: reply to comments on *your* posts (X, later YT).
+     * Not reply-guy / outreach on other people's posts.
      */
-    AUTHOR_REPLIES: '/automate/author-replies',
+    REPLIES: '/automate/replies',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.REPLIES */
+    AUTHOR_REPLIES: '/automate/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automate/workflows',
     WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',
