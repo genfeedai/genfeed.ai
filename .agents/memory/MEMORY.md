@@ -35,6 +35,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_multi_agent_collaboration](feedback_multi_agent_collaboration.md) — Claude/Codex/Grok share memory+PR+tests; host-native children; claim+handoff so Vincent does not restate
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA queue branch; commit-only when CI thrash is forbidden
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
+- [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 
 ## Rules (via the `.claude/rules` symlink)
 

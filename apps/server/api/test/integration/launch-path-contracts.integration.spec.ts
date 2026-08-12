@@ -184,4 +184,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('nodeClaimService.tryClaim');
     expect(source).toContain('nodeClaimService.complete');
   });
+
+  it('content harness loads core pack and optional private packages', () => {
+    const service = readRepo(
+      'apps/server/api/src/services/harness/harness.service.ts',
+    );
+    const types = readRepo('packages/harness/src/types.ts');
+    expect(service).toContain('CORE_CONTENT_HARNESS_PACK');
+    expect(service).toContain('CONTENT_HARNESS_PACKAGES');
+    expect(service).toContain('composeContentHarnessBrief');
+    // Visual/ad kinds are a known gap — contract documents current text-first kinds.
+    expect(types).toContain("'post'");
+    expect(types).toContain("'video-script'");
+    expect(types).not.toContain("'image'");
+    expect(types).not.toContain("'ad-creative'");
+  });
 });
