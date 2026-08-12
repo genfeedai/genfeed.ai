@@ -123,7 +123,20 @@ describe('package and worktree review follow-ups', () => {
     const publishJob = workflow.split('\n  publish:\n')[1];
 
     expect(publishJob).toBeDefined();
-    expect(publishJob).toContain('uses: ./.github/actions/setup-bun-env');
+    const setupIndex = publishJob?.indexOf(
+      'uses: ./.github/actions/setup-bun-env',
+    );
+    const publishIndex = publishJob?.indexOf(
+      'node scripts/publish-packages-from-json.mjs',
+    );
+
+    expect(setupIndex).toBeGreaterThanOrEqual(0);
+    expect(publishIndex).toBeGreaterThan(setupIndex ?? -1);
+    expect(publishJob).toContain("node-version: '24.x'");
+    expect(publishJob).toContain("bun-version: '1.3.14'");
+    expect(publishJob).toContain(
+      "install-command: 'bun install --frozen-lockfile'",
+    );
     expect(publishJob).not.toContain('uses: actions/setup-node@');
   });
 

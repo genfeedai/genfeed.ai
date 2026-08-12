@@ -88,6 +88,7 @@ jobs:
         with:
           node-version: '24.x'
           bun-version: '1.3.14'
+          install-command: 'bun install --frozen-lockfile'
 
       - name: Validate npm release enrollment
         run: bun run check:npm-release
