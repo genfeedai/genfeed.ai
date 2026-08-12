@@ -21,6 +21,12 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
     label: 'HeyGen',
     value: 'heygen',
   },
+  {
+    description: 'Atom avatars',
+    disabled: false,
+    label: 'Argil',
+    value: 'argil',
+  },
 ];
 
 export default function StudioClipsPage() {
@@ -174,7 +180,7 @@ export default function StudioClipsPage() {
                       type="text"
                       value={avatarId}
                       onChange={(e) => setAvatarId(e.target.value)}
-                      placeholder="HeyGen avatar ID"
+                      placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} avatar ID`}
                     />
                   </div>
                   <div>
@@ -189,15 +195,17 @@ export default function StudioClipsPage() {
                       type="text"
                       value={voiceId}
                       onChange={(e) => setVoiceId(e.target.value)}
-                      placeholder="HeyGen voice ID"
+                      placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} voice ID`}
                     />
                   </div>
                 </div>
 
                 <p className="text-xs text-zinc-500">
-                  {identityDefaults.isComplete
-                    ? 'Using configured HeyGen identity defaults and overrides.'
-                    : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
+                  {avatarProvider === 'argil'
+                    ? 'Enter the avatar and voice IDs from your Argil account.'
+                    : identityDefaults.isComplete
+                      ? 'Using configured HeyGen identity defaults and overrides.'
+                      : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
                 {/* Provider */}

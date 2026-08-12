@@ -56,6 +56,11 @@ const BYOK_PROVIDER_LABELS: Record<
     docsUrl: 'https://fal.ai/dashboard/keys',
     label: 'fal.ai',
   },
+  [ByokProvider.ARGIL]: {
+    description: '',
+    docsUrl: 'https://app.argil.ai',
+    label: 'Argil',
+  },
   [ByokProvider.HEYGEN]: {
     description: '',
     docsUrl: 'https://app.heygen.com/settings',
@@ -421,6 +426,8 @@ export class ByokService {
           return await this.validateReplicate(apiKey);
         case ByokProvider.FAL:
           return await this.validateFal(apiKey);
+        case ByokProvider.ARGIL:
+          return await this.validateArgil(apiKey);
         case ByokProvider.HEYGEN:
           return await this.validateHeyGen(apiKey);
         case ByokProvider.HEDRA:
@@ -618,6 +625,21 @@ export class ByokService {
       return { isValid: true };
     } catch {
       return { error: 'Invalid HeyGen API key', isValid: false };
+    }
+  }
+
+  private async validateArgil(
+    apiKey: string,
+  ): Promise<{ isValid: boolean; error?: string }> {
+    try {
+      await firstValueFrom(
+        this.httpService.get('https://api.argil.ai/v1/avatars', {
+          headers: { 'x-api-key': apiKey },
+        }),
+      );
+      return { isValid: true };
+    } catch {
+      return { error: 'Invalid Argil API key', isValid: false };
     }
   }
 

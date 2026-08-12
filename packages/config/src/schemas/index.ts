@@ -2,6 +2,7 @@
 
 // AI providers
 export {
+  argilSchema,
   elevenlabsSchema,
   falSchema,
   fleetSchema,

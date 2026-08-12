@@ -207,17 +207,41 @@ export function useStudioClipsPage() {
     [localIdentityDefaults, resolvedIdentity],
   );
 
+  const selectAvatarProvider = useCallback(
+    (provider: AvatarProvider) => {
+      setAvatarProvider(provider);
+      if (provider === identityDefaults.avatarProvider) {
+        setAvatarId(identityDefaults.avatarId ?? '');
+        setVoiceId(identityDefaults.voiceId ?? '');
+        return;
+      }
+
+      setAvatarId('');
+      setVoiceId('');
+    },
+    [identityDefaults],
+  );
+
   useEffect(() => {
-    if (identityDefaults.avatarId && !avatarId) {
+    if (
+      avatarProvider === identityDefaults.avatarProvider &&
+      identityDefaults.avatarId &&
+      !avatarId
+    ) {
       setAvatarId(identityDefaults.avatarId);
       setAvatarProvider(identityDefaults.avatarProvider);
     }
 
-    if (identityDefaults.voiceId && !voiceId) {
+    if (
+      avatarProvider === identityDefaults.avatarProvider &&
+      identityDefaults.voiceId &&
+      !voiceId
+    ) {
       setVoiceId(identityDefaults.voiceId);
     }
   }, [
     avatarId,
+    avatarProvider,
     identityDefaults.avatarId,
     identityDefaults.avatarProvider,
     identityDefaults.voiceId,
@@ -717,7 +741,7 @@ export function useStudioClipsPage() {
     selectedCount,
     selectedIds,
     setAvatarId,
-    setAvatarProvider,
+    setAvatarProvider: selectAvatarProvider,
     setGenerationMode,
     setMaxClips,
     setMinViralityScore,

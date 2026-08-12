@@ -32,6 +32,10 @@ describe('byok-provider-map.util', () => {
   });
 
   describe('modelKeyToByokProvider', () => {
+    it('should map argil/ prefix to ARGIL', () => {
+      expect(modelKeyToByokProvider('argil/atom')).toBe(ByokProvider.ARGIL);
+    });
+
     it('should map heygen/ prefix to HEYGEN', () => {
       expect(modelKeyToByokProvider('heygen/avatar')).toBe(ByokProvider.HEYGEN);
     });

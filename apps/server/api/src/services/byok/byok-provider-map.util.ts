@@ -22,6 +22,7 @@ export function modelProviderToByokProvider(
  * Ordered longest-prefix-first so "fal-ai/" matches before "fal".
  */
 const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
+  ['argil/', ByokProvider.ARGIL],
   ['anthropic/', ByokProvider.ANTHROPIC],
   ['openai/', ByokProvider.OPENAI],
   ['heygen/', ByokProvider.HEYGEN],

@@ -235,6 +235,7 @@ describe('ClipGenerationService', () => {
     await service.generateClips(makeInput());
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
+      providerName: 'heygen',
       status: 'extracting',
     });
   });
@@ -372,9 +373,11 @@ describe('ClipGenerationService', () => {
     );
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
+      providerName: 'heygen',
       status: 'extracting',
     });
     expect(clipResultsService.patch).toHaveBeenCalledWith('cr-2', {
+      providerName: 'heygen',
       status: 'extracting',
     });
   });
@@ -501,6 +504,7 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     await service.generateClips(makeRawCutInput());
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
+      providerName: 'raw-cut',
       status: 'extracting',
     });
     expect(clipResultsService.patch).toHaveBeenCalledWith(

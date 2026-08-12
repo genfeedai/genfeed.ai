@@ -77,6 +77,7 @@ export const MODEL_KEYS = {
   REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST: 'wan-video/wan-2.2-i2v-fast',
   REPLICATE_WAN_VIDEO_WAN_2_7_T2V: 'wan-video/wan-2.7-t2v',
   REPLICATE_META_MUSICGEN: 'meta/musicgen',
+  ARGIL_ATOM: 'argil/atom',
   HEYGEN_AVATAR: 'heygen/avatar',
   REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1: 'deepseek-ai/deepseek-r1',
   REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET: 'anthropic/claude-4.5-sonnet',

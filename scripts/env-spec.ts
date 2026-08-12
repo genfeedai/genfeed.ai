@@ -139,6 +139,8 @@ export const ENV_TARGETS: EnvTarget[] = [
     localLegacyFile: 'apps/server/api/.env',
     sharedKeys: [...backendSharedKeys],
     directKeys: [
+      'ARGIL_KEY',
+      'ARGIL_WEBHOOK_SECRET',
       'ANTHROPIC_API_KEY',
       'AWS_ACCESS_KEY_ID',
       'AWS_REGION',
@@ -561,6 +563,8 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'AWS_ACCESS_KEY_ID',
       'AWS_SECRET_ACCESS_KEY',
       'AWS_S3_BUCKET',
+      'ARGIL_KEY',
+      'ARGIL_WEBHOOK_SECRET',
       'ANTHROPIC_API_KEY',
       'OPENAI_API_KEY',
       'OPENAI_CODEX_REDIRECT_URI',

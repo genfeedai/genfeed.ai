@@ -7,6 +7,7 @@
 import type { ClipResultMode } from '@genfeedai/interfaces';
 
 export const AVATAR_VIDEO_PROVIDER_NAMES = [
+  'argil',
   'heygen',
   'did',
   'tavus',
@@ -16,7 +17,10 @@ export const AVATAR_VIDEO_PROVIDER_NAMES = [
 export type AvatarVideoProviderName =
   (typeof AVATAR_VIDEO_PROVIDER_NAMES)[number];
 
-export const SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES = ['heygen'] as const;
+export const SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES = [
+  'heygen',
+  'argil',
+] as const;
 
 export type SupportedAvatarVideoProviderName =
   (typeof SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES)[number];

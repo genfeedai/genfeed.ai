@@ -62,6 +62,23 @@ export interface HeygenWebhookPayload extends WebhookPayload {
 }
 
 /**
+ * Argil video generation callback payload.
+ * @see https://docs.argil.ai/api-reference/videos/render-a-video
+ */
+export interface ArgilWebhookPayload extends WebhookPayload {
+  event?: 'VIDEO_GENERATION_SUCCESS' | 'VIDEO_GENERATION_FAILED';
+  data?: {
+    error?: string;
+    extras?: unknown;
+    message?: string;
+    videoId?: string;
+    videoName?: string;
+    videoUrl?: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
  * KlingAI webhook event payload
  */
 export interface KlingAIWebhookPayload extends WebhookPayload {

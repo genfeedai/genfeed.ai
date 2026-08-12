@@ -8,7 +8,7 @@ import type {
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
-export type AvatarProvider = 'heygen';
+export type AvatarProvider = 'argil' | 'heygen';
 
 export type ClipStatus = ClipResultStatus;
 

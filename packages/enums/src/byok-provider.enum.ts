@@ -5,6 +5,7 @@ export enum ByokProvider {
   ELEVENLABS = 'elevenlabs',
   REPLICATE = 'replicate',
   FAL = 'fal',
+  ARGIL = 'argil',
   HEYGEN = 'heygen',
   HEDRA = 'hedra',
   KLINGAI = 'klingai',

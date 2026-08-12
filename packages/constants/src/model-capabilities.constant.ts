@@ -812,6 +812,18 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
 
+    [MODEL_KEYS.ARGIL_ATOM]: {
+      aspectRatios: ASPECT_RATIOS.ARGIL,
+      category: ModelCategory.VOICE,
+      defaultAspectRatio: '9:16',
+      defaultDuration: 10,
+      durations: [5, 10, 15, 30],
+      hasDurationEditing: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+
     [MODEL_KEYS.HEYGEN_AVATAR]: {
       aspectRatios: ASPECT_RATIOS.HEYGEN,
       category: ModelCategory.VOICE,

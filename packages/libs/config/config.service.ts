@@ -1,6 +1,7 @@
 import {
   // Social
   allSocialSchema,
+  argilSchema,
   awsSchema,
   BaseConfigService,
   // Base
@@ -137,6 +138,7 @@ const apiSchema = Joi.object({
   ...klingaiSchema,
   ...elevenlabsSchema,
   ...leonardoSchema,
+  ...argilSchema,
   ...heygenSchema,
   ...opusProSchema,
   ...hedraSchema,

@@ -588,7 +588,7 @@ describe('ClipProjectsController', () => {
         );
 
         expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen',
+          'avatarProvider must be one of the following values: heygen, argil',
         );
       },
     );
@@ -610,6 +610,18 @@ describe('ClipProjectsController', () => {
         editedHighlights,
         selectedHighlightIds: ['highlight-1'],
         voiceId: 'voice-1',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should accept the production-ready Argil avatar provider', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'argil-avatar-1',
+        avatarProvider: 'argil',
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'argil-voice-1',
       });
 
       expect(validateSync(dto)).toEqual([]);
@@ -691,7 +703,7 @@ describe('ClipProjectsController', () => {
         );
 
         expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen',
+          'avatarProvider must be one of the following values: heygen, argil',
         );
       },
     );

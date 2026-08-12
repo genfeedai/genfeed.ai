@@ -311,6 +311,7 @@ export class ClipGenerationService {
       // 2. Dispatch generation for this highlight via the mode-specific path
       try {
         await this.clipResultsService.patch(clipResultId, {
+          providerName: failureProviderName,
           status: 'extracting',
         });
 

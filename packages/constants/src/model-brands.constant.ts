@@ -20,6 +20,7 @@ export interface ModelBrandConfig {
  */
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   anthropic: { color: '#D97757', iconKey: 'anthropic', label: 'Anthropic' },
+  argil: { color: '#7C3AED', label: 'Argil' },
   'black-forest-labs': { color: '#8B5CF6', iconKey: 'flux', label: 'BFL' },
   bytedance: { color: '#00F0FF', iconKey: 'bytedance', label: 'ByteDance' },
   deepseek: { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
