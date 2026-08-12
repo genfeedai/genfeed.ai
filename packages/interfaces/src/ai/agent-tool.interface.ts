@@ -107,6 +107,12 @@ export enum AgentToolName {
   GET_BRAND_COMPLETENESS = 'get_brand_completeness',
   // Operator tools
   LIST_GENFEED_TOOLS = 'list_genfeed_tools',
+  // X / Twitter engagement tools (#2663)
+  SEARCH_X_POSTS = 'search_x_posts',
+  FETCH_X_POST = 'fetch_x_post',
+  LIST_X_ACCOUNT_ACTIVITY = 'list_x_account_activity',
+  DRAFT_X_QUOTE = 'draft_x_quote',
+  DRAFT_X_REPOST = 'draft_x_repost',
 }
 
 /** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */

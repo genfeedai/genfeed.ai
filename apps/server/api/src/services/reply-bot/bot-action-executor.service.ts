@@ -75,6 +75,40 @@ export class BotActionExecutorService {
   }
 
   /**
+   * Native X repost (retweet) without commentary.
+   */
+  async repostTweet(
+    credential: IReplyBotCredentialData,
+    tweetId: string,
+  ): Promise<IReplyBotReplyResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const client = this.createTwitterClient(credential);
+      const me = await client.v2.me();
+      await client.v2.retweet(me.data.id, tweetId);
+
+      this.loggerService.log(`${url} success`, {
+        platform: ReplyBotPlatform.TWITTER,
+        tweetId,
+      });
+
+      return {
+        contentId: tweetId,
+        contentUrl: `https://x.com/${credential.username ?? 'i'}/status/${tweetId}`,
+        success: true,
+      };
+    } catch (error: unknown) {
+      const errorMessage = (error as Error)?.message || 'Unknown error';
+      this.loggerService.error(`${url} failed`, {
+        error: errorMessage,
+        tweetId,
+      });
+      return { error: errorMessage, success: false };
+    }
+  }
+
+  /**
    * Post a quote tweet referencing another tweet
    */
   async postQuoteTweet(

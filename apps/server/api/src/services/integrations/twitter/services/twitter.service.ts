@@ -881,6 +881,102 @@ export class TwitterService {
   }
 
   /**
+   * Fetch a single tweet by id (bearer or brand OAuth when org/brand provided).
+   */
+  public async getTweetById(
+    tweetId: string,
+    options: {
+      brandId?: string;
+      organizationId?: string;
+    } = {},
+  ): Promise<{
+    authorId?: string;
+    authorUsername?: string;
+    createdAt?: string;
+    id: string;
+    likeCount?: number;
+    replyCount?: number;
+    retweetCount?: number;
+    text: string;
+    url: string;
+  }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      let client = this.twitterClient;
+      if (options.organizationId && options.brandId) {
+        const credential = await this.refreshToken(
+          options.organizationId,
+          options.brandId,
+        );
+        const accessToken = requireString(
+          credential.accessToken,
+          'accessToken',
+        );
+        client = new TwitterApi(EncryptionUtil.decrypt(accessToken));
+      }
+
+      const response = await client.v2.singleTweet(tweetId, {
+        'tweet.fields': ['created_at', 'public_metrics', 'author_id', 'text'],
+        expansions: ['author_id'],
+        'user.fields': ['username', 'name'],
+      });
+
+      const tweet = response.data;
+      if (!tweet?.id || !tweet.text) {
+        throw new Error('Tweet not found or incomplete response');
+      }
+
+      const author = response.includes?.users?.find(
+        (user) => user.id === tweet.author_id,
+      );
+      const username = author?.username;
+      const metrics = tweet.public_metrics;
+
+      return {
+        authorId: tweet.author_id,
+        authorUsername: username,
+        createdAt: tweet.created_at,
+        id: tweet.id,
+        likeCount: metrics?.like_count,
+        replyCount: metrics?.reply_count,
+        retweetCount: metrics?.retweet_count,
+        text: tweet.text,
+        url: this.buildTweetUrl(tweet.id, username || 'i'),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Native repost (retweet) without commentary.
+   */
+  public async repostTweet(
+    organizationId: string,
+    brandId: string,
+    tweetId: string,
+  ): Promise<{ reposted: boolean; tweetId: string }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      const credential = await this.refreshToken(organizationId, brandId);
+      const accessToken = requireString(credential.accessToken, 'accessToken');
+      const userClient = new TwitterApi(EncryptionUtil.decrypt(accessToken));
+
+      // v2 retweet: POST /2/users/:id/retweets
+      const me = await userClient.v2.me();
+      const userId = me.data.id;
+      await userClient.v2.retweet(userId, tweetId);
+
+      this.loggerService.log(`${caller} success`, { tweetId, userId });
+      return { reposted: true, tweetId };
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get analytics for any Twitter media (tweets with text, images, or videos)
    * @param tweetId The ID of the tweet
    * @param accessToken Optional user access token for private metrics

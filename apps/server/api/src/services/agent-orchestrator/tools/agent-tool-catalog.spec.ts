@@ -16,6 +16,10 @@ const INSTAGRAM_HANDLER_PATH = resolve(
   HERE,
   'agent-instagram-inspiration-tool-handler.service.ts',
 );
+const X_ACTIONS_HANDLER_PATH = resolve(
+  HERE,
+  'agent-x-actions-tool-handler.service.ts',
+);
 
 function collectRouteCaseMembers(
   filePath: string,
@@ -82,6 +86,7 @@ describe('curated Agent action catalog', () => {
     const memberNames = new Set([
       ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
       ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
+      ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
     ]);
     const executorNames = new Set(
       [...memberNames]
