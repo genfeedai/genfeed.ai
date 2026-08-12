@@ -3,10 +3,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
+import type { QueueHealthNotification } from '@workers/monitoring/queue-health.types';
 import { QueueHealthAlertNotifierService } from '@workers/monitoring/queue-health-alert-notifier.service';
 import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
-import type { QueueHealthNotification } from '@workers/monitoring/queue-health.types';
 
 const mockCloudWatchSend = vi.fn();
 const mockCloudWatchDestroy = vi.fn();
@@ -191,13 +191,15 @@ describe('QueueMetricsService', () => {
   });
 
   it('alerts once with every breached threshold', async () => {
+    const now = Date.parse('2026-08-12T00:00:00.000Z');
+    vi.spyOn(Date, 'now').mockReturnValue(now);
     mockGetJobCounts.mockImplementation(async (name: string) =>
       name === 'default'
         ? { active: 1, delayed: 2, failed: 26, waiting: 101 }
         : { active: 0, delayed: 0, failed: 0, waiting: 0 },
     );
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'default' ? [{ timestamp: Date.now() - 901_000 }] : [],
+      name === 'default' ? [{ timestamp: now - 901_000 }] : [],
     );
 
     await service.publishQueueMetrics();
