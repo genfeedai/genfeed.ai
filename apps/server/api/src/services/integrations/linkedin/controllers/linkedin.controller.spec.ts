@@ -19,9 +19,25 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+async function expectHttpStatus(
+  promise: Promise<unknown>,
+  status: number,
+): Promise<HttpException> {
+  try {
+    await promise;
+  } catch (error) {
+    expect(error).toBeInstanceOf(HttpException);
+    const httpError = error as HttpException;
+    expect(httpError.getStatus()).toBe(status);
+    return httpError;
+  }
+
+  throw new Error('expected HttpException');
+}
 
 describe('LinkedInController', () => {
   let controller: LinkedInController;
@@ -133,6 +149,56 @@ describe('LinkedInController', () => {
       );
 
       expect(result).toHaveProperty('errors');
+    });
+
+    it('maps a missing LinkedIn client id to 503 instead of a catch-all 500', async () => {
+      mockBrandsService.findOne.mockResolvedValue({
+        id: brandId,
+        organizationId: orgId,
+        userId,
+      });
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        credential: { id: 'credential-id' },
+        state: 'opaque-oauth-state',
+      });
+      mockLinkedInService.generateAuthUrl.mockImplementation(() => {
+        throw new Error('The client ID must be specified.');
+      });
+
+      const error = await expectHttpStatus(
+        controller.connect(
+          mockRequest,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          { brandId },
+        ),
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+
+      expect(error.getResponse()).toEqual(
+        expect.objectContaining({
+          title: 'Integration not configured',
+        }),
+      );
+    });
+
+    it('rethrows provider HttpExceptions from connect instead of wrapping them as 500', async () => {
+      mockBrandsService.findOne.mockResolvedValue({
+        id: brandId,
+        organizationId: orgId,
+        userId,
+      });
+      mockCredentialsService.beginOAuthForBrand.mockRejectedValue(
+        new HttpException('Brand conflict', HttpStatus.CONFLICT),
+      );
+
+      await expectHttpStatus(
+        controller.connect(
+          mockRequest,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          { brandId },
+        ),
+        HttpStatus.CONFLICT,
+      );
     });
   });
 
@@ -248,6 +314,113 @@ describe('LinkedInController', () => {
       await expect(
         controller.verify(mockRequest, { code: 'code', state }),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('maps an expired authorization code to 400', async () => {
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
+      });
+      mockLinkedInService.exchangeAuthCodeForAccessToken.mockRejectedValue({
+        response: {
+          data: {
+            error: 'invalid_grant',
+            error_description: 'Authorization code expired',
+          },
+          status: 400,
+        },
+      });
+
+      await expectHttpStatus(
+        controller.verify(mockRequest, { code: 'expired-code', state }),
+        HttpStatus.BAD_REQUEST,
+      );
+    });
+
+    it('maps a LinkedIn 401 on profile fetch to 401', async () => {
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
+      });
+      mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'linkedin-token',
+        expiresIn: 5184000,
+      });
+      mockLinkedInService.getUserProfile.mockRejectedValue({
+        metadata: { status: 401 },
+        name: 'IntegrationHttpError',
+      });
+
+      await expectHttpStatus(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+        HttpStatus.UNAUTHORIZED,
+      );
+    });
+
+    it('maps a LinkedIn 5xx token exchange to 502', async () => {
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
+      });
+      mockLinkedInService.exchangeAuthCodeForAccessToken.mockRejectedValue({
+        response: { status: 503 },
+      });
+
+      await expectHttpStatus(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+        HttpStatus.BAD_GATEWAY,
+      );
+    });
+
+    it('does not log authorization codes or provider payloads', async () => {
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
+      });
+      mockLinkedInService.exchangeAuthCodeForAccessToken.mockRejectedValue({
+        response: {
+          data: {
+            error: 'invalid_grant',
+            error_description: 'Authorization code expired',
+          },
+          status: 400,
+        },
+      });
+
+      await expectHttpStatus(
+        controller.verify(mockRequest, {
+          code: 'super-secret-authorization-code',
+          state,
+        }),
+        HttpStatus.BAD_REQUEST,
+      );
+
+      const logged = JSON.stringify([
+        mockLoggerService.log.mock.calls,
+        mockLoggerService.error.mock.calls,
+      ]);
+
+      expect(logged).not.toContain('super-secret-authorization-code');
+      expect(logged).not.toContain('Authorization code expired');
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          hasCode: true,
+          hasState: true,
+        }),
+      );
     });
   });
 });
