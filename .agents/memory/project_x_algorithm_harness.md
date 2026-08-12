@@ -59,3 +59,5 @@ Production weights change. Durable lesson: **conversation + depth + share > vani
 
 Generate with `platform: twitter` or `x` → pack injects.  
 Periodically promote winners so memory holds conversation-heavy posts, not only like spikes.
+
+**Author closed loops:** Automate → Author Replies (`project_x_author_reply_loop.md`) — enable comment_responder, clear the 24h inbox as author, then promote winners.

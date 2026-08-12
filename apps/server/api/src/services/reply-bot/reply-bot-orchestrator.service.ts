@@ -18,6 +18,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
@@ -80,6 +81,7 @@ export class ReplyBotOrchestratorService {
     private readonly botActivitiesService: BotActivitiesService,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly authorReplyLoopService: AuthorReplyLoopService,
   ) {}
 
   /**
@@ -404,7 +406,13 @@ export class ReplyBotOrchestratorService {
           { limit: 50 },
         );
 
-        allComments.push(...comments);
+        // Stamp parent so author closed-loop tracking can attribute the post.
+        allComments.push(
+          ...comments.map((comment) => ({
+            ...comment,
+            parentContentId: comment.parentContentId ?? post.id,
+          })),
+        );
       }
 
       const unprocessed =
@@ -512,7 +520,10 @@ export class ReplyBotOrchestratorService {
     const activityId = activity.id.toString();
 
     try {
+      const brandId =
+        typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined;
       const replyText = await this.replyGenerationService.generateReply({
+        brandId,
         context: this.mergeReplyContext(
           botConfig.context,
           content.replyContext,
@@ -520,6 +531,9 @@ export class ReplyBotOrchestratorService {
         customInstructions: botConfig.replyInstructions,
         length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
         organizationId,
+        platform: String(
+          botConfig.platform ?? credential.platform ?? 'twitter',
+        ),
         tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
         tweetAuthor: content.authorUsername,
         tweetContent: content.text,
@@ -677,6 +691,25 @@ export class ReplyBotOrchestratorService {
         (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
         botConfigId,
       );
+
+      // Author-reply loop: record closed conversation for harness winners.
+      if (
+        replySent &&
+        botConfig.type === ReplyBotType.COMMENT_RESPONDER &&
+        (content.parentContentId || content.inReplyToId)
+      ) {
+        await this.authorReplyLoopService.recordAuthorClosedLoop({
+          brandId:
+            typeof botConfig.brandId === 'string'
+              ? botConfig.brandId
+              : undefined,
+          commentId: content.id,
+          organizationId,
+          parentPostId: content.parentContentId || content.inReplyToId || '',
+          platform: String(botConfig.platform ?? 'twitter'),
+          replyContentId,
+        });
+      }
 
       // Increment rate limit counter
       this.rateLimitService.incrementCounter(botConfigId);

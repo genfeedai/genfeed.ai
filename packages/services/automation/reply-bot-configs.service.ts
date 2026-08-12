@@ -74,6 +74,89 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
+   * Enable/upsert X author-reply comment_responder for a brand.
+   */
+  async ensureAuthorResponder(params: {
+    brandId: string;
+    credentialId?: string;
+    isActive?: boolean;
+  }): Promise<{
+    botConfigId: string;
+    created: boolean;
+    isActive: boolean;
+    platform: string;
+  }> {
+    const response = await this.instance.post<{
+      botConfigId: string;
+      created: boolean;
+      isActive: boolean;
+      platform: string;
+    }>('author-reply/ensure', params);
+    return response.data;
+  }
+
+  /**
+   * Comments on brand posts that still need an author reply.
+   */
+  async getAuthorReplyInbox(params: {
+    brandId: string;
+    hours?: number;
+  }): Promise<{
+    hours: number;
+    items: Array<{
+      authorDisplayName?: string;
+      authorId: string;
+      authorUsername: string;
+      commentId: string;
+      commentText: string;
+      commentUrl?: string;
+      createdAt: string;
+      parentPostId: string;
+      parentPostPreview?: string;
+      parentPostUrl?: string;
+    }>;
+    platform: string;
+    username?: string;
+  }> {
+    const response = await this.instance.get('author-reply/inbox', {
+      params,
+    });
+    return response.data;
+  }
+
+  async draftAuthorReply(params: {
+    brandId: string;
+    commentAuthor: string;
+    commentId: string;
+    commentText: string;
+    parentPostPreview?: string;
+  }): Promise<{ commentId: string; draft: string; harnessApplied: boolean }> {
+    const response = await this.instance.post('author-reply/draft', params);
+    return response.data;
+  }
+
+  async sendAuthorReply(params: {
+    brandId: string;
+    commentAuthor: string;
+    commentAuthorId?: string;
+    commentId: string;
+    commentText: string;
+    parentPostId: string;
+    parentPostPreview?: string;
+    replyText?: string;
+  }): Promise<{
+    commentId: string;
+    contentId?: string;
+    contentUrl?: string;
+    error?: string;
+    replyText: string;
+    success: boolean;
+  }> {
+    const response = await this.instance.post('author-reply/send', params);
+    return response.data;
+  }
+
+  /**
    * Get queue status for monitoring
    */
   async getQueueStatus(): Promise<{

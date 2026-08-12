@@ -3,6 +3,7 @@ import { MonitoredAccountsService } from '@api/collections/monitored-accounts/se
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
@@ -86,6 +87,10 @@ describe('ReplyBotOrchestratorService', () => {
     markAsProcessed: vi.fn(),
   };
 
+  const mockAuthorReplyLoopService = {
+    recordAuthorClosedLoop: vi.fn().mockResolvedValue(undefined),
+  };
+
   const mockSystemWorkflowProvenanceService = {
     runAction: vi.fn(
       async (
@@ -142,6 +147,10 @@ describe('ReplyBotOrchestratorService', () => {
         {
           provide: SystemWorkflowProvenanceService,
           useValue: mockSystemWorkflowProvenanceService,
+        },
+        {
+          provide: AuthorReplyLoopService,
+          useValue: mockAuthorReplyLoopService,
         },
       ],
     }).compile();

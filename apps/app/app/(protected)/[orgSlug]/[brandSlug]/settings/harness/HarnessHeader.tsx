@@ -8,13 +8,17 @@ import { Button } from '@ui/primitives/button';
 
 type HarnessHeaderProps = {
   draft: ICreateHarnessProfilePayload;
+  isPromoting?: boolean;
   isSaving: boolean;
+  onPromoteWinners?: () => void;
   onSave: () => void;
 };
 
 export default function HarnessHeader({
   draft,
+  isPromoting = false,
   isSaving,
+  onPromoteWinners,
   onSave,
 }: HarnessHeaderProps) {
   return (
@@ -23,14 +27,26 @@ export default function HarnessHeader({
       description="This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide)."
       bodyClassName="gap-3 p-4"
       headerAction={
-        <Button
-          disabled={isSaving}
-          onClick={onSave}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.DEFAULT}
-        >
-          {isSaving ? 'Saving...' : 'Save harness'}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {onPromoteWinners ? (
+            <Button
+              disabled={isPromoting || isSaving}
+              onClick={onPromoteWinners}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.OUTLINE}
+            >
+              {isPromoting ? 'Promoting…' : 'Promote winners to memory'}
+            </Button>
+          ) : null}
+          <Button
+            disabled={isSaving}
+            onClick={onSave}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+          >
+            {isSaving ? 'Saving...' : 'Save harness'}
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-wrap items-center gap-2">

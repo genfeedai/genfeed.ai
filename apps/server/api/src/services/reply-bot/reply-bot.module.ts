@@ -13,6 +13,7 @@
  */
 
 import { BotActivitiesModule } from '@api/collections/bot-activities/bot-activities.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/monitored-accounts.module';
@@ -20,11 +21,13 @@ import { ProcessedTweetsModule } from '@api/collections/processed-tweets/process
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
@@ -39,6 +42,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     // Export orchestrator for use by queues and controllers
     ReplyBotOrchestratorService,
+    AuthorReplyLoopService,
 
     BotActionExecutorService,
     RateLimitService,
@@ -53,6 +57,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => LoggerModule),
 
     forwardRef(() => BotActivitiesModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => MonitoredAccountsModule),
@@ -64,6 +69,8 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ReplicateModule),
     // AI generation dependencies
     forwardRef(() => TemplatesModule),
+    // Brand harness + platform-x brief for author replies
+    forwardRef(() => ContentHarnessModule),
 
     // Apify for multi-platform social media scraping (reading)
     forwardRef(() => ApifyModule),
@@ -75,6 +82,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => InstagramModule),
   ],
   providers: [
+    AuthorReplyLoopService,
     BotActionExecutorService,
     RateLimitService,
     ReplyCandidatePrefilterService,

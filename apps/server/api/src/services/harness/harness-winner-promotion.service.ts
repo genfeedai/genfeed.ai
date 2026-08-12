@@ -1,4 +1,5 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { closedLoopBoostScore } from '@api/services/reply-bot/author-closed-loop.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import { scopedWhere } from '@genfeedai/server';
@@ -257,7 +258,19 @@ export class HarnessWinnerPromotionService {
       const leftIsX = isXPlatform(left.platform);
       const rightIsX = isXPlatform(right.platform);
       if (leftIsX && rightIsX) {
-        return scoreXPublicMetricsPer1k(right) - scoreXPublicMetricsPer1k(left);
+        const leftScore =
+          scoreXPublicMetricsPer1k(left) +
+          closedLoopBoostScore({
+            authorClosedLoops: readAuthorClosedLoops(left),
+            engagementRate: 0,
+          });
+        const rightScore =
+          scoreXPublicMetricsPer1k(right) +
+          closedLoopBoostScore({
+            authorClosedLoops: readAuthorClosedLoops(right),
+            engagementRate: 0,
+          });
+        return rightScore - leftScore;
       }
       if (leftIsX !== rightIsX) {
         return leftIsX ? -1 : 1;
@@ -265,4 +278,18 @@ export class HarnessWinnerPromotionService {
       return (right.engagementRate ?? 0) - (left.engagementRate ?? 0);
     });
   }
+}
+
+function readAuthorClosedLoops(item: PerformanceContentItem): number {
+  const record = item as PerformanceContentItem & {
+    authorClosedLoops?: number;
+    data?: { authorClosedLoops?: number };
+  };
+  if (typeof record.authorClosedLoops === 'number') {
+    return record.authorClosedLoops;
+  }
+  if (typeof record.data?.authorClosedLoops === 'number') {
+    return record.data.authorClosedLoops;
+  }
+  return 0;
 }

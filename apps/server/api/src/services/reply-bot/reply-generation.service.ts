@@ -8,6 +8,7 @@ import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ActivitySource,
@@ -19,7 +20,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface ReplyGenerationOptions {
@@ -27,9 +28,13 @@ export interface ReplyGenerationOptions {
   tweetAuthor: string;
   tone: ReplyTone;
   length: ReplyLength;
+  /** Brand id for harness brief injection (author-reply + bot paths). */
+  brandId?: string;
   context?: string;
   customInstructions?: string;
   organizationId: string;
+  /** Platform for harness pack selection (e.g. twitter). */
+  platform?: string;
   userId: string;
 }
 
@@ -94,6 +99,8 @@ export class ReplyGenerationService {
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly templatesService: TemplatesService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {}
 
   /**
@@ -107,12 +114,25 @@ export class ReplyGenerationService {
     await this.assertCreditsAvailable(options.organizationId);
 
     try {
+      const harnessBlock = await this.resolveHarnessContext(options);
+      const mergedContext = [options.context, harnessBlock]
+        .filter((part) => part?.trim())
+        .join('\n\n');
+      const mergedInstructions = [
+        options.customInstructions,
+        harnessBlock
+          ? 'Stay consistent with the brand harness brief above. Do not tag Grok. Prefer conversation over empty thanks.'
+          : undefined,
+      ]
+        .filter((part) => part?.trim())
+        .join('\n');
+
       // Build the prompt using the existing template system
       const userPrompt = await this.templatesService.getRenderedPrompt(
         PromptTemplateKey.TWEET_REPLY,
         {
-          context: options.context || '',
-          customInstructions: options.customInstructions || '',
+          context: mergedContext || '',
+          customInstructions: mergedInstructions || '',
           length: options.length,
           tagGrok: false,
           tone: options.tone,
@@ -275,6 +295,39 @@ DM text:`;
     }
 
     return result;
+  }
+
+  /**
+   * Fold brand harness + platform-x brief into reply context when brandId set.
+   */
+  private async resolveHarnessContext(
+    options: ReplyGenerationOptions,
+  ): Promise<string | undefined> {
+    if (!options.brandId || !this.harnessGenerationService) {
+      return undefined;
+    }
+
+    try {
+      const brief = await this.harnessGenerationService.resolveBrief({
+        brandId: options.brandId,
+        contentType: 'reply',
+        includeContentMemory: true,
+        organizationId: options.organizationId,
+        platform: options.platform ?? 'twitter',
+        topic: options.tweetContent.slice(0, 200),
+      });
+      const formatted = this.harnessGenerationService.formatBrief(brief);
+      return formatted.trim() || undefined;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} harness brief unavailable for reply`,
+        {
+          brandId: options.brandId,
+          error: error instanceof Error ? error.message : 'unknown',
+        },
+      );
+      return undefined;
+    }
   }
 
   private async assertCreditsAvailable(organizationId: string): Promise<void> {

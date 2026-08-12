@@ -136,6 +136,14 @@ export class CreateReplyBotConfigDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({
+    description: 'Brand this bot is scoped to (required for author-reply loop)',
+    required: false,
+  })
+  brandId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
     description: 'Platform credential used by this bot',
     required: false,
   })

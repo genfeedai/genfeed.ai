@@ -283,4 +283,22 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(xPack).toContain('X_HEAVY_RANKER_WEIGHTS_2023');
     expect(harnessService).toContain('X_PLATFORM_HARNESS_PACK');
   });
+
+  it('exposes author-reply loop API for X conversation closed loops', () => {
+    const controller = readRepo(
+      'apps/server/api/src/collections/reply-bot-configs/controllers/reply-bot-configs.controller.ts',
+    );
+    const replyGen = readRepo(
+      'apps/server/api/src/services/reply-bot/reply-generation.service.ts',
+    );
+    const authorLoop = readRepo(
+      'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
+    );
+    expect(controller).toContain("Post('author-reply/ensure')");
+    expect(controller).toContain("Get('author-reply/inbox')");
+    expect(controller).toContain("Post('author-reply/send')");
+    expect(replyGen).toContain('resolveHarnessContext');
+    expect(authorLoop).toContain('recordAuthorClosedLoop');
+    expect(authorLoop).toContain('COMMENT_RESPONDER');
+  });
 });

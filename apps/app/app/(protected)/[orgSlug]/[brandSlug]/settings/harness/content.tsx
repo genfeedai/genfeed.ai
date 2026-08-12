@@ -128,6 +128,7 @@ export default function BrandSettingsHarnessPage() {
   );
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPromoting, setIsPromoting] = useState(false);
 
   useEffect(() => {
     if (!brandId || !brand) {
@@ -256,6 +257,29 @@ export default function BrandSettingsHarnessPage() {
     }
   }, [brand?.label, brandId, draft, getHarnessProfilesService]);
 
+  const handlePromoteWinners = useCallback(async () => {
+    if (!brandId) {
+      return;
+    }
+    setIsPromoting(true);
+    try {
+      const service = await getHarnessProfilesService();
+      const result = await service.promoteWinners({
+        brandId,
+        limit: 10,
+        platform: 'twitter',
+      });
+      toast.success(
+        `Promoted ${result.promoted} winners to content memory (${result.skipped} skipped).`,
+      );
+    } catch (error) {
+      logger.error('POST /harness-profiles/promote-winners failed', error);
+      toast.error('Unable to promote winners into content memory.');
+    } finally {
+      setIsPromoting(false);
+    }
+  }, [brandId, getHarnessProfilesService]);
+
   if (!hasBrandId || isLoading || isFetching) {
     return <Loading isFullSize={false} />;
   }
@@ -270,7 +294,13 @@ export default function BrandSettingsHarnessPage() {
 
   return (
     <div className="space-y-4">
-      <HarnessHeader draft={draft} isSaving={isSaving} onSave={handleSave} />
+      <HarnessHeader
+        draft={draft}
+        isPromoting={isPromoting}
+        isSaving={isSaving}
+        onPromoteWinners={handlePromoteWinners}
+        onSave={handleSave}
+      />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="space-y-4">

@@ -137,6 +137,11 @@ export const APP_ROUTES = {
     OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /** Throttled social reply drip campaigns. */
     REPLY_CAMPAIGNS: '/automate/reply-campaigns',
+    /**
+     * Author-reply conversation loop: close replies on *your* X posts
+     * (Heavy Ranker author-engaged reply signal). Not reply-guy.
+     */
+    AUTHOR_REPLIES: '/automate/author-replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automate/workflows',
     WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',

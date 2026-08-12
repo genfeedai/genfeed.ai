@@ -44,4 +44,24 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
       .patch<JsonApiResponseDocument>(`/${id}`, data)
       .then((res) => this.mapOne(res.data));
   }
+
+  /**
+   * Promote top performers into brand content memory (pgvector winners).
+   */
+  public async promoteWinners(params: {
+    brandId: string;
+    limit?: number;
+    platform?: string;
+  }): Promise<{
+    contextBaseId: string;
+    promoted: number;
+    skipped: number;
+  }> {
+    const response = await this.instance.post<{
+      contextBaseId: string;
+      promoted: number;
+      skipped: number;
+    }>('/promote-winners', params);
+    return response.data;
+  }
 }
