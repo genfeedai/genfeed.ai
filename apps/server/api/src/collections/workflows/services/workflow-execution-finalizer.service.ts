@@ -33,34 +33,24 @@ export class WorkflowExecutionFinalizerService {
     completedAt: Date;
     workflowStatus: WorkflowStatus;
   }): Promise<CompletedExecution> {
-    // Credits and the failed node are written before the terminal transition:
-    // `completeExecution` read-modify-writes the whole `result` JSON (and is the
-    // point the `workflow.execution.*` webhook is emitted from), so anything
-    // written after it is both a lost-update risk and invisible to subscribers.
-    if (input.result.totalCreditsUsed > 0) {
-      await this.executionsService.setCreditsUsed(
-        input.executionId,
-        input.result.totalCreditsUsed,
-      );
-    }
-
-    if (input.finalStatus === WorkflowExecutionStatus.FAILED) {
-      const failedNodeId = this.graphService.findFirstFailedNodeId(
-        input.result,
-      );
-      if (failedNodeId) {
-        await this.executionsService.setFailedNodeId(
-          input.executionId,
-          failedNodeId,
-        );
-      }
-    }
+    // Credits and the failed node ride on the same terminal UPDATE as status
+    // so concurrent runner patches cannot be erased by a result-JSON rewrite.
+    const failedNodeId =
+      input.finalStatus === WorkflowExecutionStatus.FAILED
+        ? this.graphService.findFirstFailedNodeId(input.result)
+        : undefined;
 
     const completedExecution = await this.executionsService.completeExecution(
       input.executionId,
       input.finalStatus === WorkflowExecutionStatus.FAILED
         ? input.result.error
         : undefined,
+      {
+        ...(input.result.totalCreditsUsed > 0
+          ? { creditsUsed: input.result.totalCreditsUsed }
+          : {}),
+        ...(failedNodeId ? { failedNodeId } : {}),
+      },
     );
 
     await this.prisma.workflow.update({

@@ -41,6 +41,7 @@ describe('WorkflowExecutorService', () => {
     setFailedNodeId: vi.fn(),
     startExecution: vi.fn(),
     updateExecutionMetadata: vi.fn(),
+    updateExecutionProgress: vi.fn(),
     updateNodeResult: vi.fn(),
   };
   const websocketService = {
@@ -123,6 +124,10 @@ describe('WorkflowExecutorService', () => {
     });
     executionsService.updateExecutionMetadata.mockResolvedValue({
       id: 'execution-1',
+    });
+    executionsService.updateExecutionProgress.mockResolvedValue({
+      id: 'execution-1',
+      progress: 50,
     });
     executionsService.updateNodeResult.mockResolvedValue({
       id: 'execution-1',
@@ -222,11 +227,9 @@ describe('WorkflowExecutorService', () => {
     expect(executionsService.completeExecution).toHaveBeenCalledWith(
       'execution-1',
       undefined,
+      { creditsUsed: 3 },
     );
-    expect(executionsService.setCreditsUsed).toHaveBeenCalledWith(
-      'execution-1',
-      3,
-    );
+    expect(executionsService.setCreditsUsed).not.toHaveBeenCalled();
     expect(
       websocketService.publishBackgroundTaskUpdate,
     ).toHaveBeenLastCalledWith(
@@ -337,14 +340,14 @@ describe('WorkflowExecutorService', () => {
     });
     expect(executionsService.getRuntimeState).toHaveBeenCalledWith('exec-1');
     expect(executionsService.findOne).not.toHaveBeenCalled();
-    expect(executionsService.updateExecutionMetadata).toHaveBeenCalledWith(
+    expect(executionsService.updateExecutionProgress).toHaveBeenCalledWith(
       'exec-1',
-      {
+      expect.objectContaining({
         eta: expect.objectContaining({
           currentPhase: 'Running Next node',
           estimatedDurationMs: 123_456,
         }),
-      },
+      }),
     );
     expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({

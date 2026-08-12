@@ -69,6 +69,8 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          creditsUsed: 0,
+          progress: 0,
           status: PrismaWorkflowExecutionStatus.PENDING,
         }),
       }),
@@ -156,24 +158,24 @@ describe('WorkflowExecutionsService', () => {
     });
   });
 
-  it('exposes result-backed execution state through the canonical document', async () => {
+  it('exposes scalar and child-table execution state through the canonical document', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findFirst.mockResolvedValue({
+      creditsUsed: 7,
+      durationMs: 1200,
+      failedNodeId: 'node-2',
       id: 'execution-1',
+      nodeResults: [
+        {
+          nodeId: 'node-2',
+          nodeType: 'generate',
+          status: SharedWorkflowExecutionStatus.FAILED,
+        },
+      ],
+      progress: 50,
       result: {
-        creditsUsed: 7,
-        durationMs: 1200,
-        failedNodeId: 'node-2',
         inputValues: { prompt: 'Launch' },
         metadata: { phase: 'failed' },
-        nodeResults: [
-          {
-            nodeId: 'node-2',
-            nodeType: 'generate',
-            status: SharedWorkflowExecutionStatus.FAILED,
-          },
-        ],
-        progress: 50,
       },
       trigger: 'manual',
     });
@@ -198,19 +200,19 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('counts execution stats using Prisma enum casing from database rows', async () => {
+  it('counts execution stats from scalar duration columns', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
-        result: { durationMs: 1000 },
+        durationMs: 1000,
         status: PrismaWorkflowExecutionStatus.COMPLETED,
       },
       {
-        result: { durationMs: 3000 },
+        durationMs: 3000,
         status: PrismaWorkflowExecutionStatus.COMPLETED,
       },
       {
-        result: {},
+        durationMs: null,
         status: PrismaWorkflowExecutionStatus.FAILED,
       },
     ]);
@@ -224,7 +226,7 @@ describe('WorkflowExecutionsService', () => {
       total: 3,
     });
     expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith({
-      select: { result: true, status: true },
+      select: { durationMs: true, status: true },
       where: {
         isDeleted: false,
         organizationId: 'org-1',
@@ -233,16 +235,11 @@ describe('WorkflowExecutionsService', () => {
     });
   });
 
-  it('completes executions with a narrow unique read before merging result JSON', async () => {
+  it('completes executions with scalar progress and ETA columns, not result JSON', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findUnique.mockResolvedValue({
-      result: {
-        metadata: {
-          eta: {
-            estimatedDurationMs: 1000,
-          },
-        },
-      },
+      estimatedDurationMs: 1000,
+      result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       workflowId: 'workflow-1',
     });
@@ -251,8 +248,8 @@ describe('WorkflowExecutionsService', () => {
 
     expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
       select: {
+        estimatedDurationMs: true,
         organizationId: true,
-        result: true,
         startedAt: true,
         trigger: true,
         workflowId: true,
@@ -262,30 +259,34 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          result: expect.objectContaining({
-            metadata: expect.objectContaining({
-              eta: expect.objectContaining({
-                currentPhase: 'Completed',
-                remainingDurationMs: 0,
-              }),
-            }),
-            progress: 100,
-          }),
+          etaCurrentPhase: 'Completed',
+          progress: 100,
+          remainingDurationMs: 0,
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
         where: { id: 'execution-1' },
       }),
     );
+    expect(
+      prisma.workflowExecution.update.mock.calls[0]?.[0]?.data,
+    ).not.toHaveProperty('result');
   });
 
   it('emits a terminal workflow execution webhook for both outcomes', async () => {
     const { prisma, service, workflowEventWebhookService } = makeService();
     prisma.workflowExecution.findUnique.mockResolvedValue({
+      creditsUsed: 12,
+      failedNodeId: 'node-3',
       organizationId: 'org-1',
-      result: { creditsUsed: 12, failedNodeId: 'node-3' },
+      result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       trigger: 'scheduled',
       workflowId: 'workflow-1',
+    });
+    prisma.workflowExecution.update.mockResolvedValue({
+      creditsUsed: 12,
+      failedNodeId: 'node-3',
+      id: 'execution-1',
     });
 
     await service.completeExecution('execution-1');
@@ -318,81 +319,55 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('updates node results atomically without a separate result read', async () => {
+  it('upserts one child node result without rewriting execution.result', async () => {
     const { prisma, service } = makeService();
     prisma.$queryRaw.mockResolvedValue([
       {
         id: 'execution-1',
-        result: {
-          metadata: { retained: true },
-          nodeResults: [
-            {
-              nodeId: 'node-1',
-              nodeType: 'input',
-              status: SharedWorkflowExecutionStatus.COMPLETED,
-            },
-          ],
-          progress: 50,
-        },
+        progress: 50,
       },
     ]);
 
-    await service.updateNodeResult(
-      'execution-1',
-      {
-        nodeId: 'node-1',
-        nodeType: 'input',
-        status: SharedWorkflowExecutionStatus.COMPLETED,
-      },
-      2,
-    );
+    await expect(
+      service.updateNodeResult(
+        'execution-1',
+        {
+          nodeId: 'node-1',
+          nodeType: 'input',
+          status: SharedWorkflowExecutionStatus.COMPLETED,
+        },
+        2,
+      ),
+    ).resolves.toEqual({
+      id: 'execution-1',
+      metadata: {},
+      progress: 50,
+    });
 
     const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
     const sql = query.join('?').replace(/\s+/g, ' ').trim();
 
+    expect(sql).toContain('INSERT INTO workflow_execution_node_results');
+    expect(sql).toContain(
+      'ON CONFLICT ("executionId", "nodeId") DO UPDATE SET',
+    );
     expect(sql).toContain('UPDATE workflow_executions AS execution');
-    expect(sql).toContain('jsonb_array_elements(node_results)');
-    expect(sql).toContain('WHERE execution.id = next_execution.id');
-    expect(sql).toContain('RETURNING execution.id, execution.result');
+    expect(sql).toContain('RETURNING execution.id, execution.progress');
+    expect(sql).not.toContain('jsonb_array_elements');
+    expect(sql).not.toContain('execution.result');
     expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  it('canonicalizes non-object result values inside the atomic node update', async () => {
-    const { prisma, service } = makeService();
-
-    await service.updateNodeResult(
-      'execution-1',
-      {
-        nodeId: 'node-1',
-        nodeType: 'input',
-        status: SharedWorkflowExecutionStatus.COMPLETED,
-      },
-      2,
-    );
-
-    const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
-    const sql = query.join('?').replace(/\s+/g, ' ').trim();
-    expect(sql).toContain("ELSE '{}'::jsonb");
-    expect(sql).not.toContain("IS DISTINCT FROM 'string'");
-    expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
-    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
-  });
-
-  it('reads only runtime state needed for delay resume ETA updates', async () => {
+  it('reads scalar runtime state for delay resume ETA updates', async () => {
     const { prisma, service } = makeService();
     const startedAt = new Date('2026-06-29T00:00:00.000Z');
     prisma.workflowExecution.findUnique.mockResolvedValue({
+      estimatedDurationMs: 12_000,
+      etaCurrentPhase: 'Waiting',
       isDeleted: false,
-      result: {
-        metadata: {
-          eta: {
-            currentPhase: 'Waiting',
-            estimatedDurationMs: 12_000,
-          },
-        },
-        progress: 37,
-      },
+      progress: 37,
+      result: { metadata: { surface: 'delay' } },
       startedAt,
     });
 
@@ -402,12 +377,26 @@ describe('WorkflowExecutionsService', () => {
           currentPhase: 'Waiting',
           estimatedDurationMs: 12_000,
         },
+        surface: 'delay',
       },
       progress: 37,
       startedAt,
     });
     expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
-      select: { isDeleted: true, result: true, startedAt: true },
+      select: {
+        creditsUsed: true,
+        durationMs: true,
+        estimatedDurationMs: true,
+        etaConfidence: true,
+        etaCurrentPhase: true,
+        etaUpdatedAt: true,
+        failedNodeId: true,
+        isDeleted: true,
+        progress: true,
+        remainingDurationMs: true,
+        result: true,
+        startedAt: true,
+      },
       where: { id: 'execution-1' },
     });
   });
@@ -423,32 +412,22 @@ describe('WorkflowExecutionsService', () => {
     await expect(service.getRuntimeState('execution-1')).resolves.toBeNull();
   });
 
-  it('patches terminal result fields atomically without separate reads', async () => {
-    const { prisma, service } = makeService();
-    prisma.$executeRaw.mockResolvedValue(1);
-
-    await service.setFailedNodeId('execution-1', 'node-1');
-    await service.setCreditsUsed('execution-1', 17);
-
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
-    for (const call of prisma.$executeRaw.mock.calls) {
-      const query = call[0] as readonly string[];
-      const sql = query.join('?').replace(/\s+/g, ' ').trim();
-      expect(sql).toContain('UPDATE workflow_executions AS execution');
-      expect(sql).toContain('WHERE execution.id = ?');
-    }
-    expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
-    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
-  });
-
-  it('does not issue fallback reads when a terminal result patch misses', async () => {
+  it('patches credits and failed node as independent scalar columns', async () => {
     const { prisma, service } = makeService();
 
     await service.setFailedNodeId('execution-1', 'node-1');
     await service.setCreditsUsed('execution-1', 17);
 
+    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(1, {
+      data: { failedNodeId: 'node-1' },
+      where: { id: 'execution-1' },
+    });
+    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(2, {
+      data: { creditsUsed: 17 },
+      where: { id: 'execution-1' },
+    });
     expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
-    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
   it('returns null when the atomic metadata update misses', async () => {
@@ -462,19 +441,22 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  it('updates execution metadata atomically without a separate result read', async () => {
+  it('updates execution metadata without returning the result blob', async () => {
     const { prisma, service } = makeService();
     prisma.$queryRaw.mockResolvedValue([
       {
         id: 'execution-1',
-        result: {
-          metadata: { phase: 'running', retained: true },
-          progress: 20,
-        },
+        progress: 20,
       },
     ]);
 
-    await service.updateExecutionMetadata('execution-1', { phase: 'running' });
+    await expect(
+      service.updateExecutionMetadata('execution-1', { phase: 'running' }),
+    ).resolves.toEqual({
+      id: 'execution-1',
+      metadata: { phase: 'running' },
+      progress: 20,
+    });
 
     const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
     const sql = query.join('?').replace(/\s+/g, ' ').trim();
@@ -482,8 +464,100 @@ describe('WorkflowExecutionsService', () => {
     expect(sql).toContain('UPDATE workflow_executions AS execution');
     expect(sql).toContain("'{metadata}'");
     expect(sql).toContain('WHERE execution.id = ?');
-    expect(sql).toContain('RETURNING execution.id, execution.result');
+    expect(sql).toContain('RETURNING execution.id, execution.progress');
+    expect(sql).not.toContain('RETURNING execution.id, execution.result');
     expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
-    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
+  });
+
+  it('writes ETA snapshots onto scalar columns without returning result JSON', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.update.mockResolvedValue({
+      id: 'execution-1',
+      progress: 40,
+    });
+
+    await expect(
+      service.updateExecutionProgress('execution-1', {
+        eta: {
+          currentPhase: 'Running image',
+          estimatedDurationMs: 20_000,
+          remainingDurationMs: 12_000,
+        },
+        progress: 40,
+      }),
+    ).resolves.toEqual({
+      id: 'execution-1',
+      metadata: {
+        eta: {
+          currentPhase: 'Running image',
+          estimatedDurationMs: 20_000,
+          remainingDurationMs: 12_000,
+        },
+      },
+      progress: 40,
+    });
+
+    expect(prisma.workflowExecution.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          etaCurrentPhase: 'Running image',
+          estimatedDurationMs: 20_000,
+          progress: 40,
+          remainingDurationMs: 12_000,
+        }),
+        select: { id: true, progress: true },
+        where: { id: 'execution-1' },
+      }),
+    );
+  });
+
+  it('preserves concurrent creditsUsed and failedNodeId under terminal completion', async () => {
+    const { prisma, service, workflowEventWebhookService } = makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      creditsUsed: 0,
+      failedNodeId: null,
+      organizationId: 'org-1',
+      result: {},
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      workflowId: 'workflow-1',
+    });
+    prisma.workflowExecution.update.mockResolvedValue({
+      creditsUsed: 17,
+      failedNodeId: 'node-1',
+      id: 'execution-1',
+    });
+
+    await Promise.all([
+      service.setCreditsUsed('execution-1', 17),
+      service.setFailedNodeId('execution-1', 'node-1'),
+      service.completeExecution('execution-1', 'Provider timed out', {
+        creditsUsed: 17,
+        failedNodeId: 'node-1',
+      }),
+    ]);
+
+    const completionWrite = prisma.workflowExecution.update.mock.calls.find(
+      (call) => call[0]?.data?.status === PrismaWorkflowExecutionStatus.FAILED,
+    )?.[0];
+
+    expect(completionWrite?.data).toEqual(
+      expect.objectContaining({
+        creditsUsed: 17,
+        failedNodeId: 'node-1',
+        progress: 100,
+        status: PrismaWorkflowExecutionStatus.FAILED,
+      }),
+    );
+    expect(completionWrite?.data).not.toHaveProperty('result');
+    expect(
+      workflowEventWebhookService.emitExecutionOutcome,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creditsUsed: 17,
+        failedNodeId: 'node-1',
+        status: SharedWorkflowExecutionStatus.FAILED,
+      }),
+    );
   });
 });

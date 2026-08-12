@@ -450,6 +450,71 @@ export function buildGenerationEtaSnapshot(
   };
 }
 
+export interface WorkflowEtaPlan {
+  criticalPathNodeIds: string[];
+  etaConfidence: EtaConfidence;
+  estimatedDurationMs: number;
+  nodeDurationsMs: Record<string, number>;
+}
+
+export function precomputeWorkflowEtaPlan(
+  nodes: WorkflowEtaNodeLike[],
+  edges: WorkflowEtaEdgeLike[],
+): WorkflowEtaPlan {
+  const nodeDurationsMs: Record<string, number> = {};
+  for (const node of nodes) {
+    nodeDurationsMs[node.id] = estimateNodeDuration(node).durationMs;
+  }
+
+  const estimate = estimateWorkflowCriticalPath(nodes, edges);
+  return {
+    criticalPathNodeIds: estimate.criticalPathNodeIds,
+    etaConfidence: estimate.etaConfidence,
+    estimatedDurationMs: estimate.estimatedDurationMs ?? 0,
+    nodeDurationsMs,
+  };
+}
+
+export function applyWorkflowEtaProgress(
+  plan: WorkflowEtaPlan,
+  params: {
+    completedNodeIds?: Iterable<string>;
+    skippedNodeIds?: Iterable<string>;
+    startedAt?: Date | string;
+    currentPhase?: string;
+    baselineEstimatedDurationMs?: number;
+  },
+): WorkflowEtaEstimate {
+  const completedNodeIds = new Set(params.completedNodeIds ?? []);
+  const skippedNodeIds = new Set(params.skippedNodeIds ?? []);
+  const remainingPathNodeIds = plan.criticalPathNodeIds.filter(
+    (nodeId) => !completedNodeIds.has(nodeId) && !skippedNodeIds.has(nodeId),
+  );
+  const remainingDurationMs = remainingPathNodeIds.reduce(
+    (sum, nodeId) => sum + (plan.nodeDurationsMs[nodeId] ?? 0),
+    0,
+  );
+
+  const baseline =
+    params.baselineEstimatedDurationMs ?? plan.estimatedDurationMs;
+  const startedAt = normalizeIsoDate(params.startedAt);
+  const elapsedMs = getElapsedDurationMs(params.startedAt);
+  const dynamicEstimate =
+    remainingDurationMs && elapsedMs > baseline
+      ? elapsedMs + remainingDurationMs
+      : baseline;
+
+  return {
+    criticalPathNodeIds: remainingPathNodeIds,
+    currentPhase: params.currentPhase,
+    estimatedDurationMs: dynamicEstimate,
+    etaConfidence: plan.etaConfidence,
+    lastEtaUpdateAt: new Date().toISOString(),
+    remainingDurationMs,
+    startedAt,
+  };
+}
+
 export function estimateWorkflowCriticalPath(
   nodes: WorkflowEtaNodeLike[],
   edges: WorkflowEtaEdgeLike[],
@@ -601,44 +666,11 @@ export function buildWorkflowEtaSnapshot(params: {
   startedAt?: Date | string;
   currentPhase?: string;
   baselineEstimatedDurationMs?: number;
+  plan?: WorkflowEtaPlan;
 }): WorkflowEtaEstimate {
-  const completedNodeIds = new Set(params.completedNodeIds ?? []);
-  const skippedNodeIds = new Set(params.skippedNodeIds ?? []);
-  const remainingNodes = params.nodes.filter(
-    (node) => !completedNodeIds.has(node.id) && !skippedNodeIds.has(node.id),
-  );
-  const remainingNodeIds = new Set(remainingNodes.map((node) => node.id));
-  const remainingEdges = params.edges.filter(
-    (edge) =>
-      remainingNodeIds.has(edge.source) && remainingNodeIds.has(edge.target),
-  );
-
-  const baseline =
-    params.baselineEstimatedDurationMs ??
-    estimateWorkflowCriticalPath(params.nodes, params.edges)
-      .estimatedDurationMs ??
-    0;
-  const remainingEstimate = estimateWorkflowCriticalPath(
-    remainingNodes,
-    remainingEdges,
-  );
-
-  const startedAt = normalizeIsoDate(params.startedAt);
-  const elapsedMs = getElapsedDurationMs(params.startedAt);
-  const dynamicEstimate =
-    remainingEstimate.estimatedDurationMs && elapsedMs > baseline
-      ? elapsedMs + remainingEstimate.estimatedDurationMs
-      : baseline;
-
-  return {
-    criticalPathNodeIds: remainingEstimate.criticalPathNodeIds,
-    currentPhase: params.currentPhase,
-    estimatedDurationMs: dynamicEstimate,
-    etaConfidence: remainingEstimate.etaConfidence,
-    lastEtaUpdateAt: new Date().toISOString(),
-    remainingDurationMs: remainingEstimate.estimatedDurationMs,
-    startedAt,
-  };
+  const plan =
+    params.plan ?? precomputeWorkflowEtaPlan(params.nodes, params.edges);
+  return applyWorkflowEtaProgress(plan, params);
 }
 
 export function formatEtaDuration(durationMs: number): string {

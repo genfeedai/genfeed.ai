@@ -3319,12 +3319,51 @@ model WorkflowExecution {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 
-  posts Post[]
+  /// Scalar progress/ETA so node transitions do not rewrite `result` JSON (#2512).
+  progress            Int       @default(0)
+  durationMs          Int?
+  creditsUsed         Int       @default(0)
+  failedNodeId        String?
+  totalNodes          Int?
+  estimatedDurationMs Int?
+  remainingDurationMs Int?
+  etaConfidence       String?
+  etaCurrentPhase     String?
+  etaUpdatedAt        DateTime?
+
+  posts       Post[]
+  nodeResults WorkflowExecutionNodeResult[]
 
   trigger String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("workflow_executions")
+}
+
+/// Per-node execution results, unique on (executionId, nodeId). One upsert
+/// per transition — the execution `result` JSON is no longer rewritten (#2512).
+model WorkflowExecutionNodeResult {
+  id             String             @id @default(cuid())
+  organizationId String
+  executionId    String
+  execution      WorkflowExecution  @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId         String
+  nodeType       String
+  status         String
+  input          Json?
+  output         Json?
+  error          String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  progress       Int?
+  retryCount     Int?
+  creditsUsed    Int?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([executionId, nodeId])
+  @@index([organizationId, executionId])
+  @@map("workflow_execution_node_results")
 }
 
 /// Durable per-node idempotency claims for workflow execution (#2359).
