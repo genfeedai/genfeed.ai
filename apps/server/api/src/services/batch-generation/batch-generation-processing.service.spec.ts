@@ -205,18 +205,21 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     expect(items?.[0]?.error).toMatch(/missing or invalid "credentialId"/i);
   });
 
-  it('skips the credential lookup for an unmappable platform', async () => {
-    // `toPrismaCredentialPlatform` returns undefined for unknown platforms.
-    // Querying anyway would put `platform: undefined` into the where clause,
-    // which `normalizeWhere` drops — silently matching ANY connected credential
-    // for the brand and cross-wiring the draft to the wrong account.
+  it('fails the item for an unmappable platform without generating content (#2696)', async () => {
+    // Malformed platforms must not burn LLM credits or create posts. Create-time
+    // normalize should catch most cases; this is the process-time backstop.
     useBatchItems([{ ...baseItem, platform: 'myspace' }]);
 
     await service.processBatch('batch-1', 'org-1');
 
+    expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
     expect(credentialDelegate.findFirst).not.toHaveBeenCalled();
-    expect(postsService.create.mock.calls[0]?.[0]).not.toHaveProperty(
-      'credentialId',
+    expect(postsService.create).not.toHaveBeenCalled();
+    expect(finalUpdatePayload().items?.[0]?.status).toBe(
+      BatchItemStatus.FAILED,
+    );
+    expect(finalUpdatePayload().items?.[0]?.error).toMatch(
+      /Invalid batch item platform/i,
     );
   });
 

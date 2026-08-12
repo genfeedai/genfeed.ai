@@ -309,6 +309,23 @@ export class BatchGenerationProcessingService {
           topics[i % Math.max(topics.length, 1)] ??
           `${item.format} content`;
 
+        // Posts store lowercase platform strings; credentials use Prisma
+        // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
+        // Reject unmappable platforms *before* content generation so a bad
+        // persisted item cannot burn credits or create posts (#2696).
+        const platformRaw =
+          typeof item.platform === 'string' && item.platform.trim().length > 0
+            ? item.platform.trim()
+            : undefined;
+        if (platformRaw && !parsePlatform(platformRaw)) {
+          throw new BadRequestException(
+            `Invalid batch item platform "${platformRaw}"`,
+          );
+        }
+        const platformForCredential = platformRaw
+          ? toPrismaCredentialPlatform(platformRaw)
+          : undefined;
+
         await this.invokeLifecycleCallback(
           'onItemStarted',
           () =>
@@ -355,23 +372,6 @@ export class BatchGenerationProcessingService {
           item.prompt?.trim() ||
           topic.trim() ||
           'Draft post';
-
-        // Posts store lowercase platform strings; credentials use Prisma
-        // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
-        // Reject unmappable platforms before any content generation side
-        // effects so malformed persisted items cannot create bad posts (#2696).
-        const platformRaw =
-          typeof item.platform === 'string' && item.platform.trim().length > 0
-            ? item.platform.trim()
-            : undefined;
-        if (platformRaw && !parsePlatform(platformRaw)) {
-          throw new BadRequestException(
-            `Invalid batch item platform "${platformRaw}"`,
-          );
-        }
-        const platformForCredential = platformRaw
-          ? toPrismaCredentialPlatform(platformRaw)
-          : undefined;
         // Derive the post spelling from the same mapper the credential lookup
         // uses, so one item cannot persist a post platform that disagrees with
         // the credential it was matched against. Lowercasing the raw input
