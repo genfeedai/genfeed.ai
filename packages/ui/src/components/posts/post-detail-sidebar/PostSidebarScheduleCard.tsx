@@ -12,6 +12,7 @@ type PostSidebarScheduleCardProps = {
   browserTimezone: string;
   onScheduleChange: (value: string) => void;
   onScheduleSave: () => void;
+  onPublishNow?: () => void;
 };
 
 export default function PostSidebarScheduleCard({
@@ -21,6 +22,7 @@ export default function PostSidebarScheduleCard({
   browserTimezone,
   onScheduleChange,
   onScheduleSave,
+  onPublishNow,
 }: PostSidebarScheduleCardProps) {
   return (
     <Card bodyClassName="space-y-3 p-4">
@@ -50,6 +52,17 @@ export default function PostSidebarScheduleCard({
         isDisabled={!isScheduleDirty || !scheduleDraft || isSavingSchedule}
         onClick={onScheduleSave}
       />
+      {onPublishNow ? (
+        <Button
+          label={isSavingSchedule ? 'Publishing…' : 'Publish now'}
+          variant={ButtonVariant.SECONDARY}
+          className="w-full"
+          withWrapper={false}
+          isLoading={isSavingSchedule}
+          isDisabled={isSavingSchedule}
+          onClick={onPublishNow}
+        />
+      ) : null}
     </Card>
   );
 }

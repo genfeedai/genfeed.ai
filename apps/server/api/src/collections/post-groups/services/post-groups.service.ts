@@ -8,6 +8,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
@@ -37,7 +38,11 @@ import {
   scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.DRAFT,
@@ -340,11 +345,87 @@ export class PostGroupsService {
         postId: target.id,
         provenance: {
           releaseId: group.id,
-          surface: 'agent-schedule-post',
+          surface:
+            provenance?.source === 'post-desk'
+              ? 'post-desk-schedule'
+              : 'agent-schedule-post',
         },
         transaction: tx,
       });
 
+      return this.persistenceService.hydrateWithDerivedStatus(
+        tx,
+        organizationId,
+        group.id,
+      );
+    });
+  }
+
+  /**
+   * Desk posts created through `/posts` are not always release targets.
+   * Bind the existing root post to a draft PostGroup so Schedule / Publish now
+   * can reuse `scheduleTarget` / `publishNow` without inventing a second post.
+   */
+  async ensureReleaseForPost(
+    organizationId: string,
+    userId: string,
+    postId: string,
+  ): Promise<IReleaseGroup> {
+    if (!postId) {
+      throw new BadRequestException('postId is required.');
+    }
+
+    const post = await this.prisma.post.findFirst({
+      where: scopedWhere(organizationId, { id: postId }),
+    });
+    if (!post) {
+      throw new NotFoundException('Post', postId);
+    }
+    if (post.parentId) {
+      throw new BadRequestException(
+        'Schedule the thread root. Replies cannot be scheduled as their own release.',
+      );
+    }
+    if (post.groupId) {
+      const existing = await this.prisma.postGroup.findFirst({
+        where: scopedWhere(organizationId, { id: post.groupId }),
+      });
+      if (existing) {
+        return this.persistenceService.hydrateWithDerivedStatus(
+          this.prisma,
+          organizationId,
+          existing.id,
+        );
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const transition = this.contractService.buildTransition(
+        null,
+        ReleaseStatus.DRAFT,
+        userId,
+      );
+      const group = await tx.postGroup.create({
+        data: {
+          attachments: this.contractService.toJson([]),
+          baseContent: post.description,
+          brandId: post.brandId,
+          media: this.contractService.toJson([]),
+          organizationId,
+          ownerId: userId,
+          status: ReleaseStatus.DRAFT,
+          statusTransitions: this.contractService.toJson([transition]),
+          timezone: post.timezone || 'UTC',
+          title:
+            post.label?.trim() ||
+            post.description.slice(0, 100) ||
+            'Untitled post',
+        },
+      });
+      await tx.post.updateMany({
+        data: { groupId: group.id },
+        where: scopedWhere(organizationId, { id: post.id }),
+      });
       return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,

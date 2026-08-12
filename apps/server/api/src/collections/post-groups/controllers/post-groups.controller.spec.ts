@@ -30,6 +30,8 @@ describe('PostGroupsController', () => {
     pause: ReturnType<typeof vi.fn>;
     publishNow: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
+    ensureReleaseForPost: ReturnType<typeof vi.fn>;
+    scheduleTarget: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
   };
@@ -53,6 +55,7 @@ describe('PostGroupsController', () => {
           useValue: {
             cancel: vi.fn().mockResolvedValue({ id: 'group-1' }),
             create: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            ensureReleaseForPost: vi.fn().mockResolvedValue({ id: 'group-1' }),
             getOne: vi.fn().mockResolvedValue({ id: 'group-1' }),
             list: vi.fn().mockResolvedValue({
               docs: [{ id: 'group-1' }],
@@ -64,6 +67,7 @@ describe('PostGroupsController', () => {
             pause: vi.fn().mockResolvedValue({ id: 'group-1' }),
             publishNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             resume: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            scheduleTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
             update: vi.fn().mockResolvedValue({ id: 'group-1' }),
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
           },
@@ -135,6 +139,33 @@ describe('PostGroupsController', () => {
       'target-1',
       { timezone: 'UTC' },
       expect.objectContaining({ organization: 'org-1', user: 'user-1' }),
+    );
+  });
+
+  it('routes target schedule through scheduleTarget so a version-bound approval is created', async () => {
+    await controller.updateTarget(req, user, 'group-1', 'target-1', {
+      action: 'schedule',
+      scheduledDate: '2026-09-01T10:00:00.000Z',
+    });
+
+    expect(service.scheduleTarget).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      '2026-09-01T10:00:00.000Z',
+      { source: 'post-desk' },
+    );
+    expect(service.updateTarget).not.toHaveBeenCalled();
+  });
+
+  it('wraps a desk post into a release group before schedule or publish-now', async () => {
+    await controller.ensureFromPost(req, user, { postId: 'post-1' });
+
+    expect(service.ensureReleaseForPost).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'post-1',
     );
   });
 
@@ -217,6 +248,12 @@ describe('PostGroupsController', () => {
         PostGroupsController.prototype.updateTarget,
       ),
     ).toEqual([ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.ensureFromPost,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_SCHEDULE]);
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,

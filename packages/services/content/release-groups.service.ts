@@ -244,4 +244,23 @@ export class ReleaseGroupsService extends HTTPBaseService {
     );
     return deserializeResource<IReleaseGroup>(response.data);
   }
+
+  async ensureFromPost(postId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/from-post',
+      { postId },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async scheduleTarget(
+    groupId: string,
+    targetId: string,
+    scheduledDate: string,
+  ): Promise<IReleaseGroup> {
+    return this.updateTarget(groupId, targetId, {
+      action: 'schedule',
+      scheduledDate,
+    } as UpdateChannelTargetInput);
+  }
 }

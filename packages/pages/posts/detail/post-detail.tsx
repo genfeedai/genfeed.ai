@@ -88,6 +88,7 @@ export default function PostDetail({
     dragOverDividerIndex,
     handleContentSave,
     handleScheduleSave,
+    handlePublishNow,
     handleAddToThread,
     handleDeletePost,
     handleDeleteChild,
@@ -262,6 +263,7 @@ export default function PostDetail({
           reviewSummary={reviewSummary}
           onScheduleChange={handleScheduleChange}
           onScheduleSave={handleScheduleSave}
+          onPublishNow={handlePublishNow}
           onScoreSeo={handleScoreSeo}
         />
         {!isPublished ? <EngagementPreview post={post} /> : null}
@@ -272,6 +274,7 @@ export default function PostDetail({
     credential,
     handleScheduleChange,
     handleScheduleSave,
+    handlePublishNow,
     handleScoreSeo,
     isContentDirty,
     isPublished,

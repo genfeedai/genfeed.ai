@@ -1,4 +1,3 @@
-import { TargetExecutionState } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { act, renderHook } from '@testing-library/react';
@@ -46,6 +45,10 @@ describe('usePostDetailActions', () => {
   const mockServiceDelete = vi.fn();
   const mockServiceEnhance = vi.fn();
   const mockGetPostsService = vi.fn();
+  const mockEnsureFromPost = vi.fn();
+  const mockScheduleTarget = vi.fn();
+  const mockPublishNow = vi.fn();
+  const mockGetReleaseGroupsService = vi.fn();
   const mockNotificationsService = {
     error: vi.fn(),
     success: vi.fn(),
@@ -67,6 +70,7 @@ describe('usePostDetailActions', () => {
     descriptionDraft: 'Draft description',
     fetchPost: mockFetchPost,
     getPostsService: mockGetPostsService,
+    getReleaseGroupsService: mockGetReleaseGroupsService,
     handleUpdateChild: mockHandleUpdateChild,
     isContentDirty: false,
     isDescriptionDirty: false,
@@ -100,6 +104,14 @@ describe('usePostDetailActions', () => {
     mockGetPostsService.mockResolvedValue({
       delete: mockServiceDelete,
       enhance: mockServiceEnhance,
+    });
+    mockEnsureFromPost.mockResolvedValue({ id: 'group-1' });
+    mockScheduleTarget.mockResolvedValue({ id: 'group-1' });
+    mockPublishNow.mockResolvedValue({ id: 'group-1' });
+    mockGetReleaseGroupsService.mockResolvedValue({
+      ensureFromPost: mockEnsureFromPost,
+      publishNow: mockPublishNow,
+      scheduleTarget: mockScheduleTarget,
     });
   });
 
@@ -181,17 +193,35 @@ describe('usePostDetailActions', () => {
         await result.current.handleScheduleSave();
       });
 
-      expect(mockUpdateActivePost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          scheduledDate: '2025-06-01T10:00',
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        }),
-        'Schedule updated',
-        true,
+      expect(mockEnsureFromPost).toHaveBeenCalledWith('post-1');
+      expect(mockScheduleTarget).toHaveBeenCalledWith(
+        'group-1',
+        'post-1',
+        '2025-06-01T10:00',
       );
+      expect(mockUpdateActivePost).not.toHaveBeenCalled();
       expect(mockFetchPost).toHaveBeenCalledWith(true);
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Schedule date updated',
+      );
+    });
+
+    it('publishes now through the approval-backed release path', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          post: { ...POST, groupId: 'group-9' } as IPost,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handlePublishNow();
+      });
+
+      expect(mockEnsureFromPost).not.toHaveBeenCalled();
+      expect(mockPublishNow).toHaveBeenCalledWith('group-9');
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Publishing now',
       );
     });
 
@@ -210,7 +240,7 @@ describe('usePostDetailActions', () => {
     });
 
     it('notifies when scheduling fails', async () => {
-      mockUpdateActivePost.mockRejectedValue(new Error('boom'));
+      mockScheduleTarget.mockRejectedValue(new Error('boom'));
       const { result } = renderHook(() =>
         usePostDetailActions({
           ...baseProps,
