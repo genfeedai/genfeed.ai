@@ -9,6 +9,9 @@ import {
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { describe, expect, test } from 'vitest';
@@ -171,7 +174,59 @@ describe('social warm-up blueprint contract', () => {
     expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.TIKTOK)).toBe(
       TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     );
-    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(1);
+    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(2);
+  });
+
+  test('publishes the canonical X 5–7 day warm-up (#2219)', () => {
+    expect(TWITTER_SOCIAL_WARMUP_BLUEPRINT).toMatchObject({
+      id: TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+      lastReviewedOn: '2026-08-12',
+      platform: CredentialPlatform.TWITTER,
+      version: TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+    });
+
+    expect(
+      TWITTER_SOCIAL_WARMUP_BLUEPRINT.phases.map((phase) => ({
+        endDay: phase.endDay,
+        id: phase.id,
+        startDay: phase.startDay,
+      })),
+    ).toEqual([
+      {
+        endDay: 2,
+        id: 'profile-and-topic-consumption',
+        startDay: 1,
+      },
+      {
+        endDay: 4,
+        id: 'reply-first-participation',
+        startDay: 3,
+      },
+      {
+        endDay: 7,
+        id: 'first-originals-and-cadence',
+        startDay: 5,
+      },
+    ]);
+
+    expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.TWITTER)).toBe(
+      TWITTER_SOCIAL_WARMUP_BLUEPRINT,
+    );
+    expect(
+      resolveSocialWarmupBlueprint({
+        id: TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+        version: TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+      }),
+    ).toBe(TWITTER_SOCIAL_WARMUP_BLUEPRINT);
+
+    const provenances = new Set(
+      TWITTER_SOCIAL_WARMUP_BLUEPRINT.phases.flatMap((phase) =>
+        phase.steps.map((step) => step.provenance),
+      ),
+    );
+    expect(provenances.has('user_confirmed')).toBe(true);
+    expect(provenances.has('platform_verified')).toBe(true);
+    expect(provenances.has('genfeed_observed')).toBe(true);
   });
 
   test('keeps generic selection free of TikTok-specific branching', () => {
