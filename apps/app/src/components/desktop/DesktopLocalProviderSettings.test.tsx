@@ -8,8 +8,9 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
   );
+  const translate = translateFromCatalog('common.desktop.provider');
 
-  return { useTranslations: translateFromCatalog };
+  return { useTranslations: () => translate };
 });
 
 const mocks = vi.hoisted(() => ({

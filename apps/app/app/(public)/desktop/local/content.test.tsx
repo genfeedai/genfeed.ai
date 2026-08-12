@@ -7,8 +7,9 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../tests/next-intl.stub'
   );
+  const translate = translateFromCatalog('common.desktop.local');
 
-  return { useTranslations: translateFromCatalog };
+  return { useTranslations: () => translate };
 });
 
 const mocks = vi.hoisted(() => ({
@@ -59,7 +60,7 @@ describe('LocalDesktopContent', () => {
       content: 'Generated locally',
       id: 'generated-1',
       platform: 'twitter',
-      type: 'post',
+      type: 'caption',
     });
     mocks.getDesktopBridge.mockReturnValue({
       app: {
