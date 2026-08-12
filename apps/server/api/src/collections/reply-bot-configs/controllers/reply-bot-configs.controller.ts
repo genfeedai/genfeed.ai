@@ -165,6 +165,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       brandId: query.brandId,
       hours: query.hours,
       organizationId: publicMetadata.organization,
+      platform: query.platform,
     });
   }
 

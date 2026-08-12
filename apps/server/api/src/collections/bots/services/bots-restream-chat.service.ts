@@ -2,6 +2,10 @@ import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
+import {
+  pickAccessTokenAfterRefresh,
+  resolveRestreamAccessFromCredential,
+} from '@api/services/integrations/restream/services/restream-token.util';
 import { LivestreamTranscriptSource, Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
@@ -209,6 +213,30 @@ export class BotsRestreamChatService {
       );
       return this.ingestChatActions(bot, frames as RestreamChatAction[]);
     } catch (error) {
+      // Collect can fail on expired tokens even when expiry was not stored —
+      // retry once after forced refresh.
+      const retried = await this.resolveRestreamAccessToken(bot, {
+        forceRefresh: true,
+      });
+      if (retried && retried !== accessToken) {
+        try {
+          const frames = await this.restreamService.collectChatActions(
+            retried,
+            {
+              listenMs: 6_000,
+              maxMessages: 30,
+            },
+          );
+          return this.ingestChatActions(bot, frames as RestreamChatAction[]);
+        } catch (retryError) {
+          this.logger.warn('Restream chat sync failed after token refresh', {
+            context: this.logContext,
+            error: retryError,
+          });
+          return { ingested: 0, sessionId: null, skipped: 1 };
+        }
+      }
+
       this.logger.warn('Restream chat sync failed', {
         context: this.logContext,
         error,
@@ -217,9 +245,77 @@ export class BotsRestreamChatService {
     }
   }
 
-  private async resolveRestreamAccessToken(
+  /**
+   * Resolve a usable Restream access token for the bot, refreshing when stale
+   * or when forceRefresh is set (e.g. after a collect failure).
+   */
+  async resolveRestreamAccessToken(
     bot: BotDocument,
+    options: { forceRefresh?: boolean; now?: Date } = {},
   ): Promise<string | null> {
+    if (!this.credentialsService || !this.restreamService) {
+      return null;
+    }
+
+    const credential = await this.loadRestreamCredential(bot);
+    if (!credential) {
+      return null;
+    }
+
+    const tokens = readCredentialTokens(credential);
+    const resolved = resolveRestreamAccessFromCredential(
+      tokens,
+      options.now ?? new Date(),
+    );
+    if (!resolved) {
+      return null;
+    }
+
+    if (!resolved.needsRefresh && !options.forceRefresh) {
+      return resolved.accessToken || null;
+    }
+
+    if (!resolved.refreshToken) {
+      return resolved.accessToken || null;
+    }
+
+    try {
+      const refreshed = await this.restreamService.refreshAccessToken(
+        resolved.refreshToken,
+      );
+      const nextToken = pickAccessTokenAfterRefresh(
+        refreshed,
+        resolved.accessToken,
+      );
+      if (!nextToken) {
+        return resolved.accessToken || null;
+      }
+
+      if (tokens.id && this.credentialsService.patch) {
+        await this.credentialsService.patch(tokens.id, {
+          accessToken: nextToken,
+          accessTokenExpiry: refreshed.expires_in
+            ? new Date(Date.now() + refreshed.expires_in * 1000)
+            : undefined,
+          ...(refreshed.refresh_token
+            ? { refreshToken: refreshed.refresh_token }
+            : {}),
+        } as never);
+      }
+
+      return nextToken;
+    } catch (error) {
+      this.logger.warn('Restream token refresh failed', {
+        context: this.logContext,
+        error,
+      });
+      return resolved.accessToken || null;
+    }
+  }
+
+  private async loadRestreamCredential(
+    bot: BotDocument,
+  ): Promise<Record<string, unknown> | null> {
     if (!this.credentialsService) {
       return null;
     }
@@ -228,16 +324,14 @@ export class BotsRestreamChatService {
     if (credentialId) {
       const byId = await this.credentialsService.findOne({
         id: credentialId,
-        organizationId: bot.organizationId,
         isDeleted: false,
+        organizationId: bot.organizationId,
       } as never);
-      const token = readAccessToken(byId);
-      if (token) {
-        return token;
+      if (byId) {
+        return byId as Record<string, unknown>;
       }
     }
 
-    // Brand-scoped Restream credential fallback.
     if (bot.brandId) {
       const byBrand = await this.credentialsService.findOne({
         brandId: bot.brandId,
@@ -246,18 +340,43 @@ export class BotsRestreamChatService {
         organizationId: bot.organizationId,
         platform: Platform.RESTREAM,
       } as never);
-      return readAccessToken(byBrand);
+      if (byBrand) {
+        return byBrand as Record<string, unknown>;
+      }
     }
 
     return null;
   }
 }
 
-function readAccessToken(credential: unknown): string | null {
-  if (!credential || typeof credential !== 'object') {
-    return null;
-  }
-  const record = credential as Record<string, unknown>;
-  const token = record.accessToken ?? record.access_token;
-  return typeof token === 'string' && token.trim() ? token.trim() : null;
+function readCredentialTokens(credential: Record<string, unknown>): {
+  accessToken: string | null;
+  accessTokenExpiry?: Date | string | null;
+  id?: string;
+  refreshToken?: string | null;
+} {
+  const access =
+    typeof credential.accessToken === 'string'
+      ? credential.accessToken
+      : typeof credential.access_token === 'string'
+        ? credential.access_token
+        : null;
+  const refresh =
+    typeof credential.refreshToken === 'string'
+      ? credential.refreshToken
+      : typeof credential.refresh_token === 'string'
+        ? credential.refresh_token
+        : null;
+  const expiry =
+    credential.accessTokenExpiry ?? credential.access_token_expiry ?? null;
+
+  return {
+    accessToken: access,
+    accessTokenExpiry:
+      expiry instanceof Date || typeof expiry === 'string' || expiry == null
+        ? (expiry as Date | string | null)
+        : null,
+    id: typeof credential.id === 'string' ? credential.id : undefined,
+    refreshToken: refresh,
+  };
 }

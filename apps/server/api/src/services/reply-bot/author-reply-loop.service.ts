@@ -228,31 +228,78 @@ export class AuthorReplyLoopService {
     brandId: string;
     hours?: number;
     organizationId: string;
+    /** Default twitter; youtube uses official/poll comment fetch when configured. */
+    platform?: 'twitter' | 'youtube';
   }): Promise<AuthorReplyInboxResult> {
-    const hours = clampReplyMaxAgeHours(params.hours);
-    const credential = await this.loadTwitterCredential(
-      params.organizationId,
-      params.brandId,
-    );
-    if (!credential?.username) {
+    const replyPlatform =
+      params.platform === 'youtube'
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
+    const hours =
+      params.platform === 'youtube'
+        ? clampReplyMaxAgeHours(params.hours ?? 48)
+        : clampReplyMaxAgeHours(params.hours);
+
+    const credential =
+      replyPlatform === ReplyBotPlatform.YOUTUBE
+        ? await this.loadYouTubeCredential(
+            params.organizationId,
+            params.brandId,
+          )
+        : await this.loadTwitterCredential(
+            params.organizationId,
+            params.brandId,
+          );
+
+    if (!credential) {
+      throw new BadRequestException(
+        replyPlatform === ReplyBotPlatform.YOUTUBE
+          ? 'No active YouTube credential for this brand'
+          : 'No active X credential with username for this brand',
+      );
+    }
+
+    const timelineHandle =
+      credential.username ||
+      credential.externalId ||
+      (replyPlatform === ReplyBotPlatform.YOUTUBE ? 'me' : '');
+
+    if (!timelineHandle && replyPlatform === ReplyBotPlatform.TWITTER) {
       throw new BadRequestException(
         'No active X credential with username for this brand',
       );
     }
 
     const cutoff = Date.now() - hours * 60 * 60 * 1000;
-    const ourUsername = credential.username.replace(/^@/, '').toLowerCase();
+    const ourUsername = (credential.username || credential.externalId || '')
+      .replace(/^@/, '')
+      .toLowerCase();
 
-    const posts = await this.socialMonitorService.getUserTimeline(
-      ReplyBotPlatform.TWITTER,
-      credential.username,
-      {
-        brandId: params.brandId,
-        limit: MAX_PARENT_POSTS,
-        organizationId: params.organizationId,
-        preferOfficialApi: true,
-      },
-    );
+    let posts: SocialContentData[] = [];
+    try {
+      posts = await this.socialMonitorService.getUserTimeline(
+        replyPlatform,
+        timelineHandle || 'me',
+        {
+          brandId: params.brandId,
+          limit: MAX_PARENT_POSTS,
+          organizationId: params.organizationId,
+          preferOfficialApi: true,
+        },
+      );
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} timeline fetch failed`, {
+        error: error instanceof Error ? error.message : 'unknown',
+        platform: replyPlatform,
+      });
+      // Handled empty: return empty inbox rather than crashing the Replies UI.
+      return {
+        hours,
+        items: [],
+        platform: replyPlatform,
+        username: credential.username || credential.externalId || undefined,
+      };
+    }
 
     const items: AuthorReplyInboxItem[] = [];
     const processedIds = await this.loadProcessedCommentIds(
@@ -268,7 +315,7 @@ export class AuthorReplyLoopService {
       let comments: SocialContentData[] = [];
       try {
         comments = await this.socialMonitorService.getContentComments(
-          ReplyBotPlatform.TWITTER,
+          replyPlatform,
           post.id,
           {
             brandId: params.brandId,
@@ -280,6 +327,7 @@ export class AuthorReplyLoopService {
       } catch (error: unknown) {
         this.logger.warn(`${this.constructorName} comment fetch failed`, {
           error: error instanceof Error ? error.message : 'unknown',
+          platform: replyPlatform,
           postId: post.id,
         });
         continue;
@@ -293,7 +341,7 @@ export class AuthorReplyLoopService {
           continue;
         }
         const author = comment.authorUsername.replace(/^@/, '').toLowerCase();
-        if (author === ourUsername) {
+        if (ourUsername && author === ourUsername) {
           continue;
         }
 
@@ -326,8 +374,8 @@ export class AuthorReplyLoopService {
     return {
       hours,
       items: items.slice(0, 50),
-      platform: ReplyBotPlatform.TWITTER,
-      username: credential.username,
+      platform: replyPlatform,
+      username: credential.username || credential.externalId || undefined,
     };
   }
 
@@ -643,6 +691,7 @@ export class AuthorReplyLoopService {
     const config = await this.findAuthorResponderConfig(
       organizationId,
       brandId,
+      ReplyBotPlatform.TWITTER,
     );
     const credentialId =
       (config ? this.readCredentialId(config) : undefined) ??
@@ -671,6 +720,45 @@ export class AuthorReplyLoopService {
         ? EncryptionUtil.decrypt(credential.refreshToken)
         : undefined,
       username: credential.username ?? undefined,
+    };
+  }
+
+  private async loadYouTubeCredential(
+    organizationId: string,
+    brandId: string,
+  ): Promise<IReplyBotCredentialData | null> {
+    const config = await this.findAuthorResponderConfig(
+      organizationId,
+      brandId,
+      ReplyBotPlatform.YOUTUBE,
+    );
+    const credentialId =
+      (config ? this.readCredentialId(config) : undefined) ??
+      (await this.findYouTubeCredentialId(organizationId, brandId));
+
+    if (!credentialId) {
+      return null;
+    }
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId,
+    });
+    if (!credential) {
+      throw new NotFoundException('Credential', credentialId);
+    }
+
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
+      externalId: credential.externalId ?? undefined,
+      platform: ReplyBotPlatform.YOUTUBE,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
+      username: credential.username ?? credential.externalId ?? undefined,
     };
   }
 

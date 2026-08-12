@@ -84,6 +84,16 @@ export class AuthorReplyInboxQueryDto {
     required: false,
   })
   hours?: number;
+
+  @IsIn(['twitter', 'youtube'] as const)
+  @IsOptional()
+  @ApiProperty({
+    default: 'twitter',
+    description: 'Platform inbox: X (twitter) or YouTube comments',
+    enum: ['twitter', 'youtube'],
+    required: false,
+  })
+  platform?: 'twitter' | 'youtube';
 }
 
 export class AuthorReplyDraftDto {

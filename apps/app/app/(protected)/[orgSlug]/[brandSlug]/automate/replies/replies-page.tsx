@@ -75,6 +75,10 @@ export default function RepliesPage() {
 
   const [items, setItems] = useState<InboxItem[]>([]);
   const [username, setUsername] = useState<string | undefined>();
+  const [inboxPlatform, setInboxPlatform] = useState<'twitter' | 'youtube'>(
+    'twitter',
+  );
+  const [platformLabel, setPlatformLabel] = useState('X');
   const [isLoading, setIsLoading] = useState(true);
   const [isEnabling, setIsEnabling] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -82,6 +86,7 @@ export default function RepliesPage() {
   const [drafts, setDrafts] = useState<DraftState>({});
   const [intents, setIntents] = useState<IntentState>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [inboxError, setInboxError] = useState<string | null>(null);
 
   const brandId = brand?.id;
 
@@ -93,11 +98,13 @@ export default function RepliesPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     setIsLoading(true);
+    setInboxError(null);
     try {
       const service = await getReplyBotService();
       const result = await service.getAuthorReplyInbox({
         brandId,
-        hours: 24,
+        hours: inboxPlatform === 'youtube' ? 48 : 24,
+        platform: inboxPlatform,
       });
       if (controller.signal.aborted) {
         return;
@@ -105,6 +112,11 @@ export default function RepliesPage() {
       const nextItems = (result.items ?? []) as InboxItem[];
       setItems(nextItems);
       setUsername(result.username);
+      setPlatformLabel(
+        result.platform === 'youtube' || result.platform === 'YOUTUBE'
+          ? 'YouTube'
+          : 'X',
+      );
       setIntents((prev) => {
         const next = { ...prev };
         for (const item of nextItems) {
@@ -118,16 +130,18 @@ export default function RepliesPage() {
       if (controller.signal.aborted) {
         return;
       }
+      const message =
+        error instanceof Error ? error.message : 'Could not load replies inbox';
       logger.error('Replies inbox failed', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Could not load replies inbox',
-      );
+      setItems([]);
+      setInboxError(message);
+      toast.error(message);
     } finally {
       if (!controller.signal.aborted) {
         setIsLoading(false);
       }
     }
-  }, [brandId, getReplyBotService]);
+  }, [brandId, getReplyBotService, inboxPlatform]);
 
   useEffect(() => {
     void loadInbox();
@@ -146,11 +160,15 @@ export default function RepliesPage() {
       const result = await service.ensureAuthorResponder({
         brandId,
         isActive: true,
+        platform: inboxPlatform,
       });
       setIsActive(result.isActive);
       setBotConfigId(result.botConfigId);
+      const label = inboxPlatform === 'youtube' ? 'YouTube' : 'X';
       toast.success(
-        result.created ? 'Auto-replies enabled for X' : 'Auto-replies updated',
+        result.created
+          ? `Auto-replies enabled for ${label}`
+          : 'Auto-replies updated',
       );
       await loadInbox();
     } catch (error: unknown) {
@@ -158,7 +176,9 @@ export default function RepliesPage() {
       toast.error(
         error instanceof Error
           ? error.message
-          : 'Connect X for this brand first',
+          : inboxPlatform === 'youtube'
+            ? 'Connect YouTube for this brand first'
+            : 'Connect X for this brand first',
       );
     } finally {
       setIsEnabling(false);
@@ -252,7 +272,7 @@ export default function RepliesPage() {
     <Container className="flex flex-col gap-6 py-6">
       <Card
         label="Replies"
-        description="Reply to comments on your posts (X). Intent modes: thanks, questions, trolls (controlled wit), skip spam. Only last 24 hours."
+        description="Reply to comments on your posts (X or YouTube). Intent modes: thanks, questions, trolls (controlled wit), skip spam. X: last 24h · YouTube: last 48h."
         bodyClassName="gap-4 p-4"
         headerAction={
           <div className="flex flex-wrap gap-2">
@@ -276,11 +296,35 @@ export default function RepliesPage() {
           </div>
         }
       >
+        <div className="flex max-w-xs flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Platform
+          </span>
+          <Select
+            value={inboxPlatform}
+            onValueChange={(value) => {
+              if (value === 'twitter' || value === 'youtube') {
+                setInboxPlatform(value);
+                setItems([]);
+                setInboxError(null);
+              }
+            }}
+          >
+            <SelectTrigger aria-label="Replies platform">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="twitter">X (Twitter)</SelectItem>
+              <SelectItem value="youtube">YouTube</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">
             <MessageCircleReply className="mr-1 size-3" />
-            max 24h
+            {inboxPlatform === 'youtube' ? 'max 48h' : 'max 24h'}
           </Badge>
+          <Badge variant="outline">{platformLabel}</Badge>
           {username ? (
             <Badge variant="outline">@{username.replace(/^@/, '')}</Badge>
           ) : null}
@@ -294,17 +338,28 @@ export default function RepliesPage() {
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          Official X reads first (Apify only if needed). Drafts use brand
+          Official API reads first (Apify only if needed). Drafts use brand
           harness + intent persona.
         </p>
+        {inboxError ? (
+          <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {inboxError}
+          </p>
+        ) : null}
       </Card>
 
       {isLoading ? (
         <Loading />
       ) : items.length === 0 ? (
         <Card
-          label="Inbox clear"
-          description="No unreplied comments in the last 24 hours — connect X and post, or check back after people reply."
+          label={inboxError ? 'Inbox unavailable' : 'Inbox clear'}
+          description={
+            inboxError
+              ? inboxError
+              : inboxPlatform === 'youtube'
+                ? 'No unreplied YouTube comments in the last 48 hours — connect YouTube for this brand, or check back after people comment.'
+                : 'No unreplied comments in the last 24 hours — connect X and post, or check back after people reply.'
+          }
           bodyClassName="p-4"
         />
       ) : (

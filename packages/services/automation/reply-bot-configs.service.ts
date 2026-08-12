@@ -80,6 +80,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     brandId: string;
     credentialId?: string;
     isActive?: boolean;
+    platform?: 'twitter' | 'youtube';
   }): Promise<{
     botConfigId: string;
     created: boolean;
@@ -98,11 +99,12 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
-   * Comments on brand posts that still need a reply.
+   * Comments on brand posts that still need a reply (X or YouTube).
    */
   async getAuthorReplyInbox(params: {
     brandId: string;
     hours?: number;
+    platform?: 'twitter' | 'youtube';
   }): Promise<{
     hours: number;
     items: Array<{

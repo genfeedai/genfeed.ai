@@ -1,0 +1,132 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthorReplyLoopService } from './author-reply-loop.service';
+
+describe('AuthorReplyLoopService.getInbox YouTube path', () => {
+  const prisma = {
+    credential: { findFirst: vi.fn() },
+    processedTweet: { findMany: vi.fn().mockResolvedValue([]) },
+  };
+  const logger = { warn: vi.fn(), log: vi.fn(), error: vi.fn() };
+  const socialMonitorService = {
+    getUserTimeline: vi.fn(),
+    getContentComments: vi.fn(),
+  };
+  const replyGenerationService = {};
+  const botActionExecutorService = {};
+  const replyBotConfigsService = {
+    find: vi.fn().mockResolvedValue([]),
+    patch: vi.fn(),
+  };
+  const credentialsService = {
+    findOne: vi.fn(),
+  };
+  const processedTweetsService = {};
+  const xActivitySubscriptionService = {};
+
+  let service: AuthorReplyLoopService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new AuthorReplyLoopService(
+      prisma as never,
+      logger as never,
+      socialMonitorService as never,
+      replyGenerationService as never,
+      botActionExecutorService as never,
+      replyBotConfigsService as never,
+      credentialsService as never,
+      processedTweetsService as never,
+      xActivitySubscriptionService as never,
+    );
+  });
+
+  it('lists YouTube comments when platform=youtube and credential exists', async () => {
+    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    // Empty accessToken decrypts safely (same as author-reply-loop.service.spec).
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      externalId: 'UC123',
+      id: 'yt-cred',
+      username: 'brandchannel',
+    });
+
+    socialMonitorService.getUserTimeline.mockResolvedValue([
+      {
+        contentUrl: 'https://youtube.com/watch?v=vid1',
+        createdAt: new Date(),
+        id: 'vid1',
+        text: 'My upload',
+      },
+    ]);
+    socialMonitorService.getContentComments.mockResolvedValue([
+      {
+        authorDisplayName: 'Viewer',
+        authorId: 'u1',
+        authorUsername: 'viewer1',
+        contentUrl: 'https://youtube.com/watch?v=vid1&lc=c1',
+        createdAt: new Date(),
+        id: 'c1',
+        text: 'Great video!',
+      },
+    ]);
+
+    const result = await service.getInbox({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      platform: 'youtube',
+    });
+
+    expect(socialMonitorService.getUserTimeline).toHaveBeenCalledWith(
+      'youtube',
+      expect.any(String),
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        preferOfficialApi: true,
+      }),
+    );
+    expect(socialMonitorService.getContentComments).toHaveBeenCalledWith(
+      'youtube',
+      'vid1',
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+    expect(result.platform).toBe('youtube');
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.commentText).toBe('Great video!');
+  });
+
+  it('returns empty items (not throw) when YouTube timeline fails', async () => {
+    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      externalId: 'UC123',
+      id: 'yt-cred',
+      username: 'brandchannel',
+    });
+    socialMonitorService.getUserTimeline.mockRejectedValue(
+      new Error('quota exceeded'),
+    );
+
+    const result = await service.getInbox({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      platform: 'youtube',
+    });
+
+    expect(result.items).toEqual([]);
+    expect(result.platform).toBe('youtube');
+  });
+
+  it('throws a clear error when no YouTube credential exists', async () => {
+    prisma.credential.findFirst.mockResolvedValue(null);
+    credentialsService.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.getInbox({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'youtube',
+      }),
+    ).rejects.toThrow(/YouTube credential/i);
+  });
+});
