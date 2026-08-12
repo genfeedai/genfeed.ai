@@ -8,6 +8,7 @@ import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -25,11 +26,38 @@ type WorkflowOption = {
   label: string;
 };
 
+type OverrideRow = {
+  id: string;
+  key: string;
+  value: string;
+};
+
 type Props = {
   agentId: string;
   onBound: () => Promise<void> | void;
   strategy: AgentStrategy;
 };
+
+function newOverrideRow(key = '', value = ''): OverrideRow {
+  return {
+    id:
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `ovr-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    key,
+    value,
+  };
+}
+
+function overridesFromStrategy(strategy: AgentStrategy): OverrideRow[] {
+  const rows = strategy.workflowInputOverrides;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return [newOverrideRow()];
+  }
+  return rows.map((row) =>
+    newOverrideRow(String(row.key ?? ''), String(row.value ?? '')),
+  );
+}
 
 export default function AgentWorkflowBindCard({
   agentId,
@@ -47,12 +75,16 @@ export default function AgentWorkflowBindCard({
   const [selectedId, setSelectedId] = useState(
     strategy.preferredWorkflowId ?? '',
   );
+  const [overrides, setOverrides] = useState<OverrideRow[]>(() =>
+    overridesFromStrategy(strategy),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setSelectedId(strategy.preferredWorkflowId ?? '');
-  }, [strategy.preferredWorkflowId]);
+    setOverrides(overridesFromStrategy(strategy));
+  }, [strategy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,12 +132,26 @@ export default function AgentWorkflowBindCard({
       const service = await getAgentService();
       const nextId =
         !selectedId || selectedId === CLEAR_BINDING ? '' : selectedId;
-      // Empty string is treated as unbound by readConfigString (trim falsy).
+      const workflowInputOverrides = overrides
+        .map((row) => ({
+          key: row.key.trim(),
+          value: row.value.trim(),
+        }))
+        .filter((row) => row.key.length > 0 && row.value.length > 0)
+        .map((row) => ({
+          key: row.key,
+          value: row.value as string | number | boolean,
+        }));
+
+      // Empty preferredWorkflowId is treated as unbound by readConfigString.
       await service.update(agentId, {
         preferredWorkflowId: nextId,
+        workflowInputOverrides,
       });
       toast.success(
-        nextId ? 'Workflow bound to agent' : 'Workflow binding cleared',
+        nextId
+          ? 'Workflow binding and overrides saved'
+          : 'Binding cleared; overrides saved',
       );
       await onBound();
     } catch (error) {
@@ -116,12 +162,12 @@ export default function AgentWorkflowBindCard({
     } finally {
       setIsSaving(false);
     }
-  }, [agentId, getAgentService, onBound, selectedId]);
+  }, [agentId, getAgentService, onBound, overrides, selectedId]);
 
   const currentTemplate = strategy.preferredWorkflowTemplateId;
 
   return (
-    <Card className="p-4">
+    <Card className="space-y-4 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <h3 className="text-sm font-semibold text-foreground">
@@ -163,10 +209,84 @@ export default function AgentWorkflowBindCard({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2 border-t border-foreground/10 pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h4 className="text-sm font-medium text-foreground">
+              Saved input overrides
+            </h4>
+            <p className="text-xs text-foreground/50">
+              Applied on every Run workflow for exact workflow slot keys (topic,
+              prompt, customHook, …).
+            </p>
+          </div>
+          <Button
+            label="Add row"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            disabled={isSaving}
+            onClick={() => setOverrides((prev) => [...prev, newOverrideRow()])}
+          />
+        </div>
+        <div className="space-y-2">
+          {overrides.map((row, index) => (
+            <div
+              key={row.id}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]"
+            >
+              <Input
+                aria-label={`Override key ${index + 1}`}
+                placeholder="slot key (e.g. topic)"
+                value={row.key}
+                onChange={(event) =>
+                  setOverrides((prev) =>
+                    prev.map((item) =>
+                      item.id === row.id
+                        ? { ...item, key: event.target.value }
+                        : item,
+                    ),
+                  )
+                }
+              />
+              <Input
+                aria-label={`Override value ${index + 1}`}
+                placeholder="value"
+                value={row.value}
+                onChange={(event) =>
+                  setOverrides((prev) =>
+                    prev.map((item) =>
+                      item.id === row.id
+                        ? { ...item, value: event.target.value }
+                        : item,
+                    ),
+                  )
+                }
+              />
+              <Button
+                label="Remove"
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isSaving || overrides.length <= 1}
+                onClick={() =>
+                  setOverrides((prev) =>
+                    prev.length <= 1
+                      ? [newOverrideRow()]
+                      : prev.filter((item) => item.id !== row.id),
+                  )
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
         <Button
           label={isSaving ? 'Saving…' : 'Save binding'}
           size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
+          variant={ButtonVariant.DEFAULT}
           disabled={isLoading || isSaving}
           onClick={() => void handleSave()}
         />
