@@ -27,6 +27,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
@@ -54,24 +55,28 @@ describe('LinkedInService', () => {
     scrapeLinkedIn: vi.fn(),
   };
 
+  const mockConfig: Record<string, string> = {
+    LINKEDIN_CLIENT_ID: 'test-client-id',
+    LINKEDIN_CLIENT_SECRET: 'test-client-secret',
+    LINKEDIN_REDIRECT_URI: 'http://localhost:3000/oauth/linkedin',
+  };
+
+  const mockConfigService = {
+    get: vi.fn((key: string) => mockConfig[key]),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockConfig.LINKEDIN_CLIENT_ID = 'test-client-id';
+    mockConfig.LINKEDIN_CLIENT_SECRET = 'test-client-secret';
+    mockConfig.LINKEDIN_REDIRECT_URI = 'http://localhost:3000/oauth/linkedin';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkedInService,
         {
           provide: ConfigService,
-          useValue: {
-            get: vi.fn((key: string) => {
-              const config: Record<string, string> = {
-                LINKEDIN_CLIENT_ID: 'test-client-id',
-                LINKEDIN_CLIENT_SECRET: 'test-client-secret',
-                LINKEDIN_REDIRECT_URI: 'http://localhost:3000/oauth/linkedin',
-              };
-              return config[key];
-            }),
-          },
+          useValue: mockConfigService,
         },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: CredentialsService, useValue: mockCredentialsService },
@@ -129,6 +134,25 @@ describe('LinkedInService', () => {
         'some-state',
       );
     });
+
+    it('throws 503 when LinkedIn app credentials are missing', () => {
+      delete mockConfig.LINKEDIN_CLIENT_ID;
+
+      try {
+        service.generateAuthUrl('some-state');
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+        expect(
+          mockAuthClientInstance.generateMemberAuthorizationUrl,
+        ).not.toHaveBeenCalled();
+        return;
+      }
+
+      expect.fail('expected missing LinkedIn config to throw');
+    });
   });
 
   describe('exchangeAuthCodeForAccessToken', () => {
@@ -155,6 +179,39 @@ describe('LinkedInService', () => {
         service.exchangeAuthCodeForAccessToken('bad-code'),
       ).rejects.toThrow('Invalid authorization code');
       expect(mockLoggerService.error).toHaveBeenCalled();
+    });
+
+    it('logs a safe classification instead of the authorization code or provider payload', async () => {
+      mockAuthClientInstance.exchangeAuthCodeForAccessToken.mockRejectedValue({
+        response: {
+          data: {
+            error: 'invalid_grant',
+            error_description: 'Authorization code expired',
+          },
+          status: 400,
+        },
+      });
+
+      await expect(
+        service.exchangeAuthCodeForAccessToken(
+          'super-secret-authorization-code',
+        ),
+      ).rejects.toBeDefined();
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          code: 'invalid_grant',
+          kind: 'provider_client',
+          status: 400,
+        }),
+      );
+      expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
+        'super-secret-authorization-code',
+      );
+      expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
+        'Authorization code expired',
+      );
     });
   });
 
