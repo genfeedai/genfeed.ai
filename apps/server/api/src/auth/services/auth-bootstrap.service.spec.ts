@@ -336,6 +336,14 @@ describe('AuthBootstrapService', () => {
       },
     } as never);
 
+    // Cold miss: streak is resolved from request ids alongside the base
+    // bootstrap work (not sequenced after the full base resolve).
+    expect(streaksService.getStreakSummary).toHaveBeenCalledWith(
+      userId,
+      organizationId,
+    );
+    expect(usersService.findOne).toHaveBeenCalled();
+
     expect(result).toEqual({
       access: {
         brandId,
