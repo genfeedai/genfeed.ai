@@ -418,11 +418,45 @@ describe('AgentApiService', () => {
       mockJsonApiCollection([{ id: 'm-1' }], 'thread-message');
       const service = makeService();
       const result = await Effect.runPromise(
-        service.getMessagesEffect('c-1', { page: 1 }),
+        service.getMessagesEffect('c-1', { cursor: 'older-cursor' }),
       );
       expect(result).toEqual([{ id: 'm-1', threadId: 'c-1' }]);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('c-1/messages'),
+        expect.stringContaining('c-1/messages?cursor=older-cursor'),
+        expect.anything(),
+      );
+    });
+
+    it('returns cursor metadata with the mapped message page', async () => {
+      mockOk({
+        data: [
+          {
+            attributes: { content: 'Older message', id: 'm-1' },
+            id: 'm-1',
+            type: 'thread-message',
+          },
+        ],
+        links: {
+          cursor: {
+            hasMore: true,
+            limit: 50,
+            nextCursor: 'next-opaque-cursor',
+          },
+        },
+      });
+      const service = makeService();
+
+      const result = await Effect.runPromise(
+        service.getMessagesPageEffect('c-1', { limit: 50 }),
+      );
+
+      expect(result).toEqual({
+        hasMore: true,
+        messages: [{ content: 'Older message', id: 'm-1', threadId: 'c-1' }],
+        nextCursor: 'next-opaque-cursor',
+      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('c-1/messages?limit=50'),
         expect.anything(),
       );
     });

@@ -1,3 +1,4 @@
+import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import type {
   AgentChatMessage,
   AgentThreadSnapshot,
@@ -19,6 +20,14 @@ function makeMessages(threadId: string): AgentChatMessage[] {
       threadId,
     } as AgentChatMessage,
   ];
+}
+
+function makeMessagesPage(threadId: string) {
+  return {
+    hasMore: true,
+    messages: makeMessages(threadId),
+    nextCursor: `cursor-${threadId}`,
+  };
 }
 
 function makeSnapshot(threadId: string): AgentThreadSnapshot {
@@ -47,8 +56,8 @@ interface ApiOverrides {
 
 function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   return {
-    getMessagesEffect: vi.fn((threadId: string) =>
-      Effect.succeed(makeMessages(threadId)),
+    getMessagesPageEffect: vi.fn((threadId: string) =>
+      Effect.succeed(makeMessagesPage(threadId)),
     ),
     getThreadSnapshotEffect: vi.fn((threadId: string) =>
       Effect.succeed(makeSnapshot(threadId)),
@@ -79,17 +88,17 @@ describe('useAgentThreadPrefetch', () => {
       result.current.prefetchThread('thread-c');
     });
 
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPageEffect).not.toHaveBeenCalled();
 
     await act(async () => {
       vi.advanceTimersByTime(150);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).toHaveBeenCalledTimes(1);
-    expect(apiService.getMessagesEffect).toHaveBeenCalledWith(
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledWith(
       'thread-c',
-      { limit: 100 },
+      { limit: AGENT_MESSAGE_PAGE_SIZE },
       expect.any(AbortSignal),
     );
   });
@@ -111,7 +120,7 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledTimes(1);
   });
 
   it('primes the conversation cache with the fetched messages and snapshot', async () => {
@@ -136,6 +145,8 @@ describe('useAgentThreadPrefetch', () => {
     const cached =
       useAgentChatStore.getState().conversationCacheByThread['thread-a'];
     expect(cached?.messages).toEqual(makeMessages('thread-a'));
+    expect(cached?.hasMoreMessages).toBe(true);
+    expect(cached?.messagesCursor).toBe('cursor-thread-a');
     expect(cached?.latestProposedPlan).toBeNull();
     expect(cached?.pendingInputRequest).toBeNull();
     expect(cached?.workEvents).toEqual([]);
@@ -144,16 +155,18 @@ describe('useAgentThreadPrefetch', () => {
   it('aborts the in-flight fetch for a thread superseded by a newer hover', async () => {
     let capturedSignal: AbortSignal | undefined;
     const apiService = makeApiService({
-      getMessagesEffect: vi.fn(
+      getMessagesPageEffect: vi.fn(
         (threadId: string, _params, signal?: AbortSignal) => {
           if (threadId === 'thread-a') {
             capturedSignal = signal;
           }
           return Effect.promise(
             () =>
-              new Promise<AgentChatMessage[]>((resolve) => {
+              new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
                 // Never resolves within the test — only the abort matters.
-                signal?.addEventListener('abort', () => resolve([]));
+                signal?.addEventListener('abort', () =>
+                  resolve({ hasMore: false, messages: [], nextCursor: null }),
+                );
               }),
           );
         },
@@ -189,7 +202,7 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPageEffect).not.toHaveBeenCalled();
   });
 
   it('cancelPrefetch scoped to a threadId ignores a stale pointer-leave for a superseded row', async () => {
@@ -211,10 +224,10 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).toHaveBeenCalledTimes(1);
-    expect(apiService.getMessagesEffect).toHaveBeenCalledWith(
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledWith(
       'thread-b',
-      { limit: 100 },
+      { limit: AGENT_MESSAGE_PAGE_SIZE },
       expect.any(AbortSignal),
     );
   });
@@ -235,14 +248,16 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPageEffect).not.toHaveBeenCalled();
   });
 
   it('never overwrites an already-fresh cache entry for the target thread', async () => {
     act(() => {
       useAgentChatStore.getState().primeConversationCache('thread-a', {
+        hasMoreMessages: true,
         latestProposedPlan: null,
         messages: makeMessages('thread-a'),
+        messagesCursor: 'cursor-thread-a',
         pendingInputRequest: null,
         workEvents: [],
       });
@@ -259,14 +274,16 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPageEffect).not.toHaveBeenCalled();
   });
 
   it('refetches once a previously-cached entry expires past the freshness window', async () => {
     act(() => {
       useAgentChatStore.getState().primeConversationCache('thread-a', {
+        hasMoreMessages: true,
         latestProposedPlan: null,
         messages: makeMessages('thread-a'),
+        messagesCursor: 'cursor-thread-a',
         pendingInputRequest: null,
         workEvents: [],
       });
@@ -289,19 +306,21 @@ describe('useAgentThreadPrefetch', () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(apiService.getMessagesEffect).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPageEffect).toHaveBeenCalledTimes(1);
   });
 
   it('cancels the pending/in-flight prefetch on unmount', async () => {
     let capturedSignal: AbortSignal | undefined;
     const apiService = makeApiService({
-      getMessagesEffect: vi.fn(
+      getMessagesPageEffect: vi.fn(
         (_threadId: string, _params, signal?: AbortSignal) => {
           capturedSignal = signal;
           return Effect.promise(
             () =>
-              new Promise<AgentChatMessage[]>((resolve) => {
-                signal?.addEventListener('abort', () => resolve([]));
+              new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+                signal?.addEventListener('abort', () =>
+                  resolve({ hasMore: false, messages: [], nextCursor: null }),
+                );
               }),
           );
         },

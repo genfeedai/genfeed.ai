@@ -10,12 +10,55 @@ import type {
   UpdateAgentThreadContextPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
-import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
+import type {
+  AgentApiCollectionPage,
+  AgentBaseApiService,
+} from '@genfeedai/agent/services/agent-base-api.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type { AgentScopePayload } from '@genfeedai/interfaces';
 import { Effect } from 'effect';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
+
+export interface AgentMessagesPage {
+  hasMore: boolean;
+  messages: AgentChatMessage[];
+  nextCursor: string | null;
+}
+
+type GetMessagesParams = {
+  cursor?: string;
+  limit?: number;
+};
+
+function buildMessagesUrl(
+  api: AgentBaseApiService,
+  threadId: string,
+  params?: GetMessagesParams,
+): string {
+  const qs = new URLSearchParams();
+  if (params?.cursor) {
+    qs.set('cursor', params.cursor);
+  }
+  if (params?.limit) {
+    qs.set('limit', String(params.limit));
+  }
+  const queryString = qs.toString();
+
+  return `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages${
+    queryString ? `?${queryString}` : ''
+  }`;
+}
+
+function mapMessagesToThread(
+  messages: AgentChatMessage[],
+  threadId: string,
+): AgentChatMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    threadId,
+  }));
+}
 
 export function createThreadEffect(
   api: AgentBaseApiService,
@@ -320,32 +363,41 @@ export function unpinThreadEffect(
 export function getMessagesEffect(
   api: AgentBaseApiService,
   threadId: string,
-  params?: { page?: number; limit?: number },
+  params?: GetMessagesParams,
   signal?: AbortSignal,
 ): Effect.Effect<AgentChatMessage[], AgentApiError> {
-  const qs = new URLSearchParams();
-  if (params?.page) {
-    qs.set('page', String(params.page));
-  }
-  if (params?.limit) {
-    qs.set('limit', String(params.limit));
-  }
-  const queryString = qs.toString();
   return api
     .fetchCollectionEffect<AgentChatMessage>(
-      `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages${
-        queryString ? `?${queryString}` : ''
-      }`,
+      buildMessagesUrl(api, threadId, params),
+      { signal },
+      'Failed to fetch messages',
+      'Failed to deserialize thread messages',
+    )
+    .pipe(Effect.map((messages) => mapMessagesToThread(messages, threadId)));
+}
+
+export function getMessagesPageEffect(
+  api: AgentBaseApiService,
+  threadId: string,
+  params?: GetMessagesParams,
+  signal?: AbortSignal,
+): Effect.Effect<AgentMessagesPage, AgentApiError> {
+  return api
+    .fetchCollectionPageEffect<AgentChatMessage>(
+      buildMessagesUrl(api, threadId, params),
       { signal },
       'Failed to fetch messages',
       'Failed to deserialize thread messages',
     )
     .pipe(
-      Effect.map((messages) =>
-        messages.map((message) => ({
-          ...message,
-          threadId,
-        })),
+      Effect.map(
+        (
+          page: AgentApiCollectionPage<AgentChatMessage>,
+        ): AgentMessagesPage => ({
+          hasMore: page.hasMore,
+          messages: mapMessagesToThread(page.docs, threadId),
+          nextCursor: page.nextCursor,
+        }),
       ),
     );
 }

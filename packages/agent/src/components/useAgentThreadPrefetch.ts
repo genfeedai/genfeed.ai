@@ -1,3 +1,4 @@
+import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
@@ -110,9 +111,9 @@ export function useAgentThreadPrefetch({
 
         Promise.all([
           runAgentApiEffect(
-            apiService.getMessagesEffect(
+            apiService.getMessagesPageEffect(
               threadId,
-              { limit: 100 },
+              { limit: AGENT_MESSAGE_PAGE_SIZE },
               controller.signal,
             ),
           ),
@@ -120,15 +121,17 @@ export function useAgentThreadPrefetch({
             apiService.getThreadSnapshotEffect(threadId, controller.signal),
           ),
         ])
-          .then(([messages, snapshot]) => {
+          .then(([page, snapshot]) => {
             if (controller.signal.aborted) {
               return;
             }
             primeConversationCache(threadId, {
+              hasMoreMessages: page.hasMore,
               latestProposedPlan:
                 (snapshot.latestProposedPlan as AgentProposedPlan | null) ??
                 null,
-              messages,
+              messages: page.messages,
+              messagesCursor: page.nextCursor,
               pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),
               workEvents: mapSnapshotWorkEvents(snapshot),
             });

@@ -129,7 +129,7 @@ interface StoreState {
   setActiveThread: ReturnType<typeof vi.fn>;
   setCreditsRemaining: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
-  setMessages: ReturnType<typeof vi.fn>;
+  setMessagesPage: ReturnType<typeof vi.fn>;
   setModelCosts: ReturnType<typeof vi.fn>;
   setDraftPlanModeEnabled: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
@@ -173,7 +173,7 @@ const storeState: StoreState = {
   setDraftPlanModeEnabled: vi.fn(),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn(),
-  setMessages: vi.fn(),
+  setMessagesPage: vi.fn(),
   setModelCosts: vi.fn(),
   setPendingInputRequest: vi.fn(),
   setRunStartedAt: vi.fn(),
@@ -221,7 +221,7 @@ let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').Ag
 
 const EFFECT_METHOD_MAP = {
   getCreditsInfo: 'getCreditsInfoEffect',
-  getMessages: 'getMessagesEffect',
+  getMessages: 'getMessagesPageEffect',
   getThread: 'getThreadEffect',
   getThreadSnapshot: 'getThreadSnapshotEffect',
 } as const;
@@ -238,11 +238,14 @@ function withAgentApiEffects<T extends Record<string, unknown>>(
 
     Object.assign(apiService, {
       [effectMethod]: vi.fn((...args: unknown[]) =>
-        Effect.promise(() =>
-          Promise.resolve(
+        Effect.promise(async () => {
+          const value = await Promise.resolve(
             (handler as (...effectArgs: unknown[]) => unknown)(...args),
-          ),
-        ),
+          );
+          return method === 'getMessages'
+            ? { hasMore: false, messages: value, nextCursor: null }
+            : value;
+        }),
       ),
     });
   }
@@ -253,7 +256,7 @@ function withAgentApiEffects<T extends Record<string, unknown>>(
 function createApiService(overrides: Record<string, unknown> = {}) {
   return withAgentApiEffects({
     getCreditsInfo: vi.fn().mockResolvedValue({ balance: 50, modelCosts: {} }),
-    getMessages: vi.fn(),
+    getMessages: vi.fn().mockResolvedValue([]),
     getThread: vi.fn(),
     getThreadSnapshot: vi.fn(),
     ...overrides,
@@ -293,7 +296,7 @@ describe('AgentFullPage', () => {
     storeState.setDraftPlanModeEnabled.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
-    storeState.setMessages.mockReset();
+    storeState.setMessagesPage.mockReset();
     storeState.setModelCosts.mockReset();
     storeState.setThreadPrompt.mockReset();
     storeState.setWorkEvents.mockReset();
@@ -370,7 +373,11 @@ describe('AgentFullPage', () => {
     );
 
     await waitFor(() => {
-      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+      expect(storeState.setMessagesPage).toHaveBeenCalledWith({
+        hasMore: false,
+        messages,
+        nextCursor: null,
+      });
     });
 
     expect(apiService.getThread).toHaveBeenCalledTimes(2);
@@ -404,7 +411,11 @@ describe('AgentFullPage', () => {
     );
 
     await waitFor(() => {
-      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+      expect(storeState.setMessagesPage).toHaveBeenCalledWith({
+        hasMore: false,
+        messages,
+        nextCursor: null,
+      });
     });
 
     expect(apiService.getThread).not.toHaveBeenCalled();
@@ -523,7 +534,11 @@ describe('AgentFullPage', () => {
     );
 
     await waitFor(() => {
-      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+      expect(storeState.setMessagesPage).toHaveBeenCalledWith({
+        hasMore: false,
+        messages,
+        nextCursor: null,
+      });
     });
 
     expect(apiService.getThread).toHaveBeenCalledTimes(1);
@@ -626,7 +641,11 @@ describe('AgentFullPage', () => {
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(storeState.setMessages).toHaveBeenCalledWith(messages);
+      expect(storeState.setMessagesPage).toHaveBeenCalledWith({
+        hasMore: false,
+        messages,
+        nextCursor: null,
+      });
     });
 
     await waitFor(() => {
@@ -864,7 +883,7 @@ describe('AgentFullPage', () => {
       <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
     );
 
-    expect(storeState.setMessages).not.toHaveBeenCalledWith([]);
+    expect(storeState.setMessagesPage).not.toHaveBeenCalled();
     expect(storeState.resetStreamState).not.toHaveBeenCalled();
   });
 

@@ -111,12 +111,56 @@ describe('agent-chat.store messages and plans', () => {
     expect(useAgentChatStore.getState().latestProposedPlan).toBeNull();
   });
 
+  it('setMessages clears stale pagination state from a prior page', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessagesPage({
+      hasMore: true,
+      messages: [makeMessage('m-old')],
+      nextCursor: 'cursor-old',
+    });
+    store.setIsLoadingOlderMessages(true);
+
+    useAgentChatStore.getState().setMessages([makeMessage('m-replacement')]);
+
+    const state = useAgentChatStore.getState();
+    expect(state.messages.map((message) => message.id)).toEqual([
+      'm-replacement',
+    ]);
+    expect(state.hasMoreMessages).toBe(false);
+    expect(state.messagesCursor).toBeNull();
+    expect(state.isLoadingOlderMessages).toBe(false);
+  });
+
+  it('sets an initial cursor page and prepends older messages without duplicates', () => {
+    useAgentChatStore.getState().setMessagesPage({
+      hasMore: true,
+      messages: [makeMessage('m-2'), makeMessage('m-3')],
+      nextCursor: 'cursor-2',
+    });
+
+    useAgentChatStore.getState().prependOlderMessages({
+      hasMore: false,
+      messages: [makeMessage('m-1'), makeMessage('m-2')],
+      nextCursor: null,
+    });
+
+    const state = useAgentChatStore.getState();
+    expect(state.messages.map((message) => message.id)).toEqual([
+      'm-1',
+      'm-2',
+      'm-3',
+    ]);
+    expect(state.hasMoreMessages).toBe(false);
+    expect(state.messagesCursor).toBeNull();
+  });
+
   it('clearMessages resets conversation state', () => {
     const store = useAgentChatStore.getState();
     store.addMessage(makeMessage('m-1'));
     store.setActiveRun('run-1', { startedAt: '2026-03-26T10:00:00.000Z' });
     store.setDraftPlanModeEnabled(true);
     store.setThreadUiBusy('thread-1', true);
+    store.setIsLoadingOlderMessages(true);
 
     useAgentChatStore.getState().clearMessages();
 
@@ -127,12 +171,20 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.runStartedAt).toBeNull();
     expect(state.draftPlanModeEnabled).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
+    expect(state.hasMoreMessages).toBe(false);
+    expect(state.messagesCursor).toBeNull();
+    expect(state.isLoadingOlderMessages).toBe(false);
   });
 
   it('resetActiveConversationState also resets stream state', () => {
     const store = useAgentChatStore.getState();
     store.appendStreamToken('hello');
-    store.addMessage(makeMessage('m-1'));
+    store.setMessagesPage({
+      hasMore: true,
+      messages: [makeMessage('m-1')],
+      nextCursor: 'cursor-1',
+    });
+    store.setIsLoadingOlderMessages(true);
 
     useAgentChatStore.getState().resetActiveConversationState();
 
@@ -140,6 +192,9 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.messages).toEqual([]);
     expect(state.stream.streamingContent).toBe('');
     expect(state.stream.isStreaming).toBe(false);
+    expect(state.hasMoreMessages).toBe(false);
+    expect(state.messagesCursor).toBeNull();
+    expect(state.isLoadingOlderMessages).toBe(false);
   });
 });
 
@@ -616,7 +671,11 @@ describe('agent-chat.store conversation cache', () => {
 
   it('caches the visible conversation and restores it verbatim', () => {
     const store = useAgentChatStore.getState();
-    store.setMessages([makeMessage('m-1'), makeMessage('m-2')]);
+    store.setMessagesPage({
+      hasMore: true,
+      messages: [makeMessage('m-1'), makeMessage('m-2')],
+      nextCursor: 'cursor-2',
+    });
     store.setLatestProposedPlan(makePlan('plan-1'));
     store.setWorkEvents([makeWorkEvent('w-1')]);
     store.setPendingInputRequest(makeInputRequest('req-1'));
@@ -634,6 +693,8 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.latestProposedPlan?.summary).toBe('Plan plan-1');
     expect(state.workEvents.map((event) => event.id)).toEqual(['w-1']);
     expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
+    expect(state.hasMoreMessages).toBe(true);
+    expect(state.messagesCursor).toBe('cursor-2');
   });
 
   it('restoreCachedConversation reports a miss without touching state', () => {
@@ -729,8 +790,10 @@ describe('agent-chat.store conversation cache', () => {
   describe('primeConversationCache (#2790 prefetch)', () => {
     function makePrefetchedData(id: string) {
       return {
+        hasMoreMessages: true,
         latestProposedPlan: null,
         messages: [makeMessage(id)],
+        messagesCursor: `cursor-${id}`,
         pendingInputRequest: null,
         workEvents: [],
       };
@@ -745,6 +808,10 @@ describe('agent-chat.store conversation cache', () => {
         useAgentChatStore.getState().restoreCachedConversation('thread-hover'),
       ).toBe(true);
       expect(useAgentChatStore.getState().messages[0]?.id).toBe('m-hover');
+      expect(useAgentChatStore.getState().hasMoreMessages).toBe(true);
+      expect(useAgentChatStore.getState().messagesCursor).toBe(
+        'cursor-m-hover',
+      );
     });
 
     it('never overwrites the currently active thread', () => {
