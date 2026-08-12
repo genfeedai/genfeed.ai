@@ -5,6 +5,7 @@ import {
   countDeletedCacheKeys,
   getMissingArticleColumns,
   isLocalDatabaseUrl,
+  parseArticlesSeedArgs,
   REQUIRED_ARTICLE_COLUMNS,
 } from './articles.seed';
 
@@ -75,14 +76,32 @@ describe('articles seed schema preflight', () => {
   });
 
   it('constrains an explicit organization to the selected email owner', () => {
-    expect(buildOrganizationSelector('org-1', 'user-1')).toEqual({
+    expect(buildOrganizationSelector('org-1', 'genfeed.ai', 'user-1')).toEqual({
       id: 'org-1',
       isDeleted: false,
+      label: 'genfeed.ai',
       userId: 'user-1',
     });
-    expect(buildOrganizationSelector('org-1', null)).toEqual({
+    expect(buildOrganizationSelector('org-1', null, null)).toEqual({
       id: 'org-1',
       isDeleted: false,
+    });
+  });
+
+  it('parses an explicit organization label and runtime validation mode', () => {
+    expect(
+      parseArticlesSeedArgs([
+        '--env=production',
+        '--ownerEmail=vincent@genfeed.ai',
+        '--organizationLabel=genfeed.ai',
+        '--validate-runtime',
+      ]),
+    ).toMatchObject({
+      dryRun: true,
+      env: 'production',
+      organizationLabel: 'genfeed.ai',
+      ownerEmail: 'vincent@genfeed.ai',
+      validateRuntime: true,
     });
   });
 

@@ -36,6 +36,21 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
+    "api-articles-seed": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "api/articles-seed.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "api/tsconfig.app.json"
+      },
+      "entryFile": "seeds/articles-seed.entrypoint",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
     "api-credential-backfill": {
       "compilerOptions": {
         "builder": {

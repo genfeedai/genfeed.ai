@@ -16,6 +16,7 @@
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --live
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --organizationId=<id>
+ *   bun run apps/server/api/scripts/seeds/articles.seed.ts --organizationLabel=<label>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --ownerEmail=<email>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --userId=<id>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --env=production --live --ownerEmail=<email>
@@ -55,8 +56,10 @@ type SeedArgs = {
   dryRun: boolean;
   env?: string;
   organizationId?: string;
+  organizationLabel?: string;
   ownerEmail?: string;
   userId?: string;
+  validateRuntime: boolean;
 };
 
 type SeedOwner = {
@@ -68,12 +71,11 @@ type SeedOwner = {
 type OrganizationSelector = {
   id?: string;
   isDeleted: false;
+  label?: string;
   userId?: string;
 };
 
-function loadEnvFile(): void {
-  const args = process.argv.slice(2);
-  const envArg = args.find((arg) => arg.startsWith('--env='))?.split('=')[1];
+function loadEnvFile(envArg?: string): void {
   const envSuffix = envArg || 'local';
   const envPath = resolve(scriptDir, '..', '..', `.env.${envSuffix}`);
 
@@ -100,9 +102,7 @@ function loadEnvFile(): void {
   }
 }
 
-function parseArgs(): SeedArgs {
-  const args = process.argv.slice(2);
-
+export function parseArticlesSeedArgs(args: readonly string[]): SeedArgs {
   return {
     allClusters: args.includes('--all-clusters'),
     dryRun: !args.includes('--live'),
@@ -110,10 +110,14 @@ function parseArgs(): SeedArgs {
     organizationId: args
       .find((arg) => arg.startsWith('--organizationId='))
       ?.split('=')[1],
+    organizationLabel: args
+      .find((arg) => arg.startsWith('--organizationLabel='))
+      ?.split('=')[1],
     ownerEmail: args
       .find((arg) => arg.startsWith('--ownerEmail='))
       ?.split('=')[1],
     userId: args.find((arg) => arg.startsWith('--userId='))?.split('=')[1],
+    validateRuntime: args.includes('--validate-runtime'),
   };
 }
 
@@ -194,11 +198,13 @@ function createPrismaClient(): PrismaClient {
 
 export function buildOrganizationSelector(
   organizationId: string | null,
+  organizationLabel: string | null,
   ownerUserId: string | null,
 ): OrganizationSelector {
   return {
     ...(organizationId ? { id: organizationId } : {}),
     isDeleted: false,
+    ...(organizationLabel ? { label: organizationLabel } : {}),
     ...(ownerUserId ? { userId: ownerUserId } : {}),
   };
 }
@@ -218,6 +224,7 @@ export function buildOrganizationSelector(
  */
 async function resolveOwner(params: {
   organizationId: string | null;
+  organizationLabel: string | null;
   ownerEmail: string | null;
   prisma: PrismaClient;
   userId: string | null;
@@ -239,11 +246,16 @@ async function resolveOwner(params: {
     where: params.organizationId
       ? buildOrganizationSelector(
           params.organizationId,
+          params.organizationLabel,
           ownerByEmail?.id ?? null,
         )
       : ownerByEmail
-        ? buildOrganizationSelector(null, ownerByEmail.id)
-        : buildOrganizationSelector(null, null),
+        ? buildOrganizationSelector(
+            null,
+            params.organizationLabel,
+            ownerByEmail.id,
+          )
+        : buildOrganizationSelector(null, params.organizationLabel, null),
   });
 
   const [organization] = candidates;
@@ -252,7 +264,17 @@ async function resolveOwner(params: {
   // default — and the loser is invisible, because the articles simply publish
   // somewhere the reader never looks. Name every candidate so the wrong one is
   // obvious in the log rather than discovered on a live site.
-  if (!params.organizationId && candidates.length > 1) {
+  if (params.organizationLabel && candidates.length > 1) {
+    throw new Error(
+      `Multiple organizations named ${params.organizationLabel} match the selected owner; pass --organizationId=<id>`,
+    );
+  }
+
+  if (
+    !params.organizationId &&
+    !params.organizationLabel &&
+    candidates.length > 1
+  ) {
     logger.log(
       `${candidates.length} organizations match; using the oldest. Pass --organizationId=<id> to choose another:`,
     );
@@ -266,7 +288,9 @@ async function resolveOwner(params: {
       params.organizationId
         ? `Organization ${params.organizationId} not found or deleted`
         : params.ownerEmail
-          ? `No organization owned by ${params.ownerEmail}`
+          ? params.organizationLabel
+            ? `No organization named ${params.organizationLabel} owned by ${params.ownerEmail}`
+            : `No organization owned by ${params.ownerEmail}`
           : 'No organization found to own the seeded articles',
     );
   }
@@ -568,11 +592,17 @@ function describeDatabaseTarget(): void {
   }
 }
 
-async function main(): Promise<void> {
-  loadEnvFile();
+export async function runArticlesSeed(): Promise<void> {
+  const args = parseArticlesSeedArgs(process.argv.slice(2));
+  loadEnvFile(args.env);
   describeDatabaseTarget();
 
-  const args = parseArgs();
+  if (args.validateRuntime) {
+    logger.log(
+      `Articles seed runtime ready (${LAUNCH_ARTICLES.length} launch articles bundled)`,
+    );
+    return;
+  }
 
   if (args.allClusters) {
     runAllClusters();
@@ -617,6 +647,7 @@ async function main(): Promise<void> {
 
     const owner = await resolveOwner({
       organizationId: parseOptionalId(args.organizationId),
+      organizationLabel: args.organizationLabel ?? null,
       ownerEmail: args.ownerEmail ?? null,
       prisma,
       userId: parseOptionalId(args.userId),
@@ -705,7 +736,7 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
+  runArticlesSeed().catch((error) => {
     logger.error('Articles seed failed', error);
     process.exit(1);
   });

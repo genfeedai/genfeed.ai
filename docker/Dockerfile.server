@@ -272,7 +272,7 @@ RUN set -e; \
 # size gate in build-verify.yml. `test -f` alone passes a 0-byte file.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack images voices videos api-workflow-backfill; do \
+    for svc in api workers files mcp notifications telegram discord slack images voices videos api-workflow-backfill api-articles-seed; do \
       if ! test -f "apps/server/dist/apps/$svc/main.js"; then \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \
@@ -282,6 +282,13 @@ RUN echo "Checking build outputs..." && \
       fi; \
       echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
     done
+
+# Execute the compiled seed entrypoint without touching a database. This proves
+# the production bundle contains its launch data and actually reaches its CLI
+# entrypoint rather than merely leaving a non-empty file on disk.
+RUN node -r tsconfig-paths/register \
+      apps/server/dist/apps/api-articles-seed/main \
+      --validate-runtime
 
 # Flavor gate: this image ships WITH ee/packages/billing, so the api bundle
 # must contain the EE billing fragment — probed via the EE-only controller
