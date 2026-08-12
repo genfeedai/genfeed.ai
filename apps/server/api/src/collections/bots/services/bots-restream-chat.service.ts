@@ -1,4 +1,5 @@
 import { BOTS_LIVESTREAM_SERVICE } from '@api/collections/bots/bots.tokens';
+import type { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
 import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import type { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
@@ -404,20 +405,19 @@ export class BotsRestreamChatService {
           ? (existingSettings.transcriptSource as LivestreamTranscriptSource)
           : LivestreamTranscriptSource.RESTREAM_CHAT;
 
-      await this.botsService.patch(bot.id, {
-        livestreamSettings: {
-          ...existingSettings,
-          restreamCredentialId,
-          transcriptSource,
-        },
-      });
-
-      // Keep in-memory bot consistent for the rest of this request.
-      bot.livestreamSettings = {
+      const nextSettings = {
         ...existingSettings,
         restreamCredentialId,
         transcriptSource,
       };
+
+      await this.botsService.patch(bot.id, {
+        // Document shape is wider than the write DTO; patch replaces the config key.
+        livestreamSettings: nextSettings as UpdateBotDto['livestreamSettings'],
+      });
+
+      // Keep in-memory bot consistent for the rest of this request.
+      bot.livestreamSettings = nextSettings;
     } catch (error) {
       this.logger.warn('Failed to auto-bind restreamCredentialId on bot', {
         botId: bot.id,
