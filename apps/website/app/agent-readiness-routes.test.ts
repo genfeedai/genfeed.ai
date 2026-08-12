@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GET as getAgentContent } from './.well-known/agent-content/home/route';
 import { GET as getAgentSkillsIndex } from './.well-known/agent-skills/index.json/route';
@@ -19,6 +21,21 @@ import {
 } from './.well-known/mcp.json/route';
 
 describe('website discovery routes', () => {
+  it.each([
+    '.well-known/auth.md/route.ts',
+    '.well-known/mcp.json/route.ts',
+    '.well-known/mcp/server-cards.json/route.ts',
+  ])('declares static route config locally in %s', (relativePath) => {
+    const source = readFileSync(
+      join(import.meta.dirname, relativePath),
+      'utf8',
+    );
+
+    expect(source).toContain("export const dynamic = 'force-static';");
+    expect(source).toContain('export const revalidate = false;');
+    expect(source).not.toMatch(/export\s*\{[^}]*\b(dynamic|revalidate)\b/);
+  });
+
   it('serves negotiated homepage content as markdown', async () => {
     const response = getAgentContent();
 
