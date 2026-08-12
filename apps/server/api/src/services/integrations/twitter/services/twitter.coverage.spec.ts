@@ -24,6 +24,8 @@
  *   - getMediaAnalytics (user-client path, video media type, rate-limit 429 path,
  *                        rate-limit with rateLimit property, non-rate-limit error)
  *   - getMediaAnalyticsBatch (empty ids, >100 ids, success with media, rate-limit, error)
+ *   - getTweetById (bearer success, incomplete response, error)
+ *   - repostTweet (success, error)
  */
 
 // ── Module-level mocks (must precede all imports) ────────────────────────────
@@ -33,6 +35,9 @@ const mockV2Get = vi.fn();
 const mockV2Tweet = vi.fn();
 const mockV2UploadMedia = vi.fn();
 const mockV2SendDmInConversation = vi.fn();
+const mockV2SingleTweet = vi.fn();
+const mockV2Me = vi.fn();
+const mockV2Retweet = vi.fn();
 const mockV1TrendsByPlace = vi.fn();
 const mockRefreshOAuth2Token = vi.fn();
 
@@ -43,8 +48,11 @@ vi.mock('twitter-api-v2', () => {
       v1: { trendsByPlace: mockV1TrendsByPlace },
       v2: {
         get: mockV2Get,
+        me: mockV2Me,
+        retweet: mockV2Retweet,
         search: mockV2Search,
         sendDmInConversation: mockV2SendDmInConversation,
+        singleTweet: mockV2SingleTweet,
         tweet: mockV2Tweet,
         uploadMedia: mockV2UploadMedia,
       },
@@ -998,6 +1006,85 @@ describe('TwitterService (coverage)', () => {
       await expect(service.getMediaAnalyticsBatch(['tid'])).rejects.toThrow(
         'Batch fetch failed',
       );
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getTweetById', () => {
+    it('returns a mapped tweet from the bearer client', async () => {
+      mockV2SingleTweet.mockResolvedValue({
+        data: {
+          author_id: 'u1',
+          created_at: '2026-08-01T00:00:00.000Z',
+          id: '99999',
+          public_metrics: {
+            like_count: 3,
+            reply_count: 1,
+            retweet_count: 2,
+          },
+          text: 'quoted',
+        },
+        includes: {
+          users: [{ id: 'u1', username: 'someone' }],
+        },
+      });
+
+      const tweet = await service.getTweetById('99999');
+
+      expect(tweet).toMatchObject({
+        authorUsername: 'someone',
+        id: '99999',
+        likeCount: 3,
+        text: 'quoted',
+        url: 'https://x.com/someone/status/99999',
+      });
+    });
+
+    it('throws when the tweet payload is incomplete', async () => {
+      mockV2SingleTweet.mockResolvedValue({ data: { id: '1' } });
+
+      await expect(service.getTweetById('1')).rejects.toThrow(
+        'Tweet not found or incomplete response',
+      );
+    });
+
+    it('propagates API errors instead of returning empty data', async () => {
+      mockV2SingleTweet.mockRejectedValue(
+        new Error('403 Client Forbidden — access level'),
+      );
+
+      await expect(service.getTweetById('1')).rejects.toThrow(
+        '403 Client Forbidden — access level',
+      );
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('repostTweet', () => {
+    beforeEach(() => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+      );
+    });
+
+    it('retweets through the connected account without commentary', async () => {
+      mockV2Me.mockResolvedValue({ data: { id: 'user-1' } });
+      mockV2Retweet.mockResolvedValue({ data: { retweeted: true } });
+
+      const result = await service.repostTweet('org', 'brand', '55555');
+
+      expect(result).toEqual({ reposted: true, tweetId: '55555' });
+      expect(mockV2Retweet).toHaveBeenCalledWith('user-1', '55555');
+    });
+
+    it('propagates API errors', async () => {
+      mockV2Me.mockRejectedValue(
+        new Error('403 Client Forbidden — access level'),
+      );
+
+      await expect(
+        service.repostTweet('org', 'brand', '55555'),
+      ).rejects.toThrow('403 Client Forbidden — access level');
       expect(loggerService.error).toHaveBeenCalled();
     });
   });

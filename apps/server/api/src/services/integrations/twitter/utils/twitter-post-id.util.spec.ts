@@ -23,6 +23,16 @@ describe('parseTwitterPostId', () => {
     expect(
       parseTwitterPostId('https://x.com/i/status/1234567890123456789'),
     ).toBe('1234567890123456789');
+    expect(
+      parseTwitterPostId(
+        'https://www.x.com/genfeed/status/1234567890123456789',
+      ),
+    ).toBe('1234567890123456789');
+    expect(
+      parseTwitterPostId(
+        'https://mobile.twitter.com/genfeed/status/1234567890123456789',
+      ),
+    ).toBe('1234567890123456789');
   });
 
   it('parses path-only status links', () => {

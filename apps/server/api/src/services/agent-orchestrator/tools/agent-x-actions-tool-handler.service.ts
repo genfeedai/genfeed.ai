@@ -4,6 +4,7 @@ import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/to
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
@@ -25,45 +26,6 @@ function readOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0
     ? value.trim()
     : undefined;
-}
-
-function mapTwitterApiError(error: unknown): string {
-  const message =
-    error instanceof Error ? error.message : String(error ?? 'Unknown error');
-  const lower = message.toLowerCase();
-
-  if (
-    lower.includes('403') ||
-    lower.includes('not authorized') ||
-    lower.includes('client-not-enrolled') ||
-    lower.includes('oauth1apppermissions') ||
-    lower.includes('access level') ||
-    lower.includes('elevated')
-  ) {
-    return (
-      'This X account cannot do that yet. ' +
-      'Reconnect X with full access, or try again later.'
-    );
-  }
-
-  if (
-    lower.includes('429') ||
-    lower.includes('rate limit') ||
-    lower.includes('too many requests')
-  ) {
-    return 'X is busy. Wait a moment and try again.';
-  }
-
-  if (
-    lower.includes('credential') ||
-    lower.includes('token') ||
-    lower.includes('unauthorized') ||
-    lower.includes('401')
-  ) {
-    return 'X is not connected for this brand. Connect X and try again.';
-  }
-
-  return message;
 }
 
 /**

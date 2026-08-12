@@ -3,6 +3,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
@@ -287,8 +288,7 @@ export class AgentProactiveToolHandler {
           success: true,
         };
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : 'X search failed';
+        const message = mapTwitterApiError(error);
         this.loggerService.error(
           `${this.constructorName} discoverEngagements X search failed`,
           { error: message, query },
