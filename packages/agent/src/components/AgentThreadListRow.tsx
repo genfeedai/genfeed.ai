@@ -250,10 +250,9 @@ export function AgentThreadListRow({
           href={getThreadHref(conv.id)}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
           onClick={() => {
-            // A real click supersedes any hover/focus prefetch for this row —
-            // the switch effect is about to fetch (or already has, via the
-            // warm cache) the same data.
-            onCancelPrefetch(conv.id);
+            // Do not abort an in-flight prefetch for this row. The switch
+            // adopts that flight so hover-then-click cannot stack a second
+            // messages+snapshot set (#2790).
             onSelect(conv);
           }}
           onPointerEnter={() => {
