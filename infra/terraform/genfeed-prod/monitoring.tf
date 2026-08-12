@@ -19,6 +19,8 @@ locals {
     { for name, target_group in aws_lb_target_group.public_backend : name => target_group.arn_suffix },
   )
 
+  # Email only actionable ALARM transitions. Recovery remains visible in
+  # CloudWatch without sending a second SNS email for every incident.
   alarm_actions = [data.aws_sns_topic.operations.arn]
   runbook_base  = "https://github.com/genfeedai/genfeed.ai/blob/master/docs/operations/aws-monitoring.md"
 }
@@ -52,7 +54,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_healthy_hosts" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
@@ -75,7 +76,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "alb_target_latency" {
@@ -99,7 +99,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_target_latency" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 # ── ECS service availability and saturation ────────────────────────
@@ -124,7 +123,6 @@ resource "aws_cloudwatch_metric_alarm" "ecs_live_tasks" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_cpu" {
@@ -148,7 +146,6 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
@@ -172,7 +169,6 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
   }
 
   alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
 }
 
 # ── RDS PostgreSQL capacity and latency ─────────────────────────────
@@ -190,7 +186,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   treat_missing_data  = "breaching"
   dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_free_storage" {
@@ -207,12 +202,11 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage" {
   treat_missing_data  = "breaching"
   dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
   alarm_name          = "${local.name_prefix}-rds-freeable-memory"
-  alarm_description   = "RDS freeable memory fell below 128 MiB. Runbook: ${local.runbook_base}#rds-postgresql"
+  alarm_description   = "RDS freeable memory fell below 64 MiB for fifteen minutes. Runbook: ${local.runbook_base}#rds-postgresql"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = 3
   datapoints_to_alarm = 3
@@ -220,11 +214,10 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Minimum"
-  threshold           = 128 * 1024 * 1024
+  threshold           = 64 * 1024 * 1024
   treat_missing_data  = "breaching"
   dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_connections" {
@@ -241,7 +234,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   treat_missing_data  = "breaching"
   dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 # ── Redis/BullMQ backing store ──────────────────────────────────────
@@ -259,7 +251,6 @@ resource "aws_cloudwatch_metric_alarm" "redis_memory" {
   treat_missing_data  = "breaching"
   dimensions          = { CacheClusterId = one(aws_elasticache_replication_group.redis.member_clusters) }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "redis_cpu" {
@@ -276,7 +267,6 @@ resource "aws_cloudwatch_metric_alarm" "redis_cpu" {
   treat_missing_data  = "breaching"
   dimensions          = { CacheClusterId = one(aws_elasticache_replication_group.redis.member_clusters) }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
@@ -292,7 +282,6 @@ resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
   treat_missing_data  = "notBreaching"
   dimensions          = { CacheClusterId = one(aws_elasticache_replication_group.redis.member_clusters) }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 # ── Aggregate BullMQ health (five fixed custom metrics) ────────────
@@ -310,7 +299,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_metrics_heartbeat" {
   treat_missing_data  = "breaching"
   dimensions          = { Service = "workers" }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "queue_oldest_waiting" {
@@ -327,7 +315,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_oldest_waiting" {
   treat_missing_data  = "notBreaching"
   dimensions          = { Service = "workers" }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 resource "aws_cloudwatch_metric_alarm" "queue_stalled" {
@@ -343,7 +330,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_stalled" {
   treat_missing_data  = "notBreaching"
   dimensions          = { Service = "workers" }
   alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
 }
 
 # The dashboard references 38 metrics, below its 50-metric pricing boundary.

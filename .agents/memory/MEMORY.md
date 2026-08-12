@@ -31,6 +31,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
+- [feedback_alarm_notifications_actionable_only](feedback_alarm_notifications_actionable_only.md) — CloudWatch email is ALARM-only; recovery stays in CloudWatch and deploys remain covered
 
 ## Rules (via the `.claude/rules` symlink)
 

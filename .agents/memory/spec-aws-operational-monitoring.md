@@ -21,7 +21,7 @@ Provide actionable AWS production visibility without running monitoring servers 
 ## Interfaces
 
 - One `genfeed-production` CloudWatch dashboard in `us-west-1`, with no more than 50 referenced metrics.
-- Standard-resolution CloudWatch alarms route to the existing confirmed operations SNS topic.
+- Standard-resolution CloudWatch `ALARM` transitions route to the existing confirmed operations SNS topic; `OK` transitions remain visible in CloudWatch without email delivery.
 - Dashboard and alarm resources are managed by the existing OpenTofu production stack.
 - Application metrics use the `Genfeed/Queues` namespace and a fixed, aggregate dimension set.
 - A five-minute Redis marker elects one worker replica to publish each queue snapshot.
@@ -40,6 +40,7 @@ Provide actionable AWS production visibility without running monitoring servers 
 - Parked ECS services have desired count zero and must not create availability or utilization alarms.
 - ALB error and latency metrics may be absent during zero traffic and must not page.
 - ECS deploy transitions may briefly reduce samples; alarms require sustained breaches.
+- Deployments do not mute alarms; sustained evaluation windows distinguish normal rollout churn from an actionable breach.
 - An intentionally stopped fleet instance must remain silent, while EC2 status failures on a running instance must alarm.
 - Notification delivery continues through the existing confirmed SNS topic; the stack must not create an unconfirmed replacement subscription.
 - Dashboard metric count must remain within the free-tier allowance as services are added.
@@ -50,6 +51,7 @@ Provide actionable AWS production visibility without running monitoring servers 
 - WHEN the API or workers sustain CPU or memory utilization above 80 percent THE SYSTEM SHALL notify operations.
 - WHEN an internal files or workers service stops reporting its expected live task count THE SYSTEM SHALL represent it as unavailable; public service availability is covered by ALB target health.
 - WHEN RDS or Redis crosses an approved capacity threshold THE SYSTEM SHALL notify operations with the resource identity.
+- WHEN a metric alarm recovers THE SYSTEM SHALL record its `OK` state in CloudWatch without sending a recovery email.
 - WHEN an intentionally parked ECS service or stopped fleet instance publishes no telemetry THE SYSTEM SHALL remain non-alarming.
 - WHEN an operator opens the production dashboard THE SYSTEM SHALL show availability, latency, errors, task health, CPU, memory, database, and cache pressure using no more than 50 metrics.
 - WHERE queue metrics are emitted THE SYSTEM SHALL use fixed aggregate dimensions and no customer-controlled label values.

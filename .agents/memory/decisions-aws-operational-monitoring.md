@@ -24,7 +24,9 @@ Adds PromQL and cross-source dashboards, but introduces a second metric pipeline
 
 - Dashboard: one custom production dashboard with 38 metric references; the private fleet console owns fleet visualization instead of a second USD 3/month CloudWatch dashboard.
 - Alarms: standard resolution; no anomaly detection in the baseline.
-- Alerts: reuse the confirmed production SNS topic instead of creating an email subscription requiring manual confirmation.
+- Alerts: reuse the confirmed production SNS topic for `ALARM` transitions instead of creating an email subscription requiring manual confirmation. Keep `OK` transitions in CloudWatch without email delivery.
+- RDS memory: alert after three consecutive five-minute minimums below 64 MiB. The prior 128 MiB threshold sat inside the observed steady-state band and repeatedly changed state without correlated CPU or connection pressure.
+- Deployments: retain alarm coverage during rollouts. Sustained evaluation windows handle expected churn without creating a blind spot for genuine deployment defects.
 - ECS: dashboard all active services; alarm on ALB availability for public services, live tasks for internal services, and saturation for the API/workers.
 - Queues: five aggregate metrics only; no per-queue or per-job dimensions, and one Redis marker per five-minute window prevents replica duplication.
 - Fleet: private ownership, missing data ignored while stopped, custom GPU metrics published only while running.

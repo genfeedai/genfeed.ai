@@ -5,6 +5,11 @@ The `genfeed-production` CloudWatch dashboard and alarms are managed by
 metrics and the existing operations SNS topic. Container Insights, Managed
 Prometheus, and Managed Grafana are intentionally disabled at the current scale.
 
+The operations topic receives `ALARM` transitions only. Recovery remains visible
+as an `OK` state in CloudWatch without producing a second email. Deployments do
+not mute alarms: the sustained evaluation windows absorb normal rollout churn
+while preserving notification of a real deployment defect.
+
 ## Triage order
 
 1. Confirm which resource and signal entered `ALARM` in CloudWatch.
@@ -39,6 +44,7 @@ Prometheus, and Managed Grafana are intentionally disabled at the current scale.
 - For storage pressure, identify table/index growth and verify automated backups before cleanup.
 - For connection pressure, inspect application pool counts and long-running sessions.
 - For CPU, memory, or latency pressure, correlate with Performance Insights before scaling.
+- Freeable memory alerts only after three consecutive five-minute minimums below 64 MiB. The threshold sits below the observed steady-state band for the production `db.t4g.micro`; recalibrate it from metric history after an instance-class or workload change.
 - Do not change encryption, instance class, or storage configuration as an alarm-only response.
 
 ## Redis and BullMQ
