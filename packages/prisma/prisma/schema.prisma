@@ -1971,6 +1971,9 @@ model Post {
   analyticsCollectionRequestedAt DateTime?
   analyticsCollectedAt           DateTime?
   analyticsCollectionError       Json?
+  // Next time the hourly producer may enqueue this post. Default now() so a
+  // newly published row is due on the next tick without a publish-path write.
+  analyticsNextCollectAt         DateTime           @default(now())
   retryCount                     Int                @default(0)
   lastAttemptAt                  DateTime?
   targetSettings                 Json               @default("{}")
@@ -2045,6 +2048,7 @@ model Post {
   @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
+  @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
   @@map("posts")
 }
 

@@ -13,9 +13,10 @@ import {
   type AnalyticsSyncResult,
   AnalyticsSyncService,
 } from '@server/collections/content-performance/services/analytics-sync.service';
+import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
-@Processor(ANALYTICS_SYNC_QUEUE)
+@Processor(ANALYTICS_SYNC_QUEUE, { limiter: ANALYTICS_JOB_LIMITER })
 export class AnalyticsSyncProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

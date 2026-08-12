@@ -3259,6 +3259,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'analyticsCollectionError',
       'analyticsCollectionRequestedAt',
       'analyticsCollectionState',
+      'analyticsNextCollectAt',
       'brand',
       'brandId',
       'category',

@@ -33,7 +33,8 @@ const FAILURE: AnalyticsCollectionFailure = {
 
 describe('PostAnalyticsCollectionStateService', () => {
   const updateMany = vi.fn();
-  const prisma = { post: { updateMany } } as unknown as Pick<
+  const findMany = vi.fn();
+  const prisma = { post: { findMany, updateMany } } as unknown as Pick<
     ServerPrisma,
     'post'
   >;
@@ -42,6 +43,7 @@ describe('PostAnalyticsCollectionStateService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateMany.mockResolvedValue({ count: 1 });
+    findMany.mockResolvedValue([]);
   });
 
   describe('markPending', () => {
@@ -107,15 +109,23 @@ describe('PostAnalyticsCollectionStateService', () => {
   describe('markReadyBatch', () => {
     it('clears the attempt key and stamps the collection time', async () => {
       const collectedAt = new Date('2026-08-02T00:00:00.000Z');
+      findMany.mockResolvedValue([
+        { id: 'post-1', publishedAt: new Date('2026-08-01T12:00:00.000Z') },
+      ]);
 
       await service.markReadyBatch([makeTarget()], collectedAt);
 
+      expect(findMany).toHaveBeenCalledWith({
+        select: { id: true, publishedAt: true },
+        where: { id: { in: ['post-1'] } },
+      });
       expect(updateMany).toHaveBeenCalledWith({
         data: {
           analyticsCollectedAt: collectedAt,
           analyticsCollectionAttemptKey: null,
           analyticsCollectionError: Prisma.DbNull,
           analyticsCollectionState: TargetAnalyticsCollectionState.READY,
+          analyticsNextCollectAt: new Date('2026-08-02T01:00:00.000Z'),
         },
         where: expect.objectContaining({
           analyticsCollectionAttemptKey: 'attempt-1',
@@ -186,6 +196,7 @@ describe('PostAnalyticsCollectionStateService', () => {
             message: 'provider unavailable',
           },
           analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+          analyticsNextCollectAt: expect.any(Date),
         },
         where: expect.objectContaining({
           analyticsCollectionAttemptKey: 'attempt-1',

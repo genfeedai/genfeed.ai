@@ -20,11 +20,11 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
-@Processor(ANALYTICS_THREADS_QUEUE)
+@Processor(ANALYTICS_THREADS_QUEUE, { limiter: ANALYTICS_JOB_LIMITER })
 export class AnalyticsThreadsProcessor extends WorkerHost {
-  private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
   constructor(
@@ -94,11 +94,6 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             platform: post.platform,
           });
           processed++;
-
-          // Rate limiting delay
-          if (processed < posts.length) {
-            await this.delay(this.DEFAULT_DELAY_MS);
-          }
         } catch (error: unknown) {
           const failure = classifyAnalyticsCollectionError(error, 'Threads');
           this.logger.error(
@@ -151,9 +146,5 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
       );
       throw error;
     }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

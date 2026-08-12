@@ -10,6 +10,10 @@ import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 import { scopedWhere } from '@server/tenancy/scoped-where';
+import {
+  computeAnalyticsNextCollectAt,
+  computeAnalyticsRetryCollectAt,
+} from '../analytics-next-collect-at';
 
 export interface MarkAnalyticsCollectionPendingInput {
   attemptKey: string;
@@ -25,6 +29,19 @@ export class PostAnalyticsCollectionStateService
     @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: Pick<ServerPrisma, 'post'>,
   ) {}
+
+  private async publishedAtById(
+    ids: string[],
+  ): Promise<Map<string, Date | null>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.post.findMany({
+      select: { id: true, publishedAt: true },
+      where: { id: { in: ids } },
+    });
+    return new Map(rows.map((row) => [row.id, row.publishedAt]));
+  }
 
   async markPending(input: MarkAnalyticsCollectionPendingInput): Promise<void> {
     const targetsByScope = new Map<string, AnalyticsCollectionTargetRef[]>();
@@ -85,24 +102,41 @@ export class PostAnalyticsCollectionStateService
       if (!scope?.attemptKey) {
         continue;
       }
-      await this.prisma.post.updateMany({
-        data: {
-          analyticsCollectedAt: collectedAt,
-          analyticsCollectionAttemptKey: null,
-          analyticsCollectionError: Prisma.DbNull,
-          analyticsCollectionState: TargetAnalyticsCollectionState.READY,
-        },
-        where: {
-          ...scopedWhere(scope.organizationId, {
-            brandId: scope.brandId,
-            groupId: { not: null },
-            id: { in: scopedTargets.map((target) => target.id) },
-            parentId: null,
-            platform: scope.platform,
-          }),
-          analyticsCollectionAttemptKey: scope.attemptKey,
-        },
-      });
+      const ids = scopedTargets.map((target) => target.id);
+      const publishedAtById = await this.publishedAtById(ids);
+      const idsByNextCollect = new Map<number, string[]>();
+
+      for (const id of ids) {
+        const nextCollectAt = computeAnalyticsNextCollectAt(
+          collectedAt,
+          publishedAtById.get(id),
+        );
+        const bucket = idsByNextCollect.get(nextCollectAt.getTime()) ?? [];
+        bucket.push(id);
+        idsByNextCollect.set(nextCollectAt.getTime(), bucket);
+      }
+
+      for (const [nextCollectAtMs, bucketIds] of idsByNextCollect.entries()) {
+        await this.prisma.post.updateMany({
+          data: {
+            analyticsCollectedAt: collectedAt,
+            analyticsCollectionAttemptKey: null,
+            analyticsCollectionError: Prisma.DbNull,
+            analyticsCollectionState: TargetAnalyticsCollectionState.READY,
+            analyticsNextCollectAt: new Date(nextCollectAtMs),
+          },
+          where: {
+            ...scopedWhere(scope.organizationId, {
+              brandId: scope.brandId,
+              groupId: { not: null },
+              id: { in: bucketIds },
+              parentId: null,
+              platform: scope.platform,
+            }),
+            analyticsCollectionAttemptKey: scope.attemptKey,
+          },
+        });
+      }
     }
   }
 
@@ -155,7 +189,7 @@ export class PostAnalyticsCollectionStateService
       targetsByGroup.set(groupKey, groupedTargets);
     }
 
-    const failedAt = new Date().toISOString();
+    const failedAt = new Date();
     for (const groupedTargets of targetsByGroup.values()) {
       const [scope] = groupedTargets;
       if (!scope?.attemptKey) {
@@ -165,11 +199,15 @@ export class PostAnalyticsCollectionStateService
         data: {
           analyticsCollectionError: {
             code: scope.failure.code,
-            failedAt,
+            failedAt: failedAt.toISOString(),
             isRetryable: scope.failure.isRetryable,
             message: scope.failure.message,
           },
           analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+          analyticsNextCollectAt: computeAnalyticsRetryCollectAt(
+            failedAt,
+            scope.failure.isRetryable,
+          ),
         },
         where: {
           ...scopedWhere(scope.organizationId, {

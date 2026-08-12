@@ -7,11 +7,12 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
 
 function createHarness() {
   const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+  const findMany = vi.fn().mockResolvedValue([]);
   const service = new PostAnalyticsCollectionStateService({
-    post: { updateMany },
+    post: { findMany, updateMany },
   } as unknown as PrismaService);
 
-  return { service, updateMany };
+  return { findMany, service, updateMany };
 }
 
 const target = {
@@ -80,6 +81,7 @@ describe('PostAnalyticsCollectionStateService', () => {
           message: 'Twitter analytics is temporarily rate limited.',
         },
         analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+        analyticsNextCollectAt: new Date('2026-07-27T07:00:00.000Z'),
       },
       where: expect.objectContaining({
         analyticsCollectionAttemptKey: 'attempt-1',
@@ -189,6 +191,7 @@ describe('PostAnalyticsCollectionStateService', () => {
           message: 'Twitter analytics is temporarily rate limited.',
         },
         analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+        analyticsNextCollectAt: new Date('2026-07-27T07:00:00.000Z'),
       },
       where: expect.objectContaining({
         analyticsCollectionAttemptKey: 'attempt-1',
@@ -226,6 +229,7 @@ describe('PostAnalyticsCollectionStateService', () => {
           failedAt: '2026-07-27T06:30:00.000Z',
         },
         analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+        analyticsNextCollectAt: new Date('2026-07-27T07:00:00.000Z'),
       },
       where: expect.objectContaining({ id: { in: ['a', 'c'] } }),
     });
@@ -236,6 +240,7 @@ describe('PostAnalyticsCollectionStateService', () => {
           failedAt: '2026-07-27T06:30:00.000Z',
         },
         analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+        analyticsNextCollectAt: new Date('2026-08-03T06:30:00.000Z'),
       },
       where: expect.objectContaining({ id: { in: ['b'] } }),
     });

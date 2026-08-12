@@ -10,9 +10,10 @@ import {
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
+import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
-@Processor(ANALYTICS_YOUTUBE_QUEUE)
+@Processor(ANALYTICS_YOUTUBE_QUEUE, { limiter: ANALYTICS_JOB_LIMITER })
 export class AnalyticsYouTubeProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
