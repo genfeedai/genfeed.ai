@@ -249,7 +249,7 @@ export default function LocalDesktopContent() {
                   : translate('generation.generate')}
               </Button>
               {result ? (
-                <div className="rounded-lg border border-border/60 bg-secondary/40 p-4 text-sm leading-6 whitespace-pre-wrap">
+                <div className="border-t border-border/60 pt-4 text-sm leading-6 whitespace-pre-wrap">
                   {result.content}
                 </div>
               ) : null}
