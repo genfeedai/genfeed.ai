@@ -4008,12 +4008,12 @@ describe('AgentToolExecutorService', () => {
         ],
         primaryCta: {
           href: '/publish/review?batch=c9c2d469368c4314a3cfff32&filter=ready',
-          label: 'Open review queue',
+          label: 'Open reviews',
         },
         status: 'completed',
         summaryText:
           'Loaded 2 items from this batch. 1 item is ready for review right now.',
-        title: 'Review queue loaded',
+        title: 'Reviews loaded',
         type: 'completion_summary_card',
       }),
     ]);
@@ -4071,9 +4071,9 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0]).toMatchObject({
       primaryCta: {
         href: '/publish/review?filter=ready',
-        label: 'Open review queue',
+        label: 'Open reviews',
       },
-      title: 'Review queue loaded',
+      title: 'Reviews loaded',
       type: 'completion_summary_card',
     });
     expect(result.nextActions?.[0]?.summaryText).toContain(

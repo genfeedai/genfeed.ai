@@ -39,8 +39,8 @@ function mapTwitterApiError(error: unknown): string {
     lower.includes('elevated')
   ) {
     return (
-      'X account tier does not allow this read/write action. ' +
-      'Connect an account with the required API access, or upgrade the X developer tier.'
+      'This X account cannot do that yet. ' +
+      'Reconnect X with full access, or try again later.'
     );
   }
 
@@ -49,7 +49,7 @@ function mapTwitterApiError(error: unknown): string {
     lower.includes('rate limit') ||
     lower.includes('too many requests')
   ) {
-    return 'X rate limit reached. Wait for the limit window to reset before retrying.';
+    return 'X is busy. Wait a moment and try again.';
   }
 
   if (
@@ -58,7 +58,7 @@ function mapTwitterApiError(error: unknown): string {
     lower.includes('unauthorized') ||
     lower.includes('401')
   ) {
-    return 'X credential missing or expired. Reconnect the brand X account and try again.';
+    return 'X is not connected for this brand. Connect X and try again.';
   }
 
   return message;
@@ -187,8 +187,7 @@ export class AgentXActionsToolHandler {
     if (!postId) {
       return {
         creditsUsed: 0,
-        error:
-          'Could not resolve an X post id from the provided URL or id. Use a status link or bare numeric id.',
+        error: 'That does not look like an X post link or id.',
         success: false,
       };
     }
@@ -240,8 +239,7 @@ export class AgentXActionsToolHandler {
       if (!brandId) {
         return {
           creditsUsed: 0,
-          error:
-            'username or a brand with a connected X account is required for list_x_account_activity',
+          error: 'Add a username, or connect X for this brand first.',
           success: false,
         };
       }
@@ -257,8 +255,7 @@ export class AgentXActionsToolHandler {
       if (!username) {
         return {
           creditsUsed: 0,
-          error:
-            'No connected X username found for this brand. Connect X or pass username.',
+          error: 'Connect X for this brand, or enter a username.',
           success: false,
         };
       }
@@ -354,8 +351,7 @@ export class AgentXActionsToolHandler {
     if (!targetPostId) {
       return {
         creditsUsed: 0,
-        error:
-          'Could not resolve an X post id from targetPostIdOrUrl. Use a status link or bare numeric id.',
+        error: 'That does not look like an X post link or id.',
         success: false,
       };
     }
@@ -364,16 +360,14 @@ export class AgentXActionsToolHandler {
     if (action === 'quote' && !quoteContent) {
       return {
         creditsUsed: 0,
-        error: 'quoteContent is required for draft_x_quote',
+        error: 'Add text for the quote.',
         success: false,
       };
     }
 
     const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
     const caption =
-      action === 'quote'
-        ? (quoteContent as string)
-        : `[native repost] ${targetPostId}`;
+      action === 'quote' ? (quoteContent as string) : `Repost ${targetPostId}`;
 
     const batch = await this.batchGenerationService.createBatch(
       {
@@ -422,8 +416,8 @@ export class AgentXActionsToolHandler {
         batchId,
         message:
           action === 'quote'
-            ? 'Quote draft added to the review queue. It will not publish until approved.'
-            : 'Repost draft added to the review queue. It will not publish until approved.',
+            ? 'Quote draft is ready for review. Nothing posts until you approve it.'
+            : 'Repost draft is ready for review. Nothing posts until you approve it.',
         targetPostId,
         targetPostUrl,
       },

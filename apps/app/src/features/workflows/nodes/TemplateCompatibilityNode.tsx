@@ -57,32 +57,30 @@ const TEMPLATE_COMPATIBILITY_DEFINITIONS: Record<
     outputs: [{ id: 'videoUrl', label: 'Video URL' }],
   },
   socialRead: {
-    description:
-      'Fetch recent posts, mentions, or search results from a connected X account on demand.',
+    description: 'Get recent posts, mentions, or search results from X.',
     inputs: [
       { id: 'brand', label: 'Brand' },
-      { id: 'query', label: 'Search Query' },
+      { id: 'query', label: 'Search' },
       { id: 'username', label: 'Username' },
     ],
-    label: 'Social Read',
+    label: 'Read posts',
     outputs: [
-      { id: 'posts', label: 'Posts (JSON)' },
+      { id: 'posts', label: 'Posts' },
       { id: 'summary', label: 'Summary' },
       { id: 'count', label: 'Count' },
     ],
   },
   reportDelivery: {
-    description:
-      'Deliver workflow results privately via in-app notification and/or email.',
+    description: 'Send results privately by notification or email.',
     inputs: [
       { id: 'content', label: 'Content' },
       { id: 'subject', label: 'Subject' },
-      { id: 'html', label: 'HTML Body' },
+      { id: 'html', label: 'Email body' },
     ],
-    label: 'Report Delivery',
+    label: 'Send report',
     outputs: [
-      { id: 'delivered', label: 'Delivered' },
-      { id: 'destination', label: 'Destination' },
+      { id: 'delivered', label: 'Sent' },
+      { id: 'destination', label: 'Sent to' },
     ],
   },
   postReply: {

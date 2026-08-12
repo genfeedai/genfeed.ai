@@ -31,7 +31,7 @@ export const AGENT_PROACTIVE_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Draft a reply to a target post and add it to the review queue as an engagement item. The reply will NOT be published until approved.',
+      'Draft a reply to a post for review. Nothing posts until it is approved.',
     name: 'draft_engagement_reply',
     parameters: {
       properties: {
@@ -73,7 +73,7 @@ export const AGENT_PROACTIVE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get a summary of items pending approval in the review queue. Returns counts by type (content vs engagement), oldest pending age, and breakdown by status.',
+      'Summarize what is waiting for review: counts by type, oldest pending item, and status breakdown.',
     name: 'get_approval_summary',
     parameters: {
       properties: {},

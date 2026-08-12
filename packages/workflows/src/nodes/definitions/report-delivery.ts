@@ -28,7 +28,7 @@ export const DEFAULT_REPORT_DELIVERY_DATA: Partial<ReportDeliveryNodeData> = {
   delivered: null,
   destination: null,
   email: '',
-  label: 'Report Delivery',
+  label: 'Send report',
   status: 'idle',
   subject: '',
   type: 'reportDelivery',
@@ -37,18 +37,17 @@ export const DEFAULT_REPORT_DELIVERY_DATA: Partial<ReportDeliveryNodeData> = {
 export const reportDeliveryNodeDefinition = {
   category: 'output' as const,
   defaultData: DEFAULT_REPORT_DELIVERY_DATA,
-  description:
-    'Deliver workflow results privately via in-app notification and/or email',
+  description: 'Send results privately by notification or email',
   icon: 'Bell',
   inputs: [
     { id: 'content', label: 'Content', required: true, type: 'text' },
     { id: 'subject', label: 'Subject', required: false, type: 'text' },
-    { id: 'html', label: 'HTML Body', required: false, type: 'text' },
+    { id: 'html', label: 'Email body', required: false, type: 'text' },
   ],
-  label: 'Report Delivery',
+  label: 'Send report',
   outputs: [
-    { id: 'delivered', label: 'Delivered', type: 'boolean' },
-    { id: 'destination', label: 'Destination', type: 'text' },
+    { id: 'delivered', label: 'Sent', type: 'boolean' },
+    { id: 'destination', label: 'Sent to', type: 'text' },
   ],
   type: 'reportDelivery',
 };

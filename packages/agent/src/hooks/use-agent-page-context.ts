@@ -176,7 +176,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
           className: 'size-5 text-violet-400',
         }),
         label: 'Review pending content',
-        prompt: 'Show me pending content in the review queue',
+        prompt: 'Show me content waiting for review',
       },
       {
         icon: createElement(ChartColumn, {
@@ -315,7 +315,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
           className: 'size-5 text-foreground/50',
         }),
         label: 'Review',
-        prompt: 'Show me pending content in the review queue',
+        prompt: 'Show me content waiting for review',
       },
       {
         icon: createElement(ChartColumn, {
@@ -571,7 +571,7 @@ const DEFAULT_CONTEXT: PageContextConfig = {
         className: 'size-5 text-violet-400',
       }),
       label: 'Review pending content',
-      prompt: 'Show me pending content in the review queue',
+      prompt: 'Show me content waiting for review',
     },
     {
       icon: createElement(ChartColumn, {

@@ -143,11 +143,11 @@ export class AgentReviewToolHandler {
           outcomeBullets,
           primaryCta: {
             href: `/publish/review?batch=${String(batch.id)}&filter=ready`,
-            label: 'Open review queue',
+            label: 'Open reviews',
           },
           status: 'completed',
           summaryText,
-          title: 'Review queue loaded',
+          title: 'Reviews loaded',
           type: 'completion_summary_card',
         },
       ],
@@ -179,7 +179,7 @@ export class AgentReviewToolHandler {
     const pendingCount = inbox.pendingCount ?? 0;
     const summaryText =
       readyCount === 0 && pendingCount === 0
-        ? 'No items are waiting in the review queue right now.'
+        ? 'Nothing is waiting for review right now.'
         : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidBatchId ? ' (ignored an invalid batch id from the model and loaded the full queue).' : '.'}`;
 
     const outcomeBullets = recentItems.slice(0, 4).map((item) => {
@@ -225,11 +225,11 @@ export class AgentReviewToolHandler {
                 : [`${readyCount} ready for review`],
           primaryCta: {
             href: '/publish/review?filter=ready',
-            label: 'Open review queue',
+            label: 'Open reviews',
           },
           status: 'completed',
           summaryText,
-          title: 'Review queue loaded',
+          title: 'Reviews loaded',
           type: 'completion_summary_card',
         },
       ],

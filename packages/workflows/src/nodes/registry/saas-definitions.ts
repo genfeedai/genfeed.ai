@@ -250,18 +250,17 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
   reportDelivery: {
     category: 'output',
     defaultData: DEFAULT_REPORT_DELIVERY_DATA as Record<string, unknown>,
-    description:
-      'Deliver workflow results privately via in-app notification and/or email',
+    description: 'Send results privately by notification or email',
     icon: 'Bell',
     inputs: [
       { id: 'content', label: 'Content', required: true, type: 'text' },
       { id: 'subject', label: 'Subject', required: false, type: 'text' },
-      { id: 'html', label: 'HTML Body', required: false, type: 'text' },
+      { id: 'html', label: 'Email body', required: false, type: 'text' },
     ],
-    label: 'Report Delivery',
+    label: 'Send report',
     outputs: [
-      { id: 'delivered', label: 'Delivered', type: 'boolean' },
-      { id: 'destination', label: 'Destination', type: 'text' },
+      { id: 'delivered', label: 'Sent', type: 'boolean' },
+      { id: 'destination', label: 'Sent to', type: 'text' },
     ],
     type: 'reportDelivery',
   },
@@ -288,17 +287,16 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
   socialRead: {
     category: 'input',
     defaultData: DEFAULT_SOCIAL_READ_DATA as Record<string, unknown>,
-    description:
-      'Fetch recent posts, mentions, or search results from a connected X account on demand',
+    description: 'Get recent posts, mentions, or search results from X',
     icon: 'Search',
     inputs: [
       { id: 'brand', label: 'Brand', required: false, type: 'brand' },
-      { id: 'query', label: 'Search Query', required: false, type: 'text' },
+      { id: 'query', label: 'Search', required: false, type: 'text' },
       { id: 'username', label: 'Username', required: false, type: 'text' },
     ],
-    label: 'Social Read',
+    label: 'Read posts',
     outputs: [
-      { id: 'posts', label: 'Posts (JSON)', type: 'text' },
+      { id: 'posts', label: 'Posts', type: 'text' },
       { id: 'summary', label: 'Summary', type: 'text' },
       { id: 'count', label: 'Count', type: 'number' },
     ],

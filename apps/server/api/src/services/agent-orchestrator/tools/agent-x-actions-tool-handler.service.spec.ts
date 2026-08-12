@@ -117,7 +117,7 @@ describe('AgentXActionsToolHandler', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/tier does not allow/i);
+    expect(result.error).toMatch(/cannot do that yet/i);
   });
 
   it('fetches a post by URL', async () => {
@@ -154,7 +154,7 @@ describe('AgentXActionsToolHandler', () => {
       ctx,
     );
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Could not resolve/i);
+    expect(result.error).toMatch(/does not look like an X post/i);
   });
 
   it('lists activity for an explicit username', async () => {
@@ -181,7 +181,7 @@ describe('AgentXActionsToolHandler', () => {
     expect(result.data?.count).toBe(1);
   });
 
-  it('drafts quote into the review queue', async () => {
+  it('drafts a quote for review', async () => {
     const { batchGenerationService, handler, internalApi } = createHandler();
 
     const result = await handler.execute(
@@ -210,7 +210,7 @@ describe('AgentXActionsToolHandler', () => {
     );
   });
 
-  it('drafts native repost without commentary into the review queue', async () => {
+  it('drafts a repost for review', async () => {
     const { handler, internalApi } = createHandler();
 
     const result = await handler.execute(

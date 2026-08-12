@@ -1380,7 +1380,7 @@ export class AgentMediaGenerationToolHandler {
         readyCount > BATCH_POST_PREVIEW_LIMIT
           ? `View all ${readyCount} posts`
           : readyCount > 0
-            ? 'Open review queue'
+            ? 'Open reviews'
             : 'Open Review Queue';
 
       // Estimate was reserved up front; settle to the media-aware cost of

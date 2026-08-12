@@ -73,16 +73,14 @@ export const DEFAULT_WORKFLOW_GENERATION_NODE_TYPES: WorkflowGenerationNodeType[
     },
     {
       category: 'input',
-      description:
-        'Fetch recent X timeline, mentions, or search results on demand for analysis',
+      description: 'Get recent posts, mentions, or search results from X',
       inputs: ['brand', 'query', 'username'],
       outputs: ['posts', 'summary', 'count'],
       type: 'socialRead',
     },
     {
       category: 'output',
-      description:
-        'Deliver workflow results privately via in-app notification and/or email',
+      description: 'Send results privately by notification or email',
       inputs: ['content', 'subject', 'html'],
       outputs: ['delivered', 'destination'],
       type: 'reportDelivery',

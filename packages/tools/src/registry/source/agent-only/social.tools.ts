@@ -4,20 +4,20 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Search recent posts on X (Twitter) by keyword query. Returns post id, author, text, metrics, and URL. Surfaces tier-limit errors instead of empty success when the connected account cannot read.',
+      'Search recent posts on X by topic. Returns posts with author, text, stats, and link. Explains clearly if the connected account cannot search.',
     name: 'search_x_posts',
     parameters: {
       properties: {
         limit: {
-          description: 'Maximum number of posts to return (default 10, max 25)',
+          description: 'How many posts to return (default 10, max 25)',
           type: 'number',
         },
         query: {
-          description: 'Search query for recent X posts',
+          description: 'What to search for on X',
           type: 'string',
         },
         sortOrder: {
-          description: 'Sort by relevancy (default) or recency',
+          description: 'Sort by best match or newest first',
           enum: ['relevancy', 'recency'],
           type: 'string',
         },
@@ -30,13 +30,12 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Fetch a single X post by status URL or numeric post id. Resolves x.com/twitter.com links deterministically.',
+      'Open one X post from a link or post id and return its text and stats.',
     name: 'fetch_x_post',
     parameters: {
       properties: {
         postIdOrUrl: {
-          description:
-            'X post URL (x.com/.../status/...) or bare numeric post id',
+          description: 'Post link or post id',
           type: 'string',
         },
       },
@@ -48,30 +47,29 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      "List recent posts from an X account. Defaults to the brand's connected X username when username is omitted.",
+      "List recent posts from an X account. Uses the brand's connected account when no username is given.",
     name: 'list_x_account_activity',
     parameters: {
       properties: {
         brandId: {
-          description:
-            'Brand whose connected X account to read when username is omitted',
+          description: 'Brand to use when no username is given',
           type: 'string',
         },
         excludeReplies: {
-          description: 'When true, omit replies from the timeline',
+          description: 'Hide replies',
           type: 'boolean',
         },
         excludeRetweets: {
-          description: 'When true, omit native reposts from the timeline',
+          description: 'Hide reposts',
           type: 'boolean',
         },
         limit: {
-          description: 'Maximum posts to return (default 20, max 50)',
+          description: 'How many posts to return (default 20, max 50)',
           type: 'number',
         },
         username: {
           description:
-            'X username without @. Optional when a brand is connected.',
+            'X username without @ (optional if a brand is connected)',
           type: 'string',
         },
       },
@@ -83,28 +81,28 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Draft a quote post for an X source post and add it to the review queue. Does NOT publish until approved. Distinct from native repost.',
+      'Draft a quote of an X post for review. Does not publish until approved. Different from a repost.',
     name: 'draft_x_quote',
     parameters: {
       properties: {
         brandId: {
-          description: 'Brand ID for voice and publishing account',
+          description: 'Brand to quote from',
           type: 'string',
         },
         quoteContent: {
-          description: 'Commentary text for the quote post',
+          description: 'Your text for the quote',
           type: 'string',
         },
         targetAuthor: {
-          description: 'Author username of the source post',
+          description: 'Author of the original post',
           type: 'string',
         },
         targetPostContent: {
-          description: 'Text of the source post being quoted',
+          description: 'Text of the original post',
           type: 'string',
         },
         targetPostIdOrUrl: {
-          description: 'Source post id or x.com status URL',
+          description: 'Original post link or id',
           type: 'string',
         },
       },
@@ -116,24 +114,24 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Draft a repost of an X post for review (no added text). Does NOT publish until approved. Distinct from quote.',
+      'Draft a repost of an X post for review. Does not publish until approved. Different from a quote.',
     name: 'draft_x_repost',
     parameters: {
       properties: {
         brandId: {
-          description: 'Brand ID for the publishing X account',
+          description: 'Brand to repost from',
           type: 'string',
         },
         targetAuthor: {
-          description: 'Author username of the source post',
+          description: 'Author of the original post',
           type: 'string',
         },
         targetPostContent: {
-          description: 'Text of the source post being reposted',
+          description: 'Text of the original post',
           type: 'string',
         },
         targetPostIdOrUrl: {
-          description: 'Source post id or x.com status URL',
+          description: 'Original post link or id',
           type: 'string',
         },
       },
@@ -145,7 +143,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Initiate OAuth connect flow for a platform and return a connect action card.',
+      'Start connecting a social account and return a connect button for the user.',
     name: 'initiate_oauth_connect',
     parameters: {
       properties: {
@@ -170,8 +168,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      "Get the user's currently selected brand profile for the active organization.",
+    description: 'Get the brand currently selected for this workspace.',
     name: 'get_current_brand',
     parameters: {
       properties: {},
@@ -183,12 +180,12 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Prompt the user to connect a social media account via OAuth. Sends a UI action card to the frontend with a connect button for the specified platform.',
+      'Ask the user to connect a social account with a connect button for that platform.',
     name: 'connect_social_account',
     parameters: {
       properties: {
         platform: {
-          description: 'Social platform to connect',
+          description: 'Platform to connect',
           enum: [
             'twitter',
             'instagram',

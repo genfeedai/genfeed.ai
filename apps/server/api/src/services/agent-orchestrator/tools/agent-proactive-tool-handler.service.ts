@@ -400,7 +400,8 @@ export class AgentProactiveToolHandler {
       creditsUsed: 1,
       data: {
         batchId,
-        message: 'Engagement reply drafted and added to review queue.',
+        message:
+          'Reply draft is ready for review. Nothing posts until you approve it.',
         platform,
         targetPostId,
       },

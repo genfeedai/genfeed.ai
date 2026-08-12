@@ -84,9 +84,9 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
     label: 'Publishing defaults',
   },
   review_queue: {
-    ctaLabel: 'Open review queue',
+    ctaLabel: 'Open reviews',
     href: APP_ROUTES.PUBLISH.REVIEW,
-    label: 'Review queue',
+    label: 'Reviews',
   },
   settings: {
     ctaLabel: 'Open settings',
