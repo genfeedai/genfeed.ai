@@ -628,7 +628,7 @@ export class AuthorReplyLoopService {
                 commentId: params.commentId,
                 replyContentId: params.replyContentId,
               },
-            ),
+            ) as never,
             externalPostId: params.parentPostId,
             measuredAt: new Date(),
             organizationId: params.organizationId,
@@ -675,8 +675,8 @@ export class AuthorReplyLoopService {
     const userId =
       typeof config.userId === 'string'
         ? config.userId
-        : typeof (config as { user?: string }).user === 'string'
-          ? (config as { user: string }).user
+        : typeof (config as unknown as { user?: string }).user === 'string'
+          ? (config as unknown as { user: string }).user
           : undefined;
     return userId || undefined;
   }
@@ -813,9 +813,12 @@ export class AuthorReplyLoopService {
 
 /** Author-reply surfaces only support X + YouTube today. */
 function toAuthorReplyPlatform(
-  platform?: ReplyBotPlatform | 'twitter' | 'youtube',
+  platform?: ReplyBotPlatform | string,
 ): ReplyBotPlatform {
-  if (platform === ReplyBotPlatform.YOUTUBE || platform === 'youtube') {
+  const normalized = String(platform ?? '')
+    .trim()
+    .toLowerCase();
+  if (normalized === ReplyBotPlatform.YOUTUBE || normalized === 'youtube') {
     return ReplyBotPlatform.YOUTUBE;
   }
   return ReplyBotPlatform.TWITTER;

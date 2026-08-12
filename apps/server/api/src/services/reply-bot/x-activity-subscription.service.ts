@@ -33,18 +33,18 @@ export class XActivitySubscriptionService {
    * e.g. https://api.genfeed.ai/v1/webhooks/x-activity
    */
   getWebhookUrl(): string | undefined {
-    const explicit = this.configService.get<string>('X_ACTIVITY_WEBHOOK_URL');
-    if (explicit?.trim()) {
-      return explicit.trim().replace(/\/$/, '');
+    const explicit = this.readConfigString('X_ACTIVITY_WEBHOOK_URL');
+    if (explicit) {
+      return explicit.replace(/\/$/, '');
     }
     const apiBase =
-      this.configService.get<string>('API_PUBLIC_URL') ||
-      this.configService.get<string>('PORTLESS_URL') ||
-      this.configService.get<string>('APP_URL');
-    if (!apiBase?.trim()) {
+      this.readConfigString('API_PUBLIC_URL') ||
+      this.readConfigString('PORTLESS_URL') ||
+      this.readConfigString('APP_URL');
+    if (!apiBase) {
       return undefined;
     }
-    const base = apiBase.trim().replace(/\/$/, '');
+    const base = apiBase.replace(/\/$/, '');
     if (base.includes('/v1/webhooks/x-activity')) {
       return base;
     }
@@ -53,18 +53,27 @@ export class XActivitySubscriptionService {
 
   getBearerToken(): string | undefined {
     return (
-      this.configService.get<string>('X_API_BEARER_TOKEN') ||
-      this.configService.get<string>('TWITTER_BEARER_TOKEN') ||
+      this.readConfigString('X_API_BEARER_TOKEN') ||
+      this.readConfigString('TWITTER_BEARER_TOKEN') ||
       undefined
     );
   }
 
   getConsumerSecret(): string | undefined {
     return (
-      this.configService.get<string>('X_WEBHOOK_CONSUMER_SECRET') ||
-      this.configService.get<string>('TWITTER_CONSUMER_SECRET') ||
+      this.readConfigString('X_WEBHOOK_CONSUMER_SECRET') ||
+      this.readConfigString('TWITTER_CONSUMER_SECRET') ||
       undefined
     );
+  }
+
+  private readConfigString(key: string): string | undefined {
+    const value = this.configService.get(key);
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   /**

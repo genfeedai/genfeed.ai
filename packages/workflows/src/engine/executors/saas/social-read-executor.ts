@@ -158,9 +158,11 @@ export class SocialReadExecutor extends BaseExecutor {
     return {
       data: {
         count: result.count,
+        mode: result.mode,
+        platform: result.platform,
         posts: postsJson,
-        summary,
-        ...result,
+        postsJson: result.postsJson,
+        summary: result.summary,
       },
       metadata: {
         count: result.count,

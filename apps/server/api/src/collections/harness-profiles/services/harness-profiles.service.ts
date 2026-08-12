@@ -286,7 +286,7 @@ export class HarnessProfilesService {
           offers:
             payload.thesis.offers.length > 0
               ? payload.thesis.offers
-              : existing.thesis?.offers,
+              : (existing.thesis?.offers ?? []),
         },
         voice: {
           ...existing.voice,

@@ -27,12 +27,12 @@ const readOptionalPlatform = (
     // Prisma SCREAMING → domain lowercase when possible.
     const fromPrisma = fromPrismaCredentialPlatform(value);
     if (fromPrisma) {
-      return fromPrisma as ReplyBotCredentialPlatform;
+      return fromPrisma as unknown as ReplyBotCredentialPlatform;
     }
-    return value.trim().toLowerCase() as ReplyBotCredentialPlatform;
+    return value.trim().toLowerCase() as unknown as ReplyBotCredentialPlatform;
   }
 
-  return String(value) as ReplyBotCredentialPlatform;
+  return String(value) as unknown as ReplyBotCredentialPlatform;
 };
 
 export interface ToReplyBotCredentialOptions {

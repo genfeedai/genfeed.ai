@@ -49,25 +49,24 @@ export interface AgentStrategyRunHistoryItem {
   [key: string]: unknown;
 }
 
-export interface AgentStrategyDocument
-  extends Omit<
-    PrismaAgentStrategy,
-    'config' | 'policies' | 'agentType' | 'platforms'
-  > {
+export type AgentStrategyDocument = Omit<
+  PrismaAgentStrategy,
+  'agentType' | 'config' | 'platforms' | 'policies' | 'workflowInputOverrides'
+> & {
   agentType?: string;
   autonomyMode?: AgentAutonomyMode | string;
   budgetPolicy?: AgentStrategyBudgetPolicy;
   config?: Record<string, unknown>;
   contentMix?: AgentStrategyContentMix;
-  creditsUsedThisWeek: number;
-  dailyCreditBudget: number;
+  creditsUsedThisWeek?: number;
+  dailyCreditBudget?: number;
   dailyCreditResetAt?: Date | null;
-  dailyCreditsUsed: number;
+  dailyCreditsUsed?: number;
   dailyResetAt?: Date | null;
   goalProfile?: string;
   isEnabled?: boolean;
   model?: string | null;
-  monthToDateCreditsUsed: number;
+  monthToDateCreditsUsed?: number;
   monthlyResetAt?: Date | null;
   opportunitySources?: AgentStrategyOpportunitySources;
   platforms?: string[];
@@ -78,18 +77,17 @@ export interface AgentStrategyDocument
   rankingPolicy?: AgentStrategyRankingPolicy;
   reportingPolicy?: AgentStrategyReportingPolicy;
   requiresManualReactivation?: boolean;
-  reserveTrendBudgetRemaining: number;
-  runHistory: AgentStrategyRunHistoryItem[];
+  reserveTrendBudgetRemaining?: number;
+  runHistory?: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
   preferredWorkflowId?: string | null;
   preferredWorkflowTemplateId?: string | null;
   topics?: string[];
-  weeklyCreditBudget: number;
+  weeklyCreditBudget?: number;
   workflowInputOverrides?: Array<{
     key: string;
     value: string | number | boolean;
   }>;
-  [key: string]: unknown;
-}
+};
 
 export type AgentStrategy = AgentStrategyDocument;

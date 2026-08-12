@@ -35,10 +35,19 @@ export class XActivityWebhookService {
 
   getConsumerSecret(): string | undefined {
     return (
-      this.configService.get<string>('X_WEBHOOK_CONSUMER_SECRET') ||
-      this.configService.get<string>('TWITTER_CONSUMER_SECRET') ||
+      this.readConfigString('X_WEBHOOK_CONSUMER_SECRET') ||
+      this.readConfigString('TWITTER_CONSUMER_SECRET') ||
       undefined
     );
+  }
+
+  private readConfigString(key: string): string | undefined {
+    const value = this.configService.get(key);
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   /**

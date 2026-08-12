@@ -46,7 +46,7 @@ export const reportDeliveryNodeDefinition = {
   ],
   label: 'Send report',
   outputs: [
-    { id: 'delivered', label: 'Sent', type: 'boolean' },
+    { id: 'delivered', label: 'Sent', type: 'text' },
     { id: 'destination', label: 'Sent to', type: 'text' },
   ],
   type: 'reportDelivery',

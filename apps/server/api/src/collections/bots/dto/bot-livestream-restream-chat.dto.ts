@@ -23,17 +23,17 @@ export class RestreamChatActionDto {
 
   @IsObject()
   @IsOptional()
-  @ApiProperty({ required: false, type: 'object', additionalProperties: true })
+  @ApiProperty({ required: false, additionalProperties: true, type: Object })
   author?: Record<string, unknown>;
 
   @IsObject()
   @IsOptional()
-  @ApiProperty({ required: false, type: 'object', additionalProperties: true })
+  @ApiProperty({ required: false, additionalProperties: true, type: Object })
   payload?: Record<string, unknown>;
 
   @IsObject()
   @IsOptional()
-  @ApiProperty({ required: false, type: 'object', additionalProperties: true })
+  @ApiProperty({ required: false, additionalProperties: true, type: Object })
   eventPayload?: Record<string, unknown>;
 
   @IsString()

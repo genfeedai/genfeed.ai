@@ -248,10 +248,12 @@ export class WorkflowAutomationExecutorRegistrarService {
       }
 
       const inputRecord =
-        inputs && typeof inputs === 'object' && !Array.isArray(inputs)
-          ? (inputs as Record<string, unknown>)
-          : {};
-      const contextRecord = context as Record<string, unknown>;
+        inputs instanceof Map
+          ? Object.fromEntries(inputs.entries())
+          : inputs && typeof inputs === 'object' && !Array.isArray(inputs)
+            ? (inputs as unknown as Record<string, unknown>)
+            : {};
+      const contextRecord = context as unknown as Record<string, unknown>;
       const triggerData =
         contextRecord.inputValues &&
         typeof contextRecord.inputValues === 'object' &&

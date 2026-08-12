@@ -149,9 +149,9 @@ describe('desktop release config', () => {
       ),
     ) as DesktopPackageJson;
 
-    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.4.5');
+    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.5.4');
     expect(desktopPrismaPackage.dependencies?.['@electric-sql/pglite']).toBe(
-      '0.4.5',
+      '0.5.4',
     );
   });
 });

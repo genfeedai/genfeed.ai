@@ -41,19 +41,26 @@ export class RestreamService {
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
   ) {
-    this.clientId = this.configService.get('RESTREAM_CLIENT_ID');
-    this.clientSecret = this.configService.get('RESTREAM_CLIENT_SECRET');
-    const explicitRedirect = this.configService.get('RESTREAM_REDIRECT_URI');
-    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+    this.clientId = this.readConfigString('RESTREAM_CLIENT_ID');
+    this.clientSecret = this.readConfigString('RESTREAM_CLIENT_SECRET');
+    const explicitRedirect = this.readConfigString('RESTREAM_REDIRECT_URI');
+    const appUrl = this.readConfigString('GENFEEDAI_APP_URL');
     this.redirectUri =
       explicitRedirect ||
-      (appUrl
-        ? `${String(appUrl).replace(/\/$/, '')}/oauth/restream`
-        : undefined);
+      (appUrl ? `${appUrl.replace(/\/$/, '')}/oauth/restream` : undefined);
   }
 
   isConfigured(): boolean {
     return Boolean(this.clientId && this.clientSecret && this.redirectUri);
+  }
+
+  private readConfigString(key: string): string | undefined {
+    const value = this.configService.get(key);
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   generateAuthUrl(state: string): string {

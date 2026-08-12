@@ -49,7 +49,7 @@ export class RunAgentStrategyWorkflowDto {
     description:
       'Raw inputValues merged last (exact workflow inputVariable keys).',
     required: false,
-    type: 'object',
+    type: Object,
   })
   inputs?: Record<string, unknown>;
 
