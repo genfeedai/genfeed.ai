@@ -1,4 +1,4 @@
--- Recreate the agent_messages hot-path index with a matching "id" sort
+-- Add an agent_messages hot-path index with a matching "id" sort
 -- direction for keyset/cursor pagination (#2791).
 --
 -- Query shape: AgentMessagesService now paginates thread messages via
@@ -12,25 +12,23 @@
 -- matches that order — Postgres has to add an extra Sort node over every
 -- qualifying row of the thread before applying LIMIT.
 --
--- Recreating the index with "id" DESC lets a forward Index Scan return rows
+-- The replacement index with "id" DESC lets a forward Index Scan return rows
 -- already in the exact order the cursor query needs, so LIMIT can stop early
 -- without materializing/sorting the full thread's message history.
 --
--- Built CONCURRENTLY: agent_messages is written continuously by live chat, so
--- a plain DROP/CREATE INDEX would take an ACCESS EXCLUSIVE lock for the whole
--- rebuild and stall live writes. CONCURRENTLY keeps reads/writes running.
+-- Built under a new explicit name and CONCURRENTLY: agent_messages is written
+-- continuously by live chat, so rebuilding the existing index in place would
+-- block writes for the whole build. The old index stays available while this
+-- one is constructed and is removed by the following transaction-safe cleanup
+-- migration only after the replacement exists.
 --
--- CONCURRENTLY must run OUTSIDE a transaction block. Prisma only skips
--- wrapping a migration in a transaction when the file contains just bare
--- CONCURRENTLY statements — so this file carries ONLY bare CONCURRENTLY
--- index statements, no DML, matching the precedent
--- 20260807150000_add_hot_path_indexes.
+-- Prisma can execute a migration outside its transaction when the file contains
+-- only bare CREATE INDEX CONCURRENTLY statements. Do not add a DROP or any DML
+-- here: Prisma 7 otherwise wraps the file and PostgreSQL rejects CONCURRENTLY
+-- with SQLSTATE 25001 / Prisma P3018.
 --
--- `IF EXISTS` / `IF NOT EXISTS` make both statements no-ops if already applied
--- (or not yet created). If the CREATE build fails it leaves an INVALID index
--- of the same name — DROP it and re-deploy; do not blindly re-run.
+-- `IF NOT EXISTS` makes the build a no-op if already applied. If the build fails
+-- it leaves an INVALID index of the same name — drop it before retrying.
 
-DROP INDEX CONCURRENTLY IF EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx";
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx"
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "agent_messages_org_thread_created_id_desc_idx"
   ON "agent_messages" ("organizationId", "threadId", "isDeleted", "createdAt" DESC, "id" DESC);
