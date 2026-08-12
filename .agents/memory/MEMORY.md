@@ -99,9 +99,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 ## References
 
 - [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
-- [reference_postgres_rds](reference_postgres_rds.md) — prod/dev instances, sslmode gotcha
-- [reference_prod_aws_runtime](reference_prod_aws_runtime.md) — live AWS source of truth
-- [reference_production_fargate_vercel_webhook](reference_production_fargate_vercel_webhook.md) — ECS state, webhook receiver
 - [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
 
 ## Context (auto-loaded via CLAUDE.md @import)

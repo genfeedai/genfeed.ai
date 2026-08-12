@@ -15,13 +15,11 @@ const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
-  'deploy-scripts-ci.yml',
   'desktop-qa.yml',
   'link-check.yml',
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
   'server-image-pr.yml',
-  'tofu-validate.yml',
 ];
 
 function readWorkflow(fileName) {
@@ -502,90 +500,5 @@ test('pins mocked core E2E builds to Community mode', () => {
   assert.match(
     frontendJob,
     /name: Build app[\s\S]*?NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"[\s\S]*?NEXT_PUBLIC_GENFEED_CLOUD: "false"[\s\S]*?NEXT_PUBLIC_API_ENDPOINT: https:\/\/api\.genfeed\.ai\/v1/,
-  );
-});
-
-test('limits public production monitoring permissions to the dashboard', () => {
-  const bootstrap = readFileSync(
-    path.join(REPOSITORY_ROOT, 'infra', 'terraform', 'bootstrap', 'main.tf'),
-    'utf8',
-  );
-
-  const policy = bootstrap.match(
-    /data "aws_iam_policy_document" "gha_deploy_monitoring" \{[\s\S]*?\n\}/,
-  )?.[0];
-  assert.ok(policy, 'bootstrap must define the deploy-role monitoring policy');
-
-  const statement = (sid) =>
-    policy.match(
-      new RegExp(`statement \\{\\n\\s+sid\\s+= "${sid}"[\\s\\S]*?\\n  \\}`),
-    )?.[0];
-
-  for (const action of [
-    'cloudwatch:DeleteDashboards',
-    'cloudwatch:GetDashboard',
-    'cloudwatch:ListDashboards',
-    'cloudwatch:ListTagsForResource',
-    'cloudwatch:PutDashboard',
-    'cloudwatch:TagResource',
-    'cloudwatch:UntagResource',
-  ]) {
-    assert.ok(
-      policy.includes(`"${action}"`),
-      `monitoring policy must allow ${action}`,
-    );
-  }
-
-  assert.match(
-    policy,
-    /arn:\$\{local\.aws_partition\}:cloudwatch::\$\{local\.account_id\}:dashboard\/genfeed-production/,
-  );
-
-  for (const [sid, action, resource] of [
-    [
-      'ReadProductionDashboard',
-      'cloudwatch:GetDashboard',
-      /dashboard\/genfeed-production/,
-    ],
-    [
-      'InspectProductionMonitoringTags',
-      'cloudwatch:ListTagsForResource',
-      /dashboard\/genfeed-production/,
-    ],
-  ]) {
-    const scopedStatement = statement(sid);
-    assert.ok(scopedStatement, `monitoring policy must define ${sid}`);
-    assert.match(scopedStatement, /effect\s+= "Allow"/);
-    assert.ok(
-      scopedStatement.includes(`"${action}"`),
-      `${sid} must allow ${action}`,
-    );
-    assert.match(scopedStatement, resource);
-    assert.doesNotMatch(scopedStatement, /resources\s+= \["\*"\]/);
-  }
-
-  const discoverProductionMonitoring = statement(
-    'DiscoverProductionMonitoring',
-  );
-  assert.ok(
-    discoverProductionMonitoring,
-    'monitoring policy must retain unscoped discovery actions',
-  );
-  assert.match(
-    discoverProductionMonitoring,
-    /actions\s+= \["cloudwatch:ListDashboards"\]/,
-  );
-  assert.match(discoverProductionMonitoring, /resources = \["\*"\]/);
-  assert.doesNotMatch(
-    discoverProductionMonitoring,
-    /cloudwatch:(?:GetDashboard|ListTagsForResource)/,
-  );
-  assert.doesNotMatch(
-    policy,
-    /cloudwatch:(?:DeleteAlarms|DescribeAlarms|PutMetricAlarm)|alarm:genfeed-production-|sns:/,
-  );
-  assert.match(
-    bootstrap,
-    /resource "aws_iam_role_policy" "gha_deploy_monitoring" \{[\s\S]*?name\s+= "manage-production-monitoring"[\s\S]*?role\s+= aws_iam_role\.gha_deploy\.id[\s\S]*?policy\s+= data\.aws_iam_policy_document\.gha_deploy_monitoring\.json/,
   );
 });

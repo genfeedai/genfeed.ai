@@ -19,7 +19,7 @@ on:
         #
         # This is an explicit input — NOT a `github.event_name == 'workflow_call'`
         # check — because a reusable workflow inherits the CALLER's originating
-        # event (e.g. `workflow_dispatch` from deploy-ecs.yml), so `event_name`
+        # event (e.g. `workflow_dispatch` from release.yml), so `event_name`
         # is never `workflow_call` here and the old gate silently skipped every
         # heavy test job on the release QA path.
         description: 'Run the full heavy test matrix (release QA path).'
@@ -30,10 +30,10 @@ on:
 # The `ci-` prefix is REQUIRED. `github.workflow` resolves to the top-level
 # workflow name even inside a `workflow_call`, so without a distinct prefix this
 # group collides with a caller that uses the same `${{ github.workflow }}-${{
-# github.ref }}` shape (full-suite.yml → deploy-ecs.yml). On the release/deploy
+# github.ref }}` shape (release.yml → full-suite.yml). On the release
 # path `ci` runs UNDER full-suite, both computed the same group with
 # cancel-in-progress, and the nested `ci` cancelled itself at startup (0 jobs) —
-# tripping cancel-doomed-run and silently killing every production deploy. The
+# tripping cancel-doomed-run and silently killing every stable release. The
 # prefix keeps push-CI dedup ("ci-CI-<ref>") while never matching a caller group.
 #
 # `cancel-in-progress` is PULL-REQUEST ONLY. On a PR, a new push makes the
@@ -287,7 +287,7 @@ jobs:
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contracts
-        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
+        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
       - name: Coverage Workspace Contract
         run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)

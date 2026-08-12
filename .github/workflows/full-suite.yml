@@ -1,12 +1,12 @@
-# Full Suite — on-demand caller for CI, SaaS release verification, then E2E.
+# Full Suite — on-demand caller for release verification, then E2E.
 #
 # Dispatch from any branch: Actions → "Full Suite (CI + Release Gates + E2E)"
 # → Run workflow → pick the branch. E2E runs only if the CI gate (format, lint,
-# typecheck, design, unit tests, build) and SaaS release-time build verification
+# typecheck, design, unit tests, build) and release-time build verification
 # pass first.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
-# this file only orders the SaaS release-prep gates. Community self-hosted image
+# this file only orders the public release-prep gates. Community self-hosted image
 # verification lives in build-verify-selfhosted.yml and runs independently.
 
 name: Full Suite (CI + Release Gates + E2E)
@@ -17,7 +17,7 @@ on:
 
 concurrency:
   # Include the workflow name so a workflow_call invocation (where github.workflow
-  # is the caller's name, e.g. the production deploy) does not share a group with a
+  # is the caller's name, e.g. the stable release) does not share a group with a
   # manual workflow_dispatch on the same ref. Required release/deploy QA runs queue
   # rather than cancelling one another; the caller owns any safe supersession rule.
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -76,7 +76,7 @@ jobs:
     # Cancelling a run needs actions:write. A reusable workflow cannot elevate
     # past its caller's job grant, so every caller of full-suite.yml must also
     # grant actions:write on its job (release.yml, docker-publish.yml,
-    # deploy-ecs.yml).
+    # release.yml and docker-publish.yml).
     permissions:
       actions: write
     runs-on: ubuntu-latest
