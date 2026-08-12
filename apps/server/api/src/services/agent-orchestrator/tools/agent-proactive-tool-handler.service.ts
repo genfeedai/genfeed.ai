@@ -8,6 +8,7 @@ import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
@@ -24,9 +25,10 @@ export class AgentProactiveToolHandler {
     private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
     private readonly internalApi: AgentToolInternalApiService,
-    private readonly twitterService: TwitterService,
+    @Optional() private readonly twitterService?: TwitterService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async getApprovalSummary(
@@ -253,8 +255,17 @@ export class AgentProactiveToolHandler {
 
     // X is first-class: call Twitter search directly (no dangling trends route).
     if (platform === 'twitter' || platform === 'x') {
+      const twitterService = this.resolveTwitterService();
+      if (!twitterService) {
+        return {
+          creditsUsed: 0,
+          error: 'X integration is unavailable right now.',
+          success: false,
+        };
+      }
+
       try {
-        const tweets = await this.twitterService.searchRecentTweets(query, {
+        const tweets = await twitterService.searchRecentTweets(query, {
           maxResults: Math.min(Math.max(limit, 5), 25),
           sortOrder: 'relevancy',
         });
@@ -327,6 +338,17 @@ export class AgentProactiveToolHandler {
         error: `Engagement discovery is not configured for platform "${platform}".`,
         success: false,
       };
+    }
+  }
+
+  private resolveTwitterService(): TwitterService | undefined {
+    if (this.twitterService) {
+      return this.twitterService;
+    }
+    try {
+      return this.moduleRef?.get(TwitterService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 
