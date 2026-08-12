@@ -34,9 +34,9 @@ packaged Electron shell.
 - Local generation provider setup keeps the API key out of renderer-visible
   state and shows a recoverable error before a provider is configured.
 - Genfeed Cloud generation is available after sign-in when the API is reachable.
-- Dormant Phase-2 services (PGlite, sync, workspace/files/drafts, terminal,
-  tray, updater, and BYOK generation) remain packaged without renderer-owned
-  event dispatch.
+- Cloud smoke confirms the canonical shell renders without creating a PGlite
+  directory. Local mode explicitly initializes workspace/files/drafts, sync,
+  terminal, and BYOK generation services.
 - Packaged artifacts include `GenFeed-*.dmg`, `GenFeed-*.zip`, and
   `genfeed-desktop-release.json`.
 

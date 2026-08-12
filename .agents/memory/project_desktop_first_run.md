@@ -41,8 +41,10 @@ Electron — hence the system browser, not an in-window login.
 - Gate every login mode on desktop — `/login`, `/login/password`,
   `/login/magic-link`, and the onboarding gate — to the desktop sign-in surface.
   Navigate only after the session is confirmed, not merely on the login event.
-- "Work offline" is a disabled demand signal until a real local path ships.
-  Local PGlite, BYOK generation, and sync remain main-process Phase-2 backends.
+- The login surface offers Genfeed Connect and an explicit local workspace.
+  Cloud startup does not construct PGlite. Selecting local mode starts the
+  Electron-main PGlite/BYOK/workspace services and opens the canonical
+  `apps/app` local surface; switching back to Cloud relaunches without PGlite.
 - Keep the local user/device IDs stable when a cloud account is connected.
 - Persist sync consent per cloud user; a different cloud account requires a new
   decision. Carry the initiating cloud user ID through sync mutation IPC and
