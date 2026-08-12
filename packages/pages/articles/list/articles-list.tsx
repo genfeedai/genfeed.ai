@@ -6,7 +6,7 @@ import {
   ITEMS_PER_PAGE,
   withArtifactEditorReturn,
 } from '@genfeedai/constants';
-import { ModalEnum } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
@@ -23,12 +23,17 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Newspaper } from 'lucide-react';
+import { Button } from '@ui/primitives/button';
+import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ArticlesListProps {
   status?: string;
+}
+
+function openCreateArticleModal(): void {
+  openModal(ModalEnum.ARTICLE);
 }
 
 export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
@@ -133,6 +138,18 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
 
   return (
     <>
+      {articles.length > 0 ? (
+        <div className="mb-4 flex justify-end">
+          <Button
+            ariaLabel="Create Article"
+            icon={<Plus className="size-4" />}
+            label="Create Article"
+            onClick={openCreateArticleModal}
+            variant={ButtonVariant.DEFAULT}
+          />
+        </div>
+      ) : null}
+
       <AppTable<Article>
         items={articles}
         columns={columns}
@@ -148,7 +165,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
             description="Create your first article to start building your content library."
             action={{
               label: 'Create Article',
-              onClick: () => openModal(ModalEnum.ARTICLE_GENERATE),
+              onClick: openCreateArticleModal,
             }}
           />
         }
