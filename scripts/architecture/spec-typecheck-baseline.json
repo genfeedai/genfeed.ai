@@ -3114,14 +3114,6 @@
     },
     {
       "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "8697038197faae59990c",
-      "message": "Argument of type '(key: string) => \"true\" | \"\"' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
       "fingerprint": "a6ecbaef1dfe3de2bc4c",
