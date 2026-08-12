@@ -1,15 +1,18 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
   formatHarnessBrief,
 } from '@api/services/harness/harness-brief.util';
+import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
 import {
   buildMediaPromptFromHarness,
   type ContentHarnessBrief,
   type ContentKind,
   type ContentObjective,
+  type HarnessSourceRecord,
 } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -17,6 +20,11 @@ import { Injectable, Optional } from '@nestjs/common';
 export type ResolveHarnessBriefParams = {
   brandId?: string;
   contentType: ContentKind;
+  /**
+   * When true (default if topic is set), retrieve brand content memory from
+   * Postgres pgvector and fold hits into the brief as sources.
+   */
+  includeContentMemory?: boolean;
   objective?: ContentObjective;
   organizationId: string;
   platform?: string;
@@ -26,6 +34,10 @@ export type ResolveHarnessBriefParams = {
 /**
  * Single entry for generation paths (text, media, ads, quality) that need a
  * brand harness brief without re-implementing compose + profile load.
+ *
+ * Day-one content memory: Postgres pgvector ContextEntry (HNSW), not a separate
+ * vector product. Profile few-shots are always-on; similar winners/library are
+ * retrieved when a topic is present.
  */
 @Injectable()
 export class HarnessGenerationService {
@@ -38,6 +50,8 @@ export class HarnessGenerationService {
     private readonly brandsService?: BrandsService,
     @Optional()
     private readonly harnessProfilesService?: HarnessProfilesService,
+    @Optional()
+    private readonly contextsService?: ContextsService,
   ) {}
 
   async resolveBrief(
@@ -67,8 +81,20 @@ export class HarnessGenerationService {
           params.brandId,
         );
 
+      const includeMemory =
+        params.includeContentMemory ?? Boolean(params.topic?.trim());
+      const memorySources =
+        includeMemory && params.topic?.trim()
+          ? await this.loadBrandMemorySources({
+              brandId: params.brandId,
+              organizationId: params.organizationId,
+              topic: params.topic.trim(),
+            })
+          : [];
+
       return await this.contentHarnessService.composeBrief(
         buildHarnessInput({
+          additionalSources: memorySources,
           brand,
           intent: {
             contentType: params.contentType,
@@ -104,14 +130,49 @@ export class HarnessGenerationService {
     const brief = await this.resolveBrief({
       brandId: params.brandId,
       contentType: params.contentType,
+      includeContentMemory: true,
       organizationId: params.organizationId,
       platform: params.platform,
-      topic: params.topic,
+      topic: params.topic ?? params.prompt.slice(0, 200),
     });
     return buildMediaPromptFromHarness(params.prompt, brief);
   }
 
   formatBrief(brief: ContentHarnessBrief | null | undefined): string {
     return formatHarnessBrief(brief);
+  }
+
+  private async loadBrandMemorySources(params: {
+    brandId: string;
+    organizationId: string;
+    topic: string;
+  }): Promise<HarnessSourceRecord[]> {
+    if (!this.contextsService) {
+      return [];
+    }
+
+    try {
+      const hits = await this.contextsService.retrieveBrandContentMemory({
+        brandId: params.brandId,
+        limit: 5,
+        minRelevance: 0.65,
+        organizationId: params.organizationId,
+        query: params.topic,
+      });
+      return brandMemoryHitsToHarnessSources(hits, {
+        limit: 5,
+        minRelevance: 0.65,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.constructorName} brand content memory retrieval failed`,
+        {
+          brandId: params.brandId,
+          error: error instanceof Error ? error.message : 'unknown',
+          organizationId: params.organizationId,
+        },
+      );
+      return [];
+    }
   }
 }

@@ -316,12 +316,19 @@ export class ContextsService {
 
       const embedding = await this.generateEmbedding(dto.content);
 
+      const metadata = (dto.metadata ?? {}) as Record<string, unknown>;
+      const kind =
+        typeof metadata.kind === 'string' && metadata.kind.trim()
+          ? metadata.kind.trim()
+          : undefined;
+
       const entry = await this.prisma.contextEntry.create({
         data: {
           contextBaseId,
           data: {
             content: dto.content,
-            metadata: dto.metadata as Record<string, unknown>,
+            ...(kind ? { kind } : {}),
+            metadata,
             relevanceWeight: dto.relevanceWeight || 1.0,
           } as never,
           organizationId,
@@ -480,6 +487,85 @@ export class ContextsService {
       this.logger.error('Failed to query context', { error });
       throw error;
     }
+  }
+
+  /**
+   * Brand-scoped content memory retrieval over Postgres pgvector.
+   * This is the day-one vector store for generation context (not a separate
+   * vector product). Prefer harness-performance-winners + brand libraries.
+   */
+  async retrieveBrandContentMemory(params: {
+    brandId: string;
+    limit?: number;
+    minRelevance?: number;
+    organizationId: string;
+    query: string;
+  }): Promise<
+    Array<{
+      content: string;
+      kind?: string;
+      metadata?: Record<string, unknown>;
+      relevance: number;
+      source?: string;
+    }>
+  > {
+    const query = params.query.trim();
+    if (!query) {
+      return [];
+    }
+
+    const bases = await this.prisma.contextBase.findMany({
+      select: { data: true, id: true, sourceBrandId: true },
+      where: scopedWhere(params.organizationId, {
+        OR: [
+          { sourceBrandId: params.brandId },
+          { data: { equals: params.brandId, path: ['brandId'] } },
+        ],
+      }),
+    });
+
+    if (bases.length === 0) {
+      return [];
+    }
+
+    const queryEmbedding = await this.generateEmbedding(query);
+    const entries = await this.findSimilarEntries(
+      params.organizationId,
+      bases.map((base) => base.id),
+      queryEmbedding,
+      params.limit ?? 5,
+      params.minRelevance ?? 0.65,
+    );
+
+    const labelByBase = new Map(
+      bases.map((base) => {
+        const data =
+          base.data &&
+          typeof base.data === 'object' &&
+          !Array.isArray(base.data)
+            ? (base.data as Record<string, unknown>)
+            : {};
+        const purpose =
+          typeof data.purpose === 'string' ? data.purpose : undefined;
+        const label =
+          typeof data.label === 'string' ? data.label : (purpose ?? 'context');
+        return [base.id, label] as const;
+      }),
+    );
+
+    return entries.map((entry) => {
+      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
+      const kind =
+        entry.kind ||
+        (typeof metadata.kind === 'string' ? metadata.kind : undefined);
+      return {
+        content: entry.content,
+        kind,
+        metadata,
+        relevance: entry.similarity,
+        source: labelByBase.get(entry.contextBaseId),
+      };
+    });
   }
 
   async autoCreateFromAccount(
@@ -697,6 +783,7 @@ export class ContextsService {
             {
               content: row.content,
               contextBaseId: row.contextBaseId,
+              ...(row.kind ? { kind: row.kind } : {}),
               ...(this.isPlainObject(row.metadata)
                 ? { metadata: row.metadata }
                 : {}),

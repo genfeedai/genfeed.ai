@@ -242,4 +242,34 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(controller).toContain("Post('promote-winners')");
     expect(controller).toContain('promoteTopPerformers');
   });
+
+  it('uses Postgres pgvector as brand content memory (no separate vector product)', () => {
+    const migration = readRepo(
+      'packages/prisma/prisma/migrations/20260807100000_add_context_entry_pgvector/migration.sql',
+    );
+    const similarity = readRepo(
+      'apps/server/api/src/collections/contexts/utils/context-similarity-query.util.ts',
+    );
+    const contexts = readRepo(
+      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
+    );
+    const harnessGen = readRepo(
+      'apps/server/api/src/services/harness/harness-generation.service.ts',
+    );
+    const harnessModule = readRepo(
+      'apps/server/api/src/services/harness/harness.module.ts',
+    );
+    const winnerPromotion = readRepo(
+      'apps/server/api/src/services/harness/harness-winner-promotion.service.ts',
+    );
+    expect(migration).toContain('CREATE EXTENSION IF NOT EXISTS vector');
+    expect(migration).toContain('hnsw');
+    expect(similarity).toContain('<=>');
+    expect(contexts).toContain('retrieveBrandContentMemory');
+    expect(harnessGen).toContain('loadBrandMemorySources');
+    expect(harnessGen).toContain('retrieveBrandContentMemory');
+    // DI must wire ContextsService or memory silently no-ops at runtime.
+    expect(harnessModule).toContain('ContextsModule');
+    expect(winnerPromotion).toContain('contextsService.addEntry');
+  });
 });

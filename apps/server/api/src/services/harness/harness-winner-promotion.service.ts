@@ -1,7 +1,8 @@
+import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
@@ -22,9 +23,9 @@ export type PromoteWinnersResult = {
 };
 
 /**
- * Promotes high-engagement posts into a brand "performance winners" context
- * base as structured entries (kind performance_winner). Embeddings are
- * optional later; this is the durable promotion step without a RAG product.
+ * Promotes high-engagement posts into the brand performance-winners context
+ * base. Entries are embedded on write (Postgres pgvector) so generation can
+ * retrieve them by topic for brand-native content context.
  */
 @Injectable()
 export class HarnessWinnerPromotionService {
@@ -34,6 +35,8 @@ export class HarnessWinnerPromotionService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly performanceSummaryService: PerformanceSummaryService,
+    @Optional()
+    private readonly contextsService?: ContextsService,
   ) {}
 
   async promoteTopPerformers(
@@ -84,24 +87,46 @@ export class HarnessWinnerPromotionService {
         continue;
       }
 
-      await this.prisma.contextEntry.create({
-        data: {
-          contextBaseId: contextBase.id,
-          data: {
+      if (this.contextsService) {
+        // Preferred path: addEntry embeds into pgvector immediately.
+        await this.contextsService.addEntry(
+          contextBase.id,
+          {
             content,
-            kind: 'performance_winner',
             metadata: {
               engagementRate: item.engagementRate,
+              kind: 'performance_winner',
               platform: item.platform,
               postId,
               promotedAt: new Date().toISOString(),
               source: 'harness-winner-promotion',
             },
             relevanceWeight: 1,
-          } as never,
-          organizationId: params.organizationId,
-        },
-      });
+          },
+          params.organizationId,
+        );
+      } else {
+        // Fallback without embeddings (retrieval will lazy-rebuild later).
+        await this.prisma.contextEntry.create({
+          data: {
+            contextBaseId: contextBase.id,
+            data: {
+              content,
+              kind: 'performance_winner',
+              metadata: {
+                engagementRate: item.engagementRate,
+                kind: 'performance_winner',
+                platform: item.platform,
+                postId,
+                promotedAt: new Date().toISOString(),
+                source: 'harness-winner-promotion',
+              },
+              relevanceWeight: 1,
+            } as never,
+            organizationId: params.organizationId,
+          },
+        });
+      }
       promoted += 1;
     }
 
@@ -146,8 +171,11 @@ export class HarnessWinnerPromotionService {
       data: {
         data: {
           brandId,
+          isActive: true,
           label: 'Harness performance winners',
           purpose: 'harness-performance-winners',
+          // Enables enhancePrompt / content-library style filters.
+          type: 'content_library',
         } as never,
         isDeleted: false,
         organizationId,

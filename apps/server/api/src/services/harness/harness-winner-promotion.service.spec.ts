@@ -16,6 +16,9 @@ describe('HarnessWinnerPromotionService', () => {
   const performanceSummaryService = {
     getWeeklySummary: vi.fn(),
   };
+  const contextsService = {
+    addEntry: vi.fn().mockResolvedValue({ id: 'entry-1' }),
+  };
 
   let service: HarnessWinnerPromotionService;
 
@@ -25,6 +28,7 @@ describe('HarnessWinnerPromotionService', () => {
       prisma as never,
       logger as never,
       performanceSummaryService as never,
+      contextsService as never,
     );
   });
 
@@ -59,7 +63,18 @@ describe('HarnessWinnerPromotionService', () => {
     });
 
     expect(prisma.contextBase.create).toHaveBeenCalled();
-    expect(prisma.contextEntry.create).toHaveBeenCalledTimes(1);
+    expect(contextsService.addEntry).toHaveBeenCalledTimes(1);
+    expect(contextsService.addEntry).toHaveBeenCalledWith(
+      'ctx-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Ship the OS'),
+        metadata: expect.objectContaining({
+          kind: 'performance_winner',
+          postId: 'post-1',
+        }),
+      }),
+      'org-1',
+    );
     expect(result).toEqual({
       contextBaseId: 'ctx-1',
       promoted: 1,
