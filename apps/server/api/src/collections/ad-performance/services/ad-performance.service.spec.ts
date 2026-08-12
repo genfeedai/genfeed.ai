@@ -4,10 +4,10 @@ import { AdPerformanceService } from '@server/collections/ad-performance/service
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MockAdPerformanceDelegate = {
-  create: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  upsert: ReturnType<typeof vi.fn>;
 };
 
 const buildRecord = (
@@ -47,14 +47,6 @@ describe('AdPerformanceService', () => {
 
   beforeEach(() => {
     adPerformance = {
-      create: vi.fn((args: { data: Record<string, unknown> }) =>
-        Promise.resolve(
-          buildRecord({
-            ...args.data,
-            data: args.data.data as Record<string, unknown>,
-          }),
-        ),
-      ),
       findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn((args: { data: Record<string, unknown> }) =>
@@ -62,6 +54,14 @@ describe('AdPerformanceService', () => {
           buildRecord({
             ...args.data,
             data: args.data.data as Record<string, unknown>,
+          }),
+        ),
+      ),
+      upsert: vi.fn((args: { create: Record<string, unknown> }) =>
+        Promise.resolve(
+          buildRecord({
+            ...args.create,
+            data: args.create.data as Record<string, unknown>,
           }),
         ),
       ),
@@ -194,13 +194,19 @@ describe('AdPerformanceService', () => {
         providerPayload: { attributionSetting: '7d_click' },
       });
 
-      const createData = adPerformance.create.mock.calls[0][0].data as Record<
+      const createData = adPerformance.upsert.mock.calls[0][0].create as Record<
         string,
         unknown
       >;
       expect(createData).toMatchObject({
         brandId: 'brand-1',
         credentialId: 'credential-1',
+        date: new Date('2026-06-01'),
+        externalAccountId: 'act-1',
+        externalCampaignId: 'campaign-1',
+        granularity: 'campaign',
+        identityKey:
+          'v1|meta|2026-06-01T00:00:00.000Z|campaign|act-1|campaign-1||',
         organizationId: 'org-1',
       });
       expect(createData.data).toEqual({
@@ -224,7 +230,7 @@ describe('AdPerformanceService', () => {
         }),
       ).rejects.toThrow('AdPerformance organizationId is required');
 
-      expect(adPerformance.create).not.toHaveBeenCalled();
+      expect(adPerformance.upsert).not.toHaveBeenCalled();
     });
   });
 });

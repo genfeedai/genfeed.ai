@@ -24,11 +24,11 @@ function makeRow(
 describe('AdPerformanceService', () => {
   const findMany = vi.fn();
   const findFirst = vi.fn();
-  const create = vi.fn();
+  const upsert = vi.fn();
   const update = vi.fn();
 
   const prisma = {
-    adPerformance: { create, findFirst, findMany, update },
+    adPerformance: { findFirst, findMany, update, upsert },
   } as unknown as ServerPrisma;
 
   let service: AdPerformanceService;
@@ -38,12 +38,14 @@ describe('AdPerformanceService', () => {
     service = new AdPerformanceService(prisma);
     findMany.mockResolvedValue([]);
     findFirst.mockResolvedValue(null);
-    create.mockImplementation(async ({ data }) => makeRow(data.data, data));
+    upsert.mockImplementation(async ({ create }) =>
+      makeRow(create.data, create),
+    );
     update.mockImplementation(async ({ data }) => makeRow(data.data, data));
   });
 
   describe('upsert', () => {
-    it('creates a new row when no matching record exists', async () => {
+    it('upserts on the organization + identityKey unique without a corpus read', async () => {
       const result = await service.upsert({
         adPlatform: 'meta',
         brandId: 'brand-1',
@@ -54,13 +56,27 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      expect(create).toHaveBeenCalledTimes(1);
-      expect(update).not.toHaveBeenCalled();
+      expect(findMany).not.toHaveBeenCalled();
+      expect(upsert).toHaveBeenCalledTimes(1);
 
-      const created = create.mock.calls[0][0].data;
-      expect(created.organizationId).toBe('org-1');
-      expect(created.brandId).toBe('brand-1');
-      expect(created.credentialId).toBe('cred-1');
+      const call = upsert.mock.calls[0][0];
+      expect(call.where).toEqual({
+        organizationId_identityKey: {
+          identityKey: 'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||',
+          organizationId: 'org-1',
+        },
+      });
+      expect(call.create.organizationId).toBe('org-1');
+      expect(call.create.brandId).toBe('brand-1');
+      expect(call.create.credentialId).toBe('cred-1');
+      expect(call.create.date).toEqual(new Date('2026-07-01T00:00:00.000Z'));
+      expect(call.create.externalAccountId).toBe('acct-1');
+      expect(call.create.granularity).toBe('account');
+      expect(call.create.identityKey).toBe(
+        'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||',
+      );
+      expect(call.create.isDeleted).toBe(false);
+      expect(call.update).toEqual(call.create);
       expect(result.adPlatform).toBe('meta');
     });
 
@@ -77,7 +93,7 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      const persisted = create.mock.calls[0][0].data.data;
+      const persisted = upsert.mock.calls[0][0].create.data;
       expect(persisted).not.toHaveProperty('organizationId');
       expect(persisted).not.toHaveProperty('brandId');
       expect(persisted).not.toHaveProperty('credentialId');
@@ -91,80 +107,24 @@ describe('AdPerformanceService', () => {
       await expect(
         service.upsert({ adPlatform: 'meta', granularity: 'account' }),
       ).rejects.toThrow('AdPerformance organizationId is required');
+      expect(upsert).not.toHaveBeenCalled();
     });
 
-    it('scopes the existing-record lookup to the organization', async () => {
-      await service.upsert({
-        externalAccountId: 'acct-1',
-        granularity: 'account',
-        organizationId: 'org-1',
-      });
-
-      expect(findMany).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          isDeleted: false,
-          organizationId: 'org-1',
-        }),
-      });
-    });
-
-    it('updates the matching record instead of creating a duplicate', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow(
-          {
-            adPlatform: 'meta',
-            date: '2026-07-01T00:00:00.000Z',
-            externalAccountId: 'acct-1',
-            granularity: 'account',
-          },
-          { id: 'existing-1' },
-        ),
-      ]);
-
+    it('uses the same identityKey for equivalent date spellings', async () => {
       await service.upsert({
         adPlatform: 'meta',
-        date: '2026-07-01T00:00:00.000Z',
+        date: new Date('2026-07-01T00:00:00.000Z'),
         externalAccountId: 'acct-1',
         granularity: 'account',
         organizationId: 'org-1',
       });
 
-      expect(update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'existing-1' } }),
-      );
-      expect(create).not.toHaveBeenCalled();
-    });
-
-    it('treats an equivalent date expressed differently as the same key', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({
-          adPlatform: 'meta',
-          date: new Date('2026-07-01T00:00:00.000Z'),
-          externalAccountId: 'acct-1',
-          granularity: 'account',
-        }),
-      ]);
-
-      await service.upsert({
-        adPlatform: 'meta',
-        date: '2026-07-01T00:00:00.000Z',
-        externalAccountId: 'acct-1',
-        granularity: 'account',
-        organizationId: 'org-1',
-      });
-
-      expect(update).toHaveBeenCalled();
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).toBe('v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||');
     });
 
     it('does not match a record from a different account', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({
-          adPlatform: 'meta',
-          externalAccountId: 'other-acct',
-          granularity: 'account',
-        }),
-      ]);
-
       await service.upsert({
         adPlatform: 'meta',
         externalAccountId: 'acct-1',
@@ -172,18 +132,15 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      expect(create).toHaveBeenCalled();
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).toContain('|acct-1|');
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).not.toContain('|other-acct|');
     });
 
     it('includes the campaign id in the key for campaign granularity', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({
-          externalAccountId: 'acct-1',
-          externalCampaignId: 'camp-other',
-          granularity: 'campaign',
-        }),
-      ]);
-
       await service.upsert({
         externalAccountId: 'acct-1',
         externalCampaignId: 'camp-1',
@@ -191,18 +148,12 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      expect(create).toHaveBeenCalled();
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).toBe('v1||campaign|acct-1|camp-1||');
     });
 
     it('falls back to externalAdGroupId for adset granularity', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({
-          externalAccountId: 'acct-1',
-          externalAdSetId: 'group-1',
-          granularity: 'adset',
-        }),
-      ]);
-
       await service.upsert({
         externalAccountId: 'acct-1',
         externalAdGroupId: 'group-1',
@@ -210,18 +161,13 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      expect(update).toHaveBeenCalled();
+      expect(upsert.mock.calls[0][0].create.externalAdSetId).toBe('group-1');
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).toBe('v1||adset|acct-1||group-1|');
     });
 
     it('includes the ad id in the key for ad granularity', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({
-          externalAccountId: 'acct-1',
-          externalAdId: 'ad-1',
-          granularity: 'ad',
-        }),
-      ]);
-
       await service.upsert({
         externalAccountId: 'acct-1',
         externalAdId: 'ad-1',
@@ -229,7 +175,9 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      expect(update).toHaveBeenCalled();
+      expect(
+        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
+      ).toBe('v1||ad|acct-1|||ad-1');
     });
 
     it('defaults brand and credential ids to null when absent', async () => {
@@ -238,7 +186,7 @@ describe('AdPerformanceService', () => {
         organizationId: 'org-1',
       });
 
-      const created = create.mock.calls[0][0].data;
+      const created = upsert.mock.calls[0][0].create;
       expect(created.brandId).toBeNull();
       expect(created.credentialId).toBeNull();
     });
@@ -248,115 +196,136 @@ describe('AdPerformanceService', () => {
     it('returns the number of records processed', async () => {
       const count = await service.upsertBatch([
         { granularity: 'account', organizationId: 'org-1' },
-        { granularity: 'account', organizationId: 'org-1' },
+        { granularity: 'campaign', organizationId: 'org-1' },
       ]);
 
       expect(count).toBe(2);
-      expect(create).toHaveBeenCalledTimes(2);
+      expect(upsert).toHaveBeenCalledTimes(2);
+      expect(findMany).not.toHaveBeenCalled();
     });
 
     it('returns zero for an empty batch', async () => {
       await expect(service.upsertBatch([])).resolves.toBe(0);
+      expect(upsert).not.toHaveBeenCalled();
     });
   });
 
   describe('findByOrganization', () => {
-    const rows = [
-      makeRow(
-        { adPlatform: 'meta', date: '2026-07-01', granularity: 'day' },
-        { id: 'a' },
-      ),
-      makeRow(
-        { adPlatform: 'google', date: '2026-07-05', granularity: 'day' },
-        { id: 'b' },
-      ),
-      makeRow(
-        { adPlatform: 'meta', date: '2026-07-10', granularity: 'week' },
-        { id: 'c' },
-      ),
-    ];
+    it('filters, sorts, and paginates in Prisma instead of memory', async () => {
+      findMany.mockResolvedValueOnce([
+        makeRow({ adPlatform: 'google' }, { id: 'b' }),
+      ]);
+
+      const startDate = new Date('2026-07-02');
+      const endDate = new Date('2026-07-06');
+      const result = await service.findByOrganization('org-1', {
+        adPlatform: 'google',
+        endDate,
+        granularity: 'day',
+        limit: 1,
+        offset: 1,
+        startDate,
+      });
+
+      expect(findMany).toHaveBeenCalledWith({
+        orderBy: { date: { nulls: 'last', sort: 'desc' } },
+        skip: 1,
+        take: 1,
+        where: {
+          adPlatform: 'google',
+          date: { gte: startDate, lte: endDate },
+          granularity: 'day',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(result.map((row) => row.id)).toEqual(['b']);
+    });
 
     it('scopes the read to the organization and soft-delete flag', async () => {
       await service.findByOrganization('org-1', {});
 
       expect(findMany).toHaveBeenCalledWith({
-        where: expect.objectContaining({
+        orderBy: { date: { nulls: 'last', sort: 'desc' } },
+        skip: 0,
+        take: 50,
+        where: {
           isDeleted: false,
           organizationId: 'org-1',
-        }),
+        },
       });
     });
 
-    it('sorts results newest first', async () => {
-      findMany.mockResolvedValueOnce(rows);
-
-      const result = await service.findByOrganization('org-1', {});
-
-      expect(result.map((r) => r.id)).toEqual(['c', 'b', 'a']);
-    });
-
-    it('filters by ad platform', async () => {
-      findMany.mockResolvedValueOnce(rows);
-
-      const result = await service.findByOrganization('org-1', {
+    it('filters by ad platform in SQL', async () => {
+      await service.findByOrganization('org-1', {
         adPlatform: 'meta',
       });
 
-      expect(result.map((r) => r.id)).toEqual(['c', 'a']);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ adPlatform: 'meta' }),
+        }),
+      );
     });
 
-    it('filters by granularity', async () => {
-      findMany.mockResolvedValueOnce(rows);
-
-      const result = await service.findByOrganization('org-1', {
+    it('filters by granularity in SQL', async () => {
+      await service.findByOrganization('org-1', {
         granularity: 'week',
       });
 
-      expect(result.map((r) => r.id)).toEqual(['c']);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ granularity: 'week' }),
+        }),
+      );
     });
 
-    it('filters by start and end date', async () => {
-      findMany.mockResolvedValueOnce(rows);
+    it('filters by start and end date in SQL', async () => {
+      const startDate = new Date('2026-07-02');
+      const endDate = new Date('2026-07-06');
 
-      const result = await service.findByOrganization('org-1', {
-        endDate: new Date('2026-07-06'),
-        startDate: new Date('2026-07-02'),
-      });
+      await service.findByOrganization('org-1', { endDate, startDate });
 
-      expect(result.map((r) => r.id)).toEqual(['b']);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            date: { gte: startDate, lte: endDate },
+          }),
+        }),
+      );
     });
 
     it('excludes records with no usable date when a range is requested', async () => {
-      findMany.mockResolvedValueOnce([makeRow({ date: null }, { id: 'x' })]);
+      const startDate = new Date('2026-01-01');
 
-      const result = await service.findByOrganization('org-1', {
-        startDate: new Date('2026-01-01'),
-      });
+      await service.findByOrganization('org-1', { startDate });
 
-      expect(result).toEqual([]);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            date: { gte: startDate },
+          }),
+        }),
+      );
     });
 
-    it('applies offset and limit', async () => {
-      findMany.mockResolvedValueOnce(rows);
-
-      const result = await service.findByOrganization('org-1', {
+    it('applies offset and limit in SQL', async () => {
+      await service.findByOrganization('org-1', {
         limit: 1,
         offset: 1,
       });
 
-      expect(result.map((r) => r.id)).toEqual(['b']);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 1, take: 1 }),
+      );
     });
 
     it('defaults to a page size of 50', async () => {
-      findMany.mockResolvedValueOnce(
-        Array.from({ length: 60 }, (_, i) =>
-          makeRow({ date: `2026-07-01` }, { id: `row-${i}` }),
-        ),
+      await service.findByOrganization('org-1', {});
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 50 }),
       );
-
-      const result = await service.findByOrganization('org-1', {});
-
-      expect(result).toHaveLength(50);
     });
   });
 
@@ -497,41 +466,35 @@ describe('AdPerformanceService', () => {
   });
 
   describe('findLatestSyncDateForCredential', () => {
-    it('returns null when the credential has no rows', async () => {
+    it('returns null when the credential has no dated rows', async () => {
       await expect(
         service.findLatestSyncDateForCredential('cred-1'),
       ).resolves.toBeNull();
     });
 
-    it('returns the newest date across the credential slice', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({ date: '2026-07-01T00:00:00.000Z' }),
-        makeRow({ date: '2026-07-20T00:00:00.000Z' }),
-        makeRow({ date: '2026-07-10T00:00:00.000Z' }),
-      ]);
+    it('returns the newest scalar date from Prisma', async () => {
+      findFirst.mockResolvedValueOnce({
+        date: new Date('2026-07-20T00:00:00.000Z'),
+      });
 
       await expect(
         service.findLatestSyncDateForCredential('cred-1'),
       ).resolves.toEqual(new Date('2026-07-20T00:00:00.000Z'));
     });
 
-    it('ignores rows with a missing or unparseable date', async () => {
-      findMany.mockResolvedValueOnce([
-        makeRow({ date: 'not-a-date' }),
-        makeRow({}),
-      ]);
-
-      await expect(
-        service.findLatestSyncDateForCredential('cred-1'),
-      ).resolves.toBeNull();
-    });
-
-    it('scopes the lookup to the credential and excludes soft deletes', async () => {
+    it('scopes the lookup to the credential and excludes null dates and soft deletes', async () => {
       await service.findLatestSyncDateForCredential('cred-1');
 
-      expect(findMany).toHaveBeenCalledWith({
-        where: { credentialId: 'cred-1', isDeleted: false },
+      expect(findFirst).toHaveBeenCalledWith({
+        orderBy: { date: { sort: 'desc' } },
+        select: { date: true },
+        where: {
+          credentialId: 'cred-1',
+          date: { not: null },
+          isDeleted: false,
+        },
       });
+      expect(findMany).not.toHaveBeenCalled();
     });
   });
 
