@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1107.0",
-    "@aws-sdk/client-ec2": "3.1107.0",
+    "@aws-sdk/client-cloudwatch": "3.1108.0",
+    "@aws-sdk/client-ec2": "3.1108.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
