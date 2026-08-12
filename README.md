@@ -89,7 +89,9 @@ bearer_token_env_var = "GENFEED_API_KEY"
 OAuth-capable clients can add `https://mcp.genfeed.ai/mcp` as a custom server
 without a manually created key; they discover the authorization server from
 `/.well-known/oauth-protected-resource`. A self-hosted deployment serves the
-same endpoint at `http://localhost:3014/mcp`.
+same endpoint at `http://localhost:3014/mcp` and still requires a Bearer API
+key even when `BETTER_AUTH_ENABLED=false` — see
+[Local MCP authentication](docs/self-hosting.md#local-mcp-authentication).
 
 ### Use the CLI
 
@@ -100,8 +102,10 @@ gf generate image "product shot on a concrete plinth"
 gf publish <ingredientId> --platforms instagram,linkedin
 ```
 
-`gf login` runs a browser PKCE flow against Genfeed Cloud; `gf login -k gf_live_xxx`
-covers CI, containers, agent runtimes, and self-hosted deployments.
+`gf login` runs a browser PKCE flow against Genfeed Cloud. `gf login -i` pastes
+a key at a hidden prompt. For CI, containers, and agent runtimes, inject
+`GENFEED_API_KEY` through the secret environment and run `gf` directly — do not
+pass the key as a command-line flag (`-k` / `--key` lands in `process.argv`).
 
 ### Call the API directly
 
