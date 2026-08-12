@@ -206,7 +206,7 @@ describe('usePostDetailActions', () => {
       );
     });
 
-    it('publishes now through the approval-backed release path', async () => {
+    it('publishes now through the same scheduleTarget path', async () => {
       const { result } = renderHook(() =>
         usePostDetailActions({
           ...baseProps,
@@ -219,7 +219,12 @@ describe('usePostDetailActions', () => {
       });
 
       expect(mockEnsureFromPost).not.toHaveBeenCalled();
-      expect(mockPublishNow).toHaveBeenCalledWith('group-9');
+      expect(mockPublishNow).not.toHaveBeenCalled();
+      expect(mockScheduleTarget).toHaveBeenCalledWith(
+        'group-9',
+        'post-1',
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      );
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Publishing now',
       );

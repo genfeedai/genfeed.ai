@@ -135,16 +135,44 @@ export function usePostDetailActions({
     return release.id;
   }, [getReleaseGroupsService, post]);
 
-  // Schedule save handler
+  const commitSchedule = useCallback(
+    async (scheduledAt: string, successMessage: string) => {
+      if (!post) {
+        return;
+      }
+
+      setIsSavingSchedule(true);
+      try {
+        const releases = await getReleaseGroupsService();
+        const groupId = await resolveReleaseGroupId();
+        await releases.scheduleTarget(groupId, post.id, scheduledAt);
+        await fetchPost(true);
+        notificationsService.success(successMessage);
+      } catch (err) {
+        logger.error('Failed to update schedule', err);
+        notificationsService.error('Failed to update schedule');
+      } finally {
+        setIsSavingSchedule(false);
+      }
+    },
+    [
+      fetchPost,
+      getReleaseGroupsService,
+      notificationsService,
+      post,
+      resolveReleaseGroupId,
+      setIsSavingSchedule,
+    ],
+  );
+
   const handleScheduleSave = useCallback(async () => {
     if (!post || !isScheduleDirty) {
       return;
     }
 
-    setIsSavingSchedule(true);
-
-    try {
-      if (!scheduleDraft) {
+    if (!scheduleDraft) {
+      setIsSavingSchedule(true);
+      try {
         await updateActivePost(
           {
             scheduledDate: '',
@@ -155,59 +183,30 @@ export function usePostDetailActions({
         );
         await fetchPost(true);
         notificationsService.success('Schedule date cleared');
-        return;
+      } catch (err) {
+        logger.error('Failed to update schedule', err);
+        notificationsService.error('Failed to update schedule');
+      } finally {
+        setIsSavingSchedule(false);
       }
-
-      const releases = await getReleaseGroupsService();
-      const groupId = await resolveReleaseGroupId();
-      await releases.scheduleTarget(groupId, post.id, scheduleDraft);
-      await fetchPost(true);
-      notificationsService.success('Schedule date updated');
-    } catch (err) {
-      logger.error('Failed to update schedule', err);
-      notificationsService.error('Failed to update schedule');
-    } finally {
-      setIsSavingSchedule(false);
+      return;
     }
+
+    await commitSchedule(scheduleDraft, 'Schedule date updated');
   }, [
+    commitSchedule,
     fetchPost,
-    getReleaseGroupsService,
     isScheduleDirty,
     notificationsService,
     post,
-    resolveReleaseGroupId,
     scheduleDraft,
     setIsSavingSchedule,
     updateActivePost,
   ]);
 
   const handlePublishNow = useCallback(async () => {
-    if (!post) {
-      return;
-    }
-
-    setIsSavingSchedule(true);
-
-    try {
-      const releases = await getReleaseGroupsService();
-      const groupId = await resolveReleaseGroupId();
-      await releases.publishNow(groupId);
-      await fetchPost(true);
-      notificationsService.success('Publishing now');
-    } catch (err) {
-      logger.error('Failed to publish now', err);
-      notificationsService.error('Failed to publish now');
-    } finally {
-      setIsSavingSchedule(false);
-    }
-  }, [
-    fetchPost,
-    getReleaseGroupsService,
-    notificationsService,
-    post,
-    resolveReleaseGroupId,
-    setIsSavingSchedule,
-  ]);
+    await commitSchedule(new Date().toISOString(), 'Publishing now');
+  }, [commitSchedule]);
 
   // Delete post handler
   const handleDeletePost = useCallback(() => {

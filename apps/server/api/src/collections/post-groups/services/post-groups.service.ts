@@ -213,8 +213,9 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup> {
     const scheduledDate =
       this.contractService.parseFutureScheduleDate(scheduledAt);
+    const isDueNow = scheduledDate.getTime() <= Date.now() + 5000;
 
-    return this.prisma.$transaction(async (tx) => {
+    const scheduled = await this.prisma.$transaction(async (tx) => {
       const group = await this.persistenceService.getGroupOrThrow(
         tx,
         organizationId,
@@ -264,7 +265,7 @@ export class PostGroupsService {
           this.contractService.asMedia(group.media),
         ),
         platform: targetInput.platform,
-        publishMode: 'scheduled',
+        publishMode: isDueNow ? 'publish_now' : 'scheduled',
         settings: targetInput.settings ?? {},
         visibility: targetInput.visibility,
       });
@@ -340,7 +341,7 @@ export class PostGroupsService {
         ...(provenance?.agentContextVersion !== undefined && {
           contextVersion: provenance.agentContextVersion,
         }),
-        mode: 'scheduled',
+        mode: isDueNow ? 'immediate' : 'scheduled',
         organizationId,
         postId: target.id,
         provenance: {
@@ -353,12 +354,18 @@ export class PostGroupsService {
         transaction: tx,
       });
 
-      return this.persistenceService.hydrateWithDerivedStatus(
+      const release = await this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
       );
+      return { isDueNow, release };
     });
+
+    if (scheduled.isDueNow) {
+      await this.enqueueReleaseTargets(scheduled.release, userId, [targetId]);
+    }
+    return scheduled.release;
   }
 
   /**
@@ -966,9 +973,13 @@ export class PostGroupsService {
   private async enqueueReleaseTargets(
     release: IReleaseGroup,
     userId: string,
+    targetIds?: string[],
   ): Promise<void> {
+    const allowedIds = targetIds ? new Set(targetIds) : null;
     const targets = (release.targets ?? []).filter(
-      (target) => target.executionState === TargetExecutionState.SCHEDULED,
+      (target) =>
+        target.executionState === TargetExecutionState.SCHEDULED &&
+        (allowedIds ? allowedIds.has(target.id) : true),
     );
     if (targets.length === 0) {
       return;

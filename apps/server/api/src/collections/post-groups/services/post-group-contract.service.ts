@@ -399,8 +399,10 @@ export class PostGroupContractService {
       );
     }
     const date = new Date(value);
-    if (date.getTime() <= Date.now()) {
-      throw new BadRequestException('scheduledAt must be in the future.');
+    if (date.getTime() < Date.now() - 1000) {
+      throw new BadRequestException(
+        'scheduledAt must be now or in the future.',
+      );
     }
     return date;
   }
