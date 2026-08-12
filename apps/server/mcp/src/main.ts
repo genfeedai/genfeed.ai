@@ -14,6 +14,7 @@ import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
 import {
   getMcpProtectedResourceMetadata,
+  getMcpServerCard,
   getMcpWwwAuthenticateHeader,
   getPublicMcpUrl,
   renderSetupPage,
@@ -158,6 +159,20 @@ async function main(): Promise<void> {
         .json(getMcpProtectedResourceMetadata());
     },
   );
+
+  for (const path of [
+    '/.well-known/mcp.json',
+    '/.well-known/mcp/server-card.json',
+    '/.well-known/mcp/server-cards.json',
+  ]) {
+    expressApp.get(path, (_req: Request, res: Response) => {
+      res
+        .set('Access-Control-Allow-Origin', '*')
+        .set('Cache-Control', 'public, max-age=3600')
+        .status(200)
+        .json(getMcpServerCard());
+    });
+  }
 
   expressApp.post('/mcp', mcpAuthMiddleware, (req: Request, res: Response) => {
     streamableHttpService.handlePost(req, res).catch((err) => {

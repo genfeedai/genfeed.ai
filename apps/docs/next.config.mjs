@@ -10,7 +10,39 @@ const withNextra = nextra({
 });
 
 export default withNextra({
+  headers: async () => [
+    {
+      headers: [
+        {
+          key: 'Link',
+          value: [
+            '<https://docs.genfeed.ai/sitemap.xml>; rel="sitemap"',
+            '<https://docs.genfeed.ai/llms.txt>; rel="describedby"; type="text/plain"',
+            '<https://genfeed.ai/.well-known/api-catalog>; rel="service-desc"; type="application/linkset+json"',
+          ].join(', '),
+        },
+        {
+          key: 'Content-Signal',
+          value: 'ai-train=no, search=yes, ai-input=yes',
+        },
+      ],
+      source: '/(.*)',
+    },
+  ],
   reactStrictMode: true,
+  rewrites: async () => [
+    {
+      destination: '/.well-known/agent-content/home',
+      has: [
+        {
+          key: 'accept',
+          type: 'header',
+          value: '.*text/markdown.*',
+        },
+      ],
+      source: '/',
+    },
+  ],
   turbopack: {
     root: monorepoRoot,
   },

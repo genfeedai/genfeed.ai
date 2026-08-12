@@ -9,6 +9,26 @@ import { describe, expect, it } from 'vitest';
 import config from './next.config';
 
 describe('app next.config', () => {
+  it('advertises the public agent catalog without indexing the app', async () => {
+    const headers = await config.headers?.();
+    const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');
+
+    expect(rootHeaders?.headers).toEqual(
+      expect.arrayContaining([
+        {
+          key: 'X-Robots-Tag',
+          value: 'noindex, nofollow',
+        },
+        expect.objectContaining({
+          key: 'Link',
+          value: expect.stringContaining(
+            '<https://genfeed.ai/.well-known/api-catalog>; rel="service-desc"',
+          ),
+        }),
+      ]),
+    );
+  });
+
   describe('allowedDevOrigins', () => {
     // Next runs the configured patterns through this exact matcher before it
     // serves any `/_next/*` dev resource. A rejected origin 403s the dev
