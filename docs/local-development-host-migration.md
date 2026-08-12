@@ -104,7 +104,7 @@ Remaining `3011` references are intentional:
 | Boundary | Files | Reason |
 | --- | --- | --- |
 | Docker/self-hosted | `docker/Dockerfile*`, `docker/docker-compose*.yml`, `docker/selfhosted-entrypoint.sh`, `packages/config/src/schemas/genfeedai.schema.ts` | Container network and self-hosted compatibility port. |
-| Deployed infrastructure | `infra/terraform/**`, `.agents/memory/reference_prod_aws_runtime.md` | Production service/ALB port. |
+| Hosted infrastructure | Private operations repository | Production networking is intentionally outside this public source tree. |
 | Architecture/current docs | `CLAUDE.md`, `CONTRIBUTING.md`, extension README, repo map, project-structure/tech-context memory | Explicitly documents the local/deployed port split. |
 | Compatibility test | `packages/libs/config/cors.config.spec.ts` | Proves the loopback/deployed port remains allowed. |
 | Shared Claude launch overlap | `.claude/launch.json` | Intentionally left to PR #1716, which already changes its preview port to `3111`; duplicating that edit would create avoidable PR overlap. |

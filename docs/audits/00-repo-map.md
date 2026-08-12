@@ -114,7 +114,8 @@ Full inventory verified per-package (package.json + entry read). Highlights:
 - `scripts/` — 71 entries: ~15 architecture guards (`check-*.ts`, incl. `check-platform-cron-boundary.ts`, `check-no-api-bullmq-processors.ts`), `api-audit/` (endpoint inventory, SQL risk audit, OpenAPI smoke — with their own tests), e2e sharding/route coverage, env check/sync, secretlint shim, session analytics miners.
 - `docs/` — 9 entries (architecture, deployment-modes, self-hosting, platform-admin-role, better-auth-organization-bridge, execution-boundaries, contributing + `superpowers/`). `docs/audits/` created by this report.
 - `playwright/` — e2e suite (configs + tests); `tests/` — shared page fixtures + setup; **no root `e2e/` dir exists** (memory/docs referencing one are stale).
-- `infra/terraform/` — see §3. `artifacts/` — `verification/` outputs only.
+- Hosted infrastructure and runbooks are intentionally kept in the private
+  operations repository. `artifacts/` contains verification outputs only.
 
 ---
 
@@ -122,32 +123,27 @@ Full inventory verified per-package (package.json + entry read). Highlights:
 
 ### 3.1 Production (SaaS)
 
-- **Backend: ECS Fargate**, cluster managed by OpenTofu in `infra/terraform/genfeed-prod/` (ECS cluster, ALB with `api` + `public_backend` target groups, ElastiCache + auth token in SSM, ECR, Route53 records for `api.genfeed.ai`, private-DNS service discovery, NAT, security groups; state bucket in `infra/terraform/bootstrap/`).
-- **Deploy path (dispatch-only, never tag/push-triggered):** `deploy-ecs.yml` → validates ref is on `master` → runs `full-suite.yml` QA gate (ci heavy tests + build-verify + e2e) → `_deploy-ecs-core.yml`: promotes the GHCR image to ECR via `imagetools create` (no rebuild), OpenTofu apply, **RDS snapshot before migrations (fail-closed)**, one-off ECS tasks (migrate, workflow-backfill, boot-smoke), service roll, then Vercel frontend deploys + post-deploy smoke. Emergency bypass: `deploy-ecs-fastlane.yml` with a 4-layer admin gate (write access, environment reviewers, `FASTLane_ADMINS` allowlist, typed `confirm==DEPLOY`).
-- **Frontends: Vercel**, deployed only from `_deploy-ecs-core` via `deploy-vercel-frontends.yml` (3 pinned project IDs; git auto-deploy disabled in all three `vercel.json`).
-- **Image strategy:** ONE unified server image (`docker/Dockerfile.server`, node:24-slim + bun 1.3.14 + ffmpeg) builds all 12 NestJS bundles; built on master pushes by `build-server-image.yml` → GHCR.
+- **Public boundary:** application source, release validation, Community
+  artifacts, and immutable server images remain here.
+- **Private boundary:** hosted infrastructure, credentials, deployment and
+  rollback implementation, production monitoring, and operational topology are
+  owned by `genfeedai/console.genfeed.ai`.
+- **Release path:** the manual stable `release.yml` pins one `master` SHA, runs
+  the public verification and Community lanes, dispatches that exact SHA with a
+  unique correlation ID to the private hosted deployment workflow, and waits
+  for its definitive success before advancing release channels.
+- **Frontend policy:** application-local `vercel.json` files remain public and
+  keep Git auto-deploy disabled; production credentials and orchestration remain
+  private.
+- **Image strategy:** one unified server image (`docker/Dockerfile.server`)
+  builds the NestJS bundles and is published by `build-server-image.yml` for
+  private operations to consume by immutable source SHA.
 
-### 3.2 Legacy / rollback EC2 path
+### 3.2 GPU / generation services
 
-`docker/docker-compose.production.yml` + `docker-compose.staging.yml` run **10 containers**
-(redis + api, files, mcp, notifications, clips, discord, slack, telegram, workers) from the
-same unified image with per-service memory limits, env via `render-ssm-env.sh` (SSM), driven
-by `deploy-production.sh`/`deploy-staging.sh`. `RELEASING.md:24-27` states the legacy
-"Deploy Production" workflow was removed after the Fargate cutover — these compose files are
-the stopped-EC2 rollback path, not the active deploy. **UNCLEAR:** whether staging still runs
-on this EC2 path or on ECS — no staging entry exists in `infra/terraform/`, and no CI workflow
-invokes `deploy-staging.sh`.
-
-### 3.3 GPU / generation services — no production deploy path in repo
-
-`images`, `videos`, `voices` are **absent from both production and staging compose files**
-(grep: 0 matches) and from the ECS terraform reads; they have standalone compose files keyed
-to `${GPU_API_PORT:-8189}`. `docker/docker-compose.llm.yml` documents a vLLM
-OpenAI-compatible server (Qwen 2.5 32B GPTQ + Mistral Small 3.1 24B) on a g6e.xlarge EC2,
-started/stopped on demand by `LlmInstanceService` + the `llm-idle` cron (`*/5` shutdown-if-idle,
-`apps/server/workers/src/crons/llm-idle/`). **UNCLEAR:** where images/videos/voices actually run in
-production — missing evidence is either an entry in `infra/terraform/genfeed-prod/services.tf`
-or an external (private console/fleet) deploy mechanism outside this repo.
+GPU fleet topology and production operation are private concerns. Public
+application code retains provider contracts without publishing the managed
+infrastructure implementation.
 
 ### 3.4 Self-hosted / community
 
@@ -185,7 +181,7 @@ deduped issue.
 - **Soft-delete convention:** `isDeleted` (219 occurrences) — with exactly **one deviation**: `Asset.deletedAt DateTime?` (`schema.prisma:1714`).
 - **Org scoping:** 301 `organizationId` occurrences — multi-tenancy is schema-native in the OSS core, not an EE add-on (§2.5).
 - **Desktop DB:** separate 18-model schema (`packages/desktop-prisma/prisma/schema.prisma`) on PGlite via `prisma-pglite` driver adapter.
-- **MongoDB is vestigial:** the root `mongodb` devDependency is used only by `scripts/check-prod-creds.mjs` and one-off migration scripts under `scripts/migrations/` (db-split, agent-messages extraction, etc.). No runtime imports.
+- **MongoDB is vestigial:** the root `mongodb` devDependency is used only by one-off migration scripts under `scripts/migrations/` (db-split, agent-messages extraction, etc.). No runtime imports.
 
 ### 4.2 Auth
 
@@ -219,12 +215,12 @@ deduped issue.
 
 ### 5.1 CI surface (28 workflows)
 
-- **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, executable runtime/security contracts, format, lint, typecheck, changed tests, and build), plus path-scoped link, deploy-script, desktop, self-hosted install, and server-image checks.
-- **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). The canonical `release.yml` runs it once before community and SaaS fan out; standalone deploy/recovery workflows retain the same gate.
-- **Scheduled:** nightly E2E, nightly self-hosted release E2E, CodeQL, Trivy security scans, and production deployment automation.
+- **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, executable runtime/security contracts, format, lint, typecheck, changed tests, and build), plus path-scoped link, desktop, self-hosted install, and server-image checks.
+- **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). The canonical `release.yml` runs it once before Community publishing and the correlated private SaaS handoff.
+- **Scheduled:** nightly E2E, nightly self-hosted release E2E, CodeQL, and Trivy security scans.
 - **Manual-only despite their names:** `codeql.yml`, `security-scan.yml` (Trivy), `ide-extension-ci.yml` — no cron, no PR trigger.
 - **Absent:** `dependabot.yml`, `CODEOWNERS` (find: 0 matches repo-wide).
-- OIDC AWS auth in deploy workflows; shared `setup-bun-env` composite (bun/turbo caches, 3× retry install); GHCR registry build cache with provenance/sbom.
+- Shared `setup-bun-env` composite (bun/turbo caches, 3× retry install); GHCR registry build cache with provenance/sbom. Production cloud credentials are not part of this repository.
 
 ### 5.2 Testing
 
