@@ -73,6 +73,8 @@ export type AgentStrategyDocument = Omit<
   dailyCreditResetAt?: Date | null;
   dailyCreditsUsed: number;
   dailyResetAt?: Date | null;
+  displayRole?: string;
+  engagementEnabled?: boolean;
   goalProfile?: string;
   isEnabled?: boolean;
   model?: string | null;
@@ -82,16 +84,21 @@ export type AgentStrategyDocument = Omit<
   platforms?: string[];
   policies?: Record<string, unknown>;
   postsPerWeek?: number;
+  preferredPostingTimes?: string[];
+  preferredWorkflowId?: string | null;
+  preferredWorkflowTemplateId?: string | null;
   publishPolicy?: AgentStrategyPublishPolicy;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   rankingPolicy?: AgentStrategyRankingPolicy;
   reportingPolicy?: AgentStrategyReportingPolicy;
+  reportsToLabel?: string;
   requiresManualReactivation?: boolean;
   reserveTrendBudgetRemaining: number;
+  runFrequency?: string;
   runHistory: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
-  preferredWorkflowId?: string | null;
-  preferredWorkflowTemplateId?: string | null;
+  teamGroup?: string;
+  timezone?: string;
   topics?: string[];
   /** Brand voice string stored in config JSON. */
   voice?: string | null;

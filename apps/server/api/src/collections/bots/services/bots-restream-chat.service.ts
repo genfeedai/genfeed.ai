@@ -1,6 +1,7 @@
+import { BOTS_LIVESTREAM_SERVICE } from '@api/collections/bots/bots.tokens';
 import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
-import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
+import type { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import {
@@ -14,6 +15,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 /**
  * Restream Chat WebSocket action (subset). The official API is one-way
@@ -53,7 +55,7 @@ export class BotsRestreamChatService {
   private readonly logContext = 'BotsRestreamChatService';
 
   constructor(
-    @Inject(forwardRef(() => BotsLivestreamService))
+    @Inject(BOTS_LIVESTREAM_SERVICE)
     private readonly botsLivestreamService: BotsLivestreamService,
     private readonly logger: LoggerService,
     @Optional() private readonly restreamService?: RestreamService,
@@ -61,6 +63,7 @@ export class BotsRestreamChatService {
     @Optional()
     @Inject(forwardRef(() => BotsService))
     private readonly botsService?: BotsService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -198,7 +201,8 @@ export class BotsRestreamChatService {
       return { ingested: 0, sessionId: null, skipped: 1 };
     }
 
-    if (!this.restreamService || !this.credentialsService) {
+    const restreamService = this.resolveRestreamService();
+    if (!restreamService || !this.credentialsService) {
       this.logger.warn(
         'Restream services unavailable for chat sync',
         this.logContext,
@@ -212,13 +216,10 @@ export class BotsRestreamChatService {
     }
 
     try {
-      const frames = await this.restreamService.collectChatActions(
-        accessToken,
-        {
-          listenMs: 6_000,
-          maxMessages: 30,
-        },
-      );
+      const frames = await restreamService.collectChatActions(accessToken, {
+        listenMs: 6_000,
+        maxMessages: 30,
+      });
       return this.ingestChatActions(bot, frames as RestreamChatAction[]);
     } catch (error) {
       // Collect can fail on expired tokens even when expiry was not stored —
@@ -228,13 +229,10 @@ export class BotsRestreamChatService {
       });
       if (retried && retried !== accessToken) {
         try {
-          const frames = await this.restreamService.collectChatActions(
-            retried,
-            {
-              listenMs: 6_000,
-              maxMessages: 30,
-            },
-          );
+          const frames = await restreamService.collectChatActions(retried, {
+            listenMs: 6_000,
+            maxMessages: 30,
+          });
           return this.ingestChatActions(bot, frames as RestreamChatAction[]);
         } catch (retryError) {
           this.logger.warn('Restream chat sync failed after token refresh', {
@@ -261,7 +259,8 @@ export class BotsRestreamChatService {
     bot: BotDocument,
     options: { forceRefresh?: boolean; now?: Date } = {},
   ): Promise<string | null> {
-    if (!this.credentialsService || !this.restreamService) {
+    const restreamService = this.resolveRestreamService();
+    if (!this.credentialsService || !restreamService) {
       return null;
     }
 
@@ -288,7 +287,7 @@ export class BotsRestreamChatService {
     }
 
     try {
-      const refreshed = await this.restreamService.refreshAccessToken(
+      const refreshed = await restreamService.refreshAccessToken(
         resolved.refreshToken,
       );
       const nextToken = pickAccessTokenAfterRefresh(
@@ -318,6 +317,17 @@ export class BotsRestreamChatService {
         error,
       });
       return resolved.accessToken || null;
+    }
+  }
+
+  private resolveRestreamService(): RestreamService | undefined {
+    if (this.restreamService) {
+      return this.restreamService;
+    }
+    try {
+      return this.moduleRef?.get(RestreamService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 
@@ -386,13 +396,19 @@ export class BotsRestreamChatService {
           ? { ...bot.livestreamSettings }
           : {};
 
+      const transcriptSource =
+        typeof existingSettings.transcriptSource === 'string' &&
+        Object.values(LivestreamTranscriptSource).includes(
+          existingSettings.transcriptSource as LivestreamTranscriptSource,
+        )
+          ? (existingSettings.transcriptSource as LivestreamTranscriptSource)
+          : LivestreamTranscriptSource.RESTREAM_CHAT;
+
       await this.botsService.patch(bot.id, {
         livestreamSettings: {
           ...existingSettings,
           restreamCredentialId,
-          transcriptSource:
-            existingSettings.transcriptSource ??
-            LivestreamTranscriptSource.RESTREAM_CHAT,
+          transcriptSource,
         },
       });
 
@@ -400,9 +416,7 @@ export class BotsRestreamChatService {
       bot.livestreamSettings = {
         ...existingSettings,
         restreamCredentialId,
-        transcriptSource:
-          existingSettings.transcriptSource ??
-          LivestreamTranscriptSource.RESTREAM_CHAT,
+        transcriptSource,
       };
     } catch (error) {
       this.logger.warn('Failed to auto-bind restreamCredentialId on bot', {
