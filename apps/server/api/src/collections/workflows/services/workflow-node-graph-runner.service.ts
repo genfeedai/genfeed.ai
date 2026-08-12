@@ -347,6 +347,20 @@ export class WorkflowNodeGraphRunnerService {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
 
+        completeNodeClaim(this.nodeClaims, claim.key, {
+          error: errorMessage,
+          status: 'failed',
+        });
+        if (this.nodeClaimService && workflow.organizationId) {
+          await this.nodeClaimService.complete({
+            error: errorMessage,
+            executionId,
+            nodeId,
+            organizationId: workflow.organizationId,
+            status: 'failed',
+          });
+        }
+
         nodeResults.set(nodeId, {
           completedAt: new Date(),
           creditsUsed: 0,

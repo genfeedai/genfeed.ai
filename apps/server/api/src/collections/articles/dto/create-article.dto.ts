@@ -14,7 +14,7 @@ import {
 
 export class CreateArticleDto {
   @ApiProperty({
-    description: 'Article title',
+    description: 'Article label (display title; persisted as label, not title)',
     maxLength: 200,
   })
   @IsString()
