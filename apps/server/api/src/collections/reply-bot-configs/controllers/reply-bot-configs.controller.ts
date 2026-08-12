@@ -4,6 +4,7 @@ import {
   AuthorReplyInboxQueryDto,
   AuthorReplySendDto,
   EnsureAuthorResponderDto,
+  SchedulePostWatchDto,
 } from '@api/collections/reply-bot-configs/dto/author-reply-loop.dto';
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
@@ -17,6 +18,7 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
+import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -52,6 +54,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     private readonly replyBotQueueService: ReplyBotQueueService,
     private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
+    private readonly replyInboundQueueService: ReplyInboundQueueService,
   ) {
     super(
       loggerService,
@@ -203,6 +206,27 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       parentPostPreview: body.parentPostPreview,
       replyText: body.replyText,
       userId: user.id,
+    });
+  }
+
+  /**
+   * Schedule 24h delayed post-watch series (pipe for publish hook — connect later).
+   */
+  @Post('author-reply/schedule-post-watch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Schedule delayed watches for replies under a post (24h series)',
+  })
+  schedulePostWatch(
+    @CurrentUser() user: User,
+    @Body() body: SchedulePostWatchDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    return this.replyInboundQueueService.schedulePostWatch({
+      brandId: body.brandId,
+      organizationId: publicMetadata.organization,
+      postId: body.postId,
+      postPreview: body.postPreview,
     });
   }
 

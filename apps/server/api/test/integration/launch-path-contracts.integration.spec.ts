@@ -317,6 +317,24 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(monitor).toContain('preferOfficialApi');
   });
 
+  it('registers X activity webhook and reply inbound/post-watch pipes', () => {
+    const controller = readRepo(
+      'apps/server/api/src/endpoints/webhooks/x-activity/webhooks.x-activity.controller.ts',
+    );
+    const queues = readRepo(
+      'packages/queue-contracts/src/queue-names.constant.ts',
+    );
+    const inbound = readRepo(
+      'apps/server/api/src/queues/reply-bot/reply-inbound-queue.service.ts',
+    );
+    expect(controller).toContain("Controller('webhooks/x-activity')");
+    expect(controller).toContain('handleCrc');
+    expect(queues).toContain("REPLY_INBOUND_QUEUE = 'reply-inbound'");
+    expect(queues).toContain("REPLY_POST_WATCH_QUEUE = 'reply-post-watch'");
+    expect(inbound).toContain('schedulePostWatch');
+    expect(inbound).toContain('enqueueInbound');
+  });
+
   it('classifies reply intents and caps comment age at 48h', () => {
     const intent = readRepo(
       'apps/server/api/src/services/reply-bot/reply-intent.util.ts',

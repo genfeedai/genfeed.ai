@@ -51,6 +51,7 @@ import { StripeWebhooksModule } from '@api/endpoints/webhooks/stripe/stripe-webh
 import { VercelWebhookController } from '@api/endpoints/webhooks/vercel/webhooks.vercel.controller';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { XActivityWebhookController } from '@api/endpoints/webhooks/x-activity/webhooks.x-activity.controller';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -61,6 +62,7 @@ import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
@@ -77,10 +79,12 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
     OpusProWebhookController,
     ReplicateWebhookController,
     VercelWebhookController,
+    XActivityWebhookController,
   ],
   exports: [WebhooksService],
   imports: [
     forwardRef(() => ActivitiesModule),
+    forwardRef(() => ReplyBotModule),
     forwardRef(() => ApiKeysModule),
     forwardRef(() => AssetsModule),
     forwardRef(() => BotGatewayModule),

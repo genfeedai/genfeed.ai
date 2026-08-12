@@ -465,6 +465,29 @@ export class AuthorReplyLoopService {
     }
   }
 
+  /**
+   * Owner user id for billing/auto-send (from comment_responder config).
+   */
+  async findResponderOwnerUserId(
+    organizationId: string,
+    brandId: string,
+  ): Promise<string | undefined> {
+    const config = await this.findAuthorResponderConfig(
+      organizationId,
+      brandId,
+    );
+    if (!config) {
+      return undefined;
+    }
+    const userId =
+      typeof config.userId === 'string'
+        ? config.userId
+        : typeof (config as { user?: string }).user === 'string'
+          ? (config as { user: string }).user
+          : undefined;
+    return userId || undefined;
+  }
+
   private async findAuthorResponderConfig(
     organizationId: string,
     brandId: string,

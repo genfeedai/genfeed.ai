@@ -49,6 +49,10 @@ export const BATCH_WORKFLOW_QUEUE = 'batch-workflow';
 // ---------- Distribution & messaging ----------
 export const TELEGRAM_DISTRIBUTE_QUEUE = 'telegram-distribute';
 export const REPLY_BOT_POLLING_QUEUE = 'reply-bot-polling';
+/** Single inbound comment (XAA webhook or post-watch). */
+export const REPLY_INBOUND_QUEUE = 'reply-inbound';
+/** Delayed watch of one post for new replies (24h series). */
+export const REPLY_POST_WATCH_QUEUE = 'reply-post-watch';
 export const EMAIL_DIGEST_QUEUE = 'email-digest';
 export const LIFECYCLE_EMAIL_QUEUE = 'lifecycle-email';
 export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
@@ -92,6 +96,8 @@ export const ALL_QUEUE_NAMES = [
   BATCH_WORKFLOW_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  REPLY_INBOUND_QUEUE,
+  REPLY_POST_WATCH_QUEUE,
   EMAIL_DIGEST_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,

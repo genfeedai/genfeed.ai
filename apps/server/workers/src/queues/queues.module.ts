@@ -43,6 +43,8 @@ import {
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  REPLY_INBOUND_QUEUE,
+  REPLY_POST_WATCH_QUEUE,
   SIGNUP_PREFILL_QUEUE,
   SOCIAL_INBOX_SYNC_QUEUE,
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
@@ -244,6 +246,24 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: REPLY_BOT_POLLING_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: REPLY_INBOUND_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: REPLY_POST_WATCH_QUEUE,
       },
       {
         defaultJobOptions: {

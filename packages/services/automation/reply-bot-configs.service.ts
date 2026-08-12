@@ -171,6 +171,21 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
+   * Schedule 24h delayed post-watch series (call after publish when wiring).
+   */
+  async schedulePostWatch(params: {
+    brandId: string;
+    postId: string;
+    postPreview?: string;
+  }): Promise<{ scheduled: number }> {
+    const response = await this.instance.post<{ scheduled: number }>(
+      'author-reply/schedule-post-watch',
+      params,
+    );
+    return response.data;
+  }
+
+  /**
    * Get queue status for monitoring
    */
   async getQueueStatus(): Promise<{

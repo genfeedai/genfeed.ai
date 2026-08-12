@@ -20,6 +20,23 @@ const REPLY_INTENTS = [
   'default',
 ] as const satisfies readonly ReplyIntent[];
 
+export class SchedulePostWatchDto {
+  @IsEntityId()
+  @ApiProperty()
+  brandId!: string;
+
+  @IsString()
+  @MaxLength(64)
+  @ApiProperty({ description: 'X post id to watch for 24h' })
+  postId!: string;
+
+  @IsString()
+  @MaxLength(500)
+  @IsOptional()
+  @ApiProperty({ required: false })
+  postPreview?: string;
+}
+
 export class EnsureAuthorResponderDto {
   @IsEntityId()
   @ApiProperty({ description: 'Brand to enable author-reply loop for' })

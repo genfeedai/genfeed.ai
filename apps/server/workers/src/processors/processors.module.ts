@@ -102,6 +102,8 @@ import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycl
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
+import { ReplyInboundProcessor } from '@workers/processors/api/queues/reply-bot/reply-inbound.processor';
+import { ReplyPostWatchProcessor } from '@workers/processors/api/queues/reply-bot/reply-post-watch.processor';
 import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import { SignupPrefillProcessor } from '@workers/processors/api/queues/signup-prefill/signup-prefill.processor';
 import { SocialInboxSyncProcessor } from '@workers/processors/api/queues/social-inbox-sync/social-inbox-sync.processor';
@@ -261,6 +263,8 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     PatternExtractionProcessor,
     PostPublishProcessor,
     ReplyBotPollingProcessor,
+    ReplyInboundProcessor,
+    ReplyPostWatchProcessor,
     SignupPrefillProcessor,
     SocialInboxSyncProcessor,
     SocialReplyCampaignProcessor,

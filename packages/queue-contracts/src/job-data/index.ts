@@ -23,6 +23,8 @@ export * from './lifecycle-email-job.interface';
 export * from './pattern-extraction-job.interface';
 export * from './post-publish-job.interface';
 export * from './reply-bot-polling-job.interface';
+export * from './reply-inbound-job.interface';
+export * from './reply-post-watch-job.interface';
 export * from './signup-prefill-job.interface';
 export * from './social-inbox-sync-job.interface';
 export * from './social-reply-campaign-job.interface';
