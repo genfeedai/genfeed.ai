@@ -1,13 +1,19 @@
 /**
  * Palette parity for #2664: every SaaS node that is user-exposed must have
- * an executor registration path (credit cost) and a canvas type registration
- * is verified separately in cloud merged-node-types.
+ * an executor, a canvas type, and a credit cost.
  */
 import { describe, expect, it } from 'vitest';
+import { ReportDeliveryExecutor } from '../../engine/executors/saas/report-delivery-executor';
+import { SocialReadExecutor } from '../../engine/executors/saas/social-read-executor';
 import { DEFAULT_CREDIT_COSTS } from '../../engine/utils/credit-calculator';
 import { SAAS_NODE_DEFINITIONS } from './saas-definitions';
 
 const REQUIRED_PALETTE_NODES = ['socialRead', 'reportDelivery'] as const;
+
+const PALETTE_EXECUTORS = {
+  reportDelivery: ReportDeliveryExecutor,
+  socialRead: SocialReadExecutor,
+} as const;
 
 describe('palette parity (#2664)', () => {
   it('exposes socialRead and reportDelivery in the SaaS registry', () => {
@@ -31,5 +37,21 @@ describe('palette parity (#2664)', () => {
   it('keeps socialRead as input and reportDelivery as output', () => {
     expect(SAAS_NODE_DEFINITIONS.socialRead.category).toBe('input');
     expect(SAAS_NODE_DEFINITIONS.reportDelivery.category).toBe('output');
+  });
+
+  it('pairs every required palette node with an executor class and cost', () => {
+    for (const type of REQUIRED_PALETTE_NODES) {
+      const executor = new PALETTE_EXECUTORS[type]();
+      expect(executor.nodeType).toBe(type);
+      expect(
+        executor.estimateCost({
+          config: {},
+          id: 'n',
+          inputs: [],
+          label: type,
+          type,
+        }),
+      ).toBe(DEFAULT_CREDIT_COSTS[type]);
+    }
   });
 });
