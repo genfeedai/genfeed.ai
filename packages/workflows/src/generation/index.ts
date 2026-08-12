@@ -71,6 +71,22 @@ export const DEFAULT_WORKFLOW_GENERATION_NODE_TYPES: WorkflowGenerationNodeType[
       outputs: ['post'],
       type: 'publish_post',
     },
+    {
+      category: 'input',
+      description:
+        'Fetch recent X timeline, mentions, or search results on demand for analysis',
+      inputs: ['brand', 'query', 'username'],
+      outputs: ['posts', 'summary', 'count'],
+      type: 'socialRead',
+    },
+    {
+      category: 'output',
+      description:
+        'Deliver workflow results privately via in-app notification and/or email',
+      inputs: ['content', 'subject', 'html'],
+      outputs: ['delivered', 'destination'],
+      type: 'reportDelivery',
+    },
   ];
 
 export function buildWorkflowGenerationMessages({

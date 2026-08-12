@@ -1,3 +1,7 @@
 export { DebugPanel } from './DebugPanel';
-export { NodePalette } from './NodePalette';
+export {
+  NodePalette,
+  type NodePaletteProps,
+  type PaletteNodeDefinition,
+} from './NodePalette';
 export { PanelContainer } from './PanelContainer';

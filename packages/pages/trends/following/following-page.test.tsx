@@ -451,6 +451,35 @@ describe('FollowingPage', () => {
     });
   });
 
+  it('creates distinct quote and repost drafts for twitter posts', async () => {
+    const user = userEvent.setup();
+    render(<FollowingPage />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'More following actions' }),
+    );
+    await user.click(await screen.findByText('Quote'));
+    await waitFor(() => {
+      expect(mocks.createDraft).toHaveBeenCalledWith(
+        'post-1',
+        { actionType: SourcePostActionType.QUOTE },
+        { brandId: 'brand-1' },
+      );
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: 'More following actions' }),
+    );
+    await user.click(await screen.findByText('Repost'));
+    await waitFor(() => {
+      expect(mocks.createDraft).toHaveBeenCalledWith(
+        'post-1',
+        { actionType: SourcePostActionType.REPOST },
+        { brandId: 'brand-1' },
+      );
+    });
+  });
+
   it('sends a post to the agent from the dropdown', async () => {
     const user = userEvent.setup();
     render(<FollowingPage />);

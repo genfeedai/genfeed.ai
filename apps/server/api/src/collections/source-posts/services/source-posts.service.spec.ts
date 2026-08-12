@@ -116,7 +116,7 @@ describe('SourcePostsService', () => {
     });
     post.create.mockResolvedValue({
       id: 'draft-1',
-      label: 'QRT: @source',
+      label: 'Quote: @source',
       status: 'draft',
     });
 
@@ -144,6 +144,42 @@ describe('SourcePostsService', () => {
       }),
     });
     expect(result.draftId).toBe('draft-1');
+  });
+
+  it('creates a native repost draft labeled distinctly from quote', async () => {
+    sourcePost.findFirst.mockResolvedValue({
+      authorHandle: 'genfeed',
+      brandId: 'brand-1',
+      externalId: 'tweet-2',
+      id: 'source-post-2',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      text: 'Ship it',
+    });
+    credentialsService.findOne.mockResolvedValue({
+      id: 'credential-1',
+      platform: 'twitter',
+    });
+    post.create.mockResolvedValue({
+      id: 'draft-repost',
+      label: 'Repost: @genfeed',
+      status: 'draft',
+    });
+
+    const result = await service.createDraftFromPost(
+      'source-post-2',
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      { actionType: SourcePostActionType.REPOST },
+    );
+
+    expect(post.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        label: 'Repost: @genfeed',
+        quoteTweetId: null,
+        sourceActionId: 'source-post-2',
+      }),
+    });
+    expect(result.draftId).toBe('draft-repost');
   });
 
   it('attaches an image ingredient to a scoped post draft', async () => {

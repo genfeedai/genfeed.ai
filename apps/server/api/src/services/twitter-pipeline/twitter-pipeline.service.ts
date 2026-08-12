@@ -115,13 +115,13 @@ export class TwitterPipelineService {
   }
 
   /**
-   * Publish a tweet (original, reply, or quote)
+   * Publish a tweet (original, reply, quote, or native repost)
    */
   async publish(
     orgId: string,
     brandId: string,
     request: {
-      type: 'reply' | 'quote' | 'original';
+      type: 'reply' | 'quote' | 'original' | 'repost';
       text: string;
       targetTweetId?: string;
     },
@@ -227,6 +227,26 @@ export class TwitterPipelineService {
                 success: tweetResult.success,
                 tweetId: tweetResult.contentId,
                 tweetUrl: tweetResult.contentUrl,
+              };
+            }
+
+            case 'repost': {
+              if (!request.targetTweetId) {
+                return {
+                  error: 'targetTweetId required for repost',
+                  success: false,
+                };
+              }
+              const repostResult =
+                await this.botActionExecutorService.repostTweet(
+                  credentialData,
+                  request.targetTweetId,
+                );
+              return {
+                error: repostResult.error,
+                success: repostResult.success,
+                tweetId: repostResult.contentId,
+                tweetUrl: repostResult.contentUrl,
               };
             }
 

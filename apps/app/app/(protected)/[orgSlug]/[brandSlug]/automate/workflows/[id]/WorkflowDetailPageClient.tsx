@@ -35,6 +35,7 @@ import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { Play } from 'lucide-react';
+import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
@@ -308,6 +309,7 @@ export default function WorkflowDetailPageClient({
           )}
 
           <WorkflowEditorShell
+            nodePalette={<CloudNodePalette />}
             nodeTypes={cloudNodeTypes}
             rightPanel={
               showRunPanel ? (

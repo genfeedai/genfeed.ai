@@ -12,7 +12,7 @@ export interface ITwitterSearchResult {
 }
 
 export interface ITwitterOpportunity {
-  type: 'reply' | 'quote' | 'original';
+  type: 'reply' | 'quote' | 'original' | 'repost';
   suggestedText: string;
   reason: string;
   verified: boolean;
@@ -29,7 +29,7 @@ export interface ITwitterVoiceConfig {
 }
 
 export interface ITwitterPublishRequest {
-  type: 'reply' | 'quote' | 'original';
+  type: 'reply' | 'quote' | 'original' | 'repost';
   text: string;
   targetTweetId?: string;
 }

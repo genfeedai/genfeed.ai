@@ -20,12 +20,14 @@ const TYPE_LABELS: Record<ITwitterOpportunity['type'], string> = {
   original: 'Original',
   quote: 'Quote',
   reply: 'Reply',
+  repost: 'Repost',
 };
 
 const TYPE_COLORS: Record<ITwitterOpportunity['type'], string> = {
   original: 'bg-emerald-500/10 text-emerald-400',
   quote: 'bg-amber-500/10 text-amber-400',
   reply: 'bg-blue-500/10 text-blue-400',
+  repost: 'bg-violet-500/10 text-violet-400',
 };
 
 interface OpportunityCardProps {
@@ -116,8 +118,14 @@ export default function OpportunityCard({
         )}
         {opportunity.type === 'quote' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <SquarePen className="size-3" />
+            Quote with commentary
+          </span>
+        )}
+        {opportunity.type === 'repost' && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <RefreshCw className="size-3" />
-            Quote
+            Native repost (no commentary)
           </span>
         )}
       </div>

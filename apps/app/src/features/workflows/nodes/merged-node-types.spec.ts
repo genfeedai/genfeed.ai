@@ -14,9 +14,17 @@ const TEMPLATE_NODE_TYPES = [
   'workflowOutput',
 ] as const;
 
+const SOCIAL_REPORT_NODE_TYPES = ['socialRead', 'reportDelivery'] as const;
+
 describe('cloudNodeTypes', () => {
   it('registers all node types used by workflow templates', () => {
     for (const nodeType of TEMPLATE_NODE_TYPES) {
+      expect(cloudNodeTypes[nodeType]).toBeDefined();
+    }
+  });
+
+  it('registers socialRead and reportDelivery for the cloud canvas (#2664)', () => {
+    for (const nodeType of SOCIAL_REPORT_NODE_TYPES) {
       expect(cloudNodeTypes[nodeType]).toBeDefined();
     }
   });

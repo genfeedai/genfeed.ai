@@ -32,7 +32,10 @@ export class SourcePostsService extends BaseService<SourcePost> {
 
   async publishTwitterAction(
     postId: string,
-    body: { actionType: 'reply' | 'quote'; text: string },
+    body: {
+      actionType: 'reply' | 'quote' | 'repost';
+      text?: string;
+    },
     options: { brandId?: string } = {},
   ): Promise<ITwitterPublishResult> {
     const response = await this.instance.post<ITwitterPublishResult>(

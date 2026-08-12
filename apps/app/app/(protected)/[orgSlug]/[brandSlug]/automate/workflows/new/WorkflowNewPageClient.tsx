@@ -35,6 +35,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
+import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
@@ -350,6 +351,7 @@ export default function WorkflowNewPageClient() {
           )}
 
           <WorkflowEditorShell
+            nodePalette={<CloudNodePalette />}
             nodeTypes={cloudNodeTypes}
             rightPanel={
               showRunPanel ? (

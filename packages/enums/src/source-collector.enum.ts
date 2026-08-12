@@ -29,6 +29,8 @@ export enum SourcePostActionType {
   DRAFT = 'draft',
   REPLY = 'reply',
   QUOTE = 'quote',
+  /** Native X repost (retweet without commentary). Distinct from QUOTE. */
+  REPOST = 'repost',
   REMIX = 'remix',
   SEND_TO_AGENT = 'send_to_agent',
 }

@@ -35,7 +35,13 @@ export {
 // Nodes
 export { BaseNode, nodeTypes } from './nodes';
 // Panels
-export { DebugPanel, NodePalette, PanelContainer } from './panels';
+export {
+  DebugPanel,
+  NodePalette,
+  type NodePaletteProps,
+  type PaletteNodeDefinition,
+  PanelContainer,
+} from './panels';
 export type {
   ExecutionHeaderProvider,
   ModelBrowserModalProps,

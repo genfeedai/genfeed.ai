@@ -82,6 +82,7 @@ import {
   MessageSquare,
   Plus,
   RefreshCw,
+  Repeat2,
   Send,
   Sparkles,
   Trash2,
@@ -755,7 +756,18 @@ function SourcePostCard({
                     }}
                   >
                     <Zap className="size-4" />
-                    Quote retweet
+                    Quote
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={
+                      busyId === `${post.id}-${SourcePostActionType.REPOST}`
+                    }
+                    onSelect={() => {
+                      void onCreateDraft(post, SourcePostActionType.REPOST);
+                    }}
+                  >
+                    <Repeat2 className="size-4" />
+                    Repost
                   </DropdownMenuItem>
                 </>
               ) : null}
