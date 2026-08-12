@@ -85,7 +85,6 @@ export default function RepliesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEnabling, setIsEnabling] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const [botConfigId, setBotConfigId] = useState<string | undefined>();
   const [drafts, setDrafts] = useState<DraftState>({});
   const [intents, setIntents] = useState<IntentState>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -166,18 +165,12 @@ export default function RepliesPage() {
         platform: inboxPlatform,
       });
       setIsActive(result.isActive);
-      setBotConfigId(result.botConfigId);
       const label = inboxPlatform === 'youtube' ? 'YouTube' : 'X';
       toast.success(
         result.created
           ? `Auto-replies enabled for ${label}`
           : 'Auto-replies updated',
       );
-      if (result.xActivity?.mode === 'live') {
-        toast.message('X real-time activity (XAA) connected');
-      } else if (result.xActivity?.message) {
-        toast.message(`XAA: ${result.xActivity.message}`);
-      }
       await loadInbox();
     } catch (error: unknown) {
       logger.error('Enable auto-replies failed', error);
@@ -304,7 +297,7 @@ export default function RepliesPage() {
     <Container className="flex flex-col gap-6 py-6">
       <Card
         label="Replies"
-        description="Reply to comments on your posts (X or YouTube). Intent modes: thanks, questions, trolls (controlled wit), skip spam. X: last 24h · YouTube: last 48h."
+        description="Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments."
         bodyClassName="gap-4 p-4"
         headerAction={
           <div className="flex flex-wrap gap-2">
@@ -354,26 +347,20 @@ export default function RepliesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">
             <MessageCircleReply className="mr-1 size-3" />
-            {inboxPlatform === 'youtube' ? 'max 48h' : 'max 24h'}
+            {platformLabel}
           </Badge>
-          <Badge variant="outline">{platformLabel}</Badge>
           {username ? (
             <Badge variant="outline">@{username.replace(/^@/, '')}</Badge>
           ) : null}
           {isActive ? (
-            <Badge variant="success">auto on</Badge>
+            <Badge variant="success">Auto-replies on</Badge>
           ) : (
-            <Badge variant="warning">manual or enable auto</Badge>
+            <Badge variant="warning">Auto-replies off</Badge>
           )}
-          {botConfigId ? (
-            <Badge variant="outline">bot {botConfigId.slice(0, 8)}…</Badge>
-          ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          Official API reads first (Apify only if needed). Drafts use brand
-          harness + intent persona. X real-time auto (XAA) is env-gated on the
-          server — Enable auto-replies still works via post-watch + poll when
-          XAA is off.
+          Choose how to respond — warm thanks, clear answers, or a light touch
+          on trolls. Skip spam. Recent comments only.
         </p>
         {inboxError ? (
           <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
