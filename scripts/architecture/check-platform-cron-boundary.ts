@@ -120,7 +120,7 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'queue-operational-metrics',
     methodName: 'publishQueueMetrics',
     reason:
-      'Platform operational telemetry for aggregate BullMQ health. Fixed-cardinality infrastructure monitoring; never tenant-configurable.',
+      'Platform operational telemetry and threshold alerts for BullMQ health. CloudWatch stays fixed-cardinality; per-queue snapshots contain metadata only and never tenant-configurable values.',
   },
   {
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',

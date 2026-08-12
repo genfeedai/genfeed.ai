@@ -11,6 +11,11 @@ import Joi from 'joi';
 
 interface WorkersEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
+  QUEUE_HEALTH_ALERT_THROTTLE_MINUTES?: number;
+  QUEUE_HEALTH_ALERT_WEBHOOK_URL?: string;
+  QUEUE_HEALTH_MAX_FAILED?: number;
+  QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES?: number;
+  QUEUE_HEALTH_MAX_WAITING?: number;
 }
 
 @Injectable()
@@ -56,6 +61,20 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     FAL_API_KEY: Joi.string().optional().allow(''),
     GPU_LLM_INSTANCE_ID: Joi.string().optional().allow(''),
     OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+    QUEUE_HEALTH_ALERT_THROTTLE_MINUTES: Joi.number()
+      .integer()
+      .min(1)
+      .default(60),
+    QUEUE_HEALTH_ALERT_WEBHOOK_URL: Joi.string()
+      .uri({ scheme: ['https'] })
+      .optional()
+      .allow(''),
+    QUEUE_HEALTH_MAX_FAILED: Joi.number().integer().min(0).default(25),
+    QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES: Joi.number()
+      .integer()
+      .min(0)
+      .default(15),
+    QUEUE_HEALTH_MAX_WAITING: Joi.number().integer().min(0).default(100),
     REPLICATE_KEY: Joi.string().optional().allow(''),
     SERVICE_NAME: Joi.string().optional().allow(''),
   },
@@ -66,6 +85,28 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
 
   public get ingredientsEndpoint(): string {
     return `${this.envConfig.GENFEEDAI_CDN_URL}/ingredients`;
+  }
+
+  public get queueHealthAlertThrottleMs(): number {
+    return (
+      Number(this.envConfig.QUEUE_HEALTH_ALERT_THROTTLE_MINUTES) * 60 * 1000
+    );
+  }
+
+  public get queueHealthAlertWebhookUrl(): string | undefined {
+    return this.envConfig.QUEUE_HEALTH_ALERT_WEBHOOK_URL || undefined;
+  }
+
+  public get queueHealthMaxFailed(): number {
+    return Number(this.envConfig.QUEUE_HEALTH_MAX_FAILED);
+  }
+
+  public get queueHealthMaxOldestWaitingAgeSeconds(): number {
+    return Number(this.envConfig.QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES) * 60;
+  }
+
+  public get queueHealthMaxWaiting(): number {
+    return Number(this.envConfig.QUEUE_HEALTH_MAX_WAITING);
   }
 
   private isLocalDevFlagEnabled(key: 'GF_DEV_ENABLE_SCHEDULERS'): boolean {

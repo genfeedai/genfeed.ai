@@ -83,7 +83,7 @@ export default defineConfig({
         '**/__tests__/**',
       ],
       provider: 'v8',
-      reporter: ['text', 'json', 'json-summary', 'html'],
+      reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
       thresholds: { branches: 87, functions: 95, lines: 94, statements: 94 },
     },

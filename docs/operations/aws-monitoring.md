@@ -49,6 +49,33 @@ Prometheus, and Managed Grafana are intentionally disabled at the current scale.
 - One worker replica publishes each five-minute aggregate; the Redis marker expires automatically and is not a durable lock.
 - Queue metrics must stay aggregate and must not add job, tenant, or content identifiers as dimensions.
 
+### Queue health snapshots and alerts
+
+The workers service evaluates every name in `ALL_QUEUE_NAMES` every five
+minutes. The five CloudWatch metrics remain aggregate; per-queue metadata is
+stored in Redis under `genfeed:monitoring:queue-health:snapshot:<queue>` with a
+15-minute TTL so it does not add CloudWatch dimensions or durable history.
+
+Configure the global per-queue limits with:
+
+- `QUEUE_HEALTH_MAX_WAITING` (default `100`)
+- `QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES` (default `15`)
+- `QUEUE_HEALTH_MAX_FAILED` (default `25`)
+- `QUEUE_HEALTH_ALERT_THROTTLE_MINUTES` (default `60`)
+- `QUEUE_HEALTH_ALERT_WEBHOOK_URL` (optional HTTPS Slack-compatible incoming webhook)
+
+The first breach is logged and optionally posted to the webhook. Repeated
+alerts are throttled per queue and incident in Redis, so worker restarts or
+replica changes do not reset the throttle. A delivered incident emits one
+recovery notice when all thresholds clear. Notifications contain only queue
+name, counts, age, thresholds, and timestamps; they never contain jobs,
+failure reasons, tenant identifiers, webhook credentials, or content.
+
+If one queue or the webhook transport fails, the sweep continues for the other
+queues and still attempts the fixed aggregate CloudWatch publish. Investigate
+the workers log for `Queue health processing failed` before changing a
+threshold.
+
 ## Missing telemetry
 
 Required ECS, RDS, and Redis resources treat sustained missing telemetry as unhealthy.

@@ -16,6 +16,16 @@ export interface AgentApiConfig {
   getToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
 }
 
+/**
+ * One page of a keyset-paginated collection: the rows plus the cursor state the
+ * caller needs to ask for the page before it.
+ */
+export interface AgentApiCollectionPage<T> {
+  docs: T[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
 export type AgentApiEffectError = AgentApiError | AgentApiAuthError;
 
 export async function runAgentApiEffect<T>(
@@ -105,6 +115,37 @@ export class AgentBaseApiService {
     ).pipe(
       Effect.flatMap((json) =>
         this.deserializeCollectionEffect<T>(json, decodeErrorMessage),
+      ),
+    );
+  }
+
+  /**
+   * Like `fetchCollectionEffect`, but keeps the keyset-pagination links the
+   * plain collection fetch drops. Callers that page need the cursor, and the
+   * only place it exists is the top-level JSON:API document.
+   */
+  fetchCollectionPageEffect<T>(
+    url: string,
+    init: RequestInit | undefined,
+    requestErrorMessage: string,
+    decodeErrorMessage: string,
+  ): Effect.Effect<AgentApiCollectionPage<T>, AgentApiError> {
+    return this.fetchJsonEffect<JsonApiResponseDocument>(
+      url,
+      init,
+      requestErrorMessage,
+    ).pipe(
+      Effect.flatMap((json) =>
+        this.deserializeCollectionEffect<T>(json, decodeErrorMessage).pipe(
+          Effect.map((docs) => ({
+            docs,
+            // A response without cursor links reads as "nothing older", which
+            // stops the caller asking rather than looping on a cursor the
+            // server never issued.
+            hasMore: json.links?.cursor?.hasMore ?? false,
+            nextCursor: json.links?.cursor?.nextCursor ?? null,
+          })),
+        ),
       ),
     );
   }

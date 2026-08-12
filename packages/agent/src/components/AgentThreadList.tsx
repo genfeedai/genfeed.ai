@@ -14,6 +14,7 @@ import {
   groupAgentThreads,
 } from './agent-thread-list.helpers';
 import { useAgentThreadList } from './useAgentThreadList';
+import { useAgentThreadPrefetch } from './useAgentThreadPrefetch';
 
 export type AgentThreadListProps = {
   apiService: AgentApiService;
@@ -82,6 +83,9 @@ export function AgentThreadList({
     handleToggleView,
     handleRetryLoad,
   } = useAgentThreadList({ apiService, isActive, brandId, onNavigate });
+  const { prefetchThread, cancelPrefetch } = useAgentThreadPrefetch({
+    apiService,
+  });
 
   const groups = useMemo(
     () =>
@@ -149,6 +153,8 @@ export function AgentThreadList({
       onUnarchive={(thread) => {
         handleUnarchiveFromMenu(thread).catch(() => undefined);
       }}
+      onPrefetch={prefetchThread}
+      onCancelPrefetch={cancelPrefetch}
     />
   );
 

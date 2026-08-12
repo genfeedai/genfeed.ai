@@ -18,6 +18,10 @@ on:
         description: "optional unique correlation id for an orchestrating workflow"
         required: false
         default: ""
+      expected_master_sha:
+        description: "optional master SHA selected by the orchestrator"
+        required: false
+        default: ""
       image_tag:
         description: "server image tag to deploy (default: current SHA)"
         required: false
@@ -48,9 +52,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Validate ref is master
+        env:
+          EXPECTED_MASTER_SHA: ${{ inputs.expected_master_sha }}
         run: |
+          set -euo pipefail
           if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
             echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
+          fi
+          if [ -n "${EXPECTED_MASTER_SHA}" ] && [ "${GITHUB_SHA}" != "${EXPECTED_MASTER_SHA}" ]; then
+            echo "::error::Production deploy resolved ${GITHUB_SHA}, but the orchestrator selected ${EXPECTED_MASTER_SHA}; master advanced before dispatch."; exit 1
           fi
 
   qa-before-deploy:
