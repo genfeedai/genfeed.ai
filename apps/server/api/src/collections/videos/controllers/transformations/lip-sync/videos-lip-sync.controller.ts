@@ -71,7 +71,7 @@ export class VideosLipSyncController {
   // Fixed 1-credit charge, matching the sibling HeyGen route POST /videos/avatar.
   // Charged through the standard CreditsGuard (balance gate) + CreditsInterceptor
   // (deducts on success) path used across the API — replacing the previous
-  // manual inline deductCreditsFromOrganization call, which double-tracked the
+  // manual inline credit deduction call, which double-tracked the
   // charge outside the interceptor and diverged from every other credited route.
   // Using a fixed `amount` (not `modelKey`) also avoids the CreditsGuard model
   // lookup, so the route no longer depends on a `heygen/avatar` models-table row.

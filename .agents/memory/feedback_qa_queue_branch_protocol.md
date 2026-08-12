@@ -22,4 +22,4 @@ topics: [workflow, git, qa, ci]
 
 **Done when:** A new session can continue from closeout memory + PR + tests without re-coding finished items or asking which branch owns the closeout.
 
-**Personal multi-host fleet rules** (Claude/Codex/Grok routing, “don’t restate”) live in **gitignored** `.agents/memory/local/` and/or global user memory — not in this public file.
+**Personal multi-host routing rules** (including “don’t restate” guidance) live in **gitignored** `.agents/memory/local/` and/or global user memory — not in this public file.

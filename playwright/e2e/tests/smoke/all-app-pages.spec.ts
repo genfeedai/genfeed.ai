@@ -85,7 +85,9 @@ const onboardingRoutes = routes.filter((route) =>
 
 const adminRoutes = routes.filter((route) => route.startsWith('/admin'));
 
-const serviceWorkerRoutes = routes.filter((route) => route === '/~offline');
+const runtimeOwnedRoutes = routes.filter(
+  (route) => route === '/desktop/local' || route === '/~offline',
+);
 
 const protectedRoutes = routes.filter(
   (route) =>
@@ -93,7 +95,7 @@ const protectedRoutes = routes.filter(
     !oauthRoutes.includes(route) &&
     !onboardingRoutes.includes(route) &&
     !adminRoutes.includes(route) &&
-    !serviceWorkerRoutes.includes(route),
+    !runtimeOwnedRoutes.includes(route),
 );
 
 interface RouteBucket {
