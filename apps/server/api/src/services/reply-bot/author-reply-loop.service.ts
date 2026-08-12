@@ -32,6 +32,10 @@ import {
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
 import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
+import {
+  toYouTubeChannelStartUrl,
+  toYouTubeVideoUrl,
+} from '@api/services/reply-bot/youtube-reply-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ReplyBotActionType,
@@ -270,6 +274,18 @@ export class AuthorReplyLoopService {
       );
     }
 
+    // YouTube Apify handlers expect full channel/video URLs, not bare ids.
+    const timelineTarget =
+      replyPlatform === ReplyBotPlatform.YOUTUBE
+        ? toYouTubeChannelStartUrl(timelineHandle)
+        : timelineHandle || 'me';
+
+    if (replyPlatform === ReplyBotPlatform.YOUTUBE && !timelineTarget) {
+      throw new BadRequestException(
+        'No active YouTube credential channel for this brand',
+      );
+    }
+
     const cutoff = Date.now() - hours * 60 * 60 * 1000;
     const ourUsername = (credential.username || credential.externalId || '')
       .replace(/^@/, '')
@@ -279,7 +295,7 @@ export class AuthorReplyLoopService {
     try {
       posts = await this.socialMonitorService.getUserTimeline(
         replyPlatform,
-        timelineHandle || 'me',
+        timelineTarget,
         {
           brandId: params.brandId,
           limit: MAX_PARENT_POSTS,
@@ -312,11 +328,19 @@ export class AuthorReplyLoopService {
         continue;
       }
 
+      const commentTarget =
+        replyPlatform === ReplyBotPlatform.YOUTUBE
+          ? toYouTubeVideoUrl({
+              contentUrl: post.contentUrl,
+              id: post.id,
+            })
+          : post.id;
+
       let comments: SocialContentData[] = [];
       try {
         comments = await this.socialMonitorService.getContentComments(
           replyPlatform,
-          post.id,
+          commentTarget,
           {
             brandId: params.brandId,
             limit: MAX_COMMENTS_PER_POST,

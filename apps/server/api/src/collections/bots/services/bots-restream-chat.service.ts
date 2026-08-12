@@ -8,6 +8,7 @@ import {
 } from '@api/services/integrations/restream/services/restream-token.util';
 import { LivestreamTranscriptSource, Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -355,13 +356,13 @@ function readCredentialTokens(credential: Record<string, unknown>): {
   id?: string;
   refreshToken?: string | null;
 } {
-  const access =
+  const accessRaw =
     typeof credential.accessToken === 'string'
       ? credential.accessToken
       : typeof credential.access_token === 'string'
         ? credential.access_token
         : null;
-  const refresh =
+  const refreshRaw =
     typeof credential.refreshToken === 'string'
       ? credential.refreshToken
       : typeof credential.refresh_token === 'string'
@@ -370,13 +371,34 @@ function readCredentialTokens(credential: Record<string, unknown>): {
   const expiry =
     credential.accessTokenExpiry ?? credential.access_token_expiry ?? null;
 
+  // CredentialsService encrypts secrets at rest — decrypt for Restream API use.
+  // EncryptionUtil is idempotent for plaintext fixtures used in unit tests.
+  const accessToken =
+    accessRaw != null && accessRaw !== ''
+      ? EncryptionUtil.decrypt(accessRaw)
+      : accessRaw;
+  const refreshToken =
+    refreshRaw != null && refreshRaw !== ''
+      ? EncryptionUtil.decrypt(refreshRaw)
+      : refreshRaw;
+
   return {
-    accessToken: access,
+    accessToken:
+      typeof accessToken === 'string' && accessToken.trim()
+        ? accessToken.trim()
+        : accessToken === ''
+          ? ''
+          : null,
     accessTokenExpiry:
       expiry instanceof Date || typeof expiry === 'string' || expiry == null
         ? (expiry as Date | string | null)
         : null,
     id: typeof credential.id === 'string' ? credential.id : undefined,
-    refreshToken: refresh,
+    refreshToken:
+      typeof refreshToken === 'string' && refreshToken.trim()
+        ? refreshToken.trim()
+        : refreshToken === ''
+          ? ''
+          : null,
   };
 }

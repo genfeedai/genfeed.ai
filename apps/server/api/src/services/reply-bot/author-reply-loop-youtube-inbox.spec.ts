@@ -45,7 +45,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
     // Empty accessToken decrypts safely (same as author-reply-loop.service.spec).
     credentialsService.findOne.mockResolvedValue({
       accessToken: '',
-      externalId: 'UC123',
+      externalId: 'UCabcdefghijklmnopqrstuv',
       id: 'yt-cred',
       username: 'brandchannel',
     });
@@ -78,7 +78,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
 
     expect(socialMonitorService.getUserTimeline).toHaveBeenCalledWith(
       'youtube',
-      expect.any(String),
+      'https://www.youtube.com/@brandchannel',
       expect.objectContaining({
         brandId: 'brand-1',
         organizationId: 'org-1',
@@ -87,7 +87,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
     );
     expect(socialMonitorService.getContentComments).toHaveBeenCalledWith(
       'youtube',
-      'vid1',
+      'https://youtube.com/watch?v=vid1',
       expect.objectContaining({ brandId: 'brand-1' }),
     );
     expect(result.platform).toBe('youtube');
@@ -128,5 +128,29 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
         platform: 'youtube',
       }),
     ).rejects.toThrow(/YouTube credential/i);
+  });
+
+  it('normalizes UC channel ids to /channel/ URLs for timeline', async () => {
+    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      externalId: 'UCabcdefghijklmnopqrstuv',
+      id: 'yt-cred',
+      username: undefined,
+    });
+    socialMonitorService.getUserTimeline.mockResolvedValue([]);
+    socialMonitorService.getContentComments.mockResolvedValue([]);
+
+    await service.getInbox({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      platform: 'youtube',
+    });
+
+    expect(socialMonitorService.getUserTimeline).toHaveBeenCalledWith(
+      'youtube',
+      'https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv',
+      expect.any(Object),
+    );
   });
 });
