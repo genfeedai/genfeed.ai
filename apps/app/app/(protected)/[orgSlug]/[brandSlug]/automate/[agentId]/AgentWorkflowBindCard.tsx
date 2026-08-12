@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -64,6 +65,7 @@ export default function AgentWorkflowBindCard({
   onBound,
   strategy,
 }: Props) {
+  const translate = useTranslations('common.automation.workflowBinding');
   const getAgentService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
@@ -112,7 +114,7 @@ export default function AgentWorkflowBindCard({
       } catch (error) {
         if (!cancelled) {
           logger.error('Failed to list workflows for agent bind', error);
-          toast.error('Could not load workflows');
+          toast.error(translate('errors.load'));
         }
       } finally {
         if (!cancelled) {
@@ -124,7 +126,7 @@ export default function AgentWorkflowBindCard({
     return () => {
       cancelled = true;
     };
-  }, [getWorkflowsService, strategy.brand?.id, strategy.brandId]);
+  }, [getWorkflowsService, strategy.brand?.id, strategy.brandId, translate]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -150,19 +152,19 @@ export default function AgentWorkflowBindCard({
       });
       toast.success(
         nextId
-          ? 'Workflow binding and overrides saved'
-          : 'Binding cleared; overrides saved',
+          ? translate('notifications.saved')
+          : translate('notifications.cleared'),
       );
       await onBound();
     } catch (error) {
       logger.error('Failed to bind workflow to agent', error);
       toast.error(
-        error instanceof Error ? error.message : 'Could not save binding',
+        error instanceof Error ? error.message : translate('errors.save'),
       );
     } finally {
       setIsSaving(false);
     }
-  }, [agentId, getAgentService, onBound, overrides, selectedId]);
+  }, [agentId, getAgentService, onBound, overrides, selectedId, translate]);
 
   const currentTemplate = strategy.preferredWorkflowTemplateId;
 
@@ -171,15 +173,14 @@ export default function AgentWorkflowBindCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <h3 className="text-sm font-semibold text-foreground">
-            Bound workflow
+            {translate('title')}
           </h3>
           <p className="text-xs text-foreground/55">
-            Deterministic Run workflow uses this graph. Hire presets seed a
-            template when empty; pick a workflow to pin one permanently.
+            {translate('description')}
           </p>
           {currentTemplate && !strategy.preferredWorkflowId ? (
             <p className="text-xs text-foreground/50">
-              Template default:{' '}
+              {translate('templateDefault')}{' '}
               <span className="font-medium text-foreground">
                 {currentTemplate}
               </span>
@@ -199,7 +200,7 @@ export default function AgentWorkflowBindCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={CLEAR_BINDING}>
-                Use template default / unbound
+                {translate('unbound')}
               </SelectItem>
               {options.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
@@ -215,11 +216,10 @@ export default function AgentWorkflowBindCard({
         <div className="flex items-center justify-between gap-2">
           <div>
             <h4 className="text-sm font-medium text-foreground">
-              Saved input overrides
+              {translate('overrides.title')}
             </h4>
             <p className="text-xs text-foreground/50">
-              Applied on every Run workflow for exact workflow slot keys (topic,
-              prompt, customHook, …).
+              {translate('overrides.description')}
             </p>
           </div>
           <Button

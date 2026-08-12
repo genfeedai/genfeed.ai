@@ -119,6 +119,113 @@
       "open": "Open calendar"
     }
   },
+  "automation": {
+    "agentHub": {
+      "card": {
+        "brand": "Brand: {brand}",
+        "creditsToday": "Credits today",
+        "lastRun": "Last run",
+        "viewDetail": "View detail",
+        "workflow": "Workflow: {workflow}",
+        "workflowDefault": "Workflow: type default on first run"
+      },
+      "empty": {
+        "description": "Hire a content agent to fill workflow prompts and run production graphs",
+        "title": "No agents yet"
+      }
+    },
+    "replies": {
+      "actions": {
+        "draft": "Draft",
+        "refresh": "Refresh inbox",
+        "send": "Send reply"
+      },
+      "description": "Choose how to respond — warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
+      "platform": {
+        "label": "Platform",
+        "twitter": "X (Twitter)",
+        "youtube": "YouTube"
+      },
+      "status": {
+        "off": "Auto-replies off",
+        "on": "Auto-replies on",
+        "skipAuto": "skip auto"
+      }
+    },
+    "workflowBinding": {
+      "description": "Deterministic Run workflow uses this graph. Hire presets seed a template when empty; pick a workflow to pin one permanently.",
+      "errors": {
+        "load": "Could not load workflows",
+        "save": "Could not save binding"
+      },
+      "notifications": {
+        "cleared": "Binding cleared; overrides saved",
+        "saved": "Workflow binding and overrides saved"
+      },
+      "overrides": {
+        "description": "Applied on every Run workflow for exact workflow slot keys (topic, prompt, customHook, …).",
+        "title": "Saved input overrides"
+      },
+      "templateDefault": "Template default:",
+      "title": "Bound workflow",
+      "unbound": "Use template default / unbound"
+    },
+    "workflowRun": {
+      "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",
+      "defaultWorkflow": "Default content workflow",
+      "fields": {
+        "additionalSlots": "Additional workflow slots",
+        "cta": "CTA (optional)",
+        "noImages": "No library images found — paste a URL below or upload in Library first.",
+        "noLibraryImage": "None (use URL)",
+        "prompt": "Prompt / script / angle",
+        "referenceLibrary": "Reference image from library",
+        "referenceUrl": "Reference image URL (optional fallback)",
+        "slotPreview": "Slot preview",
+        "topic": "Topic"
+      },
+      "loading": "Loading workflow binding…",
+      "requiredMissing": "Fill required slots before run: {slots}",
+      "requiredReady": "Required slots can be filled from this form + agent defaults.",
+      "title": "Run workflow"
+    }
+  },
+  "following": {
+    "actions": {
+      "createDraft": "Create draft",
+      "openSource": "Open source",
+      "quote": "Quote",
+      "reply": "Reply",
+      "repost": "Repost",
+      "sendToAgent": "Send to agent"
+    },
+    "errors": {
+      "load": "Failed to load the following feed."
+    },
+    "filters": {
+      "allPlatforms": "All platforms"
+    },
+    "manage": {
+      "empty": "No followed sources yet.",
+      "summary": "{active} active of {total} sources",
+      "title": "Manage sources"
+    }
+  },
+  "livestreamBot": {
+    "contextSource": {
+      "audioUrl": "Audio URL → speech-to-text",
+      "description": "Streaming via Restream Studio: use Restream Chat for audience context. Host speech is not OBS — push captions/STT into Genfeed while the encoder feeds Restream.",
+      "externalCaptions": "External captions → Genfeed (host speech on Restream)",
+      "label": "Context source (Restream-first)",
+      "manual": "Manual paste / API",
+      "restreamChat": "Restream Chat (multi-destination audience)"
+    },
+    "restreamAccount": {
+      "autoDetect": "Auto-detect from brand (or none)",
+      "description": "Connect Restream OAuth for unified multi-destination chat. Empty auto-binds the brand's connected RESTREAM credential at runtime.",
+      "label": "Restream account"
+    }
+  },
   "postEditor": {
     "content": "Content",
     "format": {
@@ -184,6 +291,18 @@
       "switchTo": "Switch to {plan}",
       "unavailable": "This plan is not available in this environment yet.",
       "upgradeTo": "Upgrade to {plan}"
+    }
+  },
+  "twitterPipeline": {
+    "opportunity": {
+      "editBeforePublishing": "Edit before publishing",
+      "published": "Published successfully",
+      "types": {
+        "quote": "Quote",
+        "reply": "Reply",
+        "repost": "Repost"
+      },
+      "viewTweet": "View tweet"
     }
   }
 }

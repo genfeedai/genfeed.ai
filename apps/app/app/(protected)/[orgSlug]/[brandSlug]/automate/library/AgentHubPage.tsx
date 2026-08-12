@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
@@ -81,6 +82,7 @@ function AgentCard({
   onRunNow: (id: string) => Promise<void>;
   onRunWorkflow: (strategy: AgentStrategy) => void;
 }) {
+  const translate = useTranslations('common.automation.agentHub');
   const agentType = strategy.agentType as AgentType;
   const icon = AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />;
   const typeLabel = AGENT_TYPE_LABELS[agentType] ?? strategy.agentType;
@@ -115,17 +117,21 @@ function AgentCard({
 
       {strategy.brand && (
         <p className="text-xs text-foreground/50">
-          Brand: {strategy.brand.label}
+          {translate('card.brand', { brand: strategy.brand.label })}
         </p>
       )}
 
       <div className="grid grid-cols-2 gap-2 text-xs text-foreground/60">
         <div>
-          <span className="block text-foreground/40">Last run</span>
+          <span className="block text-foreground/40">
+            {translate('card.lastRun')}
+          </span>
           <span>{lastRunLabel}</span>
         </div>
         <div>
-          <span className="block text-foreground/40">Credits today</span>
+          <span className="block text-foreground/40">
+            {translate('card.creditsToday')}
+          </span>
           <span>
             {strategy.creditsUsedToday} / {strategy.dailyCreditBudget}
           </span>
@@ -134,12 +140,16 @@ function AgentCard({
 
       {hasWorkflowBinding ? (
         <p className="text-xs text-foreground/40">
-          Workflow:{' '}
-          {strategy.preferredWorkflowTemplateId || strategy.preferredWorkflowId}
+          {translate('card.workflow', {
+            workflow:
+              strategy.preferredWorkflowTemplateId ||
+              strategy.preferredWorkflowId ||
+              '',
+          })}
         </p>
       ) : (
         <p className="text-xs text-foreground/40">
-          Workflow: type default on first run
+          {translate('card.workflowDefault')}
         </p>
       )}
 
@@ -170,7 +180,7 @@ function AgentCard({
           href={`/automate/${strategy.id}`}
           className="ml-auto text-xs text-foreground/50 hover:text-foreground underline underline-offset-2"
         >
-          View detail
+          {translate('card.viewDetail')}
         </Link>
       </div>
     </div>
@@ -178,6 +188,7 @@ function AgentCard({
 }
 
 export default function AgentHubPage() {
+  const translate = useTranslations('common.automation.agentHub');
   const { strategies, isLoading, refresh } = useAgentStrategies();
   const notificationsService = NotificationsService.getInstance();
   const router = useRouter();
@@ -337,10 +348,9 @@ export default function AgentHubPage() {
             <Cpu className="size-8" />
           </span>
           <div>
-            <p className="text-lg font-medium">No agents yet</p>
+            <p className="text-lg font-medium">{translate('empty.title')}</p>
             <p className="mt-1 text-sm text-foreground/50">
-              Hire a content agent to fill workflow prompts and run production
-              graphs
+              {translate('empty.description')}
             </p>
           </div>
           <Link href={APP_ROUTES.AUTOMATE.NEW}>

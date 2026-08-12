@@ -15,7 +15,8 @@ import {
   type HarnessSourceRecord,
 } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, type Type } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 export type ResolveHarnessBriefParams = {
   brandId?: string;
@@ -52,21 +53,27 @@ export class HarnessGenerationService {
     private readonly harnessProfilesService?: HarnessProfilesService,
     @Optional()
     private readonly contextsService?: ContextsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   async resolveBrief(
     params: ResolveHarnessBriefParams,
   ): Promise<ContentHarnessBrief | null> {
-    if (
-      !params.brandId ||
-      !this.brandsService ||
-      !this.harnessProfilesService
-    ) {
+    const brandsService = this.resolveProvider(
+      this.brandsService,
+      BrandsService,
+    );
+    const harnessProfilesService = this.resolveProvider(
+      this.harnessProfilesService,
+      HarnessProfilesService,
+    );
+    if (!params.brandId || !brandsService || !harnessProfilesService) {
       return null;
     }
 
     try {
-      const brand = await this.brandsService.findOne({
+      const brand = await brandsService.findOne({
         id: params.brandId,
         isDeleted: false,
         organizationId: params.organizationId,
@@ -76,7 +83,7 @@ export class HarnessGenerationService {
       }
 
       const profileContribution =
-        await this.harnessProfilesService.buildContributionForBrand(
+        await harnessProfilesService.buildContributionForBrand(
           params.organizationId,
           params.brandId,
         );
@@ -147,12 +154,16 @@ export class HarnessGenerationService {
     organizationId: string;
     topic: string;
   }): Promise<HarnessSourceRecord[]> {
-    if (!this.contextsService) {
+    const contextsService = this.resolveProvider(
+      this.contextsService,
+      ContextsService,
+    );
+    if (!contextsService) {
       return [];
     }
 
     try {
-      const hits = await this.contextsService.retrieveBrandContentMemory({
+      const hits = await contextsService.retrieveBrandContentMemory({
         brandId: params.brandId,
         limit: 5,
         minRelevance: 0.65,
@@ -173,6 +184,20 @@ export class HarnessGenerationService {
         },
       );
       return [];
+    }
+  }
+
+  private resolveProvider<T>(
+    direct: T | undefined,
+    token: Type<T>,
+  ): T | undefined {
+    if (direct) {
+      return direct;
+    }
+    try {
+      return this.moduleRef?.get(token, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 }

@@ -963,9 +963,9 @@ export class CronPostsService {
     }
 
     const postPreview =
-      readPostString(post, 'title') ||
-      readPostString(post, 'text') ||
-      readPostString(post, 'content') ||
+      readPostString(post, ['title']) ||
+      readPostString(post, ['text']) ||
+      readPostString(post, ['content']) ||
       undefined;
     const watchPlatform = isYouTube ? 'youtube' : 'twitter';
 

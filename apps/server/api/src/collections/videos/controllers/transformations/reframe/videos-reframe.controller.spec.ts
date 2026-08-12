@@ -14,6 +14,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { HttpException } from '@nestjs/common';
 
 vi.mock('@api/collections/metadata/services/metadata.service', () => ({
@@ -139,6 +140,10 @@ describe('VideosReframeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosReframeController],
       providers: [
+        {
+          provide: CreditDeductionQueueService,
+          useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
+        },
         {
           provide: ActivitiesService,
           useValue: mockServices.activitiesService,

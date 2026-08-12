@@ -1,4 +1,7 @@
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+import type { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TwitterSocialAdapter', () => {
@@ -46,9 +49,9 @@ describe('TwitterSocialAdapter', () => {
       warn: vi.fn(),
     };
     adapter = new TwitterSocialAdapter(
-      mockTwitterService,
-      mockCredentialsService,
-      mockLogger,
+      mockTwitterService as unknown as TwitterService,
+      mockCredentialsService as unknown as CredentialsService,
+      mockLogger as unknown as LoggerService,
     );
   });
 
@@ -61,6 +64,7 @@ describe('TwitterSocialAdapter', () => {
         recipientId: 'user456',
         text: 'Hello!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -83,6 +87,7 @@ describe('TwitterSocialAdapter', () => {
         postId: 'tweet_original',
         text: 'Nice tweet!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockTwitterService.uploadMedia).toHaveBeenCalledWith(
@@ -104,6 +109,7 @@ describe('TwitterSocialAdapter', () => {
         postId: 'tweet_original',
         text: 'Nice tweet!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockTwitterService.postTweet).toHaveBeenCalledWith(
@@ -485,6 +491,7 @@ describe('TwitterSocialAdapter', () => {
         recipientId: 'user456',
         text: 'Hello!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -503,6 +510,7 @@ describe('TwitterSocialAdapter', () => {
         recipientId: 'user456',
         text: 'Hello!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(

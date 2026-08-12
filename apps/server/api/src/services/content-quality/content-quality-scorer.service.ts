@@ -10,6 +10,7 @@ import { QualityStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -88,6 +89,8 @@ export class ContentQualityScorerService {
     private readonly postsService: PostsService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {
     this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
@@ -95,7 +98,8 @@ export class ContentQualityScorerService {
   private async resolveHarnessScoringContext(
     context: Record<string, unknown> | undefined,
   ): Promise<string | undefined> {
-    if (!this.harnessGenerationService || !context) {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!harnessGenerationService || !context) {
       return undefined;
     }
     const brandId =
@@ -115,14 +119,27 @@ export class ContentQualityScorerService {
         : contentTypeRaw === 'ad-creative'
           ? 'ad-creative'
           : 'image';
-    const brief = await this.harnessGenerationService.resolveBrief({
+    const brief = await harnessGenerationService.resolveBrief({
       brandId,
       contentType,
       objective: 'engagement',
       organizationId,
     });
-    const formatted = this.harnessGenerationService.formatBrief(brief);
+    const formatted = harnessGenerationService.formatBrief(brief);
     return formatted || undefined;
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 
   /**

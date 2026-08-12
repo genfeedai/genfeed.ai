@@ -5,17 +5,20 @@ import {
 } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, type Type } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 const LIVESTREAM_BOT_LOCK_TTL_SECONDS = 60;
 
 @Injectable()
 export class LivestreamBotWorkflowService {
   constructor(
-    private readonly botsLivestreamService: BotsLivestreamService,
+    @Optional()
+    private readonly botsLivestreamService: BotsLivestreamService | undefined,
     private readonly cacheService: CacheService,
     @Optional() private readonly botsService?: BotsService,
     @Optional() private readonly restreamChatService?: BotsRestreamChatService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async runActiveSessionProcessing(
@@ -42,7 +45,23 @@ export class LivestreamBotWorkflowService {
     }
 
     try {
-      return await this.botsLivestreamService.processActiveSessionsForOrganization(
+      const botsLivestreamService = this.resolveProvider(
+        this.botsLivestreamService,
+        BotsLivestreamService,
+      );
+      if (!botsLivestreamService) {
+        return {
+          action,
+          failed: 0,
+          organizationId,
+          processed: 0,
+          reason: 'livestream_bot_service_unavailable',
+          sessions: 0,
+          skipped: 1,
+          status: 'skipped',
+        };
+      }
+      return await botsLivestreamService.processActiveSessionsForOrganization(
         organizationId,
       );
     } finally {
@@ -57,7 +76,12 @@ export class LivestreamBotWorkflowService {
     organizationId: string,
     botId: string,
   ): Promise<Record<string, unknown>> {
-    if (!this.botsService || !this.restreamChatService) {
+    const botsService = this.resolveProvider(this.botsService, BotsService);
+    const restreamChatService = this.resolveProvider(
+      this.restreamChatService,
+      BotsRestreamChatService,
+    );
+    if (!botsService || !restreamChatService) {
       return {
         action: 'restreamChatIngest',
         ingested: 0,
@@ -67,7 +91,7 @@ export class LivestreamBotWorkflowService {
       };
     }
 
-    const bot = await this.botsService.findOne({
+    const bot = await botsService.findOne({
       id: botId,
       isDeleted: false,
       organizationId,
@@ -84,7 +108,7 @@ export class LivestreamBotWorkflowService {
       };
     }
 
-    const result = await this.restreamChatService.syncActiveSessionChat(bot);
+    const result = await restreamChatService.syncActiveSessionChat(bot);
     return {
       action: 'restreamChatIngest',
       botId,
@@ -92,5 +116,19 @@ export class LivestreamBotWorkflowService {
       organizationId,
       status: result.ingested > 0 ? 'completed' : 'skipped',
     };
+  }
+
+  private resolveProvider<T>(
+    direct: T | undefined,
+    token: Type<T>,
+  ): T | undefined {
+    if (direct) {
+      return direct;
+    }
+    try {
+      return this.moduleRef?.get(token, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 }

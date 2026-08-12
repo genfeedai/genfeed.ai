@@ -219,6 +219,7 @@ describe('SocialMonitorService', () => {
     const result = await service.getUserTimeline(
       ReplyBotPlatform.TWITTER,
       'bob',
+      { preferOfficialApi: false },
     );
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe('Original tweet');

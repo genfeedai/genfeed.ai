@@ -123,11 +123,11 @@ describe('BotActionExecutorService', () => {
     );
 
     it('should route to Instagram when platform is instagram', async () => {
-      const credential = {
+      const credential: IReplyBotCredentialData = {
         accessToken: 'encrypted-token',
         brandId: 'brand-1',
         organizationId: 'org-1',
-        platform: 'instagram',
+        platform: ReplyBotPlatform.INSTAGRAM,
       };
       const targetContent = {
         authorId: 'author-1',
@@ -155,7 +155,10 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should return error for Instagram when organizationId is missing', async () => {
-      const credential = { accessToken: 'token', platform: 'instagram' };
+      const credential: IReplyBotCredentialData = {
+        accessToken: 'token',
+        platform: ReplyBotPlatform.INSTAGRAM,
+      };
       const targetContent = {
         authorId: 'author-1',
         authorUsername: 'user1',
@@ -173,11 +176,11 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should route to YouTube when platform is youtube', async () => {
-      const credential = {
+      const credential: IReplyBotCredentialData = {
         accessToken: 'token',
         brandId: 'brand-1',
         organizationId: 'org-1',
-        platform: 'youtube',
+        platform: ReplyBotPlatform.YOUTUBE,
       };
       const targetContent = {
         authorId: 'author-1',
@@ -205,7 +208,10 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should return error for YouTube when organizationId is missing', async () => {
-      const credential = { accessToken: 'token', platform: 'youtube' };
+      const credential: IReplyBotCredentialData = {
+        accessToken: 'token',
+        platform: ReplyBotPlatform.YOUTUBE,
+      };
       const targetContent = {
         authorId: 'author-1',
         authorUsername: 'viewer1',
@@ -277,11 +283,11 @@ describe('BotActionExecutorService', () => {
     );
 
     it('should route to Instagram DM when platform is instagram', async () => {
-      const credential = {
+      const credential: IReplyBotCredentialData = {
         accessToken: 'token',
         brandId: 'brand-1',
         organizationId: 'org-1',
-        platform: 'instagram',
+        platform: ReplyBotPlatform.INSTAGRAM,
       };
       mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
 
@@ -297,7 +303,10 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should return error for Instagram DM when organizationId is missing', async () => {
-      const credential = { accessToken: 'token', platform: 'instagram' };
+      const credential: IReplyBotCredentialData = {
+        accessToken: 'token',
+        platform: ReplyBotPlatform.INSTAGRAM,
+      };
 
       const result = await service.sendDm(credential, 'recipient-1', 'Hello!');
 
@@ -308,11 +317,11 @@ describe('BotActionExecutorService', () => {
 
   describe('executeActions', () => {
     it('should return only reply result when no dmText provided', async () => {
-      const credential = {
+      const credential: IReplyBotCredentialData = {
         accessToken: 'token',
         brandId: 'brand-1',
         organizationId: 'org-1',
-        platform: 'instagram',
+        platform: ReplyBotPlatform.INSTAGRAM,
       };
       const targetContent = {
         authorId: 'author-1',
@@ -332,7 +341,10 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should not send DM when reply fails', async () => {
-      const credential = { accessToken: 'token', platform: 'instagram' };
+      const credential: IReplyBotCredentialData = {
+        accessToken: 'token',
+        platform: ReplyBotPlatform.INSTAGRAM,
+      };
       const targetContent = {
         authorId: 'author-1',
         authorUsername: 'user1',
@@ -352,11 +364,11 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should send DM after successful reply with no delay', async () => {
-      const credential = {
+      const credential: IReplyBotCredentialData = {
         accessToken: 'token',
         brandId: 'brand-1',
         organizationId: 'org-1',
-        platform: 'instagram',
+        platform: ReplyBotPlatform.INSTAGRAM,
       };
       const targetContent = {
         authorId: 'author-1',

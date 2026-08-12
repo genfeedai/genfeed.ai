@@ -8,10 +8,12 @@ import {
   Controller,
   Get,
   HttpCode,
+  Optional,
   Post,
   Query,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 /**
@@ -26,8 +28,12 @@ export class XActivityWebhookController {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly xActivityWebhookService: XActivityWebhookService,
+    @Optional()
+    private readonly xActivityWebhookService:
+      | XActivityWebhookService
+      | undefined,
     private readonly logger: LoggerService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -41,7 +47,7 @@ export class XActivityWebhookController {
     }
 
     try {
-      return this.xActivityWebhookService.handleCrcChallenge(crcToken.trim());
+      return this.resolveService().handleCrcChallenge(crcToken.trim());
     } catch (error: unknown) {
       this.logger.warn(`${this.constructorName} CRC failed`, {
         error: error instanceof Error ? error.message : 'unknown',
@@ -64,12 +70,31 @@ export class XActivityWebhookController {
     mode: string;
     status: string;
   }> {
-    const result = await this.xActivityWebhookService.handleEventPayload(body);
+    const result = await this.resolveService().handleEventPayload(body);
     return {
       enqueued: result.enqueued,
       ignored: result.ignored,
       mode: result.mode,
       status: 'accepted',
     };
+  }
+
+  private resolveService(): XActivityWebhookService {
+    if (this.xActivityWebhookService) {
+      return this.xActivityWebhookService;
+    }
+    try {
+      const resolved = this.moduleRef?.get(XActivityWebhookService, {
+        strict: false,
+      });
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Converted below to a stable API error.
+    }
+    throw new ServiceUnavailableException(
+      'X webhook processing is unavailable',
+    );
   }
 }

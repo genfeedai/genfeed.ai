@@ -10,7 +10,7 @@ export const DEFAULT_REPLY_MAX_AGE_HOURS = 24;
 export const MAX_REPLY_MAX_AGE_HOURS = 48;
 
 const THANKS_RE =
-  /\b(thank(?:s| you)|thx|ty|appreciate|grateful|love this|great (?:post|point|take)|well said|so true|this)\b/i;
+  /\b(thank(?:s| you)|thx|ty|appreciate|grateful|love this|great (?:post|point|take)|well said|so true)\b|^this[!.]?$/i;
 
 const QUESTION_RE =
   /\?|^(what|why|how|when|where|who|which|can|could|would|should|is|are|do|does|did)\b/i;

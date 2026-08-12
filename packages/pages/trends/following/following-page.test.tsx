@@ -39,6 +39,29 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.routerPush }),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const messages: Record<string, string> = {
+        'actions.createDraft': 'Create draft',
+        'actions.openSource': 'Open source',
+        'actions.quote': 'Quote',
+        'actions.reply': 'Reply',
+        'actions.repost': 'Repost',
+        'actions.sendToAgent': 'Send to agent',
+        'errors.load': 'Failed to load the following feed.',
+        'filters.allPlatforms': 'All platforms',
+        'manage.empty': 'No followed sources yet.',
+        'manage.summary': '{active} active of {total} sources',
+        'manage.title': 'Manage sources',
+      };
+      return (messages[key] ?? key).replace(
+        /\{(\w+)\}/g,
+        (_match, name: string) => String(values?.[name] ?? ''),
+      );
+    },
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));

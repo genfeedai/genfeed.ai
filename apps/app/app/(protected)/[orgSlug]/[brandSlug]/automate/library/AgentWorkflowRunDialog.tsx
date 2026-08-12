@@ -27,6 +27,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Workflow } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildAgentWorkflowRunInput,
@@ -97,6 +98,7 @@ export default function AgentWorkflowRunDialog({
   onSubmit,
   strategy,
 }: AgentWorkflowRunDialogProps) {
+  const translate = useTranslations('common.automation.workflowRun');
   const [topic, setTopic] = useState('');
   const [prompt, setPrompt] = useState('');
   const [referenceImage, setReferenceImage] = useState('');
@@ -252,7 +254,7 @@ export default function AgentWorkflowRunDialog({
   const workflowLabel =
     binding?.workflowLabel ||
     binding?.preferredWorkflowTemplateId ||
-    'Default content workflow';
+    translate('defaultWorkflow');
   const canSubmit =
     !isSubmitting && !isLoadingBinding && unfilledRequired.length === 0;
 
@@ -262,7 +264,7 @@ export default function AgentWorkflowRunDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Workflow className="size-4" />
-            Run workflow
+            {translate('title')}
           </DialogTitle>
           <DialogDescription>
             {strategy
@@ -274,7 +276,7 @@ export default function AgentWorkflowRunDialog({
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="rounded bg-foreground/5 px-3 py-2 text-xs text-foreground/70">
             {isLoadingBinding ? (
-              <span>Loading workflow binding…</span>
+              <span>{translate('loading')}</span>
             ) : (
               <>
                 <span className="font-medium text-foreground">
@@ -287,18 +289,19 @@ export default function AgentWorkflowRunDialog({
                 ) : null}
                 {unfilledRequired.length > 0 ? (
                   <p className="mt-1 text-warning">
-                    Fill required slots before run:{' '}
-                    {unfilledRequired.join(', ')}
+                    {translate('requiredMissing', {
+                      slots: unfilledRequired.join(', '),
+                    })}
                   </p>
                 ) : missing.length > 0 ? (
                   <p className="mt-1 text-foreground/50">
-                    Binding preview still lists: {missing.join(', ')} — form
-                    values will fill them on submit.
+                    {translate('bindingPreview', {
+                      slots: missing.join(', '),
+                    })}
                   </p>
                 ) : (
                   <p className="mt-1 text-success">
-                    Required slots can be filled from this form + agent
-                    defaults.
+                    {translate('requiredReady')}
                   </p>
                 )}
               </>
@@ -306,7 +309,9 @@ export default function AgentWorkflowRunDialog({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">Topic</span>
+            <span className="text-sm font-medium text-foreground">
+              {translate('fields.topic')}
+            </span>
             <Input
               id="agent-workflow-topic"
               value={topic}
@@ -317,7 +322,7 @@ export default function AgentWorkflowRunDialog({
 
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-foreground">
-              Prompt / script / angle
+              {translate('fields.prompt')}
             </span>
             <Textarea
               id="agent-workflow-prompt"
@@ -330,7 +335,7 @@ export default function AgentWorkflowRunDialog({
 
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-foreground">
-              Reference image from library
+              {translate('fields.referenceLibrary')}
             </span>
             <Select
               value={selectedIngredientId}
@@ -346,7 +351,9 @@ export default function AgentWorkflowRunDialog({
                 />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_INGREDIENT}>None (use URL)</SelectItem>
+                <SelectItem value={NONE_INGREDIENT}>
+                  {translate('fields.noLibraryImage')}
+                </SelectItem>
                 {libraryImages.map((image) => (
                   <SelectItem key={image.id} value={image.id}>
                     {image.label || image.id}
@@ -356,15 +363,14 @@ export default function AgentWorkflowRunDialog({
             </Select>
             {libraryImages.length === 0 && !isLoadingLibrary ? (
               <p className="text-xs text-foreground/50">
-                No library images found — paste a URL below or upload in Library
-                first.
+                {translate('fields.noImages')}
               </p>
             ) : null}
           </div>
 
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-foreground">
-              Reference image URL (optional fallback)
+              {translate('fields.referenceUrl')}
             </span>
             <Input
               id="agent-workflow-asset"
@@ -377,7 +383,7 @@ export default function AgentWorkflowRunDialog({
 
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-foreground">
-              CTA (optional)
+              {translate('fields.cta')}
             </span>
             <Input
               id="agent-workflow-cta"
@@ -390,7 +396,7 @@ export default function AgentWorkflowRunDialog({
           {extraSlots.length > 0 ? (
             <div className="space-y-3 rounded border border-foreground/10 p-3">
               <p className="text-sm font-medium text-foreground">
-                Additional workflow slots
+                {translate('fields.additionalSlots')}
               </p>
               {extraSlots.map((slot) => (
                 <div key={slot.key} className="space-y-1">
@@ -423,7 +429,7 @@ export default function AgentWorkflowRunDialog({
           {binding && binding.inputs.length > 0 ? (
             <div className="max-h-28 overflow-y-auto rounded border border-foreground/10 p-2 text-xs text-foreground/60">
               <p className="mb-1 font-medium text-foreground/80">
-                Slot preview
+                {translate('fields.slotPreview')}
               </p>
               <ul className="space-y-1">
                 {binding.inputs.map((input) => (

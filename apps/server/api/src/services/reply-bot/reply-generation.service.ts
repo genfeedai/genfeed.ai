@@ -21,6 +21,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface ReplyGenerationOptions {
@@ -101,6 +102,8 @@ export class ReplyGenerationService {
     private readonly templatesService: TemplatesService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -303,12 +306,13 @@ DM text:`;
   private async resolveHarnessContext(
     options: ReplyGenerationOptions,
   ): Promise<string | undefined> {
-    if (!options.brandId || !this.harnessGenerationService) {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!options.brandId || !harnessGenerationService) {
       return undefined;
     }
 
     try {
-      const brief = await this.harnessGenerationService.resolveBrief({
+      const brief = await harnessGenerationService.resolveBrief({
         brandId: options.brandId,
         contentType: 'reply',
         includeContentMemory: true,
@@ -316,7 +320,7 @@ DM text:`;
         platform: options.platform ?? 'twitter',
         topic: options.tweetContent.slice(0, 200),
       });
-      const formatted = this.harnessGenerationService.formatBrief(brief);
+      const formatted = harnessGenerationService.formatBrief(brief);
       return formatted.trim() || undefined;
     } catch (error: unknown) {
       this.loggerService.warn(
@@ -326,6 +330,19 @@ DM text:`;
           error: error instanceof Error ? error.message : 'unknown',
         },
       );
+      return undefined;
+    }
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
       return undefined;
     }
   }

@@ -27,6 +27,11 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org/brand/automate/library/youtube',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 describe('YoutubeChatBot', () => {
   beforeEach(() => {
     vi.clearAllMocks();

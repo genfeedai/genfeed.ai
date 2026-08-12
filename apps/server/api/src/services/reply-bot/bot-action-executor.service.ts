@@ -14,7 +14,8 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { TwitterApi } from 'twitter-api-v2';
 
 @Injectable()
@@ -25,7 +26,8 @@ export class BotActionExecutorService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly instagramService: InstagramService,
-    private readonly youtubeService: YoutubeService,
+    @Optional() private readonly youtubeService: YoutubeService | undefined,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -312,7 +314,11 @@ export class BotActionExecutorService {
         throw new Error('organizationId and brandId required for YouTube');
       }
 
-      const result = await this.youtubeService.replyToComment(
+      const youtubeService = this.resolveYoutubeService();
+      if (!youtubeService) {
+        throw new Error('YouTube integration is unavailable');
+      }
+      const result = await youtubeService.replyToComment(
         credential.organizationId,
         credential.brandId,
         targetContent.id,
@@ -343,6 +349,17 @@ export class BotActionExecutorService {
         error: errorMessage,
         success: false,
       };
+    }
+  }
+
+  private resolveYoutubeService(): YoutubeService | undefined {
+    if (this.youtubeService) {
+      return this.youtubeService;
+    }
+    try {
+      return this.moduleRef?.get(YoutubeService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 

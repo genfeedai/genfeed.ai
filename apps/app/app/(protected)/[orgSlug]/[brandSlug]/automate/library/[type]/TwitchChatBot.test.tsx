@@ -27,6 +27,11 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org-1/brand-1/automate/library/twitch-chat-bot',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 describe('TwitchChatBot', () => {
   beforeEach(() => {
     vi.clearAllMocks();

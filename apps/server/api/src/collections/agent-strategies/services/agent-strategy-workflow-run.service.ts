@@ -15,7 +15,14 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+  type Type,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 type WorkflowInputVariableLike = {
   defaultValue?: unknown;
@@ -44,10 +51,14 @@ export class AgentStrategyWorkflowRunService {
 
   constructor(
     private readonly agentStrategiesService: AgentStrategiesService,
-    private readonly workflowsService: WorkflowsService,
-    private readonly workflowExecutorService: WorkflowExecutorService,
+    @Optional() private readonly workflowsService: WorkflowsService | undefined,
+    @Optional()
+    private readonly workflowExecutorService:
+      | WorkflowExecutorService
+      | undefined,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async preview(
@@ -117,7 +128,12 @@ export class AgentStrategyWorkflowRunService {
       this.logContext,
     );
 
-    const result = await this.workflowExecutorService.executeManualWorkflow(
+    const workflowExecutorService = this.resolveRequiredProvider(
+      this.workflowExecutorService,
+      WorkflowExecutorService,
+      'Workflow executor',
+    );
+    const result = await workflowExecutorService.executeManualWorkflow(
       resolved.id,
       userId,
       organizationId,
@@ -228,7 +244,12 @@ export class AgentStrategyWorkflowRunService {
       status: WorkflowStatus.ACTIVE,
       templateId,
     };
-    const created = await this.workflowsService.createWorkflow(
+    const workflowsService = this.resolveRequiredProvider(
+      this.workflowsService,
+      WorkflowsService,
+      'Workflows',
+    );
+    const created = await workflowsService.createWorkflow(
       options.userId,
       organizationId,
       workflowCreate,
@@ -246,7 +267,12 @@ export class AgentStrategyWorkflowRunService {
       return null;
     }
 
-    const workflow = await this.workflowsService.findOne({
+    const workflowsService = this.resolveRequiredProvider(
+      this.workflowsService,
+      WorkflowsService,
+      'Workflows',
+    );
+    const workflow = await workflowsService.findOne({
       id: workflowId,
       isDeleted: false,
       organizationId,
@@ -278,6 +304,25 @@ export class AgentStrategyWorkflowRunService {
           ? metadata.sourceTemplateId
           : null,
     };
+  }
+
+  private resolveRequiredProvider<T>(
+    direct: T | undefined,
+    token: Type<T>,
+    label: string,
+  ): T {
+    if (direct) {
+      return direct;
+    }
+    try {
+      const resolved = this.moduleRef?.get(token, { strict: false });
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Converted below to a stable API error.
+    }
+    throw new ServiceUnavailableException(`${label} service is unavailable`);
   }
 
   private async findInstalledByTemplateId(

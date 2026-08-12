@@ -2105,46 +2105,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/twitter-social.adapter.spec.ts",
-      "fingerprint": "02693e6f24b52008ebe9",
-      "message": "Argument of type '{ brandId: string; organizationId: string; platform: \"twitter\"; recipientId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ brandId: string; organizationId: string; platform: \"twitter\"; recipientId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/twitter-social.adapter.spec.ts",
-      "fingerprint": "41e4bbe573be48273317",
-      "message": "Argument of type '{ mediaUrl: string; organizationId: string; platform: \"twitter\"; postId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ mediaUrl: string; organizationId: string; platform: \"twitter\"; postId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/twitter-social.adapter.spec.ts",
-      "fingerprint": "79bacc57262f90bd211e",
-      "message": "Argument of type '{ organizationId: string; platform: \"twitter\"; recipientId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ organizationId: string; platform: \"twitter\"; recipientId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/twitter-social.adapter.spec.ts",
-      "fingerprint": "cbbfe185c13ac42eaf10",
-      "message": "Argument of type '{ getFollowers: Mock<Procedure | Constructable>; getMediaAnalyticsBatch: Mock<Procedure | Constructable>; ... 6 more ...; uploadMedia: Mock<...>; }' is not assignable to parameter of type 'TwitterService'.   Type '{ getFollowers: Mock<Procedure | Constructable>; getMediaAnalyticsBatch: Mock<Procedure | Constructable>; ... 6 more ...; uploadMedia: Mock<...>; }' is missing the following properties from type 'TwitterService': constructorName, twitterClient, configService, loggerService, and 10 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/twitter-social.adapter.spec.ts",
-      "fingerprint": "ee39c00be12d5703b9b7",
-      "message": "Argument of type '{ organizationId: string; platform: \"twitter\"; postId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ organizationId: string; platform: \"twitter\"; postId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2344,
       "count": 5,
       "file": "apps/server/api/src/collections/workflows/services/batch-workflow-queue.service.spec.ts",

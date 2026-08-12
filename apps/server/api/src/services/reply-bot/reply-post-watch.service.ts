@@ -10,7 +10,8 @@ import type {
   ReplyPostWatchResult,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class ReplyPostWatchService {
@@ -19,8 +20,12 @@ export class ReplyPostWatchService {
   constructor(
     private readonly logger: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
-    private readonly replyInboundQueueService: ReplyInboundQueueService,
+    @Optional()
+    private readonly replyInboundQueueService:
+      | ReplyInboundQueueService
+      | undefined,
     private readonly processedTweetsService: ProcessedTweetsService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async runWatchAttempt(
@@ -59,7 +64,11 @@ export class ReplyPostWatchService {
           continue;
         }
 
-        await this.replyInboundQueueService.enqueueInbound({
+        const replyInboundQueueService = this.resolveReplyInboundQueueService();
+        if (!replyInboundQueueService) {
+          continue;
+        }
+        await replyInboundQueueService.enqueueInbound({
           brandId: data.brandId,
           commentAuthorId: comment.authorId,
           commentAuthorUsername: comment.authorUsername,
@@ -96,5 +105,18 @@ export class ReplyPostWatchService {
       organizationId: data.organizationId,
       postId: data.postId,
     };
+  }
+
+  private resolveReplyInboundQueueService():
+    | ReplyInboundQueueService
+    | undefined {
+    if (this.replyInboundQueueService) {
+      return this.replyInboundQueueService;
+    }
+    try {
+      return this.moduleRef?.get(ReplyInboundQueueService, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 }

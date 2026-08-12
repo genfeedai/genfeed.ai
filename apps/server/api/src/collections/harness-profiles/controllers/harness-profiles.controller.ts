@@ -19,12 +19,15 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -34,7 +37,10 @@ import type { Request } from 'express';
 export class HarnessProfilesController {
   constructor(
     private readonly harnessProfilesService: HarnessProfilesService,
-    private readonly harnessWinnerPromotionService: HarnessWinnerPromotionService,
+    @Optional()
+    private readonly harnessWinnerPromotionService?: HarnessWinnerPromotionService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   @Get()
@@ -91,12 +97,34 @@ export class HarnessProfilesController {
       throw new BadRequestException('brandId is required');
     }
 
-    return this.harnessWinnerPromotionService.promoteTopPerformers({
+    const harnessWinnerPromotionService =
+      this.resolveHarnessWinnerPromotionService();
+    if (!harnessWinnerPromotionService) {
+      throw new ServiceUnavailableException(
+        'Harness winner promotion is unavailable',
+      );
+    }
+    return harnessWinnerPromotionService.promoteTopPerformers({
       brandId: dto.brandId,
       limit: dto.limit,
       organizationId: organization,
       platform: dto.platform,
     });
+  }
+
+  private resolveHarnessWinnerPromotionService():
+    | HarnessWinnerPromotionService
+    | undefined {
+    if (this.harnessWinnerPromotionService) {
+      return this.harnessWinnerPromotionService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessWinnerPromotionService, {
+        strict: false,
+      });
+    } catch {
+      return undefined;
+    }
   }
 
   @Patch(':profileId')

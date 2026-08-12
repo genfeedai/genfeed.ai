@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 
 type LivestreamFormState = {
   contextTemplate: string;
@@ -65,6 +66,7 @@ export default function LivestreamBotConfigCard({
   onSave,
   restreamCredentials = [],
 }: Props) {
+  const translate = useTranslations('common.livestreamBot');
   return (
     <Card className="p-6">
       <div className="grid gap-4 md:grid-cols-2">
@@ -120,7 +122,7 @@ export default function LivestreamBotConfigCard({
         />
         <div className="space-y-1.5">
           <span className="text-sm font-medium text-foreground">
-            Context source (Restream-first)
+            {translate('contextSource.label')}
           </span>
           <Select
             value={form.transcriptSource}
@@ -131,30 +133,28 @@ export default function LivestreamBotConfigCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={LivestreamTranscriptSource.MANUAL}>
-                Manual paste / API
+                {translate('contextSource.manual')}
               </SelectItem>
               <SelectItem value={LivestreamTranscriptSource.AUDIO_URL}>
-                Audio URL → speech-to-text
+                {translate('contextSource.audioUrl')}
               </SelectItem>
               <SelectItem value={LivestreamTranscriptSource.RESTREAM_CHAT}>
-                Restream Chat (multi-destination audience)
+                {translate('contextSource.restreamChat')}
               </SelectItem>
               <SelectItem
                 value={LivestreamTranscriptSource.EXTERNAL_CAPTION_WEBHOOK}
               >
-                External captions → Genfeed (host speech on Restream)
+                {translate('contextSource.externalCaptions')}
               </SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-foreground/50">
-            Streaming via Restream Studio: use Restream Chat for audience
-            context. Host speech is not OBS — push captions/STT into Genfeed
-            while the encoder feeds Restream.
+            {translate('contextSource.description')}
           </p>
         </div>
         <div className="space-y-1.5">
           <span className="text-sm font-medium text-foreground">
-            Restream account
+            {translate('restreamAccount.label')}
           </span>
           {restreamCredentials.length > 0 ? (
             <Select
@@ -170,7 +170,7 @@ export default function LivestreamBotConfigCard({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE_RESTREAM}>
-                  Auto-detect from brand (or none)
+                  {translate('restreamAccount.autoDetect')}
                 </SelectItem>
                 {restreamCredentials.map((credential) => (
                   <SelectItem key={credential.id} value={credential.id}>
@@ -205,9 +205,7 @@ export default function LivestreamBotConfigCard({
             </div>
           )}
           <p className="text-xs text-foreground/50">
-            Connect Restream OAuth for unified multi-destination chat. Empty
-            auto-binds the brand&apos;s connected RESTREAM credential at
-            runtime.
+            {translate('restreamAccount.description')}
           </p>
           {restreamCredentials.length > 0 && onConnectRestream ? (
             <Button

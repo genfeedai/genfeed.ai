@@ -36,7 +36,9 @@ describe('agent-type-workflow-defaults', () => {
     ).toBe('youtube-thumbnail-script');
   });
 
-  it('returns null for unknown types without a general default', () => {
-    expect(getAgentTypeWorkflowDefault('not-a-real-type')).toBeNull();
+  it('uses the general workflow as the safe fallback for unknown types', () => {
+    expect(getAgentTypeWorkflowDefault('not-a-real-type')).toEqual(
+      AGENT_TYPE_WORKFLOW_DEFAULTS[AgentType.GENERAL],
+    );
   });
 });

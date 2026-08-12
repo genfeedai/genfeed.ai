@@ -58,6 +58,17 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: () => translateFromCatalog };
+});
+
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,

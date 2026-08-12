@@ -13,6 +13,7 @@ import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
@@ -75,11 +76,12 @@ export class AgentXActionsToolHandler {
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly twitterService: TwitterService,
+    @Optional() private readonly twitterService: TwitterService | undefined,
     private readonly credentialsService: CredentialsService,
     private readonly internalApi: AgentToolInternalApiService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   handles(toolName: AgentToolName): boolean {
@@ -130,9 +132,13 @@ export class AgentXActionsToolHandler {
       25,
     );
     const sortOrder = params.sortOrder === 'recency' ? 'recency' : 'relevancy';
+    const twitterService = this.resolveTwitterService();
+    if (!twitterService) {
+      return this.unavailableResult();
+    }
 
     try {
-      const tweets = await this.twitterService.searchRecentTweets(query, {
+      const tweets = await twitterService.searchRecentTweets(query, {
         maxResults: limit,
         sortOrder,
       });
@@ -192,10 +198,14 @@ export class AgentXActionsToolHandler {
         success: false,
       };
     }
+    const twitterService = this.resolveTwitterService();
+    if (!twitterService) {
+      return this.unavailableResult();
+    }
 
     try {
       const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
-      const tweet = await this.twitterService.getTweetById(postId, {
+      const tweet = await twitterService.getTweetById(postId, {
         brandId,
         organizationId: ctx.organizationId,
       });
@@ -235,6 +245,10 @@ export class AgentXActionsToolHandler {
     const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
     let username = readOptionalString(params.username)?.replace(/^@/, '');
     let accessToken: string | undefined;
+    const twitterService = this.resolveTwitterService();
+    if (!twitterService) {
+      return this.unavailableResult();
+    }
 
     if (!username) {
       if (!brandId) {
@@ -262,13 +276,13 @@ export class AgentXActionsToolHandler {
       }
 
       accessToken =
-        (await this.twitterService.resolveBrandUserAccessToken(
+        (await twitterService.resolveBrandUserAccessToken(
           ctx.organizationId,
           brandId,
         )) ?? undefined;
     } else if (brandId) {
       accessToken =
-        (await this.twitterService.resolveBrandUserAccessToken(
+        (await twitterService.resolveBrandUserAccessToken(
           ctx.organizationId,
           brandId,
         )) ?? undefined;
@@ -280,15 +294,12 @@ export class AgentXActionsToolHandler {
     );
 
     try {
-      const posts = await this.twitterService.getUserTimelineByUsername(
-        username,
-        {
-          accessToken,
-          excludeReplies: params.excludeReplies === true,
-          excludeRetweets: params.excludeRetweets === true,
-          maxResults: limit,
-        },
-      );
+      const posts = await twitterService.getUserTimelineByUsername(username, {
+        accessToken,
+        excludeReplies: params.excludeReplies === true,
+        excludeRetweets: params.excludeRetweets === true,
+        maxResults: limit,
+      });
 
       return {
         creditsUsed: 1,
@@ -324,6 +335,25 @@ export class AgentXActionsToolHandler {
         success: false,
       };
     }
+  }
+
+  private resolveTwitterService(): TwitterService | undefined {
+    if (this.twitterService) {
+      return this.twitterService;
+    }
+    try {
+      return this.moduleRef?.get(TwitterService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private unavailableResult(): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      error: 'X integration is unavailable right now.',
+      success: false,
+    };
   }
 
   private async draftXEngagement(

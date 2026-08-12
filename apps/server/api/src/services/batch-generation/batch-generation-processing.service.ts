@@ -27,7 +27,6 @@ import {
   ContentIntelligencePlatform,
   fromPrismaCredentialPlatform,
   PostVisibility,
-  parsePlatform,
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
@@ -317,14 +316,14 @@ export class BatchGenerationProcessingService {
           typeof item.platform === 'string' && item.platform.trim().length > 0
             ? item.platform.trim()
             : undefined;
-        if (platformRaw && !parsePlatform(platformRaw)) {
+        const platformForCredential = platformRaw
+          ? toPrismaCredentialPlatform(platformRaw)
+          : undefined;
+        if (platformRaw && !platformForCredential) {
           throw new BadRequestException(
             `Invalid batch item platform "${platformRaw}"`,
           );
         }
-        const platformForCredential = platformRaw
-          ? toPrismaCredentialPlatform(platformRaw)
-          : undefined;
 
         await this.invokeLifecycleCallback(
           'onItemStarted',

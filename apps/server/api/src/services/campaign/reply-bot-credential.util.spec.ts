@@ -2,6 +2,7 @@ import {
   readReplyBotCredentialId,
   toReplyBotCredentialData,
 } from '@api/services/campaign/reply-bot-credential.util';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 describe('toReplyBotCredentialData', () => {
@@ -74,7 +75,7 @@ describe('toReplyBotCredentialData', () => {
         {
           brandId: 'brand-1',
           organizationId: 'org-1',
-          platform: 'youtube',
+          platform: ReplyBotPlatform.YOUTUBE,
         },
       ),
     ).toEqual(

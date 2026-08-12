@@ -14,6 +14,7 @@ import {
   RefreshCw,
   SquarePen,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 const TYPE_LABELS: Record<ITwitterOpportunity['type'], string> = {
@@ -45,6 +46,7 @@ export default function OpportunityCard({
   onPublish,
   isPublishing,
 }: OpportunityCardProps) {
+  const translate = useTranslations('common.twitterPipeline.opportunity');
   const [text, setText] = useState(opportunity.suggestedText);
   const [publishResult, setPublishResult] =
     useState<ITwitterPublishResult | null>(null);
@@ -83,7 +85,7 @@ export default function OpportunityCard({
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm font-medium text-emerald-400">
-            Published successfully
+            {translate('published')}
           </span>
         </div>
         {publishResult.tweetUrl && (
@@ -94,7 +96,7 @@ export default function OpportunityCard({
               rel="noopener noreferrer"
             >
               <ExternalLink className="size-4" />
-              View tweet
+              {translate('viewTweet')}
             </a>
           </PrimitiveButton>
         )}
@@ -113,19 +115,19 @@ export default function OpportunityCard({
         {opportunity.type === 'reply' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <MessageCircle className="size-3" />
-            Reply
+            {translate('types.reply')}
           </span>
         )}
         {opportunity.type === 'quote' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <SquarePen className="size-3" />
-            Quote
+            {translate('types.quote')}
           </span>
         )}
         {opportunity.type === 'repost' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <RefreshCw className="size-3" />
-            Repost
+            {translate('types.repost')}
           </span>
         )}
       </div>
@@ -147,7 +149,7 @@ export default function OpportunityCard({
         <div className="flex items-center justify-between mt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <SquarePen className="size-3" />
-            Edit before publishing
+            {translate('editBeforePublishing')}
           </span>
           <span
             className={`text-xs font-mono ${isOverLimit ? 'text-destructive' : 'text-muted-foreground'}`}

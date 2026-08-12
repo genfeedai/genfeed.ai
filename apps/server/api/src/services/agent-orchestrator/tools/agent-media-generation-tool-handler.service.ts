@@ -41,6 +41,7 @@ import { AgentToolName } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Effect } from 'effect';
 
 interface AgentBrandsServiceLike {
@@ -177,6 +178,8 @@ export class AgentMediaGenerationToolHandler {
     private readonly batchGenerationQueueService?: BatchGenerationQueueService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   private async applyBrandHarnessToPrompt(params: {
@@ -185,11 +188,12 @@ export class AgentMediaGenerationToolHandler {
     prompt: string;
     topic?: string;
   }): Promise<string> {
-    if (!this.harnessGenerationService || !params.ctx.brandId) {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!harnessGenerationService || !params.ctx.brandId) {
       return params.prompt;
     }
     try {
-      return await this.harnessGenerationService.applyToMediaPrompt({
+      return await harnessGenerationService.applyToMediaPrompt({
         brandId: params.ctx.brandId,
         contentType: params.contentType,
         organizationId: params.ctx.organizationId,
@@ -198,6 +202,19 @@ export class AgentMediaGenerationToolHandler {
       });
     } catch {
       return params.prompt;
+    }
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
     }
   }
 

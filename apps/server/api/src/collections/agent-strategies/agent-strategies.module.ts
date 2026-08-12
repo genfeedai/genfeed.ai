@@ -20,7 +20,6 @@ import { EvaluationsModule } from '@api/collections/evaluations/evaluations.modu
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -44,7 +43,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OptimizersModule),
     forwardRef(() => PostsModule),
     forwardRef(() => TrendsModule),
-    forwardRef(() => WorkflowsModule),
   ],
   providers: [
     AgentStrategiesService,

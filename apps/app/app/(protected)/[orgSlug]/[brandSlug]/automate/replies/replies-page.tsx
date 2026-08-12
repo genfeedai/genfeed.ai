@@ -20,6 +20,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { MessageCircleReply, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -70,6 +71,7 @@ function intentBadgeVariant(
 }
 
 export default function RepliesPage() {
+  const translate = useTranslations('common.automation.replies');
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
   const getReplyBotService = useAuthedService(ReplyBotConfigsService);
   const connectPlatform = usePlatformOAuthConnect({ brandId: brand?.id });
@@ -316,14 +318,14 @@ export default function RepliesPage() {
               variant={ButtonVariant.OUTLINE}
             >
               <RefreshCw className="size-4" />
-              Refresh inbox
+              {translate('actions.refresh')}
             </Button>
           </div>
         }
       >
         <div className="flex max-w-xs flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">
-            Platform
+            {translate('platform.label')}
           </span>
           <Select
             value={inboxPlatform}
@@ -339,8 +341,12 @@ export default function RepliesPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="twitter">X (Twitter)</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
+              <SelectItem value="twitter">
+                {translate('platform.twitter')}
+              </SelectItem>
+              <SelectItem value="youtube">
+                {translate('platform.youtube')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -353,14 +359,13 @@ export default function RepliesPage() {
             <Badge variant="outline">@{username.replace(/^@/, '')}</Badge>
           ) : null}
           {isActive ? (
-            <Badge variant="success">Auto-replies on</Badge>
+            <Badge variant="success">{translate('status.on')}</Badge>
           ) : (
-            <Badge variant="warning">Auto-replies off</Badge>
+            <Badge variant="warning">{translate('status.off')}</Badge>
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Choose how to respond — warm thanks, clear answers, or a light touch
-          on trolls. Skip spam. Recent comments only.
+          {translate('description')}
         </p>
         {inboxError ? (
           <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -417,7 +422,9 @@ export default function RepliesPage() {
                     {item.intentLabel || intent}
                   </Badge>
                   {item.shouldSkipAuto ? (
-                    <Badge variant="destructive">skip auto</Badge>
+                    <Badge variant="destructive">
+                      {translate('status.skipAuto')}
+                    </Badge>
                   ) : null}
                 </div>
                 <p className="text-sm whitespace-pre-wrap">
@@ -461,7 +468,7 @@ export default function RepliesPage() {
                     size={ButtonSize.SM}
                     variant={ButtonVariant.OUTLINE}
                   >
-                    Draft
+                    {translate('actions.draft')}
                   </Button>
                   <Button
                     disabled={busyId === item.commentId}
@@ -469,7 +476,7 @@ export default function RepliesPage() {
                     size={ButtonSize.SM}
                     variant={ButtonVariant.DEFAULT}
                   >
-                    Send reply
+                    {translate('actions.send')}
                   </Button>
                 </div>
               </Card>

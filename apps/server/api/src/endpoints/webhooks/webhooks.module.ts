@@ -62,7 +62,6 @@ import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
@@ -84,7 +83,6 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
   exports: [WebhooksService],
   imports: [
     forwardRef(() => ActivitiesModule),
-    forwardRef(() => ReplyBotModule),
     forwardRef(() => ApiKeysModule),
     forwardRef(() => AssetsModule),
     forwardRef(() => BotGatewayModule),

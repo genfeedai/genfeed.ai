@@ -25,6 +25,7 @@ import type {
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 
@@ -97,6 +98,8 @@ export class AdsResearchService {
     private readonly workflowsService: WorkflowsService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   async listAds(
@@ -627,18 +630,32 @@ export class AdsResearchService {
     brandId: string | undefined,
     platform: string | undefined,
   ): Promise<string | undefined> {
-    if (!brandId || !this.harnessGenerationService) {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!brandId || !harnessGenerationService) {
       return undefined;
     }
-    const brief = await this.harnessGenerationService.resolveBrief({
+    const brief = await harnessGenerationService.resolveBrief({
       brandId,
       contentType: 'ad-creative',
       objective: 'conversion',
       organizationId,
       platform,
     });
-    const formatted = this.harnessGenerationService.formatBrief(brief);
+    const formatted = harnessGenerationService.formatBrief(brief);
     return formatted || undefined;
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 
   private buildAdPack(params: {

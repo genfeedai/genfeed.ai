@@ -4108,7 +4108,7 @@ describe('AgentToolExecutorService', () => {
       20,
     );
     expect(result.nextActions?.[0]?.summaryText).toContain(
-      'No items are waiting',
+      'Nothing is waiting for review right now.',
     );
   });
 

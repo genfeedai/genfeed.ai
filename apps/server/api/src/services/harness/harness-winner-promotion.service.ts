@@ -5,7 +5,8 @@ import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, type Type } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
@@ -37,16 +38,26 @@ export class HarnessWinnerPromotionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly performanceSummaryService: PerformanceSummaryService,
+    @Optional()
+    private readonly performanceSummaryService?: PerformanceSummaryService,
     @Optional()
     private readonly contextsService?: ContextsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   async promoteTopPerformers(
     params: PromoteWinnersParams,
   ): Promise<PromoteWinnersResult> {
     const limit = params.limit ?? 5;
-    const summary = await this.performanceSummaryService.getWeeklySummary(
+    const performanceSummaryService = this.resolveProvider(
+      this.performanceSummaryService,
+      PerformanceSummaryService,
+    );
+    if (!performanceSummaryService) {
+      throw new Error('Performance summary service is unavailable');
+    }
+    const summary = await performanceSummaryService.getWeeklySummary(
       params.organizationId,
       params.brandId,
       { topN: limit, worstN: 0 },
@@ -73,6 +84,8 @@ export class HarnessWinnerPromotionService {
 
     let promoted = 0;
     let skipped = 0;
+    const seenContent = new Set<string>();
+    const seenPostIds = new Set<string>();
 
     for (const item of performers.slice(0, limit)) {
       const content = this.describePerformer(item);
@@ -82,6 +95,17 @@ export class HarnessWinnerPromotionService {
       }
 
       const postId = item.postId;
+      if (
+        seenContent.has(content) ||
+        (postId !== undefined && seenPostIds.has(postId))
+      ) {
+        skipped += 1;
+        continue;
+      }
+      seenContent.add(content);
+      if (postId !== undefined) {
+        seenPostIds.add(postId);
+      }
 
       const already = await this.findExistingWinnerEntry(
         contextBase.id,
@@ -94,9 +118,13 @@ export class HarnessWinnerPromotionService {
         continue;
       }
 
-      if (this.contextsService) {
+      const contextsService = this.resolveProvider(
+        this.contextsService,
+        ContextsService,
+      );
+      if (contextsService) {
         // Preferred path: addEntry embeds into pgvector immediately.
-        await this.contextsService.addEntry(
+        await contextsService.addEntry(
           contextBase.id,
           {
             content,
@@ -241,6 +269,20 @@ export class HarnessWinnerPromotionService {
       ? ` [x-score ${scoreXPublicMetricsPer1k(item).toFixed(1)}/1k]`
       : '';
     return `Winning post${platform}${rate}${xScore}: ${text.slice(0, 400)}`;
+  }
+
+  private resolveProvider<T>(
+    direct: T | undefined,
+    token: Type<T>,
+  ): T | undefined {
+    if (direct) {
+      return direct;
+    }
+    try {
+      return this.moduleRef?.get(token, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 
   /**

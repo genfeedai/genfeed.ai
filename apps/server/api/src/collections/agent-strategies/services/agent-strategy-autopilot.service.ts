@@ -154,7 +154,8 @@ export class AgentStrategyAutopilotService {
 
     await this.agentStrategiesService.patch(input.strategyId, {
       expectedSpendToDate: pacing.expectedSpendToDate,
-      monthToDateCreditsUsed: strategy.monthToDateCreditsUsed + creditsUsed,
+      monthToDateCreditsUsed:
+        (strategy.monthToDateCreditsUsed ?? 0) + creditsUsed,
       reserveTrendBudgetRemaining: Math.max(
         0,
         pacing.reserveTrendBudgetRemaining -

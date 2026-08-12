@@ -54,7 +54,8 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 const MAX_PARENT_POSTS = 12;
 const MAX_COMMENTS_PER_POST = 40;
@@ -70,9 +71,11 @@ export class AuthorReplyLoopService {
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly replyBotConfigsService: ReplyBotConfigsService,
-    private readonly credentialsService: CredentialsService,
+    @Optional()
+    private readonly credentialsService: CredentialsService | undefined,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly xActivitySubscriptionService: XActivitySubscriptionService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   async ensureAuthorResponder(params: {
@@ -217,7 +220,7 @@ export class AuthorReplyLoopService {
           mode: 'skipped',
         };
       }
-      const credential = await this.credentialsService.findOne({
+      const credential = await this.resolveCredentialsService().findOne({
         id: credentialId,
         organizationId,
       });
@@ -749,7 +752,7 @@ export class AuthorReplyLoopService {
       return null;
     }
 
-    const credential = await this.credentialsService.findOne({
+    const credential = await this.resolveCredentialsService().findOne({
       id: credentialId,
       organizationId,
     });
@@ -769,6 +772,23 @@ export class AuthorReplyLoopService {
       return null;
     }
     return shaped;
+  }
+
+  private resolveCredentialsService(): CredentialsService {
+    if (this.credentialsService) {
+      return this.credentialsService;
+    }
+    try {
+      const resolved = this.moduleRef?.get(CredentialsService, {
+        strict: false,
+      });
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Converted below to a stable API error.
+    }
+    throw new BadRequestException('Connected account service is unavailable');
   }
 
   private loadTwitterCredential(

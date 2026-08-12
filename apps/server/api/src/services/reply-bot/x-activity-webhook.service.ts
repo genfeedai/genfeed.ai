@@ -9,7 +9,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaCredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 export type XActivityIntakeResult = {
   enqueued: number;
@@ -25,7 +26,11 @@ export class XActivityWebhookService {
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
-    private readonly replyInboundQueueService: ReplyInboundQueueService,
+    @Optional()
+    private readonly replyInboundQueueService:
+      | ReplyInboundQueueService
+      | undefined,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   isEnabled(): boolean {
@@ -94,7 +99,12 @@ export class XActivityWebhookService {
         continue;
       }
 
-      await this.replyInboundQueueService.enqueueInbound({
+      const replyInboundQueueService = this.resolveReplyInboundQueueService();
+      if (!replyInboundQueueService) {
+        ignored += 1;
+        continue;
+      }
+      await replyInboundQueueService.enqueueInbound({
         brandId: resolved.brandId,
         commentAuthorId: candidate.commentAuthorId,
         commentAuthorUsername: candidate.commentAuthorUsername,
@@ -115,6 +125,19 @@ export class XActivityWebhookService {
     });
 
     return { enqueued, ignored, mode: 'live' };
+  }
+
+  private resolveReplyInboundQueueService():
+    | ReplyInboundQueueService
+    | undefined {
+    if (this.replyInboundQueueService) {
+      return this.replyInboundQueueService;
+    }
+    try {
+      return this.moduleRef?.get(ReplyInboundQueueService, { strict: false });
+    } catch {
+      return undefined;
+    }
   }
 
   /**

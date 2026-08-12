@@ -15,17 +15,22 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Optional,
   Post,
   Req,
+  type Type,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
 
 @Controller('services/restream')
 export class RestreamController {
   constructor(
     private readonly restreamService: RestreamService,
-    private readonly credentialsService: CredentialsService,
-    private readonly brandsService: BrandsService,
+    @Optional()
+    private readonly credentialsService: CredentialsService | undefined,
+    @Optional() private readonly brandsService: BrandsService | undefined,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /**
@@ -39,7 +44,15 @@ export class RestreamController {
     @Body('brandId') brandId: string,
   ) {
     const { organization, user: userId } = getPublicMetadata(user);
-    const brand = await this.brandsService.findOne({
+    const brandsService = this.resolveRequiredProvider(
+      this.brandsService,
+      BrandsService,
+    );
+    const credentialsService = this.resolveRequiredProvider(
+      this.credentialsService,
+      CredentialsService,
+    );
+    const brand = await brandsService.findOne({
       id: brandId,
       organizationId: organization,
     });
@@ -65,7 +78,7 @@ export class RestreamController {
       );
     }
 
-    const { state } = await this.credentialsService.beginOAuthForBrand(
+    const { state } = await credentialsService.beginOAuthForBrand(
       brand,
       userId,
       CredentialPlatform.RESTREAM,
@@ -101,7 +114,11 @@ export class RestreamController {
     }
 
     const { organization, user: userId } = getPublicMetadata(user);
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const credentialsService = this.resolveRequiredProvider(
+      this.credentialsService,
+      CredentialsService,
+    );
+    const credential = await credentialsService.findPendingOAuthCredential(
       state,
       CredentialPlatform.RESTREAM,
       { organizationId: organization, userId },
@@ -132,22 +149,37 @@ export class RestreamController {
       tokenData.access_token,
     );
 
-    const updatedCredential = await this.credentialsService.patch(
-      credential.id,
-      {
-        accessToken: tokenData.access_token,
-        accessTokenExpiry: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000)
-          : undefined,
-        externalHandle: profile.username,
-        externalId: profile.id,
-        externalName: profile.username || 'Restream',
-        isConnected: true,
-        oauthState: null,
-        refreshToken: tokenData.refresh_token,
-      },
-    );
+    const updatedCredential = await credentialsService.patch(credential.id, {
+      accessToken: tokenData.access_token,
+      accessTokenExpiry: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000)
+        : undefined,
+      externalHandle: profile.username,
+      externalId: profile.id,
+      externalName: profile.username || 'Restream',
+      isConnected: true,
+      oauthState: null,
+      refreshToken: tokenData.refresh_token,
+    });
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);
+  }
+
+  private resolveRequiredProvider<T>(direct: T | undefined, token: Type<T>): T {
+    if (direct) {
+      return direct;
+    }
+    try {
+      const resolved = this.moduleRef?.get(token, { strict: false });
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Converted below to a stable API error.
+    }
+    throw new HttpException(
+      { detail: 'Restream dependencies are unavailable', title: 'Unavailable' },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
   }
 }

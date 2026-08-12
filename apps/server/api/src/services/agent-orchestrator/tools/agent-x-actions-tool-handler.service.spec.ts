@@ -124,26 +124,26 @@ describe('AgentXActionsToolHandler', () => {
     const { handler, twitterService } = createHandler();
     twitterService.getTweetById.mockResolvedValue({
       authorUsername: 'someone',
-      id: '999',
+      id: '99999',
       likeCount: 3,
       replyCount: 1,
       retweetCount: 2,
       text: 'quoted',
-      url: 'https://x.com/someone/status/999',
+      url: 'https://x.com/someone/status/99999',
     });
 
     const result = await handler.execute(
       AgentToolName.FETCH_X_POST,
-      { postIdOrUrl: 'https://x.com/someone/status/999?s=20' },
+      { postIdOrUrl: 'https://x.com/someone/status/99999?s=20' },
       ctx,
     );
 
     expect(result.success).toBe(true);
-    expect(twitterService.getTweetById).toHaveBeenCalledWith('999', {
+    expect(twitterService.getTweetById).toHaveBeenCalledWith('99999', {
       brandId: 'brand-1',
       organizationId: 'org-1',
     });
-    expect(result.data?.id).toBe('999');
+    expect(result.data?.id).toBe('99999');
   });
 
   it('rejects unparseable post ids', async () => {
@@ -215,7 +215,7 @@ describe('AgentXActionsToolHandler', () => {
 
     const result = await handler.execute(
       AgentToolName.DRAFT_X_REPOST,
-      { targetPostIdOrUrl: 'https://x.com/a/status/555' },
+      { targetPostIdOrUrl: 'https://x.com/a/status/55555' },
       ctx,
     );
 
@@ -226,7 +226,7 @@ describe('AgentXActionsToolHandler', () => {
       '/v1/batches/batch-1/items',
       expect.objectContaining({
         engagementAction: 'repost',
-        targetPostId: '555',
+        targetPostId: '55555',
       }),
       ctx,
     );
