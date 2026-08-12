@@ -22,7 +22,7 @@ export class GenerateSourcePostVariationsDto {
   @IsInt()
   @Min(1)
   @Max(10)
-  count = 3;
+  count: number = 3;
 
   @ApiProperty({
     description: 'Target platform for the generated variations',
