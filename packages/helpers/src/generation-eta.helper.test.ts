@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   applyWorkflowEtaProgress,
   buildGenerationEtaSnapshot,
   buildWorkflowEtaSnapshot,
+  type EtaConfidence,
   estimateWorkflowCriticalPath,
   formatEtaDuration,
   formatEtaRange,
@@ -115,6 +116,7 @@ describe('workflow eta helper', () => {
       { source: 'image', target: 'video' },
     ]);
 
+    expectTypeOf(estimate.etaConfidence).toEqualTypeOf<EtaConfidence>();
     expect(estimate.criticalPathNodeIds).toEqual(['image', 'video']);
     expect(estimate.estimatedDurationMs).toBeGreaterThanOrEqual(
       estimate.remainingDurationMs ?? 0,
