@@ -6,6 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 
@@ -148,6 +149,7 @@ function providerReducer(
 export default function DesktopLocalProviderSettings({
   variant = 'compact',
 }: DesktopLocalProviderSettingsProps) {
+  const translate = useTranslations('common.desktop.provider');
   const [state, dispatch] = useReducer(providerReducer, initialState);
   const [isLocalMode, setIsLocalMode] = useState<boolean | null>(null);
   const {
@@ -192,10 +194,10 @@ export default function DesktopLocalProviderSettings({
         payload:
           error instanceof Error
             ? error.message
-            : 'Failed to load local provider.',
+            : translate('errors.loadFailed'),
       });
     });
-  }, [loadProvider]);
+  }, [loadProvider, translate]);
 
   const applyPreset = (nextProvider: DesktopGenerationProviderKind) => {
     dispatch({ type: 'APPLY_PRESET', payload: nextProvider });
@@ -222,14 +224,18 @@ export default function DesktopLocalProviderSettings({
         type: 'SAVE_SUCCESS',
         payload: {
           isApiKeyConfigured: config.apiKeyConfigured,
-          statusMessage: `Using ${config.displayName ?? config.model}.`,
+          statusMessage: translate('status.using', {
+            provider: config.displayName ?? config.model,
+          }),
         },
       });
     } catch (error) {
       dispatch({
         type: 'SAVE_ERROR',
         payload:
-          error instanceof Error ? error.message : 'Failed to save provider.',
+          error instanceof Error
+            ? error.message
+            : translate('errors.saveFailed'),
       });
     }
   };
@@ -245,13 +251,17 @@ export default function DesktopLocalProviderSettings({
       );
       dispatch({
         type: 'TEST_SUCCESS',
-        payload: `Connected in ${String(result.latencyMs)}ms.`,
+        payload: translate('status.connected', {
+          latency: String(result.latencyMs),
+        }),
       });
     } catch (error) {
       dispatch({
         type: 'TEST_ERROR',
         payload:
-          error instanceof Error ? error.message : 'Provider test failed.',
+          error instanceof Error
+            ? error.message
+            : translate('errors.testFailed'),
       });
     }
   };
@@ -259,7 +269,7 @@ export default function DesktopLocalProviderSettings({
   const handleStartLocalMode = async () => {
     const bridge = getDesktopBridge();
     if (!bridge) return;
-    dispatch({ type: 'SET_STATUS', payload: 'Starting local workspace…' });
+    dispatch({ type: 'SET_STATUS', payload: translate('status.starting') });
     try {
       await bridge.app.enableOfflineMode();
       window.location.assign('/desktop/local');
@@ -269,7 +279,7 @@ export default function DesktopLocalProviderSettings({
         payload:
           error instanceof Error
             ? error.message
-            : 'Local mode could not start.',
+            : translate('errors.startFailed'),
       });
     }
   };
@@ -278,11 +288,10 @@ export default function DesktopLocalProviderSettings({
     const inactiveContent = (
       <>
         <div className="text-sm font-medium text-foreground/88">
-          Local generation is off
+          {translate('inactive.title')}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          PGlite and local provider settings start only after you switch to a
-          local workspace.
+          {translate('inactive.description')}
         </p>
         <Button
           className="mt-3 rounded px-2 py-1 text-xs"
@@ -291,7 +300,7 @@ export default function DesktopLocalProviderSettings({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          Use a local workspace
+          {translate('inactive.action')}
         </Button>
         {status ? (
           <p className="mt-2 break-words text-[11px] text-foreground/48">
@@ -312,13 +321,11 @@ export default function DesktopLocalProviderSettings({
     <>
       <div className={cn(isCard ? 'mb-4' : 'mb-2')}>
         <div className="text-sm font-medium text-foreground/88">
-          Local generation
+          {translate('title')}
         </div>
         {isCard ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Genfeed server credits are the default when connected. Configure a
-            local OpenAI-compatible provider only for offline or
-            bring-your-own-key generation.
+            {translate('description')}
           </p>
         ) : null}
       </div>
@@ -344,7 +351,7 @@ export default function DesktopLocalProviderSettings({
       </div>
       <div className={cn('space-y-2', isCard && 'grid gap-3 sm:grid-cols-3')}>
         <Input
-          aria-label="Local provider base URL"
+          aria-label={translate('fields.baseUrl')}
           className="h-8 text-xs"
           onChange={(event) =>
             dispatch({ type: 'SET_BASE_URL', payload: event.target.value })
@@ -353,7 +360,7 @@ export default function DesktopLocalProviderSettings({
           value={baseUrl}
         />
         <Input
-          aria-label="Local provider model"
+          aria-label={translate('fields.model')}
           className="h-8 text-xs"
           onChange={(event) =>
             dispatch({ type: 'SET_MODEL', payload: event.target.value })
@@ -362,13 +369,15 @@ export default function DesktopLocalProviderSettings({
           value={model}
         />
         <Input
-          aria-label="Local provider API key"
+          aria-label={translate('fields.apiKey')}
           className="h-8 text-xs"
           onChange={(event) =>
             dispatch({ type: 'SET_API_KEY', payload: event.target.value })
           }
           placeholder={
-            isApiKeyConfigured ? 'API key saved' : 'Optional local API key'
+            isApiKeyConfigured
+              ? translate('fields.apiKeySaved')
+              : translate('fields.apiKeyOptional')
           }
           type="password"
           value={apiKey}
@@ -383,7 +392,7 @@ export default function DesktopLocalProviderSettings({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? translate('actions.saving') : translate('actions.save')}
         </Button>
         <Button
           className="rounded px-2 py-1 text-xs"
@@ -393,7 +402,7 @@ export default function DesktopLocalProviderSettings({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          {isTesting ? 'Testing...' : 'Test'}
+          {isTesting ? translate('actions.testing') : translate('actions.test')}
         </Button>
       </div>
       {status && (

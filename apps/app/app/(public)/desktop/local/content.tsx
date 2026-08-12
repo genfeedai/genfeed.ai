@@ -11,17 +11,17 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { FolderOpen, HardDrive, RefreshCw, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'The local workspace could not complete that action.';
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function LocalDesktopContent() {
+  const translate = useTranslations('common.desktop.local');
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(true);
@@ -31,7 +31,7 @@ export default function LocalDesktopContent() {
   const loadLocalRuntime = useCallback(async () => {
     const bridge = getDesktopBridge();
     if (!bridge) {
-      setError('Local workspaces are available only in Genfeed Desktop.');
+      setError(translate('errors.desktopOnly'));
       setIsBusy(false);
       return;
     }
@@ -42,11 +42,11 @@ export default function LocalDesktopContent() {
       const nextBootstrap = await bridge.app.enableOfflineMode();
       setBootstrap(nextBootstrap);
     } catch (nextError) {
-      setError(getErrorMessage(nextError));
+      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
     } finally {
       setIsBusy(false);
     }
-  }, []);
+  }, [translate]);
 
   useEffect(() => {
     void loadLocalRuntime();
@@ -66,7 +66,7 @@ export default function LocalDesktopContent() {
       await bridge.workspace.openWorkspace();
       await refreshBootstrap();
     } catch (nextError) {
-      setError(getErrorMessage(nextError));
+      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
     }
   };
 
@@ -94,7 +94,7 @@ export default function LocalDesktopContent() {
         }),
       );
     } catch (nextError) {
-      setError(getErrorMessage(nextError));
+      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
     } finally {
       setIsBusy(false);
     }
@@ -126,15 +126,13 @@ export default function LocalDesktopContent() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/45">
               <HardDrive aria-hidden="true" className="size-4" />
-              Local mode
+              {translate('eyebrow')}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">
-              Your work stays on this Mac
+              {translate('title')}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-foreground/60">
-              PGlite and local generation run only while local mode is selected.
-              Genfeed Cloud, Redis, and a system PostgreSQL install are not
-              required.
+              {translate('description')}
             </p>
           </div>
           <Button
@@ -142,13 +140,13 @@ export default function LocalDesktopContent() {
             variant={ButtonVariant.GHOST}
             onClick={() => void handleUseCloud()}
           >
-            Use Genfeed Cloud
+            {translate('useCloud')}
           </Button>
         </header>
 
         {error ? (
           <Alert variant="destructive">
-            <AlertTitle>Local mode needs attention</AlertTitle>
+            <AlertTitle>{translate('errors.title')}</AlertTitle>
             <AlertDescription className="space-y-3">
               <p>{error}</p>
               <div className="flex flex-wrap gap-2">
@@ -159,7 +157,7 @@ export default function LocalDesktopContent() {
                   onClick={() => void loadLocalRuntime()}
                 >
                   <RefreshCw aria-hidden="true" className="size-4" />
-                  Retry local mode
+                  {translate('errors.retry')}
                 </Button>
                 <Button
                   type="button"
@@ -167,7 +165,7 @@ export default function LocalDesktopContent() {
                   variant={ButtonVariant.GHOST}
                   onClick={() => void handleRevealLogs()}
                 >
-                  Reveal logs
+                  {translate('errors.revealLogs')}
                 </Button>
               </div>
             </AlertDescription>
@@ -179,11 +177,13 @@ export default function LocalDesktopContent() {
             <Card className="space-y-4 p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-semibold">Local workspace</h2>
+                  <h2 className="text-base font-semibold">
+                    {translate('workspace.title')}
+                  </h2>
                   <p className="text-sm text-foreground/55">
                     {activeWorkspace
                       ? activeWorkspace.path
-                      : 'Choose a folder for drafts, assets, and generated content.'}
+                      : translate('workspace.description')}
                   </p>
                 </div>
                 <Button
@@ -194,7 +194,9 @@ export default function LocalDesktopContent() {
                   onClick={() => void openWorkspace()}
                 >
                   <FolderOpen aria-hidden="true" className="size-4" />
-                  {activeWorkspace ? 'Open another' : 'Choose folder'}
+                  {activeWorkspace
+                    ? translate('workspace.openAnother')
+                    : translate('workspace.chooseFolder')}
                 </Button>
               </div>
 
@@ -223,16 +225,16 @@ export default function LocalDesktopContent() {
               <div>
                 <h2 className="flex items-center gap-2 text-base font-semibold">
                   <Sparkles aria-hidden="true" className="size-4" />
-                  Generate locally
+                  {translate('generation.title')}
                 </h2>
                 <p className="text-sm text-foreground/55">
-                  Uses the provider configured on this device.
+                  {translate('generation.description')}
                 </p>
               </div>
               <Textarea
-                aria-label="Local generation prompt"
+                aria-label={translate('generation.promptLabel')}
                 className="min-h-32"
-                placeholder="Draft a launch post for..."
+                placeholder={translate('generation.promptPlaceholder')}
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
               />
@@ -242,7 +244,9 @@ export default function LocalDesktopContent() {
                 isDisabled={isBusy || !prompt.trim() || !activeWorkspace}
                 onClick={() => void generate()}
               >
-                {isBusy ? 'Working…' : 'Generate'}
+                {isBusy
+                  ? translate('generation.working')
+                  : translate('generation.generate')}
               </Button>
               {result ? (
                 <div className="rounded-lg border border-border/60 bg-secondary/40 p-4 text-sm leading-6 whitespace-pre-wrap">
