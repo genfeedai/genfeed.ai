@@ -197,6 +197,7 @@ jobs:
     with:
       checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
       dry_run: false
+      trusted_release_call: true
     secrets: inherit
 
   publish-release:
