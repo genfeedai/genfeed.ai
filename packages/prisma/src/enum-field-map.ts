@@ -415,9 +415,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'organization',
       'organizationId',
       'policies',
+      'preferredWorkflowId',
+      'preferredWorkflowTemplateId',
       'updatedAt',
       'user',
       'userId',
+      'workflowInputOverrides',
     ],
     listFields: [
       'batches',
@@ -4861,6 +4864,22 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
       workflow: 'workflowId',
     },
+  },
+  WorkflowNodeClaim: {
+    allFields: [
+      'createdAt',
+      'error',
+      'executionId',
+      'id',
+      'nodeId',
+      'organizationId',
+      'output',
+      'status',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
   },
 };
 
