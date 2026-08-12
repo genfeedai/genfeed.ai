@@ -280,7 +280,7 @@ const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
 };
 
 function getDataService(): IDesktopDataService {
-  return selectDesktopDataService({
+  return selectDesktopDataService<IDesktopDataService>({
     cloudService,
     hasCloudSession: Boolean(sessionService.getSession()),
     isOfflineMode,
