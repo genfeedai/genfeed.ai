@@ -10,6 +10,36 @@ import type {
 } from '@services/automation/agent-goals.service';
 import type { CreateAgentStrategyInput } from '@services/automation/agent-strategies.service';
 
+/**
+ * Default seeded workflow template per content-team role.
+ * Mirrors server `AGENT_TYPE_WORKFLOW_DEFAULTS` so hire/launch pins graphs.
+ */
+const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<Record<AgentType, string>> = {
+  [AgentType.X_CONTENT]: 'founder-x-post',
+  [AgentType.IMAGE_CREATOR]: 'founder-editorial-illustration',
+  [AgentType.VIDEO_CREATOR]: 'social-media-video-series',
+  [AgentType.AI_AVATAR]: 'avatar-ugc-heygen',
+  [AgentType.ARTICLE_WRITER]: 'founder-newsletter',
+  [AgentType.LINKEDIN_CONTENT]: 'founder-newsletter',
+  [AgentType.ADS_SCRIPT_WRITER]: 'founder-x-post',
+  [AgentType.SHORT_FORM_WRITER]: 'tiktok-slideshow-automation',
+  [AgentType.CTA_CONTENT]: 'founder-x-post',
+  [AgentType.YOUTUBE_SCRIPT]: 'youtube-thumbnail-script',
+};
+
+const ROLE_SKILL_SLUGS_BY_TYPE: Partial<Record<AgentType, string[]>> = {
+  [AgentType.X_CONTENT]: ['content-writing'],
+  [AgentType.IMAGE_CREATOR]: ['image-generation'],
+  [AgentType.VIDEO_CREATOR]: ['content-writing', 'image-generation'],
+  [AgentType.AI_AVATAR]: ['content-writing'],
+  [AgentType.ARTICLE_WRITER]: ['content-writing'],
+  [AgentType.LINKEDIN_CONTENT]: ['content-writing'],
+  [AgentType.ADS_SCRIPT_WRITER]: ['content-writing'],
+  [AgentType.SHORT_FORM_WRITER]: ['content-writing'],
+  [AgentType.CTA_CONTENT]: ['content-writing'],
+  [AgentType.YOUTUBE_SCRIPT]: ['content-writing', 'image-generation'],
+};
+
 export interface ContentTeamRolePreset {
   defaultBudget: number;
   defaultLabel: string;
@@ -17,6 +47,8 @@ export interface ContentTeamRolePreset {
   displayRole: string;
   id: string;
   platforms: string[];
+  preferredWorkflowTemplateId?: string;
+  skillSlugs?: string[];
   teamGroup: string;
   type: AgentType;
 }
@@ -50,8 +82,22 @@ export interface BuildBlueprintOptions {
   teamGroupOverrides?: Partial<Record<string, string>>;
 }
 
+function withWorkflowDefaults(
+  preset: Omit<
+    ContentTeamRolePreset,
+    'preferredWorkflowTemplateId' | 'skillSlugs'
+  >,
+): ContentTeamRolePreset {
+  return {
+    ...preset,
+    preferredWorkflowTemplateId:
+      ROLE_WORKFLOW_TEMPLATE_BY_TYPE[preset.type] ?? undefined,
+    skillSlugs: ROLE_SKILL_SLUGS_BY_TYPE[preset.type] ?? ['content-writing'],
+  };
+}
+
 export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
-  {
+  withWorkflowDefaults({
     defaultBudget: 180,
     defaultLabel: 'Instagram Short Creator',
     description: 'Produces short-form creator videos for Instagram and TikTok.',
@@ -60,8 +106,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['instagram', 'tiktok'],
     teamGroup: 'Production',
     type: AgentType.VIDEO_CREATOR,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 80,
     defaultLabel: 'X/Twitter Writer',
     description:
@@ -71,8 +117,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['twitter'],
     teamGroup: 'Distribution',
     type: AgentType.X_CONTENT,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 120,
     defaultLabel: 'Script Writer',
     description: 'Develops hooks, scripts, and long-form narrative drafts.',
@@ -81,8 +127,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['instagram', 'youtube'],
     teamGroup: 'Strategy',
     type: AgentType.ARTICLE_WRITER,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 140,
     defaultLabel: 'Image/Carousel Creator',
     description: 'Builds carousels, stills, and visual support assets.',
@@ -91,8 +137,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['instagram', 'linkedin'],
     teamGroup: 'Production',
     type: AgentType.IMAGE_CREATOR,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 220,
     defaultLabel: 'AI Avatar Host',
     description: 'Fronts repeatable creator content using an avatar workflow.',
@@ -101,8 +147,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['youtube', 'tiktok', 'instagram'],
     teamGroup: 'Production',
     type: AgentType.AI_AVATAR,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 100,
     defaultLabel: 'LinkedIn Copywriter',
     description:
@@ -112,8 +158,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['linkedin'],
     teamGroup: 'Distribution',
     type: AgentType.LINKEDIN_CONTENT,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 150,
     defaultLabel: 'Ads Script Writer',
     description:
@@ -123,8 +169,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['instagram', 'tiktok', 'youtube', 'facebook'],
     teamGroup: 'Strategy',
     type: AgentType.ADS_SCRIPT_WRITER,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 100,
     defaultLabel: 'TikTok/IG Hook Writer',
     description:
@@ -134,8 +180,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['tiktok', 'instagram'],
     teamGroup: 'Distribution',
     type: AgentType.SHORT_FORM_WRITER,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 80,
     defaultLabel: 'CTA / Conversion Writer',
     description:
@@ -145,8 +191,8 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['instagram', 'linkedin', 'twitter', 'youtube'],
     teamGroup: 'Strategy',
     type: AgentType.CTA_CONTENT,
-  },
-  {
+  }),
+  withWorkflowDefaults({
     defaultBudget: 200,
     defaultLabel: 'YouTube Scriptwriter',
     description:
@@ -156,7 +202,7 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
     platforms: ['youtube'],
     teamGroup: 'Production',
     type: AgentType.YOUTUBE_SCRIPT,
-  },
+  }),
 ];
 
 export const CONTENT_TEAM_BLUEPRINT_PRESETS: ContentTeamBlueprintPreset[] = [
@@ -215,6 +261,8 @@ export function buildRoleStrategyInput(
     label: options.label?.trim() || preset.defaultLabel,
     minCreditThreshold: Math.max(25, Math.floor(resolvedBudget / 2)),
     platforms: preset.platforms,
+    preferredWorkflowTemplateId: preset.preferredWorkflowTemplateId,
+    skillSlugs: preset.skillSlugs,
     postsPerWeek: 7,
     reportsToLabel: options.reportsToLabel?.trim() || 'Main Orchestrator',
     runFrequency: AgentRunFrequency.DAILY,

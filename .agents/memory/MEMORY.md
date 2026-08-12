@@ -39,6 +39,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
 - [project_x_author_reply_loop](project_x_author_reply_loop.md) — Automate **Replies** surface (inbox + auto-replies + closed-loop memory for X)
 - [project_x_activity_pipes](project_x_activity_pipes.md) — XAA webhook + post-watch + reply-inbound queues (connect later)
+- [project_agent_workflow_run](project_agent_workflow_run.md) — content agents fill workflow slots + run deterministic graphs (Team Run Workflow)
 
 Personal multi-host fleet notes (Claude/Codex/Grok routing) live in **gitignored** `.agents/memory/local/` and global user memory — not in this public index.
 

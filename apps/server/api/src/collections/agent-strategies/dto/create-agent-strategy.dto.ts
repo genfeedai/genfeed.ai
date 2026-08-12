@@ -19,6 +19,7 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -358,6 +359,35 @@ export class CreateAgentStrategyDto {
     required: false,
   })
   skillSlugs?: string[];
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Bound workflow id for deterministic Run Workflow (config-backed).',
+    required: false,
+  })
+  preferredWorkflowId?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Seeded template id installed on first Run Workflow when no preferredWorkflowId is set.',
+    required: false,
+  })
+  preferredWorkflowTemplateId?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    additionalProperties: true,
+    description:
+      'Default values for workflow inputVariables (merged before strategy aliases).',
+    required: false,
+    type: 'object',
+  })
+  workflowInputDefaults?: Record<string, unknown>;
 
   @ValidateNested()
   @Type(() => ContentMixConfigDto)

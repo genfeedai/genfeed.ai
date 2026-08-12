@@ -1,11 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentStrategiesQueryDto } from '@api/collections/agent-strategies/dto/agent-strategies-query.dto';
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
+import { RunAgentStrategyWorkflowDto } from '@api/collections/agent-strategies/dto/run-agent-strategy-workflow.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
+import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -43,6 +45,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     public readonly agentStrategiesService: AgentStrategiesService,
     private readonly agentStrategyAutopilotService: AgentStrategyAutopilotService,
     private readonly agentStrategyReportsService: AgentStrategyReportsService,
+    private readonly agentStrategyWorkflowRunService: AgentStrategyWorkflowRunService,
     public readonly loggerService: LoggerService,
   ) {
     super(
@@ -169,6 +172,40 @@ export class AgentStrategiesController extends BaseCRUDController<
       message:
         'Proactive run queued. It will execute on the next minute cycle.',
     };
+  }
+
+  @Get(':id/workflow-binding')
+  @ApiOperation({
+    summary:
+      'Preview the deterministic workflow bound to this agent and filled input slots',
+  })
+  async workflowBinding(@Param('id') id: string, @CurrentUser() user: User) {
+    const publicMetadata = getPublicMetadata(user);
+    return this.agentStrategyWorkflowRunService.preview(
+      id,
+      publicMetadata.organization,
+    );
+  }
+
+  @Post(':id/run-workflow')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Fill workflow inputs from the agent (topic/prompt/assets) and run the bound deterministic workflow',
+  })
+  @ApiResponse({ description: 'Workflow execution started', status: 200 })
+  async runWorkflow(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: RunAgentStrategyWorkflowDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    return this.agentStrategyWorkflowRunService.run(
+      id,
+      publicMetadata.organization,
+      user.id,
+      body ?? {},
+    );
   }
 
   @Post(':id/report-now')

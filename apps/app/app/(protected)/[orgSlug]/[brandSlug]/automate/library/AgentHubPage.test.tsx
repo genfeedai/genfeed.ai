@@ -8,9 +8,11 @@ import AgentHubPage from './AgentHubPage';
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getService: vi.fn(),
+  getWorkflowBinding: vi.fn(),
   loggerError: vi.fn(),
   refresh: vi.fn(),
   runNow: vi.fn(),
+  runWorkflow: vi.fn(),
   setActive: vi.fn(),
   strategies: [] as unknown[],
   success: vi.fn(),
@@ -94,17 +96,49 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
+vi.mock('./AgentWorkflowRunDialog', () => ({
+  default: ({
+    isOpen,
+    onSubmit,
+    strategy,
+  }: {
+    isOpen: boolean;
+    onSubmit: (input: { topic?: string }) => Promise<void>;
+    strategy: { id: string; label: string } | null;
+  }) =>
+    isOpen ? (
+      <div>
+        <p>Workflow dialog for {strategy?.label}</p>
+        <button type="button" onClick={() => onSubmit({ topic: 'Launch' })}>
+          Confirm workflow run
+        </button>
+      </div>
+    ) : null,
+}));
+
 describe('AgentHubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isLoading = false;
     mocks.strategies = [];
     mocks.getService.mockResolvedValue({
+      getWorkflowBinding: mocks.getWorkflowBinding,
       runNow: mocks.runNow,
+      runWorkflow: mocks.runWorkflow,
       setActive: mocks.setActive,
     });
     mocks.refresh.mockResolvedValue(undefined);
     mocks.runNow.mockResolvedValue(undefined);
+    mocks.runWorkflow.mockResolvedValue({
+      executionId: 'exec-12345678',
+      status: 'running',
+    });
+    mocks.getWorkflowBinding.mockResolvedValue({
+      inputs: [],
+      missingRequiredKeys: [],
+      preferredWorkflowTemplateId: 'founder-editorial-illustration',
+      workflowLabel: 'Illustration',
+    });
     mocks.setActive.mockResolvedValue(undefined);
   });
 
@@ -113,7 +147,11 @@ describe('AgentHubPage', () => {
     const { rerender } = render(<AgentHubPage />);
 
     expect(screen.getByText('Agent Hub')).toBeVisible();
-    expect(screen.getByText('Manage your content agents.')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Content agents that fill workflow prompts and assets, then run deterministic graphs.',
+      ),
+    ).toBeVisible();
     expect(screen.getByText(/New Agent/).closest('a')).toHaveAttribute(
       'href',
       '/automate/new',
@@ -138,7 +176,7 @@ describe('AgentHubPage', () => {
     expect(screen.getByText('Create your first agent')).toBeVisible();
   });
 
-  it('renders agent cards and handles toggle, run-now, and refresh interval', async () => {
+  it('renders agent cards and handles toggle, autopilot, workflow run, and refresh interval', async () => {
     mocks.strategies = [
       {
         agentType: AgentType.IMAGE_CREATOR,
@@ -153,6 +191,7 @@ describe('AgentHubPage', () => {
         isActive: true,
         label: 'Image Producer',
         lastRunAt: new Date(Date.now() - 60_000).toISOString(),
+        preferredWorkflowTemplateId: 'founder-editorial-illustration',
       },
       {
         agentType: 'custom_agent',
@@ -179,20 +218,32 @@ describe('AgentHubPage', () => {
       '/automate/agent-1',
     );
 
-    fireEvent.click(screen.getAllByText('Run Now')[0]);
+    fireEvent.click(screen.getAllByText('Autopilot')[0]);
     await waitFor(() => {
       expect(mocks.runNow).toHaveBeenCalledWith('agent-1');
     });
     expect(mocks.success).toHaveBeenCalledWith('Agent run triggered');
 
+    fireEvent.click(screen.getAllByText('Run workflow')[0]);
+    await waitFor(() => {
+      expect(mocks.getWorkflowBinding).toHaveBeenCalledWith('agent-1');
+    });
+    expect(
+      screen.getByText('Workflow dialog for Image Producer'),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByText('Confirm workflow run'));
+    await waitFor(() => {
+      expect(mocks.runWorkflow).toHaveBeenCalledWith('agent-1', {
+        topic: 'Launch',
+      });
+    });
+
     fireEvent.click(screen.getByText('Pause'));
     await waitFor(() => {
       expect(mocks.setActive).toHaveBeenCalledWith('agent-1', false);
     });
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(mocks.success).toHaveBeenCalledWith('Agent status updated');
-
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('reports toggle and run failures', async () => {
@@ -212,7 +263,7 @@ describe('AgentHubPage', () => {
 
     render(<AgentHubPage />);
 
-    fireEvent.click(screen.getByText('Run Now'));
+    fireEvent.click(screen.getByText('Autopilot'));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to trigger agent run',

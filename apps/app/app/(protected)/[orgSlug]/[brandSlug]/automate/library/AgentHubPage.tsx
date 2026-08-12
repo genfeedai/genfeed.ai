@@ -12,6 +12,8 @@ import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strat
 import {
   AgentStrategiesService,
   type AgentStrategy,
+  type AgentStrategyWorkflowBinding,
+  type RunAgentStrategyWorkflowInput,
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -33,7 +35,8 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
   [AgentType.GENERAL]: <Cpu className="size-5" />,
@@ -69,10 +72,12 @@ function AgentCard({
   strategy,
   onToggle,
   onRunNow,
+  onRunWorkflow,
 }: {
   strategy: AgentStrategy;
   onToggle: (id: string, isActive: boolean) => Promise<void>;
   onRunNow: (id: string) => Promise<void>;
+  onRunWorkflow: (strategy: AgentStrategy) => void;
 }) {
   const agentType = strategy.agentType as AgentType;
   const icon = AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />;
@@ -81,6 +86,10 @@ function AgentCard({
   const lastRunLabel = strategy.lastRunAt
     ? formatDistanceToNow(new Date(strategy.lastRunAt), { addSuffix: true })
     : 'Never';
+
+  const hasWorkflowBinding = Boolean(
+    strategy.preferredWorkflowId || strategy.preferredWorkflowTemplateId,
+  );
 
   return (
     <div className="rounded bg-secondary p-4 shadow-border flex flex-col gap-3">
@@ -121,14 +130,33 @@ function AgentCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
+      {hasWorkflowBinding ? (
+        <p className="text-xs text-foreground/40">
+          Workflow:{' '}
+          {strategy.preferredWorkflowTemplateId || strategy.preferredWorkflowId}
+        </p>
+      ) : (
+        <p className="text-xs text-foreground/40">
+          Workflow: type default on first run
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button
-          label="Run Now"
+          label="Run workflow"
+          icon={<Workflow className="size-4" />}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
+          onClick={() => onRunWorkflow(strategy)}
+          tooltip="Fill topic/prompt/assets and run the bound workflow"
+        />
+        <Button
+          label="Autopilot"
           icon={<CirclePlay className="size-4" />}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => onRunNow(strategy.id)}
-          tooltip="Trigger immediate run"
+          tooltip="Queue proactive skill-based run"
         />
         <Button
           label={strategy.isActive ? 'Pause' : 'Activate'}
@@ -154,6 +182,14 @@ export default function AgentHubPage() {
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
+
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<AgentStrategy | null>(null);
+  const [workflowBinding, setWorkflowBinding] =
+    useState<AgentStrategyWorkflowBinding | null>(null);
+  const [isLoadingBinding, setIsLoadingBinding] = useState(false);
+  const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
 
   // Auto-refresh every 30 seconds
   const refreshRef = useRef(refresh);
@@ -197,10 +233,56 @@ export default function AgentHubPage() {
     [getService, notificationsService],
   );
 
+  const handleOpenWorkflow = useCallback(
+    async (strategy: AgentStrategy) => {
+      setSelectedStrategy(strategy);
+      setWorkflowDialogOpen(true);
+      setWorkflowBinding(null);
+      setIsLoadingBinding(true);
+      try {
+        const service = await getService();
+        const binding = await service.getWorkflowBinding(strategy.id);
+        setWorkflowBinding(binding);
+      } catch (error) {
+        logger.error('Failed to load workflow binding', { error });
+        notificationsService.error('Could not load workflow binding');
+      } finally {
+        setIsLoadingBinding(false);
+      }
+    },
+    [getService, notificationsService],
+  );
+
+  const handleSubmitWorkflow = useCallback(
+    async (input: RunAgentStrategyWorkflowInput) => {
+      if (!selectedStrategy) {
+        return;
+      }
+      setIsSubmittingWorkflow(true);
+      try {
+        const service = await getService();
+        const result = await service.runWorkflow(selectedStrategy.id, input);
+        notificationsService.success(
+          `Workflow started (${result.status}). Execution ${result.executionId.slice(0, 8)}…`,
+        );
+        setWorkflowDialogOpen(false);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to run agent workflow', { error });
+        const message =
+          error instanceof Error ? error.message : 'Failed to run workflow';
+        notificationsService.error(message);
+      } finally {
+        setIsSubmittingWorkflow(false);
+      }
+    },
+    [getService, notificationsService, refresh, selectedStrategy],
+  );
+
   return (
     <Container
       label="Agent Hub"
-      description="Manage your content agents."
+      description="Content agents that fill workflow prompts and assets, then run deterministic graphs."
       icon={Cpu}
       right={
         <div className="flex items-center gap-2">
@@ -249,7 +331,8 @@ export default function AgentHubPage() {
           <div>
             <p className="text-lg font-medium">No agents yet</p>
             <p className="mt-1 text-sm text-foreground/50">
-              Create your first agent to start automating content creation
+              Hire a content agent to fill workflow prompts and run production
+              graphs
             </p>
           </div>
           <Link href={APP_ROUTES.AUTOMATE.NEW}>
@@ -268,10 +351,21 @@ export default function AgentHubPage() {
               strategy={strategy}
               onToggle={handleToggle}
               onRunNow={handleRunNow}
+              onRunWorkflow={handleOpenWorkflow}
             />
           ))}
         </div>
       )}
+
+      <AgentWorkflowRunDialog
+        strategy={selectedStrategy}
+        binding={workflowBinding}
+        isLoadingBinding={isLoadingBinding}
+        isOpen={workflowDialogOpen}
+        isSubmitting={isSubmittingWorkflow}
+        onOpenChange={setWorkflowDialogOpen}
+        onSubmit={handleSubmitWorkflow}
+      />
     </Container>
   );
 }

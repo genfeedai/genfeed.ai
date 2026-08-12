@@ -48,6 +48,45 @@ export interface AgentStrategyRankingPolicy {
   relevanceWeight: number;
 }
 
+export interface RunAgentStrategyWorkflowInput {
+  cta?: string;
+  inputs?: Record<string, unknown>;
+  prompt?: string;
+  referenceImage?: string;
+  topic?: string;
+  workflowId?: string;
+}
+
+export interface AgentStrategyWorkflowInputPreview {
+  defaultValue: unknown;
+  description: string | null;
+  filledValue: unknown;
+  key: string;
+  label: string;
+  required: boolean;
+  source: 'default' | 'override' | 'strategy' | 'unfilled';
+  type: string;
+}
+
+export interface AgentStrategyWorkflowBinding {
+  inputs: AgentStrategyWorkflowInputPreview[];
+  missingRequiredKeys: string[];
+  preferredWorkflowId: string | null;
+  preferredWorkflowTemplateId: string | null;
+  templateDescription: string | null;
+  workflowId: string | null;
+  workflowLabel: string | null;
+}
+
+export interface AgentStrategyWorkflowRunResult {
+  executionId: string;
+  filledInputs: Record<string, unknown>;
+  missingRequiredKeys: string[];
+  status: string;
+  workflowId: string;
+  workflowLabel: string | null;
+}
+
 export interface CreateAgentStrategyInput {
   agentType?: string;
   autonomyMode?: string;
@@ -66,6 +105,9 @@ export interface CreateAgentStrategyInput {
   opportunitySources?: Partial<AgentStrategyOpportunitySources>;
   platforms?: string[];
   skillSlugs?: string[];
+  preferredWorkflowId?: string;
+  preferredWorkflowTemplateId?: string;
+  workflowInputDefaults?: Record<string, unknown>;
   postsPerWeek?: number;
   publishPolicy?: Partial<AgentStrategyPublishPolicy>;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
@@ -163,6 +205,9 @@ export class AgentStrategy {
   model?: string;
   platforms!: string[];
   skillSlugs!: string[];
+  preferredWorkflowId?: string;
+  preferredWorkflowTemplateId?: string;
+  workflowInputDefaults?: Record<string, unknown>;
   postsPerWeek!: number;
   runFrequency!: string;
   timezone!: string;
@@ -242,6 +287,24 @@ export class AgentStrategiesService extends BaseService<
   async runNow(id: string): Promise<{ message: string }> {
     const response = await this.instance.post<{ message: string }>(
       `/${id}/run-now`,
+    );
+    return response.data;
+  }
+
+  async getWorkflowBinding(id: string): Promise<AgentStrategyWorkflowBinding> {
+    const response = await this.instance.get<AgentStrategyWorkflowBinding>(
+      `/${id}/workflow-binding`,
+    );
+    return response.data;
+  }
+
+  async runWorkflow(
+    id: string,
+    body: RunAgentStrategyWorkflowInput = {},
+  ): Promise<AgentStrategyWorkflowRunResult> {
+    const response = await this.instance.post<AgentStrategyWorkflowRunResult>(
+      `/${id}/run-workflow`,
+      body,
     );
     return response.data;
   }

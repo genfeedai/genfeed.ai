@@ -81,8 +81,11 @@ export interface AgentStrategyDocument
   reserveTrendBudgetRemaining: number;
   runHistory: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
+  preferredWorkflowId?: string;
+  preferredWorkflowTemplateId?: string;
   topics?: string[];
   weeklyCreditBudget: number;
+  workflowInputDefaults?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

@@ -20,6 +20,20 @@ export interface AgentTypeConfig {
 const VOLUME_AGENT_MODEL = 'deepseek/deepseek-v4-flash-0731';
 const CREATIVE_AGENT_MODEL = 'anthropic/claude-sonnet-5';
 
+/**
+ * Workflow tools every content specialist needs so chat can list inputs,
+ * fill slots, and run the same deterministic graphs as Team → Run Workflow.
+ */
+const WORKFLOW_RUN_TOOLS: AgentToolName[] = [
+  AgentToolName.LIST_WORKFLOWS,
+  AgentToolName.INSPECT_WORKFLOW,
+  AgentToolName.GET_WORKFLOW_INPUTS,
+  AgentToolName.EXECUTE_WORKFLOW,
+  AgentToolName.PREPARE_WORKFLOW_TRIGGER,
+  AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
+  AgentToolName.INSTALL_SYSTEM_WORKFLOW,
+];
+
 const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_ANALYTICS,
   AgentToolName.GET_CREDITS_BALANCE,
@@ -36,8 +50,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.LIST_GENFEED_TOOLS,
   AgentToolName.CAPTURE_MEMORY,
   AgentToolName.CREATE_WORKFLOW,
-  AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
-  AgentToolName.INSTALL_SYSTEM_WORKFLOW,
+  ...WORKFLOW_RUN_TOOLS,
   AgentToolName.CREATE_LIVESTREAM_BOT,
   AgentToolName.MANAGE_LIVESTREAM_BOT,
   AgentToolName.LIST_ADS_RESEARCH,
@@ -55,6 +68,16 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.REPLICATE_TOP_INGREDIENT,
   AgentToolName.SUGGEST_NEXT_STEPS,
 ];
+
+const WORKFLOW_FIRST_PROMPT = `
+## Workflow-first content creation
+Prefer deterministic workflows over one-off generation when the user wants production content:
+1. list_workflows or list_system_workflow_catalog to find a matching graph
+2. get_workflow_inputs to discover required slots (topic, prompt, assets)
+3. Fill only the variable slots — never rewrite the workflow graph
+4. execute_workflow with complete inputs
+Use prepare_workflow_trigger when the user should confirm slots in the UI first.
+`;
 
 export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
   [AgentType.GENERAL]: {
@@ -97,6 +120,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     systemPromptSuffix: `
 ## Specialization: X/Twitter Content Agent
 You are a specialized X/Twitter content agent. Your primary mission is to grow the brand's presence on X through consistent, high-quality content and strategic engagement.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: founder-x-post (topic, angle, optional proof/CTA).
 
 Focus areas:
 - Create threads, posts, and replies that match the brand voice
@@ -132,6 +157,8 @@ X-specific guidelines:
     systemPromptSuffix: `
 ## Specialization: Image Creator Agent
 You are a specialized image generation agent focused on producing brand-consistent visual content.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: founder-editorial-illustration (visualAngle, visualStyle, brand cues).
 
 Focus areas:
 - Generate images that align with the brand's visual identity and color palette
@@ -169,6 +196,8 @@ Image guidelines:
     systemPromptSuffix: `
 ## Specialization: Video Creator Agent
 You are a specialized short-form video content agent for platforms like TikTok, Instagram Reels, and YouTube Shorts.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: social-media-video-series.
 
 Focus areas:
 - Create compelling short-form videos (15-60 seconds) that drive engagement
@@ -206,6 +235,8 @@ Video guidelines:
     systemPromptSuffix: `
 ## Specialization: AI Avatar Agent
 You are a specialized AI avatar content agent managing a consistent digital persona across platforms.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: avatar-ugc-heygen (script required; photo/audio optional).
 
 Focus areas:
 - Produce avatar-based video content that maintains persona consistency
@@ -235,6 +266,8 @@ Avatar guidelines:
     systemPromptSuffix: `
 ## Specialization: Article Writer Agent
 You are an expert long-form content writer. Focus on creating detailed, well-structured articles, LinkedIn posts, and blog content. Prioritize quality, depth, and SEO value.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: founder-newsletter (topic, coreTakeaway).
 
 Focus areas:
 - Write compelling long-form articles and blog posts that establish authority
@@ -270,6 +303,8 @@ Writing guidelines:
     systemPromptSuffix: `
 ## Specialization: LinkedIn Content Agent
 You are a LinkedIn content strategist and copywriter. Your mission is to build professional authority and drive engagement on LinkedIn.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: founder-newsletter.
 
 Focus areas:
 - Write thought leadership posts that establish the brand as an industry authority
@@ -306,6 +341,7 @@ LinkedIn-specific guidelines:
     systemPromptSuffix: `
 ## Specialization: Ads Script Writer Agent
 You are a direct-response advertising copywriter specialized in video ad scripts. Your job is to produce scripts that convert — for paid social, YouTube pre-rolls, and performance marketing.
+${WORKFLOW_FIRST_PROMPT}
 
 Focus areas:
 - Write video ad scripts optimized for specific placements (feed, stories, pre-roll)
@@ -342,6 +378,8 @@ Ad script guidelines:
     systemPromptSuffix: `
 ## Specialization: Short-Form Writer Agent (TikTok / Instagram / Reels)
 You are a short-form content writer for TikTok, Instagram Reels, and similar vertical-first platforms. You specialize in hooks, captions, and text overlays that drive views and engagement.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: tiktok-slideshow-automation.
 
 Focus areas:
 - Write scroll-stopping hooks for the first 1-3 seconds of short-form video
@@ -374,6 +412,7 @@ Short-form guidelines:
     systemPromptSuffix: `
 ## Specialization: CTA & Conversion Content Agent
 You are a conversion copywriter. Your sole focus is producing content that drives action — clicks, sign-ups, purchases, and leads.
+${WORKFLOW_FIRST_PROMPT}
 
 Focus areas:
 - Write CTAs for posts, ads, emails, and landing pages
@@ -409,6 +448,8 @@ CTA guidelines:
     systemPromptSuffix: `
 ## Specialization: YouTube Script Agent
 You are a YouTube content strategist and scriptwriter. You produce scripts optimized for watch time, retention, and subscriber growth.
+${WORKFLOW_FIRST_PROMPT}
+Default graph: youtube-thumbnail-script (titleText, thumbnailConcept, optional reference image).
 
 Focus areas:
 - Write full video scripts with hook, body, and outro
