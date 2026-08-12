@@ -5,7 +5,18 @@ import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSend = vi.fn();
+const uploadDoneMock = vi.fn();
+const uploadCtorMock = vi.fn();
 const clientConfigs: Array<Record<string, unknown>> = [];
+
+vi.mock('@aws-sdk/lib-storage', () => ({
+  Upload: class {
+    constructor(config: Record<string, unknown>) {
+      uploadCtorMock(config);
+    }
+    done = uploadDoneMock;
+  },
+}));
 
 vi.mock('@aws-sdk/client-s3', () => {
   class MockS3Client {
@@ -91,8 +102,8 @@ describe('S3StorageProvider', () => {
   });
 
   describe('uploadFromFile', () => {
-    it('reads the local file and puts it with inferred content type', async () => {
-      mockSend.mockResolvedValue({});
+    it('streams the local file through lib-storage Upload', async () => {
+      uploadDoneMock.mockResolvedValue({});
       const source = path.join(scratchDir, 'clip.mp4');
       await fs.writeFile(source, 'video-bytes');
       const provider = new S3StorageProvider({ bucket: 'b' });
@@ -100,17 +111,25 @@ describe('S3StorageProvider', () => {
       const result = await provider.uploadFromFile('videos/clip.mp4', source);
 
       expect(result).toBe('videos/clip.mp4');
-      const [command] = mockSend.mock.calls[0] as [
-        { params: Record<string, unknown> },
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(uploadCtorMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: expect.objectContaining({
+            Bucket: 'b',
+            ContentLength: 11,
+            ContentType: 'video/mp4',
+            Key: 'videos/clip.mp4',
+          }),
+        }),
+      );
+      const [config] = uploadCtorMock.mock.calls[0] as [
+        { params: { Body: unknown } },
       ];
-      expect(command.params.Bucket).toBe('b');
-      expect(command.params.Key).toBe('videos/clip.mp4');
-      expect(command.params.ContentType).toBe('video/mp4');
-      expect(command.params.ContentLength).toBe(11);
+      expect(Buffer.isBuffer(config.params.Body)).toBe(false);
     });
 
     it('respects an explicit content type and maps safetensors/pth to octet-stream', async () => {
-      mockSend.mockResolvedValue({});
+      uploadDoneMock.mockResolvedValue({});
       const source = path.join(scratchDir, 'model.safetensors');
       await fs.writeFile(source, 'weights');
       const provider = new S3StorageProvider({ bucket: 'b' });
@@ -118,10 +137,10 @@ describe('S3StorageProvider', () => {
       await provider.uploadFromFile('loras/model.safetensors', source);
       await provider.uploadFromFile('loras/model.safetensors', source, 'x/y');
 
-      const [first] = mockSend.mock.calls[0] as [
+      const [first] = uploadCtorMock.mock.calls[0] as [
         { params: Record<string, unknown> },
       ];
-      const [second] = mockSend.mock.calls[1] as [
+      const [second] = uploadCtorMock.mock.calls[1] as [
         { params: Record<string, unknown> },
       ];
       expect(first.params.ContentType).toBe('application/octet-stream');

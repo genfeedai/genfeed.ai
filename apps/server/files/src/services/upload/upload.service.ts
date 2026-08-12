@@ -1,5 +1,7 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
@@ -31,7 +33,10 @@ type FileUploadSource = Extract<UploadSource, { type: 'file' }>;
 type UrlUploadSource = Extract<UploadSource, { type: 'url' }>;
 
 type PreparedUpload = {
-  body: Buffer;
+  body?: Buffer;
+  filePath?: string;
+  spooledPath?: string;
+  size?: number;
   contentType: string;
   width?: number;
   height?: number;
@@ -124,45 +129,64 @@ export class UploadService {
       source.path,
       createBadRequest,
     );
+    const size = fs.statSync(filePath).size;
     let contentType = 'application/octet-stream';
     let width: number | undefined;
     let height: number | undefined;
     let duration: number | undefined;
     let hasAudio = false;
-    let body: Buffer;
 
     if (filePath.match(/\.mp4$/i)) {
       contentType = 'video/mp4';
       const metadata = await this.getVideoDimensions(filePath);
       ({ width, height, duration, hasAudio } = metadata);
-      body = fs.readFileSync(filePath);
     } else if (filePath.match(/\.zip$/i)) {
       contentType = 'application/zip';
-      body = fs.readFileSync(filePath);
     } else if (filePath.match(/\.jpe?g$/i)) {
       contentType = 'image/jpeg';
-      body = fs.readFileSync(filePath);
-      ({ width, height } = await this.getImageDimensions(body));
+      ({ width, height } = await this.getImageDimensions(filePath));
     } else if (filePath.match(/\.png$/i)) {
       contentType = 'image/png';
-      body = fs.readFileSync(filePath);
-      ({ width, height } = await this.getImageDimensions(body));
+      ({ width, height } = await this.getImageDimensions(filePath));
     } else if (filePath.match(/\.webp$/i)) {
       contentType = 'image/webp';
-      body = fs.readFileSync(filePath);
-      ({ width, height } = await this.getImageDimensions(body));
-    } else {
-      body = fs.readFileSync(filePath);
+      ({ width, height } = await this.getImageDimensions(filePath));
     }
 
-    return { body, contentType, duration, hasAudio, height, width };
+    return {
+      contentType,
+      duration,
+      filePath,
+      hasAudio,
+      height,
+      size,
+      width,
+    };
   }
 
-  private async downloadRemoteUpload(
+  private assertRemoteUrl(remoteUrl: string): void {
+    if (!remoteUrl || typeof remoteUrl !== 'string') {
+      throw new HttpException(
+        'URL is required and must be a string',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    try {
+      new URL(remoteUrl);
+    } catch (error: unknown) {
+      throw new HttpException(
+        `Invalid URL: ${remoteUrl}`,
+        HttpStatus.BAD_REQUEST,
+        { cause: (error as Error)?.message || 'Invalid URL' },
+      );
+    }
+  }
+
+  private async spoolRemoteUpload(
     remoteUrl: string,
     key: string,
     url: string,
-  ): Promise<Pick<PreparedUpload, 'body' | 'contentType'>> {
+  ): Promise<string> {
     this.loggerService.log(`${url} downloading remote file`, {
       key,
       url: remoteUrl,
@@ -171,29 +195,42 @@ export class UploadService {
     try {
       const downloadStartTime = Date.now();
       const response = await firstValueFrom(
-        this.httpService.get(remoteUrl, {
+        this.httpService.get<Readable>(remoteUrl, {
           maxBodyLength: 200 * 1024 * 1024,
           maxContentLength: 200 * 1024 * 1024,
-          responseType: 'arraybuffer',
+          responseType: 'stream',
           timeout: 60000,
         }),
       );
-      const body = Buffer.from(response.data);
       const rawContentType = response.headers['content-type'];
       const contentType = this.resolveContentType(
         typeof rawContentType === 'string' ? rawContentType : undefined,
         remoteUrl,
       );
+      const extension =
+        this.getExtensionFromUrl(remoteUrl) ||
+        this.getExtensionFromContentType(contentType);
+      const tmpPath = resolveContainedPath(
+        FILES_TMP_ROOT,
+        path.join('downloads', `${key}${extension}`),
+        createBadRequest,
+      );
+      const tmpDir = path.dirname(tmpPath);
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+
+      await pipeline(response.data, fs.createWriteStream(tmpPath));
 
       this.loggerService.log(`${url} remote download completed`, {
-        bufferSize: `${(body.length / (1024 * 1024)).toFixed(2)} MB`,
         contentType,
         downloadDuration: `${Date.now() - downloadStartTime}ms`,
         key,
+        path: tmpPath,
         url: remoteUrl,
       });
 
-      return { body, contentType };
+      return tmpPath;
     } catch (error: unknown) {
       const parsedError = error as {
         code?: string;
@@ -224,43 +261,13 @@ export class UploadService {
     key: string,
     url: string,
   ): Promise<PreparedUpload> {
-    const remoteUrl = source.url;
-    if (!remoteUrl || typeof remoteUrl !== 'string') {
-      throw new HttpException(
-        'URL is required and must be a string',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    try {
-      new URL(remoteUrl);
-    } catch (error: unknown) {
-      throw new HttpException(
-        `Invalid URL: ${remoteUrl}`,
-        HttpStatus.BAD_REQUEST,
-        { cause: (error as Error)?.message || 'Invalid URL' },
-      );
-    }
-
-    const prepared = await this.downloadRemoteUpload(remoteUrl, key, url);
-    let { contentType } = prepared;
-    let width: number | undefined;
-    let height: number | undefined;
-    let duration: number | undefined;
-    let hasAudio = false;
-
-    if (contentType.startsWith('video/')) {
-      const metadata = await this.getVideoDimensionsFromBuffer(
-        prepared.body,
-        key,
-      );
-      ({ width, height, duration, hasAudio } = metadata);
-    } else if (contentType.startsWith('image/')) {
-      ({ width, height } = await this.getImageDimensions(prepared.body));
-    } else if (remoteUrl.match(/\.zip$/i)) {
-      contentType = 'application/zip';
-    }
-
-    return { ...prepared, contentType, duration, hasAudio, height, width };
+    this.assertRemoteUrl(source.url);
+    const spooledPath = await this.spoolRemoteUpload(source.url, key, url);
+    const prepared = await this.prepareFileUpload({
+      path: spooledPath,
+      type: 'file',
+    });
+    return { ...prepared, spooledPath };
   }
 
   private async prepareBinaryUpload(
@@ -316,12 +323,17 @@ export class UploadService {
       return { ...prepared, imageProcessingDuration: 0 };
     }
 
+    const imageInput = prepared.filePath ?? prepared.body;
+    if (!imageInput) {
+      throw new Error('Image upload is missing a file path or buffer');
+    }
+
     const imageProcessingStart = Date.now();
-    const originalSizeBytes = prepared.body.length;
+    const originalSizeBytes = prepared.body?.length ?? prepared.size ?? 0;
     const quality = Number(
       this.configService.get('AWS_IMAGE_COMPRESSION') || '90',
     );
-    const processor = sharp(prepared.body).rotate();
+    const processor = sharp(imageInput).rotate();
     let body: Buffer;
     let contentType: string;
 
@@ -345,7 +357,13 @@ export class UploadService {
       processedSize: `${(body.length / (1024 * 1024)).toFixed(2)} MB`,
     });
 
-    return { ...prepared, body, contentType, imageProcessingDuration };
+    return {
+      ...prepared,
+      body,
+      contentType,
+      filePath: undefined,
+      imageProcessingDuration,
+    };
   }
 
   async uploadToS3(
@@ -371,14 +389,16 @@ export class UploadService {
       ...(source.type === 'file' && { path: source.path }),
     });
 
+    let prepared: PreparedUpload | undefined;
     try {
       const prepareStartTime = Date.now();
-      const prepared = await this.prepareUpload(source, key, url);
+      prepared = await this.prepareUpload(source, key, url);
       const prepareDuration = Date.now() - prepareStartTime;
+      const preparedSize = prepared.body?.length ?? prepared.size ?? 0;
 
       this.loggerService.log(`${url} file preparation completed`, {
-        bufferSize: `${(prepared.body.length / (1024 * 1024)).toFixed(2)} MB`,
-        bufferSizeBytes: prepared.body.length,
+        bufferSize: `${(preparedSize / (1024 * 1024)).toFixed(2)} MB`,
+        bufferSizeBytes: preparedSize,
         contentType: prepared.contentType,
         key,
         prepareDuration: `${prepareDuration}ms`,
@@ -399,27 +419,39 @@ export class UploadService {
             `${type}/${key}`,
             createBadRequest,
           );
+      const processedSize = processed.body?.length ?? processed.size ?? 0;
 
       const s3UploadStartTime = Date.now();
       this.loggerService.log(`${url} starting storage upload`, {
-        bufferSize: `${(processed.body.length / (1024 * 1024)).toFixed(2)} MB`,
+        bufferSize: `${(processedSize / (1024 * 1024)).toFixed(2)} MB`,
         contentType: processed.contentType,
         key,
         storagePath,
       });
 
-      const storedPath = await this.storage.upload(
-        processed.body,
-        storagePath,
-        processed.contentType,
-      );
+      let storedPath: string;
+      if (processed.body) {
+        storedPath = await this.storage.upload(
+          processed.body,
+          storagePath,
+          processed.contentType,
+        );
+      } else if (processed.filePath) {
+        storedPath = await this.storage.uploadFromFile(
+          storagePath,
+          processed.filePath,
+          processed.contentType,
+        );
+      } else {
+        throw new Error('Upload source produced no file or buffer');
+      }
       const publicUrl = this.storage.getUrl(storedPath);
 
       const s3UploadDuration = Date.now() - s3UploadStartTime;
       const totalDuration = Date.now() - uploadStartTime;
 
       this.loggerService.log(`${url} upload completed successfully`, {
-        bufferSize: `${(processed.body.length / (1024 * 1024)).toFixed(2)} MB`,
+        bufferSize: `${(processedSize / (1024 * 1024)).toFixed(2)} MB`,
         contentType: processed.contentType,
         key,
         prepareDuration: `${prepareDuration}ms`,
@@ -443,7 +475,7 @@ export class UploadService {
         hasAudio: processed.hasAudio,
         height: processed.height || 0,
         publicUrl,
-        size: processed.body.length,
+        size: processedSize,
         width: processed.width || 0,
       };
     } catch (error: unknown) {
@@ -466,6 +498,32 @@ export class UploadService {
       });
 
       throw error;
+    } finally {
+      if (prepared?.spooledPath && fs.existsSync(prepared.spooledPath)) {
+        fs.unlinkSync(prepared.spooledPath);
+      }
+    }
+  }
+
+  private getExtensionFromContentType(contentType: string): string {
+    const mime = contentType.split(';')[0]?.trim().toLowerCase();
+    switch (mime) {
+      case 'application/zip':
+        return '.zip';
+      case 'image/gif':
+        return '.gif';
+      case 'image/jpeg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/webp':
+        return '.webp';
+      case 'video/mp4':
+      case 'video/quicktime':
+      case 'video/webm':
+        return '.mp4';
+      default:
+        return '';
     }
   }
 

@@ -1,8 +1,10 @@
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { FileInputType } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import FormData from 'form-data';
 import { of, throwError } from 'rxjs';
 
 const isSelfHostedDeployment = vi.fn(() => false);
@@ -29,12 +31,14 @@ function createHarness(filesUrl: string | null = BASE) {
   } as unknown as LoggerService;
   const get = vi.fn();
   const post = vi.fn();
-  const httpService = { get, post } as unknown as HttpService;
+  const put = vi.fn();
+  const httpService = { get, post, put } as unknown as HttpService;
 
   return {
     get,
     loggerService,
     post,
+    put,
     service: new FilesClientService(httpService, configService, loggerService),
   };
 }
@@ -282,7 +286,7 @@ describe('FilesClientService', () => {
   });
 
   describe('uploadToS3', () => {
-    it('base64-encodes a buffer source', async () => {
+    it('sends a buffer source as multipart, not base64 JSON', async () => {
       const { post, service } = createHarness();
       post.mockReturnValue(of({ data: { publicUrl: 'https://cdn/a.mp3' } }));
 
@@ -294,15 +298,73 @@ describe('FilesClientService', () => {
         }),
       ).resolves.toEqual({ publicUrl: 'https://cdn/a.mp3' });
 
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/upload`, {
-        key: 'key-1',
-        source: {
-          contentType: 'audio/mpeg',
-          data: Buffer.from('bytes').toString('base64'),
-          type: FileInputType.BUFFER,
-        },
-        type: 'musics',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/upload/multipart`,
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.any(Object),
+          maxBodyLength: Number.POSITIVE_INFINITY,
+        }),
+      );
+      expect(post.mock.calls[0]?.[1]).toBeInstanceOf(FormData);
+      expect(post.mock.calls[0]?.[0]).not.toBe(`${BASE}/v1/files/upload`);
+    });
+
+    it('streams a readable to the multipart upload route', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { publicUrl: 'https://cdn/a.mp4' } }));
+      const stream = Readable.from(Buffer.from('video-bytes'));
+
+      await expect(
+        service.uploadStreamToS3('key-1', 'videos', {
+          contentType: 'video/mp4',
+          data: stream,
+          filename: 'clip.mp4',
+        }),
+      ).resolves.toEqual({ publicUrl: 'https://cdn/a.mp4' });
+
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/upload/multipart`,
+        expect.any(FormData),
+        expect.any(Object),
+      );
+    });
+
+    it('puts a stream at a presigned URL', async () => {
+      const { put, service } = createHarness();
+      put.mockReturnValue(of({ data: {} }));
+      const body = Buffer.from('object-bytes');
+
+      await service.putStreamToUrl(
+        'https://s3.test/presigned',
+        body,
+        'video/mp4',
+      );
+
+      expect(put).toHaveBeenCalledWith(
+        'https://s3.test/presigned',
+        body,
+        expect.objectContaining({
+          headers: { 'Content-Type': 'video/mp4' },
+        }),
+      );
+    });
+
+    it('logs and rethrows when the presigned put fails', async () => {
+      const { loggerService, put, service } = createHarness();
+      put.mockReturnValue(throwError(() => new Error('403')));
+
+      await expect(
+        service.putStreamToUrl(
+          'https://s3.test/presigned',
+          Buffer.from('x'),
+          'video/mp4',
+        ),
+      ).rejects.toThrowError('403');
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Failed to upload stream to presigned URL',
+        expect.any(Error),
+      );
     });
 
     it('passes a non-buffer source through unchanged', async () => {

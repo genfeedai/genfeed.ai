@@ -25,11 +25,18 @@ vi.mock('sharp', () => {
   return { default: mockSharp };
 });
 
+const pipelineMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock('node:stream/promises', () => ({
+  pipeline: pipelineMock,
+}));
+
 // Mock fs
 vi.mock('fs', () => ({
+  createWriteStream: vi.fn(),
   existsSync: vi.fn().mockReturnValue(true),
   mkdirSync: vi.fn(),
   readFileSync: vi.fn().mockReturnValue(Buffer.from('file-content')),
+  statSync: vi.fn().mockReturnValue({ size: 17 }),
   unlinkSync: vi.fn(),
   writeFileSync: vi.fn(),
 }));
@@ -84,6 +91,7 @@ describe('UploadService', () => {
     mockStorage = {
       getUrl: vi.fn().mockReturnValue('https://s3.example.com/test-key'),
       upload: vi.fn().mockResolvedValue('ingredients/images/test-key'),
+      uploadFromFile: vi.fn().mockResolvedValue('ingredients/videos/test-key'),
     } as unknown as Mocked<StorageProvider>;
 
     // Reset sharp mock
@@ -100,6 +108,7 @@ describe('UploadService', () => {
     // Reset fs mocks
     (fs.existsSync as Mock).mockReturnValue(true);
     (fs.readFileSync as Mock).mockReturnValue(Buffer.from('file-content'));
+    (fs.statSync as Mock).mockReturnValue({ size: 17 });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -118,6 +127,8 @@ describe('UploadService', () => {
     (sharp as Mock).mockReturnValue(mockSharpInstance);
     (fs.existsSync as Mock).mockReturnValue(true);
     (fs.readFileSync as Mock).mockReturnValue(Buffer.from('file-content'));
+    (fs.statSync as Mock).mockReturnValue({ size: 17 });
+    pipelineMock.mockResolvedValue(undefined);
   });
 
   describe('initialization', () => {
@@ -164,7 +175,8 @@ describe('UploadService', () => {
         type: 'file',
       });
 
-      expect(fs.readFileSync).toHaveBeenCalledWith(nestedPath);
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(sharp).toHaveBeenCalledWith(nestedPath);
       expect(mockStorage.upload).toHaveBeenCalledWith(
         expect.any(Buffer),
         'ingredients/images/nested/image',
@@ -233,6 +245,12 @@ describe('UploadService', () => {
       expect(result.height).toBe(1080);
       expect(result.duration).toBe(60);
       expect(result.hasAudio).toBe(true);
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/videos/test-key',
+        videoPath,
+        'video/mp4',
+      );
       expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalledWith(
         videoPath,
       );
@@ -253,22 +271,33 @@ describe('UploadService', () => {
     });
 
     it('should upload ZIP file without image processing', async () => {
+      const zipPath = path.join(FILES_TMP_ROOT, 'fixtures', 'archive.zip');
       const result = await service.uploadToS3('test-key', 'archives', {
-        path: path.join(FILES_TMP_ROOT, 'fixtures', 'archive.zip'),
+        path: zipPath,
         type: 'file',
       });
 
       expect(result.publicUrl).toBe('https://s3.example.com/test-key');
       expect(sharp).not.toHaveBeenCalled();
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/archives/test-key',
+        zipPath,
+        'application/zip',
+      );
     });
 
     it('should handle unknown file types as octet-stream', async () => {
+      const unknownPath = path.join(FILES_TMP_ROOT, 'fixtures', 'file.unknown');
       await service.uploadToS3('test-key', 'files', {
-        path: path.join(FILES_TMP_ROOT, 'fixtures', 'file.unknown'),
+        path: unknownPath,
         type: 'file',
       });
 
-      expect(mockStorage.upload).toHaveBeenCalled();
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/files/test-key',
+        unknownPath,
+        'application/octet-stream',
+      );
     });
   });
 
@@ -289,10 +318,12 @@ describe('UploadService', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith(
         'https://example.com/image.jpg',
         expect.objectContaining({
-          responseType: 'arraybuffer',
+          responseType: 'stream',
           timeout: 60000,
         }),
       );
+      expect(pipelineMock).toHaveBeenCalled();
+      expect(fs.unlinkSync).toHaveBeenCalled();
       expect(result.publicUrl).toBe('https://s3.example.com/test-key');
     });
 

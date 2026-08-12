@@ -72,6 +72,11 @@ const routes = [
   ],
   [FilesStorageController.prototype.uploadFile, RequestMethod.POST, 'upload'],
   [
+    FilesStorageController.prototype.uploadMultipart,
+    RequestMethod.POST,
+    'upload/multipart',
+  ],
+  [
     FilesStorageController.prototype.downloadFile,
     RequestMethod.GET,
     'download/:type/*key',

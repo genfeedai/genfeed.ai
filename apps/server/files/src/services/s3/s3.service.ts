@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -29,6 +31,18 @@ interface S3Error extends Error {
 }
 
 const createBadRequest = (message: string) => new BadRequestException(message);
+
+function asNodeReadable(body: unknown, emptyMessage: string): Readable {
+  if (body instanceof Readable) {
+    return body;
+  }
+
+  if (body && typeof body === 'object' && 'getReader' in body) {
+    return Readable.fromWeb(body as NodeWebReadableStream<Uint8Array>);
+  }
+
+  throw new Error(emptyMessage);
+}
 
 @Injectable()
 export class S3Service {
@@ -175,21 +189,16 @@ export class S3Service {
       });
       const response = await this.s3Client.send(command);
 
-      // Ensure directory exists
       const dir = path.dirname(containedLocalPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      // Convert stream to buffer
-      const stream = response.Body as Readable;
-      const chunks: Buffer[] = [];
-      for await (const chunk of stream) {
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
-
-      fs.writeFileSync(containedLocalPath, buffer);
+      const stream = asNodeReadable(
+        response.Body,
+        `Empty response body for s3://${this.bucket}/${safeKey}`,
+      );
+      await pipeline(stream, fs.createWriteStream(containedLocalPath));
       this.logger.log(`File downloaded successfully to ${containedLocalPath}`);
     } catch (error: unknown) {
       this.logger.error(
@@ -232,15 +241,16 @@ export class S3Service {
         );
       }
 
-      const buffer = Buffer.from(await response.arrayBuffer());
-
-      // Ensure directory exists
       const dir = path.dirname(containedLocalPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      fs.writeFileSync(containedLocalPath, buffer);
+      const stream = asNodeReadable(
+        response.body,
+        `Empty response body for ${url}`,
+      );
+      await pipeline(stream, fs.createWriteStream(containedLocalPath));
       this.logger.log(`File downloaded from URL to ${containedLocalPath}`);
     } catch (error: unknown) {
       this.logger.error('Failed to download file from URL', {
