@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { runDesktopPrismaMigrations } from '@genfeedai/desktop-prisma';
 
 const DESKTOP_SCHEMA_BASELINE_VERSION = 1;
+type DesktopSchemaBaselineState = 'newer' | 'supported' | 'unsupported';
 
 export class DesktopPgliteService {
   private instance: PGlite | null = null;
@@ -19,7 +20,9 @@ export class DesktopPgliteService {
     return this.resetUnsupportedDatabase;
   }
 
-  private async hasSupportedBaseline(pglite: PGlite): Promise<boolean> {
+  private async readBaselineState(
+    pglite: PGlite,
+  ): Promise<DesktopSchemaBaselineState> {
     const existingTables = await pglite.query<{ table_name: string }>(`
       SELECT table_name
       FROM information_schema.tables
@@ -28,7 +31,7 @@ export class DesktopPgliteService {
     `);
 
     if (existingTables.rows.length === 0) {
-      return true;
+      return 'supported';
     }
 
     if (
@@ -36,7 +39,7 @@ export class DesktopPgliteService {
         (table) => table.table_name === 'desktop_schema_metadata',
       )
     ) {
-      return false;
+      return 'unsupported';
     }
 
     const baseline = await pglite.query<{ baseline_version: number }>(
@@ -45,9 +48,19 @@ export class DesktopPgliteService {
        WHERE singleton_key = 'current'`,
     );
 
-    return (
-      baseline.rows[0]?.baseline_version === DESKTOP_SCHEMA_BASELINE_VERSION
-    );
+    const version = baseline.rows[0]?.baseline_version;
+
+    if (version === undefined) {
+      return 'unsupported';
+    }
+
+    if (version > DESKTOP_SCHEMA_BASELINE_VERSION) {
+      return 'newer';
+    }
+
+    return version === DESKTOP_SCHEMA_BASELINE_VERSION
+      ? 'supported'
+      : 'unsupported';
   }
 
   private async openDatabase(): Promise<PGlite> {
@@ -56,7 +69,15 @@ export class DesktopPgliteService {
     try {
       await pglite.waitReady;
 
-      if (!(await this.hasSupportedBaseline(pglite))) {
+      const baselineState = await this.readBaselineState(pglite);
+
+      if (baselineState === 'newer') {
+        throw new Error(
+          'The local database was created by a newer version of Genfeed Desktop. Update the app to open it.',
+        );
+      }
+
+      if (baselineState === 'unsupported') {
         await pglite.close();
         await fs.rm(this.dataDir, { force: true, recursive: true });
         this.resetUnsupportedDatabase = true;

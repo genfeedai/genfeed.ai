@@ -165,16 +165,17 @@ export default function DesktopLocalProviderSettings({
 
   const isCard = variant === 'card';
 
-  const loadProvider = useCallback(async () => {
+  const loadProvider = useCallback(async (signal: AbortSignal) => {
     const bridge = getDesktopBridge();
     if (!bridge) return;
 
     const bootstrap = await bridge.app.getBootstrap();
+    if (signal.aborted) return;
     setIsLocalMode(bootstrap.isOfflineMode);
     if (!bootstrap.isOfflineMode) return;
 
     const config = await bridge.generation.getProviderConfig();
-    if (!config) return;
+    if (signal.aborted || !config) return;
 
     dispatch({
       type: 'LOAD',
@@ -188,7 +189,10 @@ export default function DesktopLocalProviderSettings({
   }, []);
 
   useEffect(() => {
-    void loadProvider().catch((error: unknown) => {
+    const abortController = new AbortController();
+    void loadProvider(abortController.signal).catch((error: unknown) => {
+      if (abortController.signal.aborted) return;
+      setIsLocalMode(false);
       dispatch({
         type: 'SET_STATUS',
         payload:
@@ -197,6 +201,7 @@ export default function DesktopLocalProviderSettings({
             : translate('errors.loadFailed'),
       });
     });
+    return () => abortController.abort();
   }, [loadProvider, translate]);
 
   const applyPreset = (nextProvider: DesktopGenerationProviderKind) => {
@@ -213,7 +218,7 @@ export default function DesktopLocalProviderSettings({
 
   const handleSave = async () => {
     const bridge = getDesktopBridge();
-    if (!bridge) return;
+    if (!bridge || isLocalMode !== true) return;
 
     dispatch({ type: 'SAVE_START' });
     try {
@@ -242,7 +247,7 @@ export default function DesktopLocalProviderSettings({
 
   const handleTest = async () => {
     const bridge = getDesktopBridge();
-    if (!bridge) return;
+    if (!bridge || isLocalMode !== true) return;
 
     dispatch({ type: 'TEST_START' });
     try {
@@ -284,7 +289,7 @@ export default function DesktopLocalProviderSettings({
     }
   };
 
-  if (isLocalMode === false) {
+  if (isLocalMode !== true) {
     const inactiveContent = (
       <>
         <div className="text-sm font-medium text-foreground/88">
@@ -295,6 +300,7 @@ export default function DesktopLocalProviderSettings({
         </p>
         <Button
           className="mt-3 rounded px-2 py-1 text-xs"
+          disabled={isLocalMode === null}
           onClick={() => void handleStartLocalMode()}
           type="button"
           variant={ButtonVariant.UNSTYLED}
@@ -311,7 +317,7 @@ export default function DesktopLocalProviderSettings({
     );
 
     return isCard ? (
-      <Card className="p-5">{inactiveContent}</Card>
+      <Card bodyClassName="p-5">{inactiveContent}</Card>
     ) : (
       <div className="border-t border-white/[0.06] p-3">{inactiveContent}</div>
     );
@@ -414,7 +420,7 @@ export default function DesktopLocalProviderSettings({
   );
 
   if (isCard) {
-    return <Card className="p-5">{content}</Card>;
+    return <Card bodyClassName="p-5">{content}</Card>;
   }
 
   return <div className="border-t border-white/[0.06] p-3">{content}</div>;

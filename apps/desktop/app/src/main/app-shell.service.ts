@@ -16,6 +16,21 @@ import {
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
+type DesktopAppShellLogWriter = (
+  level: 'error' | 'info',
+  message: string,
+) => void;
+
+export function writeDesktopAppShellError(
+  message: string,
+  writeLog?: DesktopAppShellLogWriter,
+  writeStderr: (message: string) => void = (value) =>
+    process.stderr.write(value),
+): void {
+  writeStderr(message);
+  writeLog?.('error', message);
+}
+
 function stripApiVersionSuffix(value: string): string {
   return value.replace(/\/v1\/?$/, '');
 }
@@ -52,11 +67,12 @@ export class DesktopAppShellService {
     private readonly environment: IDesktopEnvironment,
     private readonly getSession: () => IDesktopSession | null,
     private readonly getDataDir: () => string,
-    private readonly writeLog?: (
-      level: 'error' | 'info',
-      message: string,
-    ) => void,
+    private readonly writeLog?: DesktopAppShellLogWriter,
   ) {}
+
+  private writeError(message: string): void {
+    writeDesktopAppShellError(message, this.writeLog);
+  }
 
   get appOrigin(): string {
     if (!this.activeAppUrl) {
@@ -145,8 +161,7 @@ export class DesktopAppShellService {
 
     child.stderr?.on('data', (chunk: Buffer | string) => {
       const message = `[desktop-app] ${chunk.toString()}`;
-      process.stderr.write(message);
-      this.writeLog?.('error', message);
+      this.writeError(message);
     });
   }
 
@@ -173,7 +188,7 @@ export class DesktopAppShellService {
       this.appServerProcess = null;
       this.started = false;
 
-      process.stderr.write(
+      this.writeError(
         `[desktop-app] app shell exited (${code ?? 'null'} / ${signal ?? 'null'})\n`,
       );
     });
@@ -247,7 +262,7 @@ export class DesktopAppShellService {
         this.started = true;
         return this.appOrigin;
       } catch {
-        process.stderr.write(
+        this.writeError(
           `[desktop-app] remote shell unavailable at ${remoteAppUrl.origin}; starting bundled fallback.\n`,
         );
       }

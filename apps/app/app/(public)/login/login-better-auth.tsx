@@ -391,7 +391,11 @@ export default function LoginBetterAuth({
               <Button
                 type="button"
                 variant={ButtonVariant.SECONDARY}
-                isDisabled={!isDesktopBridgeAvailable || isStartingLocalMode}
+                isDisabled={
+                  !isDesktopBridgeAvailable ||
+                  isStartingLocalMode ||
+                  isWaitingForDesktopSession
+                }
                 className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
                 onClick={() => void handleDesktopLocalMode()}

@@ -1589,6 +1589,24 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it('does not expose similarly prefixed desktop routes without a cloud session', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/desktop/local-preview', { hasSession: false }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe(
+      '/desktop/local-preview',
+    );
+  });
+
   it('lets signed-in desktop onboarding render', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     vi.resetModules();

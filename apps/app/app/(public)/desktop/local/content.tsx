@@ -28,28 +28,35 @@ export default function LocalDesktopContent() {
   const [prompt, setPrompt] = useState('');
   const [result, setResult] = useState<IDesktopGeneratedContent | null>(null);
 
-  const loadLocalRuntime = useCallback(async () => {
-    const bridge = getDesktopBridge();
-    if (!bridge) {
-      setError(translate('errors.desktopOnly'));
-      setIsBusy(false);
-      return;
-    }
+  const loadLocalRuntime = useCallback(
+    async (signal?: AbortSignal) => {
+      const bridge = getDesktopBridge();
+      if (!bridge) {
+        setError(translate('errors.desktopOnly'));
+        setIsBusy(false);
+        return;
+      }
 
-    setError(null);
-    setIsBusy(true);
-    try {
-      const nextBootstrap = await bridge.app.enableOfflineMode();
-      setBootstrap(nextBootstrap);
-    } catch (nextError) {
-      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
-    } finally {
-      setIsBusy(false);
-    }
-  }, [translate]);
+      setError(null);
+      setIsBusy(true);
+      try {
+        const nextBootstrap = await bridge.app.enableOfflineMode();
+        if (signal?.aborted) return;
+        setBootstrap(nextBootstrap);
+      } catch (nextError) {
+        if (signal?.aborted) return;
+        setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+      } finally {
+        if (!signal?.aborted) setIsBusy(false);
+      }
+    },
+    [translate],
+  );
 
   useEffect(() => {
-    void loadLocalRuntime();
+    const abortController = new AbortController();
+    void loadLocalRuntime(abortController.signal);
+    return () => abortController.abort();
   }, [loadLocalRuntime]);
 
   const refreshBootstrap = async (): Promise<void> => {
@@ -103,13 +110,21 @@ export default function LocalDesktopContent() {
   const handleUseCloud = async (): Promise<void> => {
     const bridge = getDesktopBridge();
     if (!bridge) return;
-    await bridge.app.switchToCloudMode();
+    try {
+      await bridge.app.switchToCloudMode();
+    } catch (nextError) {
+      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+    }
   };
 
   const handleRevealLogs = async (): Promise<void> => {
     const bridge = getDesktopBridge();
     if (!bridge) return;
-    await bridge.app.revealLogs();
+    try {
+      await bridge.app.revealLogs();
+    } catch (nextError) {
+      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+    }
   };
 
   const activeWorkspace =
@@ -174,7 +189,7 @@ export default function LocalDesktopContent() {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="space-y-6">
-            <Card className="space-y-4 p-5">
+            <Card bodyClassName="space-y-4 p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-semibold">
@@ -221,7 +236,7 @@ export default function LocalDesktopContent() {
               ) : null}
             </Card>
 
-            <Card className="space-y-4 p-5">
+            <Card bodyClassName="space-y-4 p-5">
               <div>
                 <h2 className="flex items-center gap-2 text-base font-semibold">
                   <Sparkles aria-hidden="true" className="size-4" />

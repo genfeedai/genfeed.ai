@@ -244,6 +244,12 @@ describe('LoginPage', () => {
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
     expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+    const localModeButton = screen.getByRole('button', {
+      name: 'Use a local workspace',
+    });
+    expect(localModeButton).toBeDisabled();
+    fireEvent.click(localModeButton);
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 

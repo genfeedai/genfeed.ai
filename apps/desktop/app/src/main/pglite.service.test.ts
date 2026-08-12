@@ -18,51 +18,57 @@ afterEach(async () => {
 });
 
 describe('DesktopPgliteService', () => {
-  it('initializes PGlite and applies Prisma migrations', {
-    timeout: 20_000,
-  }, async () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-pglite-'));
-    cleanupPaths.push(dataDir);
+  it(
+    'initializes PGlite and applies Prisma migrations',
+    async () => {
+      const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-pglite-'));
+      cleanupPaths.push(dataDir);
 
-    const service = new DesktopPgliteService(dataDir);
-    const db = await service.init();
+      const service = new DesktopPgliteService(dataDir);
+      const db = await service.init();
 
-    const migrationRows = await db.query<{
-      migration_name: string;
-    }>('SELECT migration_name FROM _prisma_migrations ORDER BY migration_name');
-    const baselineRows = await db.query<{ baseline_version: number }>(
-      `SELECT baseline_version
-       FROM desktop_schema_metadata
-       WHERE singleton_key = 'current'`,
-    );
-    const workspaceRows = await db.query<{ name: string }>(
-      "SELECT table_name AS name FROM information_schema.tables WHERE table_name = 'desktop_workspace'",
-    );
-    const userColumnRows = await db.query<{ name: string }>(
-      "SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'users' ORDER BY column_name",
-    );
-    const prismaService = new DesktopPrismaService(db);
+      const migrationRows = await db.query<{
+        migration_name: string;
+      }>(
+        'SELECT migration_name FROM _prisma_migrations ORDER BY migration_name',
+      );
+      const baselineRows = await db.query<{ baseline_version: number }>(
+        `SELECT baseline_version
+         FROM desktop_schema_metadata
+         WHERE singleton_key = 'current'`,
+      );
+      const workspaceRows = await db.query<{ name: string }>(
+        "SELECT table_name AS name FROM information_schema.tables WHERE table_name = 'desktop_workspace'",
+      );
+      const userColumnRows = await db.query<{ name: string }>(
+        "SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'users' ORDER BY column_name",
+      );
+      const prismaService = new DesktopPrismaService(db);
 
-    await prismaService.bootstrapLocalIdentity('local-user-test');
-    const userRows = await db.query<{ id: string }>(
-      'SELECT id FROM users WHERE id = $1',
-      ['local-user-test'],
-    );
+      await prismaService.bootstrapLocalIdentity('local-user-test');
+      const userRows = await db.query<{ id: string }>(
+        'SELECT id FROM users WHERE id = $1',
+        ['local-user-test'],
+      );
 
-    expect(service.getDataDir()).toBe(dataDir);
-    expect(service.didResetUnsupportedDatabase()).toBe(false);
-    expect(migrationRows.rows).toEqual([
-      { migration_name: '0001_init' },
-      { migration_name: '0002_local_cloud_identity' },
-      { migration_name: '0003_normalize_user_auth_provider_column' },
-      { migration_name: '0004_desktop_asset_is_deleted' },
-    ]);
-    expect(baselineRows.rows).toEqual([{ baseline_version: 1 }]);
-    expect(workspaceRows.rows).toEqual([{ name: 'desktop_workspace' }]);
-    expect(userColumnRows.rows).toContainEqual({ name: 'auth_provider_id' });
-    expect(userColumnRows.rows).not.toContainEqual({ name: 'authprovider_id' });
-    expect(userRows.rows).toEqual([{ id: 'local-user-test' }]);
+      expect(service.getDataDir()).toBe(dataDir);
+      expect(service.didResetUnsupportedDatabase()).toBe(false);
+      expect(migrationRows.rows).toEqual([
+        { migration_name: '0001_init' },
+        { migration_name: '0002_local_cloud_identity' },
+        { migration_name: '0003_normalize_user_auth_provider_column' },
+        { migration_name: '0004_desktop_asset_is_deleted' },
+      ]);
+      expect(baselineRows.rows).toEqual([{ baseline_version: 1 }]);
+      expect(workspaceRows.rows).toEqual([{ name: 'desktop_workspace' }]);
+      expect(userColumnRows.rows).toContainEqual({ name: 'auth_provider_id' });
+      expect(userColumnRows.rows).not.toContainEqual({
+        name: 'authprovider_id',
+      });
+      expect(userRows.rows).toEqual([{ id: 'local-user-test' }]);
 
-    await service.close();
-  });
+      await service.close();
+    },
+    { timeout: 20_000 },
+  );
 });

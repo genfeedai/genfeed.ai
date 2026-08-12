@@ -56,6 +56,11 @@ import { buildDesktopMenu } from './main/menu.service';
 import type { DesktopPgliteService } from './main/pglite.service';
 import type { DesktopPrismaService } from './main/prisma.service';
 import {
+  activateDesktopLocalMode,
+  selectDesktopDataService,
+  switchDesktopToCloud,
+} from './main/runtime-mode.util';
+import {
   DesktopSessionService,
   type IDesktopSession,
 } from './main/session.service';
@@ -202,20 +207,21 @@ const getCloudIdentityStatus = (
 
 const persistDeviceIdentity = async (
   session: IDesktopBootstrap['session'],
+  activePrismaService: DesktopPrismaService | null = prismaService,
+  activeLocalIdentityService:
+    | LocalIdentityService
+    | undefined = localIdentityService,
 ): Promise<void> => {
-  const client = prismaService?.getClient();
+  const client = activePrismaService?.getClient();
 
-  if (!client) {
+  if (!client || !activeLocalIdentityService) {
     return;
   }
 
   const now = new Date().toISOString();
-  if (!localIdentityService) {
-    return;
-  }
-
-  const localDeviceId = localIdentityService.getLocalDeviceId();
-  const betterAuthId = getBetterAuthId();
+  const localDeviceId = activeLocalIdentityService.getLocalDeviceId();
+  const betterAuthId =
+    activeLocalIdentityService.getBetterAuthId() ?? session?.userId ?? null;
   const existing = await client.desktopDeviceIdentity.findUnique({
     where: {
       id: localDeviceId,
@@ -230,7 +236,7 @@ const persistDeviceIdentity = async (
       createdAt: now,
       id: localDeviceId,
       lastSeenAt: now,
-      localUserId: localIdentityService.getLocalUserId(),
+      localUserId: activeLocalIdentityService.getLocalUserId(),
       status: getCloudIdentityStatus(session, betterAuthId),
       updatedAt: now,
     },
@@ -239,7 +245,7 @@ const persistDeviceIdentity = async (
       cloudUserId: betterAuthId ?? existing?.cloudUserId ?? null,
       connectedAt: session?.issuedAt ?? existing?.connectedAt ?? null,
       lastSeenAt: now,
-      localUserId: localIdentityService.getLocalUserId(),
+      localUserId: activeLocalIdentityService.getLocalUserId(),
       status: getCloudIdentityStatus(session, betterAuthId),
       updatedAt: now,
     },
@@ -274,19 +280,12 @@ const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
 };
 
 function getDataService(): IDesktopDataService {
-  if (isOfflineMode && localService) {
-    return localService;
-  }
-
-  if (sessionService.getSession()) {
-    return cloudService;
-  }
-
-  if (!localService) {
-    throw new Error('Select local mode before using local generation.');
-  }
-
-  return localService;
+  return selectDesktopDataService({
+    cloudService,
+    hasCloudSession: Boolean(sessionService.getSession()),
+    isOfflineMode,
+    localService,
+  });
 }
 
 const emitQuickGenerate = (): void => {
@@ -381,6 +380,7 @@ const initializeLocalRuntime = async (): Promise<void> => {
     return localRuntimePromise;
   }
 
+  const previousOfflineMode = isOfflineMode;
   localRuntimePromise = (async () => {
     const [{ DesktopPgliteService }, { DesktopPrismaService }] =
       await Promise.all([
@@ -445,7 +445,28 @@ const initializeLocalRuntime = async (): Promise<void> => {
         nextFilesService,
       );
       await nextGenerationService.resumeAssetGenerationJobs();
+      const nextTerminalService = new DesktopTerminalService(
+        nextWorkspaceService,
+      );
+      const nextLocalService = new DesktopLocalService(
+        prismaClient,
+        nextGenerationService,
+      );
+      const nextDraftsService = new DesktopDraftsService(nextWorkspaceService);
 
+      await persistDeviceIdentity(
+        session,
+        nextPrismaService,
+        nextLocalIdentityService,
+      );
+
+      if (!assetProtocolRegistered) {
+        new DesktopAssetProtocolService(nextFilesService).register();
+        assetProtocolRegistered = true;
+      }
+
+      // Publish the runtime atomically after every fallible initialization step.
+      // A failed attempt must not leave globals backed by a closed database.
       pgliteService = nextPgliteService;
       prismaService = nextPrismaService;
       kvService = nextKvService;
@@ -453,27 +474,16 @@ const initializeLocalRuntime = async (): Promise<void> => {
       workspaceService = nextWorkspaceService;
       syncService = nextSyncService;
       filesService = nextFilesService;
-      terminalService = new DesktopTerminalService(nextWorkspaceService);
+      terminalService = nextTerminalService;
       generationService = nextGenerationService;
-      localService = new DesktopLocalService(
-        prismaClient,
-        nextGenerationService,
-      );
-      draftsService = new DesktopDraftsService(nextWorkspaceService);
-
-      if (!assetProtocolRegistered) {
-        new DesktopAssetProtocolService(nextFilesService).register();
-        assetProtocolRegistered = true;
-      }
-
+      localService = nextLocalService;
+      draftsService = nextDraftsService;
       isOfflineMode = true;
-      await persistDeviceIdentity(session);
       bootstrapCache = null;
     } catch (error) {
       await nextPgliteService.close();
-      pgliteService = null;
-      prismaService = null;
-      localService = null;
+      isOfflineMode = previousOfflineMode;
+      bootstrapCache = null;
       localRuntimePromise = null;
       throw error;
     }
@@ -845,9 +855,9 @@ const createWindow = async (): Promise<void> => {
 
   buildDesktopMenu(mainWindow, () => {
     void (async () => {
-      desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
-      isOfflineMode = true;
-      await initializeLocalRuntime();
+      await activateDesktopLocalMode(initializeLocalRuntime, () => {
+        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+      });
       const workspace = await openAndActivateWorkspace();
       if (!workspace) return;
       await emitBootstrap();
@@ -1172,9 +1182,9 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
-      desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
-      isOfflineMode = true;
-      await initializeLocalRuntime();
+      await activateDesktopLocalMode(initializeLocalRuntime, () => {
+        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+      });
       await emitBootstrap();
       return getBootstrap();
     },
@@ -1182,10 +1192,18 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appUseCloudMode,
     async () => {
-      desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud');
-      isOfflineMode = false;
-      app.relaunch();
-      app.exit(0);
+      await switchDesktopToCloud({
+        closeLocalRuntime: async () => {
+          await prismaService?.getClient().$disconnect();
+          await pgliteService?.close();
+        },
+        exit: () => app.exit(0),
+        persistCloudMode: () => {
+          desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud');
+          isOfflineMode = false;
+        },
+        relaunch: () => app.relaunch(),
+      });
     },
   );
   registerPrivilegedIpcHandler(

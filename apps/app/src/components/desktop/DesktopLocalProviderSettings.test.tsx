@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DesktopLocalProviderSettings from './DesktopLocalProviderSettings';
@@ -34,12 +40,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@ui/card/Card', () => ({
   default: ({
+    bodyClassName,
     children,
     className,
   }: {
+    bodyClassName?: string;
     children: ReactNode;
     className?: string;
-  }) => <section className={className}>{children}</section>,
+  }) => <section className={bodyClassName ?? className}>{children}</section>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -107,9 +115,8 @@ describe('DesktopLocalProviderSettings', () => {
   it('loads an existing local provider config', async () => {
     render(<DesktopLocalProviderSettings />);
 
-    expect(screen.getByText('Local generation')).toBeInTheDocument();
-
     await waitFor(() => {
+      expect(screen.getByText('Local generation')).toBeInTheDocument();
       expect(screen.getByLabelText('Local provider base URL')).toHaveValue(
         'http://localhost:9999/v1',
       );
@@ -132,7 +139,7 @@ describe('DesktopLocalProviderSettings', () => {
     render(<DesktopLocalProviderSettings variant="card" />);
 
     expect(
-      screen.getByText(/Configure a local OpenAI-compatible provider/),
+      await screen.findByText(/Configure a local OpenAI-compatible provider/),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'OpenAI-compatible' }));
@@ -167,7 +174,7 @@ describe('DesktopLocalProviderSettings', () => {
   it('tests the current provider payload and reports latency', async () => {
     render(<DesktopLocalProviderSettings />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'fal.ai' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'fal.ai' }));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
 
     await waitFor(() => {
@@ -181,11 +188,18 @@ describe('DesktopLocalProviderSettings', () => {
     });
   });
 
-  it('shows load, save, and test errors', async () => {
+  it('shows load errors without exposing provider storage actions', async () => {
     mocks.getProviderConfig.mockRejectedValueOnce(new Error('load exploded'));
     render(<DesktopLocalProviderSettings />);
 
     expect(await screen.findByText('load exploded')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
+  });
+
+  it('shows save and test errors', async () => {
+    render(<DesktopLocalProviderSettings />);
+    await screen.findByRole('button', { name: 'Save' });
 
     mocks.saveProviderConfig.mockRejectedValueOnce(new Error('save exploded'));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -201,11 +215,57 @@ describe('DesktopLocalProviderSettings', () => {
 
     render(<DesktopLocalProviderSettings />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
-
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Use a local workspace' }),
+    ).toBeDisabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
     expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
     expect(mocks.testProviderConfig).not.toHaveBeenCalled();
+  });
+
+  it('keeps provider storage actions unavailable until local mode is confirmed', async () => {
+    let resolveBootstrap:
+      | ((value: { isOfflineMode: boolean }) => void)
+      | undefined;
+    mocks.getBootstrap.mockImplementationOnce(
+      () =>
+        new Promise<{ isOfflineMode: boolean }>((resolve) => {
+          resolveBootstrap = resolve;
+        }),
+    );
+    render(<DesktopLocalProviderSettings />);
+
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
+    expect(mocks.getProviderConfig).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveBootstrap?.({ isOfflineMode: true });
+    });
+
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(mocks.getProviderConfig).toHaveBeenCalledOnce();
+  });
+
+  it('stops provider loading after unmount', async () => {
+    let resolveBootstrap:
+      | ((value: { isOfflineMode: boolean }) => void)
+      | undefined;
+    mocks.getBootstrap.mockImplementationOnce(
+      () =>
+        new Promise<{ isOfflineMode: boolean }>((resolve) => {
+          resolveBootstrap = resolve;
+        }),
+    );
+    const { unmount } = render(<DesktopLocalProviderSettings />);
+
+    unmount();
+    await act(async () => {
+      resolveBootstrap?.({ isOfflineMode: true });
+    });
+
+    expect(mocks.getProviderConfig).not.toHaveBeenCalled();
   });
 });

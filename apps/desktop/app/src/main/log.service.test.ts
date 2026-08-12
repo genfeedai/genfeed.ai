@@ -36,5 +36,8 @@ describe('DesktopLogService', () => {
     expect(redactDesktopLogLine('token="gf_private_value"')).toBe(
       'token="[REDACTED]"',
     );
+    expect(redactDesktopLogLine('credential=gf_private-.')).toBe(
+      'credential=[REDACTED]',
+    );
   });
 });

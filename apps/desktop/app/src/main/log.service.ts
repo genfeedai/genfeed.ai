@@ -4,7 +4,10 @@ import path from 'node:path';
 const MAX_LOG_BYTES = 2 * 1024 * 1024;
 export function redactDesktopLogLine(value: string): string {
   return value
-    .replace(/\bgf_[A-Za-z0-9._-]+\b/g, '[REDACTED]')
+    .replace(
+      /(^|[^A-Za-z0-9._-])gf_[A-Za-z0-9._-]+(?=$|[^A-Za-z0-9._-])/g,
+      '$1[REDACTED]',
+    )
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
     .replace(
       /("?(?:apiKey|cookieValue|token)"?\s*[:=]\s*")([^"\s]+)(")/gi,

@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LocalDesktopContent from './content';
 
@@ -124,5 +130,51 @@ describe('LocalDesktopContent', () => {
     await waitFor(() => {
       expect(mocks.enableOfflineMode).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('aborts local initialization when the component unmounts', async () => {
+    let resolveBootstrap: ((value: typeof bootstrap) => void) | undefined;
+    mocks.enableOfflineMode.mockImplementationOnce(
+      () =>
+        new Promise<typeof bootstrap>((resolve) => {
+          resolveBootstrap = resolve;
+        }),
+    );
+    const abortSpy = vi.spyOn(AbortController.prototype, 'abort');
+    const { unmount } = render(<LocalDesktopContent />);
+
+    unmount();
+
+    expect(abortSpy).toHaveBeenCalledOnce();
+    await act(async () => {
+      resolveBootstrap?.(bootstrap);
+      await Promise.resolve();
+    });
+    abortSpy.mockRestore();
+  });
+
+  it('shows cloud switching failures', async () => {
+    mocks.switchToCloudMode.mockRejectedValueOnce(
+      new Error('Cloud mode could not start'),
+    );
+    render(<LocalDesktopContent />);
+    await screen.findByText('/Users/test/Genfeed');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use Genfeed Cloud' }));
+
+    expect(await screen.findByText('Cloud mode could not start')).toBeVisible();
+  });
+
+  it('shows log reveal failures', async () => {
+    mocks.enableOfflineMode.mockRejectedValueOnce(
+      new Error('Local mode could not start'),
+    );
+    mocks.revealLogs.mockRejectedValueOnce(new Error('Logs could not open'));
+    render(<LocalDesktopContent />);
+    await screen.findByText('Local mode could not start');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal logs' }));
+
+    expect(await screen.findByText('Logs could not open')).toBeVisible();
   });
 });
