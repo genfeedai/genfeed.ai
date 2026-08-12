@@ -1,0 +1,88 @@
+---
+description: 'Audit every server integration adapter in Genfeed and understand which directories are user connectors, BYOK providers, or internal runtime seams.'
+---
+
+# Integration Adapter Inventory
+
+This inventory mirrors `apps/server/api/src/services/integrations`. It exists
+to prevent an implementation directory from being mistaken for an integration
+that users can configure.
+
+## AI and media provider adapters
+
+| Directory    | Boundary                                                       |
+| ------------ | -------------------------------------------------------------- |
+| `anthropic`  | Organization BYOK and language-model execution                 |
+| `apify`      | Organization BYOK and social-data ingestion                    |
+| `argil`      | Organization BYOK and avatar-video execution                   |
+| `comfyui`    | Configured self-hosted workflow runtime; not organization BYOK |
+| `elevenlabs` | Organization BYOK and voice/audio execution                    |
+| `fal`        | Organization BYOK and hosted media execution                   |
+| `fleet`      | Managed compute runtime; no customer connector setup           |
+| `hedra`      | Organization BYOK and avatar/video execution                   |
+| `heygen`     | Organization BYOK and avatar-video execution                   |
+| `higgsfield` | Organization BYOK with key and secret                          |
+| `klingai`    | Organization BYOK with key and secret                          |
+| `leonardoai` | Organization BYOK and image execution                          |
+| `llm`        | Internal language-model dispatch abstraction                   |
+| `openai-llm` | OpenAI execution and optional OAuth boundary                   |
+| `openrouter` | Organization BYOK and model-routing execution                  |
+| `opuspro`    | Provider-specific clip service; not organization BYOK          |
+| `replicate`  | Organization BYOK, media execution, discovery, and training    |
+| `xai`        | Internal xAI/Grok service path; not a standalone BYOK card     |
+
+## Brand and organization connectors
+
+| Directory               | Boundary                                                       |
+| ----------------------- | -------------------------------------------------------------- |
+| `beehiiv`               | Brand API-key connection for publications and newsletters      |
+| `devto`                 | Brand API-key connection for article publishing                |
+| `discord`               | Organization OAuth messaging connection                        |
+| `facebook`              | Brand Meta OAuth connection and page access                    |
+| `fanvue`                | Brand OAuth connection and publishing                          |
+| `ghost`                 | Brand Admin API connection and publishing                      |
+| `google-ads`            | Brand OAuth advertising connection                             |
+| `google-search-console` | Brand OAuth search analytics connection                        |
+| `instagram`             | Brand Meta OAuth connection and publishing                     |
+| `linkedin`              | Brand OAuth connection and publishing                          |
+| `mastodon`              | Brand, instance-specific OAuth connection                      |
+| `medium`                | Brand OAuth connection and article publishing                  |
+| `meta-ads`              | Meta advertising service over the Facebook credential boundary |
+| `pinterest`             | Brand OAuth connection, publishing, and analytics              |
+| `reddit`                | Brand OAuth connection and publishing                          |
+| `shopify`               | Brand store OAuth connection                                   |
+| `slack`                 | Organization OAuth messaging connection                        |
+| `snapchat`              | Brand OAuth connection and publishing adapter                  |
+| `telegram`              | Bot-token verification and distribution connection             |
+| `threads`               | Brand Threads OAuth connection and publishing                  |
+| `tiktok`                | Brand OAuth connection and publishing                          |
+| `twitter`               | Brand X OAuth connection and publishing                        |
+| `unipile`               | Organization API-key/DSN connection                            |
+| `whatsapp`              | Deployment-scoped Twilio WhatsApp adapter                      |
+| `wordpress`             | Brand WordPress.com OAuth connection                           |
+| `youtube`               | Brand Google OAuth connection and publishing                   |
+
+## Supporting and internal adapters
+
+| Directory    | Boundary                                                      |
+| ------------ | ------------------------------------------------------------- |
+| `giphy`      | Media-search utility; not a stored account connection         |
+| `news`       | External news ingestion utility                               |
+| `publishers` | Internal normalized publishing strategy layer                 |
+| `solana`     | Server-side Solana utility; not a brand connector             |
+| `stripe`     | Genfeed billing and checkout infrastructure                   |
+| `substack`   | Feed/import service rather than a credential connection       |
+| `tiktok-ads` | Campaign service without a separate credential-platform entry |
+
+## Maintenance contract
+
+When a new directory is added to the server integration tree, update this page
+and the appropriate user guide in the same change. State whether it is:
+
+1. user-connectable;
+2. organization BYOK;
+3. deployment-configured; or
+4. an internal runtime abstraction.
+
+The documentation test suite compares this inventory with the server directory
+tree, the BYOK enum, and the credential-platform enum.

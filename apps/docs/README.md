@@ -4,7 +4,7 @@ Nextra-powered documentation site built on Next.js.
 
 ## Last Verified
 
-- **Date:** 2026-03-24
+- **Date:** 2026-08-12
 - **Implemented state source:** local docs content + local repo architecture
 - **Delivery state source:** GitHub issues/projects
 
@@ -34,6 +34,23 @@ bun run start  # :3001
 2. When roadmap status is relevant, include delivery-state notes.
 3. Do not reference non-existent tracker files (e.g., missing local TODO files).
 4. Keep pricing, app counts, and product claims synced with `cloud` and workspace docs.
+5. Keep user-facing integration setup in `content/integrations`; root `docs/`
+   remains for contributor architecture, migrations, and operational runbooks.
+6. Treat `.agents/memory` specs and decisions as implementation records, not
+   substitutes for published product documentation.
+
+## Integration Documentation Contract
+
+`content/integrations` is the canonical source for integration guides published
+to docs.genfeed.ai. The coverage test in
+`tests/integration-docs-coverage.test.ts` verifies that:
+
+- every server integration directory is classified in the adapter inventory;
+- every organization BYOK provider is present in the AI-provider guide; and
+- every credential-platform registry value is present in the channel catalog.
+
+Add or update the relevant user guide in the same change that introduces an
+integration, provider, or credential-platform value.
 
 ## Canonical Cross-Links
 

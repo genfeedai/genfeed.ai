@@ -1,0 +1,92 @@
+---
+description: 'Review every Genfeed credential platform, its connection method, current publishing or channel role, and self-hosted OAuth configuration keys.'
+---
+
+# Publishing and Channels
+
+Brand credentials connect publishing destinations, communication channels,
+advertising accounts, and external content systems. OAuth credentials are
+created through **Accounts → Add Account**. API-key connectors ask for their
+provider values directly.
+
+## Credential-platform catalog
+
+| Registry key            | Integration                                            | Connection                 | Current code-backed role                                |
+| ----------------------- | ------------------------------------------------------ | -------------------------- | ------------------------------------------------------- |
+| `YOUTUBE`               | [YouTube](/guides/publishing/social-media/youtube)     | Google OAuth               | Video publishing, channel data, analytics, and comments |
+| `INSTAGRAM`             | [Instagram](/guides/publishing/social-media/instagram) | Meta OAuth                 | Publishing, account data, analytics, and comments       |
+| `TIKTOK`                | [TikTok](/guides/publishing/social-media/tiktok)       | TikTok OAuth               | Publishing and account data                             |
+| `FACEBOOK`              | Facebook                                               | Meta OAuth                 | Page publishing and account access                      |
+| `GOOGLE_ADS`            | Google Ads                                             | Google OAuth               | Campaign, account, and analytics operations             |
+| `GOOGLE_SEARCH_CONSOLE` | Google Search Console                                  | Google OAuth               | Search property and performance reads                   |
+| `TWITTER`               | X (Twitter)                                            | OAuth 2.0                  | Account access, publishing, and social data             |
+| `LINKEDIN`              | [LinkedIn](/guides/publishing/social-media/linkedin)   | LinkedIn OAuth             | Account access and publishing                           |
+| `PINTEREST`             | Pinterest                                              | Pinterest OAuth            | Pin publishing and analytics                            |
+| `REDDIT`                | Reddit                                                 | Reddit OAuth               | Account access and publishing                           |
+| `DISCORD`               | Discord                                                | Discord OAuth              | Organization bot and channel messaging                  |
+| `TELEGRAM`              | Telegram                                               | Bot token                  | Bot verification and distribution                       |
+| `TWITCH`                | Twitch                                                 | Not connectable            | Reserved schema value; no active connect module         |
+| `MEDIUM`                | Medium                                                 | Medium OAuth               | Article publishing                                      |
+| `THREADS`               | Threads                                                | Meta Threads OAuth         | Text and media publishing                               |
+| `FANVUE`                | Fanvue                                                 | Fanvue OAuth               | Creator account access and publishing                   |
+| `SLACK`                 | Slack                                                  | Slack OAuth                | Workspace and channel messaging                         |
+| `WORDPRESS`             | WordPress.com                                          | WordPress OAuth            | Article publishing                                      |
+| `SNAPCHAT`              | Snapchat                                               | Snapchat OAuth             | Account access and publishing adapters                  |
+| `WHATSAPP`              | WhatsApp via Twilio                                    | Deployment credentials     | Text, media, template messages, and delivery status     |
+| `MASTODON`              | Mastodon                                               | Dynamic OAuth per instance | Federated account access and publishing                 |
+| `GHOST`                 | Ghost                                                  | Admin API credential       | Article publishing                                      |
+| `SHOPIFY`               | Shopify                                                | Shopify OAuth              | Store access and product publishing workflows           |
+| `BEEHIIV`               | Beehiiv                                                | API key                    | Publication selection, newsletters, and subscribers     |
+| `UNIPILE`               | Unipile                                                | API key and DSN            | Accounts, messages, email, and calendar data            |
+| `DEVTO`                 | dev.to                                                 | API key                    | Article publishing                                      |
+
+The registry can contain a value before a user-facing connector is available.
+Twitch is explicitly documented as reserved so its presence is not mistaken for
+an implemented OAuth path.
+
+## Self-hosted OAuth applications
+
+Self-hosted deployments must register their own provider applications and set
+the callback URI to the corresponding Genfeed verification route.
+
+| Integration           | Server configuration                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| YouTube               | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URI`; optional `YOUTUBE_API_KEY`                     |
+| Instagram             | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`                                                 |
+| TikTok                | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`                                                                          |
+| Facebook / Meta       | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`                                                    |
+| X                     | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`, `TWITTER_REDIRECT_URI`; optional app-level bearer/consumer credentials |
+| LinkedIn              | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI`                                              |
+| Pinterest             | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET`, `PINTEREST_REDIRECT_URI`                                           |
+| Reddit                | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_REDIRECT_URI`, `REDDIT_USER_AGENT`                               |
+| Threads               | `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`                                                 |
+| Medium                | `MEDIUM_CLIENT_ID`, `MEDIUM_CLIENT_SECRET`, `MEDIUM_REDIRECT_URI`                                                    |
+| Fanvue                | `FANVUE_CLIENT_ID`, `FANVUE_CLIENT_SECRET`, `FANVUE_REDIRECT_URI`                                                    |
+| WordPress.com         | `WORDPRESS_CLIENT_ID`, `WORDPRESS_CLIENT_SECRET`, `WORDPRESS_REDIRECT_URI`                                           |
+| Snapchat              | `SNAPCHAT_CLIENT_ID`, `SNAPCHAT_CLIENT_SECRET`, `SNAPCHAT_REDIRECT_URI`                                              |
+| Discord               | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`                                                 |
+| Slack                 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`                                                       |
+| Google Ads            | `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_REDIRECT_URI`          |
+| Google Search Console | `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`, `GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`, `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`       |
+
+Provider dashboards require an exact redirect URI match. Use the public API URL
+for the deployment; do not register localhost callbacks for production.
+
+## API-key and deployment connectors
+
+- Beehiiv and dev.to validate the submitted brand credential before saving it.
+- Ghost requires values that can produce a valid Ghost Admin API request.
+- Telegram validates the configured bot token.
+- WhatsApp uses the deployment's Twilio account, token, and sending number.
+- Unipile accepts organization configuration and can fall back to deployment
+  environment values.
+- Mastodon registers an OAuth application against the selected instance rather
+  than assuming one global host.
+
+## Connection verification
+
+1. Connect the account from the intended brand.
+2. Verify the returned account or publication identity before publishing.
+3. Publish a private, draft, or otherwise low-impact test when supported.
+4. Confirm the provider returns its external ID and Genfeed records the result.
+5. Revoke test credentials that are not intended for continued use.

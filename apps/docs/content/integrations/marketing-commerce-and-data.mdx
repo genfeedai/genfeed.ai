@@ -1,0 +1,94 @@
+---
+description: 'Configure Genfeed integrations for Google and Meta advertising, Search Console, Shopify, Beehiiv, Ghost, dev.to, and external content data.'
+---
+
+# Marketing, Commerce and Data
+
+These integrations connect campaign data, search analytics, stores,
+newsletters, and article destinations. They use brand credentials unless the
+section explicitly describes deployment configuration.
+
+## Advertising and search analytics
+
+### Google Ads
+
+Google Ads uses OAuth plus a developer token. Self-hosted deployments configure
+`GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`,
+`GOOGLE_ADS_DEVELOPER_TOKEN`, and `GOOGLE_ADS_REDIRECT_URI`. The provider
+catalog exposes account, campaign, analytics, and ad-management capabilities.
+
+Use a test manager/customer relationship before allowing a workflow to mutate
+live campaigns.
+
+### Google Search Console
+
+Search Console uses `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`,
+`GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`, and
+`GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`. The current OAuth scope is read-only and
+is used for search property and performance data.
+
+### Meta Ads
+
+Meta Ads uses the Meta/Facebook credential boundary and marketing API. The
+provider catalog declares campaign, analytics, and ad-management capabilities.
+Production changes remain subject to Meta account permissions, application
+review, and the authenticated ad account.
+
+### TikTok Ads
+
+The repository includes a TikTok Ads service adapter for campaign-facing server
+operations. It is not a separate credential-platform entry in the current
+brand connection registry, so availability depends on the deployment and
+calling feature rather than an independent **Add Account** option.
+
+## Commerce and publishing systems
+
+### Shopify
+
+Shopify uses an OAuth application configured with `SHOPIFY_CLIENT_ID`,
+`SHOPIFY_CLIENT_SECRET`, and `SHOPIFY_REDIRECT_URI`. The connection is scoped to
+the selected store and supports the repository's store and product publishing
+paths.
+
+### Beehiiv
+
+Beehiiv accepts an API key, lists the publications available to that key, and
+stores the selected publication with the brand credential. The implemented
+paths include publication reads, subscriber reads and creation, and newsletter
+post creation.
+
+### Ghost
+
+Ghost uses its Admin API credential boundary for article publishing. Confirm
+the target site and integration identity before sending a post; do not reuse a
+Content API key where an Admin API key is required.
+
+### dev.to
+
+dev.to validates an API key by fetching the authenticated user, then stores the
+returned user identity with the brand. The publishing path sends Genfeed
+articles and can preserve tags, canonical URL, and draft/published intent.
+
+### WordPress.com and Medium
+
+WordPress.com and Medium use their OAuth application flows. Their current
+connectors are article-publishing destinations and require the corresponding
+client ID, client secret, and redirect URI in self-hosted deployments.
+
+### Substack
+
+Substack is currently an import/feed service rather than a
+`CredentialPlatform` connection. See the repository's Substack import contract
+for the implementation boundary; do not present it as an OAuth publishing
+destination.
+
+## Verification
+
+- For read integrations, confirm the expected property, account, publication,
+  or store appears before enabling downstream workflows.
+- For write integrations, prefer drafts, paused campaigns, test stores, or
+  low-impact content for the first request.
+- Record provider object IDs in logs and audit records, but never credential
+  values.
+- Re-check permissions after provider-side app review, token rotation, or
+  account ownership changes.

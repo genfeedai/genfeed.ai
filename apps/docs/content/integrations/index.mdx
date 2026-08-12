@@ -1,0 +1,59 @@
+---
+description: 'Configure Genfeed integrations for AI generation, publishing, messaging, analytics, commerce, and self-hosted provider credentials safely.'
+---
+
+# Integrations
+
+Genfeed integrations connect an organization or brand to an external service.
+This section documents the configuration surfaces that are implemented in the
+current repository and distinguishes them from internal runtime adapters.
+
+## Choose the right setup path
+
+| Integration type               | Configure in Genfeed                                     | Credential scope |
+| ------------------------------ | -------------------------------------------------------- | ---------------- |
+| AI and model providers         | **Organization settings → Integrations**                 | Organization     |
+| Social and publishing channels | **Accounts → Add Account**                               | Brand            |
+| Organization messaging         | The integration's connect flow or deployment environment | Organization     |
+| Advertising and analytics      | **Accounts → Add Account**                               | Brand            |
+| Self-hosted provider fallback  | Server environment                                       | Deployment       |
+
+Organization BYOK credentials take precedence when a generation path supports
+them. Self-hosted environment variables provide a deployment-level fallback.
+The active model registry and provider account still determine which models and
+capabilities are available.
+
+## Integration guides
+
+- [AI Providers](/integrations/ai-providers) documents every provider shown by
+  the organization BYOK API.
+- [Argil](/integrations/argil) covers the complete Argil Atom avatar-video path.
+- [Publishing & Channels](/integrations/publishing-and-channels) covers every
+  credential-platform key, including unavailable reserved entries.
+- [Messaging & Automation](/integrations/messaging-and-automation) covers
+  Discord, Slack, Telegram, WhatsApp, and Unipile.
+- [Marketing, Commerce & Data](/integrations/marketing-commerce-and-data)
+  covers advertising, search analytics, newsletters, stores, and article
+  destinations.
+- [Adapter Inventory](/integrations/runtime-adapters) records every server
+  integration directory and whether it is user-configurable.
+
+## Security rules
+
+- Enter provider keys only in Genfeed's integration settings or server secret
+  storage. Do not place secrets in browser-exposed environment variables.
+- Use a separate provider credential for each deployment when the provider
+  supports it.
+- Give OAuth applications only the scopes needed by the enabled workflow.
+- Rotate a credential at the provider first, update Genfeed, validate it, and
+  then revoke the old credential.
+- Treat callback and webhook URLs as public endpoints. Verify signatures or
+  Genfeed-generated callback tokens before accepting state changes.
+
+## Availability
+
+An adapter in the repository does not guarantee availability in every Genfeed
+deployment. Cloud entitlements, self-hosted configuration, provider approval,
+regional restrictions, and the active model registry can all affect what the
+product exposes. The deployed integration selector is the runtime source of
+truth.

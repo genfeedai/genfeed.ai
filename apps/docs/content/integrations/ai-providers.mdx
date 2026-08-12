@@ -1,0 +1,71 @@
+---
+description: 'Configure every Genfeed BYOK provider for language, image, video, voice, avatar, and trend generation with documented environment fallbacks.'
+---
+
+# AI Providers
+
+Genfeed exposes the following providers through **Organization settings →
+Integrations**. Saving a credential validates it against the provider before it
+is encrypted for the organization.
+
+## Provider catalog
+
+| Provider key | Provider    | Primary Genfeed use                          | Self-hosted fallback                           | Provider setup                                                 |
+| ------------ | ----------- | -------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| `anthropic`  | Anthropic   | Language-model execution                     | `ANTHROPIC_API_KEY`                            | [API keys](https://console.anthropic.com/settings/keys)        |
+| `openai`     | OpenAI      | Language-model execution                     | `OPENAI_API_KEY`                               | [API keys](https://platform.openai.com/api-keys)               |
+| `openrouter` | OpenRouter  | Curated text-model routing                   | `OPENROUTER_API_KEY`                           | [API keys](https://openrouter.ai/keys)                         |
+| `elevenlabs` | ElevenLabs  | Voice and audio generation                   | `ELEVENLABS_API_KEY`                           | [API keys](https://elevenlabs.io/app/settings/api-keys)        |
+| `replicate`  | Replicate   | Hosted media generation and training         | `REPLICATE_KEY`                                | [API tokens](https://replicate.com/account/api-tokens)         |
+| `fal`        | fal.ai      | Hosted media generation                      | `FAL_API_KEY`                                  | [API keys](https://fal.ai/dashboard/keys)                      |
+| `argil`      | Argil       | Atom avatar-video generation                 | `ARGIL_KEY`                                    | [Argil app](https://app.argil.ai)                              |
+| `heygen`     | HeyGen      | Avatar video and voice workflows             | `HEYGEN_KEY`                                   | [HeyGen settings](https://app.heygen.com/settings)             |
+| `hedra`      | Hedra       | Avatar and video workflows                   | `HEDRA_KEY`                                    | [Hedra settings](https://www.hedra.com/settings)               |
+| `klingai`    | Kling AI    | Video generation                             | `KLINGAI_KEY` + `KLINGAI_SECRET`               | [Kling AI](https://klingai.com)                                |
+| `leonardoai` | Leonardo.AI | Image generation                             | `LEONARDO_KEY`                                 | [API access](https://app.leonardo.ai/api-access)               |
+| `higgsfield` | Higgsfield  | Media generation                             | `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` | [API documentation](https://docs.higgsfield.ai)                |
+| `apify`      | Apify       | Social trend and monitored-account ingestion | `APIFY_API_TOKEN`                              | [Integrations](https://console.apify.com/account/integrations) |
+
+The keys in the first column are stable organization BYOK identifiers. Model
+names are intentionally not duplicated here because the deployed model registry
+is the source of truth.
+
+## Configure an organization key
+
+1. Create a restricted credential in the provider dashboard.
+2. Open **Organization settings → Integrations**.
+3. Expand the provider card and enter the key. Kling AI and Higgsfield also
+   require the provider secret.
+4. Select **Validate and save**.
+5. Confirm that the card reports a connected state before running generation.
+
+Removing a key disables that organization's credential. A self-hosted server
+fallback may still be used when the execution adapter supports its corresponding
+environment variable.
+
+## Callback-dependent providers
+
+Some asynchronous media providers require a public base URL:
+
+| Provider    | Additional configuration                                             |
+| ----------- | -------------------------------------------------------------------- |
+| Argil       | `GENFEEDAI_WEBHOOKS_URL`, `ARGIL_WEBHOOK_SECRET`                     |
+| HeyGen      | `HEYGEN_WEBHOOK_SECRET` when provider webhooks are enabled           |
+| Kling AI    | `GENFEEDAI_WEBHOOKS_URL` for asynchronous completion                 |
+| Leonardo.AI | `LEONARDO_WEBHOOK_SECRET`; optionally `LEONARDO_WEBHOOK_ALLOWED_IPS` |
+| Replicate   | `GENFEEDAI_WEBHOOKS_URL` for webhook-capable predictions             |
+
+Do not expose webhook secrets to the client application. Configure them only in
+the server environment used by the API and workers.
+
+## Verify execution
+
+1. Confirm that the required provider appears connected.
+2. Select a model whose provider matches the configured key.
+3. Run the smallest non-sensitive generation supported by that model.
+4. For asynchronous providers, confirm the provider job ID is recorded and the
+   generated asset reaches a terminal state.
+5. Review provider usage and Genfeed logs without copying credential values.
+
+For registry behavior and managed-provider boundaries, see
+[Provider Registry](/core/provider-registry) and [Models and Providers](/models).

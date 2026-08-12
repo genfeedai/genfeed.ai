@@ -1,0 +1,74 @@
+---
+description: 'Configure Discord, Slack, Telegram, WhatsApp, and Unipile messaging integrations with their authentication, scope, and verification boundaries.'
+---
+
+# Messaging and Automation
+
+Messaging integrations operate at either organization or deployment scope.
+Their credentials should not be confused with brand publishing credentials or
+AI-provider BYOK keys.
+
+## Discord
+
+Discord uses an OAuth application configured with `DISCORD_CLIENT_ID`,
+`DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. The connect flow stores the
+authorized Discord identity for organization bot and channel operations.
+
+Register the production callback exactly as emitted by Genfeed and grant only
+the bot permissions needed by the workflows you enable.
+
+## Slack
+
+Slack uses `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, and `SLACK_REDIRECT_URI`.
+The OAuth verification flow records the workspace connection used by Slack
+messaging paths.
+
+When reinstalling a Slack application, validate the resulting workspace and
+channel identities before re-enabling automated sends.
+
+## Telegram
+
+Telegram uses `TELEGRAM_BOT_TOKEN`. Genfeed verifies the token against the Bot
+API before treating the integration as available. Add the bot to the target
+chat or channel and grant the permissions required for distribution.
+
+Rotate the token through BotFather if it is exposed, then replace it in the
+server secret store before resuming automation.
+
+## WhatsApp via Twilio
+
+The WhatsApp adapter uses a deployment-level Twilio account:
+
+```dotenv
+WHATSAPP_TWILIO_ACCOUNT_SID=your_account_sid
+WHATSAPP_TWILIO_AUTH_TOKEN=your_auth_token
+WHATSAPP_TWILIO_PHONE_NUMBER=+15551234567
+```
+
+The adapter sends text, media, and approved content-template messages and can
+read Twilio delivery status. Recipient numbers are normalized as WhatsApp
+addresses by the server.
+
+## Unipile
+
+Unipile provides one organization integration for connected accounts,
+messages, email, and calendars. Configure it with:
+
+- the dashboard API key;
+- the account-specific DSN base URL ending in `/api/v1`;
+- an optional default account ID; and
+- an optional allowlist of account IDs.
+
+Organization configuration is preferred. Self-hosted deployments can provide
+`UNIPILE_API_KEY` and `UNIPILE_API_BASE_URL` as a fallback. Genfeed normalizes
+the DSN, encrypts the token, and enforces the configured account allowlist.
+
+## Automation checklist
+
+1. Connect a dedicated test workspace, bot, number, or account.
+2. Verify the external organization and account IDs.
+3. Send one non-sensitive test message.
+4. Confirm delivery through both Genfeed and the provider.
+5. Enable recurring or agent-driven sends only after the manual path succeeds.
+6. Keep provider-side rate limits and consent requirements in the workflow's
+   operating policy.

@@ -19,6 +19,7 @@ export default {
   'core-loop': 'Core Loop',
   'getting-started': 'Getting Started',
   guides: 'Guides & Tutorials',
+  integrations: 'Integrations',
   models: 'AI Models',
   skills: 'Agent Skills',
   faq: 'FAQ',
