@@ -482,6 +482,10 @@ describe('WorkflowExecutorService', () => {
           workflowId: '',
         }),
       );
+      expect(executionsService.findOne).toHaveBeenCalledWith({
+        id: 'missing-exec',
+        organizationId: 'org-1',
+      });
       expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
     });
 
@@ -534,6 +538,89 @@ describe('WorkflowExecutorService', () => {
       expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
       expect(executionsService.startExecution).not.toHaveBeenCalled();
       expect(executionsService.createExecution).not.toHaveBeenCalled();
+    });
+
+    it('re-enters a PENDING prior execution under the same id', async () => {
+      const executableWorkflow: ExecutableWorkflow = {
+        edges: [],
+        id: 'workflow-1',
+        lockedNodeIds: [],
+        nodes: [
+          {
+            config: {},
+            id: 'action-node',
+            inputs: [],
+            label: 'Action',
+            type: 'action',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      executionsService.findOne.mockResolvedValue({
+        id: 'exec-pending',
+        status: WorkflowExecutionStatus.PENDING,
+        workflowId: 'workflow-1',
+      });
+      prisma.workflow.findFirst.mockResolvedValue({
+        config: {},
+        edges: [],
+        id: 'workflow-1',
+        inputVariables: [],
+        label: 'Pending resume',
+        metadata: {},
+        nodes: [],
+        organizationId: 'org-1',
+        steps: [],
+        userId: 'user-1',
+      });
+      engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+        executableWorkflow,
+      );
+      engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+      executionsService.startExecution.mockResolvedValue({
+        id: 'exec-pending',
+      });
+      executionsService.updateExecutionMetadata.mockResolvedValue({
+        id: 'exec-pending',
+      });
+      executionsService.updateNodeResult.mockResolvedValue({
+        id: 'exec-pending',
+        progress: 100,
+      });
+      engineAdapter.executeWorkflow.mockResolvedValue({
+        completedAt: new Date(),
+        nodeResults: new Map(),
+        runId: 'exec-pending',
+        startedAt: new Date(),
+        status: 'completed',
+        totalCreditsUsed: 0,
+        workflowId: 'workflow-1',
+      });
+      executionsService.completeExecution.mockResolvedValue({
+        id: 'exec-pending',
+        metadata: {},
+      });
+
+      const result = await service.continueExistingExecution(
+        'exec-pending',
+        triggerEvent,
+      );
+
+      expect(executionsService.createExecution).not.toHaveBeenCalled();
+      expect(executionsService.startExecution).toHaveBeenCalledWith(
+        'exec-pending',
+      );
+      expect(result.executionId).toBe('exec-pending');
+      expect(prisma.workflow.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'workflow-1',
+            organizationId: 'org-1',
+          }),
+        }),
+      );
     });
 
     it('re-enters the same execution id without creating a new row when failed', async () => {

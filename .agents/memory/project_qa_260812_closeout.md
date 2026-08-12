@@ -30,6 +30,10 @@ last_verified: 2026-08-12
 - continueExistingExecution no-ops CANCELLED (not only COMPLETED)
 - Batch process rejects invalid platforms *before* generateContent
 - BatchGenerationCard recomputes estimate when platforms leave suggestion
+- Agent tool cancels orphan batch when credit reserve fails after create
+- generateContentBatch reserve/cancel/queue unit tests
+- continueExistingExecution re-enters PENDING under same id + org-scoped find
+- cancelBatch marks only pending items SKIPPED (tenant-scoped)
 
 ## After merge (human / deploy)
 

@@ -1,4 +1,5 @@
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
+import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import {
   BatchItemStatus,
   BatchStatus,
@@ -117,5 +118,68 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
     expect(summary.approvedCount).toBe(1);
     expect(summary.recentItems).toHaveLength(1);
     expect(summary.recentItems[0]?.id).toBe('ready-new');
+  });
+});
+
+describe('BatchGenerationReviewService.cancelBatch', () => {
+  const batch = {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const summaryService = {
+    toBatchSummary: vi.fn((row) => row),
+  };
+
+  let service: BatchGenerationReviewService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    batch.findFirst.mockResolvedValue({
+      id: 'batch-1',
+      items: [
+        { id: 'item-1', status: BatchItemStatus.PENDING },
+        { id: 'item-2', status: BatchItemStatus.COMPLETED },
+      ],
+      organizationId: 'org-1',
+      status: BatchStatus.PENDING,
+    });
+    batch.updateMany.mockResolvedValue({ count: 1 });
+    service = new BatchGenerationReviewService(
+      { batch } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      summaryService as never,
+    );
+  });
+
+  it('cancels tenant-scoped and marks only pending items skipped', async () => {
+    await service.cancelBatch('batch-1', 'org-1');
+
+    expect(batch.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'batch-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(batch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: toPrismaBatchStatus(BatchStatus.CANCELLED),
+          items: [
+            { id: 'item-1', status: BatchItemStatus.SKIPPED },
+            { id: 'item-2', status: BatchItemStatus.COMPLETED },
+          ],
+        }),
+        where: expect.objectContaining({
+          id: 'batch-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
   });
 });

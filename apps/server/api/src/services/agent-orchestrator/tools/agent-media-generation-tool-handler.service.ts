@@ -1098,6 +1098,19 @@ export class AgentMediaGenerationToolHandler {
         userId: ctx.userId,
       });
     } catch (error: unknown) {
+      // createBatch already persisted items. Without compensation a failed
+      // reserve leaves an orphan PENDING batch the operator cannot run (#2696).
+      try {
+        await this.batchGenerationService.cancelBatch(
+          batchId,
+          ctx.organizationId,
+        );
+      } catch (cancelError: unknown) {
+        this.loggerService.warn(
+          `${this.constructorName} failed to cancel batch after credit reserve failure`,
+          { batchId, cancelError, organizationId: ctx.organizationId },
+        );
+      }
       const message =
         error instanceof Error
           ? error.message

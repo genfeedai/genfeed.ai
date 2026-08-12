@@ -117,4 +117,30 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(brandState).toContain('isBrandScopeResolved');
     expect(brandState).toContain('isBrandsFetched');
   });
+
+  it('rejects invalid batch platforms before content generation (#2696)', () => {
+    const processing = readRepo(
+      'apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts',
+    );
+    const generateIdx = processing.indexOf(
+      'this.contentGeneratorService.generateContent',
+    );
+    const rejectIdx = processing.indexOf('Invalid batch item platform');
+    expect(generateIdx).toBeGreaterThan(-1);
+    expect(rejectIdx).toBeGreaterThan(-1);
+    // Parse-and-throw must sit above generateContent so bad items never burn LLM credits.
+    expect(rejectIdx).toBeLessThan(generateIdx);
+  });
+
+  it('cancels the batch when the agent tool credit reserve fails (#2696)', () => {
+    const source = readRepo(
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service.ts',
+    );
+    expect(source).toContain('chargeBatchCredits');
+    expect(source).toContain('cancelBatch');
+    expect(source).toContain(
+      'failed to cancel batch after credit reserve failure',
+    );
+    expect(source).toContain("referenceType: 'batch-generation:upfront'");
+  });
 });
