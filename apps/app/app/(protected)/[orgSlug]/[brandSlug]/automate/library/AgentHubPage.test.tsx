@@ -67,7 +67,8 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
   );
-  return { useTranslations: () => translateFromCatalog };
+
+  return { useTranslations: translateFromCatalog };
 });
 
 vi.mock('@ui/layout/container/Container', () => ({
