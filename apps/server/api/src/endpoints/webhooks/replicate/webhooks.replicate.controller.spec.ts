@@ -60,7 +60,8 @@ describe('ReplicateWebhookController', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn().mockReturnValue(null), // No signing secret — skips validation
+            // Signing secret required — endpoint fails closed without it.
+            get: vi.fn().mockReturnValue('test-replicate-signing-secret'),
             isProduction: false,
           },
         },
@@ -231,30 +232,48 @@ describe('ReplicateWebhookController', () => {
       );
     });
 
-    it('should log validation skipped in non-production environment', async () => {
+    it('should reject when the signing secret is not configured', async () => {
       const body = {
         id: 'pred_456',
         output: ['result.png'],
         status: 'succeeded',
       };
 
-      await controller.handleCallback(mockRequest, body);
+      const configService = controller['configService'] as ConfigService;
+      vi.spyOn(configService, 'get').mockReturnValue(undefined);
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('validation skipped'),
+      await expect(
+        controller.handleCallback(mockRequest, body),
+      ).rejects.toThrow();
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'REPLICATE_WEBHOOK_SIGNING_SECRET is not configured',
+        ),
       );
+      expect(verificationService.isReplay).not.toHaveBeenCalled();
+      expect(verificationService.resolveTrustedPayload).not.toHaveBeenCalled();
+    });
+
+    it('should reject when the signing secret is blank', async () => {
+      const body = {
+        id: 'pred_blank_secret',
+        output: ['result.png'],
+        status: 'succeeded',
+      };
+
+      const configService = controller['configService'] as ConfigService;
+      vi.spyOn(configService, 'get').mockReturnValue('   ');
+
+      await expect(
+        controller.handleCallback(mockRequest, body),
+      ).rejects.toThrow();
+
+      expect(verificationService.isReplay).not.toHaveBeenCalled();
     });
 
     it('should rethrow error when validation fails', async () => {
       const body = { error: 'Model failed', id: 'pred_err', status: 'failed' };
-
-      // Set up config to have signing secret and isProduction = true so validation runs
-      const configService = controller['configService'] as ConfigService;
-      vi.spyOn(configService, 'get').mockReturnValue('mock-secret');
-      Object.defineProperty(configService, 'isProduction', {
-        configurable: true,
-        value: true,
-      });
 
       // Make validateWebhook return false so the controller throws UNAUTHORIZED
       const replicate = await import('replicate');
