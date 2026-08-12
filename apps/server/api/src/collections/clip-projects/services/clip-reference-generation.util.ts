@@ -46,6 +46,10 @@ const UNSUPPORTED_RAW_CUT_REFERENCE_REASON =
 
 export const CLIP_REFERENCE_CAPABILITIES = {
   avatar: {
+    argil: {
+      reason: UNSUPPORTED_AVATAR_REFERENCE_REASON,
+      supported: false,
+    },
     did: {
       reason: UNSUPPORTED_AVATAR_REFERENCE_REASON,
       supported: false,

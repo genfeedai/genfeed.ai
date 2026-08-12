@@ -11,12 +11,12 @@ export class ArgilWebhookTokenService {
   constructor(private readonly configService: ConfigService) {}
 
   create(videoId: string): string | undefined {
-    const secret = this.configService.get<string>('ARGIL_WEBHOOK_SECRET');
-    if (!secret) {
+    const configuredSecret = this.configService.get('ARGIL_WEBHOOK_SECRET');
+    if (typeof configuredSecret !== 'string' || configuredSecret.length === 0) {
       return undefined;
     }
 
-    return createHmac('sha256', secret).update(videoId).digest('hex');
+    return createHmac('sha256', configuredSecret).update(videoId).digest('hex');
   }
 
   assert(videoId: string, suppliedToken?: string): void {

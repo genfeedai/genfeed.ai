@@ -170,7 +170,10 @@ export class ArgilService {
       organizationId,
       ByokProvider.ARGIL,
     );
-    const apiKey = byok?.apiKey ?? this.configService.get<string>('ARGIL_KEY');
+    const configuredApiKey = this.configService.get('ARGIL_KEY');
+    const apiKey =
+      byok?.apiKey ??
+      (typeof configuredApiKey === 'string' ? configuredApiKey : undefined);
     if (!apiKey) {
       throw new Error('No Argil API key configured (BYOK or env ARGIL_KEY)');
     }
@@ -182,7 +185,9 @@ export class ArgilService {
   }
 
   private buildCallbackUrl(videoId: string): string | undefined {
-    const baseUrl = this.configService.get<string>('GENFEEDAI_WEBHOOKS_URL');
+    const configuredBaseUrl = this.configService.get('GENFEEDAI_WEBHOOKS_URL');
+    const baseUrl =
+      typeof configuredBaseUrl === 'string' ? configuredBaseUrl : undefined;
     const token = this.webhookTokenService.create(videoId);
     if (!token || !isProviderWebhookReachable(baseUrl)) {
       return undefined;
