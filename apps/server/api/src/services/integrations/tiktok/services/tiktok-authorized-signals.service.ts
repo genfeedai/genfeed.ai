@@ -673,7 +673,7 @@ export class TiktokAuthorizedSignalsService {
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
     const requiredScopes = [USER_STATS_SCOPE];
-    if (!result.value) {
+    if (!grantedScopes.includes(USER_STATS_SCOPE) || !result.value) {
       return this.buildUnavailableEvidence(
         'profile-statistics-snapshot',
         requiredScopes,

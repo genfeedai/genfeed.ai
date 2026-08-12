@@ -344,6 +344,11 @@ describe('TiktokAuthorizedSignalsService', () => {
     });
     expect(evidenceOf(snapshot, 'profile-statistics-snapshot')).toMatchObject({
       reason: 'missing_scope',
+      scope: {
+        granted: [],
+        missing: [USER_STATS_SCOPE],
+        required: [USER_STATS_SCOPE],
+      },
       status: 'permission_limited',
     });
     expect(
