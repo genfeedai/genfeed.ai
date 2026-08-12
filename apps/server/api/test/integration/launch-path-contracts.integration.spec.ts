@@ -144,23 +144,22 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain("referenceType: 'batch-generation:upfront'");
   });
 
-  it('keeps multi-agent collaboration memory loadable for every host', () => {
+  it('keeps OSS-safe agent coordination memory (no personal fleet routing)', () => {
     const index = readRepo('.agents/memory/MEMORY.md');
-    const collab = readRepo(
-      '.agents/memory/feedback_multi_agent_collaboration.md',
-    );
     const qaQueue = readRepo(
       '.agents/memory/feedback_qa_queue_branch_protocol.md',
     );
     const tdd = readRepo('.agents/memory/feedback_tdd_first.md');
-    expect(index).toContain('feedback_multi_agent_collaboration');
+    const gitignore = readRepo('.gitignore');
     expect(index).toContain('feedback_qa_queue_branch_protocol');
     expect(index).toContain('feedback_tdd_first');
-    expect(collab).toMatch(/host-native/i);
-    expect(collab).toContain('Claim before spawn');
-    expect(collab).toContain('Handoff contract');
-    expect(qaQueue).toMatch(/commit only/i);
-    expect(tdd).toContain('Multi-agent handoff');
+    expect(index).toContain('claim_work_before_starting');
+    // Personal Claude/Codex/Grok fleet notes stay out of the public tree.
+    expect(index).not.toContain('feedback_multi_agent_collaboration');
+    expect(gitignore).toContain('.agents/memory/local/');
+    expect(qaQueue).toContain('project_qa_*_closeout');
+    expect(qaQueue).not.toMatch(/Claude|Codex|Grok/i);
+    expect(tdd).toContain('Handoff proof');
   });
 
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {

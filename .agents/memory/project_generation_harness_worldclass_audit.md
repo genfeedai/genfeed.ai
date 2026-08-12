@@ -160,11 +160,12 @@ Not “more models.” Operators should observe:
 - `generateAdPack` / remix workflow system prompts call harness with objective `conversion` and content kind ad-creative.
 - Store source-ad angles as `performance_winner` sources for the brand.
 
-### Phase 4 — multi-agent process
+### Phase 4 — process
 
-- This file is the shared map (Claude/Codex/Grok).
+- This file is the shared map for any agent or contributor on the monorepo.
 - Private example collection is human/operator work in `genfeedai/harness`; monorepo agents do not invent taste.
 - TDD: hermetic tests for brief composition and “media path calls composeBrief” contracts (public fixtures only).
+- Personal multi-host fleet notes stay in gitignored `.agents/memory/local/` / global user memory.
 
 ## Explicit non-goals
 

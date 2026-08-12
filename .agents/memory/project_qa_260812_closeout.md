@@ -47,4 +47,4 @@ last_verified: 2026-08-12
 
 - Prefer **commit only, no push** while iterating (avoids thrashing PR CI).
 - Do not leave `qa/260812` for side branches unless Vincent asks.
-- Standing multi-host rules: `feedback_multi_agent_collaboration.md`, `feedback_qa_queue_branch_protocol.md`, `feedback_tdd_first.md` (Claude/Codex/Grok all load via MEMORY.md).
+- Standing project rules: `feedback_qa_queue_branch_protocol.md`, `feedback_tdd_first.md` (via MEMORY.md). Personal multi-host fleet notes: gitignored `.agents/memory/local/` and global user memory.

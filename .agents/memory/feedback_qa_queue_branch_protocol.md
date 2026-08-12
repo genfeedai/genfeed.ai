@@ -1,24 +1,25 @@
 ---
 name: qa queue branch protocol
-description: Stay on the named QA queue branch; commit-only while CI thrash is forbidden; do not re-implement closeout items
+description: Stay on a named QA closeout branch; respect PR push policy; do not re-implement complete items
 type: feedback
 status: active
 last_verified: 2026-08-12
-topics: [workflow, git, qa, ci, multi-agent]
+topics: [workflow, git, qa, ci]
 ---
 
-**Rule:** When Vincent (or an active `project_qa_*_closeout` file) names a **QA queue branch**, all agents treat that branch as the only delivery lane for that closeout until he says otherwise.
+**Rule:** When an active `project_qa_*_closeout` file (or open PR body that owns that closeout) names a **queue branch**, treat that branch as the delivery lane for residual closeout work until the closeout file says otherwise.
 
-**Why:** Side branches, stash hops, and drive-by master features split launch blockers across PRs, thrash Actions when every commit is pushed, and force Vincent to restate “stay on qa/…” and “don’t push.”
+**Why:** Side branches and thrashing pushes split launch blockers across PRs and force re-implementation of work already marked complete.
 
 **How to apply:**
 
-1. **Branch lock:** Work only on the named branch (example: `qa/260812`). Do not create `feat/*` / `hotfix/*` for residual closeout items unless he asks.
-2. **Read closeout memory first:** Open `.agents/memory/project_qa_*_closeout.md` (or the file linked from MEMORY.md). **Do not re-implement** rows marked code-complete.
-3. **Commit cadence:** Prefer small conventional commits after each residual fix + tests.
-4. **Push policy:** If he said **no push / deploy owns CI / avoid thrash**, commit locally only. Push once when he says push or “ready for CI.”
-5. **PR:** One draft/ready PR owns the closeout (`Closes #…` only for issues whose acceptance is met in this PR). Do not open a second PR for the same launch blockers.
-6. **Board:** Move claimed issues to Project #12 **In Progress** when you take them; leave human sale-path issues human.
-7. **Tests over chat:** Residual hardening = tests + hermetic contracts on the queue branch, not a new design doc.
+1. **Branch lock:** Work residual closeout items only on the named branch. Do not open a parallel `feat/*` for the same closeout unless the closeout file says to.
+2. **Read closeout first:** Open `.agents/memory/project_qa_*_closeout.md` (or the PR body). **Do not re-implement** rows marked code-complete.
+3. **Commits:** Prefer small conventional commits with tests for each residual fix.
+4. **Push policy:** Follow the closeout / PR statement. If the PR is draft with commit-only iteration, do not push every micro-commit. Push when the closeout or operator says ready for CI.
+5. **One PR:** One open PR owns the closeout. Do not open a second PR for the same launch blockers.
+6. **Proof:** Residual hardening lands as tests or hermetic contracts on the queue branch, not chat-only claims.
 
-**Done when:** A new agent session on the queue branch can continue residuals from closeout memory + PR without asking “which branch?” or re-coding finished launch blockers.
+**Done when:** A new session can continue from closeout memory + PR + tests without re-coding finished items or asking which branch owns the closeout.
+
+**Personal multi-host fleet rules** (Claude/Codex/Grok routing, “don’t restate”) live in **gitignored** `.agents/memory/local/` and/or global user memory — not in this public file.
