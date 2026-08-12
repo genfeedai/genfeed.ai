@@ -23,6 +23,10 @@ last_verified: 2026-08-12
 - Workflow node claims table + BullMQ continueExistingExecution on retry
 - Bootstrap query bounds + slim agent-run list select
 - #2702 brand bootstrap guard tests (defer until brands resolve; release on unresolved)
+- Claim-service edge cases (running/failed/missing-row P2002, tenant-scoped where)
+- Batch create platform normalize rejection/dedupe tests (#2696)
+- Hermetic contracts: durable claim complete on throw path; #2702 bootstrap pins
+- Processor: empty priorExecutionIds fallthrough + delay resume on continue path
 
 ## After merge (human / deploy)
 
@@ -30,7 +34,7 @@ last_verified: 2026-08-12
 2. Deploy tip; confirm Sentry 71/72 quiet.
 3. Confirm nightly E2E green (#1626) or re-open for a new failure class.
 4. Prod sale path: #738 #334 #2343 #2086.
-5. Close #2702 when accepted (fix already on master + tests on branch).
+5. Close #2702 when accepted — product fix already on master (#2733); tests/contracts on this branch; board note posted 2026-08-12.
 
 ## Agent rules for this branch
 

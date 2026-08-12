@@ -81,4 +81,30 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(schema).toContain('model WorkflowNodeClaim');
     expect(migration).toContain('workflow_node_claims_executionId_nodeId_key');
   });
+
+  it('completes durable claims on the graph-runner throw path (#2359)', () => {
+    const source = readRepo(
+      'apps/server/api/src/collections/workflows/services/workflow-node-graph-runner.service.ts',
+    );
+    // Success and throw branches both call nodeClaimService.complete so a
+    // failed node is not left `running` forever (retry would busy-skip).
+    const completeCalls = source.match(/this\.nodeClaimService\.complete\(/g);
+    expect(completeCalls?.length).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("status: 'failed'");
+  });
+
+  it('defers agent bootstrap until brand scope resolves (#2702)', () => {
+    const layout = readRepo(
+      'apps/app/app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
+    );
+    const brandState = readRepo(
+      'packages/contexts/user/brand-context/useBrandProviderState.ts',
+    );
+    expect(layout).toContain('isBrandScopeResolved');
+    expect(layout).toContain(
+      'hasAttemptedReturningBootstrapRef.current = false',
+    );
+    expect(brandState).toContain('isBrandScopeResolved');
+    expect(brandState).toContain('isBrandsFetched');
+  });
 });
