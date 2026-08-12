@@ -51,14 +51,21 @@ import { DesktopGenerationService } from './main/generation.service';
 import { DesktopKvService } from './main/kv.service';
 import { DesktopLocalService } from './main/local.service';
 import { LocalIdentityService } from './main/local-identity.service';
+import { DesktopLogService } from './main/log.service';
 import { buildDesktopMenu } from './main/menu.service';
-import { DesktopPgliteService } from './main/pglite.service';
-import { DesktopPrismaService } from './main/prisma.service';
+import type { DesktopPgliteService } from './main/pglite.service';
+import type { DesktopPrismaService } from './main/prisma.service';
+import {
+  activateDesktopLocalMode,
+  selectDesktopDataService,
+  switchDesktopToCloud,
+} from './main/runtime-mode.util';
 import {
   DesktopSessionService,
   type IDesktopSession,
 } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
+import { DesktopStoreService } from './main/store.service';
 import { DesktopSyncService } from './main/sync.service';
 import {
   assertActiveSyncAccount,
@@ -83,6 +90,7 @@ let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
 let pgliteService: DesktopPgliteService | null = null;
 let prismaService: DesktopPrismaService | null = null;
+let desktopStore: DesktopStoreService;
 let kvService: DesktopKvService;
 let localIdentityService: LocalIdentityService;
 let sessionService: DesktopSessionService;
@@ -93,10 +101,13 @@ let syncConsentService: DesktopSyncConsentService;
 let terminalService: DesktopTerminalService;
 let generationService: DesktopGenerationService;
 let cloudService: DesktopCloudService;
-let localService: DesktopLocalService;
+let localService: DesktopLocalService | null = null;
 let draftsService: DesktopDraftsService;
 let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
+let localRuntimePromise: Promise<void> | null = null;
+let assetProtocolRegistered = false;
+let logService: DesktopLogService | null = null;
 
 const telemetryService = new DesktopTelemetryService(environment);
 
@@ -158,7 +169,7 @@ const DESKTOP_AUTHORITY: IDesktopAuthoritySummary = {
     'unsynced-assets',
   ],
 };
-const OFFLINE_MODE_KEY = 'desktop.offline.mode';
+const OFFLINE_MODE_KEY = 'desktop.runtime.mode';
 const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
 function getSyncCursorKey(
@@ -170,10 +181,18 @@ function getSyncCursorKey(
 }
 
 function getBetterAuthId(): string | null {
-  return localIdentityService.getBetterAuthId();
+  return (
+    localIdentityService?.getBetterAuthId() ??
+    sessionService?.getSession()?.userId ??
+    null
+  );
 }
 
 function getLocalCloudIdentityContext() {
+  if (!localIdentityService) {
+    throw new Error('Select local mode before using a local workspace.');
+  }
+
   return {
     cloudUserId: getBetterAuthId(),
     localDeviceId: localIdentityService.getLocalDeviceId(),
@@ -188,16 +207,21 @@ const getCloudIdentityStatus = (
 
 const persistDeviceIdentity = async (
   session: IDesktopBootstrap['session'],
+  activePrismaService: DesktopPrismaService | null = prismaService,
+  activeLocalIdentityService:
+    | LocalIdentityService
+    | undefined = localIdentityService,
 ): Promise<void> => {
-  const client = prismaService?.getClient();
+  const client = activePrismaService?.getClient();
 
-  if (!client) {
+  if (!client || !activeLocalIdentityService) {
     return;
   }
 
   const now = new Date().toISOString();
-  const localDeviceId = localIdentityService.getLocalDeviceId();
-  const betterAuthId = getBetterAuthId();
+  const localDeviceId = activeLocalIdentityService.getLocalDeviceId();
+  const betterAuthId =
+    activeLocalIdentityService.getBetterAuthId() ?? session?.userId ?? null;
   const existing = await client.desktopDeviceIdentity.findUnique({
     where: {
       id: localDeviceId,
@@ -212,7 +236,7 @@ const persistDeviceIdentity = async (
       createdAt: now,
       id: localDeviceId,
       lastSeenAt: now,
-      localUserId: localIdentityService.getLocalUserId(),
+      localUserId: activeLocalIdentityService.getLocalUserId(),
       status: getCloudIdentityStatus(session, betterAuthId),
       updatedAt: now,
     },
@@ -221,7 +245,7 @@ const persistDeviceIdentity = async (
       cloudUserId: betterAuthId ?? existing?.cloudUserId ?? null,
       connectedAt: session?.issuedAt ?? existing?.connectedAt ?? null,
       lastSeenAt: now,
-      localUserId: localIdentityService.getLocalUserId(),
+      localUserId: activeLocalIdentityService.getLocalUserId(),
       status: getCloudIdentityStatus(session, betterAuthId),
       updatedAt: now,
     },
@@ -232,9 +256,9 @@ const persistDeviceIdentity = async (
 };
 
 const getActiveWorkspaceId = (
-  workspaces = workspaceService.listRecentWorkspaces(),
+  workspaces = workspaceService?.listRecentWorkspaces() ?? [],
 ): string | null => {
-  const storedWorkspaceId = kvService.getValueSync(ACTIVE_WORKSPACE_ID_KEY);
+  const storedWorkspaceId = kvService?.getValueSync(ACTIVE_WORKSPACE_ID_KEY);
 
   if (
     storedWorkspaceId &&
@@ -247,12 +271,21 @@ const getActiveWorkspaceId = (
 };
 
 const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
+  if (!workspaceService || !kvService) {
+    throw new Error('Select local mode before choosing a workspace.');
+  }
+
   workspaceService.getWorkspace(workspaceId);
   await kvService.setValue(ACTIVE_WORKSPACE_ID_KEY, workspaceId);
 };
 
 function getDataService(): IDesktopDataService {
-  return sessionService.getSession() ? cloudService : localService;
+  return selectDesktopDataService<IDesktopDataService>({
+    cloudService,
+    hasCloudSession: Boolean(sessionService.getSession()),
+    isOfflineMode,
+    localService,
+  });
 }
 
 const emitQuickGenerate = (): void => {
@@ -279,10 +312,10 @@ const getBootstrap = (): IDesktopBootstrap => {
     return bootstrapCache;
   }
 
-  const workspaces = workspaceService.listRecentWorkspaces();
+  const workspaces = workspaceService?.listRecentWorkspaces() ?? [];
   const session = sessionService.getSession();
   const betterAuthId = getBetterAuthId();
-  const localUserId = localIdentityService.getLocalUserId();
+  const localUserId = localIdentityService?.getLocalUserId() ?? 'local-user';
   const bootstrap: IDesktopBootstrap = {
     activeWorkspaceId: getActiveWorkspaceId(workspaces),
     authority: DESKTOP_AUTHORITY,
@@ -291,11 +324,11 @@ const getBootstrap = (): IDesktopBootstrap => {
       cloudUserEmail: session?.userEmail,
       cloudUserId: betterAuthId ?? undefined,
       connectedAt: session?.issuedAt,
-      localDeviceId: localIdentityService.getLocalDeviceId(),
+      localDeviceId: localIdentityService?.getLocalDeviceId() ?? 'local-device',
       localUserId,
       status: getCloudIdentityStatus(session, betterAuthId),
     },
-    cloudOrganizations: syncService.listCloudOrganizations(),
+    cloudOrganizations: syncService?.listCloudOrganizations() ?? [],
     environment: sessionService.getEnvironment(),
     isOfflineMode,
     localOrganization: { ...LOCAL_ORGANIZATION },
@@ -308,13 +341,18 @@ const getBootstrap = (): IDesktopBootstrap => {
     preferences: {
       nativeNotificationsEnabled: Notification.isSupported(),
     },
-    brands: syncService.listBrands(),
-    recents: workspaceService.listRecents(),
+    brands: syncService?.listBrands() ?? [],
+    recents: workspaceService?.listRecents() ?? [],
     // Better Auth state is carried by the HttpOnly shell cookie. The API key
     // stays in main for request-header injection and is never serialized here.
     session: null,
     syncConsent: syncConsentService.getConsent(session),
-    syncState: syncService.getState(),
+    syncState: syncService?.getState() ?? {
+      failedCount: 0,
+      pendingCount: 0,
+      retryingCount: 0,
+      runningCount: 0,
+    },
     workspaces,
   };
 
@@ -334,6 +372,131 @@ const runDataService = async <T>(
     }
 
     throw error;
+  }
+};
+
+const initializeLocalRuntime = async (): Promise<void> => {
+  if (localRuntimePromise) {
+    return localRuntimePromise;
+  }
+
+  const previousOfflineMode = isOfflineMode;
+  localRuntimePromise = (async () => {
+    const [{ DesktopPgliteService }, { DesktopPrismaService }] =
+      await Promise.all([
+        import('./main/pglite.service'),
+        import('./main/prisma.service'),
+      ]);
+    const nextPgliteService = new DesktopPgliteService(
+      path.join(app.getPath('userData'), 'pglite-db'),
+    );
+
+    try {
+      const pglite = await nextPgliteService.init();
+      if (nextPgliteService.didResetUnsupportedDatabase()) {
+        logService?.info(
+          'Discarded an unsupported pre-release local database before initializing the current desktop schema.',
+        );
+      }
+      const nextPrismaService = new DesktopPrismaService(pglite);
+      const prismaClient = nextPrismaService.getClient();
+      const nextKvService = new DesktopKvService(prismaClient);
+      await nextKvService.init();
+
+      const nextLocalIdentityService = new LocalIdentityService(nextKvService);
+      await nextLocalIdentityService.initialize();
+      await nextPrismaService.bootstrapLocalIdentity(
+        nextLocalIdentityService.getLocalUserId(),
+      );
+
+      const session = sessionService.getSession();
+      if (session) {
+        await nextLocalIdentityService.setBetterAuthId(session.userId);
+      }
+
+      const nextWorkspaceService = new DesktopWorkspaceService(prismaClient);
+      await nextWorkspaceService.init();
+      const nextSyncService = new DesktopSyncService(prismaClient);
+      await nextSyncService.init();
+      const nextFilesService = new DesktopFilesService(
+        nextWorkspaceService,
+        prismaClient,
+      );
+      const nextGenerationService = new DesktopGenerationService(
+        {
+          deleteValue: (key) => nextKvService.deleteValue(key),
+          getSyncJob: async (jobId) =>
+            prismaClient.desktopSyncJob.findUnique({ where: { id: jobId } }),
+          getValue: (key) => nextKvService.getValue(key),
+          listSyncJobs: async (type, workspaceId) =>
+            prismaClient.desktopSyncJob.findMany({
+              orderBy: { updatedAt: 'desc' },
+              where: { type, ...(workspaceId ? { workspaceId } : {}) },
+            }),
+          setValue: (key, value) => nextKvService.setValue(key, value),
+          upsertSyncJob: async (row) => {
+            await prismaClient.desktopSyncJob.upsert({
+              create: row,
+              update: row,
+              where: { id: row.id },
+            });
+          },
+        },
+        nextFilesService,
+      );
+      await nextGenerationService.resumeAssetGenerationJobs();
+      const nextTerminalService = new DesktopTerminalService(
+        nextWorkspaceService,
+      );
+      const nextLocalService = new DesktopLocalService(
+        prismaClient,
+        nextGenerationService,
+      );
+      const nextDraftsService = new DesktopDraftsService(nextWorkspaceService);
+
+      await persistDeviceIdentity(
+        session,
+        nextPrismaService,
+        nextLocalIdentityService,
+      );
+
+      if (!assetProtocolRegistered) {
+        new DesktopAssetProtocolService(nextFilesService).register();
+        assetProtocolRegistered = true;
+      }
+
+      // Publish the runtime atomically after every fallible initialization step.
+      // A failed attempt must not leave globals backed by a closed database.
+      pgliteService = nextPgliteService;
+      prismaService = nextPrismaService;
+      kvService = nextKvService;
+      localIdentityService = nextLocalIdentityService;
+      workspaceService = nextWorkspaceService;
+      syncService = nextSyncService;
+      filesService = nextFilesService;
+      terminalService = nextTerminalService;
+      generationService = nextGenerationService;
+      localService = nextLocalService;
+      draftsService = nextDraftsService;
+      isOfflineMode = true;
+      bootstrapCache = null;
+    } catch (error) {
+      await nextPgliteService.close();
+      isOfflineMode = previousOfflineMode;
+      bootstrapCache = null;
+      localRuntimePromise = null;
+      throw error;
+    }
+  })();
+
+  return localRuntimePromise;
+};
+
+const requireLocalRuntime = (): void => {
+  if (!isOfflineMode || !localService) {
+    throw new Error(
+      'Local mode is not enabled. Select Local workspace before using this feature.',
+    );
   }
 };
 
@@ -412,9 +575,58 @@ const registerPrivilegedIpcHandler = <TArguments extends unknown[], TResult>(
 ): void => {
   ipcMain.handle(channel, (event, ...args: unknown[]) => {
     assertTrustedIpcSender(event);
+    if (LOCAL_RUNTIME_IPC_CHANNELS.has(channel)) {
+      requireLocalRuntime();
+    }
     return handler(event, ...(args as TArguments));
   });
 };
+
+const LOCAL_RUNTIME_IPC_CHANNELS = new Set<string>([
+  DESKTOP_IPC_CHANNELS.cacheGetPath,
+  DESKTOP_IPC_CHANNELS.cacheWriteAsset,
+  DESKTOP_IPC_CHANNELS.draftsDelete,
+  DESKTOP_IPC_CHANNELS.draftsGet,
+  DESKTOP_IPC_CHANNELS.draftsList,
+  DESKTOP_IPC_CHANNELS.draftsSave,
+  DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
+  DESKTOP_IPC_CHANNELS.filesImportAssets,
+  DESKTOP_IPC_CHANNELS.filesListAssets,
+  DESKTOP_IPC_CHANNELS.filesRead,
+  DESKTOP_IPC_CHANNELS.filesRevealAsset,
+  DESKTOP_IPC_CHANNELS.filesWrite,
+  DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
+  DESKTOP_IPC_CHANNELS.generationClearProviderConfig,
+  DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
+  DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
+  DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
+  DESKTOP_IPC_CHANNELS.generationGetProviderConfig,
+  DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
+  DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
+  DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
+  DESKTOP_IPC_CHANNELS.openFileDialog,
+  DESKTOP_IPC_CHANNELS.syncAckOps,
+  DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+  DESKTOP_IPC_CHANNELS.syncGetCursor,
+  DESKTOP_IPC_CHANNELS.syncGetJobs,
+  DESKTOP_IPC_CHANNELS.syncGetOps,
+  DESKTOP_IPC_CHANNELS.syncGetState,
+  DESKTOP_IPC_CHANNELS.syncQueueOp,
+  DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+  DESKTOP_IPC_CHANNELS.syncSetCursor,
+  DESKTOP_IPC_CHANNELS.syncTriggerThreads,
+  DESKTOP_IPC_CHANNELS.terminalCreate,
+  DESKTOP_IPC_CHANNELS.terminalKill,
+  DESKTOP_IPC_CHANNELS.terminalResize,
+  DESKTOP_IPC_CHANNELS.terminalWrite,
+  DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
+  DESKTOP_IPC_CHANNELS.workspaceLinkProject,
+  DESKTOP_IPC_CHANNELS.workspaceOpen,
+  DESKTOP_IPC_CHANNELS.workspaceRead,
+  DESKTOP_IPC_CHANNELS.workspaceRecent,
+  DESKTOP_IPC_CHANNELS.workspaceReveal,
+  DESKTOP_IPC_CHANNELS.workspaceSelect,
+]);
 
 const waitForCanonicalAppReady = async (
   window: BrowserWindow,
@@ -596,18 +808,27 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    await loadCanonicalApp(
-      mainWindow,
-      appShellService.buildInitialUrl(sessionService.getSession()),
-    );
+    const initialUrl = isOfflineMode
+      ? new URL('/desktop/local', appShellService.appOrigin).toString()
+      : appShellService.buildInitialUrl(sessionService.getSession());
+    await loadCanonicalApp(mainWindow, initialUrl);
 
     if (isDev && !isSmokeTest) {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
     if (isSmokeTest) {
+      const unexpectedDatabasePath = path.join(
+        app.getPath('userData'),
+        'pglite-db',
+      );
+      if (fs.existsSync(unexpectedDatabasePath)) {
+        throw new Error(
+          `Cloud startup created an unexpected local database at ${unexpectedDatabasePath}`,
+        );
+      }
       process.stdout.write(
-        '[desktop] smoke readiness confirmed: canonical shell and desktop bridge rendered.\n',
+        '[desktop] smoke readiness confirmed: canonical shell rendered without PGlite.\n',
       );
       app.exit(0);
       return;
@@ -620,6 +841,9 @@ const createWindow = async (): Promise<void> => {
     telemetryService.captureException(error, {
       surface: 'app-shell',
     });
+    logService?.error(
+      `app shell boot failed: ${error instanceof Error ? error.stack || error.message : String(error)}`,
+    );
 
     if (isSmokeTest) {
       app.exit(1);
@@ -630,13 +854,23 @@ const createWindow = async (): Promise<void> => {
   }
 
   buildDesktopMenu(mainWindow, () => {
-    void openAndActivateWorkspace().then(async (workspace) => {
-      if (!workspace) {
-        return;
-      }
-
+    void (async () => {
+      await activateDesktopLocalMode(initializeLocalRuntime, () => {
+        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+      });
+      const workspace = await openAndActivateWorkspace();
+      if (!workspace) return;
       await emitBootstrap();
-      mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
+      if (mainWindow) {
+        await loadCanonicalApp(
+          mainWindow,
+          new URL('/desktop/local', appShellService.appOrigin).toString(),
+        );
+      }
+    })().catch((error) => {
+      logService?.error(
+        `open local workspace failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     });
   });
 };
@@ -645,6 +879,7 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
   const errorText =
     error instanceof Error ? error.stack || error.message : String(error);
   process.stderr.write(`[desktop] startup failed: ${errorText}\n`);
+  logService?.error(`startup failed: ${errorText}`);
   telemetryService.captureException(error, { surface: 'startup' });
 
   if (isSmokeTest) {
@@ -694,6 +929,11 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
 };
 
 const openAndActivateWorkspace = async () => {
+  requireLocalRuntime();
+  if (!workspaceService || !kvService) {
+    throw new Error('Local workspace services are unavailable.');
+  }
+
   const workspace = await workspaceService.openWorkspace();
 
   if (workspace) {
@@ -815,7 +1055,7 @@ const captureVisualQa = async (): Promise<void> => {
 
   const visualQaSession = getVisualQaSession();
   await sessionService.setSession(visualQaSession);
-  await localIdentityService.setBetterAuthId(visualQaSession.userId);
+  await localIdentityService?.setBetterAuthId(visualQaSession.userId);
   await persistDeviceIdentity(visualQaSession);
   await emitSession();
   await loadVisualQaRoute('/');
@@ -848,7 +1088,7 @@ const captureVisualQa = async (): Promise<void> => {
 
   await sessionService.setSession(visualQaSession);
   sessionService = new DesktopSessionService(
-    kvService,
+    desktopStore,
     environment,
     appShellService.appOrigin,
     electronSession.defaultSession.cookies,
@@ -907,7 +1147,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
   }
 
   const { session } = result;
-  await localIdentityService.setBetterAuthId(session.userId);
+  await localIdentityService?.setBetterAuthId(session.userId);
   await persistDeviceIdentity(session);
   await emitSession();
   await emitBootstrap();
@@ -933,36 +1173,55 @@ const registerProtocolHandling = (): void => {
 };
 
 const registerIpcHandlers = (): void => {
-  // Canonical apps/app consumers:
-  // Active — auth.login; cloud.generateContent; generation.getProviderConfig,
-  // generation.saveProviderConfig, generation.testProviderConfig.
-  // Dormant Phase-2 backends — app.*, auth.getSession/logout/onDidChangeSession,
-  // cache.*, all other cloud.*, drafts.*, files.*, all other generation.*,
-  // notifications.notify, onQuickGenerate, platform, sync.* except triggerThreads,
-  // terminal.*, and workspace.*. Their services and bridge contracts stay intact.
-  // Removed renderer-owned behavior — getPlatform's unused IPC handler and
-  // sync.triggerThreads dispatch/onSyncThreadsRequested delivery. The trigger
-  // contract remains callable but reports unavailable instead of false success.
+  // The canonical apps/app shell is always available. Database-backed channels
+  // are guarded by LOCAL_RUNTIME_IPC_CHANNELS and cannot initialize PGlite as a
+  // side effect; appEnableOfflineMode is the single explicit activation path.
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.appBootstrap, async () =>
     getBootstrap(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
-      isOfflineMode = true;
-      kvService.setValueSync(OFFLINE_MODE_KEY, '1');
+      await activateDesktopLocalMode(initializeLocalRuntime, () => {
+        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+      });
       await emitBootstrap();
+      return getBootstrap();
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.appUseCloudMode,
+    async () => {
+      await switchDesktopToCloud({
+        closeLocalRuntime: async () => {
+          await prismaService?.getClient().$disconnect();
+          await pgliteService?.close();
+        },
+        exit: () => app.exit(0),
+        persistCloudMode: () => {
+          desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud');
+          isOfflineMode = false;
+        },
+        relaunch: () => app.relaunch(),
+      });
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appGetDiagnostics,
     async () => ({
       isPackaged: app.isPackaged,
+      logPath: logService?.getPath() ?? '',
+      mode: isOfflineMode ? 'local' : 'cloud',
       platform: process.platform,
       releaseChannel: app.isPackaged ? 'production' : 'development',
       version: app.getVersion(),
     }),
   );
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.appRevealLogs, async () => {
+    const logPath = logService?.getPath();
+    if (!logPath) throw new Error('Desktop logs are unavailable.');
+    shell.showItemInFolder(logPath);
+  });
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appOpenExternalPath,
     async (_event: unknown, pathname: string) => {
@@ -1443,6 +1702,10 @@ app.on('will-quit', () => {
 void app
   .whenReady()
   .then(async () => {
+    logService = new DesktopLogService(
+      path.join(app.getPath('userData'), 'logs', 'main.log'),
+    );
+    logService.info('desktop startup');
     telemetryService.init();
     process.on('uncaughtException', (error) => {
       telemetryService.captureException(error, { source: 'uncaughtException' });
@@ -1452,86 +1715,43 @@ void app
         source: 'unhandledRejection',
       });
     });
-    pgliteService = new DesktopPgliteService(
-      path.join(app.getPath('userData'), 'pglite-db'),
+    desktopStore = new DesktopStoreService(
+      path.join(app.getPath('userData'), 'desktop-state.json'),
     );
-    const pglite = await pgliteService.init();
-    prismaService = new DesktopPrismaService(pglite);
-    const prismaClient = prismaService.getClient();
-    kvService = new DesktopKvService(prismaClient);
-    await kvService.init();
-    syncConsentService = new DesktopSyncConsentService(kvService);
-    localIdentityService = new LocalIdentityService(kvService);
-    await localIdentityService.initialize();
-    await prismaService.bootstrapLocalIdentity(
-      localIdentityService.getLocalUserId(),
-    );
+    syncConsentService = new DesktopSyncConsentService(desktopStore);
     appShellService = new DesktopAppShellService(
       environment,
       () => sessionService.getSession(),
       // Spawned server processes carve their own storage directories out of the
       // Electron data root; using PGlite's directory would nest them under the DB.
       () => app.getPath('userData'),
+      (level, message) => logService?.write(level, message),
     );
     await appShellService.start();
     sessionService = new DesktopSessionService(
-      kvService,
+      desktopStore,
       environment,
       appShellService.appOrigin,
       electronSession.defaultSession.cookies,
     );
-    const session = await sessionService.validateStoredSession();
-    if (session) {
-      await localIdentityService.setBetterAuthId(session.userId);
-    }
-    await persistDeviceIdentity(session);
-    workspaceService = new DesktopWorkspaceService(prismaClient);
-    await workspaceService.init();
-    syncService = new DesktopSyncService(prismaClient);
-    await syncService.init();
-    filesService = new DesktopFilesService(workspaceService, prismaClient);
-    new DesktopAssetProtocolService(filesService).register();
-    terminalService = new DesktopTerminalService(workspaceService);
-    generationService = new DesktopGenerationService(
-      {
-        deleteValue: (key) => kvService.deleteValue(key),
-        getSyncJob: async (jobId) => {
-          const row = await prismaClient.desktopSyncJob.findUnique({
-            where: { id: jobId },
-          });
-          return row;
-        },
-        getValue: (key) => kvService.getValue(key),
-        listSyncJobs: async (type, workspaceId) => {
-          const rows = await prismaClient.desktopSyncJob.findMany({
-            orderBy: {
-              updatedAt: 'desc',
-            },
-            where: {
-              type,
-              ...(workspaceId ? { workspaceId } : {}),
-            },
-          });
-          return rows;
-        },
-        setValue: (key, value) => kvService.setValue(key, value),
-        upsertSyncJob: async (row) => {
-          await prismaClient.desktopSyncJob.upsert({
-            create: row,
-            update: row,
-            where: { id: row.id },
-          });
-        },
-      },
-      filesService,
-    );
-    await generationService.resumeAssetGenerationJobs();
+    await sessionService.validateStoredSession();
     cloudService = new DesktopCloudService(environment, () =>
       sessionService.getSession(),
     );
-    localService = new DesktopLocalService(prismaClient, generationService);
-    draftsService = new DesktopDraftsService(workspaceService);
-    isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
+    isOfflineMode = desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
+    if (isOfflineMode) {
+      try {
+        await initializeLocalRuntime();
+      } catch (error) {
+        process.stderr.write(
+          `[desktop] local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+        );
+        logService.error(
+          `local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}`,
+        );
+        telemetryService.captureException(error, { surface: 'local-runtime' });
+      }
+    }
     telemetryService.setUser(sessionService.getSession());
     registerProtocolHandling();
     configureSessionPermissions();

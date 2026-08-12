@@ -1,3 +1,12 @@
+CREATE TABLE IF NOT EXISTS desktop_schema_metadata (
+  singleton_key TEXT PRIMARY KEY,
+  baseline_version INTEGER NOT NULL
+);
+INSERT INTO desktop_schema_metadata (singleton_key, baseline_version)
+VALUES ('current', 1)
+ON CONFLICT (singleton_key) DO UPDATE
+SET baseline_version = EXCLUDED.baseline_version;
+
 CREATE TABLE IF NOT EXISTS organizations (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

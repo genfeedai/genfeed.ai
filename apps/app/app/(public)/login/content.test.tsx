@@ -22,6 +22,7 @@ const authClientMocks = vi.hoisted(() => ({
 
 const desktopRuntimeMocks = vi.hoisted(() => ({
   eventOrder: [] as string[],
+  enableOfflineMode: vi.fn(),
   getDesktopBridge: vi.fn(),
   login: vi.fn(),
   onDidChangeSession: vi.fn(),
@@ -91,6 +92,8 @@ describe('LoginPage', () => {
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     desktopRuntimeMocks.eventOrder.length = 0;
+    desktopRuntimeMocks.enableOfflineMode.mockReset();
+    desktopRuntimeMocks.enableOfflineMode.mockResolvedValue({});
     desktopRuntimeMocks.getDesktopBridge.mockReset();
     desktopRuntimeMocks.login.mockReset();
     desktopRuntimeMocks.login.mockImplementation(async () => {
@@ -107,6 +110,9 @@ describe('LoginPage', () => {
     desktopRuntimeMocks.unsubscribe.mockReset();
     desktopSessionChangeCallback = null;
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
+      app: {
+        enableOfflineMode: desktopRuntimeMocks.enableOfflineMode,
+      },
       auth: {
         login: desktopRuntimeMocks.login,
         onDidChangeSession: desktopRuntimeMocks.onDidChangeSession,
@@ -187,8 +193,8 @@ describe('LoginPage', () => {
         screen.getByRole('button', { name: 'Sign in with Genfeed' }),
       ).toBeEnabled();
       expect(
-        screen.getByRole('button', { name: 'Work offline — coming soon' }),
-      ).toBeDisabled();
+        screen.getByRole('button', { name: 'Use a local workspace' }),
+      ).toBeEnabled();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
       expect(
@@ -199,6 +205,31 @@ describe('LoginPage', () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it('starts local mode only after the user selects it', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const locationAssignMock = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        assign: locationAssignMock,
+        origin: originalLocation.origin,
+      },
+      writable: true,
+    });
+    render(<LoginPage />);
+
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use a local workspace' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
+    });
+    expect(locationAssignMock).toHaveBeenCalledWith('/desktop/local');
+  });
 
   it('subscribes before opening the system browser and can return to idle', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
@@ -213,6 +244,12 @@ describe('LoginPage', () => {
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
     expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+    const localModeButton = screen.getByRole('button', {
+      name: 'Use a local workspace',
+    });
+    expect(localModeButton).toBeDisabled();
+    fireEvent.click(localModeButton);
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 

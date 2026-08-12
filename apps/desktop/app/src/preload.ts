@@ -37,6 +37,10 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appGetDiagnostics),
     openExternalPath: async (pathname) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appOpenExternalPath, pathname),
+    revealLogs: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appRevealLogs),
+    switchToCloudMode: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appUseCloudMode),
     onDidBootstrapChange: (callback) => {
       const listener = (_event: unknown, bootstrap: unknown) => {
         callback(bootstrap as Parameters<typeof callback>[0]);

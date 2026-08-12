@@ -13,7 +13,7 @@ summary; the canonical, decision-of-record version is the ADR at
 | **Orgs**              | many (isolated tenants)                                                      | **one**                                                         | one                                                                                |
 | **Brands**            | many per org                                                                 | **many**                                                        | many                                                                               |
 | **Auth**              | Better Auth (email/password, magic link, Google)                             | Better Auth, self-hostable — none for solo, optional login wall | none for local/offline work; Better Auth for explicit Cloud connection             |
-| **Storage**           | S3                                                                           | local filesystem                                                | local (PGlite) + optional cloud sync                                               |
+| **Storage**           | S3                                                                           | local filesystem                                                | Cloud shell by default; opt-in local PGlite + optional cloud sync                  |
 | **Generation**        | managed                                                                      | your own provider keys (BYOK), free                             | BYOK local, free                                                                   |
 | **Managed inference** | credit-backed managed providers; included credits depend on the current plan | buy cloud credits, use via API                                  | buy cloud credits, use via API                                                     |
 
@@ -28,7 +28,8 @@ summary; the canonical, decision-of-record version is the ADR at
   Community is still one org and does not require a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`. The
   current release workflow packages macOS only; this repository does not claim
-  Windows or Linux installers.
+  Windows or Linux installers. Cloud startup does not initialize PGlite; the
+  embedded database starts only after an explicit local-workspace selection.
 
 Code must read these axes through `@genfeedai/config/deployment`; direct mode
 checks against the environment are rejected by the architecture guard. Boolean
