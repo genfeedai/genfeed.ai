@@ -192,6 +192,19 @@ describe('batch-generation-pricing', () => {
     expect(counts.image).toBe(0);
   });
 
+  it('returns an empty map for an empty weight set', () => {
+    expect(allocateByWeights(10, {})).toEqual({});
+  });
+
+  it('puts the full total on the first key when every weight is zero', () => {
+    const counts = allocateByWeights(4, {
+      image: 0,
+      video: 0,
+      reel: 0,
+    });
+    expect(counts).toEqual({ image: 4, video: 0, reel: 0 });
+  });
+
   it('prices a one-item mixed mix as exactly one item', () => {
     const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
     const estimate = estimateBatchGenerationCredits(

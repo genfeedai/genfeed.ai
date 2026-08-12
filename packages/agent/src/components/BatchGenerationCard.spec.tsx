@@ -94,4 +94,38 @@ describe('BatchGenerationCard', () => {
       platforms: ['twitter'],
     });
   });
+
+  it('recomputes the estimate when the platform selection leaves the suggestion (#2696)', async () => {
+    const user = userEvent.setup();
+    render(
+      <BatchGenerationCard
+        action={{
+          batchCount: 10,
+          creditEstimate: 99,
+          id: 'batch-form-4',
+          platforms: ['twitter'],
+          title: 'Batch generation',
+          type: 'batch_generation_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Estimated cost: 99 credits/i)).toBeInTheDocument();
+
+    // Adding Instagram makes the selection differ from the suggested set.
+    await user.click(screen.getByText('Instagram'));
+
+    const recomputed = estimateBatchGenerationCredits(
+      { count: 10, platforms: ['twitter', 'instagram'] },
+      resolveBatchPricingOptions({ hasMediaGeneration: false }),
+    );
+    expect(
+      screen.getByText(
+        new RegExp(`Estimated cost: ${recomputed} credits`, 'i'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Estimated cost: 99 credits/i),
+    ).not.toBeInTheDocument();
+  });
 });
