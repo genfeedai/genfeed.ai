@@ -7,6 +7,7 @@ import type {
 } from '@api/collections/agent-strategies/dto/run-agent-strategy-workflow.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
@@ -220,16 +221,17 @@ export class AgentStrategyWorkflowRunService {
       );
     }
 
+    const workflowCreate: CreateWorkflowDto = {
+      brandId: strategy.brandId ?? undefined,
+      isScheduleEnabled: false,
+      label: `${strategy.label ?? 'Agent'} — content workflow`,
+      status: WorkflowStatus.ACTIVE,
+      templateId,
+    };
     const created = await this.workflowsService.createWorkflow(
       options.userId,
       organizationId,
-      {
-        brandId: strategy.brandId ?? undefined,
-        isScheduleEnabled: false,
-        label: `${strategy.label} — content workflow`,
-        status: WorkflowStatus.ACTIVE,
-        templateId,
-      } as never,
+      workflowCreate,
       strategy.brandId ?? undefined,
     );
 
@@ -567,7 +569,7 @@ export class AgentStrategyWorkflowRunService {
       ...(workflow.templateId
         ? { preferredWorkflowTemplateId: workflow.templateId }
         : {}),
-    } as never);
+    });
   }
 }
 

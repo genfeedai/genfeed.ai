@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   buildTwitterStatusUrl,
@@ -366,16 +367,25 @@ export class AgentXActionsToolHandler {
     }
 
     const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'Brand is required for repost and quote.',
+        success: false,
+      };
+    }
     const caption =
       action === 'quote' ? (quoteContent as string) : `Repost ${targetPostId}`;
 
+    const day = new Date().toISOString().slice(0, 10);
+    const batchDto: CreateBatchDto = {
+      brandId,
+      count: 1,
+      dateRange: { end: day, start: day },
+      platforms: ['twitter'],
+    };
     const batch = await this.batchGenerationService.createBatch(
-      {
-        brandId: brandId || undefined,
-        count: 1,
-        platforms: ['twitter'],
-        source: 'proactive',
-      } as never,
+      batchDto,
       ctx.userId,
       ctx.organizationId,
     );

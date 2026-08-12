@@ -7,6 +7,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { CredentialPlatform, Platform } from '@genfeedai/enums';
+import type { INotificationPayloadTypes } from '@genfeedai/interfaces';
 import {
   CommentTriggerExecutor,
   type DmSender,
@@ -229,9 +230,11 @@ export class WorkflowSocialExecutorRegistrarService {
       await notifications.sendNotification({
         action: 'workflow_report',
         payload: {
-          body,
-          title,
-        } as never,
+          card: {
+            description: body,
+            title,
+          },
+        } satisfies INotificationPayloadTypes,
         type: 'discord',
         userId,
       });

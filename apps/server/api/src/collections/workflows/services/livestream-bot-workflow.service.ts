@@ -71,7 +71,7 @@ export class LivestreamBotWorkflowService {
       id: botId,
       isDeleted: false,
       organizationId,
-    } as never);
+    });
 
     if (!bot) {
       return {

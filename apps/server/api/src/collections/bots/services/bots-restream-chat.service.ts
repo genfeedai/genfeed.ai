@@ -7,7 +7,10 @@ import {
   pickAccessTokenAfterRefresh,
   resolveRestreamAccessFromCredential,
 } from '@api/services/integrations/restream/services/restream-token.util';
-import { LivestreamTranscriptSource, Platform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  LivestreamTranscriptSource,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
@@ -305,7 +308,7 @@ export class BotsRestreamChatService {
           ...(refreshed.refresh_token
             ? { refreshToken: refreshed.refresh_token }
             : {}),
-        } as never);
+        });
       }
 
       return nextToken;
@@ -331,7 +334,7 @@ export class BotsRestreamChatService {
         id: credentialId,
         isDeleted: false,
         organizationId: bot.organizationId,
-      } as never);
+      });
       if (byId) {
         return byId as Record<string, unknown>;
       }
@@ -343,8 +346,8 @@ export class BotsRestreamChatService {
         isConnected: true,
         isDeleted: false,
         organizationId: bot.organizationId,
-        platform: Platform.RESTREAM,
-      } as never);
+        platform: CredentialPlatform.RESTREAM,
+      });
       if (byBrand) {
         const resolvedId =
           typeof (byBrand as { id?: unknown }).id === 'string'
@@ -391,7 +394,7 @@ export class BotsRestreamChatService {
             existingSettings.transcriptSource ??
             LivestreamTranscriptSource.RESTREAM_CHAT,
         },
-      } as never);
+      });
 
       // Keep in-memory bot consistent for the rest of this request.
       bot.livestreamSettings = {

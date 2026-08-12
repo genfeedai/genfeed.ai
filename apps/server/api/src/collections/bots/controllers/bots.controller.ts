@@ -198,10 +198,7 @@ export class BotsController extends BaseCRUDController<
     @Body() payload: BotLivestreamRestreamChatIngestDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    return this.botsRestreamChatService.ingestChatActions(
-      bot,
-      payload.actions as never,
-    );
+    return this.botsRestreamChatService.ingestChatActions(bot, payload.actions);
   }
 
   @Post(':id/livestream-session/send-now')

@@ -49,24 +49,34 @@ export interface AgentStrategyRunHistoryItem {
   [key: string]: unknown;
 }
 
+/**
+ * Document shape for agent strategies.
+ *
+ * Prisma stores most autopilot fields in `config` / `policies` JSON. The service
+ * flattens those onto the row for callers, so this type is Prisma scalars plus
+ * the decoded document fields (not a pure Prisma row).
+ */
 export type AgentStrategyDocument = Omit<
   PrismaAgentStrategy,
   'agentType' | 'config' | 'platforms' | 'policies' | 'workflowInputOverrides'
 > & {
   agentType?: string;
   autonomyMode?: AgentAutonomyMode | string;
+  /** Optional populated brand relation (label only used by workflow prompt builder). */
+  brand?: { label?: string | null } | null;
   budgetPolicy?: AgentStrategyBudgetPolicy;
   config?: Record<string, unknown>;
+  consecutiveFailures?: number;
   contentMix?: AgentStrategyContentMix;
-  creditsUsedThisWeek?: number;
-  dailyCreditBudget?: number;
+  creditsUsedThisWeek: number;
+  dailyCreditBudget: number;
   dailyCreditResetAt?: Date | null;
-  dailyCreditsUsed?: number;
+  dailyCreditsUsed: number;
   dailyResetAt?: Date | null;
   goalProfile?: string;
   isEnabled?: boolean;
   model?: string | null;
-  monthToDateCreditsUsed?: number;
+  monthToDateCreditsUsed: number;
   monthlyResetAt?: Date | null;
   opportunitySources?: AgentStrategyOpportunitySources;
   platforms?: string[];
@@ -77,13 +87,15 @@ export type AgentStrategyDocument = Omit<
   rankingPolicy?: AgentStrategyRankingPolicy;
   reportingPolicy?: AgentStrategyReportingPolicy;
   requiresManualReactivation?: boolean;
-  reserveTrendBudgetRemaining?: number;
-  runHistory?: AgentStrategyRunHistoryItem[];
+  reserveTrendBudgetRemaining: number;
+  runHistory: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
   preferredWorkflowId?: string | null;
   preferredWorkflowTemplateId?: string | null;
   topics?: string[];
-  weeklyCreditBudget?: number;
+  /** Brand voice string stored in config JSON. */
+  voice?: string | null;
+  weeklyCreditBudget: number;
   workflowInputOverrides?: Array<{
     key: string;
     value: string | number | boolean;

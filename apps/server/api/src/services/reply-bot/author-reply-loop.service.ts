@@ -50,6 +50,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -628,7 +629,7 @@ export class AuthorReplyLoopService {
                 commentId: params.commentId,
                 replyContentId: params.replyContentId,
               },
-            ) as never,
+            ) as Prisma.InputJsonValue,
             externalPostId: params.parentPostId,
             measuredAt: new Date(),
             organizationId: params.organizationId,
@@ -644,7 +645,7 @@ export class AuthorReplyLoopService {
           data: mergeAuthorClosedLoopData(target.data, {
             commentId: params.commentId,
             replyContentId: params.replyContentId,
-          }) as never,
+          }) as Prisma.InputJsonValue,
         },
         where: { id: target.id },
       });

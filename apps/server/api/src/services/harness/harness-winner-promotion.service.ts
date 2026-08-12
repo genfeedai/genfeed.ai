@@ -2,6 +2,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { closedLoopBoostScore } from '@api/services/reply-bot/author-closed-loop.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -128,7 +129,7 @@ export class HarnessWinnerPromotionService {
                 source: 'harness-winner-promotion',
               },
               relevanceWeight: 1,
-            } as never,
+            } as Prisma.InputJsonValue,
             organizationId: params.organizationId,
           },
         });
@@ -182,7 +183,7 @@ export class HarnessWinnerPromotionService {
           purpose: 'harness-performance-winners',
           // Enables enhancePrompt / content-library style filters.
           type: 'content_library',
-        } as never,
+        } as Prisma.InputJsonValue,
         isDeleted: false,
         organizationId,
         sourceBrandId: brandId,
