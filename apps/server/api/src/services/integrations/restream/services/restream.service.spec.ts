@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RestreamService } from './restream.service';
+import { RESTREAM_OAUTH_SCOPE, RestreamService } from './restream.service';
 
 describe('RestreamService', () => {
   const config = {
@@ -31,12 +31,26 @@ describe('RestreamService', () => {
     expect(service.isConfigured()).toBe(true);
   });
 
-  it('builds authorize URL with response_type=code', () => {
+  it('is not configured when Restream env is missing', () => {
+    const missing = new RestreamService(
+      { get: vi.fn(() => undefined) } as never,
+      http as never,
+      logger as never,
+    );
+    expect(missing.isConfigured()).toBe(false);
+  });
+
+  it('builds authorize URL with response_type=code and chat/profile scopes', () => {
     const url = service.generateAuthUrl('state-1');
+    const parsed = new URL(url);
     expect(url).toContain('https://api.restream.io/login');
-    expect(url).toContain('response_type=code');
-    expect(url).toContain('client_id=client-id');
-    expect(url).toContain('state=state-1');
+    expect(parsed.searchParams.get('response_type')).toBe('code');
+    expect(parsed.searchParams.get('client_id')).toBe('client-id');
+    expect(parsed.searchParams.get('state')).toBe('state-1');
+    expect(parsed.searchParams.has('scope')).toBe(true);
+    expect(parsed.searchParams.get('scope')).toBe(RESTREAM_OAUTH_SCOPE);
+    expect(parsed.searchParams.get('scope')).toContain('chat.read');
+    expect(parsed.searchParams.get('scope')).toContain('profile.read');
   });
 
   it('builds chat websocket URL', () => {
