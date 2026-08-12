@@ -25,7 +25,7 @@ Autopilot **Run Now** remains the skill/gateway path (secondary).
 | Type → template map | `apps/server/api/src/collections/agent-strategies/constants/agent-type-workflow-defaults.constant.ts` |
 | Fill + execute | `.../services/agent-strategy-workflow-run.service.ts` |
 | API | `POST :id/run-workflow`, `GET :id/workflow-binding` |
-| Config keys | `preferredWorkflowId`, `preferredWorkflowTemplateId`, `workflowInputDefaults` (strategy `config` JSON) |
+| Binding columns | `preferredWorkflowId`, `preferredWorkflowTemplateId`, `workflowInputOverrides` (typed `[{key,value}]` — not freeform config JSON) |
 | Hire presets | `packages/pages/agents/content-team/content-team-presets.ts` |
 | Hub UI | `AgentHubPage` + `AgentWorkflowRunDialog` |
 | Chat parity | Specialist tools include `get_workflow_inputs` / `execute_workflow` via `SHARED_READ_TOOLS` |

@@ -19,13 +19,52 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
+  Validate,
   ValidateNested,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
 } from 'class-validator';
+
+@ValidatorConstraint({ name: 'isScalarWorkflowOverride', async: false })
+class IsScalarWorkflowOverrideConstraint
+  implements ValidatorConstraintInterface
+{
+  validate(value: unknown): boolean {
+    return (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    );
+  }
+
+  defaultMessage(_args: ValidationArguments): string {
+    return 'workflowInputOverrides.value must be a string, number, or boolean';
+  }
+}
+
+/**
+ * Closed override for a single workflow inputVariable key.
+ * Values are scalars only — never nested objects or free maps.
+ */
+export class WorkflowInputOverrideDto {
+  @IsString()
+  @MaxLength(120)
+  @ApiProperty({ description: 'Workflow inputVariable key', example: 'cta' })
+  key!: string;
+
+  @Validate(IsScalarWorkflowOverrideConstraint)
+  @ApiProperty({
+    description: 'Scalar override value (string, number, or boolean)',
+    example: 'Follow for more',
+  })
+  value!: string | number | boolean;
+}
 
 export class ContentMixConfigDto {
   @IsNumber()
@@ -364,7 +403,7 @@ export class CreateAgentStrategyDto {
   @IsOptional()
   @ApiProperty({
     description:
-      'Bound workflow id for deterministic Run Workflow (config-backed).',
+      'Bound workflow id for deterministic Run Workflow (first-class column).',
     required: false,
   })
   preferredWorkflowId?: string;
@@ -378,16 +417,17 @@ export class CreateAgentStrategyDto {
   })
   preferredWorkflowTemplateId?: string;
 
-  @IsObject()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WorkflowInputOverrideDto)
   @IsOptional()
   @ApiProperty({
-    additionalProperties: true,
     description:
-      'Default values for workflow inputVariables (merged before strategy aliases).',
+      'Typed saved slot overrides for the bound workflow (key/value scalars only).',
     required: false,
-    type: 'object',
+    type: () => [WorkflowInputOverrideDto],
   })
-  workflowInputDefaults?: Record<string, unknown>;
+  workflowInputOverrides?: WorkflowInputOverrideDto[];
 
   @ValidateNested()
   @Type(() => ContentMixConfigDto)

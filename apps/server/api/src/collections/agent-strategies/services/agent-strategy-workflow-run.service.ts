@@ -488,11 +488,13 @@ export class AgentStrategyWorkflowRunService {
     strategy: AgentStrategyDocument,
     key: string,
   ): string | null {
+    // Prefer first-class columns (preferredWorkflowId / TemplateId).
     const direct = (strategy as Record<string, unknown>)[key];
     if (typeof direct === 'string' && direct.trim()) {
       return direct.trim();
     }
 
+    // Legacy config bag only — migration strips these after backfill.
     const config = strategy.config;
     if (config && typeof config === 'object' && !Array.isArray(config)) {
       const value = (config as Record<string, unknown>)[key];
@@ -504,12 +506,25 @@ export class AgentStrategyWorkflowRunService {
     return null;
   }
 
+  /**
+   * Typed column `workflowInputOverrides: [{key,value}]` only.
+   * Legacy free-object `workflowInputDefaults` is still read until migration.
+   */
   private readWorkflowInputDefaults(
     strategy: AgentStrategyDocument,
   ): Record<string, unknown> {
-    const direct = (strategy as Record<string, unknown>).workflowInputDefaults;
-    if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
-      return direct as Record<string, unknown>;
+    const overrides = strategy.workflowInputOverrides;
+    if (Array.isArray(overrides)) {
+      return overridesArrayToRecord(
+        overrides as Array<{ key: string; value: string | number | boolean }>,
+      );
+    }
+
+    const direct = (strategy as Record<string, unknown>).workflowInputOverrides;
+    if (Array.isArray(direct)) {
+      return overridesArrayToRecord(
+        direct as Array<{ key: string; value: string | number | boolean }>,
+      );
     }
 
     const config = strategy.config;
@@ -554,4 +569,16 @@ export class AgentStrategyWorkflowRunService {
         : {}),
     } as never);
   }
+}
+
+function overridesArrayToRecord(
+  entries: Array<{ key: string; value: string | number | boolean }>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const entry of entries) {
+    if (entry.key) {
+      out[entry.key] = entry.value;
+    }
+  }
+  return out;
 }

@@ -107,7 +107,10 @@ export interface CreateAgentStrategyInput {
   skillSlugs?: string[];
   preferredWorkflowId?: string;
   preferredWorkflowTemplateId?: string;
-  workflowInputDefaults?: Record<string, unknown>;
+  workflowInputOverrides?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
   postsPerWeek?: number;
   publishPolicy?: Partial<AgentStrategyPublishPolicy>;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
@@ -207,7 +210,10 @@ export class AgentStrategy {
   skillSlugs!: string[];
   preferredWorkflowId?: string;
   preferredWorkflowTemplateId?: string;
-  workflowInputDefaults?: Record<string, unknown>;
+  workflowInputOverrides?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
   postsPerWeek!: number;
   runFrequency!: string;
   timezone!: string;

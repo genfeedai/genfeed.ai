@@ -1,11 +1,18 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, LivestreamTranscriptSource } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 
 type LivestreamFormState = {
   contextTemplate: string;
@@ -16,8 +23,10 @@ type LivestreamFormState = {
   linkUrl: string;
   maxAutoPostsPerHour: number;
   minimumMessageGapSeconds: number;
+  restreamCredentialId: string;
   scheduledCadenceMinutes: number;
   transcriptEnabled: boolean;
+  transcriptSource: string;
   twitchChannelId: string;
   twitchCredentialId: string;
   twitchSenderId: string;
@@ -91,6 +100,48 @@ export default function LivestreamBotConfigCard({
           onCheckedChange={(checked) =>
             onFormChange({ transcriptEnabled: Boolean(checked) })
           }
+        />
+        <div className="space-y-1.5">
+          <span className="text-sm font-medium text-foreground">
+            Context source (Restream-first)
+          </span>
+          <Select
+            value={form.transcriptSource}
+            onValueChange={(value) => onFormChange({ transcriptSource: value })}
+          >
+            <SelectTrigger aria-label="Livestream context source">
+              <SelectValue placeholder="Choose context source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={LivestreamTranscriptSource.MANUAL}>
+                Manual paste / API
+              </SelectItem>
+              <SelectItem value={LivestreamTranscriptSource.AUDIO_URL}>
+                Audio URL → speech-to-text
+              </SelectItem>
+              <SelectItem value={LivestreamTranscriptSource.RESTREAM_CHAT}>
+                Restream Chat (multi-destination audience)
+              </SelectItem>
+              <SelectItem
+                value={LivestreamTranscriptSource.EXTERNAL_CAPTION_WEBHOOK}
+              >
+                External captions → Genfeed (host speech on Restream)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-foreground/50">
+            Streaming via Restream Studio: use Restream Chat for audience
+            context. Host speech is not OBS — push captions/STT into Genfeed
+            while the encoder feeds Restream.
+          </p>
+        </div>
+        <Input
+          label="Restream credential / integration id"
+          value={form.restreamCredentialId}
+          onChange={(event) =>
+            onFormChange({ restreamCredentialId: event.target.value })
+          }
+          placeholder="Optional OAuth credential for Restream Chat WS"
         />
       </div>
 

@@ -4,6 +4,7 @@ import {
   BotLivestreamMessageType,
   BotLivestreamTargetAudience,
   BotPlatform,
+  LivestreamTranscriptSource,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
@@ -23,8 +24,10 @@ export interface LivestreamFormState {
   linkUrl: string;
   maxAutoPostsPerHour: number;
   minimumMessageGapSeconds: number;
+  restreamCredentialId: string;
   scheduledCadenceMinutes: number;
   transcriptEnabled: boolean;
+  transcriptSource: string;
   twitchChannelId: string;
   twitchCredentialId: string;
   twitchSenderId: string;
@@ -44,8 +47,10 @@ const DEFAULT_FORM_STATE: LivestreamFormState = {
   linkUrl: 'https://genfeed.ai/show-notes',
   maxAutoPostsPerHour: 6,
   minimumMessageGapSeconds: 90,
+  restreamCredentialId: '',
   scheduledCadenceMinutes: 10,
   transcriptEnabled: true,
+  transcriptSource: LivestreamTranscriptSource.RESTREAM_CHAT,
   twitchChannelId: '',
   twitchCredentialId: '',
   twitchSenderId: '',
@@ -95,6 +100,7 @@ function buildLivestreamSettings(
     ],
     minimumMessageGapSeconds: form.minimumMessageGapSeconds,
     prioritizeYoutube: true,
+    restreamCredentialId: form.restreamCredentialId || undefined,
     scheduledCadenceMinutes: form.scheduledCadenceMinutes,
     targetAudience: [
       BotLivestreamTargetAudience.HOSTS,
@@ -102,6 +108,7 @@ function buildLivestreamSettings(
     ],
     transcriptEnabled: form.transcriptEnabled,
     transcriptLookbackMinutes: 3,
+    transcriptSource: form.transcriptSource,
   };
 }
 
@@ -180,12 +187,18 @@ function hydrateForm(bot: Bot): LivestreamFormState {
     minimumMessageGapSeconds:
       bot.livestreamSettings?.minimumMessageGapSeconds ??
       DEFAULT_FORM_STATE.minimumMessageGapSeconds,
+    restreamCredentialId:
+      bot.livestreamSettings?.restreamCredentialId ||
+      DEFAULT_FORM_STATE.restreamCredentialId,
     scheduledCadenceMinutes:
       bot.livestreamSettings?.scheduledCadenceMinutes ??
       DEFAULT_FORM_STATE.scheduledCadenceMinutes,
     transcriptEnabled:
       bot.livestreamSettings?.transcriptEnabled ??
       DEFAULT_FORM_STATE.transcriptEnabled,
+    transcriptSource:
+      bot.livestreamSettings?.transcriptSource ||
+      DEFAULT_FORM_STATE.transcriptSource,
     twitchChannelId: twitchTarget?.channelId || '',
     twitchCredentialId: twitchTarget?.credentialId || '',
     twitchSenderId: twitchTarget?.senderId || '',

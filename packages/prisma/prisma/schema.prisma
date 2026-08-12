@@ -3028,6 +3028,14 @@ model AgentStrategy {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Deterministic content-workflow binding (not config JSON).
+  // preferredWorkflowId is org-scoped by service checks — no FK so soft-deleted
+  // workflows and catalog reinstalls do not cascade-delete strategies.
+  preferredWorkflowId         String?
+  preferredWorkflowTemplateId String?
+  // Typed list only: [{ "key": string, "value": string | number | boolean }]
+  workflowInputOverrides      Json    @default("[]")
+
   runs          AgentRun[]
   ingredients   Ingredient[]               @relation("ingredient_agent_strategy")
   posts         Post[]                     @relation("post_agent_strategy")
@@ -3041,6 +3049,8 @@ model AgentStrategy {
   platforms String[] @default([])
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, preferredWorkflowId])
+  @@index([organizationId, preferredWorkflowTemplateId])
   @@map("agent_strategies")
 }
 

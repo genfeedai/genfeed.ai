@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BotLivestreamOverrideDto } from '@api/collections/bots/dto/bot-livestream-override.dto';
+import { BotLivestreamRestreamChatIngestDto } from '@api/collections/bots/dto/bot-livestream-restream-chat.dto';
 import { BotLivestreamSendNowDto } from '@api/collections/bots/dto/bot-livestream-send-now.dto';
 import { BotLivestreamSessionPatchDto } from '@api/collections/bots/dto/bot-livestream-session-patch.dto';
 import { BotLivestreamTranscriptDto } from '@api/collections/bots/dto/bot-livestream-transcript.dto';
@@ -9,6 +10,7 @@ import { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
 import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
+import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -37,6 +39,7 @@ export class BotsController extends BaseCRUDController<
   constructor(
     public readonly botsService: BotsService,
     private readonly botsLivestreamService: BotsLivestreamService,
+    private readonly botsRestreamChatService: BotsRestreamChatService,
     public readonly loggerService: LoggerService,
   ) {
     super(loggerService, botsService, BotSerializer, 'Bot', [
@@ -181,6 +184,24 @@ export class BotsController extends BaseCRUDController<
       payload,
     );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
+  }
+
+  /**
+   * Ingest Restream Chat WebSocket actions as rolling livestream context.
+   * Preferred multi-destination audience path when streaming via Restream Studio
+   * (no OBS). Host speech still uses /transcript with external STT webhooks.
+   */
+  @Post(':id/livestream-session/restream-chat')
+  async ingestRestreamChat(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() payload: BotLivestreamRestreamChatIngestDto,
+  ) {
+    const bot = await this.findBotForMutation(user, id);
+    return this.botsRestreamChatService.ingestChatActions(
+      bot,
+      payload.actions as never,
+    );
   }
 
   @Post(':id/livestream-session/send-now')

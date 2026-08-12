@@ -100,6 +100,8 @@ export interface IBotLivestreamSettings {
   maxAutoPostsPerHour: number;
   transcriptEnabled: boolean;
   transcriptLookbackMinutes: number;
+  transcriptSource?: string;
+  restreamCredentialId?: string;
   manualOverrideTtlMinutes: number;
   prioritizeYoutube: boolean;
   targetAudience: BotLivestreamTargetAudience[];

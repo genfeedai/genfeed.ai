@@ -58,10 +58,17 @@ export interface BotLivestreamSettings {
   messageTemplates?: BotLivestreamMessageTemplate[];
   minimumMessageGapSeconds?: number;
   prioritizeYoutube?: boolean;
+  /** Credential/integration id for Restream Chat OAuth token. */
+  restreamCredentialId?: string;
   scheduledCadenceMinutes?: number;
   targetAudience?: BotLivestreamTargetAudience[];
   transcriptEnabled?: boolean;
   transcriptLookbackMinutes?: number;
+  /**
+   * manual | audio_url | restream_chat | external_caption_webhook
+   * @see LivestreamTranscriptSource
+   */
+  transcriptSource?: string;
   [key: string]: unknown;
 }
 

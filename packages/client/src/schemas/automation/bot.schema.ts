@@ -57,12 +57,16 @@ export const botLivestreamSettingsSchema = z.object({
   messageTemplates: z.array(botLivestreamMessageTemplateSchema).default([]),
   minimumMessageGapSeconds: z.number().min(15).max(600).default(90),
   prioritizeYoutube: z.boolean().default(true),
+  restreamCredentialId: z.string().optional(),
   scheduledCadenceMinutes: z.number().min(1).max(120).default(10),
   targetAudience: z
     .array(z.enum(botLivestreamTargetAudiences))
     .default(['audience']),
   transcriptEnabled: z.boolean().default(true),
   transcriptLookbackMinutes: z.number().min(1).max(10).default(3),
+  transcriptSource: z
+    .enum(['manual', 'audio_url', 'restream_chat', 'external_caption_webhook'])
+    .optional(),
 });
 
 export const botSettingsSchema = z.object({
