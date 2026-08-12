@@ -1,5 +1,6 @@
 import path from 'node:path';
 import process from 'node:process';
+import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import type {
@@ -13,7 +14,38 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import FormData from 'form-data';
 import { firstValueFrom } from 'rxjs';
+
+const MULTIPART_MAX_BYTES = Number.POSITIVE_INFINITY;
+
+function filenameForUpload(contentType: string, filename = 'upload'): string {
+  if (path.extname(filename)) {
+    return filename;
+  }
+
+  const mime = contentType.split(';')[0]?.trim().toLowerCase();
+  switch (mime) {
+    case 'application/zip':
+      return `${filename}.zip`;
+    case 'audio/mpeg':
+      return `${filename}.mp3`;
+    case 'image/gif':
+      return `${filename}.gif`;
+    case 'image/jpeg':
+      return `${filename}.jpg`;
+    case 'image/png':
+      return `${filename}.png`;
+    case 'image/webp':
+      return `${filename}.webp`;
+    case 'video/mp4':
+    case 'video/quicktime':
+    case 'video/webm':
+      return `${filename}.mp4`;
+    default:
+      return filename;
+  }
+}
 
 @Injectable()
 export class FilesClientService {
@@ -173,7 +205,59 @@ export class FilesClientService {
   }
 
   /**
-   * Upload file to S3 via files app
+   * PUT a stream or buffer at a presigned object URL.
+   */
+  async putStreamToUrl(
+    uploadUrl: string,
+    data: Readable | Buffer,
+    contentType: string,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.put(uploadUrl, data, {
+          headers: { 'Content-Type': contentType },
+          maxBodyLength: MULTIPART_MAX_BYTES,
+          maxContentLength: MULTIPART_MAX_BYTES,
+        }),
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to upload stream to presigned URL',
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Stream bytes to the files service without base64 JSON amplification.
+   */
+  async uploadStreamToS3(
+    key: string,
+    type: string,
+    source: {
+      contentType: string;
+      filename?: string;
+      data: Readable | Buffer;
+    },
+  ): Promise<IFileMetadata> {
+    try {
+      return await this.postMultipartUpload(
+        key,
+        type,
+        source.data,
+        source.contentType,
+        source.filename,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to upload file to S3', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload file to S3 via files app.
+   * Buffer sources go over multipart, never JSON base64.
    */
   async uploadToS3(
     key: string,
@@ -181,19 +265,16 @@ export class FilesClientService {
     source: UploadSource,
   ): Promise<IFileMetadata> {
     try {
-      // Prepare source for API call
-      let apiSource: IApiUploadSource;
-      if (source.type === 'buffer') {
-        // Convert buffer to base64 for API call
-        apiSource = {
-          contentType: source.contentType,
-          data: source.data.toString('base64'),
-          type: FileInputType.BUFFER,
-        };
-      } else {
-        apiSource = source;
+      if (source.type === FileInputType.BUFFER) {
+        return await this.postMultipartUpload(
+          key,
+          type,
+          source.data,
+          source.contentType,
+        );
       }
 
+      const apiSource: IApiUploadSource = source;
       const response = await firstValueFrom(
         this.httpService.post(`${this.filesServiceUrl}/v1/files/upload`, {
           key,
@@ -207,6 +288,37 @@ export class FilesClientService {
       this.loggerService.error('Failed to upload file to S3', error);
       throw error;
     }
+  }
+
+  private async postMultipartUpload(
+    key: string,
+    type: string,
+    file: Readable | Buffer,
+    contentType: string,
+    filename = 'upload',
+  ): Promise<IFileMetadata> {
+    const form = new FormData();
+    form.append('contentType', contentType);
+    form.append('file', file, {
+      contentType,
+      filename: filenameForUpload(contentType, filename),
+    });
+    form.append('key', key);
+    form.append('type', type);
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.filesServiceUrl}/v1/files/upload/multipart`,
+        form,
+        {
+          headers: form.getHeaders(),
+          maxBodyLength: MULTIPART_MAX_BYTES,
+          maxContentLength: MULTIPART_MAX_BYTES,
+        },
+      ),
+    );
+
+    return response.data;
   }
 
   /**

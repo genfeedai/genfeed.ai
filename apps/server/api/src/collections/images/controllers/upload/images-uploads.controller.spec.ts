@@ -60,7 +60,12 @@ describe('ImagesUploadsController', () => {
   };
 
   const mockServices = {
-    filesClientService: { uploadToS3: vi.fn() },
+    filesClientService: {
+      getPresignedUploadUrl: vi.fn(),
+      putStreamToUrl: vi.fn(),
+      uploadStreamToS3: vi.fn(),
+      uploadToS3: vi.fn(),
+    },
     httpService: { get: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     presignedUploadService: {
@@ -160,8 +165,139 @@ describe('ImagesUploadsController', () => {
       });
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalled();
-      expect(filesClientService.uploadToS3).toHaveBeenCalled();
+      expect(filesClientService.uploadStreamToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'images',
+        expect.objectContaining({
+          contentType: 'image/jpeg',
+          data: mockFile.buffer,
+        }),
+      );
+      expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('streams a disk-backed file instead of buffering it as JSON', async () => {
+      const mockFile = {
+        mimetype: 'image/jpeg',
+        originalname: 'test.jpg',
+        path: '/tmp/genfeed-image-uploads/disk.jpg',
+        size: 2048,
+      } as Express.Multer.File;
+
+      mockServices.validationConfigService.getAllowedImageMimeTypes.mockReturnValue(
+        ['image/jpeg', 'image/png'],
+      );
+      mockServices.validationConfigService.getAllowedImageExtensions.mockReturnValue(
+        ['jpg', 'jpeg', 'png'],
+      );
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+      });
+      mockServices.filesClientService.uploadStreamToS3.mockResolvedValue({
+        url: 'https://s3.example.com/image.jpg',
+      });
+
+      await controller.upload(mockRequest, mockUser, mockFile, {
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(filesClientService.uploadStreamToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'images',
+        expect.objectContaining({
+          contentType: 'image/jpeg',
+          filename: 'test.jpg',
+        }),
+      );
+      expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+    });
+
+    it('presigns large media and puts the stream instead of JSON base64', async () => {
+      const mockFile = {
+        buffer: Buffer.alloc(2 * 1024 * 1024),
+        mimetype: 'video/mp4',
+        originalname: 'large.mp4',
+        size: 2 * 1024 * 1024,
+      } as Express.Multer.File;
+
+      mockServices.validationConfigService.getAllowedVideoMimeTypes.mockReturnValue(
+        ['video/mp4'],
+      );
+      mockServices.validationConfigService.getAllowedVideoExtensions.mockReturnValue(
+        ['mp4'],
+      );
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+      });
+      mockServices.filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/videos/id',
+        s3Key: 'ingredients/videos/id',
+        uploadMethod: 'PUT',
+        uploadUrl: 'https://s3.example.com/presigned',
+      });
+      mockServices.filesClientService.putStreamToUrl.mockResolvedValue(
+        undefined,
+      );
+      mockServices.filesClientService.uploadToS3.mockResolvedValue({
+        url: 'https://cdn.example.com/videos/id',
+      });
+
+      await controller.upload(mockRequest, mockUser, mockFile, {
+        category: IngredientCategory.VIDEO,
+      });
+
+      expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'videos',
+        'video/mp4',
+      );
+      expect(filesClientService.putStreamToUrl).toHaveBeenCalledWith(
+        'https://s3.example.com/presigned',
+        mockFile.buffer,
+        'video/mp4',
+      );
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'videos',
+        { type: 'url', url: 'https://cdn.example.com/videos/id' },
+      );
+      expect(filesClientService.uploadStreamToS3).not.toHaveBeenCalled();
+    });
+
+    it('falls back to multipart when the presigned method is POST_JSON', async () => {
+      const mockFile = {
+        buffer: Buffer.alloc(2 * 1024 * 1024),
+        mimetype: 'video/mp4',
+        originalname: 'large.mp4',
+        size: 2 * 1024 * 1024,
+      } as Express.Multer.File;
+
+      mockServices.validationConfigService.getAllowedVideoMimeTypes.mockReturnValue(
+        ['video/mp4'],
+      );
+      mockServices.validationConfigService.getAllowedVideoExtensions.mockReturnValue(
+        ['mp4'],
+      );
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+      });
+      mockServices.filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: '/local/ingredients/videos/id',
+        s3Key: 'ingredients/videos/id',
+        uploadMethod: 'POST_JSON',
+        uploadUrl: 'http://localhost:3012/v1/files/upload',
+      });
+      mockServices.filesClientService.uploadStreamToS3.mockResolvedValue({
+        url: '/local/ingredients/videos/id',
+      });
+
+      await controller.upload(mockRequest, mockUser, mockFile, {
+        category: IngredientCategory.VIDEO,
+      });
+
+      expect(filesClientService.putStreamToUrl).not.toHaveBeenCalled();
+      expect(filesClientService.uploadStreamToS3).toHaveBeenCalled();
     });
 
     // Regression: this is the write path, so a raw `${category}s` did not just
@@ -185,7 +321,7 @@ describe('ImagesUploadsController', () => {
       mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
       });
-      mockServices.filesClientService.uploadToS3.mockResolvedValue({
+      mockServices.filesClientService.uploadStreamToS3.mockResolvedValue({
         url: 'https://s3.example.com/video.mp4',
       });
 
@@ -193,7 +329,7 @@ describe('ImagesUploadsController', () => {
         category: IngredientCategory.VIDEO,
       });
 
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+      expect(filesClientService.uploadStreamToS3).toHaveBeenCalledWith(
         mockIngredient.id,
         'videos',
         expect.anything(),
