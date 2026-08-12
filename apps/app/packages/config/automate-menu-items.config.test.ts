@@ -118,6 +118,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(byGroup.get('Campaigns')).toEqual([
       'Campaigns',
       'Outreach',
+      'Replies',
       'Reply Campaigns',
       'Launch team',
     ]);

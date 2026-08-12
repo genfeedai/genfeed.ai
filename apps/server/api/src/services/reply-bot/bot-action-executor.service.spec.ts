@@ -2,7 +2,10 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type {
+  IReplyBotContentData,
+  IReplyBotCredentialData,
+} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -58,7 +61,7 @@ describe('BotActionExecutorService', () => {
   });
 
   describe('postReply', () => {
-    const targetContent = {
+    const targetContent: IReplyBotContentData = {
       authorId: 'author-1',
       authorUsername: 'user1',
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -129,10 +132,12 @@ describe('BotActionExecutorService', () => {
         organizationId: 'org-1',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'user1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'media-123',
+        text: 'Original content',
       };
       mockInstagramService.postComment.mockResolvedValue({
         commentId: 'comment-1',
@@ -159,10 +164,12 @@ describe('BotActionExecutorService', () => {
         accessToken: 'token',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'user1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'media-123',
+        text: 'Original content',
       };
 
       const result = await service.postReply(
@@ -182,10 +189,12 @@ describe('BotActionExecutorService', () => {
         organizationId: 'org-1',
         platform: ReplyBotPlatform.YOUTUBE,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'viewer1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'comment-123',
+        text: 'Original comment',
       };
       mockYoutubeService.replyToComment.mockResolvedValue({
         commentId: 'yt-reply-1',
@@ -212,10 +221,12 @@ describe('BotActionExecutorService', () => {
         accessToken: 'token',
         platform: ReplyBotPlatform.YOUTUBE,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'viewer1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'comment-123',
+        text: 'Original comment',
       };
 
       const result = await service.postReply(
@@ -323,10 +334,12 @@ describe('BotActionExecutorService', () => {
         organizationId: 'org-1',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'user1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'media-1',
+        text: 'Original content',
       };
       mockInstagramService.postComment.mockResolvedValue({ commentId: 'c-1' });
 
@@ -345,10 +358,12 @@ describe('BotActionExecutorService', () => {
         accessToken: 'token',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'user1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'media-1',
+        text: 'Original content',
       };
 
       const result = await service.executeActions(
@@ -370,10 +385,12 @@ describe('BotActionExecutorService', () => {
         organizationId: 'org-1',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      const targetContent = {
+      const targetContent: IReplyBotContentData = {
         authorId: 'author-1',
         authorUsername: 'user1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
         id: 'media-1',
+        text: 'Original content',
       };
       mockInstagramService.postComment.mockResolvedValue({ commentId: 'c-1' });
       mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);

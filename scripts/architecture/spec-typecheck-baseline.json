@@ -4194,22 +4194,6 @@
     },
     {
       "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/services/reply-bot/bot-action-executor.service.spec.ts",
-      "fingerprint": "a48b201bd419e792a351",
-      "message": "Argument of type '{ accessToken: string; platform: string; }' is not assignable to parameter of type 'IReplyBotCredentialData'.   Types of property 'platform' are incompatible.     Type 'string' is not assignable to type 'ReplyBotPlatform | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/services/reply-bot/bot-action-executor.service.spec.ts",
-      "fingerprint": "a924c2662be1981ed4cb",
-      "message": "Argument of type '{ accessToken: string; brandId: string; organizationId: string; platform: string; }' is not assignable to parameter of type 'IReplyBotCredentialData'.   Types of property 'platform' are incompatible.     Type 'string' is not assignable to type 'ReplyBotPlatform | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/reply-bot/bot-action-executor.service.spec.ts",
       "fingerprint": "cb05d0176467b790ca46",
