@@ -3921,6 +3921,22 @@ model CreativePattern {
   @@map("creative_patterns")
 }
 
+/// Durable (measuredAt, sourceId) cursor for incremental pattern extraction (#2513).
+/// `measuredAt` stores the last scanned source `updatedAt` — AdPerformance has
+/// no measuredAt column (#2511 owns that model).
+model PatternExtractionCheckpoint {
+  id          String   @id @default(cuid())
+  source      String   @unique
+  measuredAt  DateTime
+  sourceId    String
+  data        Json     @default("{}")
+  lastRunAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pattern_extraction_checkpoints")
+}
+
 model ContentPlan {
   id             String       @id @default(cuid())
   organizationId String
