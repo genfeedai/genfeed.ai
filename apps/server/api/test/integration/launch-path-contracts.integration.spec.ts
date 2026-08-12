@@ -272,4 +272,15 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(harnessModule).toContain('ContextsModule');
     expect(winnerPromotion).toContain('contextsService.addEntry');
   });
+
+  it('registers platform-x harness pack from open-source ranking signals', () => {
+    const xPack = readRepo('packages/harness/src/platforms/x-algorithm.ts');
+    const harnessService = readRepo(
+      'apps/server/api/src/services/harness/harness.service.ts',
+    );
+    expect(xPack).toContain('X_PLATFORM_HARNESS_PACK');
+    expect(xPack).toContain('scoreXPublicMetrics');
+    expect(xPack).toContain('X_HEAVY_RANKER_WEIGHTS_2023');
+    expect(harnessService).toContain('X_PLATFORM_HARNESS_PACK');
+  });
 });

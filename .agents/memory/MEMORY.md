@@ -36,6 +36,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
+- [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
 
 Personal multi-host fleet notes (Claude/Codex/Grok routing) live in **gitignored** `.agents/memory/local/` and global user memory — not in this public index.
 

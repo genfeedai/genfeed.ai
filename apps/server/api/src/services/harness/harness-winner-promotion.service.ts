@@ -1,5 +1,6 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -58,6 +59,10 @@ export class HarnessWinnerPromotionService {
           .includes(platform),
       );
     }
+
+    // When ranking X posts, prefer algo-inspired public-metric weights
+    // (conversation/saves > likes) over flat engagement rate order.
+    performers = this.rankPerformersForPromotion(performers);
 
     const contextBase = await this.ensureWinnersContextBase(
       params.organizationId,
@@ -230,6 +235,34 @@ export class HarnessWinnerPromotionService {
         ? ` (${item.engagementRate.toFixed(2)}% engagement)`
         : '';
     const platform = item.platform ? ` on ${item.platform}` : '';
-    return `Winning post${platform}${rate}: ${text.slice(0, 400)}`;
+    const xScore = isXPlatform(item.platform)
+      ? ` [x-score ${scoreXPublicMetricsPer1k(item).toFixed(1)}/1k]`
+      : '';
+    return `Winning post${platform}${rate}${xScore}: ${text.slice(0, 400)}`;
+  }
+
+  /**
+   * Re-order top performers so X posts use Heavy-Ranker-inspired public metrics
+   * (comments/saves weighted higher than likes). Non-X order is unchanged.
+   */
+  private rankPerformersForPromotion(
+    performers: PerformanceContentItem[],
+  ): PerformanceContentItem[] {
+    const hasX = performers.some((item) => isXPlatform(item.platform));
+    if (!hasX) {
+      return performers;
+    }
+
+    return [...performers].sort((left, right) => {
+      const leftIsX = isXPlatform(left.platform);
+      const rightIsX = isXPlatform(right.platform);
+      if (leftIsX && rightIsX) {
+        return scoreXPublicMetricsPer1k(right) - scoreXPublicMetricsPer1k(left);
+      }
+      if (leftIsX !== rightIsX) {
+        return leftIsX ? -1 : 1;
+      }
+      return (right.engagementRate ?? 0) - (left.engagementRate ?? 0);
+    });
   }
 }

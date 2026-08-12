@@ -22,8 +22,9 @@ topics: [harness, pgvector, content-memory, generation, context]
 | **1. Identity / taste** | Harness profile in DB (`profiles`, examples good/avoid) | Always for brand-scoped gen |
 | **2. Pack defaults** | Core / EE / private harness packs | Always via `composeBrief` |
 | **3. Content memory** | `context_bases` + `context_entries` + **pgvector** | When topic/query present (similar winners/library) |
-| **4. Live winners (SQL)** | `contentPerformance` → top-performer prompt | Text gen paths that call it |
+| **4. Live winners (SQL)** | `contentPerformance` → top-performer prompt; X uses algo-weighted public metrics | Text gen paths that call it; promote-winners |
 | **5. Brand memory narrative** | `brand_memories` | Agent assembly when enabled |
+| **6. Platform pack (X)** | `platform-x` from open-source For You signals | When `intent.platform` is twitter/x |
 
 ## Schema / infra (already shipped)
 

@@ -98,4 +98,53 @@ describe('HarnessWinnerPromotionService', () => {
     expect(result.promoted).toBe(0);
     expect(result.skipped).toBe(1);
   });
+
+  it('prefers high-conversation X posts over like-farming when promoting', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue({
+      topPerformers: [
+        {
+          comments: 0,
+          description: '',
+          engagementRate: 12,
+          likes: 500,
+          platform: 'twitter',
+          postId: 'like-farm',
+          saves: 0,
+          shares: 0,
+          title: 'Like farm post with huge vanity likes',
+          views: 10_000,
+        },
+        {
+          comments: 40,
+          description: '',
+          engagementRate: 3,
+          likes: 20,
+          platform: 'twitter',
+          postId: 'conversation',
+          saves: 15,
+          shares: 8,
+          title: 'Conversation magnet with real replies',
+          views: 5000,
+        },
+      ],
+    });
+    prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
+    prisma.contextEntry.findMany.mockResolvedValue([]);
+
+    await service.promoteTopPerformers({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      limit: 1,
+    });
+
+    expect(contextsService.addEntry).toHaveBeenCalledTimes(1);
+    expect(contextsService.addEntry).toHaveBeenCalledWith(
+      'ctx-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Conversation magnet'),
+        metadata: expect.objectContaining({ postId: 'conversation' }),
+      }),
+      'org-1',
+    );
+  });
 });
