@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  isStripeResourceMissingError,
+  isStripeSignatureVerificationError,
+} from '@api/services/integrations/stripe/services/stripe-error.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
@@ -38,6 +42,9 @@ export type StripeSubscription = Awaited<
 export type StripeInvoice = Awaited<
   ReturnType<StripeClient['invoices']['retrieve']>
 >;
+type StripeWebhookEvent = Awaited<
+  ReturnType<StripeClient['webhooks']['constructEventAsync']>
+>;
 
 type UpcomingInvoicePreview = {
   amount_due: number;
@@ -73,6 +80,42 @@ export class StripeService {
           '2026-03-25.dahlia',
       },
     );
+  }
+
+  /**
+   * Verify a Stripe webhook delivery and return the trusted event.
+   *
+   * Signature failures stay 400. A missing signing secret is an ops fault
+   * so Stripe can retry after config is restored.
+   */
+  public async constructWebhookEvent(
+    rawBody: Buffer | string,
+    signature: string | undefined,
+  ): Promise<StripeWebhookEvent> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const secret = this.configService.get('STRIPE_WEBHOOK_SIGNING_SECRET');
+
+    if (typeof secret !== 'string' || secret.length === 0) {
+      throw new Error('Stripe webhook signing secret is not configured');
+    }
+
+    try {
+      return await this.stripe.webhooks.constructEventAsync(
+        rawBody,
+        signature ?? '',
+        secret,
+      );
+    } catch (error: unknown) {
+      if (isStripeSignatureVerificationError(error)) {
+        throw new BadRequestException('Invalid Stripe signature');
+      }
+
+      this.loggerService.error(
+        `${url} webhook event construction failed`,
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -431,13 +474,7 @@ export class StripeService {
     } catch (error: unknown) {
       // Stale IDs from a previous Stripe account / deleted customers must not
       // hard-fail checkout — callers re-create and rebind.
-      const stripeError = error as {
-        code?: string;
-        raw?: { code?: string };
-        type?: string;
-      };
-      const code = stripeError.code ?? stripeError.raw?.code;
-      if (code === 'resource_missing') {
+      if (isStripeResourceMissingError(error)) {
         this.loggerService.warn(`${url} customer missing on Stripe account`, {
           customerId,
         });
