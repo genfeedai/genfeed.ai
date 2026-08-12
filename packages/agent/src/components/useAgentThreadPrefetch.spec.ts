@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,6 +74,7 @@ describe('useAgentThreadPrefetch', () => {
   });
 
   afterEach(() => {
+    conversationHydrationFlights.clear();
     vi.useRealTimers();
   });
 
@@ -307,6 +309,63 @@ describe('useAgentThreadPrefetch', () => {
     });
 
     expect(apiService.getMessagesPageEffect).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not abort an in-flight prefetch after the thread becomes active', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const apiService = makeApiService({
+      getMessagesPageEffect: vi.fn(
+        (_threadId: string, _params, signal?: AbortSignal) => {
+          capturedSignal = signal;
+          return Effect.promise(
+            () =>
+              new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+                signal?.addEventListener('abort', () =>
+                  resolve({ hasMore: false, messages: [], nextCursor: null }),
+                );
+              }),
+          );
+        },
+      ),
+    });
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      vi.advanceTimersByTime(150);
+    });
+
+    act(() => {
+      useAgentChatStore.getState().setActiveThread('thread-a');
+      result.current.cancelPrefetch('thread-a');
+    });
+
+    expect(capturedSignal?.aborted).toBe(false);
+    expect(conversationHydrationFlights.has('thread-a')).toBe(true);
+  });
+
+  it('registers the prefetch on the shared hydration flight so a click can adopt it', async () => {
+    const apiService = makeApiService({
+      getMessagesPageEffect: vi.fn(
+        (_threadId: string, _params, signal?: AbortSignal) =>
+          Effect.promise(
+            () =>
+              new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+                signal?.addEventListener('abort', () =>
+                  resolve({ hasMore: false, messages: [], nextCursor: null }),
+                );
+              }),
+          ),
+      ),
+    });
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(conversationHydrationFlights.has('thread-a')).toBe(true);
   });
 
   it('cancels the pending/in-flight prefetch on unmount', async () => {

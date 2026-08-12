@@ -7,6 +7,7 @@ import {
   mapSnapshotPendingInputRequest,
   mapSnapshotWorkEvents,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -56,7 +57,6 @@ export function useAgentThreadPrefetch({
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  const abortControllerRef = useRef<AbortController | undefined>(undefined);
   const pendingThreadIdRef = useRef<string | null>(null);
 
   const cancelPrefetch = useCallback((threadId?: string) => {
@@ -64,13 +64,19 @@ export function useAgentThreadPrefetch({
       return;
     }
 
+    const targetThreadId = threadId ?? pendingThreadIdRef.current;
+
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = undefined;
     }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = undefined;
+
+    // A click (or a switch that already adopted this flight) makes the
+    // thread active. Aborting here would cancel the request set the switch
+    // is waiting on and force a duplicate.
+    const activeThreadId = useAgentChatStore.getState().activeThreadId;
+    if (targetThreadId && targetThreadId !== activeThreadId) {
+      conversationHydrationFlights.abort(targetThreadId);
     }
     pendingThreadIdRef.current = null;
   }, []);
@@ -106,23 +112,28 @@ export function useAgentThreadPrefetch({
           return;
         }
 
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
+        const flight = conversationHydrationFlights.begin(
+          threadId,
+          async (signal) => {
+            const [page, snapshot] = await Promise.all([
+              runAgentApiEffect(
+                apiService.getMessagesPageEffect(
+                  threadId,
+                  { limit: AGENT_MESSAGE_PAGE_SIZE },
+                  signal,
+                ),
+              ),
+              runAgentApiEffect(
+                apiService.getThreadSnapshotEffect(threadId, signal),
+              ),
+            ]);
+            return { page, snapshot };
+          },
+        );
 
-        Promise.all([
-          runAgentApiEffect(
-            apiService.getMessagesPageEffect(
-              threadId,
-              { limit: AGENT_MESSAGE_PAGE_SIZE },
-              controller.signal,
-            ),
-          ),
-          runAgentApiEffect(
-            apiService.getThreadSnapshotEffect(threadId, controller.signal),
-          ),
-        ])
-          .then(([page, snapshot]) => {
-            if (controller.signal.aborted) {
+        flight.promise
+          .then(({ page, snapshot }) => {
+            if (flight.signal.aborted || !snapshot) {
               return;
             }
             primeConversationCache(threadId, {
@@ -137,14 +148,11 @@ export function useAgentThreadPrefetch({
             });
           })
           .catch((error) => {
-            if (!controller.signal.aborted) {
+            if (!flight.signal.aborted) {
               logger.error('useAgentThreadPrefetch prefetch failed', error);
             }
           })
           .finally(() => {
-            if (abortControllerRef.current === controller) {
-              abortControllerRef.current = undefined;
-            }
             if (pendingThreadIdRef.current === threadId) {
               pendingThreadIdRef.current = null;
             }
