@@ -106,7 +106,7 @@ export class ArticleFilterUtil {
       status: ArticleFilterUtil.toPersistedArticleStatus(
         String(persistable.status),
       ),
-    } as T;
+    } as unknown as T;
   }
 
   static buildArticleStatusFilter(

@@ -1,15 +1,10 @@
 import type { BatchItemFull } from '@api/services/batch-generation/batch-generation.types';
 import { BatchItemStatus, toPersistedReviewDecision } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 
 export type BatchItemRowWriter = {
-  batchItem: {
-    upsert: (args: {
-      create: Record<string, unknown>;
-      update: Record<string, unknown>;
-      where: { id: string };
-    }) => Promise<unknown>;
-  };
+  batchItem: Pick<Prisma.TransactionClient['batchItem'], 'upsert'>;
 };
 
 const BATCH_ITEM_STATUSES = new Set<string>(Object.values(BatchItemStatus));
@@ -80,7 +75,7 @@ export async function persistBatchItemRows(
           reviewDecision,
           status,
         },
-        where: { id: item.id },
+        where: scopedWhere(input.organizationId, { id: item.id }),
       });
     }),
   );

@@ -1000,7 +1000,7 @@ export class AgentOrchestratorUiActionService {
         throw error;
       }
       const message = this.readHttpExceptionMessage(error);
-      if (this.inferAuthFailureStatus(message)) {
+      if (message && this.inferAuthFailureStatus(message)) {
         this.throwFailedUiActionResult(message, message);
       }
       throw error;

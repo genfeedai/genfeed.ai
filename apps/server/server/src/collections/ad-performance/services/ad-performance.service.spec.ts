@@ -61,6 +61,8 @@ describe('AdPerformanceService', () => {
 
       const call = upsert.mock.calls[0][0];
       expect(call.where).toEqual({
+        isDeleted: false,
+        organizationId: 'org-1',
         organizationId_identityKey: {
           identityKey: 'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||',
           organizationId: 'org-1',
@@ -430,21 +432,25 @@ describe('AdPerformanceService', () => {
 
   describe('findById', () => {
     it('returns null when the record does not exist', async () => {
-      await expect(service.findById('missing')).resolves.toBeNull();
+      await expect(service.findById('missing', 'org-1')).resolves.toBeNull();
     });
 
     it('excludes soft-deleted records', async () => {
-      await service.findById('perf-1');
+      await service.findById('perf-1', 'org-1');
 
       expect(findFirst).toHaveBeenCalledWith({
-        where: { id: 'perf-1', isDeleted: false },
+        where: {
+          id: 'perf-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
     it('flattens the JSON payload onto the returned document', async () => {
       findFirst.mockResolvedValueOnce(makeRow({ ctr: 0.05 }));
 
-      const result = await service.findById('perf-1');
+      const result = await service.findById('perf-1', 'org-1');
 
       expect(result?.ctr).toBe(0.05);
       expect(result?.id).toBe('perf-1');

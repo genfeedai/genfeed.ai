@@ -73,7 +73,11 @@ describe('batch item row projection', () => {
           reviewDecision: null,
           status: BatchItemStatus.COMPLETED,
         }),
-        where: { id: 'item-ready' },
+        where: {
+          id: 'item-ready',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
     expect(upsert).toHaveBeenCalledWith(
@@ -82,7 +86,11 @@ describe('batch item row projection', () => {
           id: 'item-approved',
           reviewDecision: PersistedReviewDecision.APPROVED,
         }),
-        where: { id: 'item-approved' },
+        where: {
+          id: 'item-approved',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });

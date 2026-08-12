@@ -60,12 +60,12 @@ export class InsightsService {
     return Math.min(Math.max(limit, 1), 50);
   }
 
-  private activeInsightWhere(organizationId: string, now: Date) {
-    return scopedWhere(organizationId, {
+  private activeInsightFilters(now: Date) {
+    return {
       isDismissed: false,
       isRead: false,
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-    });
+    };
   }
 
   private toInsightDocument(row: {
@@ -282,7 +282,10 @@ export class InsightsService {
       const rows = await this.prisma.insight.findMany({
         orderBy: { createdAt: 'desc' },
         take: cappedLimit,
-        where: this.activeInsightWhere(organizationId, new Date()),
+        where: scopedWhere(
+          organizationId,
+          this.activeInsightFilters(new Date()),
+        ),
       });
 
       return rows.map((row) => this.toInsightDocument(row));
@@ -312,7 +315,7 @@ export class InsightsService {
   ): Promise<boolean> {
     const cappedLimit = this.capInsightLimit(limit);
     const activeCount = await this.prisma.insight.count({
-      where: this.activeInsightWhere(organizationId, new Date()),
+      where: scopedWhere(organizationId, this.activeInsightFilters(new Date())),
     });
 
     return activeCount < cappedLimit;
@@ -357,7 +360,7 @@ export class InsightsService {
 
       const data = (existing.data as InsightData) ?? {};
       const insight = await this.prisma.insight.update({
-        where: { id: insightId },
+        where: scopedWhere(organizationId, { id: insightId }),
         data: {
           data: {
             ...data,

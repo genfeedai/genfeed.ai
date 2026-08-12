@@ -150,7 +150,7 @@ export class ContentPlanItemsService {
         ) as never,
         status,
       },
-      where: { id: itemId },
+      where: scopedWhere(organizationId, { id: itemId }),
     });
 
     return this.toDocument(updated);

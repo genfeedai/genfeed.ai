@@ -221,12 +221,12 @@ export class AdPerformanceService {
     const record = await this.prisma.adPerformance.upsert({
       create: writeData,
       update: writeData,
-      where: {
+      where: scopedWhere(payload.organizationId, {
         organizationId_identityKey: {
           identityKey: payload.identityKey,
           organizationId: payload.organizationId,
         },
-      },
+      }),
     });
 
     return this.normalizeRecord(record);
@@ -329,9 +329,12 @@ export class AdPerformanceService {
       .slice(0, limit);
   }
 
-  async findById(id: string): Promise<AdPerformanceDocument | null> {
+  async findById(
+    id: string,
+    organizationId: string,
+  ): Promise<AdPerformanceDocument | null> {
     const record = await this.prisma.adPerformance.findFirst({
-      where: { id, isDeleted: false },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return record ? this.normalizeRecord(record) : null;

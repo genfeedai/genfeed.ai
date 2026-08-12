@@ -385,22 +385,6 @@
       "reason": "unresolved-where"
     },
     {
-      "delegate": "contentPlanItem",
-      "file": "apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts",
-      "fingerprint": "2600c973c4a3268d72be",
-      "method": "update",
-      "model": "ContentPlanItem",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contentPlanItem",
-      "file": "apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts",
-      "fingerprint": "c117352f3feec18cc95a",
-      "method": "update",
-      "model": "ContentPlanItem",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "contentRun",
       "file": "apps/server/api/src/collections/content-runs/services/content-run-recommendations.service.ts",
       "fingerprint": "11c2f2532188262f26c9",
@@ -1071,22 +1055,6 @@
       "method": "updateMany",
       "model": "Ingredient",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "insight",
-      "file": "apps/server/api/src/collections/insights/services/insights.service.ts",
-      "fingerprint": "587cfca2005b237c1a8e",
-      "method": "update",
-      "model": "Insight",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "insight",
-      "file": "apps/server/api/src/collections/insights/services/insights.service.ts",
-      "fingerprint": "2d356d959fdd1f042682",
-      "method": "update",
-      "model": "Insight",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "listeningTopic",
@@ -2385,86 +2353,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "b097bd2f328a666bd064",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "f8488954a98db74b9d90",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "48aac9e358a872ab54de",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "c3628aa331122d23871e",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "cea1db2e11220a0109d3",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "d050ebf8aa3a3e133801",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "fe3325733ca212b1d80f",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "29160e16ebe7f8d2ed7c",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "8d01843a5851d3670dc3",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "a3b6b2a4fbb404e95e0a",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "agentStrategy",
       "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "4a709ed0b399ef670e0c",
@@ -3603,14 +3491,6 @@
     {
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "df60b772f940c2547d71",
-      "method": "findMany",
-      "model": "AdPerformance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "62c2b9467c1f49e6ebfa",
       "method": "findMany",
       "model": "AdPerformance",
@@ -3627,14 +3507,6 @@
     {
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "9b649ca7aa01bf229cd7",
-      "method": "update",
-      "model": "AdPerformance",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "cb73180b0f67ec9fd888",
       "method": "update",
       "model": "AdPerformance",
@@ -3644,14 +3516,6 @@
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "aa62055f520ce0f40127",
-      "method": "update",
-      "model": "AdPerformance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "dde3db128d2f98eb2f6f",
       "method": "update",
       "model": "AdPerformance",
       "reason": "missing-organization-id"

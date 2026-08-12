@@ -31,6 +31,7 @@ export class PostAnalyticsCollectionStateService
   ) {}
 
   private async publishedAtById(
+    organizationId: string,
     ids: string[],
   ): Promise<Map<string, Date | null>> {
     if (ids.length === 0) {
@@ -38,7 +39,7 @@ export class PostAnalyticsCollectionStateService
     }
     const rows = await this.prisma.post.findMany({
       select: { id: true, publishedAt: true },
-      where: { id: { in: ids } },
+      where: scopedWhere(organizationId, { id: { in: ids } }),
     });
     return new Map(rows.map((row) => [row.id, row.publishedAt]));
   }
@@ -103,7 +104,10 @@ export class PostAnalyticsCollectionStateService
         continue;
       }
       const ids = scopedTargets.map((target) => target.id);
-      const publishedAtById = await this.publishedAtById(ids);
+      const publishedAtById = await this.publishedAtById(
+        scope.organizationId,
+        ids,
+      );
       const idsByNextCollect = new Map<number, string[]>();
 
       for (const id of ids) {
