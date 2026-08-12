@@ -13,6 +13,11 @@ describe('ConfigService (Workers)', () => {
     process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/genfeed';
     process.env.REDIS_URL = 'redis://localhost:6379';
     process.env.PORT = '3000';
+    delete process.env.QUEUE_HEALTH_ALERT_THROTTLE_MINUTES;
+    delete process.env.QUEUE_HEALTH_ALERT_WEBHOOK_URL;
+    delete process.env.QUEUE_HEALTH_MAX_FAILED;
+    delete process.env.QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES;
+    delete process.env.QUEUE_HEALTH_MAX_WAITING;
 
     configService = new ConfigService();
   });
@@ -26,6 +31,11 @@ describe('ConfigService (Workers)', () => {
     delete process.env.GENFEEDAI_APP_URL;
     delete process.env.GENFEEDAI_WEBHOOKS_URL;
     delete process.env.GENFEEDAI_MICROSERVICES_FILES_URL;
+    delete process.env.QUEUE_HEALTH_ALERT_THROTTLE_MINUTES;
+    delete process.env.QUEUE_HEALTH_ALERT_WEBHOOK_URL;
+    delete process.env.QUEUE_HEALTH_MAX_FAILED;
+    delete process.env.QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES;
+    delete process.env.QUEUE_HEALTH_MAX_WAITING;
   });
 
   describe('constructor', () => {
@@ -99,6 +109,49 @@ describe('ConfigService (Workers)', () => {
       expect(configService.ingredientsEndpoint).toBe(
         'https://cdn.example.com/ingredients',
       );
+    });
+  });
+
+  describe('queue health monitoring', () => {
+    it('provides validated defaults', () => {
+      expect(configService.queueHealthMaxWaiting).toBe(100);
+      expect(configService.queueHealthMaxOldestWaitingAgeSeconds).toBe(900);
+      expect(configService.queueHealthMaxFailed).toBe(25);
+      expect(configService.queueHealthAlertThrottleMs).toBe(3_600_000);
+      expect(configService.queueHealthAlertWebhookUrl).toBeUndefined();
+    });
+
+    it('accepts explicit thresholds and an HTTPS alert webhook', () => {
+      process.env.QUEUE_HEALTH_MAX_WAITING = '10';
+      process.env.QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES = '5';
+      process.env.QUEUE_HEALTH_MAX_FAILED = '2';
+      process.env.QUEUE_HEALTH_ALERT_THROTTLE_MINUTES = '30';
+      process.env.QUEUE_HEALTH_ALERT_WEBHOOK_URL =
+        'https://hooks.example.com/queue-health';
+
+      configService = new ConfigService();
+
+      expect(configService.queueHealthMaxWaiting).toBe(10);
+      expect(configService.queueHealthMaxOldestWaitingAgeSeconds).toBe(300);
+      expect(configService.queueHealthMaxFailed).toBe(2);
+      expect(configService.queueHealthAlertThrottleMs).toBe(1_800_000);
+      expect(configService.queueHealthAlertWebhookUrl).toBe(
+        'https://hooks.example.com/queue-health',
+      );
+    });
+
+    it.each([
+      ['QUEUE_HEALTH_MAX_WAITING', '-1'],
+      ['QUEUE_HEALTH_MAX_OLDEST_WAITING_MINUTES', '-1'],
+      ['QUEUE_HEALTH_MAX_FAILED', '-1'],
+      ['QUEUE_HEALTH_ALERT_THROTTLE_MINUTES', '0'],
+      ['QUEUE_HEALTH_ALERT_WEBHOOK_URL', 'http://hooks.example.com/insecure'],
+    ])('rejects invalid %s', (key, value) => {
+      process.env[key] = value;
+
+      expect(() => new ConfigService()).toThrow(new RegExp(key));
+
+      delete process.env[key];
     });
   });
 

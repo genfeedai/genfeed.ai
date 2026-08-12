@@ -210,6 +210,10 @@ jobs:
         run: bun run check:legacy-cron-surface
       - name: Product Workflow Boundary
         run: bun run check:product-workflow-boundary
+      - name: Bull Board Queue Parity
+        run: bun run check:bull-board-parity
+      - name: Bull Board Queue Parity Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-bull-board-queue-parity.test.ts
       - name: DI Value Imports
         run: bun run check:di-value-imports
       # `@billing-providers` must resolve to the flavor on disk. The tsconfig
