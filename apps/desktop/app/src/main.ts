@@ -56,6 +56,10 @@ import { buildDesktopMenu } from './main/menu.service';
 import type { DesktopPgliteService } from './main/pglite.service';
 import type { DesktopPrismaService } from './main/prisma.service';
 import {
+  createDesktopProcessExceptionHandler,
+  DESKTOP_PROCESS_EXCEPTION_SOURCE,
+} from './main/process-exceptions.util';
+import {
   activateDesktopLocalMode,
   selectDesktopDataService,
   switchDesktopToCloud,
@@ -76,6 +80,12 @@ import { DesktopTelemetryService } from './main/telemetry.service';
 import { DesktopTerminalService } from './main/terminal.service';
 import { DesktopTrayService } from './main/tray.service';
 import { DesktopUpdaterService } from './main/updater.service';
+import type { DesktopWindowClosePolicy } from './main/window-lifecycle.util';
+import {
+  DESKTOP_WINDOW_CLOSE_POLICY,
+  handleDesktopWindowClose,
+  handleDesktopWindowClosed,
+} from './main/window-lifecycle.util';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
@@ -126,6 +136,8 @@ const ALLOWED_PERMISSIONS = new Set([
 ]);
 
 let isQuitting = false;
+let windowClosePolicy: DesktopWindowClosePolicy =
+  DESKTOP_WINDOW_CLOSE_POLICY.HIDE_ON_CLOSE;
 const isSmokeTest =
   process.argv.includes('--smoke-test') ||
   process.env.GENFEED_DESKTOP_SMOKE_TEST === '1';
@@ -703,6 +715,29 @@ const configureSessionPermissions = (): void => {
   );
 };
 
+const attachMainWindowLifecycle = (window: BrowserWindow): void => {
+  window.on('close', (event) => {
+    handleDesktopWindowClose(windowClosePolicy, event, {
+      hide: () => {
+        mainWindow?.hide();
+      },
+      isQuitting: () => isQuitting,
+    });
+  });
+
+  window.on('closed', () => {
+    handleDesktopWindowClosed(windowClosePolicy, {
+      isQuitting: () => isQuitting,
+      onClosed: () => {
+        mainWindow = null;
+      },
+      quit: () => {
+        app.exit(1);
+      },
+    });
+  });
+};
+
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
     backgroundColor: getDesktopBootBackground(),
@@ -793,16 +828,7 @@ const createWindow = async (): Promise<void> => {
     }
   });
 
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      mainWindow?.hide();
-    }
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+  attachMainWindowLifecycle(mainWindow);
 
   appShellService.registerAuthHeaders(mainWindow);
 
@@ -881,6 +907,7 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
   process.stderr.write(`[desktop] startup failed: ${errorText}\n`);
   logService?.error(`startup failed: ${errorText}`);
   telemetryService.captureException(error, { surface: 'startup' });
+  windowClosePolicy = DESKTOP_WINDOW_CLOSE_POLICY.QUIT_ON_CLOSE;
 
   if (isSmokeTest) {
     app.exit(1);
@@ -906,15 +933,7 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
         width: 1080,
       });
 
-      mainWindow.on('close', (event) => {
-        if (!isQuitting) {
-          event.preventDefault();
-          mainWindow?.hide();
-        }
-      });
-      mainWindow.on('closed', () => {
-        mainWindow = null;
-      });
+      attachMainWindowLifecycle(mainWindow);
     }
 
     await mainWindow.loadURL(buildDesktopFailureScreenUrl());
@@ -1699,6 +1718,34 @@ app.on('will-quit', () => {
   }
 });
 
+const handleDesktopProcessException = createDesktopProcessExceptionHandler({
+  captureException: (error, context) => {
+    telemetryService.captureException(error, context);
+  },
+  exit: (code) => {
+    app.exit(code);
+  },
+  isAppReady: () => app.isReady(),
+  showFailureScreen: showDesktopStartupFailure,
+  writeError: (message) => {
+    process.stderr.write(message);
+    logService?.error(message.trim());
+  },
+});
+
+process.on(DESKTOP_PROCESS_EXCEPTION_SOURCE.UNCAUGHT_EXCEPTION, (error) => {
+  handleDesktopProcessException(
+    error,
+    DESKTOP_PROCESS_EXCEPTION_SOURCE.UNCAUGHT_EXCEPTION,
+  );
+});
+process.on(DESKTOP_PROCESS_EXCEPTION_SOURCE.UNHANDLED_REJECTION, (reason) => {
+  handleDesktopProcessException(
+    reason,
+    DESKTOP_PROCESS_EXCEPTION_SOURCE.UNHANDLED_REJECTION,
+  );
+});
+
 void app
   .whenReady()
   .then(async () => {
@@ -1707,14 +1754,6 @@ void app
     );
     logService.info('desktop startup');
     telemetryService.init();
-    process.on('uncaughtException', (error) => {
-      telemetryService.captureException(error, { source: 'uncaughtException' });
-    });
-    process.on('unhandledRejection', (error) => {
-      telemetryService.captureException(error, {
-        source: 'unhandledRejection',
-      });
-    });
     desktopStore = new DesktopStoreService(
       path.join(app.getPath('userData'), 'desktop-state.json'),
     );
