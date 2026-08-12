@@ -281,6 +281,28 @@ describe('publish package release planning', () => {
     expect(delays).toEqual([]);
   });
 
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])(
+    'rejects invalid registry verification attempts: %s',
+    (attempts) => {
+      expect(() =>
+        waitForRegistryContent('fixture@1.0.0', 'sha256-expected', {
+          attempts,
+        }),
+      ).toThrow('attempts must be a positive integer');
+    },
+  );
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid registry verification delay: %s',
+    (delaySeconds) => {
+      expect(() =>
+        waitForRegistryContent('fixture@1.0.0', 'sha256-expected', {
+          delaySeconds,
+        }),
+      ).toThrow('delaySeconds must be a non-negative number');
+    },
+  );
+
   it('rewrites built dist for strict Node resolution at publish time', () => {
     const packageDir = mkdtempSync(path.join(tmpdir(), 'publish-rewrite-'));
     try {

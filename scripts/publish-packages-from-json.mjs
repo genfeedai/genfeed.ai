@@ -584,6 +584,13 @@ export function waitForRegistryContent(
     sleepFn = (seconds) => run('sleep', [String(seconds)]),
   } = {},
 ) {
+  if (!Number.isSafeInteger(attempts) || attempts < 1) {
+    fail('registry verification attempts must be a positive integer');
+  }
+  if (!Number.isFinite(delaySeconds) || delaySeconds < 0) {
+    fail('registry verification delaySeconds must be a non-negative number');
+  }
+
   let lastPackError = null;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
