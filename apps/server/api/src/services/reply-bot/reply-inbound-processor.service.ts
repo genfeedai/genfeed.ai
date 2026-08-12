@@ -100,6 +100,7 @@ export class ReplyInboundProcessorService {
         organizationId: data.organizationId,
         parentPostId: data.parentPostId,
         parentPostPreview: data.parentPostPreview,
+        platform: data.platform === 'youtube' ? 'youtube' : 'twitter',
         userId: botUserId,
       });
 

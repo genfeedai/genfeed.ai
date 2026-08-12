@@ -11,6 +11,10 @@ vi.mock('next/dynamic', () => ({
   default: () => () => <div>Agent Run Content Grid</div>,
 }));
 
+vi.mock('./AgentWorkflowBindCard', () => ({
+  default: () => <div>Workflow bind card</div>,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));

@@ -305,8 +305,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(authorLoop).toContain('recordAuthorClosedLoop');
     expect(authorLoop).toContain('COMMENT_RESPONDER');
     expect(authorLoop).toContain('loadYouTubeCredential');
+    expect(authorLoop).toContain('loadPlatformCredential');
     expect(executor).toContain('postYouTubeCommentReply');
     expect(executor).toContain('replyToComment');
+    const bindUi = readRepo(
+      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentWorkflowBindCard.tsx',
+    );
+    expect(bindUi).toContain('preferredWorkflowId');
+    expect(bindUi).toContain('Save binding');
   });
 
   it('reads X replies via official API first with Apify fallback only', () => {

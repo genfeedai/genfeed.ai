@@ -35,18 +35,27 @@ type LivestreamFormState = {
   youtubeLiveChatId: string;
 };
 
+type RestreamCredentialOption = {
+  id: string;
+  label: string;
+};
+
 type Props = {
   form: LivestreamFormState;
   isSaving: boolean;
   onFormChange: (patch: Partial<LivestreamFormState>) => void;
   onSave: () => void;
+  restreamCredentials?: RestreamCredentialOption[];
 };
+
+const NONE_RESTREAM = '__none__';
 
 export default function LivestreamBotConfigCard({
   form,
   isSaving,
   onFormChange,
   onSave,
+  restreamCredentials = [],
 }: Props) {
   return (
     <Card className="p-6">
@@ -135,14 +144,48 @@ export default function LivestreamBotConfigCard({
             while the encoder feeds Restream.
           </p>
         </div>
-        <Input
-          label="Restream credential / integration id"
-          value={form.restreamCredentialId}
-          onChange={(event) =>
-            onFormChange({ restreamCredentialId: event.target.value })
-          }
-          placeholder="Optional OAuth credential for Restream Chat WS"
-        />
+        <div className="space-y-1.5">
+          <span className="text-sm font-medium text-foreground">
+            Restream account
+          </span>
+          {restreamCredentials.length > 0 ? (
+            <Select
+              value={form.restreamCredentialId || NONE_RESTREAM}
+              onValueChange={(value) =>
+                onFormChange({
+                  restreamCredentialId: value === NONE_RESTREAM ? '' : value,
+                })
+              }
+            >
+              <SelectTrigger aria-label="Restream OAuth credential">
+                <SelectValue placeholder="Select connected Restream account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_RESTREAM}>
+                  Auto-detect from brand (or none)
+                </SelectItem>
+                {restreamCredentials.map((credential) => (
+                  <SelectItem key={credential.id} value={credential.id}>
+                    {credential.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              label="Restream credential id"
+              value={form.restreamCredentialId}
+              onChange={(event) =>
+                onFormChange({ restreamCredentialId: event.target.value })
+              }
+              placeholder="Connect Restream in brand settings first"
+            />
+          )}
+          <p className="text-xs text-foreground/50">
+            Connect Restream under Brand → Social. Empty uses the brand&apos;s
+            connected RESTREAM credential automatically.
+          </p>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">

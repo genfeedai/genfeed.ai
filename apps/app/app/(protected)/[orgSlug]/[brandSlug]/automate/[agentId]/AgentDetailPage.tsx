@@ -50,6 +50,7 @@ import { Suspense, useCallback, useMemo, useState } from 'react';
 import AgentWorkflowRunDialog from '../library/AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentRunHistorySection from './AgentRunHistorySection';
+import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -289,16 +290,11 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           </div>
         </div>
 
-        {(strategy.preferredWorkflowId ||
-          strategy.preferredWorkflowTemplateId) && (
-          <p className="text-sm text-foreground/60">
-            Bound workflow:{' '}
-            <span className="font-medium text-foreground">
-              {strategy.preferredWorkflowTemplateId ||
-                strategy.preferredWorkflowId}
-            </span>
-          </p>
-        )}
+        <AgentWorkflowBindCard
+          agentId={agentId}
+          strategy={strategy}
+          onBound={refresh}
+        />
 
         <KPISection
           title="Usage"

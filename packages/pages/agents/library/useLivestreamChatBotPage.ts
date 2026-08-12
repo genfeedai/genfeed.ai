@@ -5,12 +5,14 @@ import {
   BotLivestreamTargetAudience,
   BotPlatform,
   LivestreamTranscriptSource,
+  Platform,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
 import type { LivestreamSession } from '@models/automation/livestream-session.model';
 import { BotsService } from '@services/automation/bots.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 
 export type LivestreamPagePlatform = 'youtube' | 'twitch';
@@ -208,12 +210,20 @@ function hydrateForm(bot: Bot): LivestreamFormState {
   };
 }
 
+export type RestreamCredentialOption = {
+  id: string;
+  label: string;
+};
+
 export function useLivestreamChatBotPage(
   defaultPlatform: LivestreamPagePlatform,
 ) {
   const { brandId, organizationId } = useBrand();
   const getBotsService = useAuthedService((token: string) =>
     BotsService.getInstance(token),
+  );
+  const getCredentialsService = useAuthedService((token: string) =>
+    CredentialsService.getInstance(token),
   );
   const notificationsService = NotificationsService.getInstance();
 
@@ -226,6 +236,9 @@ export function useLivestreamChatBotPage(
   const [promotionAngle, setPromotionAngle] = useState('');
   const [transcriptChunk, setTranscriptChunk] = useState('');
   const [sendNowMessage, setSendNowMessage] = useState('');
+  const [restreamCredentials, setRestreamCredentials] = useState<
+    RestreamCredentialOption[]
+  >([]);
   const [selectedPlatform, setSelectedPlatform] =
     useState<LivestreamPagePlatform>(defaultPlatform);
 
@@ -242,13 +255,28 @@ export function useLivestreamChatBotPage(
         const service = await getBotsService();
         const bots = await service.findAllByOrganization(organizationId);
         const existingBot =
-          bots.find((candidate) =>
-            candidate.platforms.some(
+          bots.find((candidate) => {
+            const isLivestreamPlatform = candidate.platforms.some(
               (platform) =>
                 platform === BotPlatform.YOUTUBE ||
                 platform === BotPlatform.TWITCH,
-            ),
-          ) || null;
+            );
+            if (!isLivestreamPlatform) {
+              return false;
+            }
+            // Prefer brand-scoped bot when brand context is set.
+            const candidateBrandId =
+              typeof candidate.brand === 'string'
+                ? candidate.brand
+                : typeof (candidate as { brandId?: string }).brandId ===
+                    'string'
+                  ? (candidate as { brandId: string }).brandId
+                  : undefined;
+            if (brandId && candidateBrandId) {
+              return candidateBrandId === brandId;
+            }
+            return true;
+          }) || null;
 
         startTransition(() => {
           setBot(existingBot);
@@ -263,6 +291,35 @@ export function useLivestreamChatBotPage(
             setSession(currentSession);
           });
         }
+
+        if (brandId) {
+          try {
+            const credentialsService = await getCredentialsService();
+            const credentials = await credentialsService.findAll({
+              brandId,
+              isConnected: true,
+              isDeleted: false,
+              platform: Platform.RESTREAM,
+              limit: 20,
+            });
+            startTransition(() => {
+              setRestreamCredentials(
+                credentials.map((credential) => ({
+                  id: credential.id,
+                  label:
+                    credential.externalHandle ||
+                    credential.externalId ||
+                    `Restream ${credential.id.slice(0, 6)}`,
+                })),
+              );
+            });
+          } catch {
+            // Optional picker — free-text id remains available.
+            startTransition(() => {
+              setRestreamCredentials([]);
+            });
+          }
+        }
       } catch (_error) {
         notificationsService.error(
           'Failed to load livestream bot configuration',
@@ -273,7 +330,13 @@ export function useLivestreamChatBotPage(
     }
 
     void loadLivestreamBot();
-  }, [getBotsService, notificationsService, organizationId]);
+  }, [
+    brandId,
+    getBotsService,
+    getCredentialsService,
+    notificationsService,
+    organizationId,
+  ]);
 
   const recentDeliveries = useMemo(
     () => (session?.deliveryHistory ?? []).slice(-5).reverse(),
@@ -452,6 +515,7 @@ export function useLivestreamChatBotPage(
     manualTopic,
     promotionAngle,
     recentDeliveries,
+    restreamCredentials,
     selectedPlatform,
     sendNowMessage,
     session,

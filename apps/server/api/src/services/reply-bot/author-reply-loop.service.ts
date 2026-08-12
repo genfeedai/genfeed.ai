@@ -698,11 +698,14 @@ export class AuthorReplyLoopService {
       : undefined;
   }
 
-  private async findTwitterCredentialId(
+  private async findBrandCredentialId(
     organizationId: string,
     brandId: string,
+    platform: ReplyBotPlatform,
   ): Promise<string | undefined> {
-    const prismaPlatform = toPrismaCredentialPlatform('twitter');
+    const domainPlatform =
+      platform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter';
+    const prismaPlatform = toPrismaCredentialPlatform(domainPlatform);
     if (!prismaPlatform) {
       return undefined;
     }
@@ -718,102 +721,70 @@ export class AuthorReplyLoopService {
     return credential?.id;
   }
 
-  private async findYouTubeCredentialId(
+  private async loadPlatformCredential(
     organizationId: string,
     brandId: string,
-  ): Promise<string | undefined> {
-    const prismaPlatform = toPrismaCredentialPlatform('youtube');
-    if (!prismaPlatform) {
-      return undefined;
+    platform: ReplyBotPlatform,
+  ): Promise<IReplyBotCredentialData | null> {
+    const config = await this.findAuthorResponderConfig(
+      organizationId,
+      brandId,
+      platform,
+    );
+    const credentialId =
+      (config ? this.readCredentialId(config) : undefined) ??
+      (await this.findBrandCredentialId(organizationId, brandId, platform));
+
+    if (!credentialId) {
+      return null;
     }
-    const credential = await this.prisma.credential.findFirst({
-      orderBy: { updatedAt: 'desc' },
-      select: { id: true },
-      where: scopedWhere(organizationId, {
-        brandId,
-        isDeleted: false,
-        platform: prismaPlatform,
-      }),
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId,
     });
-    return credential?.id;
+    if (!credential) {
+      throw new NotFoundException('Credential', credentialId);
+    }
+
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
+      externalId: credential.externalId ?? undefined,
+      platform,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
+      username:
+        credential.username ??
+        (platform === ReplyBotPlatform.YOUTUBE
+          ? (credential.externalId ?? undefined)
+          : undefined),
+    };
   }
 
-  private async loadTwitterCredential(
+  private loadTwitterCredential(
     organizationId: string,
     brandId: string,
   ): Promise<IReplyBotCredentialData | null> {
-    const config = await this.findAuthorResponderConfig(
+    return this.loadPlatformCredential(
       organizationId,
       brandId,
       ReplyBotPlatform.TWITTER,
     );
-    const credentialId =
-      (config ? this.readCredentialId(config) : undefined) ??
-      (await this.findTwitterCredentialId(organizationId, brandId));
-
-    if (!credentialId) {
-      return null;
-    }
-
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId,
-    });
-    if (!credential) {
-      throw new NotFoundException('Credential', credentialId);
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-      externalId: credential.externalId ?? undefined,
-      platform: ReplyBotPlatform.TWITTER,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username: credential.username ?? undefined,
-    };
   }
 
-  private async loadYouTubeCredential(
+  private loadYouTubeCredential(
     organizationId: string,
     brandId: string,
   ): Promise<IReplyBotCredentialData | null> {
-    const config = await this.findAuthorResponderConfig(
+    return this.loadPlatformCredential(
       organizationId,
       brandId,
       ReplyBotPlatform.YOUTUBE,
     );
-    const credentialId =
-      (config ? this.readCredentialId(config) : undefined) ??
-      (await this.findYouTubeCredentialId(organizationId, brandId));
-
-    if (!credentialId) {
-      return null;
-    }
-
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId,
-    });
-    if (!credential) {
-      throw new NotFoundException('Credential', credentialId);
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-      externalId: credential.externalId ?? undefined,
-      platform: ReplyBotPlatform.YOUTUBE,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username: credential.username ?? credential.externalId ?? undefined,
-    };
   }
 
   private async loadProcessedCommentIds(

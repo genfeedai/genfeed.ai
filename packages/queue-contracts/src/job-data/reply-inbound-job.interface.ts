@@ -13,6 +13,11 @@ export interface ReplyInboundJobData {
   organizationId: string;
   parentPostId: string;
   parentPostPreview?: string;
+  /**
+   * Destination platform for auto-send (defaults to twitter/X for XAA + post-watch).
+   * YouTube author replies currently enter via the Replies UI, not this queue.
+   */
+  platform?: 'twitter' | 'youtube';
   /** ISO timestamp when the event was received */
   receivedAt: string;
   source: ReplyInboundSource;

@@ -33,6 +33,7 @@ export default function LivestreamChatBotPage({
     manualTopic,
     promotionAngle,
     recentDeliveries,
+    restreamCredentials,
     selectedPlatform,
     sendNowMessage,
     session,
@@ -69,6 +70,7 @@ export default function LivestreamChatBotPage({
         <LivestreamBotConfigCard
           form={form}
           isSaving={isSaving}
+          restreamCredentials={restreamCredentials}
           onFormChange={(patch) =>
             setForm((current) => ({ ...current, ...patch }))
           }
