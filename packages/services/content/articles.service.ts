@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ArticleCategory } from '@genfeedai/enums';
-import { PublishStatus } from '@genfeedai/enums';
+import { type ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { ScoreSeoRequest } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { ArticleSerializer } from '@genfeedai/serializers';
@@ -104,7 +103,7 @@ export class ArticlesService extends BaseService<Article> {
   public async publish(id: string): Promise<Article> {
     return await this.patch(id, {
       publishedAt: new Date(),
-      status: PublishStatus.PUBLISHED,
+      status: ArticleStatus.PUBLISHED,
     } as Record<string, unknown>);
   }
 
@@ -113,7 +112,7 @@ export class ArticlesService extends BaseService<Article> {
    */
   public async archive(id: string): Promise<Article> {
     return await this.patch(id, {
-      status: 'archived',
+      status: ArticleStatus.ARCHIVED,
     } as Record<string, unknown>);
   }
 
@@ -122,7 +121,7 @@ export class ArticlesService extends BaseService<Article> {
    */
   public async unarchive(id: string): Promise<Article> {
     return await this.patch(id, {
-      status: 'draft',
+      status: ArticleStatus.DRAFT,
     } as Record<string, unknown>);
   }
 
