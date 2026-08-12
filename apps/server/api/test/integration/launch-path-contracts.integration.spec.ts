@@ -317,6 +317,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(monitor).toContain('preferOfficialApi');
   });
 
+  it('schedules reply post-watch after successful X publish', () => {
+    const cronPosts = readRepo(
+      'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+    );
+    expect(cronPosts).toContain('scheduleReplyPostWatchAfterPublish');
+    expect(cronPosts).toContain('schedulePostWatch');
+  });
+
   it('registers X activity webhook and reply inbound/post-watch pipes', () => {
     const controller = readRepo(
       'apps/server/api/src/endpoints/webhooks/x-activity/webhooks.x-activity.controller.ts',

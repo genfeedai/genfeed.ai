@@ -144,6 +144,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       credentialId: body.credentialId,
       isActive: body.isActive,
       organizationId: publicMetadata.organization,
+      platform: body.platform,
       userId: user.id,
     });
   }

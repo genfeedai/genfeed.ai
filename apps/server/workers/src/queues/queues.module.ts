@@ -9,6 +9,7 @@
 import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
@@ -76,6 +77,7 @@ import { ConfigService } from '@workers/config/config.service';
     HeygenPollQueueService,
     PostPublishQueueService,
     BatchGenerationQueueService,
+    ReplyInboundQueueService,
   ],
   imports: [
     LoggerModule,
@@ -479,6 +481,8 @@ import { ConfigService } from '@workers/config/config.service';
     // here rather than reaching into the API's QueuesModule (which would
     // register a second BullMQ root).
     BatchGenerationQueueService,
+    // Schedule 24h reply post-watch series after successful X publish.
+    ReplyInboundQueueService,
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,

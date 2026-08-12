@@ -31,6 +31,7 @@ import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
+import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ReplyBotActionType,
@@ -62,6 +63,7 @@ export class AuthorReplyLoopService {
     private readonly replyBotConfigsService: ReplyBotConfigsService,
     private readonly credentialsService: CredentialsService,
     private readonly processedTweetsService: ProcessedTweetsService,
+    private readonly xActivitySubscriptionService: XActivitySubscriptionService,
   ) {}
 
   async ensureAuthorResponder(params: {
@@ -69,12 +71,20 @@ export class AuthorReplyLoopService {
     credentialId?: string;
     isActive?: boolean;
     organizationId: string;
+    /** Default twitter; youtube uses 48h age window. */
+    platform?: 'twitter' | 'youtube';
     userId: string;
   }): Promise<EnsureAuthorResponderResult> {
-    const platform = ReplyBotPlatform.TWITTER;
+    const platform =
+      params.platform === 'youtube'
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
+    const maxAgeHours =
+      platform === ReplyBotPlatform.YOUTUBE ? 48 : DEFAULT_REPLY_MAX_AGE_HOURS;
     const existing = await this.findAuthorResponderConfig(
       params.organizationId,
       params.brandId,
+      platform,
     );
 
     if (existing) {
@@ -98,27 +108,39 @@ export class AuthorReplyLoopService {
       const refreshed = await this.findAuthorResponderConfig(
         params.organizationId,
         params.brandId,
+        platform,
       );
+
+      if (platform === ReplyBotPlatform.TWITTER) {
+        void this.trySubscribeXActivity(params.organizationId, params.brandId);
+      }
 
       return {
         botConfigId: refreshed?.id ?? existing.id,
         created: false,
         isActive: Boolean(refreshed?.isActive ?? existing.isActive),
-        maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
+        maxAgeHours,
         platform,
       };
     }
 
     const credentialId =
       params.credentialId ??
-      (await this.findTwitterCredentialId(
-        params.organizationId,
-        params.brandId,
-      ));
+      (platform === ReplyBotPlatform.YOUTUBE
+        ? await this.findYouTubeCredentialId(
+            params.organizationId,
+            params.brandId,
+          )
+        : await this.findTwitterCredentialId(
+            params.organizationId,
+            params.brandId,
+          ));
 
     if (!credentialId && params.isActive !== false) {
       throw new BadRequestException(
-        'Connect an X/Twitter credential for this brand before enabling author replies',
+        platform === ReplyBotPlatform.YOUTUBE
+          ? 'Connect a YouTube credential for this brand before enabling replies'
+          : 'Connect an X/Twitter credential for this brand before enabling replies',
       );
     }
 
@@ -129,12 +151,15 @@ export class AuthorReplyLoopService {
         'You are the brand author replying on your own posts. Not reply-guy.',
       credentialId: credentialId ?? undefined,
       description:
-        'Replies to comments on this brand’s own X posts (max 24h old).',
+        platform === ReplyBotPlatform.YOUTUBE
+          ? 'Replies to comments on this brand’s YouTube videos (max 48h old).'
+          : 'Replies to comments on this brand’s own X posts (max 24h old).',
       filters: {
-        maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
+        maxAgeHours,
       },
       isActive: Boolean(credentialId) && params.isActive !== false,
-      name: 'X replies',
+      name:
+        platform === ReplyBotPlatform.YOUTUBE ? 'YouTube replies' : 'X replies',
       organizationId: params.organizationId,
       platform,
       replyInstructions:
@@ -145,13 +170,58 @@ export class AuthorReplyLoopService {
       userId: params.userId,
     });
 
+    if (platform === ReplyBotPlatform.TWITTER) {
+      void this.trySubscribeXActivity(params.organizationId, params.brandId);
+    }
+
     return {
       botConfigId: created.id,
       created: true,
       isActive: Boolean(created.isActive),
-      maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
+      maxAgeHours,
       platform,
     };
+  }
+
+  /**
+   * Connect-later: attempt XAA/AAA subscription for the brand's X user.
+   */
+  private async trySubscribeXActivity(
+    organizationId: string,
+    brandId: string,
+  ): Promise<void> {
+    try {
+      const credentialId = await this.findTwitterCredentialId(
+        organizationId,
+        brandId,
+      );
+      if (!credentialId) {
+        return;
+      }
+      const credential = await this.credentialsService.findOne({
+        id: credentialId,
+        organizationId,
+      });
+      if (!credential?.externalId || !credential.accessToken) {
+        return;
+      }
+      let userAccessToken: string | undefined;
+      try {
+        userAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+      } catch {
+        userAccessToken = credential.accessToken;
+      }
+      await this.xActivitySubscriptionService.ensureSubscriptionForUser({
+        externalUserId: credential.externalId,
+        userAccessToken,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} X activity subscribe skipped`, {
+        brandId,
+        error: error instanceof Error ? error.message : 'unknown',
+        organizationId,
+      });
+    }
   }
 
   async getInbox(params: {
@@ -491,6 +561,7 @@ export class AuthorReplyLoopService {
   private async findAuthorResponderConfig(
     organizationId: string,
     brandId: string,
+    platform: ReplyBotPlatform = ReplyBotPlatform.TWITTER,
   ): Promise<ReplyBotConfigDocument | null> {
     const configs = await this.replyBotConfigsService.find({
       brandId,
@@ -498,18 +569,16 @@ export class AuthorReplyLoopService {
       organizationId,
       type: ReplyBotType.COMMENT_RESPONDER,
     });
+    const platformKey = String(platform).toLowerCase();
     return (
-      configs.find(
-        (config) =>
-          String(config.platform ?? '').toLowerCase() ===
-            ReplyBotPlatform.TWITTER ||
-          String(
-            (config.config as Record<string, unknown> | undefined)?.platform ??
-              '',
-          ).toLowerCase() === ReplyBotPlatform.TWITTER,
-      ) ??
-      configs[0] ??
-      null
+      configs.find((config) => {
+        const fromRoot = String(config.platform ?? '').toLowerCase();
+        const fromConfig = String(
+          (config.config as Record<string, unknown> | undefined)?.platform ??
+            '',
+        ).toLowerCase();
+        return fromRoot === platformKey || fromConfig === platformKey;
+      }) ?? null
     );
   }
 
@@ -532,6 +601,26 @@ export class AuthorReplyLoopService {
     brandId: string,
   ): Promise<string | undefined> {
     const prismaPlatform = toPrismaCredentialPlatform('twitter');
+    if (!prismaPlatform) {
+      return undefined;
+    }
+    const credential = await this.prisma.credential.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        brandId,
+        isDeleted: false,
+        platform: prismaPlatform,
+      }),
+    });
+    return credential?.id;
+  }
+
+  private async findYouTubeCredentialId(
+    organizationId: string,
+    brandId: string,
+  ): Promise<string | undefined> {
+    const prismaPlatform = toPrismaCredentialPlatform('youtube');
     if (!prismaPlatform) {
       return undefined;
     }

@@ -37,6 +37,7 @@ import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -50,6 +51,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ReplyInboundProcessorService,
     ReplyPostWatchService,
     XActivityWebhookService,
+    XActivitySubscriptionService,
 
     BotActionExecutorService,
     RateLimitService,
@@ -98,6 +100,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ReplyInboundProcessorService,
     ReplyPostWatchService,
     XActivityWebhookService,
+    XActivitySubscriptionService,
     SystemWorkflowProvenanceService,
     // Core services
     SocialMonitorService,

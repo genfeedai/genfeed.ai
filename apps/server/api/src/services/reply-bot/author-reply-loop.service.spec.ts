@@ -37,6 +37,9 @@ describe('AuthorReplyLoopService', () => {
   const processedTweetsService = {
     markAsProcessed: vi.fn(),
   };
+  const xActivitySubscriptionService = {
+    ensureSubscriptionForUser: vi.fn().mockResolvedValue({ mode: 'skipped' }),
+  };
 
   let service: AuthorReplyLoopService;
 
@@ -51,6 +54,7 @@ describe('AuthorReplyLoopService', () => {
       replyBotConfigsService as never,
       credentialsService as never,
       processedTweetsService as never,
+      xActivitySubscriptionService as never,
     );
   });
 

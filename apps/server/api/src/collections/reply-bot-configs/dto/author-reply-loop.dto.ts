@@ -58,6 +58,15 @@ export class EnsureAuthorResponderDto {
     required: false,
   })
   isActive?: boolean;
+
+  @IsIn(['twitter', 'youtube'] as const)
+  @IsOptional()
+  @ApiProperty({
+    default: 'twitter',
+    description: 'Platform for comment_responder (twitter | youtube)',
+    required: false,
+  })
+  platform?: 'twitter' | 'youtube';
 }
 
 export class AuthorReplyInboxQueryDto {

@@ -37,9 +37,14 @@ Poll cron (existing) remains as backfill
 - `GET/POST /webhooks/x-activity` — public CRC + events  
 - `POST /reply-bot-configs/author-reply/schedule-post-watch` — start 24h watch series  
 
+## Wired
+
+- **Post-publish** (`CronPostsService`): after successful X publish → `schedulePostWatch`  
+- **Enable auto-replies**: best-effort `XActivitySubscriptionService.ensureSubscriptionForUser`  
+- **YouTube**: `ensureAuthorResponder({ platform: 'youtube' })` (48h age); comments still Apify until official YT path  
+
 ## Still connect-later
 
 - Register webhook with X Developer Console  
-- Subscribe brand `externalId` on connect  
-- Call `schedulePostWatch` from post-publish path  
-- Flip `X_ACTIVITY_WEBHOOK_ENABLED`  
+- Flip `X_ACTIVITY_WEBHOOK_ENABLED` + bearer + public URL  
+- Confirm PAYG subscription limits for multi-brand  
