@@ -69,19 +69,42 @@ export function BatchGenerationCard({
     [],
   );
 
+  // Recompute whenever the operator edits count or platforms. The server
+  // suggestion (`creditEstimate`) is only valid for the original suggestion
+  // shape — using it after edits produced a stale quote (#2696).
   const estimatedCredits = useMemo(() => {
-    if (action.creditEstimate != null) {
+    const selected = Array.from(selectedPlatforms);
+    const suggested = action.platforms ?? [];
+    const matchesSuggestedCount =
+      action.batchCount != null && count === action.batchCount;
+    const matchesSuggestedPlatforms =
+      selected.length === suggested.length &&
+      selected.every((platform) => suggested.includes(platform));
+
+    if (
+      action.creditEstimate != null &&
+      matchesSuggestedCount &&
+      matchesSuggestedPlatforms
+    ) {
       return action.creditEstimate;
     }
+
     return estimateBatchGenerationCredits(
       {
         contentMix: DEFAULT_BATCH_CONTENT_MIX,
         count: Math.max(1, count),
-        platforms: Array.from(selectedPlatforms),
+        platforms: selected,
       },
       pricingOptions,
     );
-  }, [action.creditEstimate, count, pricingOptions, selectedPlatforms]);
+  }, [
+    action.batchCount,
+    action.creditEstimate,
+    action.platforms,
+    count,
+    pricingOptions,
+    selectedPlatforms,
+  ]);
 
   const pricingHint = useMemo(
     () => formatBatchPricingHint(pricingOptions),

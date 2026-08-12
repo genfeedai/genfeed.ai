@@ -197,12 +197,18 @@ export class AgentMediaGenerationToolHandler {
     if (!this.creditsUtilsService || params.amount <= 0) {
       return;
     }
+    // Serializable deduction + reference claim so concurrent batch starts
+    // cannot over-commit the same balance (#2696).
     await this.creditsUtilsService.deductCreditsFromOrganization(
       params.organizationId,
       params.userId,
       params.amount,
       `Batch generation ${params.batchId}`,
       ActivitySource.SCRIPT,
+      {
+        referenceId: params.batchId,
+        referenceType: 'batch-generation:upfront',
+      },
     );
   }
 
@@ -1042,52 +1048,72 @@ export class AgentMediaGenerationToolHandler {
       pricingOptions,
     );
 
-    if (this.creditsUtilsService) {
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          ctx.organizationId,
-        );
-      if (balance < estimatedCredits) {
-        return {
-          creditsUsed: 0,
-          error: `Insufficient credits. This batch needs about ${estimatedCredits} credits (format + caption model tier); balance is ${balance}.`,
-          success: false,
-        };
-      }
-    }
-
     const dateRange = (params.dateRange as Record<string, string>) || {
       end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       start: new Date().toISOString(),
     };
 
-    const batch = await this.batchGenerationService.createBatch(
-      {
-        brandId,
-        contentMix,
-        count,
-        dateRange: {
-          end: dateRange.end,
-          start: dateRange.start,
+    // createBatch validates platforms against the domain enum before any
+    // generation work or credit movement (#2696).
+    let batch: Awaited<ReturnType<BatchGenerationService['createBatch']>>;
+    try {
+      batch = await this.batchGenerationService.createBatch(
+        {
+          brandId,
+          contentMix,
+          count,
+          dateRange: {
+            end: dateRange.end,
+            start: dateRange.start,
+          },
+          platforms,
+          style: params.style as string | undefined,
+          topics: params.topics as string[] | undefined,
         },
-        platforms,
-        style: params.style as string | undefined,
-        topics: params.topics as string[] | undefined,
-      },
-      ctx.userId,
-      ctx.organizationId,
-    );
+        ctx.userId,
+        ctx.organizationId,
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create batch';
+      return {
+        creditsUsed: 0,
+        error: message,
+        success: false,
+      };
+    }
 
     const batchId = String(batch.id);
     const totalCount = batch.totalCount;
     const platformLabel = this.formatBatchPlatformsLabel(platforms);
 
-    // Pin the pricing on the batch before any item runs. A run that is resumed
-    // in another process settles from the batch itself, so the rates have to
-    // outlive this request rather than live in the closure that created it.
+    // Atomic reserve before any generation starts. The balance check alone is
+    // racy under concurrent batch starts; deduction is serializable and keyed
+    // by batch id so a second attempt cannot spend past available credits.
+    try {
+      await this.chargeBatchCredits({
+        amount: estimatedCredits,
+        batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Insufficient credits. This batch needs about ${estimatedCredits} credits.`;
+      return {
+        creditsUsed: 0,
+        error: message,
+        success: false,
+      };
+    }
+
+    // Pin the pricing + charged estimate on the batch before any item runs so
+    // settlement (streamed or worker) prices the delta only.
     await this.batchCreditsService?.recordUpfrontCharge({
       batchId,
-      credits: 0,
+      credits: estimatedCredits,
       organizationId: ctx.organizationId,
       pricingOptions,
     });
@@ -1306,30 +1332,25 @@ export class AgentMediaGenerationToolHandler {
             ? 'Open review queue'
             : 'Open Review Queue';
 
-      // Bill completed drafts only (format packaging + caption model tier).
-      const billableItems = streamedItems
-        .filter((entry) => entry.status === 'completed' && entry.postId)
-        .map((entry) => ({
-          format: entry.format ?? 'image',
-          hasMedia: Boolean(entry.hasMedia),
-        }));
-      const creditsUsed = chargeBatchGenerationCredits(
-        billableItems,
-        pricingOptions,
-      );
-      await this.chargeBatchCredits({
-        amount: creditsUsed,
+      // Estimate was reserved up front; settle to the media-aware cost of
+      // drafts that actually landed so partial failures refund the unused
+      // reservation (#2696).
+      const settlement = await this.batchCreditsService?.settleBatchCredits({
         batchId,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
       });
-      // Put it on the ledger so a later settlement — a sweep, a resume — sees
-      // these drafts as already paid for and moves nothing.
-      await this.batchCreditsService?.recordUpfrontCharge({
-        batchId,
-        credits: creditsUsed,
-        organizationId: ctx.organizationId,
-      });
+      const creditsUsed =
+        settlement?.settledCredits ??
+        chargeBatchGenerationCredits(
+          streamedItems
+            .filter((entry) => entry.status === 'completed' && entry.postId)
+            .map((entry) => ({
+              format: entry.format ?? 'image',
+              hasMedia: Boolean(entry.hasMedia),
+            })),
+          pricingOptions,
+        );
 
       return {
         creditsUsed,
@@ -1380,22 +1401,8 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
-    // Async path: charge the estimate up front so we do not give free async
-    // batches, and record it on the batch's credit ledger *before* the run
-    // starts. Settlement later prices what actually landed and moves only the
-    // delta, so a resumed or redelivered run never bills these drafts twice.
-    await this.chargeBatchCredits({
-      amount: estimatedCredits,
-      batchId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    await this.batchCreditsService?.recordUpfrontCharge({
-      batchId,
-      credits: estimatedCredits,
-      organizationId: ctx.organizationId,
-      pricingOptions,
-    });
+    // Async path: estimate already reserved + ledgered above. Settlement later
+    // prices what actually landed and moves only the delta.
 
     // Hand the run to the workers process. It used to be a bare in-process
     // promise, so an API reload mid-batch killed it and stranded every

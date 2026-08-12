@@ -20,6 +20,7 @@ import {
   BatchStatus,
   ContentFormat,
   PostVisibility,
+  parsePlatform,
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -70,6 +71,8 @@ export class BatchGenerationCreationService {
       throw new NotFoundException('Brand', dto.brandId);
     }
 
+    const platforms = this.normalizeBatchPlatforms(dto.platforms);
+
     const contentMix: ContentMixConfig = dto.contentMix ?? {
       carouselPercent: 10,
       imagePercent: 60,
@@ -84,7 +87,7 @@ export class BatchGenerationCreationService {
     const items = this.generateContentPlan(
       dto.count,
       contentMix,
-      dto.platforms,
+      platforms,
       dto.topics ?? [],
       dateRangeStart,
       dateRangeEnd,
@@ -96,7 +99,7 @@ export class BatchGenerationCreationService {
       dateRangeEnd: dateRangeEnd.toISOString(),
       dateRangeStart: dateRangeStart.toISOString(),
       failedCount: 0,
-      platforms: dto.platforms,
+      platforms,
       style: dto.style,
       topics: dto.topics ?? [],
       totalCount: dto.count,
@@ -405,6 +408,41 @@ export class BatchGenerationCreationService {
         orgId,
       });
     }
+  }
+
+  /**
+   * Map free-text platform inputs onto domain Platform values. Reject the
+   * whole request when any entry is unmappable so we never persist malformed
+   * platform strings into batch items (#2696).
+   */
+  private normalizeBatchPlatforms(platforms: string[]): string[] {
+    if (!Array.isArray(platforms) || platforms.length === 0) {
+      throw new BadRequestException(
+        'At least one platform is required for batch generation',
+      );
+    }
+
+    const normalized: string[] = [];
+    const invalid: string[] = [];
+
+    for (const raw of platforms) {
+      const parsed = parsePlatform(raw);
+      if (!parsed) {
+        invalid.push(String(raw ?? ''));
+        continue;
+      }
+      if (!normalized.includes(parsed)) {
+        normalized.push(parsed);
+      }
+    }
+
+    if (invalid.length > 0 || normalized.length === 0) {
+      throw new BadRequestException(
+        `Invalid batch platform(s): ${invalid.join(', ') || '(empty)'}. Use a supported platform id.`,
+      );
+    }
+
+    return normalized;
   }
 
   private generateContentPlan(
