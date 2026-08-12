@@ -1,6 +1,9 @@
 import {
   findSocialWarmupBlueprint,
   getCurrentSocialWarmupBlueprint,
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
   resolveSocialWarmupBlueprint,
   SOCIAL_WARMUP_BLUEPRINT_CATALOG,
   selectCurrentSocialWarmupBlueprint,
@@ -174,7 +177,7 @@ describe('social warm-up blueprint contract', () => {
     expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.TIKTOK)).toBe(
       TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     );
-    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(2);
+    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(3);
   });
 
   test('publishes the canonical X 5–7 day warm-up (#2219)', () => {
@@ -229,19 +232,30 @@ describe('social warm-up blueprint contract', () => {
     expect(provenances.has('genfeed_observed')).toBe(true);
   });
 
-  test('keeps generic selection free of TikTok-specific branching', () => {
-    const instagramBlueprint = socialWarmupBlueprintSchema.parse({
-      ...structuredClone(TIKTOK_SOCIAL_WARMUP_BLUEPRINT),
-      id: 'social-warmup.instagram',
+  test('publishes the canonical Instagram 5–7 day warm-up (#2218)', () => {
+    expect(INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT).toMatchObject({
+      id: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
       platform: CredentialPlatform.INSTAGRAM,
-      title: 'Instagram warm-up',
+      version: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
     });
+    expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.INSTAGRAM)).toBe(
+      INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
+    );
+    expect(
+      INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT.phases.map((phase) => phase.id),
+    ).toEqual([
+      'profile-and-consumption',
+      'thoughtful-engagement',
+      'first-publish-and-cadence',
+    ]);
+  });
 
+  test('keeps generic selection free of TikTok-specific branching', () => {
     expect(
       selectCurrentSocialWarmupBlueprint(
-        [TIKTOK_SOCIAL_WARMUP_BLUEPRINT, instagramBlueprint],
+        SOCIAL_WARMUP_BLUEPRINT_CATALOG,
         CredentialPlatform.INSTAGRAM,
       ),
-    ).toBe(instagramBlueprint);
+    ).toBe(INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT);
   });
 });

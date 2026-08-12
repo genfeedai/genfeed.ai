@@ -1063,10 +1063,330 @@ export const TWITTER_SOCIAL_WARMUP_BLUEPRINT =
     version: TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
   });
 
+export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID = 'social-warmup.instagram';
+export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION = 1;
+
+/**
+ * Instagram guided warm-up (#2218).
+ * Profile readiness, consumption, thoughtful engagement, first Reel/carousel,
+ * Stories, assessment, gradual cadence. No automated engagement farming.
+ */
+export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
+  socialWarmupBlueprintSchema.parse({
+    evidenceBasis: [
+      {
+        id: 'ig-product-guidance',
+        kind: 'product_guidance',
+        reference: 'skills/instagram-warmup/SKILL.md',
+        reviewedOn: '2026-08-12',
+        title: 'Genfeed Instagram warm-up long-form guidance',
+      },
+      {
+        id: 'ig-graph-api',
+        kind: 'platform_documentation',
+        reference: 'https://developers.facebook.com/docs/instagram-api/',
+        reviewedOn: '2026-08-12',
+        title: 'Instagram Graph API overview',
+      },
+      {
+        id: 'ig-user-profile',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.facebook.com/docs/instagram-api/reference/ig-user',
+        reviewedOn: '2026-08-12',
+        title: 'IG User reference',
+      },
+      {
+        id: 'ig-media',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.facebook.com/docs/instagram-api/reference/ig-user/media',
+        reviewedOn: '2026-08-12',
+        title: 'IG User media',
+      },
+      {
+        id: 'ig-content-publishing',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.facebook.com/docs/instagram-api/guides/content-publishing',
+        reviewedOn: '2026-08-12',
+        title: 'Instagram content publishing',
+      },
+    ],
+    graduation: {
+      disclaimer:
+        'Graduation means the configured steps have enough evidence to begin a gradual publishing cadence. It does not guarantee reach, distribution, or freedom from moderation.',
+      minimumElapsedDays: 5,
+      recommendedElapsedDays: 7,
+      rules: [
+        {
+          completion: {
+            description:
+              'The user has confirmed required native-app consumption and thoughtful engagement.',
+            key: 'manual-foundation-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Complete native-app foundation without representing private likes, follows, or DMs as API telemetry.',
+          evidenceIds: ['ig-product-guidance'],
+          id: 'manual-foundation-complete',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Native-app foundation confirmed',
+        },
+        {
+          completion: {
+            description:
+              'Authorized profile and owned-media signals have been refreshed when the connection allows.',
+            key: 'authorized-account-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Use only fields granted by the Instagram Graph connection; missing permissions stay unavailable.',
+          evidenceIds: ['ig-graph-api', 'ig-user-profile', 'ig-media'],
+          id: 'authorized-signals-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Authorized signals refreshed',
+        },
+        {
+          completion: {
+            description:
+              'Instagram exposes owned media or Genfeed has recorded a completed publish when available.',
+            key: 'first-publish-observed',
+            type: 'signal',
+          },
+          description:
+            'Observe the first Reel, carousel, or feed post through authorized media or Genfeed publish status.',
+          evidenceIds: ['ig-media', 'ig-content-publishing'],
+          id: 'first-publish-platform-observed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'First publish observed',
+        },
+        {
+          completion: {
+            description:
+              'Genfeed has recorded draft, publish, or failure outcomes without replacing them with inferred platform behavior.',
+            key: 'genfeed-publish-outcomes-observed',
+            type: 'event',
+          },
+          description:
+            'Review unresolved Genfeed failures before increasing cadence.',
+          evidenceIds: ['ig-product-guidance', 'ig-content-publishing'],
+          id: 'genfeed-outcomes-reviewed',
+          provenance: 'genfeed_observed',
+          requirement: 'required_when_available',
+          title: 'Genfeed outcomes reviewed',
+        },
+      ],
+    },
+    id: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
+    lastReviewedOn: '2026-08-12',
+    phases: [
+      {
+        description:
+          'Complete the public profile and consume niche Reels/feed content before publishing.',
+        endDay: 2,
+        id: 'profile-and-consumption',
+        startDay: 1,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms name, bio, avatar, and category are complete and on-brand.',
+              key: 'profile-ready-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Finish Instagram profile basics before first original posts.',
+            days: [1],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'complete-public-profile',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Complete public profile',
+          },
+          {
+            completion: {
+              description:
+                'Authorized profile fields are readable when Graph permissions allow.',
+              key: 'profile-fields-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'Refresh profile from the authorized connection when available.',
+            days: [1, 2],
+            evidenceIds: ['ig-user-profile', 'ig-graph-api'],
+            id: 'refresh-authorized-profile',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Refresh authorized profile',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms manual Reels/Explore/feed consumption without automation.',
+              key: 'niche-consumption-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Watch niche Reels and feed posts long enough to understand formats. Native consumption stays user_confirmed.',
+            days: [1, 2],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'consume-niche-content',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Consume niche content manually',
+          },
+        ],
+        title: 'Profile readiness and consumption',
+      },
+      {
+        description:
+          'Engage thoughtfully with comments and saves before original publishing.',
+        endDay: 4,
+        id: 'thoughtful-engagement',
+        startDay: 3,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms comments were written manually and referred to the specific media.',
+              key: 'contextual-comments-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Leave genuine, contextual comments. Do not automate likes, follows, saves, or DMs.',
+            days: [3, 4],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'comment-thoughtfully',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Comment thoughtfully (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms selective likes/saves/follows were manual when performed outside Genfeed.',
+              key: 'selective-engagement-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Like and save relevant examples; follow a small set of peers. Outside-Genfeed actions stay user_confirmed.',
+            days: [3, 4],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'selective-engagement',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Selective likes, saves, follows',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded any draft or publish activity created inside Genfeed.',
+              key: 'genfeed-draft-activity-observed',
+              type: 'event',
+            },
+            description:
+              'When using Genfeed for drafts/remix, outcomes stay genfeed_observed.',
+            days: [3, 4],
+            evidenceIds: ['ig-product-guidance', 'ig-content-publishing'],
+            id: 'observe-genfeed-drafts',
+            provenance: 'genfeed_observed',
+            requirement: 'optional',
+            title: 'Observe Genfeed draft activity',
+          },
+        ],
+        title: 'Thoughtful engagement',
+      },
+      {
+        description:
+          'Ship first Reel or carousel, optional Stories, assess, then gradual cadence.',
+        endDay: 7,
+        id: 'first-publish-and-cadence',
+        startDay: 5,
+        steps: [
+          {
+            completion: {
+              description:
+                'Genfeed has a first Reel/carousel draft or publish outcome.',
+              key: 'first-reel-or-carousel',
+              type: 'event',
+            },
+            description:
+              'Publish a first Reel or carousel with on-brand creative. Prefer quality over volume.',
+            days: [5, 6],
+            evidenceIds: ['ig-product-guidance', 'ig-content-publishing'],
+            id: 'first-reel-or-carousel',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'First Reel or carousel',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned-media data shows the first publish when permissions allow.',
+              key: 'first-publish-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'When media listing is available, verify the first post appeared.',
+            days: [5, 6, 7],
+            evidenceIds: ['ig-media', 'ig-content-publishing'],
+            id: 'observe-first-publish-platform',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Observe first publish on Instagram',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they posted or reviewed Stories as part of the plan when relevant.',
+              key: 'stories-participation-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Optional Stories practice; keep Stories native-app when not supported by publish path.',
+            days: [6, 7],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'optional-stories',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Optional Stories practice',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they assessed outcomes before raising post volume.',
+              key: 'assessment-before-cadence-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Assess quality and failures before increasing cadence. Completing the plan does not guarantee distribution.',
+            days: [7],
+            evidenceIds: ['ig-product-guidance'],
+            id: 'assess-before-cadence',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Assess before gradual cadence',
+          },
+        ],
+        title: 'First publish, Stories, gradual cadence',
+      },
+    ],
+    platform: CredentialPlatform.INSTAGRAM,
+    summary:
+      'A 5–7 day Instagram progression from profile readiness and consumption, through thoughtful engagement, to first Reel/carousel, optional Stories, and gradual cadence.',
+    title: 'Instagram 5–7 day warm-up',
+    version: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  });
+
 export const SOCIAL_WARMUP_BLUEPRINT_CATALOG: readonly SocialWarmupBlueprint[] =
   Object.freeze([
     TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     TWITTER_SOCIAL_WARMUP_BLUEPRINT,
+    INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
   ]);
 
 export function findSocialWarmupBlueprint(
