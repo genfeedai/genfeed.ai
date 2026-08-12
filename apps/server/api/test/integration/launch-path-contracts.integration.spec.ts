@@ -196,9 +196,11 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const ads = readRepo(
       'apps/server/api/src/endpoints/ads-research/ads-research.service.ts',
     );
+    const config = readRepo('packages/libs/config/config.service.ts');
     expect(service).toContain('CORE_CONTENT_HARNESS_PACK');
     expect(service).toContain('CONTENT_HARNESS_PACKAGES');
     expect(service).toContain('composeContentHarnessBrief');
+    expect(config).toContain('CONTENT_HARNESS_PACKAGES');
     expect(types).toContain("'post'");
     expect(types).toContain("'image'");
     expect(types).toContain("'ad-creative'");
@@ -207,5 +209,37 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(mediaHandler).toContain('applyBrandHarnessToPrompt');
     expect(ads).toContain('resolveAdHarnessNotes');
     expect(ads).toContain("'ad-creative'");
+  });
+
+  it('video upscale/reframe charge only via CreditsInterceptor (no manual deduct)', () => {
+    const upscale = readRepo(
+      'apps/server/api/src/collections/videos/controllers/transformations/upscale/videos-upscale.controller.ts',
+    );
+    const reframe = readRepo(
+      'apps/server/api/src/collections/videos/controllers/transformations/reframe/videos-reframe.controller.ts',
+    );
+    const lipSync = readRepo(
+      'apps/server/api/src/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller.ts',
+    );
+    for (const source of [upscale, reframe, lipSync]) {
+      expect(source).toContain('CreditsInterceptor');
+      expect(source).not.toContain('deductCreditsFromOrganization');
+    }
+  });
+
+  it('context auto-create uses parsePlatform for posts.platform (not a local map)', () => {
+    const source = readRepo(
+      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
+    );
+    expect(source).toContain('parsePlatform');
+    expect(source).not.toContain('const PLATFORM_MAP');
+  });
+
+  it('exposes harness winner promotion as an authenticated API', () => {
+    const controller = readRepo(
+      'apps/server/api/src/collections/harness-profiles/controllers/harness-profiles.controller.ts',
+    );
+    expect(controller).toContain("Post('promote-winners')");
+    expect(controller).toContain('promoteTopPerformers');
   });
 });

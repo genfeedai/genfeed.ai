@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PromoteWinnersDto } from '@api/collections/harness-profiles/dto/promote-winners.dto';
 import { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
@@ -10,6 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -32,6 +34,7 @@ import type { Request } from 'express';
 export class HarnessProfilesController {
   constructor(
     private readonly harnessProfilesService: HarnessProfilesService,
+    private readonly harnessWinnerPromotionService: HarnessWinnerPromotionService,
   ) {}
 
   @Get()
@@ -71,6 +74,29 @@ export class HarnessProfilesController {
     );
 
     return serializeSingle(request, HarnessProfileSerializer, profile);
+  }
+
+  /**
+   * Promote this week's top-performing posts into the brand's harness
+   * performance-winners context base (structured entries, not a RAG product).
+   */
+  @Post('promote-winners')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async promoteWinners(
+    @CurrentUser() user: User,
+    @Body() dto: PromoteWinnersDto,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    if (!dto.brandId?.trim()) {
+      throw new BadRequestException('brandId is required');
+    }
+
+    return this.harnessWinnerPromotionService.promoteTopPerformers({
+      brandId: dto.brandId,
+      limit: dto.limit,
+      organizationId: organization,
+      platform: dto.platform,
+    });
   }
 
   @Patch(':profileId')

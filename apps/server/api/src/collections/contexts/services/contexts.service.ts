@@ -24,9 +24,9 @@ import {
   postVisibilityReadFilter,
 } from '@api-types/contracts/scheduler.contract';
 import {
-  CredentialPlatform,
   ModelCategory,
   PostVisibility,
+  parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
@@ -34,14 +34,6 @@ import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-
-const PLATFORM_MAP: Record<string, CredentialPlatform> = {
-  instagram: CredentialPlatform.INSTAGRAM,
-  linkedin: CredentialPlatform.LINKEDIN,
-  tiktok: CredentialPlatform.TIKTOK,
-  twitter: CredentialPlatform.TWITTER,
-  youtube: CredentialPlatform.YOUTUBE,
-};
 
 @Injectable()
 export class ContextsService {
@@ -509,8 +501,9 @@ export class ContextsService {
         userId,
       );
 
-      const credentialPlatform = PLATFORM_MAP[dto.platform];
-      if (!credentialPlatform) {
+      // posts.platform is product lowercase (String), not Prisma CredentialPlatform.
+      const platform = parsePlatform(dto.platform);
+      if (!platform) {
         return contextBase;
       }
 
@@ -519,7 +512,7 @@ export class ContextsService {
         take: 100,
         where: scopedWhere(organizationId, {
           brandId: dto.brandId.toString(),
-          platform: credentialPlatform,
+          platform,
           AND: [
             postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
             postVisibilityReadFilter(PostVisibility.PUBLIC),

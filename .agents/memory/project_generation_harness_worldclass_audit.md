@@ -4,7 +4,12 @@ description: Map of image/video/ads generation vs content harness; gaps to best-
 type: project
 status: active
 last_verified: 2026-08-12
-implementation_note: Media/ads harness wiring + profile seed + winner promotion landed on qa/260812 (2026-08-12). Private pack examples still need real copy.
+implementation_note: >
+  Media/ads harness wiring + profile seed + winner promotion landed on qa/260812
+  (2026-08-12). Winner API: POST /harness-profiles/promote-winners. Video
+  upscale/reframe credits use CreditsInterceptor only. Private pack examples
+  still need real copy (human #2837). No separate vector DB/RAG product yet —
+  pgvector ContextEntry exists but is not the taste path.
 topics: [harness, generation, image, video, ads, quality, private-packs]
 ---
 
