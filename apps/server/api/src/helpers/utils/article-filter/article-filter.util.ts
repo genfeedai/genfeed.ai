@@ -21,6 +21,16 @@ const PRISMA_ARTICLE_STATUS_VALUES = new Set<string>(
   Object.values(APP_TO_PRISMA_STATUS),
 );
 
+/**
+ * Mongo-era generate metadata. These are not Article columns — Prisma create
+ * rejects them as unknown arguments. Strip at the persistence boundary so
+ * generate cannot reintroduce them (#2859).
+ */
+export const ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS = [
+  'aiGeneration',
+  'xArticleMetadata',
+] as const;
+
 export class ArticleFilterUtil {
   static toPrismaArticleStatus(
     status?: ArticleStatus | PrismaArticleStatusValue | string,
@@ -82,14 +92,21 @@ export class ArticleFilterUtil {
   static toArticlePersistenceData<T extends Record<string, unknown>>(
     data: T,
   ): T {
-    if (data.status === undefined) {
-      return data;
+    const persistable: Record<string, unknown> = { ...data };
+    for (const key of ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS) {
+      delete persistable[key];
+    }
+
+    if (persistable.status === undefined) {
+      return persistable as T;
     }
 
     return {
-      ...data,
-      status: ArticleFilterUtil.toPersistedArticleStatus(String(data.status)),
-    };
+      ...persistable,
+      status: ArticleFilterUtil.toPersistedArticleStatus(
+        String(persistable.status),
+      ),
+    } as T;
   }
 
   static buildArticleStatusFilter(
