@@ -4,7 +4,7 @@ import type {
   IDesktopEnvironment,
 } from '@genfeedai/desktop-contracts';
 import { safeStorage } from 'electron';
-import type { DesktopKvService } from './kv.service';
+import type { DesktopKeyValueStore } from './store.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
@@ -277,7 +277,7 @@ export class DesktopSessionService {
   private pendingAuth: PendingDesktopAuth | null = null;
 
   constructor(
-    private readonly kvService: DesktopKvService,
+    private readonly store: DesktopKeyValueStore,
     private readonly environment: IDesktopEnvironment,
     private readonly appOrigin: string,
     private readonly cookies: DesktopCookieStore,
@@ -288,7 +288,7 @@ export class DesktopSessionService {
   }
 
   getSession(): IDesktopSession | null {
-    const stored = this.kvService.getValueSync(SESSION_STORAGE_KEY);
+    const stored = this.store.getValueSync(SESSION_STORAGE_KEY);
 
     if (!stored) {
       return null;
@@ -302,12 +302,12 @@ export class DesktopSessionService {
         : deserializeSession(stored);
 
       if (!session) {
-        void this.kvService.deleteValue(SESSION_STORAGE_KEY);
+        void this.store.deleteValue(SESSION_STORAGE_KEY);
       }
 
       return session;
     } catch {
-      void this.kvService.deleteValue(SESSION_STORAGE_KEY);
+      void this.store.deleteValue(SESSION_STORAGE_KEY);
       return null;
     }
   }
@@ -318,7 +318,7 @@ export class DesktopSessionService {
       ? safeStorage.encryptString(payload).toString('base64')
       : payload;
 
-    await this.kvService.setValue(SESSION_STORAGE_KEY, encryptedPayload);
+    await this.store.setValue(SESSION_STORAGE_KEY, encryptedPayload);
   }
 
   private async applySessionCookie(
@@ -408,7 +408,7 @@ export class DesktopSessionService {
       if (previousSession) {
         await this.persistSession(previousSession);
       } else {
-        await this.kvService.deleteValue(SESSION_STORAGE_KEY);
+        await this.store.deleteValue(SESSION_STORAGE_KEY);
       }
 
       try {
@@ -432,11 +432,11 @@ export class DesktopSessionService {
     const previousSession = this.getSession();
 
     if (!previousSession) {
-      await this.kvService.deleteValue(SESSION_STORAGE_KEY);
+      await this.store.deleteValue(SESSION_STORAGE_KEY);
       return;
     }
 
-    await this.kvService.deleteValue(SESSION_STORAGE_KEY);
+    await this.store.deleteValue(SESSION_STORAGE_KEY);
 
     try {
       await this.removeSessionCookie(previousSession.sessionCookie);

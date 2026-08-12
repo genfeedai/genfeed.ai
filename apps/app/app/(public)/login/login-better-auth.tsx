@@ -123,6 +123,7 @@ export default function LoginBetterAuth({
     useState(false);
   const [isWaitingForDesktopSession, setIsWaitingForDesktopSession] =
     useState(false);
+  const [isStartingLocalMode, setIsStartingLocalMode] = useState(false);
   const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
   const isWaitingForDesktopSessionRef = useRef(false);
   const callbackURL = getAuthCallbackURL(searchParams);
@@ -240,6 +241,30 @@ export default function LoginBetterAuth({
     isWaitingForDesktopSessionRef.current = false;
     setDesktopErrorMessage(null);
     setIsWaitingForDesktopSession(false);
+  }
+
+  async function handleDesktopLocalMode() {
+    const bridge = getDesktopBridge();
+    if (!bridge) {
+      setDesktopErrorMessage(
+        'Local mode is unavailable because the desktop bridge could not be loaded.',
+      );
+      return;
+    }
+
+    setDesktopErrorMessage(null);
+    setIsStartingLocalMode(true);
+    try {
+      await bridge.app.enableOfflineMode();
+      window.location.assign('/desktop/local');
+    } catch (error) {
+      setDesktopErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Local mode could not start. Your local data is still safe.',
+      );
+      setIsStartingLocalMode(false);
+    }
   }
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
@@ -366,11 +391,18 @@ export default function LoginBetterAuth({
               <Button
                 type="button"
                 variant={ButtonVariant.SECONDARY}
-                isDisabled
+                isDisabled={
+                  !isDesktopBridgeAvailable ||
+                  isStartingLocalMode ||
+                  isWaitingForDesktopSession
+                }
                 className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
+                onClick={() => void handleDesktopLocalMode()}
               >
-                Work offline — coming soon
+                {isStartingLocalMode
+                  ? 'Starting local workspace…'
+                  : 'Use a local workspace'}
               </Button>
             </>
           }
@@ -382,8 +414,8 @@ export default function LoginBetterAuth({
                 <p aria-live="polite">Waiting for the browser...</p>
               ) : null}
               <p>
-                Offline work is not available yet. Sign in to use your Genfeed
-                workspace.
+                Local mode keeps its database and workspace files on this Mac.
+                It starts only when you choose it.
               </p>
             </div>
           }

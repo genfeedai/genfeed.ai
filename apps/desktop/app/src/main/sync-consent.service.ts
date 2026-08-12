@@ -4,7 +4,7 @@ import type {
   IDesktopSyncConsent,
   IDesktopSyncConsentInput,
 } from '@genfeedai/desktop-contracts';
-import type { DesktopKvService } from './kv.service';
+import type { DesktopKeyValueStore } from './store.service';
 
 const SYNC_CONSENT_KEY_PREFIX = 'desktop.sync.consent.';
 
@@ -59,7 +59,7 @@ function normalizeStoredConsent(
 }
 
 export class DesktopSyncConsentService {
-  constructor(private readonly database: DesktopKvService) {}
+  constructor(private readonly database: DesktopKeyValueStore) {}
 
   getConsent(session: IDesktopSession | null): IDesktopSyncConsent {
     if (!session) {

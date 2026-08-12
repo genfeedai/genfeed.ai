@@ -27,6 +27,68 @@
       "ready": "Content is ready for review"
     }
   },
+  "desktop": {
+    "local": {
+      "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",
+      "errors": {
+        "actionFailed": "The local workspace could not complete that action.",
+        "desktopOnly": "Local workspaces are available only in Genfeed Desktop.",
+        "retry": "Retry local mode",
+        "revealLogs": "Reveal logs",
+        "title": "Local mode needs attention"
+      },
+      "eyebrow": "Local mode",
+      "generation": {
+        "description": "Uses the provider configured on this device.",
+        "generate": "Generate",
+        "promptLabel": "Local generation prompt",
+        "promptPlaceholder": "Draft a launch post for...",
+        "title": "Generate locally",
+        "working": "Working…"
+      },
+      "title": "Your work stays on this Mac",
+      "useCloud": "Use Genfeed Cloud",
+      "workspace": {
+        "chooseFolder": "Choose folder",
+        "description": "Choose a folder for drafts, assets, and generated content.",
+        "openAnother": "Open another",
+        "title": "Local workspace"
+      }
+    },
+    "provider": {
+      "actions": {
+        "save": "Save",
+        "saving": "Saving...",
+        "test": "Test",
+        "testing": "Testing..."
+      },
+      "description": "Genfeed server credits are the default when connected. Configure a local OpenAI-compatible provider only for offline or bring-your-own-key generation.",
+      "errors": {
+        "loadFailed": "Failed to load local provider.",
+        "saveFailed": "Failed to save provider.",
+        "startFailed": "Local mode could not start.",
+        "testFailed": "Provider test failed."
+      },
+      "fields": {
+        "apiKey": "Local provider API key",
+        "apiKeyOptional": "Optional local API key",
+        "apiKeySaved": "API key saved",
+        "baseUrl": "Local provider base URL",
+        "model": "Local provider model"
+      },
+      "inactive": {
+        "action": "Use a local workspace",
+        "description": "PGlite and local provider settings start only after you switch to a local workspace.",
+        "title": "Local generation is off"
+      },
+      "status": {
+        "connected": "Connected in {latency}ms.",
+        "starting": "Starting local workspace…",
+        "using": "Using {provider}."
+      },
+      "title": "Local generation"
+    }
+  },
   "empty": {
     "default": "No items found",
     "results": "No results found"

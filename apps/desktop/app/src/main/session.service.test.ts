@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
-import type { DesktopKvService } from './kv.service';
 import type { DesktopCookieStore } from './session.service';
+import type { DesktopKeyValueStore } from './store.service';
 import './test-support/electron.mock';
 
 const { DesktopSessionService } = await import('./session.service');
@@ -37,7 +37,7 @@ interface CookieMock {
   setCalls: CookieSetDetails[];
 }
 
-type KvMock = DesktopKvService & {
+type KvMock = DesktopKeyValueStore & {
   values: Map<string, string>;
 };
 
