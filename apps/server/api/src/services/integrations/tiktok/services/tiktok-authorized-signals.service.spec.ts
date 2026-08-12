@@ -21,6 +21,7 @@ import { of, throwError } from 'rxjs';
 
 const now = new Date('2026-08-12T08:00:00.000Z');
 const USER_BASIC_SCOPE = 'user.info.basic';
+const USER_STATS_SCOPE = 'user.info.stats';
 const fullScopes = [
   'user.info.basic',
   'user.info.profile',
