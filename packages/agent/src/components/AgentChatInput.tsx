@@ -59,7 +59,7 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'inspector';
   selectedModel?: string;
   /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
-  models?: readonly IModel[];
+  models: readonly IModel[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
   onPrioritizeChange?: (priority: RouterPriority) => void;

@@ -5,6 +5,8 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -81,8 +83,25 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
 }));
 
 vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
-  default: function MockModelSelectorPopover() {
-    return <button type="button">Select model</button>;
+  default: function MockModelSelectorPopover(props: {
+    models: readonly unknown[];
+    name?: string;
+    onChange: (name: string, values: string[]) => void;
+  }) {
+    return (
+      <div>
+        <button type="button">Select model</button>
+        <span data-testid="model-catalog-size">{props.models.length}</span>
+        <button
+          type="button"
+          onClick={() =>
+            props.onChange(props.name ?? 'models', ['__auto_model__'])
+          }
+        >
+          Use Auto
+        </button>
+      </div>
+    );
   },
 }));
 
@@ -91,9 +110,20 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
     selector(storeState),
 }));
 
-import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentChatInput as AgentChatInputComponent } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+
+type TestAgentChatInputProps = Omit<
+  ComponentProps<typeof AgentChatInputComponent>,
+  'models'
+> & {
+  models?: ComponentProps<typeof AgentChatInputComponent>['models'];
+};
+
+function AgentChatInput({ models = [], ...props }: TestAgentChatInputProps) {
+  return <AgentChatInputComponent {...props} models={models} />;
+}
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
@@ -118,6 +148,18 @@ describe('AgentChatInput', () => {
 
     expect(shell.className).toMatch(/bg-background\/55|backdrop-blur/);
     expect(shell).not.toHaveClass('opacity-50');
+  });
+
+  it('keeps Auto selectable when the required registry catalog is empty', async () => {
+    const user = userEvent.setup();
+    const onModelChange = vi.fn();
+
+    render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
+
+    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
+    await user.click(screen.getByRole('button', { name: 'Use Auto' }));
+
+    expect(onModelChange).toHaveBeenCalledWith('__auto_model__');
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

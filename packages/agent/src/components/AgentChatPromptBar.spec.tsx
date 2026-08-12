@@ -67,6 +67,7 @@ function renderPromptBar(isReadOnly: boolean): void {
       isSubmittingInputRequest={false}
       latestProposedPlan={null}
       layoutMode="fixed"
+      models={[]}
       onClearError={vi.fn()}
       onSend={vi.fn()}
       onStop={vi.fn()}

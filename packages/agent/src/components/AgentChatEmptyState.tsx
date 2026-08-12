@@ -45,8 +45,8 @@ type AgentChatEmptyStateProps = {
   promptBarSuggestions: ReactNode;
   removeAttachment: (id: string) => void;
   selectedModel?: string;
-  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
-  models?: readonly IModel[];
+  /** Registry-backed chat catalogue. Empty means Auto is the only choice. */
+  models: readonly IModel[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
   onPrioritizeChange?: (priority: RouterPriority) => void;
