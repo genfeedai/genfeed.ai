@@ -46,6 +46,25 @@ type AgentRunStatsSummary = Omit<
   | 'trends'
 >;
 
+/** Fields needed for bootstrap/overview run lists — no heavy JSON payloads. */
+const AGENT_RUN_LIST_SELECT = {
+  brandId: true,
+  completedAt: true,
+  createdAt: true,
+  error: true,
+  id: true,
+  label: true,
+  organizationId: true,
+  progress: true,
+  startedAt: true,
+  status: true,
+  summary: true,
+  threadId: true,
+  type: true,
+  updatedAt: true,
+  userId: true,
+} as const;
+
 type AgentRunPageOptions = {
   brandId?: string | null;
   cursor?: string;
@@ -634,8 +653,11 @@ export class AgentRunsService extends BaseService<
     );
     const cursorDate = this.parseCursorDate(options.cursor);
 
+    // Bootstrap/overview only needs list chrome fields — omit heavy JSON
+    // blobs (result/steps/toolCalls/config) that inflate cold shell loads.
     return (await this.delegate.findMany({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: AGENT_RUN_LIST_SELECT,
       take: limit,
       where: scopedWhere(organizationId, {
         ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
@@ -659,6 +681,7 @@ export class AgentRunsService extends BaseService<
         ...brandScope(brandId),
       }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: AGENT_RUN_LIST_SELECT,
       take: safeLimit,
     })) as AgentRunDocument[];
   }
@@ -708,12 +731,12 @@ export class AgentRunsService extends BaseService<
     });
 
     const [statusGroups, todayGroups] = await Promise.all([
-      this.delegate.groupBy({
+      this.prisma.agentRun.groupBy({
         _count: { _all: true },
         by: ['status'],
         where: runScope,
       }),
-      this.delegate.groupBy({
+      this.prisma.agentRun.groupBy({
         _count: { _all: true },
         by: ['status'],
         where: {

@@ -62,11 +62,16 @@ describe('AgentRunsService', () => {
     );
   });
 
-  it('queries active runs with Prisma enum values', async () => {
+  it('queries active runs with Prisma enum values and a slim select', async () => {
     await service.getActiveRuns('org-1');
 
     expect(agentRun.findMany).toHaveBeenCalledWith({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: expect.objectContaining({
+        id: true,
+        status: true,
+        label: true,
+      }),
       take: 50,
       where: {
         isDeleted: false,
@@ -76,6 +81,33 @@ describe('AgentRunsService', () => {
         },
       },
     });
+  });
+
+  it('lists recent runs with a slim select for bootstrap', async () => {
+    await service.listRecentRuns('org-1', 20);
+
+    expect(agentRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          status: true,
+          progress: true,
+        }),
+        take: 20,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+    // Heavy JSON columns must not be pulled on the shell overview path.
+    const arg = agentRun.findMany.mock.calls[0]?.[0] as {
+      select?: Record<string, boolean>;
+    };
+    expect(arg.select?.result).toBeUndefined();
+    expect(arg.select?.toolCalls).toBeUndefined();
+    expect(arg.select?.steps).toBeUndefined();
+    expect(arg.select?.config).toBeUndefined();
   });
 
   it('scopes active runs by brand when provided', async () => {
