@@ -264,11 +264,12 @@ export class WorkflowNodeGraphRunnerService {
           output: nodeResult.output,
           status: nodeResult.status === 'failed' ? 'failed' : 'completed',
         });
-        if (this.nodeClaimService) {
+        if (this.nodeClaimService && workflow.organizationId) {
           await this.nodeClaimService.complete({
             error: nodeResult.error,
             executionId,
             nodeId,
+            organizationId: workflow.organizationId,
             output: nodeResult.output,
             status: nodeResult.status === 'failed' ? 'failed' : 'completed',
           });

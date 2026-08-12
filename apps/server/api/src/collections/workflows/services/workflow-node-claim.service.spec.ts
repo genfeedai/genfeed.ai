@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('WorkflowNodeClaimService (#2359)', () => {
   const workflowNodeClaim = {
     create: vi.fn(),
-    findUnique: vi.fn(),
+    findFirst: vi.fn(),
     updateMany: vi.fn(),
   };
   const logger = {
@@ -52,7 +52,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       code: 'P2002',
     });
     workflowNodeClaim.create.mockRejectedValue(conflict);
-    workflowNodeClaim.findUnique.mockResolvedValue({
+    workflowNodeClaim.findFirst.mockResolvedValue({
       error: null,
       output: { postId: 'p1' },
       status: 'completed',
@@ -70,6 +70,14 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       output: { postId: 'p1' },
       status: 'completed',
     });
+
+    expect(workflowNodeClaim.findFirst).toHaveBeenCalledWith({
+      where: {
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('completes a claim with terminal status and output', async () => {
@@ -78,6 +86,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     await service.complete({
       executionId: 'exec-1',
       nodeId: 'publish',
+      organizationId: 'org-1',
       output: { postId: 'p1' },
       status: 'completed',
     });
@@ -91,6 +100,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       where: {
         executionId: 'exec-1',
         nodeId: 'publish',
+        organizationId: 'org-1',
       },
     });
   });

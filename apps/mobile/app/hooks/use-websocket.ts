@@ -57,7 +57,7 @@ export function useWebSocket(): UseWebSocketReturn {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (
-        appStateRef.current.match(/inactive|background/) &&
+        appStateRef.current?.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
         connect();

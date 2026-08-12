@@ -46,12 +46,11 @@ export class WorkflowNodeClaimService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const existing = await this.prisma.workflowNodeClaim.findUnique({
+        const existing = await this.prisma.workflowNodeClaim.findFirst({
           where: {
-            executionId_nodeId: {
-              executionId: params.executionId,
-              nodeId: params.nodeId,
-            },
+            executionId: params.executionId,
+            nodeId: params.nodeId,
+            organizationId: params.organizationId,
           },
         });
         if (!existing) {
@@ -78,6 +77,7 @@ export class WorkflowNodeClaimService {
   }
 
   async complete(params: {
+    organizationId: string;
     executionId: string;
     nodeId: string;
     status: 'completed' | 'failed';
@@ -96,6 +96,7 @@ export class WorkflowNodeClaimService {
       where: {
         executionId: params.executionId,
         nodeId: params.nodeId,
+        organizationId: params.organizationId,
       },
     });
   }
