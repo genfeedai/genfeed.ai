@@ -24,5 +24,7 @@ describe('app/(protected)/protected-layout-client.tsx', () => {
       source.indexOf('identifyAnalyticsUser({'),
     );
     expect(source).toContain("endsWith('@genfeed.ai')");
+    expect(source).toContain('REPLY_BOT_FEATURE_FLAG');
+    expect(source).toContain('REMOTE_FEATURE_FLAG_KEYS');
   });
 });

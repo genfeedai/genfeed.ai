@@ -12,6 +12,9 @@ export const APP_SWITCHER_FEATURE_FLAGS = {
   automate: 'app_switcher_automate',
 } as const;
 
+/** Replies API + UI gate. SaaS evaluates this in PostHog; Community defaults on. */
+export const REPLY_BOT_FEATURE_FLAG = 'reply_bot';
+
 export type AppSwitcherFeatureFlagApp = keyof typeof APP_SWITCHER_FEATURE_FLAGS;
 
 export type AppSwitcherFeatureFlagKey =

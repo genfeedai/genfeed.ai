@@ -22,6 +22,7 @@ import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-qu
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -40,7 +41,7 @@ import type { Request } from 'express';
 
 @ApiTags('Reply Bot Configs')
 @AutoSwagger()
-@FeatureFlag('reply_bot')
+@FeatureFlag(REPLY_BOT_FEATURE_FLAG)
 @Controller('reply-bot-configs')
 export class ReplyBotConfigsController extends BaseCRUDController<
   ReplyBotConfigDocument,

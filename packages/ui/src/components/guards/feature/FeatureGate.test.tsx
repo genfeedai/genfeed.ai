@@ -36,4 +36,16 @@ describe('FeatureGate', () => {
 
     expect(screen.getByText('Analytics content')).toBeInTheDocument();
   });
+
+  it('keeps Replies available when env JSON does not mention reply_bot', () => {
+    render(
+      <FeatureFlagProvider defaults={{ other: true }}>
+        <FeatureGate flagKey="reply_bot">
+          <span>Replies content</span>
+        </FeatureGate>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('Replies content')).toBeInTheDocument();
+  });
 });

@@ -19,7 +19,15 @@ type FeatureFlagRequest = Request & {
     subscriptionTier?: string;
     userId?: string;
   };
-  user?: { id?: string };
+  user?: {
+    email?: string;
+    emailAddresses?: Array<{
+      emailAddress?: string | null;
+      id?: string | null;
+    }>;
+    id?: string;
+    primaryEmailAddressId?: string | null;
+  };
 };
 
 @Injectable()
@@ -29,7 +37,7 @@ export class FeatureFlagGuard implements CanActivate {
     private readonly featureFlagService: FeatureFlagService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const flagKey = this.reflector.getAllAndOverride<string>(FEATURE_FLAG_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -42,7 +50,7 @@ export class FeatureFlagGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<FeatureFlagRequest>();
     const attributes = this.buildAttributes(request);
 
-    if (this.featureFlagService.isEnabled(flagKey, attributes)) {
+    if (await this.featureFlagService.isEnabled(flagKey, attributes)) {
       return true;
     }
 
@@ -58,8 +66,9 @@ export class FeatureFlagGuard implements CanActivate {
       request.auth?.publicMetadata?.user;
     const organizationId = request.context?.organizationId;
     const plan = request.context?.subscriptionTier;
+    const isInternal = resolveIsInternal(request);
 
-    if (!id && !organizationId && !plan) {
+    if (!id && !organizationId && !plan && typeof isInternal !== 'boolean') {
       return undefined;
     }
 
@@ -67,6 +76,34 @@ export class FeatureFlagGuard implements CanActivate {
       ...(id ? { id } : {}),
       ...(organizationId ? { organizationId } : {}),
       ...(plan ? { plan } : {}),
+      ...(typeof isInternal === 'boolean' ? { is_internal: isInternal } : {}),
     };
   }
+}
+
+function resolveIsInternal(request: FeatureFlagRequest): boolean | undefined {
+  const email = resolveRequestEmail(request);
+  if (!email) {
+    return undefined;
+  }
+
+  return email.endsWith('@genfeed.ai');
+}
+
+function resolveRequestEmail(request: FeatureFlagRequest): string | undefined {
+  const user = request.user;
+  if (!user) {
+    return undefined;
+  }
+
+  const primary = user.emailAddresses?.find(
+    (entry) => entry.id && entry.id === user.primaryEmailAddressId,
+  )?.emailAddress;
+  const fallback = user.emailAddresses?.[0]?.emailAddress || user.email;
+  const email = primary || fallback;
+  if (typeof email !== 'string' || email.trim() === '') {
+    return undefined;
+  }
+
+  return email.trim().toLowerCase();
 }
