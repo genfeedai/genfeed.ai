@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 
 // See articles.service.cache.spec.ts — `@genfeedai/prisma` re-exports the
@@ -17,8 +19,9 @@ import { ArticleRemixService } from '@api/collections/articles/services/article-
 import { ArticleTranscriptService } from '@api/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@api/helpers/utils/article-filter/article-filter.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import { getModelMeta } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -146,5 +149,61 @@ describe('ArticlesService create persistence', () => {
     await service.createArticle(dto, userId, organizationId, brandId);
 
     expect(readCreatedData(delegate).status).toBe('PUBLISHED');
+  });
+
+  it('strips unknown generate fields and keeps label/summary/content (#2859)', async () => {
+    const { delegate, service } = buildService();
+    const generatePayload = {
+      aiGeneration: {
+        completedAt: new Date('2026-08-12T00:00:00.000Z'),
+        prompt: 'Write about prompting',
+        startedAt: new Date('2026-08-12T00:00:00.000Z'),
+      },
+      category: ArticleCategory.POST,
+      content: '<p>Generated body</p>',
+      label: 'Generated label',
+      slug: 'generated-label',
+      status: ArticleStatus.DRAFT,
+      summary: 'Generated summary',
+      xArticleMetadata: {
+        estimatedReadTime: 1,
+        sections: [],
+        wordCount: 12,
+      },
+    };
+
+    await service.createArticle(
+      generatePayload as CreateArticleDto,
+      userId,
+      organizationId,
+      brandId,
+    );
+
+    const data = readCreatedData(delegate);
+    const columns = new Set(getModelMeta('Article')?.allFields ?? []);
+    expect(columns.size).toBeGreaterThan(0);
+
+    for (const key of ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS) {
+      expect(columns.has(key)).toBe(false);
+      expect(data[key]).toBeUndefined();
+    }
+
+    const unknownKeys = Object.keys(data).filter((key) => !columns.has(key));
+    expect(unknownKeys).toEqual([]);
+    expect(data.label).toBe('Generated label');
+    expect(data.summary).toBe('Generated summary');
+    expect(data.content).toBe('<p>Generated body</p>');
+    expect(data.status).toBe('DRAFT');
+  });
+
+  it('generate persist source never assigns unknown Prisma Article fields', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('./articles-content.service.ts', import.meta.url)),
+      'utf8',
+    );
+
+    expect(source).not.toMatch(/\baiGeneration\s*:/);
+    expect(source).not.toMatch(/\bxArticleMetadata\s*:/);
+    expect(source).not.toMatch(/\bxArticleMetadata\s*,/);
   });
 });

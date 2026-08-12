@@ -1,7 +1,10 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
+import {
+  ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS,
+  ArticleFilterUtil,
+} from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleStatus } from '@genfeedai/enums';
 
 const API_SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -81,6 +84,28 @@ describe('ArticleFilterUtil', () => {
           status: ArticleStatus.PUBLISHED,
         }),
       ).toEqual({ label: 'Launch', status: 'PUBLISHED' });
+    });
+
+    it('strips unknown generate keys before Prisma create (#2859)', () => {
+      expect(ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS).toEqual([
+        'aiGeneration',
+        'xArticleMetadata',
+      ]);
+      expect(
+        ArticleFilterUtil.toArticlePersistenceData({
+          aiGeneration: { prompt: 'Write about prompting' },
+          content: '<p>Body</p>',
+          label: 'Launch',
+          status: ArticleStatus.DRAFT,
+          summary: 'A draft',
+          xArticleMetadata: { wordCount: 12 },
+        }),
+      ).toEqual({
+        content: '<p>Body</p>',
+        label: 'Launch',
+        status: 'DRAFT',
+        summary: 'A draft',
+      });
     });
 
     it('builds the canonical public persisted status filter', () => {
