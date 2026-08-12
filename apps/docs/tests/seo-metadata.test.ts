@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PageMapItem } from 'nextra';
 import { describe, expect, it } from 'vitest';
-import robots from '../app/robots';
+import { GET as getRobots } from '../app/robots.txt/route';
 import {
   createDocsSitemap,
   DOCS_ORIGIN,
@@ -82,11 +82,16 @@ describe('docs SEO metadata', () => {
     ).toBe(true);
   });
 
-  it('allows docs crawling and declares the production sitemap', () => {
-    expect(robots()).toEqual({
-      rules: { allow: '/', userAgent: '*' },
-      sitemap: 'https://docs.genfeed.ai/sitemap.xml',
-    });
+  it('allows docs crawling and declares the production sitemap', async () => {
+    const response = getRobots();
+    const body = await response.text();
+
+    expect(response.headers.get('Content-Type')).toBe(
+      'text/plain; charset=utf-8',
+    );
+    expect(body).toContain('User-agent: *');
+    expect(body).toContain('Allow: /');
+    expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
   });
 
   it('keeps every docs route description unique and within watchdog bounds', () => {
