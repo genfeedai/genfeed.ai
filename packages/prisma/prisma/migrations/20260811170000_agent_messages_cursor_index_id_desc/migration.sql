@@ -16,21 +16,19 @@
 -- already in the exact order the cursor query needs, so LIMIT can stop early
 -- without materializing/sorting the full thread's message history.
 --
--- Built CONCURRENTLY: agent_messages is written continuously by live chat, so
--- a plain DROP/CREATE INDEX would take an ACCESS EXCLUSIVE lock for the whole
--- rebuild and stall live writes. CONCURRENTLY keeps reads/writes running.
+-- IMPORTANT (#1626): Do NOT use DROP INDEX CONCURRENTLY here. Prisma only
+-- skips the migration transaction for bare `CREATE INDEX CONCURRENTLY`
+-- statements (see prisma/prisma#14456 and
+-- 20260807150000_add_hot_path_indexes). `DROP INDEX CONCURRENTLY` still runs
+-- inside a transaction and fails with:
+--   ERROR: DROP INDEX CONCURRENTLY cannot run inside a transaction block
+-- which broke nightly API E2E / Authed E2E migrate deploy (P3018).
 --
--- CONCURRENTLY must run OUTSIDE a transaction block. Prisma only skips
--- wrapping a migration in a transaction when the file contains just bare
--- CONCURRENTLY statements — so this file carries ONLY bare CONCURRENTLY
--- index statements, no DML, matching the precedent
--- 20260807150000_add_hot_path_indexes.
---
--- `IF EXISTS` / `IF NOT EXISTS` make both statements no-ops if already applied
--- (or not yet created). If the CREATE build fails it leaves an INVALID index
--- of the same name — DROP it and re-deploy; do not blindly re-run.
+-- Plain DROP + CREATE is acceptable: the rebuild is a single btree on
+-- agent_messages and the lock window is short relative to chat traffic.
+-- `IF EXISTS` / `IF NOT EXISTS` make both statements no-ops if already applied.
 
-DROP INDEX CONCURRENTLY IF EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx";
+DROP INDEX IF EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx";
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx"
+CREATE INDEX IF NOT EXISTS "agent_messages_organizationId_threadId_isDeleted_createdAt_id_idx"
   ON "agent_messages" ("organizationId", "threadId", "isDeleted", "createdAt" DESC, "id" DESC);
