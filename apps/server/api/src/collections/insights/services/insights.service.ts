@@ -8,6 +8,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { InsightGenerationQueueService } from '@api/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
@@ -16,6 +17,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
@@ -50,7 +52,41 @@ export class InsightsService {
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly llmDispatcherService: LlmDispatcherService,
+    @Optional()
+    private readonly insightGenerationQueue?: InsightGenerationQueueService,
   ) {}
+
+  private capInsightLimit(limit: number): number {
+    return Math.min(Math.max(limit, 1), 50);
+  }
+
+  private activeInsightWhere(organizationId: string, now: Date) {
+    return scopedWhere(organizationId, {
+      isDismissed: false,
+      isRead: false,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    });
+  }
+
+  private toInsightDocument(row: {
+    category?: string | null;
+    data: unknown;
+    expiresAt?: Date | null;
+    isDismissed: boolean;
+    isRead: boolean;
+  }): Insight {
+    const data = this.readObjectRecord(row.data);
+
+    return {
+      ...row,
+      ...data,
+      category: row.category ?? this.readString(data.category),
+      data,
+      expiresAt: row.expiresAt ?? data.expiresAt,
+      isDismissed: row.isDismissed,
+      isRead: row.isRead,
+    } as unknown as Insight;
+  }
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
     return typeof value === 'object' && value !== null
@@ -235,69 +271,68 @@ export class InsightsService {
   async getInsights(
     organizationId: string,
     limit: number = 5,
-    onBilling?: (amount: number) => void,
   ): Promise<Insight[]> {
     try {
-      this.logger.debug('Getting insights', { limit, organizationId });
-
-      const allInsights = await this.prisma.insight.findMany({
-        where: scopedWhere(organizationId, {}),
-        orderBy: { createdAt: 'desc' },
+      const cappedLimit = this.capInsightLimit(limit);
+      this.logger.debug('Getting insights', {
+        limit: cappedLimit,
+        organizationId,
       });
 
-      const now = new Date();
-      const existingInsights = allInsights
-        .filter((i) => {
-          const data = i.data as InsightData;
-          if (data?.isRead || data?.isDismissed) return false;
-          if (data?.expiresAt && new Date(data.expiresAt) <= now) return false;
-          return true;
-        })
-        .slice(0, limit);
+      const rows = await this.prisma.insight.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: cappedLimit,
+        where: this.activeInsightWhere(organizationId, new Date()),
+      });
 
-      if (existingInsights.length >= limit) {
-        return existingInsights as unknown as Insight[];
-      }
-
-      let newInsights: Insight[];
-      try {
-        newInsights = await this.generateInsights(
-          organizationId,
-          limit - existingInsights.length,
-          onBilling,
-        );
-      } catch (error: unknown) {
-        if (!(error instanceof ServiceUnavailableException)) {
-          throw error;
-        }
-
-        return existingInsights as unknown as Insight[];
-      }
-
-      return [...(existingInsights as unknown as Insight[]), ...newInsights];
+      return rows.map((row) => this.toInsightDocument(row));
     } catch (error: unknown) {
       this.logger.error('Failed to get insights', { error });
       throw error;
     }
   }
 
+  async enqueueInsightGenerationIfNeeded(
+    organizationId: string,
+    limit: number = 5,
+  ): Promise<void> {
+    if (!(await this.needsInsightGeneration(organizationId, limit))) {
+      return;
+    }
+
+    await this.insightGenerationQueue?.enqueueGeneration({
+      limit: this.capInsightLimit(limit),
+      organizationId,
+    });
+  }
+
   async needsInsightGeneration(
     organizationId: string,
     limit: number = 5,
   ): Promise<boolean> {
-    const allInsights = await this.prisma.insight.findMany({
-      where: scopedWhere(organizationId, {}),
+    const cappedLimit = this.capInsightLimit(limit);
+    const activeCount = await this.prisma.insight.count({
+      where: this.activeInsightWhere(organizationId, new Date()),
     });
 
-    const now = new Date();
-    const active = allInsights.filter((i) => {
-      const data = i.data as InsightData;
-      if (data?.isRead || data?.isDismissed) return false;
-      if (data?.expiresAt && new Date(data.expiresAt) <= now) return false;
-      return true;
-    });
+    return activeCount < cappedLimit;
+  }
 
-    return active.length < limit;
+  async generateInsightsIfNeeded(
+    organizationId: string,
+    limit: number = 5,
+  ): Promise<Insight[]> {
+    const cappedLimit = this.capInsightLimit(limit);
+    const existing = await this.getInsights(organizationId, cappedLimit);
+    if (existing.length >= cappedLimit) {
+      return existing;
+    }
+
+    const generated = await this.generateInsights(
+      organizationId,
+      cappedLimit - existing.length,
+    );
+    return [...existing, ...generated];
   }
 
   /**
@@ -331,10 +366,14 @@ export class InsightsService {
               ? { isDismissed: dto.isDismissed }
               : {}),
           },
+          ...(dto.isRead !== undefined ? { isRead: dto.isRead } : {}),
+          ...(dto.isDismissed !== undefined
+            ? { isDismissed: dto.isDismissed }
+            : {}),
         },
       });
 
-      return insight as unknown as Insight;
+      return this.toInsightDocument(insight);
     } catch (error: unknown) {
       this.logger.error('Failed to update insight', { error, insightId });
       throw error;
@@ -628,25 +667,31 @@ Confidence: 0-100`;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
+      const payload = {
+        actionableSteps: (insightData.actionableSteps as string[]) || [],
+        category: insightData.type as string,
+        confidence: insightData.confidence as number,
+        description: insightData.description as string,
+        expiresAt: expiresAt.toISOString(),
+        impact: insightData.impact as string,
+        isDismissed: false,
+        isRead: false,
+        relatedMetrics: (insightData.relatedMetrics as string[]) || [],
+        title: insightData.title as string,
+      } satisfies InsightData;
+
       const insight = await this.prisma.insight.create({
         data: {
+          category: payload.category,
+          data: payload,
+          expiresAt,
+          isDismissed: false,
+          isRead: false,
           organizationId,
-          data: {
-            actionableSteps: (insightData.actionableSteps as string[]) || [],
-            category: insightData.type as string,
-            confidence: insightData.confidence as number,
-            description: insightData.description as string,
-            expiresAt: expiresAt.toISOString(),
-            impact: insightData.impact as string,
-            isDismissed: false,
-            isRead: false,
-            relatedMetrics: (insightData.relatedMetrics as string[]) || [],
-            title: insightData.title as string,
-          } satisfies InsightData,
         },
       });
 
-      savedInsights.push(insight as unknown as Insight);
+      savedInsights.push(this.toInsightDocument(insight));
     }
 
     return savedInsights;

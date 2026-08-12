@@ -19,6 +19,7 @@ import {
   AssetCategory,
   AssetParent,
   AssetScope,
+  BatchItemStatus,
   BatchStatus,
   BookmarkCategory,
   BookmarkIntent,
@@ -74,6 +75,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   AssetCategory: ['LOGO', 'BANNER', 'REFERENCE'],
   AssetParent: ['ORGANIZATION', 'INGREDIENT', 'BRAND', 'ARTICLE'],
   AssetScope: ['USER', 'BRAND', 'ORGANIZATION', 'PUBLIC'],
+  BatchItemStatus: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'SKIPPED'],
   BatchStatus: [
     'PENDING',
     'PROCESSING',
@@ -252,6 +254,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   AssetCategory,
   AssetParent,
   AssetScope,
+  BatchItemStatus,
   BatchStatus,
   BookmarkCategory,
   BookmarkIntent,

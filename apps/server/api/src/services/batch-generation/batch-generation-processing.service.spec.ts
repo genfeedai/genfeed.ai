@@ -117,6 +117,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
           provide: PrismaService,
           useValue: {
             batch: batchDelegate,
+            batchItem: { upsert: vi.fn().mockResolvedValue({}) },
             credential: credentialDelegate,
           },
         },
@@ -479,6 +480,7 @@ describe('BatchGenerationProcessingService resume', () => {
           provide: PrismaService,
           useValue: {
             batch: batchDelegate,
+            batchItem: { upsert: vi.fn().mockResolvedValue({}) },
             credential: { findFirst: vi.fn().mockResolvedValue(null) },
           },
         },

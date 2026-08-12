@@ -1,11 +1,6 @@
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
-import {
-  BatchItemStatus,
-  BatchStatus,
-  ContentFormat,
-  ReviewDecision,
-} from '@genfeedai/enums';
+import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -13,17 +8,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * Locks the query bounds that keep cold `/auth/bootstrap/overview` cheap.
  */
 describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
-  const batch = {
+  const batchItem = {
     findMany: vi.fn(),
+    groupBy: vi.fn(),
   };
 
   let service: BatchGenerationReviewService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    batch.findMany.mockResolvedValue([]);
+    batchItem.findMany.mockResolvedValue([]);
+    batchItem.groupBy.mockResolvedValue([]);
     service = new BatchGenerationReviewService(
-      { batch } as never,
+      { batchItem } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       {} as never,
@@ -32,82 +29,62 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
     );
   });
 
-  it('scans only recent non-cancelled batches with a hard take and slim select', async () => {
+  it('counts and pages from typed batch_items columns, not batch JSON', async () => {
     await service.getReviewInboxSummary('org-1', 'brand-1', 5);
 
-    expect(batch.findMany).toHaveBeenCalledTimes(1);
-    expect(batch.findMany).toHaveBeenCalledWith(
+    expect(batchItem.groupBy).toHaveBeenCalledWith({
+      _count: { _all: true },
+      by: ['status', 'reviewDecision'],
+      where: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(batchItem.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: { createdAt: 'desc' },
-        select: {
-          createdAt: true,
-          id: true,
-          items: true,
-        },
-        take: 50,
+        take: 5,
         where: expect.objectContaining({
           brandId: 'brand-1',
           isDeleted: false,
           organizationId: 'org-1',
-          status: {
-            in: [
-              BatchStatus.PENDING,
-              BatchStatus.PROCESSING,
-              BatchStatus.COMPLETED,
-              BatchStatus.PARTIAL,
-              BatchStatus.FAILED,
-            ],
-          },
+          reviewDecision: null,
+          status: BatchItemStatus.COMPLETED,
         }),
       }),
     );
   });
 
   it('counts ready items and returns the newest ready previews only', async () => {
-    batch.findMany.mockResolvedValue([
+    batchItem.groupBy.mockResolvedValue([
       {
-        createdAt: new Date('2026-08-12T12:00:00.000Z'),
-        id: 'batch-new',
-        items: [
-          {
-            createdAt: '2026-08-12T11:00:00.000Z',
-            format: ContentFormat.IMAGE,
-            id: 'ready-new',
-            platform: 'instagram',
-            postId: 'post-new',
-            reviewDecision: ReviewDecision.UNSET,
-            status: BatchItemStatus.COMPLETED,
-          },
-          {
-            format: ContentFormat.IMAGE,
-            id: 'pending-1',
-            platform: 'instagram',
-            reviewDecision: ReviewDecision.UNSET,
-            status: BatchItemStatus.PENDING,
-          },
-        ],
+        _count: { _all: 2 },
+        reviewDecision: null,
+        status: BatchItemStatus.COMPLETED,
       },
       {
-        createdAt: new Date('2026-08-11T12:00:00.000Z'),
-        id: 'batch-old',
-        items: [
-          {
-            createdAt: '2026-08-11T10:00:00.000Z',
-            format: ContentFormat.REEL,
-            id: 'ready-old',
-            platform: 'tiktok',
-            postId: 'post-old',
-            reviewDecision: ReviewDecision.UNSET,
-            status: BatchItemStatus.COMPLETED,
-          },
-          {
-            format: ContentFormat.IMAGE,
-            id: 'approved-1',
-            platform: 'twitter',
-            reviewDecision: ReviewDecision.APPROVED,
-            status: BatchItemStatus.COMPLETED,
-          },
-        ],
+        _count: { _all: 1 },
+        reviewDecision: null,
+        status: BatchItemStatus.PENDING,
+      },
+      {
+        _count: { _all: 1 },
+        reviewDecision: 'APPROVED',
+        status: BatchItemStatus.COMPLETED,
+      },
+    ]);
+    batchItem.findMany.mockResolvedValue([
+      {
+        batchId: 'batch-new',
+        createdAt: new Date('2026-08-12T11:00:00.000Z'),
+        data: {
+          format: ContentFormat.IMAGE,
+          platform: 'instagram',
+          postId: 'post-new',
+        },
+        id: 'ready-new',
+        status: BatchItemStatus.COMPLETED,
       },
     ]);
 
@@ -126,6 +103,9 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
     findFirst: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
+  };
+  const batchItem = {
+    upsert: vi.fn().mockResolvedValue({}),
   };
   const summaryService = {
     toBatchSummary: vi.fn((row) => row),
@@ -146,7 +126,7 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
     });
     batch.updateMany.mockResolvedValue({ count: 1 });
     service = new BatchGenerationReviewService(
-      { batch } as never,
+      { batch, batchItem } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       {} as never,

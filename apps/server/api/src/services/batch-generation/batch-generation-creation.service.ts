@@ -9,6 +9,7 @@ import type {
   BatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
@@ -116,6 +117,12 @@ export class BatchGenerationCreationService {
         userId,
       },
     })) as BatchWithConfig;
+    await persistBatchItemRows(this.prisma, {
+      batchId: batch.id,
+      brandId: dto.brandId,
+      items,
+      organizationId: orgId,
+    });
 
     this.logger.log(`Batch created: ${batch.id}`, {
       batchId: batch.id,
@@ -195,6 +202,12 @@ export class BatchGenerationCreationService {
         },
       })) as BatchWithConfig;
       createdBatchId = batch.id;
+      await persistBatchItemRows(this.prisma, {
+        batchId: batch.id,
+        brandId: dto.brandId,
+        items: batchItems,
+        organizationId: orgId,
+      });
 
       await this.linkManualReviewPosts(
         batch.id,

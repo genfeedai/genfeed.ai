@@ -35,6 +35,7 @@ import {
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
   HEYGEN_POLL_QUEUE,
+  INSIGHT_GENERATION_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
@@ -219,6 +220,15 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: SIGNUP_PREFILL_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: INSIGHT_GENERATION_QUEUE,
       },
       {
         defaultJobOptions: {

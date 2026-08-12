@@ -19,6 +19,7 @@ import { CreativePatternsModule } from '@api/collections/creative-patterns/creat
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { InsightsModule } from '@api/collections/insights/insights.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
@@ -98,6 +99,7 @@ import { ClipFactoryProcessor } from '@workers/processors/api/queues/clip-factor
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
+import { InsightGenerationProcessor } from '@workers/processors/api/queues/insight-generation/insight-generation.processor';
 import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
@@ -143,6 +145,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => CreativePatternsModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => InsightsModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OutreachCampaignsModule),
@@ -259,6 +262,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     CreditDeductionProcessor,
     EmailDigestProcessor,
     HeygenPollProcessor,
+    InsightGenerationProcessor,
     LifecycleEmailProcessor,
     PatternExtractionProcessor,
     PostPublishProcessor,

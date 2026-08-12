@@ -14,6 +14,7 @@ import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,
 } from './heygen-poll-job.interface';
+import { INSIGHT_GENERATION_JOB_NAME } from './insight-generation-job.interface';
 import { POST_PUBLISH_JOB_NAME } from './post-publish-job.interface';
 
 describe('job-data constants', () => {
@@ -35,6 +36,10 @@ describe('job-data constants', () => {
 
   it('preserves the post-publish job name', () => {
     expect(POST_PUBLISH_JOB_NAME).toBe('publish-post');
+  });
+
+  it('preserves the insight-generation job name', () => {
+    expect(INSIGHT_GENERATION_JOB_NAME).toBe('generate-insights');
   });
 
   describe('avatar video providers', () => {

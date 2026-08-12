@@ -64,6 +64,7 @@ export const WORKSPACE_TASK_QUEUE = 'workspace-task';
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 export const SIGNUP_PREFILL_QUEUE = 'signup-prefill';
+export const INSIGHT_GENERATION_QUEUE = 'insight-generation';
 
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
@@ -107,6 +108,7 @@ export const ALL_QUEUE_NAMES = [
   HEYGEN_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   SIGNUP_PREFILL_QUEUE,
+  INSIGHT_GENERATION_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

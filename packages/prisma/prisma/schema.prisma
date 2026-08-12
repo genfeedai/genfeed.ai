@@ -419,6 +419,14 @@ enum BatchStatus {
   CANCELLED
 }
 
+enum BatchItemStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
 enum PlatformRole {
   USER
   SUPERADMIN
@@ -697,6 +705,7 @@ model Organization {
   templates                     Template[]
   templateUsages                TemplateUsage[]
   batches                       Batch[]
+  batchItems                    BatchItem[]
   profiles                      Profile[]
   activities                    Activity[]
   apiKeys                       ApiKey[]
@@ -835,6 +844,7 @@ model Brand {
   proactiveLeads             Lead[]                     @relation("lead_proactive_brand")
   contentPlans               ContentPlan[]
   batches                    Batch[]
+  batchItems                 BatchItem[]
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
   schedules                  Schedule[]
@@ -3990,6 +4000,7 @@ model ContentPlan {
   createdBy      User?        @relation(fields: [createdById], references: [id])
   label          String?
   config         Json         @default("{}")
+  executedCount  Int          @default(0)
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -4009,11 +4020,15 @@ model ContentPlanItem {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   data           Json         @default("{}")
+  status         String       @default("pending")
+  scheduledAt    DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt])
+  @@index([organizationId, isDeleted, status, scheduledAt], map: "content_plan_items_org_status_scheduled_idx")
+  @@index([planId, isDeleted, scheduledAt], map: "content_plan_items_plan_scheduled_idx")
   @@map("content_plan_items")
 }
 
@@ -4092,11 +4107,16 @@ model Insight {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   data           Json         @default("{}")
+  category       String?
+  isRead         Boolean      @default(false)
+  isDismissed    Boolean      @default(false)
+  expiresAt      DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isRead, isDismissed, expiresAt, createdAt(sort: Desc)], map: "insights_org_active_created_at_idx")
   @@map("insights")
 }
 
@@ -5015,11 +5035,34 @@ model Batch {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  batchItems BatchItem[]
+
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
   @@index([isDeleted, settlementShortfall], map: "batches_deleted_settlement_shortfall_idx")
   @@map("batches")
+}
+
+model BatchItem {
+  id             String          @id
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?          @relation(fields: [brandId], references: [id])
+  batchId        String
+  batch          Batch           @relation(fields: [batchId], references: [id])
+  status         BatchItemStatus @default(PENDING)
+  reviewDecision ReviewDecision?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  isDeleted      Boolean         @default(false)
+  data           Json            @default("{}")
+
+  @@index([organizationId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "batch_items_org_status_review_created_idx")
+  @@index([organizationId, brandId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "batch_items_org_brand_status_review_created_idx")
+  @@index([batchId, isDeleted, createdAt], map: "batch_items_batch_created_idx")
+  @@map("batch_items")
 }
 
 // ═══════════════════════════════════════════════════════════════

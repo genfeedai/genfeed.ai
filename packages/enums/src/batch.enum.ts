@@ -19,8 +19,11 @@ export enum BatchStatus {
 }
 
 /**
- * Per-item status stored inside the batch `items` JSON payload (not a Prisma
- * enum column). Still SCREAMING_SNAKE for consistency with BatchStatus.
+ * Per-item status. Values MUST match the Prisma/Postgres `BatchItemStatus`
+ * enum exactly (SCREAMING_SNAKE). The payload still lives on `BatchItem.data`
+ * / `Batch.items`; status itself is a typed column.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BatchItemStatus`
  */
 export enum BatchItemStatus {
   PENDING = 'PENDING',

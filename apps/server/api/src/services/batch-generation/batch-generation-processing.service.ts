@@ -11,6 +11,7 @@ import {
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
 import {
   fromPrismaBatchStatus,
   toPrismaBatchStatus,
@@ -200,6 +201,14 @@ export class BatchGenerationProcessingService {
         status: toPrismaBatchStatus(BatchStatus.PROCESSING),
       }),
     });
+    if (finalized.count === 1) {
+      await persistBatchItemRows(this.prisma, {
+        batchId,
+        brandId: batchRecord.brandId,
+        items: batchItems,
+        organizationId: orgId,
+      });
+    }
 
     if (finalized.count !== 1) {
       const currentBatch = await this.findScopedBatch(batchId, orgId);
@@ -285,6 +294,7 @@ export class BatchGenerationProcessingService {
       const stillOwned = await this.persistItemProgress(
         batchId,
         orgId,
+        batchRecord.brandId,
         batchConfig,
         batchItems,
         completedCount,
@@ -537,6 +547,7 @@ export class BatchGenerationProcessingService {
   private async persistItemProgress(
     batchId: string,
     orgId: string,
+    brandId: string | null | undefined,
     batchConfig: BatchConfig,
     batchItems: BatchItemFull[],
     completedCount: number,
@@ -558,6 +569,14 @@ export class BatchGenerationProcessingService {
         status: toPrismaBatchStatus(BatchStatus.PROCESSING),
       }),
     });
+    if (persisted.count === 1) {
+      await persistBatchItemRows(this.prisma, {
+        batchId,
+        brandId,
+        items: batchItems,
+        organizationId: orgId,
+      });
+    }
 
     return persisted.count === 1;
   }

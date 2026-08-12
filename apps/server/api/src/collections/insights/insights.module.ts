@@ -10,6 +10,7 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import { ModelsModule } from '@api/collections/models/models.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { InsightGenerationQueueModule } from '@api/queues/insight-generation/insight-generation-queue.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -22,6 +23,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ByokModule),
     forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => InsightGenerationQueueModule),
     forwardRef(() => LlmDispatcherModule),
     forwardRef(() => ModelsModule),
   ],

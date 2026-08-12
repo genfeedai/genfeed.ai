@@ -8,6 +8,7 @@ import {
   type ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -43,104 +44,78 @@ export class BatchGenerationReviewService {
   /**
    * Bootstrap/overview review counts for an org (or brand).
    *
-   * Previously loaded **every** batch row for the org and walked the full
-   * JSON items array in memory — that is O(all historical batches) on every
-   * cold `/auth/bootstrap/overview` hit. Cap to the most recent review-relevant
-   * batches, project only the columns we need, and skip cancelled work.
+   * Counts and recent ready items come from typed `batch_items` columns —
+   * `groupBy` for the counters and a capped `findMany` for the preview strip.
+   * The previous path loaded every batch JSON blob and filtered in JS.
    */
   async getReviewInboxSummary(
     orgId: string,
     brandId?: string,
     limit = 5,
   ): Promise<ReviewInboxSummary> {
-    /** Hard ceiling so one noisy org cannot pull an unbounded JSON payload. */
-    const BATCH_SCAN_LIMIT = 50;
+    const recentLimit = Math.max(1, Math.min(limit, 10));
+    const itemWhere = scopedWhere(orgId, {
+      ...(brandId ? { brandId } : {}),
+    });
 
-    const batches = (await this.prisma.batch.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        createdAt: true,
-        id: true,
-        items: true,
-      },
-      take: BATCH_SCAN_LIMIT,
-      where: scopedWhere(orgId, {
-        ...(brandId ? { brandId } : {}),
-        // Cancelled runs never contribute review items; exclude them so the
-        // scan stays on the active/completed queue.
-        status: {
-          in: [
-            toPrismaBatchStatus(BatchStatus.PENDING),
-            toPrismaBatchStatus(BatchStatus.PROCESSING),
-            toPrismaBatchStatus(BatchStatus.COMPLETED),
-            toPrismaBatchStatus(BatchStatus.PARTIAL),
-            toPrismaBatchStatus(BatchStatus.FAILED),
-          ],
-        },
+    const [groups, readyRows] = await Promise.all([
+      this.prisma.batchItem.groupBy({
+        _count: { _all: true },
+        by: ['status', 'reviewDecision'],
+        where: itemWhere,
       }),
-    })) as Array<Pick<BatchWithConfig, 'createdAt' | 'id' | 'items'>>;
+      this.prisma.batchItem.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: recentLimit,
+        where: scopedWhere(orgId, {
+          ...(brandId ? { brandId } : {}),
+          reviewDecision: null,
+          status: BatchItemStatus.COMPLETED,
+        }),
+      }),
+    ]);
 
     let approvedCount = 0;
     let rejectedCount = 0;
     let changesRequestedCount = 0;
     let pendingCount = 0;
     let readyCount = 0;
-    const readyItems: ReviewInboxItemSummary[] = [];
-    const recentLimit = Math.max(1, Math.min(limit, 10));
 
-    for (const batch of batches) {
-      const batchItems = cloneBatchItems(batch.items);
-      for (const item of batchItems) {
-        const decision = item.reviewDecision;
-        const status = item.status;
-
-        if (decision === ReviewDecision.APPROVED) {
-          approvedCount++;
-        } else if (decision === ReviewDecision.REJECTED) {
-          rejectedCount++;
-        } else if (decision === ReviewDecision.REQUEST_CHANGES) {
-          changesRequestedCount++;
-        } else if (
-          status === BatchItemStatus.PROCESSING ||
-          status === BatchItemStatus.PENDING
-        ) {
-          pendingCount++;
-        } else if (
-          status === BatchItemStatus.COMPLETED &&
-          decision === ReviewDecision.UNSET
-        ) {
-          readyCount++;
-          readyItems.push({
-            batchId: batch.id,
-            createdAt: item.createdAt ?? batch.createdAt.toISOString(),
-            format: item.format,
-            id: item.id,
-            mediaUrl: item.mediaUrl,
-            platform: item.platform,
-            postId: item.postId,
-            reviewDecision: ReviewDecision.UNSET,
-            status: item.status,
-            summary:
-              item.caption ??
-              item.prompt ??
-              `${item.format.charAt(0).toUpperCase()}${item.format.slice(1)} ready for review`,
-          });
-        }
+    for (const group of groups) {
+      const count = group._count._all;
+      if (group.reviewDecision === PersistedReviewDecision.APPROVED) {
+        approvedCount += count;
+        continue;
+      }
+      if (group.reviewDecision === PersistedReviewDecision.REJECTED) {
+        rejectedCount += count;
+        continue;
+      }
+      if (group.reviewDecision === PersistedReviewDecision.REQUEST_CHANGES) {
+        changesRequestedCount += count;
+        continue;
+      }
+      if (
+        group.status === BatchItemStatus.PENDING ||
+        group.status === BatchItemStatus.PROCESSING
+      ) {
+        pendingCount += count;
+        continue;
+      }
+      if (
+        group.status === BatchItemStatus.COMPLETED &&
+        group.reviewDecision == null
+      ) {
+        readyCount += count;
       }
     }
-
-    // Sort only the ready slice from the bounded scan (≤50 batches).
-    readyItems.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
 
     return {
       approvedCount,
       changesRequestedCount,
       pendingCount,
       readyCount,
-      recentItems: readyItems.slice(0, recentLimit),
+      recentItems: readyRows.map((row) => this.toReviewInboxItemSummary(row)),
       rejectedCount,
     };
   }
@@ -324,6 +299,12 @@ export class BatchGenerationReviewService {
           message: `Batch ${batchId} disappeared before approval completed`,
         });
       }
+      await persistBatchItemRows(transaction, {
+        batchId,
+        brandId: batchRecord.brandId,
+        items: batchItems,
+        organizationId: orgId,
+      });
 
       const updated = await transaction.batch.findFirst({
         where: scopedWhere(orgId, { id: batchId }),
@@ -357,6 +338,40 @@ export class BatchGenerationReviewService {
         ...(versionPinId ? { versionPinId } : {}),
       },
     ];
+  }
+
+  private toReviewInboxItemSummary(row: {
+    batchId: string;
+    createdAt: Date;
+    data: Prisma.JsonValue;
+    id: string;
+    status: string;
+  }): ReviewInboxItemSummary {
+    const data =
+      typeof row.data === 'object' &&
+      row.data !== null &&
+      !Array.isArray(row.data)
+        ? (row.data as Record<string, unknown>)
+        : {};
+    const format = typeof data.format === 'string' ? data.format : 'image';
+    const caption = typeof data.caption === 'string' ? data.caption : undefined;
+    const prompt = typeof data.prompt === 'string' ? data.prompt : undefined;
+
+    return {
+      batchId: row.batchId,
+      createdAt: row.createdAt.toISOString(),
+      format,
+      id: row.id,
+      mediaUrl: typeof data.mediaUrl === 'string' ? data.mediaUrl : undefined,
+      platform: typeof data.platform === 'string' ? data.platform : undefined,
+      postId: typeof data.postId === 'string' ? data.postId : undefined,
+      reviewDecision: ReviewDecision.UNSET,
+      status: row.status,
+      summary:
+        caption ??
+        prompt ??
+        `${format.charAt(0).toUpperCase()}${format.slice(1)} ready for review`,
+    };
   }
 
   private getSelectedPostIds(
@@ -453,6 +468,12 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
+    await persistBatchItemRows(this.prisma, {
+      batchId,
+      brandId: batchRecord.brandId,
+      items: batchItems,
+      organizationId: orgId,
+    });
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
       { where: scopedWhere(orgId, { id: batchId }) },
@@ -542,6 +563,12 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
+    await persistBatchItemRows(this.prisma, {
+      batchId,
+      brandId: batchRecord.brandId,
+      items: batchItems,
+      organizationId: orgId,
+    });
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
       { where: scopedWhere(orgId, { id: batchId }) },
@@ -586,6 +613,12 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
+    await persistBatchItemRows(this.prisma, {
+      batchId,
+      brandId: batchRecord.brandId,
+      items: batchItems,
+      organizationId: orgId,
+    });
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
       { where: scopedWhere(orgId, { id: batchId }) },

@@ -65,15 +65,10 @@ export class InsightsController {
   }
 
   /**
-   * Get AI insights
+   * Get AI insights. Read-only: generation happens on a queued, per-org job.
    */
   @Get()
-  @UseGuards(SubscriptionGuard, CreditsGuard)
-  @Credits({
-    description: 'AI insights generation (text model)',
-    source: ActivitySource.SCRIPT,
-  })
-  @DeferCreditsUntilModelResolution()
+  @UseGuards(SubscriptionGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getInsights(
     @Req() req: Request,
@@ -81,26 +76,15 @@ export class InsightsController {
     @Query('limit') limit?: string,
   ) {
     const { organization } = getPublicMetadata(user);
-    if (
-      await this.insightsService.needsInsightGeneration(
-        organization,
-        limit ? parseInt(limit, 10) : 5,
-      )
-    ) {
-      await this.assertOrganizationCreditsAvailable(
-        organization,
-        await this.getDefaultTextMinimumCredits(),
-      );
-    }
-    let billedCredits = 0;
+    const parsedLimit = limit ? parseInt(limit, 10) : 5;
     const docs = await this.insightsService.getInsights(
       organization,
-      limit ? parseInt(limit, 10) : 5,
-      (amount) => {
-        billedCredits += amount;
-      },
+      parsedLimit,
     );
-    finalizeDeferredTextCredits(req, billedCredits);
+    await this.insightsService.enqueueInsightGenerationIfNeeded(
+      organization,
+      parsedLimit,
+    );
     return serializeCollection(req, InsightSerializer, { docs });
   }
 
