@@ -173,6 +173,11 @@ export default function RepliesPage() {
           ? `Auto-replies enabled for ${label}`
           : 'Auto-replies updated',
       );
+      if (result.xActivity?.mode === 'live') {
+        toast.message('X real-time activity (XAA) connected');
+      } else if (result.xActivity?.message) {
+        toast.message(`XAA: ${result.xActivity.message}`);
+      }
       await loadInbox();
     } catch (error: unknown) {
       logger.error('Enable auto-replies failed', error);

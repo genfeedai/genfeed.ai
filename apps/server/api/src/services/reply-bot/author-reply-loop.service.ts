@@ -119,8 +119,12 @@ export class AuthorReplyLoopService {
         platform,
       );
 
+      let xActivity: EnsureAuthorResponderResult['xActivity'];
       if (platform === ReplyBotPlatform.TWITTER) {
-        void this.trySubscribeXActivity(params.organizationId, params.brandId);
+        xActivity = await this.trySubscribeXActivity(
+          params.organizationId,
+          params.brandId,
+        );
       }
 
       return {
@@ -129,20 +133,17 @@ export class AuthorReplyLoopService {
         isActive: Boolean(refreshed?.isActive ?? existing.isActive),
         maxAgeHours,
         platform,
+        ...(xActivity ? { xActivity } : {}),
       };
     }
 
     const credentialId =
       params.credentialId ??
-      (platform === ReplyBotPlatform.YOUTUBE
-        ? await this.findYouTubeCredentialId(
-            params.organizationId,
-            params.brandId,
-          )
-        : await this.findTwitterCredentialId(
-            params.organizationId,
-            params.brandId,
-          ));
+      (await this.findBrandCredentialId(
+        params.organizationId,
+        params.brandId,
+        platform,
+      ));
 
     if (!credentialId && params.isActive !== false) {
       throw new BadRequestException(
@@ -178,8 +179,12 @@ export class AuthorReplyLoopService {
       userId: params.userId,
     });
 
+    let xActivity: EnsureAuthorResponderResult['xActivity'];
     if (platform === ReplyBotPlatform.TWITTER) {
-      void this.trySubscribeXActivity(params.organizationId, params.brandId);
+      xActivity = await this.trySubscribeXActivity(
+        params.organizationId,
+        params.brandId,
+      );
     }
 
     return {
@@ -188,30 +193,38 @@ export class AuthorReplyLoopService {
       isActive: Boolean(created.isActive),
       maxAgeHours,
       platform,
+      ...(xActivity ? { xActivity } : {}),
     };
   }
 
   /**
-   * Connect-later: attempt XAA/AAA subscription for the brand's X user.
+   * Attempt XAA/AAA subscription for the brand's X user (skipped when env off).
    */
   private async trySubscribeXActivity(
     organizationId: string,
     brandId: string,
-  ): Promise<void> {
+  ): Promise<EnsureAuthorResponderResult['xActivity']> {
     try {
-      const credentialId = await this.findTwitterCredentialId(
+      const credentialId = await this.findBrandCredentialId(
         organizationId,
         brandId,
+        ReplyBotPlatform.TWITTER,
       );
       if (!credentialId) {
-        return;
+        return {
+          message: 'No X credential for XAA subscription',
+          mode: 'skipped',
+        };
       }
       const credential = await this.credentialsService.findOne({
         id: credentialId,
         organizationId,
       });
       if (!credential?.externalId || !credential.accessToken) {
-        return;
+        return {
+          message: 'X credential missing externalId or accessToken',
+          mode: 'skipped',
+        };
       }
       let userAccessToken: string | undefined;
       try {
@@ -219,16 +232,26 @@ export class AuthorReplyLoopService {
       } catch {
         userAccessToken = credential.accessToken;
       }
-      await this.xActivitySubscriptionService.ensureSubscriptionForUser({
-        externalUserId: credential.externalId,
-        userAccessToken,
-      });
+      const result =
+        await this.xActivitySubscriptionService.ensureSubscriptionForUser({
+          externalUserId: credential.externalId,
+          userAccessToken,
+        });
+      return {
+        message: result.message,
+        mode: result.mode,
+      };
     } catch (error: unknown) {
       this.logger.warn(`${this.constructorName} X activity subscribe skipped`, {
         brandId,
         error: error instanceof Error ? error.message : 'unknown',
         organizationId,
       });
+      return {
+        message:
+          error instanceof Error ? error.message : 'XAA subscribe failed',
+        mode: 'skipped',
+      };
     }
   }
 

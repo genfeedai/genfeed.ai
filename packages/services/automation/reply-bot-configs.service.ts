@@ -87,6 +87,10 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     isActive: boolean;
     maxAgeHours: number;
     platform: string;
+    xActivity?: {
+      message: string;
+      mode: 'live' | 'skipped';
+    };
   }> {
     const response = await this.instance.post<{
       botConfigId: string;
@@ -94,6 +98,10 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
       isActive: boolean;
       maxAgeHours: number;
       platform: string;
+      xActivity?: {
+        message: string;
+        mode: 'live' | 'skipped';
+      };
     }>('author-reply/ensure', params);
     return response.data;
   }
@@ -175,7 +183,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
-   * Schedule 24h delayed post-watch series (call after publish when wiring).
+   * Schedule 24h delayed post-watch series (X publish + YouTube publish hooks).
    */
   async schedulePostWatch(params: {
     brandId: string;

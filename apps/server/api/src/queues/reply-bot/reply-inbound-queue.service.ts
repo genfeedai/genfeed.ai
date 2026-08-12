@@ -46,7 +46,8 @@ export class ReplyInboundQueueService {
   }
 
   /**
-   * Schedule the 24h post-watch series for an owned post (connect later: call on publish).
+   * Schedule the 24h post-watch series for an owned post (X or YouTube).
+   * Called from publish hooks and the author-reply schedule API.
    */
   async schedulePostWatch(params: {
     brandId: string;

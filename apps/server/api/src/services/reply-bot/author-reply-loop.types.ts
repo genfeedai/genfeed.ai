@@ -36,6 +36,11 @@ export type EnsureAuthorResponderResult = {
   isActive: boolean;
   maxAgeHours: number;
   platform: string;
+  /** X Activity API subscription outcome when enabling X replies. */
+  xActivity?: {
+    message: string;
+    mode: 'live' | 'skipped';
+  };
 };
 
 export type AuthorReplyDraftResult = {

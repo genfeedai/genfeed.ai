@@ -214,7 +214,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   }
 
   /**
-   * Schedule 24h delayed post-watch series (pipe for publish hook — connect later).
+   * Schedule 24h delayed post-watch series (also called from publish hooks).
    */
   @Post('author-reply/schedule-post-watch')
   @HttpCode(HttpStatus.OK)
