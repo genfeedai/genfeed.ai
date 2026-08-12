@@ -6,6 +6,7 @@ import { Timeframe } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockInsightDelegate = {
+  count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
@@ -35,17 +36,23 @@ describe('InsightsService', () => {
 
   beforeEach(() => {
     delegate = {
+      count: vi.fn().mockResolvedValue(0),
       create: vi.fn().mockImplementation(({ data }) => ({
         createdAt: new Date('2026-07-15T00:00:00.000Z'),
         id: 'generated-insight',
         isDeleted: false,
+        isDismissed: false,
+        isRead: false,
         ...data,
       })),
       findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(existing),
-      update: vi
-        .fn()
-        .mockImplementation(({ data }) => ({ ...existing, ...data })),
+      update: vi.fn().mockImplementation(({ data }) => ({
+        ...existing,
+        isDismissed: false,
+        isRead: false,
+        ...data,
+      })),
     };
     llmDispatcherService = {
       chatCompletion: vi.fn().mockResolvedValue({
@@ -96,8 +103,71 @@ describe('InsightsService', () => {
   });
 
   describe('getInsights', () => {
+    it('reads a capped active window from typed columns and does not generate', async () => {
+      const storedInsight = {
+        ...existing,
+        category: 'opportunity',
+        expiresAt: new Date('2026-08-20T00:00:00.000Z'),
+        isDismissed: false,
+        isRead: false,
+        data: {
+          confidence: 75,
+          description: 'Stored insight',
+          impact: 'medium',
+          title: 'Stored insight',
+        },
+      };
+      delegate.findMany.mockResolvedValue([storedInsight]);
+
+      const result = await service.getInsights('org-1', 2);
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+        where: expect.objectContaining({
+          isDeleted: false,
+          isDismissed: false,
+          isRead: false,
+          organizationId: 'org-1',
+        }),
+      });
+      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        category: 'opportunity',
+        isRead: false,
+        title: 'Stored insight',
+      });
+    });
+
+    it('returns an empty recoverable read when nothing is stored', async () => {
+      await expect(service.getInsights('org-1', 5)).resolves.toEqual([]);
+      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('needsInsightGeneration', () => {
+    it('counts active rows instead of loading the full history', async () => {
+      delegate.count.mockResolvedValue(1);
+
+      await expect(service.needsInsightGeneration('org-1', 5)).resolves.toBe(
+        true,
+      );
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          isDeleted: false,
+          isDismissed: false,
+          isRead: false,
+          organizationId: 'org-1',
+        }),
+      });
+      expect(delegate.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('generateInsightsIfNeeded', () => {
     it('uses the authenticated LLM dispatcher and persists generated insights in organization scope', async () => {
-      const result = await service.getInsights('org-1', 1);
+      const result = await service.generateInsightsIfNeeded('org-1', 1);
 
       expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -106,63 +176,23 @@ describe('InsightsService', () => {
         }),
         'org-1',
       );
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-        where: { isDeleted: false, organizationId: 'org-1' },
-      });
       expect(delegate.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ organizationId: 'org-1' }),
+        data: expect.objectContaining({
+          isDismissed: false,
+          isRead: false,
+          organizationId: 'org-1',
+        }),
       });
       expect(result).toHaveLength(1);
     });
 
-    it('returns an empty recoverable read when no insights are generated', async () => {
-      llmDispatcherService.chatCompletion.mockResolvedValue({
-        choices: [{ message: { content: '{"insights":[]}' } }],
-      });
-
-      await expect(service.getInsights('org-1', 5)).resolves.toEqual([]);
-    });
-
-    it('returns existing insights when the provider is unavailable', async () => {
-      const storedInsight = {
-        ...existing,
-        data: {
-          confidence: 75,
-          description: 'Stored insight',
-          impact: 'medium',
-          isDismissed: false,
-          isRead: false,
-          title: 'Stored insight',
-        },
-      };
-      delegate.findMany.mockResolvedValue([storedInsight]);
-      llmDispatcherService.chatCompletion.mockRejectedValue(
-        new Error('upstream body includes api_key=secret-value'),
-      );
-
-      await expect(service.getInsights('org-1', 2)).resolves.toEqual([
-        storedInsight,
-      ]);
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Insight generation provider unavailable',
-        {
-          organizationId: 'org-1',
-          providerStatus: 'unavailable',
-        },
-      );
-      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
-        'secret-value',
-      );
-    });
-
     it('does not call a provider when enough active insights already exist', async () => {
       delegate.findMany.mockResolvedValue([
-        { ...existing, id: 'insight-1' },
-        { ...existing, id: 'insight-2' },
+        { ...existing, id: 'insight-1', isDismissed: false, isRead: false },
+        { ...existing, id: 'insight-2', isDismissed: false, isRead: false },
       ]);
 
-      const result = await service.getInsights('org-1', 2);
+      const result = await service.generateInsightsIfNeeded('org-1', 2);
 
       expect(result).toHaveLength(2);
       expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
@@ -174,7 +204,10 @@ describe('InsightsService', () => {
       await service.update('insight-1', 'org-1', { isRead: true });
 
       expect(delegate.update).toHaveBeenCalledWith({
-        data: { data: { forecast: { value: 42 }, isRead: true } },
+        data: {
+          data: { forecast: { value: 42 }, isRead: true },
+          isRead: true,
+        },
         where: { id: 'insight-1' },
       });
     });
@@ -185,6 +218,7 @@ describe('InsightsService', () => {
       expect(delegate.update).toHaveBeenCalledWith({
         data: {
           data: { forecast: { value: 42 }, isDismissed: true, isRead: false },
+          isDismissed: true,
         },
         where: { id: 'insight-1' },
       });
@@ -199,6 +233,8 @@ describe('InsightsService', () => {
       expect(delegate.update).toHaveBeenCalledWith({
         data: {
           data: { forecast: { value: 42 }, isDismissed: true, isRead: true },
+          isDismissed: true,
+          isRead: true,
         },
         where: { id: 'insight-1' },
       });

@@ -10,6 +10,7 @@ import {
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
+import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
@@ -220,7 +221,7 @@ export class BatchGenerationReconcileService {
     userId: string;
   }): Promise<void> {
     const batch = await this.prisma.batch.findFirst({
-      select: { config: true, items: true },
+      select: { brandId: true, config: true, items: true },
       where: scopedWhere(params.organizationId, { id: params.batchId }),
     });
 
@@ -261,6 +262,12 @@ export class BatchGenerationReconcileService {
         status: toPrismaBatchStatus(BatchStatus.FAILED),
       },
       where: scopedWhere(params.organizationId, { id: params.batchId }),
+    });
+    await persistBatchItemRows(this.prisma, {
+      batchId: params.batchId,
+      brandId: batch.brandId,
+      items,
+      organizationId: params.organizationId,
     });
 
     await this.creditsService.settleBatchCredits({

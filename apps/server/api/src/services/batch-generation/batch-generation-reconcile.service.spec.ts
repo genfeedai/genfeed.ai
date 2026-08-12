@@ -62,7 +62,13 @@ describe('BatchGenerationReconcileService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BatchGenerationReconcileService,
-        { provide: PrismaService, useValue: { batch: batchDelegate } },
+        {
+          provide: PrismaService,
+          useValue: {
+            batch: batchDelegate,
+            batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+          },
+        },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },

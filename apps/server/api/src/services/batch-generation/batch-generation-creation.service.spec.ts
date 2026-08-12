@@ -8,6 +8,7 @@ describe('BatchGenerationCreationService manual review Post linking', () => {
       create: vi.fn(),
       updateMany: vi.fn(),
     },
+    batchItem: { upsert: vi.fn().mockResolvedValue({}) },
     ingredient: { findMany: vi.fn() },
     post: {
       findMany: vi.fn(),
@@ -124,6 +125,7 @@ describe('BatchGenerationCreationService platform normalize (#2696)', () => {
       create: vi.fn(),
       updateMany: vi.fn(),
     },
+    batchItem: { upsert: vi.fn().mockResolvedValue({}) },
     ingredient: { findMany: vi.fn() },
     post: {
       findMany: vi.fn(),

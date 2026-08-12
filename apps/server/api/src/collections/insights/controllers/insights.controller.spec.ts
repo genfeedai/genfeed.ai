@@ -33,6 +33,7 @@ describe('InsightsController', () => {
     getContentGaps: vi.fn(),
     getForecast: vi.fn(),
     getGrowthPrediction: vi.fn(),
+    enqueueInsightGenerationIfNeeded: vi.fn().mockResolvedValue(undefined),
     getInsights: vi.fn(),
     needsInsightGeneration: vi.fn().mockResolvedValue(false),
     predictViral: vi.fn(),
@@ -145,8 +146,10 @@ describe('InsightsController', () => {
       expect(service.getInsights).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
         5,
-        expect.any(Function),
       );
+      expect(
+        mockInsightsService.enqueueInsightGenerationIfNeeded,
+      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization, 5);
       expect(result).toEqual(insights);
     });
 
@@ -159,8 +162,10 @@ describe('InsightsController', () => {
       expect(service.getInsights).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
         10,
-        expect.any(Function),
       );
+      expect(
+        mockInsightsService.enqueueInsightGenerationIfNeeded,
+      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization, 10);
     });
   });
 

@@ -39,6 +39,7 @@ describe('BatchGenerationService approval version pins', () => {
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     batch: typeof batchDelegate;
+    batchItem: { upsert: ReturnType<typeof vi.fn> };
     member: typeof memberDelegate;
     post: typeof postDelegate;
     postAnalytics: { findMany: ReturnType<typeof vi.fn> };
@@ -106,9 +107,14 @@ describe('BatchGenerationService approval version pins', () => {
     };
     prisma = {
       $transaction: vi.fn((callback) =>
-        callback({ batch: batchDelegate, post: postDelegate }),
+        callback({
+          batch: batchDelegate,
+          batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+          post: postDelegate,
+        }),
       ),
       batch: batchDelegate,
+      batchItem: { upsert: vi.fn().mockResolvedValue({}) },
       member: memberDelegate,
       post: postDelegate,
       postAnalytics: { findMany: vi.fn().mockResolvedValue([]) },
@@ -383,6 +389,7 @@ describe('BatchGenerationService approval version pins', () => {
     };
     const transaction = {
       batch: transactionBatch,
+      batchItem: { upsert: vi.fn().mockResolvedValue({}) },
       post: transactionPost,
     };
     prisma.$transaction.mockImplementationOnce(async (callback) => {

@@ -7,7 +7,6 @@ import {
   asNumber,
   asRecord,
   asString,
-  dateToTime,
   serializeDate,
 } from '@api/collections/content-plans/utils/content-plan-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -72,6 +71,8 @@ export class ContentPlanItemsService {
             isDeleted: false,
             organizationId: item.organizationId,
             planId: item.planId,
+            scheduledAt: item.scheduledAt,
+            status: ContentPlanItemStatus.PENDING,
           },
         }),
       ),
@@ -85,19 +86,26 @@ export class ContentPlanItemsService {
     planId: string,
   ): Promise<ContentPlanItemDocument[]> {
     const docs = await this.prisma.contentPlanItem.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
       where: scopedWhere(organizationId, { planId }),
     });
 
-    return this.sortByScheduledAt(docs.map((doc) => this.toDocument(doc)));
+    return docs.map((doc) => this.toDocument(doc));
   }
 
   async listPendingByPlan(
     organizationId: string,
     planId: string,
   ): Promise<ContentPlanItemDocument[]> {
-    const docs = await this.listByPlan(organizationId, planId);
-    return docs.filter((doc) => doc.status === ContentPlanItemStatus.PENDING);
+    const docs = await this.prisma.contentPlanItem.findMany({
+      orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
+      where: scopedWhere(organizationId, {
+        planId,
+        status: ContentPlanItemStatus.PENDING,
+      }),
+    });
+
+    return docs.map((doc) => this.toDocument(doc));
   }
 
   async getByIdOrFail(
@@ -140,6 +148,7 @@ export class ContentPlanItemsService {
           },
           existing.data,
         ) as never,
+        status,
       },
       where: { id: itemId },
     });
@@ -172,9 +181,10 @@ export class ContentPlanItemsService {
       plan: doc.planId,
       platforms: this.asStringArray(data.platforms),
       prompt: asString(data.prompt) ?? null,
-      scheduledAt: asDate(data.scheduledAt),
+      scheduledAt: doc.scheduledAt ?? asDate(data.scheduledAt),
       skillSlug: asString(data.skillSlug) ?? null,
       status:
+        this.asContentPlanItemStatus(doc.status) ??
         this.asContentPlanItemStatus(data.status) ??
         ContentPlanItemStatus.PENDING,
       topic: asString(data.topic) ?? null,
@@ -239,17 +249,6 @@ export class ContentPlanItemsService {
     }
 
     return payload;
-  }
-
-  private sortByScheduledAt(
-    items: ContentPlanItemDocument[],
-  ): ContentPlanItemDocument[] {
-    return [...items].sort((left, right) => {
-      const leftTime = dateToTime(left.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
-      const rightTime =
-        dateToTime(right.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
-      return leftTime - rightTime;
-    });
   }
 
   private asStringArray(value: unknown): string[] {

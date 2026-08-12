@@ -65,6 +65,7 @@ export class ContentPlansService extends BaseService<
         isDeleted: input.isDeleted,
         label: input.name,
         organizationId: input.organizationId,
+        executedCount: 0,
         config: this.buildConfigPayload(
           {
             description: input.description,
@@ -180,28 +181,14 @@ export class ContentPlansService extends BaseService<
     planId: string,
     brandId?: string,
   ): Promise<void> {
-    const existing = (await this.delegate.findFirst({
+    await this.delegate.updateMany({
+      data: {
+        executedCount: { increment: 1 },
+      },
       where: scopedWhere(organizationId, {
         id: planId,
         ...(brandId ? { brandId } : {}),
       }),
-    })) as PrismaContentPlan | null;
-
-    if (!existing) {
-      return;
-    }
-
-    const currentConfig = asRecord(existing.config);
-    const executedCount = asNumber(currentConfig.executedCount, 0) + 1;
-
-    await this.delegate.update({
-      data: {
-        config: this.buildConfigPayload(
-          { executedCount },
-          currentConfig,
-        ) as never,
-      },
-      where: { id: planId },
     });
   }
 
@@ -239,7 +226,7 @@ export class ContentPlansService extends BaseService<
       config,
       createdBy: doc.createdById,
       description: asString(config.description) ?? null,
-      executedCount: asNumber(config.executedCount, 0),
+      executedCount: doc.executedCount ?? asNumber(config.executedCount, 0),
       itemCount: asNumber(config.itemCount, 0),
       name,
       organization: doc.organizationId,
