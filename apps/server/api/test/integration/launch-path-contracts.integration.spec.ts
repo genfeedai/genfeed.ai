@@ -73,6 +73,16 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('attemptsMade');
   });
 
+  it('treats completed and cancelled prior executions as terminal on continue', () => {
+    const source = readRepo(
+      'apps/server/api/src/collections/workflows/services/workflow-executor.service.ts',
+    );
+    expect(source).toContain('continueExistingExecution');
+    expect(source).toContain('WorkflowExecutionStatus.COMPLETED');
+    expect(source).toContain('WorkflowExecutionStatus.CANCELLED');
+    expect(source).toContain('continuedFromExecutionId');
+  });
+
   it('ships durable workflow_node_claims unique (executionId, nodeId)', () => {
     const schema = readRepo('packages/prisma/prisma/schema.prisma');
     const migration = readRepo(

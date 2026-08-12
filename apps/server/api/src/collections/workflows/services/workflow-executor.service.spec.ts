@@ -510,6 +510,32 @@ describe('WorkflowExecutorService', () => {
       expect(executionsService.createExecution).not.toHaveBeenCalled();
     });
 
+    it('no-ops when the prior execution was cancelled', async () => {
+      executionsService.findOne.mockResolvedValue({
+        completedAt: new Date('2026-08-12T10:05:00.000Z'),
+        id: 'exec-1',
+        startedAt: new Date('2026-08-12T09:00:00.000Z'),
+        status: WorkflowExecutionStatus.CANCELLED,
+        workflowId: 'workflow-1',
+      });
+
+      const result = await service.continueExistingExecution(
+        'exec-1',
+        triggerEvent,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          executionId: 'exec-1',
+          status: WorkflowExecutionStatus.CANCELLED,
+          workflowId: 'workflow-1',
+        }),
+      );
+      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      expect(executionsService.startExecution).not.toHaveBeenCalled();
+      expect(executionsService.createExecution).not.toHaveBeenCalled();
+    });
+
     it('re-enters the same execution id without creating a new row when failed', async () => {
       const executableWorkflow: ExecutableWorkflow = {
         edges: [],

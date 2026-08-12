@@ -235,14 +235,23 @@ export class WorkflowExecutorService {
     const workflowId = String(execution.workflowId ?? '');
     const status = String(execution.status);
 
-    if (status === WorkflowExecutionStatus.COMPLETED) {
+    // Terminal executions must not re-enter the graph — durable claims already
+    // settled side effects; re-running would either busy-skip forever or
+    // re-fire publish/DM/credit nodes when claims are missing.
+    if (
+      status === WorkflowExecutionStatus.COMPLETED ||
+      status === WorkflowExecutionStatus.CANCELLED
+    ) {
       return {
         completedAt: execution.completedAt ?? new Date(),
         error: undefined,
         executionId,
         nodeResults: [],
         startedAt: execution.startedAt ?? new Date(),
-        status: WorkflowExecutionStatus.COMPLETED,
+        status:
+          status === WorkflowExecutionStatus.CANCELLED
+            ? WorkflowExecutionStatus.CANCELLED
+            : WorkflowExecutionStatus.COMPLETED,
         totalCreditsUsed: 0,
         workflowId,
       };
