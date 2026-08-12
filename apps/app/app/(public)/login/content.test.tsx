@@ -154,6 +154,21 @@ describe('LoginPage', () => {
   });
 
   it.each([
+    ['accepted', 'Invitation accepted. Sign in to continue'],
+    ['already-accepted', 'This invitation was already accepted'],
+    ['expired', 'This invitation has expired'],
+    ['revoked', 'This invitation was revoked'],
+    ['invalid', 'This invitation link is invalid'],
+  ])('shows a recoverable %s invitation notice', (outcome, message) => {
+    window.history.replaceState({}, '', `/login?invitation=${outcome}`);
+
+    render(<LoginPage />);
+
+    expect(screen.getByText(new RegExp(message, 'i'))).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toBeVisible();
+  });
+
+  it.each([
     { Page: AppLoginPage, pathname: '/login' },
     { Page: PasswordLoginPage, pathname: '/login/password' },
     { Page: MagicLinkLoginPage, pathname: '/login/magic-link' },

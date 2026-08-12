@@ -271,13 +271,13 @@ export class OrganizationsService extends BaseService<Organization> {
   public async inviteMember(
     id: string,
     data: IMemberInvitation,
-  ): Promise<Member> {
+  ): Promise<IMemberInvitation> {
     const body = MemberInvitationSerializer.serialize(data);
 
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/members`, body)
       .then((res) => res.data)
-      .then((res) => new Member(this.extractResource<Partial<IMember>>(res)));
+      .then((res) => this.extractResource<IMemberInvitation>(res));
   }
 
   public async updateOrganizationMember(

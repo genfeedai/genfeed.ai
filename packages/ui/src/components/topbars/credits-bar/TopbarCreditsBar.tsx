@@ -52,6 +52,7 @@ function TopbarCreditsBarContent() {
   const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const latestBalanceRequestRef = useRef(0);
   refreshBreakdownRef.current = refreshCreditsBreakdown;
   const { subscribe, unsubscribe } = useSocketManager();
 
@@ -68,9 +69,18 @@ function TopbarCreditsBarContent() {
       return;
     }
 
+    const requestId = latestBalanceRequestRef.current + 1;
+    latestBalanceRequestRef.current = requestId;
+    setIsBalanceLoading(true);
+
     try {
       const service = await getCreditsService();
       const data = await service.getTopbarBalances();
+
+      if (requestId !== latestBalanceRequestRef.current) {
+        return;
+      }
+
       const nextSegments = data.segments ?? [];
       const genfeedSegment = nextSegments.find(
         (segment) => segment.provider === 'genfeed',
@@ -78,6 +88,10 @@ function TopbarCreditsBarContent() {
       setSegments(nextSegments);
       setBalance(coerceFiniteBalance(genfeedSegment?.balance));
     } catch (error: unknown) {
+      if (requestId !== latestBalanceRequestRef.current) {
+        return;
+      }
+
       const requestError = error as OptionalBalanceRequestError;
       if (!requestError.isCancelled && !requestError.silent) {
         logger.warn('TopbarCreditsBar: failed to fetch balances', {
@@ -85,11 +99,10 @@ function TopbarCreditsBarContent() {
           reportToSentry: false,
         });
       }
-      // Keep prior balance if we already had one; only settle to 0 after a
-      // failed first load so severity still works once loading ends.
-      setBalance((previous) => (previous === null ? 0 : previous));
     } finally {
-      setIsBalanceLoading(false);
+      if (requestId === latestBalanceRequestRef.current) {
+        setIsBalanceLoading(false);
+      }
     }
   }, [organizationId, getCreditsService, showCredits]);
 
@@ -113,7 +126,9 @@ function TopbarCreditsBarContent() {
     const orgHandler = (data: unknown) => {
       const orgData = data as IOrganizationEventData & { balance?: number };
       if (orgData?.balance !== undefined) {
+        latestBalanceRequestRef.current += 1;
         setBalance(coerceFiniteBalance(orgData.balance));
+        setIsBalanceLoading(false);
         refreshBreakdownRef.current();
         scheduleTopbarBalanceRefresh();
       }
@@ -122,7 +137,9 @@ function TopbarCreditsBarContent() {
     const creditsHandler = (data: unknown) => {
       const creditsData = data as ICreditsEventData;
       if (creditsData?.balance !== undefined) {
+        latestBalanceRequestRef.current += 1;
         setBalance(coerceFiniteBalance(creditsData.balance));
+        setIsBalanceLoading(false);
         refreshBreakdownRef.current();
         scheduleTopbarBalanceRefresh();
       }
@@ -149,12 +166,22 @@ function TopbarCreditsBarContent() {
   );
 
   useEffect(() => {
+    const requestRef = latestBalanceRequestRef;
+
+    return () => {
+      requestRef.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!showCredits || !organizationId) {
+      latestBalanceRequestRef.current += 1;
+      setBalance(null);
+      setSegments([]);
       setIsBalanceLoading(false);
       return;
     }
 
-    setIsBalanceLoading(true);
     void findTopbarBalances();
   }, [organizationId, findTopbarBalances, showCredits]);
 
@@ -173,23 +200,30 @@ function TopbarCreditsBarContent() {
     };
   }, [findTopbarBalances]);
 
-  const resolvedBalance = balance ?? 0;
-
   const { planLimit, planBalance, extraBalance, planUsagePercent } =
     useMemo(() => {
       const limit = creditsBreakdown?.planLimit ?? 0;
 
+      if (balance === null) {
+        return {
+          extraBalance: 0,
+          planBalance: 0,
+          planLimit: limit,
+          planUsagePercent: 0,
+        };
+      }
+
       if (limit === 0) {
         return {
-          extraBalance: resolvedBalance,
+          extraBalance: balance,
           planBalance: 0,
           planLimit: 0,
           planUsagePercent: 0,
         };
       }
 
-      const nextPlanBalance = Math.min(resolvedBalance, limit);
-      const nextExtraBalance = Math.max(0, resolvedBalance - limit);
+      const nextPlanBalance = Math.min(balance, limit);
+      const nextExtraBalance = Math.max(0, balance - limit);
       const usagePercent = ((limit - nextPlanBalance) / limit) * 100;
 
       return {
@@ -198,7 +232,7 @@ function TopbarCreditsBarContent() {
         planLimit: limit,
         planUsagePercent: Math.min(usagePercent, 100),
       };
-    }, [creditsBreakdown, resolvedBalance]);
+    }, [balance, creditsBreakdown]);
 
   const handleRefresh = useCallback(async () => {
     await findTopbarBalances();
@@ -209,9 +243,9 @@ function TopbarCreditsBarContent() {
     return null;
   }
 
-  const isLoading = isBalanceLoading || balance === null;
-  const compactBalance = isLoading ? '—' : formatCompactNumber(resolvedBalance);
-  const fullBalance = isLoading ? '—' : formatNumberWithCommas(resolvedBalance);
+  const isLoading = isBalanceLoading && balance === null;
+  const compactBalance = balance === null ? '—' : formatCompactNumber(balance);
+  const fullBalance = balance === null ? '—' : formatNumberWithCommas(balance);
   const providerSegments = segments.filter(
     (segment) => segment.provider !== 'genfeed',
   );
@@ -221,7 +255,7 @@ function TopbarCreditsBarContent() {
 
   return (
     <CreditsBarTrigger
-      balance={resolvedBalance}
+      balance={balance}
       billingHref={billingHref}
       fullBalance={fullBalance}
       compactBalance={compactBalance}

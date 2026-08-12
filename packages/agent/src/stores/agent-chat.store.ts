@@ -8,6 +8,7 @@ import type {
   AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type {
@@ -207,8 +208,12 @@ interface AgentComposerSeed {
  * restored as if it were settled history.
  */
 interface CachedConversation {
+  /** `Date.now()` when this entry was written — drives freshness (below). */
+  cachedAt: number;
   latestProposedPlan: AgentProposedPlan | null;
+  hasMoreMessages: boolean;
   messages: AgentChatMessage[];
+  messagesCursor: string | null;
   pendingInputRequest: AgentInputRequest | null;
   workEvents: AgentWorkEvent[];
 }
@@ -217,14 +222,37 @@ interface CachedConversation {
  * Threads retained in the conversation cache. Bounded so a long session cannot
  * pin every thread's messages in memory; the least recently cached entry is
  * evicted first.
+ *
+ * Raised from 10 (#2790): hover/focus prefetch now populates this cache
+ * passively while the user scans the thread list, not only when they
+ * actually visit a thread — a ceiling sized for "threads visited" was too
+ * tight for "threads hovered" and would evict a just-primed entry before the
+ * click that was supposed to benefit from it. Each entry starts with one
+ * bounded message page; older pages are retained only when the user backfills
+ * them, keeping the passive-prefetch memory increase modest.
  */
-const CONVERSATION_CACHE_LIMIT = 10;
+export const CONVERSATION_CACHE_LIMIT = 20;
+
+/**
+ * A cached conversation counts as fresh for this long after it was written
+ * (#2790). Within the window, switching to that thread skips the
+ * thread-metadata and snapshot requests (`getThreadEffect` /
+ * `getThreadSnapshotEffect`) entirely — the messages list still refetches
+ * (nothing else can supply it, and it is what gates paint). Deliberately
+ * short and time-bounded rather than "cache forever": a thread whose status,
+ * plan, or work events changed server-side while the tab was open still
+ * converges within one window's length of the user returning to it.
+ */
+export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 
 interface AgentChatState {
   activeRunId: string | null;
   draftPlanModeEnabled: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
+  hasMoreMessages: boolean;
+  messagesCursor: string | null;
+  isLoadingOlderMessages: boolean;
   memoryEntries: AgentMemoryEntry[];
   threads: AgentThread[];
   activeThreadId: string | null;
@@ -273,6 +301,9 @@ interface AgentChatActions {
   addMessage: (message: AgentChatMessage) => void;
   clearPendingInputRequest: () => void;
   setMessages: (messages: AgentChatMessage[]) => void;
+  setMessagesPage: (page: AgentMessagesPage) => void;
+  prependOlderMessages: (page: AgentMessagesPage) => void;
+  setIsLoadingOlderMessages: (loading: boolean) => void;
   setThreads: (threads: AgentThread[]) => void;
   setActiveRun: (
     runId: string | null,
@@ -303,6 +334,13 @@ interface AgentChatActions {
   restoreCachedConversation: (threadId: string) => boolean;
   /** Drop every cached conversation — the scope they belonged to is gone. */
   clearConversationCache: () => void;
+  /** Write prefetched data into the cache without disturbing the active thread. */
+  primeConversationCache: (
+    threadId: string,
+    data: Omit<CachedConversation, 'cachedAt'>,
+  ) => void;
+  /** Whether `threadId`'s cache entry is recent enough to skip revalidation requests. */
+  isConversationCacheFresh: (threadId: string) => boolean;
   toggleOpen: () => void;
   setPageContext: (context: AgentPageContextState | null) => void;
   setMemoryEntries: (entries: AgentMemoryEntry[]) => void;
@@ -611,8 +649,11 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       const next: Record<string, CachedConversation> = {
         ...retained,
         [threadId]: {
+          cachedAt: Date.now(),
+          hasMoreMessages: state.hasMoreMessages,
           latestProposedPlan: state.latestProposedPlan,
           messages: state.messages,
+          messagesCursor: state.messagesCursor,
           pendingInputRequest: state.pendingInputRequest,
           workEvents: state.workEvents,
         },
@@ -637,7 +678,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: null,
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       messages: [],
+      messagesCursor: null,
       pendingInputRequest: null,
       runStartedAt: null,
       threadUiBusyById: {},
@@ -741,11 +785,21 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     });
   },
+  isConversationCacheFresh: (threadId) => {
+    const cached = get().conversationCacheByThread[threadId];
+    if (!cached) {
+      return false;
+    }
+    return Date.now() - cached.cachedAt < CONVERSATION_CACHE_FRESHNESS_MS;
+  },
   isGenerating: false,
+  isLoadingOlderMessages: false,
   isOpen: readPanelPreference(),
   latestProposedPlan: null,
+  hasMoreMessages: false,
   memoryEntries: [],
   messages: [],
+  messagesCursor: null,
   modelCosts: {},
   onboardingCompletionPercent: 0,
   onboardingEarnedCredits: 0,
@@ -757,6 +811,36 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   overlayAutoCollapsedAgent: false,
   pageContext: null,
   pendingInputRequest: null,
+  primeConversationCache: (threadId, data) =>
+    set((state) => {
+      // The active thread's live state is the source of truth; a prefetch
+      // that lands after the user has already navigated there must never
+      // clobber it with a slightly-stale snapshot.
+      if (threadId === state.activeThreadId) {
+        return state;
+      }
+
+      // Same recency-by-reinsertion + LRU eviction as `cacheConversation`.
+      const { [threadId]: _evicted, ...retained } =
+        state.conversationCacheByThread;
+      const next: Record<string, CachedConversation> = {
+        ...retained,
+        [threadId]: {
+          ...data,
+          cachedAt: Date.now(),
+        },
+      };
+
+      const threadIds = Object.keys(next);
+      for (const staleId of threadIds.slice(
+        0,
+        Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
+      )) {
+        delete next[staleId];
+      }
+
+      return { conversationCacheByThread: next };
+    }),
   removeMemoryEntry: (entryId) =>
     set((state) => ({
       memoryEntries: state.memoryEntries.filter((item) => item.id !== entryId),
@@ -769,7 +853,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: null,
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       messages: [],
+      messagesCursor: null,
       pendingInputRequest: null,
       runStartedAt: null,
       stream: { ...DEFAULT_STREAM_STATE },
@@ -802,7 +889,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       composerSeed: null,
       draftPlanModeEnabled: false,
       latestProposedPlan: cached.latestProposedPlan,
+      hasMoreMessages: cached.hasMoreMessages,
+      isLoadingOlderMessages: false,
       messages: cached.messages,
+      messagesCursor: cached.messagesCursor,
       pendingInputRequest: cached.pendingInputRequest,
       runStartedAt: null,
       stream: { ...DEFAULT_STREAM_STATE },
@@ -847,6 +937,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         : {}),
     })),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
+  setIsLoadingOlderMessages: (loading) =>
+    set({ isLoadingOlderMessages: loading }),
   setIsOpen: (open) => {
     persistPanelPreference(open);
     set((state) => ({
@@ -861,8 +953,34 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   setMemoryEntries: (entries) => set({ memoryEntries: entries }),
   setMessages: (messages) =>
     set({
+      hasMoreMessages: false,
+      isLoadingOlderMessages: false,
       latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
       messages,
+      messagesCursor: null,
+    }),
+  setMessagesPage: (page) =>
+    set({
+      hasMoreMessages: page.hasMore,
+      isLoadingOlderMessages: false,
+      latestProposedPlan: deriveLatestProposedPlanFromMessages(page.messages),
+      messages: page.messages,
+      messagesCursor: page.nextCursor,
+    }),
+  prependOlderMessages: (page) =>
+    set((state) => {
+      const currentIds = new Set(state.messages.map((message) => message.id));
+      const olderMessages = page.messages.filter(
+        (message) => !currentIds.has(message.id),
+      );
+      const messages = [...olderMessages, ...state.messages];
+
+      return {
+        hasMoreMessages: page.hasMore,
+        latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
+        messages,
+        messagesCursor: page.nextCursor,
+      };
     }),
   setModelCosts: (costs) => set({ modelCosts: costs }),
   setOnboardingChecklist: (payload) =>

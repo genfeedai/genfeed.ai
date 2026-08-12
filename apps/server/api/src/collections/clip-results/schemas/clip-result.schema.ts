@@ -1,6 +1,7 @@
 import {
   CLIP_RESULT_STATUSES,
   type ClipReadinessContract,
+  type ClipReferenceProvenance,
   type ClipResultMode,
   type ClipResultStatus as SharedClipResultStatus,
 } from '@genfeedai/interfaces';
@@ -20,6 +21,7 @@ export interface ClipResultDocument extends ClipResultRecord {
   /** `avatar` (default) vs deterministic `raw-cut`. Real column; see #1239. */
   mode: ClipResultMode | string;
   readiness: ClipReadinessContract | Record<string, unknown>;
+  referenceProvenance?: ClipReferenceProvenance;
   status: SharedClipResultStatus | string;
   terminalAt?: Date | null;
   // Raw-cut data contract. Persisted in the `data` blob and flattened by the

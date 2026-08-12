@@ -1,7 +1,11 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
-import type { ClipResultMode } from '@genfeedai/interfaces';
+import type {
+  ClipReferenceProvenance,
+  ClipResultMode,
+} from '@genfeedai/interfaces';
 import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -47,6 +51,8 @@ export interface ClipGenerationInput {
   avatarId?: string;
   voiceId?: string;
   provider?: SupportedAvatarVideoProviderName;
+  referenceImageUrl?: string;
+  referenceProvenance?: ClipReferenceProvenance;
   transcriptText?: string;
 
   // Raw-cut-mode inputs (required only when mode === 'raw-cut').
@@ -83,6 +89,7 @@ interface GenerationLoopConfig {
   mode: ClipGenerationMode;
   orgId: string;
   projectId: string;
+  referenceProvenance?: ClipReferenceProvenance;
   userId: string;
   /** Provider name persisted on a clip-result when its dispatch throws. */
   failureProviderName: string;
@@ -135,6 +142,7 @@ export class ClipGenerationService {
       orgId,
       userId,
       provider = 'heygen',
+      referenceImageUrl,
     } = input;
 
     this.logger.log(
@@ -158,6 +166,7 @@ export class ClipGenerationService {
           avatarId: avatarId as string,
           callbackId: clipResultId,
           organizationId: orgId,
+          ...(referenceImageUrl ? { referenceImageUrl } : {}),
           script: scriptText,
           userId,
           voiceId: voiceId as string,
@@ -180,6 +189,7 @@ export class ClipGenerationService {
       mode: 'avatar',
       orgId,
       projectId,
+      referenceProvenance: input.referenceProvenance,
       userId,
     });
   }
@@ -253,6 +263,7 @@ export class ClipGenerationService {
       mode: 'raw-cut',
       orgId,
       projectId,
+      referenceProvenance: input.referenceProvenance,
       userId,
     });
   }
@@ -274,6 +285,7 @@ export class ClipGenerationService {
       mode,
       orgId,
       projectId,
+      referenceProvenance,
       userId,
     } = config;
 
@@ -291,6 +303,7 @@ export class ClipGenerationService {
         orgId,
         projectId,
         userId,
+        referenceProvenance,
         mode,
       );
       clipResultIds.push(clipResultId);
@@ -355,26 +368,31 @@ export class ClipGenerationService {
     orgId: string,
     projectId: string,
     userId: string,
+    referenceProvenance: ClipReferenceProvenance | undefined,
     mode: ClipGenerationMode,
   ): Promise<string> {
-    const clipResult: ClipResultDocument = await this.clipResultsService.create(
-      {
-        clipType: highlight.clip_type,
-        duration: highlight.end_time - highlight.start_time,
-        endTime: highlight.end_time,
-        index,
-        mode,
-        organizationId: orgId,
-        projectId: projectId,
-        startTime: highlight.start_time,
-        status: 'pending',
-        summary: highlight.summary,
-        tags: highlight.tags,
-        title: highlight.title,
-        userId,
-        viralityScore: highlight.virality_score,
-      },
-    );
+    const createDto: CreateClipResultDto = {
+      clipType: highlight.clip_type,
+      duration: highlight.end_time - highlight.start_time,
+      endTime: highlight.end_time,
+      index,
+      mode,
+      organizationId: orgId,
+      projectId,
+      startTime: highlight.start_time,
+      status: 'pending',
+      summary: highlight.summary,
+      tags: highlight.tags,
+      title: highlight.title,
+      userId,
+      viralityScore: highlight.virality_score,
+    };
+    const clipResult: ClipResultDocument = referenceProvenance
+      ? await this.clipResultsService.createGenerated(
+          createDto,
+          referenceProvenance,
+        )
+      : await this.clipResultsService.create(createDto);
 
     return String((clipResult as Record<string, unknown>).id ?? clipResult.id);
   }

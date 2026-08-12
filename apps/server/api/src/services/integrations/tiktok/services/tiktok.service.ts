@@ -2,6 +2,11 @@ import { CredentialEntity } from '@api/collections/credentials/entities/credenti
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import {
+  getTikTokErrorCode,
+  isTikTokAuthorizationError,
+  parseTikTokGrantedScopes,
+} from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
@@ -49,6 +54,13 @@ interface TikTokTokenResponse {
   refresh_expires_in?: number;
   refresh_token?: string;
   refresh_token_expires_in?: number;
+  scope?: string;
+}
+
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 @Injectable()
@@ -63,15 +75,6 @@ export class TiktokService {
   // Retry settings for polling TikTok publish status
   public readonly RETRY_MAX_ATTEMPTS = 30;
   public readonly RETRY_DELAY_MS = 5_000;
-
-  // TikTok auth error codes that indicate credential needs re-authentication
-  private readonly AUTH_ERROR_CODES = [
-    'access_token_invalid',
-    'invalid_grant',
-    'invalid_refresh_token',
-    'refresh_token_expired',
-    'token_expired',
-  ];
 
   // Common privacy level selection logic
   private readonly PREFERRED_PRIVACY_LEVEL = 'SELF_ONLY';
@@ -91,34 +94,14 @@ export class TiktokService {
    * Check if an error is an authentication error that requires re-authentication
    */
   private isAuthError(error: unknown): boolean {
-    const axiosError = error as AxiosError<{
-      error?: { code?: string } | string;
-      data?: { error?: { code?: string } };
-    }>;
-    const response = axiosError?.response;
-    const data = response?.data;
-    const errorCode =
-      (typeof data?.error === 'object' ? data?.error?.code : data?.error) ||
-      data?.data?.error?.code;
-    return (
-      typeof errorCode === 'string' && this.AUTH_ERROR_CODES.includes(errorCode)
-    );
+    return isTikTokAuthorizationError(error);
   }
 
   /**
    * Get the error code from a TikTok API error
    */
   private getErrorCode(error: unknown): string | undefined {
-    const axiosError = error as AxiosError<{
-      error?: { code?: string } | string;
-      data?: { error?: { code?: string } };
-    }>;
-    const response = axiosError?.response;
-    const data = response?.data;
-    const errorCode =
-      (typeof data?.error === 'object' ? data?.error?.code : data?.error) ||
-      data?.data?.error?.code;
-    return typeof errorCode === 'string' ? errorCode : undefined;
+    return getTikTokErrorCode(error);
   }
 
   /**
@@ -143,6 +126,24 @@ export class TiktokService {
         patchError,
       );
     }
+  }
+
+  /**
+   * Reuse the integration's reconnect lifecycle from auxiliary TikTok reads.
+   * Returns false for permission, rate-limit, and provider errors so callers
+   * can preserve those states without disconnecting a valid credential.
+   */
+  public async handleAuthorizationError(
+    credentialId: string,
+    error: unknown,
+    context: string,
+  ): Promise<boolean> {
+    if (!this.isAuthError(error)) {
+      return false;
+    }
+
+    await this.handleAuthError(credentialId, this.getErrorCode(error), context);
+    return true;
   }
 
   private async findCredential(
@@ -411,8 +412,11 @@ export class TiktokService {
         refresh_expires_in,
         refresh_token,
         refresh_token_expires_in,
+        scope,
       } = (tokenRes.data || {}) as TikTokTokenResponse;
       const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
+      const grantedScopes = scope ? parseTikTokGrantedScopes(scope) : undefined;
+      const warmupSignals = readJsonRecord(credential.warmupSignals);
 
       if (!access_token) {
         throw new Error('TikTok refresh response missing access token');
@@ -430,6 +434,17 @@ export class TiktokService {
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
+          ...(grantedScopes
+            ? {
+                warmupSignals: {
+                  ...warmupSignals,
+                  tiktokAuthorization: {
+                    grantedScopes: [...new Set(grantedScopes)].sort(),
+                    observedAt: new Date().toISOString(),
+                  },
+                },
+              }
+            : {}),
         },
       );
 
@@ -551,6 +566,7 @@ export class TiktokService {
     organizationId: string,
     brandId: string,
     accessToken?: string,
+    grantedScopes?: readonly string[] | string,
   ): Promise<{
     avatarUrl?: string;
     displayName?: string;
@@ -584,7 +600,23 @@ export class TiktokService {
         decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
       }
 
-      // Get user info from TikTok API
+      const exactScopes = grantedScopes
+        ? parseTikTokGrantedScopes(grantedScopes)
+        : undefined;
+      const fields = [
+        ...(exactScopes === undefined || exactScopes.includes('user.info.basic')
+          ? ['open_id', 'union_id', 'avatar_url', 'display_name']
+          : []),
+        ...(exactScopes === undefined ||
+        exactScopes.includes('user.info.profile')
+          ? ['username']
+          : []),
+        ...(exactScopes === undefined || exactScopes.includes('user.info.stats')
+          ? ['follower_count', 'following_count', 'likes_count', 'video_count']
+          : []),
+      ];
+
+      // Request only fields backed by the exact scopes returned by OAuth.
       const userInfoRes = await firstValueFrom(
         this.httpService.get(`${this.endpoint}/user/info/`, {
           headers: {
@@ -592,8 +624,7 @@ export class TiktokService {
             'Content-Type': this.contentType,
           },
           params: {
-            fields:
-              'open_id,union_id,avatar_url,display_name,username,follower_count,following_count,likes_count,video_count',
+            fields: fields.join(','),
           },
         }),
       );

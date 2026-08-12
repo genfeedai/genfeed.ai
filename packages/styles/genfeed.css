@@ -575,3 +575,58 @@
   background: hsl(var(--gen-accent));
   color: hsl(var(--background));
 }
+
+/* --------------------------------------------------------------------------
+   Article prose
+   Long-form bodies arrive as sanitized HTML through `dangerouslySetInnerHTML`,
+   so @tailwindcss/typography supplies the vertical rhythm. What it cannot know
+   is the surface treatment — these rules align prose with the flat hairline
+   panels the rest of the article page uses, and reserve room for the copy
+   affordance mounted into each code block.
+   -------------------------------------------------------------------------- */
+.gen-article-prose {
+  & :where(a) {
+    text-decoration-color: var(--gen-accent-border-strong);
+    text-underline-offset: 0.2em;
+  }
+
+  & :where(blockquote) {
+    border-inline-start-color: var(--gen-accent-border-strong);
+    font-style: normal;
+  }
+
+  /* Inline code only — `prose` styles `code` inside `pre` too, and its
+     backtick pseudo-elements would land in the middle of a copied block. */
+  & :where(code):not(:where(pre code)) {
+    background: var(--gen-accent-bg);
+    border: 1px solid var(--gen-accent-border);
+    padding: 0.125em 0.375em;
+    font-weight: 400;
+
+    &::before,
+    &::after {
+      content: none;
+    }
+  }
+}
+
+/* The wrapper — not the `pre` — is the positioning context, so the copy button
+   stays pinned while long prompt lines scroll horizontally underneath it. */
+.gen-code-block {
+  position: relative;
+}
+
+.gen-code-block > pre {
+  overflow-x: auto;
+  border: 1px solid var(--gen-accent-border);
+  border-radius: 0;
+  background: var(--gen-accent-bg);
+  /* Top padding clears the button instead of letting line one run under it. */
+  padding: 3.25rem 1.25rem 1.25rem;
+}
+
+.gen-code-block-action {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+}

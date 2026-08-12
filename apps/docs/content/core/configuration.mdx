@@ -72,6 +72,28 @@ does not add commercial packages to that image.
 - Rotate a credential immediately if it appears in a commit, log, screenshot,
   issue, or pull request.
 
+## Optional Logo.dev fallback
+
+Set `LOGO_DEV_PUBLISHABLE_KEY` to a Logo.dev publishable key (`pk_…`) to add a
+company-logo fallback when the website crawler cannot discover a logo:
+
+```env
+LOGO_DEV_PUBLISHABLE_KEY=pk_your_publishable_key
+```
+
+Scraped and imported brand logos keep precedence. The fallback sends only the
+normalized public hostname to Logo.dev and requests a 128px PNG with Logo.dev's
+monogram fallback. It does not add a provider request to brand creation. Missing
+credentials, private or malformed domains, and image-provider failures leave
+the existing Genfeed placeholder behavior intact.
+
+Publishable keys may appear in Logo.dev image URLs by design; never configure a
+Logo.dev secret (`sk_`) key. Before enabling the fallback in production, review
+[Logo.dev's attribution requirements](https://www.logo.dev/docs/platform/attribution):
+commercial use on its free plan requires visible attribution, while paid plans
+remove that requirement. Self-hosted operators are responsible for the plan and
+attribution that apply to their deployment.
+
 ## See also
 
 - [Installation](/core/installation)

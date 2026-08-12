@@ -1783,6 +1783,8 @@ model Asset {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
+  // Live BRAND ranking is supported by the raw-SQL partial index
+  // assets_brand_kit_ranking_idx; Prisma cannot represent its WHERE predicate.
   @@index([parentOrgId, parentBrandId, updatedAt(sort: Desc)])
   @@index([parentOrgId, updatedAt, id], map: "assets_parent_org_updated_at_id_idx")
   @@index([sha256, sizeBytes])

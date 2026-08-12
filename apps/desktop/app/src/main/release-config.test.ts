@@ -25,6 +25,8 @@ interface DesktopPackageJson {
       schemes?: string[];
     }>;
   };
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
   main?: string;
   productName?: string;
   scripts?: Record<string, string>;
@@ -88,14 +90,60 @@ describe('desktop release config', () => {
     expect(mac?.target).toContain('zip');
     expect(mac?.icon).toBe('build/icon.icns');
     const iconScript = readReleaseScript('generate-macos-icon.sh');
+    expect(iconScript).toContain('assets/app-icon.jpg');
     expect(iconScript).toContain('../../app/public/logo.svg');
-    expect(iconScript).not.toContain('assets/app-icon.svg');
     expect(iconScript).toContain('assets/tray-icon.png');
     expect(iconScript).toContain('assets/tray-icon@2x.png');
     expect(mac?.entitlements).toBe('assets/entitlements.mac.plist');
     expect(mac?.entitlementsInherit).toBe('assets/entitlements.mac.plist');
     expect(fs.existsSync(path.join(desktopRoot, mac?.entitlements ?? ''))).toBe(
       true,
+    );
+  });
+
+  it('packages only native runtime dependencies and compacts the app shell', () => {
+    const packageJson = readPackageJson();
+    const buildMain = packageJson.scripts?.['build:main'] ?? '';
+    const copyShell = readReleaseScript('copy-app-shell.cjs');
+
+    expect(Object.keys(packageJson.dependencies ?? {}).sort()).toEqual([
+      '@electric-sql/pglite',
+      'node-pty',
+    ]);
+    expect(packageJson.devDependencies).toHaveProperty('electron-updater');
+    expect(packageJson.devDependencies).toHaveProperty(
+      '@genfeedai/desktop-prisma',
+    );
+    expect(buildMain).not.toContain('--external:@prisma/client');
+    expect(buildMain).not.toContain('--external:electron-updater');
+    expect(buildMain).toContain('__genfeedCreateRequire(import.meta.url)');
+    expect(copyShell).toContain('compactStandaloneDependencies');
+    expect(copyShell).toContain(
+      "path.join(nodeModulesRoot, '.bun', 'node_modules')",
+    );
+    expect(copyShell).toContain(
+      "path.join(root, 'apps', 'app', 'node_modules')",
+    );
+    expect(copyShell).toContain('pruneDisabledImageOptimizer');
+    expect(copyShell).toContain("path.join(nodeModulesRoot, 'sharp')");
+    expect(copyShell).toContain("path.join(nodeModulesRoot, '@img')");
+  });
+
+  it('pins PGlite to the database format used by existing desktop installs', () => {
+    const packageJson = readPackageJson();
+    const desktopPrismaPackage = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          desktopRoot,
+          '../../../packages/desktop-prisma/package.json',
+        ),
+        'utf8',
+      ),
+    ) as DesktopPackageJson;
+
+    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.4.5');
+    expect(desktopPrismaPackage.dependencies?.['@electric-sql/pglite']).toBe(
+      '0.4.5',
     );
   });
 });

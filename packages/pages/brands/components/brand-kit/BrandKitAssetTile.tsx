@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandKitAssetTileProps } from '@props/pages/brand-detail.props';
+import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { Check, ImageOff } from 'lucide-react';
 import Image from 'next/image';
@@ -29,6 +30,22 @@ export default function BrandKitAssetTile({
     asset.width && asset.height ? `${asset.width}×${asset.height}` : '';
   const hasPreview = Boolean(previewUrl) && !hasPreviewError;
 
+  const handlePreviewError = () => {
+    try {
+      if (previewUrl && new URL(previewUrl).hostname === 'img.logo.dev') {
+        logger.warn('Logo.dev brand logo preview unavailable', {
+          provider: 'logo.dev',
+          role: asset.role,
+          sourceType: asset.sourceType,
+        });
+      }
+    } catch {
+      // A malformed preview URL follows the same harmless placeholder path.
+    }
+
+    setHasPreviewError(true);
+  };
+
   const preview = (
     <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-background-tertiary shadow-border">
       {hasPreview && previewUrl ? (
@@ -39,7 +56,7 @@ export default function BrandKitAssetTile({
           sizes="160px"
           src={previewUrl}
           unoptimized
-          onError={() => setHasPreviewError(true)}
+          onError={handlePreviewError}
         />
       ) : (
         <span className="flex flex-col items-center gap-1 p-2 text-center text-[10px] leading-tight text-muted-foreground">

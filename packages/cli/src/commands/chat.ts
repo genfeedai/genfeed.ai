@@ -3,6 +3,7 @@ import type { AgentChatAttachment } from '@/api/threads';
 import { getActiveProfile } from '@/config/store';
 import { runAgentTurn } from '@/shell/agent-run';
 import { runAgentShell } from '@/shell/agent-shell';
+import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer';
 import { formatHeader, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 
@@ -70,24 +71,39 @@ chatCommand.addCommand(
         }
 
         const { profile } = await getActiveProfile();
-        const result = await runAgentTurn(
-          {
-            attachments: parseAttachments(options.attachment),
-            content,
-            model: options.model ?? profile.agent.model,
-            source: 'agent',
-            threadId: options.thread,
-          },
-          options.timeout
-        );
+        const renderer = options.json ? undefined : createAssistantStreamRenderer();
+        if (renderer) {
+          print(formatHeader('Agent Response\n'));
+        }
+
+        let result: Awaited<ReturnType<typeof runAgentTurn>>;
+        try {
+          result = await runAgentTurn(
+            {
+              attachments: parseAttachments(options.attachment),
+              content,
+              model: options.model ?? profile.agent.model,
+              source: 'agent',
+              threadId: options.thread,
+            },
+            options.timeout,
+            renderer
+              ? {
+                  onAssistantDelta: (token) => renderer.onDelta(token),
+                  onAssistantFinalized: (finalContent) => renderer.onFinal(finalContent),
+                }
+              : undefined
+          );
+        } finally {
+          renderer?.finish();
+        }
 
         if (options.json) {
           printJson(result);
           return;
         }
 
-        print(formatHeader('Agent Response\n'));
-        if (result.assistantMessage) {
+        if (result.assistantMessage && !renderer?.hasRenderedContent()) {
           print(result.assistantMessage);
           print();
         }

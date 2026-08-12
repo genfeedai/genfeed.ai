@@ -547,14 +547,6 @@
     {
       "delegate": "credential",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "024e3495f63aa7714798",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "177a03b409923a10ec75",
       "method": "update",
       "model": "Credential",
@@ -564,14 +556,6 @@
       "delegate": "credential",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "7f2cd8e329a398d416af",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "7fca44c817dc8ecd9967",
       "method": "update",
       "model": "Credential",
       "reason": "missing-organization-id"
@@ -1123,14 +1107,6 @@
     {
       "delegate": "invitation",
       "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "fdb73445016df01bff48",
-      "method": "findFirst",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
       "fingerprint": "c6ccfeefebd169e36d72",
       "method": "findUnique",
       "model": "Invitation",
@@ -1147,26 +1123,10 @@
     {
       "delegate": "invitation",
       "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "92ed294e62e26d8279a1",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
       "fingerprint": "ca404e6cbb8e2edc1881",
       "method": "update",
       "model": "Invitation",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "05b5401809751acdf72d",
-      "method": "update",
-      "model": "Invitation",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "invitation",

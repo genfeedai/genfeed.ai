@@ -28,6 +28,10 @@ import {
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+import {
+  classifyAgentRunFailure,
+  readAgentRunPublicError,
+} from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   extractThreadEnvelope,
@@ -682,6 +686,7 @@ export class AgentOrchestratorStreamLoopService {
           context,
           error: errorMsg,
           failRun: true,
+          persistedError: classifyAgentRunFailure(errorMsg),
           threadId,
         }),
       );
@@ -695,8 +700,9 @@ export class AgentOrchestratorStreamLoopService {
       await runEffectPromise(
         this.streamEffects.publishStreamFailureEffect({
           context,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: readAgentRunPublicError(error),
           failRun: true,
+          persistedError: classifyAgentRunFailure(error),
           threadId,
         }),
       );

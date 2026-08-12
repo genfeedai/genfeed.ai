@@ -48,11 +48,9 @@ const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
   : '';
 const IS_CLOUD_APP_SHELL = getDeployment() === 'cloud';
 const IS_LOCAL_APP_SHELL = !IS_CLOUD_APP_SHELL;
+const IS_DESKTOP_BUNDLE = process.env.GENFEED_DESKTOP_BUNDLE === '1';
 
-if (
-  process.env.GENFEED_DESKTOP_BUNDLE === '1' &&
-  !envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL)
-) {
+if (IS_DESKTOP_BUNDLE && !envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL)) {
   throw new Error(
     'GENFEED_DESKTOP_BUNDLE requires NEXT_PUBLIC_DESKTOP_SHELL=1.',
   );
@@ -276,7 +274,7 @@ const config = createAppNextConfig({
       source: '/(.*)',
     },
   ],
-  output: process.env.GENFEED_DESKTOP_BUNDLE === '1' ? 'standalone' : undefined,
+  output: IS_DESKTOP_BUNDLE ? 'standalone' : undefined,
   rewrites: async () => [
     {
       destination: `${resolvedApiBaseUrl}/v1/:path*`,
@@ -471,6 +469,16 @@ const config = createAppNextConfig({
   ],
   sentryProject: 'app-genfeed-ai',
 });
+
+// Electron serves local assets directly and does not need Next's native image
+// optimizer. Omitting sharp/libvips from this one standalone trace saves tens
+// of megabytes without changing cloud or self-hosted image behavior.
+if (IS_DESKTOP_BUNDLE) {
+  config.images = {
+    ...config.images,
+    unoptimized: true,
+  };
+}
 
 config.env = {
   ...(config.env ?? {}),

@@ -110,15 +110,15 @@ export class BrandKitAssetsService {
   /**
    * The same bounded read for a whole set of brands, in exactly one query.
    *
-   * Each brand resolves at most one logo, one banner and ten references, so a
-   * noisy asset history cannot inflate the authenticated bootstrap response or
-   * the query result held in memory. Those per-brand bounds used to cost three
-   * queries per brand — a genuine N+1 that Sentry flagged on
-   * `GET /v1/auth/bootstrap`, where the whole org's brand list is resolved on
-   * every cold bootstrap. A `ROW_NUMBER()` window partitioned by brand and
-   * category applies the same per-brand cap server-side, which a plain
-   * `parentBrandId IN (...)` read cannot do: a single `take` is a global cap,
-   * so one brand with a deep asset history would starve the others.
+   * Each brand resolves at most one logo, one banner and the configured
+   * reference limit, so a noisy asset history cannot inflate the authenticated
+   * bootstrap response or the query result held in memory. Those per-brand
+   * bounds used to cost three queries per brand — a genuine N+1 that Sentry
+   * flagged on `GET /v1/auth/bootstrap`, where the whole org's brand list is
+   * resolved on every cold bootstrap. A `ROW_NUMBER()` window partitioned by
+   * brand and category applies the same per-brand cap server-side, which a
+   * plain `parentBrandId IN (...)` read cannot do: a single `take` is a global
+   * cap, so one brand with a deep asset history would starve the others.
    *
    * Brands with no assets still get an entry so callers can attach
    * unconditionally.
@@ -165,10 +165,10 @@ export class BrandKitAssetsService {
           ) AS "roleRank"
         FROM "assets" AS asset
         WHERE asset."isDeleted" = false
-          AND asset."parentType"::text = 'BRAND'
+          AND asset."parentType" = 'BRAND'::"AssetParent"
           AND asset."parentOrgId" = ${organizationId}
           AND asset."parentBrandId" = ANY(${uniqueBrandIds}::text[])
-          AND asset."category"::text = ANY(${rankedCategories}::text[])
+          AND asset."category" = ANY(${rankedCategories}::"AssetCategory"[])
       ) AS ranked
       WHERE ranked."roleRank" <= CASE
         WHEN ranked."category" = ${referenceCategory}

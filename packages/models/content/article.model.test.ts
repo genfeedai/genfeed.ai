@@ -1,13 +1,6 @@
-import {
-  ArticleCategory,
-  ArticleStatus,
-  AssetCategory,
-  AssetParent,
-  AssetScope,
-} from '@genfeedai/enums';
+import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
 import type {
   IArticle,
-  IAsset,
   IBrand,
   IOrganization,
   IOrganizationSetting,
@@ -20,7 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@genfeedai/client/models', () => ({
   Article: class BaseArticle {
     public content?: string;
-    public banner?: { url?: string };
+    public coverImageUrl?: string;
     public user?: { handle?: string };
     public brand?: unknown;
     public tags?: unknown[];
@@ -157,16 +150,6 @@ const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
   ...partial,
 });
 
-const createAsset = (partial: Partial<IAsset> = {}): IAsset => ({
-  ...createBaseEntity<IAsset>(partial),
-  category: AssetCategory.BANNER,
-  parent: 'article-1',
-  parentModel: AssetParent.ARTICLE,
-  url: 'https://cdn.example.com/banner.jpg',
-  user: createUser(),
-  ...partial,
-});
-
 const createTag = (partial: Partial<ITag> = {}): ITag => ({
   ...createBaseEntity<ITag>(partial),
   backgroundColor: '#000000',
@@ -228,24 +211,12 @@ describe('Article', () => {
     });
   });
 
-  describe('bannerUrl', () => {
-    it('should return banner url when banner has url', () => {
+  describe('coverImageUrl', () => {
+    it('should preserve the persisted cover image URL', () => {
       const article = createArticle({
-        banner: createAsset({ url: 'https://cdn.example.com/banner.jpg' }),
+        coverImageUrl: 'https://cdn.example.com/cover.jpg',
       });
-      expect(article.bannerUrl).toBe('https://cdn.example.com/banner.jpg');
-    });
-
-    it('should return undefined when banner is missing', () => {
-      const article = createArticle({ banner: undefined });
-      expect(article.bannerUrl).toBeUndefined();
-    });
-
-    it('should return undefined when banner has no url', () => {
-      const article = createArticle({
-        banner: createAsset({ url: undefined }),
-      });
-      expect(article.bannerUrl).toBeUndefined();
+      expect(article.coverImageUrl).toBe('https://cdn.example.com/cover.jpg');
     });
   });
 

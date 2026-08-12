@@ -41,15 +41,27 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     );
 
     try {
-      const jobId = await this.heygenService.generateAvatarVideo(
-        input.callbackId,
-        input.avatarId,
-        input.voiceId,
-        input.script,
-        input.organizationId,
-        input.userId,
-        byokKey?.apiKey,
-      );
+      const jobId = input.referenceImageUrl
+        ? await this.heygenService.generatePhotoAvatarVideo(
+            input.callbackId,
+            input.referenceImageUrl,
+            {
+              inputText: input.script,
+              voiceId: input.voiceId,
+            },
+            input.organizationId,
+            input.userId,
+            byokKey?.apiKey,
+          )
+        : await this.heygenService.generateAvatarVideo(
+            input.callbackId,
+            input.avatarId,
+            input.voiceId,
+            input.script,
+            input.organizationId,
+            input.userId,
+            byokKey?.apiKey,
+          );
 
       return {
         jobId,

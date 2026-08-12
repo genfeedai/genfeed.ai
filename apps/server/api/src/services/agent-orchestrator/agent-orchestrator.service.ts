@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
@@ -28,6 +29,10 @@ import type {
 import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { applyPinnedDefaultAgentModel } from '@api/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+import {
+  classifyAgentRunFailure,
+  readAgentRunPublicError,
+} from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
 import {
   recordAgentRunScope,
   withAgentScopeResult,
@@ -71,6 +76,11 @@ import { Effect } from 'effect';
 
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
+
+type StreamingAgentRunAttemptInput = CreateAgentRunDto & {
+  id: string;
+  threadId: string;
+};
 
 @Injectable()
 export class AgentOrchestratorService {
@@ -406,118 +416,126 @@ export class AgentOrchestratorService {
       scope,
     };
     const scopeMetadata = toAgentScopeMetadata(scope);
-
-    const createdRun = await this.agentRunsService.create({
+    const attemptId = randomUUID();
+    const baseRunInput: StreamingAgentRunAttemptInput = {
       brandId: scope.brandId,
+      id: attemptId,
       label: request.content.slice(0, 120),
       metadata: {
         agentScope: scopeMetadata,
         model,
         requestedModel: model,
-        ...buildAgentRoutingMetadata({
-          defaultModelKey:
-            await this.agentChatModelRegistry.getDefaultModelKey(),
-          model,
-          prompt: request.content,
-          source: request.source,
-        }),
         source: request.source ?? 'agent',
         threadId,
       },
       objective: request.content,
       organizationId: context.organizationId,
-      threadId: threadId,
+      threadId,
       trigger: AgentExecutionTrigger.MANUAL,
       userId: context.userId,
-    } as unknown as CreateAgentRunDto);
-    const runId = String((createdRun as { id: string }).id);
-    const startedRun = await this.agentRunsService.start(
-      runId,
-      context.organizationId,
-    );
-    const startedAt =
-      startedRun?.startedAt?.toISOString?.() ?? new Date().toISOString();
-    const streamContext: AgentChatContext = {
-      ...context,
-      resolvedSkills: resolved.resolvedSkills,
-      runId,
-      scope,
     };
-    await this.recordProfileSnapshot(
-      threadId,
-      streamContext,
-      request.agentType,
-    );
-    await this.threadEventRecorder.recordThreadTurnRequested({
-      content: request.content,
-      context: streamContext,
-      model,
-      runId,
-      source: request.source,
-      threadId,
-    });
-    await runEffectPromise(
-      upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
-        model,
-        organizationId: context.organizationId,
+    let runId: string | undefined;
+
+    try {
+      const createdRun = await this.agentRunsService.create({
+        ...baseRunInput,
+        metadata: {
+          ...baseRunInput.metadata,
+          ...buildAgentRoutingMetadata({
+            defaultModelKey:
+              await this.agentChatModelRegistry.getDefaultModelKey(),
+            model,
+            prompt: request.content,
+            source: request.source,
+          }),
+        },
+      });
+      runId = String((createdRun as { id: string }).id);
+      const startedRun = await this.agentRunsService.start(
         runId,
-        status: 'running',
+        context.organizationId,
+      );
+      const startedAt =
+        startedRun?.startedAt?.toISOString?.() ?? new Date().toISOString();
+      const streamContext: AgentChatContext = {
+        ...context,
+        resolvedSkills: resolved.resolvedSkills,
+        runId,
+        scope,
+      };
+      await this.recordProfileSnapshot(
         threadId,
-      }),
-    );
-
-    // Save user message
-    await this.agentMessagesService.addMessage({
-      artifactReferences: request.artifactReferences,
-      brandId: scope.brandId,
-      content: request.content,
-      metadata: {
-        agentScope: scopeMetadata,
-        ...(request.attachments?.length
-          ? { attachments: request.attachments }
-          : {}),
-      },
-      organizationId: context.organizationId,
-      role: AgentMessageRole.USER,
-      room: threadId,
-      userId: context.userId,
-    });
-
-    const handledPlanMode =
-      await this.planModeService.tryHandlePlanModeTurnStream(
-        {
-          context: streamContext,
+        streamContext,
+        request.agentType,
+      );
+      await this.threadEventRecorder.recordThreadTurnRequested({
+        content: request.content,
+        context: streamContext,
+        model,
+        runId,
+        source: request.source,
+        threadId,
+      });
+      await runEffectPromise(
+        upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
           model,
-          request,
-          resolvedMemories,
-          seedTitle,
-          startedAt,
-          systemPromptOverride,
+          organizationId: context.organizationId,
+          runId,
+          status: 'running',
           threadId,
-          turnCost,
-        },
-        {
-          maybeUpdateThreadTitle: (p) =>
-            maybeUpdateThreadTitle({
-              ...p,
-              agentThreadsService: this.agentThreadsService,
-            }),
-        },
+        }),
       );
 
-    if (handledPlanMode) {
-      return {
+      // Save user message
+      await this.agentMessagesService.addMessage({
+        artifactReferences: request.artifactReferences,
         brandId: scope.brandId,
-        contextVersion: scope.contextVersion,
-        runId,
-        startedAt,
-        threadId,
-      };
-    }
+        content: request.content,
+        metadata: {
+          agentScope: scopeMetadata,
+          ...(request.attachments?.length
+            ? { attachments: request.attachments }
+            : {}),
+        },
+        organizationId: context.organizationId,
+        role: AgentMessageRole.USER,
+        room: threadId,
+        userId: context.userId,
+      });
 
-    let handledDeterministically: boolean;
-    try {
-      handledDeterministically =
+      const handledPlanMode =
+        await this.planModeService.tryHandlePlanModeTurnStream(
+          {
+            context: streamContext,
+            model,
+            request,
+            resolvedMemories,
+            seedTitle,
+            startedAt,
+            systemPromptOverride,
+            threadId,
+            turnCost,
+          },
+          {
+            maybeUpdateThreadTitle: (p) =>
+              maybeUpdateThreadTitle({
+                ...p,
+                agentThreadsService: this.agentThreadsService,
+              }),
+          },
+        );
+
+      if (handledPlanMode) {
+        return {
+          brandId: scope.brandId,
+          contextVersion: scope.contextVersion,
+          runId,
+          startedAt,
+          threadId,
+        };
+      }
+
+      const handledDeterministically =
         (await this.batchService.tryHandleBatchGenerationTurnStream(
           {
             context: streamContext,
@@ -544,19 +562,44 @@ export class AgentOrchestratorService {
           startedAt,
           threadId,
         }));
-    } catch (error: unknown) {
-      await runEffectPromise(
-        this.streamEffects.publishStreamFailureEffect({
-          context: streamContext,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          failRun: true,
-          threadId,
-        }),
-      );
-      throw error;
-    }
 
-    if (handledDeterministically) {
+      if (handledDeterministically) {
+        return {
+          brandId: scope.brandId,
+          contextVersion: scope.contextVersion,
+          runId,
+          startedAt,
+          threadId,
+        };
+      }
+
+      // Fire-and-forget streaming
+      this.runInThreadLane(threadId, async () => {
+        await this.streamLoopService.runStreamLoop(
+          streamContext,
+          threadId,
+          systemPromptOverride,
+          model,
+          turnCost,
+          policy,
+          generationPriority,
+          resolvedMemories,
+          request.agentType,
+          request.source,
+          seedTitle,
+          startedAt,
+          request.attachments,
+        );
+      }).catch((error: unknown) => {
+        this.loggerService.error(
+          `${this.constructorName} runStreamLoop unhandled rejection`,
+          {
+            error: error instanceof Error ? error.message : error,
+            threadId,
+          },
+        );
+      });
+
       return {
         brandId: scope.brandId,
         contextVersion: scope.contextVersion,
@@ -564,42 +607,48 @@ export class AgentOrchestratorService {
         startedAt,
         threadId,
       };
+    } catch (error: unknown) {
+      const persistedError = classifyAgentRunFailure(error);
+
+      try {
+        if (runId) {
+          await runEffectPromise(
+            this.streamEffects.publishStreamFailureEffect({
+              context: {
+                ...context,
+                resolvedSkills: resolved.resolvedSkills,
+                runId,
+                scope,
+              },
+              error: readAgentRunPublicError(error),
+              failRun: true,
+              persistedError,
+              threadId,
+            }),
+          );
+        } else {
+          await this.agentRunsService.recordFailedAttempt(
+            attemptId,
+            baseRunInput,
+            persistedError,
+          );
+        }
+      } catch (persistenceError: unknown) {
+        this.loggerService.error(
+          `${this.constructorName} failed to persist pre-stream agent run failure`,
+          {
+            error:
+              persistenceError instanceof Error
+                ? persistenceError.message
+                : persistenceError,
+            organizationId: context.organizationId,
+            threadId,
+          },
+        );
+      }
+
+      throw error;
     }
-
-    // Fire-and-forget streaming
-    this.runInThreadLane(threadId, async () => {
-      await this.streamLoopService.runStreamLoop(
-        streamContext,
-        threadId,
-        systemPromptOverride,
-        model,
-        turnCost,
-        policy,
-        generationPriority,
-        resolvedMemories,
-        request.agentType,
-        request.source,
-        seedTitle,
-        startedAt,
-        request.attachments,
-      );
-    }).catch((error: unknown) => {
-      this.loggerService.error(
-        `${this.constructorName} runStreamLoop unhandled rejection`,
-        {
-          error: error instanceof Error ? error.message : error,
-          threadId,
-        },
-      );
-    });
-
-    return {
-      brandId: scope.brandId,
-      contextVersion: scope.contextVersion,
-      runId,
-      startedAt,
-      threadId,
-    };
   }
 
   private async resolveOrCreateThreadId(

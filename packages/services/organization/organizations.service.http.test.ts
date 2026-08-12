@@ -263,7 +263,12 @@ describe('OrganizationsService HTTP methods', () => {
 
     it('inviteMember serializes and POSTs the invitation', async () => {
       http.post.mockResolvedValue(
-        axiosResponse(resourceDocument({ role: 'admin' }, { id: 'member_1' })),
+        axiosResponse(
+          resourceDocument(
+            { email: 'new@member.dev', roleKey: 'admin', status: 'delivered' },
+            { id: 'invitation_1' },
+          ),
+        ),
       );
       const invitation = {
         email: 'new@member.dev',
@@ -273,7 +278,12 @@ describe('OrganizationsService HTTP methods', () => {
       const result = await service.inviteMember(orgId, invitation);
 
       expect(http.post).toHaveBeenCalledWith(`/${orgId}/members`, invitation);
-      expect(result.id).toBe('member_1');
+      expect(result).toMatchObject({
+        email: 'new@member.dev',
+        id: 'invitation_1',
+        roleKey: 'admin',
+        status: 'delivered',
+      });
     });
 
     it('updateOrganizationMember PATCHes the member', async () => {

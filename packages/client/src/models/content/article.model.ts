@@ -6,7 +6,6 @@ import type {
 } from '@genfeedai/enums';
 import type {
   IArticle,
-  IAsset,
   IBrand,
   IOrganization,
   ITag,
@@ -20,7 +19,7 @@ export class Article extends BaseEntity implements IArticle {
   public declare organization: IOrganization;
   public declare brand?: IBrand;
   public declare tags?: ITag[];
-  public declare banner?: IAsset;
+  public declare coverImageUrl?: string;
   public declare label: string;
   public declare slug: string;
   public declare summary: string;

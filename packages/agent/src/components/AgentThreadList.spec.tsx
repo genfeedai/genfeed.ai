@@ -71,9 +71,11 @@ interface AgentChatStoreState {
     threadId: string | null;
   } | null;
   draftPlanModeEnabled: boolean;
+  isConversationCacheFresh: ReturnType<typeof vi.fn>;
   latestProposedPlan: Record<string, unknown> | null;
   messages: Array<Record<string, unknown>>;
   pendingInputRequest: Record<string, unknown> | null;
+  primeConversationCache: ReturnType<typeof vi.fn>;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
   restoreCachedConversation: ReturnType<typeof vi.fn>;
@@ -108,9 +110,11 @@ const storeState: AgentChatStoreState = {
   clearThreadAttention: vi.fn(),
   composerSeed: null,
   draftPlanModeEnabled: false,
+  isConversationCacheFresh: vi.fn(() => false),
   latestProposedPlan: null,
   messages: [],
   pendingInputRequest: null,
+  primeConversationCache: vi.fn(),
   resetActiveConversationState: vi.fn(() => {
     storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';

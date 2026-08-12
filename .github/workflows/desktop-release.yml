@@ -123,7 +123,7 @@ jobs:
             xcrun stapler validate "$dmg"
           done
 
-      - name: Verify Developer ID signature and notarization
+      - name: Verify Developer ID signature, notarization, and app size
         run: |
           DMG_PATH="$(find apps/desktop/app/release -maxdepth 1 -name '*.dmg' -type f | head -1)"
           MOUNT_PATH="$(mktemp -d)"
@@ -144,6 +144,21 @@ jobs:
 
           if [ -z "$APP_PATH" ]; then
             echo "::error::GenFeed.app was not found in the disk image"
+            exit 1
+          fi
+
+          MAX_APP_SIZE_MIB=500
+          APP_SIZE_KIB="$(du -sk "$APP_PATH" | awk '{print $1}')"
+          APP_SIZE_MIB="$(( (APP_SIZE_KIB + 1023) / 1024 ))"
+
+          {
+            echo "## Desktop package size"
+            echo
+            echo "GenFeed.app: ${APP_SIZE_MIB} MiB (budget: ${MAX_APP_SIZE_MIB} MiB)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$APP_SIZE_MIB" -gt "$MAX_APP_SIZE_MIB" ]; then
+            echo "::error::GenFeed.app is ${APP_SIZE_MIB} MiB and exceeds the 500 MiB release budget"
             exit 1
           fi
 

@@ -21,6 +21,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-bull-board-queue-parity.ts',
+    ],
+    name: 'Bull Board queue parity',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-no-api-imports-in-workers.ts',
     ],
     name: 'Workers @api import boundary',

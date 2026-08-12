@@ -98,6 +98,33 @@ describe('CreditsBarTrigger', () => {
     expect(screen.getByLabelText('Loading GEN balance')).toBeInTheDocument();
   });
 
+  it('keeps an unavailable balance neutral and hides plan usage', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreditsBarTrigger
+        {...defaultProps}
+        balance={null}
+        compactBalance="—"
+        fullBalance="—"
+        planLimit={100}
+        planUsagePercent={0}
+      />,
+    );
+
+    const trigger = screen.getByTestId('topbar-credits-trigger');
+    expect(trigger).toHaveAttribute('data-severity', 'unavailable');
+    expect(trigger).not.toHaveClass('text-destructive');
+    expect(trigger).not.toHaveClass('animate-pulse');
+    expect(
+      screen.getByLabelText('GEN balance unavailable. Open wallet.'),
+    ).toBeInTheDocument();
+
+    await user.click(trigger);
+
+    expect(screen.getByText('Balance unavailable')).toBeInTheDocument();
+    expect(screen.queryByText(/plan used/)).not.toBeInTheDocument();
+  });
+
   it('opens a consolidated wallet with Buy credits as the primary CTA', async () => {
     const user = userEvent.setup();
     render(

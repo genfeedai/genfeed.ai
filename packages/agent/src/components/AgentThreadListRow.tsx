@@ -63,6 +63,10 @@ interface AgentThreadListRowProps {
   onStartRename: (thread: AgentThread) => void;
   onArchive: (thread: AgentThread) => void;
   onUnarchive: (thread: AgentThread) => void;
+  /** Hover/focus signal (#2790) — debounced inside the caller's prefetch hook. */
+  onPrefetch: (threadId: string) => void;
+  /** Pointer-leave/blur, or an actual click, cancels a pending/in-flight prefetch. */
+  onCancelPrefetch: (threadId?: string) => void;
 }
 
 /**
@@ -146,6 +150,8 @@ export function AgentThreadListRow({
   onStartRename,
   onArchive,
   onUnarchive,
+  onPrefetch,
+  onCancelPrefetch,
 }: AgentThreadListRowProps): ReactElement {
   const isActiveConversation = conv.id === activeThreadId;
   // Archived view lists only archived threads, so a stale/missing API status
@@ -244,7 +250,23 @@ export function AgentThreadListRow({
           href={getThreadHref(conv.id)}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
           onClick={() => {
+            // A real click supersedes any hover/focus prefetch for this row —
+            // the switch effect is about to fetch (or already has, via the
+            // warm cache) the same data.
+            onCancelPrefetch(conv.id);
             onSelect(conv);
+          }}
+          onPointerEnter={() => {
+            onPrefetch(conv.id);
+          }}
+          onFocus={() => {
+            onPrefetch(conv.id);
+          }}
+          onPointerLeave={() => {
+            onCancelPrefetch(conv.id);
+          }}
+          onBlur={() => {
+            onCancelPrefetch(conv.id);
           }}
         >
           {activitySlot}

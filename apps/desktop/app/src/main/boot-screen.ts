@@ -196,7 +196,7 @@ export const buildDesktopFailureScreenHtml = (): string =>
     body: `
     <main role="alert">
       <h1>Genfeed could not start</h1>
-      <p>The embedded app shell failed to boot. Restart Genfeed and check the desktop logs if this keeps happening.</p>
+      <p>Your local data is still safe. Quit and reopen Genfeed; if this keeps happening, install the latest desktop release.</p>
     </main>
 `,
   });

@@ -88,7 +88,11 @@ describe('AccountHealthService', () => {
           ),
           warmupState: 'not_started',
         }),
-        where: { id: 'credential-1' },
+        where: {
+          id: 'credential-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });
@@ -187,5 +191,31 @@ describe('AccountHealthService', () => {
     expect(summary.signals.publishedPosts).toBe(3);
     expect(summary.signals.recentFailures).toBe(1);
     expect(summary.state).toBe('risky');
+  });
+
+  it('preserves provider evidence when refreshing legacy health signals', async () => {
+    prisma.credential.findFirst.mockResolvedValueOnce(
+      makeCredential({
+        warmupSignals: {
+          tiktokAuthorized: { state: 'partial' },
+        },
+      }),
+    );
+
+    await service.assessCredentialHealth({
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+
+    expect(prisma.credential.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          warmupSignals: expect.objectContaining({
+            connectedDays: expect.any(Number),
+            tiktokAuthorized: { state: 'partial' },
+          }),
+        }),
+      }),
+    );
   });
 });

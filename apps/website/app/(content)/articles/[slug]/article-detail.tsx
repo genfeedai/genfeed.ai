@@ -9,14 +9,15 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { Article } from '@models/content/article.model';
 import { ClipboardService } from '@services/core/clipboard.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
-import { createMarkup } from '@utils/sanitize-html';
+import ArticleCover from '@website/(content)/articles/article-cover';
 import {
   ArrowRight,
   Calendar,
@@ -29,6 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import ArticleContent from './article-content';
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -62,6 +64,119 @@ function SocialLinkItem({
   );
 }
 
+interface AboutSocialLink {
+  icon: IconType;
+  label: string;
+  url?: string;
+}
+
+const GENFEED_DESCRIPTION =
+  'The AI Content OS for discovering ideas, creating on-brand content, publishing everywhere, and learning what drives results.';
+
+const GENFEED_SOCIAL_LINKS: readonly AboutSocialLink[] = [
+  {
+    icon: TwitterIcon,
+    label: 'Twitter/X',
+    url: EnvironmentService.social.twitter,
+  },
+  {
+    icon: LinkedinIcon,
+    label: 'LinkedIn',
+    url: EnvironmentService.social.linkedin,
+  },
+  {
+    icon: YoutubeIcon,
+    label: 'YouTube',
+    url: EnvironmentService.social.youtube,
+  },
+  {
+    icon: InstagramIcon,
+    label: 'Instagram',
+    url: EnvironmentService.social.instagram,
+  },
+  {
+    icon: TiktokIcon,
+    label: 'TikTok',
+    url: EnvironmentService.social.tiktok,
+  },
+] as const;
+
+export function ArticleAbout({
+  brand,
+}: {
+  brand?: Article['brand'];
+}): React.ReactElement {
+  const label = brand?.label?.trim() || 'Genfeed';
+  const description = brand
+    ? brand.description?.trim() ||
+      `Explore more articles and updates published by ${label}.`
+    : GENFEED_DESCRIPTION;
+  const logoUrl = brand ? brand.logoUrl : cdnAsset('/assets/branding/logo.jpg');
+  const href = brand?.slug ? `/u/${brand.slug}` : '/about';
+  const linkLabel = brand?.slug ? `More from ${label}` : 'About Genfeed';
+  const socialLinks: readonly AboutSocialLink[] = brand
+    ? [
+        { icon: TwitterIcon, label: 'Twitter/X', url: brand.twitterUrl },
+        { icon: LinkedinIcon, label: 'LinkedIn', url: brand.linkedinUrl },
+        { icon: YoutubeIcon, label: 'YouTube', url: brand.youtubeUrl },
+        { icon: InstagramIcon, label: 'Instagram', url: brand.instagramUrl },
+        { icon: TiktokIcon, label: 'TikTok', url: brand.tiktokUrl },
+      ]
+    : GENFEED_SOCIAL_LINKS;
+  const visibleSocialLinks = socialLinks.filter(
+    (socialLink): socialLink is AboutSocialLink & { url: string } =>
+      Boolean(socialLink.url),
+  );
+
+  return (
+    <div className="border border-edge/[0.08] bg-fill/10 p-4 backdrop-blur-sm md:p-6">
+      <h2 className="mb-4 text-base font-semibold text-surface md:text-lg">
+        About {label}
+      </h2>
+
+      <div className="space-y-4">
+        {logoUrl && (
+          <div className="flex justify-center lg:justify-start">
+            <Image
+              alt={`${label} logo`}
+              className="size-20 rounded-full object-cover ring-4 ring-edge/20 md:size-24"
+              height={96}
+              priority
+              src={logoUrl}
+              width={96}
+            />
+          </div>
+        )}
+
+        <p className="text-center text-xs leading-5 text-surface/70 lg:text-left md:text-sm">
+          {description}
+        </p>
+
+        <Link
+          className="flex items-center justify-center gap-2 border border-edge/[0.08] bg-fill/10 px-3 py-2 text-xs text-surface transition-colors hover:border-edge/20 hover:bg-fill/20 hover:text-surface/80 lg:justify-start md:text-sm"
+          href={href}
+        >
+          <span>{linkLabel}</span>
+          <ArrowRight className="size-4 flex-shrink-0" aria-hidden="true" />
+        </Link>
+
+        {visibleSocialLinks.length > 0 && (
+          <div className="space-y-2 border-t border-edge/20 pt-3 md:space-y-2.5">
+            {visibleSocialLinks.map((socialLink) => (
+              <SocialLinkItem
+                icon={socialLink.icon}
+                key={socialLink.label}
+                label={socialLink.label}
+                url={socialLink.url}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ArticleDetail({
   article,
   isPreview,
@@ -72,12 +187,6 @@ export default function ArticleDetail({
   const { push } = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const articleContentProps = useMemo(
-    () => ({
-      dangerouslySetInnerHTML: createMarkup(article?.content || ''),
-    }),
-    [article?.content],
-  );
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -136,18 +245,12 @@ export default function ArticleDetail({
           </Button>
         </div>
 
-        {article.bannerUrl && (
-          <div className="relative mb-6 h-48 overflow-hidden bg-muted md:mb-8 md:h-64 lg:h-80">
-            <Image
-              src={article.bannerUrl}
-              alt={`${article.label} banner`}
-              className="h-full w-full object-cover object-center"
-              fill
-              sizes="(max-width: 1024px) 100vw, 896px"
-              priority
-            />
-          </div>
-        )}
+        <ArticleCover
+          category={article.category}
+          coverImageUrl={article.coverImageUrl}
+          label={article.label}
+          seed={article.slug || article.id}
+        />
 
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
@@ -199,105 +302,16 @@ export default function ArticleDetail({
               </div>
             </header>
 
-            <div className="prose prose-invert prose-lg max-w-none">
-              <div {...articleContentProps} />
-            </div>
+            <ArticleContent
+              articleLabel={article.label}
+              html={article.content || ''}
+              slug={article.slug}
+            />
           </div>
 
           <aside className="order-first lg:order-last lg:col-span-1">
             <div className="lg:sticky lg:top-4 lg:self-start">
-              <div className="border border-edge/[0.08] bg-fill/10 p-4 backdrop-blur-sm md:p-6">
-                <h3 className="mb-3 text-base font-semibold text-surface md:mb-4 md:text-lg">
-                  About Us
-                </h3>
-
-                {brand ? (
-                  <div className="space-y-3 md:space-y-4">
-                    {brand.logoUrl && (
-                      <div className="flex justify-center">
-                        <Image
-                          src={brand.logoUrl}
-                          alt={brand.label || 'Brand logo'}
-                          className="size-20 rounded-full object-cover ring-4 ring-edge/20 md:h-24 md:w-24"
-                          width={96}
-                          height={96}
-                          priority
-                        />
-                      </div>
-                    )}
-
-                    {brand.label && (
-                      <div>
-                        <h4 className="text-center text-base font-semibold text-surface lg:text-left md:text-lg">
-                          {brand.label}
-                        </h4>
-                      </div>
-                    )}
-
-                    {brand.description && (
-                      <p className="text-center text-xs text-surface/70 lg:text-left md:text-sm">
-                        {brand.description}
-                      </p>
-                    )}
-
-                    {brand.slug && (
-                      <div className="pt-2">
-                        <Link
-                          href={`/u/${brand.slug}`}
-                          className="flex items-center justify-center gap-2 border border-edge/[0.08] bg-fill/10 px-3 py-2 text-xs text-surface transition-colors hover:border-edge/20 hover:bg-fill/20 hover:text-surface/80 lg:justify-start md:text-sm"
-                        >
-                          <span>View more content</span>
-                          <ArrowRight className="size-4 flex-shrink-0" />
-                        </Link>
-                      </div>
-                    )}
-
-                    <div className="my-2 border-t border-edge/20 pt-3"></div>
-                    <div className="space-y-2 md:space-y-2.5">
-                      {brand.twitterUrl && (
-                        <SocialLinkItem
-                          url={brand.twitterUrl}
-                          icon={TwitterIcon}
-                          label="Twitter/X"
-                        />
-                      )}
-                      {brand.linkedinUrl && (
-                        <SocialLinkItem
-                          url={brand.linkedinUrl}
-                          icon={LinkedinIcon}
-                          label="LinkedIn"
-                        />
-                      )}
-                      {brand.youtubeUrl && (
-                        <SocialLinkItem
-                          url={brand.youtubeUrl}
-                          icon={YoutubeIcon}
-                          label="YouTube"
-                        />
-                      )}
-                      {brand.instagramUrl && (
-                        <SocialLinkItem
-                          url={brand.instagramUrl}
-                          icon={InstagramIcon}
-                          label="Instagram"
-                        />
-                      )}
-                      {brand.tiktokUrl && (
-                        <SocialLinkItem
-                          url={brand.tiktokUrl}
-                          icon={TiktokIcon}
-                          label="TikTok"
-                        />
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                )}
-              </div>
+              <ArticleAbout brand={brand} />
             </div>
           </aside>
         </div>

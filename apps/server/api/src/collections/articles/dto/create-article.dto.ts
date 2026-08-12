@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUrl,
   Matches,
   MaxLength,
 } from 'class-validator';
@@ -78,12 +79,13 @@ export class CreateArticleDto {
   tags?: string[];
 
   @ApiProperty({
-    description: 'Banner image ID',
+    description: 'Absolute URL of the article cover image',
+    example: 'https://cdn.genfeed.ai/assets/articles/my-article.jpg',
     required: false,
   })
   @IsOptional()
-  @IsEntityId()
-  banner?: string;
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  coverImageUrl?: string;
 
   @ApiProperty({
     description: 'Article access scope',

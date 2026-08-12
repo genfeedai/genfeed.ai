@@ -194,6 +194,22 @@ test('enforces the content-automation boundary guards on every pull request', ()
   }
 });
 
+test('enforces Bull Board queue parity on every pull request', () => {
+  const workflow = readWorkflow('ci.yml');
+  const guards = jobBlock(workflow, 'guards', 'ci.yml');
+
+  assert.match(
+    guards,
+    /^ {8}run: bun run check:bull-board-parity$/m,
+    'the guards job must run the Bull Board queue parity contract',
+  );
+  assert.match(
+    guards,
+    /check-bull-board-queue-parity\.test\.ts/,
+    'the guards job must run Bull Board queue parity regression tests',
+  );
+});
+
 test('enforces relation alias read and write guards on every pull request', () => {
   const workflow = readWorkflow('ci.yml');
   const guards = jobBlock(workflow, 'guards', 'ci.yml');

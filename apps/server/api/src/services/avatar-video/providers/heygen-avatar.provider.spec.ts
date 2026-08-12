@@ -13,7 +13,10 @@ describe('HeygenAvatarProvider', () => {
   let byokService: { resolveApiKey: ReturnType<typeof vi.fn> };
   let apiKeyHelperService: { getApiKey: ReturnType<typeof vi.fn> };
   let httpService: { get: ReturnType<typeof vi.fn> };
-  let heygenService: { generateAvatarVideo: ReturnType<typeof vi.fn> };
+  let heygenService: {
+    generateAvatarVideo: ReturnType<typeof vi.fn>;
+    generatePhotoAvatarVideo: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -23,7 +26,10 @@ describe('HeygenAvatarProvider', () => {
     byokService = { resolveApiKey: vi.fn() };
     apiKeyHelperService = { getApiKey: vi.fn() };
     httpService = { get: vi.fn() };
-    heygenService = { generateAvatarVideo: vi.fn() };
+    heygenService = {
+      generateAvatarVideo: vi.fn().mockResolvedValue('avatar-job-1'),
+      generatePhotoAvatarVideo: vi.fn().mockResolvedValue('photo-job-1'),
+    };
     loggerService = { error: vi.fn(), log: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,6 +52,61 @@ describe('HeygenAvatarProvider', () => {
 
   it('exposes providerName as heygen', () => {
     expect(provider.providerName).toBe('heygen');
+  });
+
+  describe('generateVideo', () => {
+    const input = {
+      avatarId: 'avatar-1',
+      callbackId: 'clip-result-1',
+      organizationId: 'org-1',
+      script: 'Create this clip',
+      userId: 'user-1',
+      voiceId: 'voice-1',
+    };
+
+    it('preserves avatar generation when no reference was selected', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
+
+      await provider.generateVideo(input);
+
+      expect(heygenService.generateAvatarVideo).toHaveBeenCalledWith(
+        'clip-result-1',
+        'avatar-1',
+        'voice-1',
+        'Create this clip',
+        'org-1',
+        'user-1',
+        'byok-xyz',
+      );
+      expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('maps an authorized reference through HeyGen photo_url generation', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
+
+      const result = await provider.generateVideo({
+        ...input,
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+      });
+
+      expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+        'clip-result-1',
+        'https://cdn.example.com/reference.jpg',
+        {
+          inputText: 'Create this clip',
+          voiceId: 'voice-1',
+        },
+        'org-1',
+        'user-1',
+        'byok-xyz',
+      );
+      expect(heygenService.generateAvatarVideo).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        jobId: 'photo-job-1',
+        providerName: 'heygen',
+        status: 'processing',
+      });
+    });
   });
 
   describe('getStatus', () => {

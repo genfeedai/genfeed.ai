@@ -118,7 +118,7 @@ export class AgentStreamEffectsService {
   }): Effect.Effect<void, unknown> {
     const publishReasoningEffect = params.reasoning
       ? this.publishStreamReasoningEffect({
-          content: params.reasoning!,
+          content: params.reasoning,
           runId: params.context.runId,
           threadId: params.threadId,
           userId: params.context.userId,
@@ -379,15 +379,17 @@ export class AgentStreamEffectsService {
     context: AgentChatContext;
     error: string;
     failRun: boolean;
+    persistedError?: string;
     threadId: string;
   }): Effect.Effect<void, unknown> {
+    const runId = params.context.runId;
     const failRunEffect =
-      params.failRun && params.context.runId && this.agentRunsService
+      params.failRun && runId && this.agentRunsService
         ? fromPromiseEffect(() =>
             this.agentRunsService?.fail(
-              params.context.runId!,
+              runId,
               params.context.organizationId,
-              params.error,
+              params.persistedError ?? params.error,
             ),
           ).pipe(Effect.asVoid)
         : Effect.void;

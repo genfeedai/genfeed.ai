@@ -3,6 +3,8 @@ import { IsIn, IsOptional, IsString } from 'class-validator';
 
 export const INVITATION_STATUS_VALUES = [
   'accepted',
+  'delivered',
+  'delivery-failed',
   'expired',
   'pending',
   'revoked',

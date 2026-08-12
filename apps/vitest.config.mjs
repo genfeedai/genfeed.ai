@@ -315,11 +315,11 @@ export default defineConfig({
       },
       {
         find: /^@website$/,
-        replacement: appRoot,
+        replacement: path.resolve(appRoot, './app'),
       },
       {
         find: /^@website\/(.*)$/,
-        replacement: `${appRoot}/$1`,
+        replacement: path.resolve(appRoot, './app/$1'),
       },
       {
         find: /^@u$/,
