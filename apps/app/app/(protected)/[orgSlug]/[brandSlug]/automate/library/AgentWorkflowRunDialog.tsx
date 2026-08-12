@@ -31,6 +31,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   buildAgentWorkflowRunInput,
   listEditableExtraSlots,
+  listUnfilledRequiredAfterForm,
   seedExtraInputsFromBinding,
   type WorkflowIngredientSelection,
 } from './agent-workflow-run-input.util';
@@ -209,24 +210,42 @@ export default function AgentWorkflowRunDialog({
     [binding?.inputs],
   );
 
+  const formState = useMemo(
+    () => ({
+      cta,
+      extraInputs,
+      prompt,
+      referenceImageUrl: referenceImage,
+      selectedIngredient:
+        selectedIngredientId === NONE_INGREDIENT
+          ? null
+          : (libraryImages.find((item) => item.id === selectedIngredientId) ??
+            null),
+      topic,
+    }),
+    [
+      cta,
+      extraInputs,
+      libraryImages,
+      prompt,
+      referenceImage,
+      selectedIngredientId,
+      topic,
+    ],
+  );
+
+  const unfilledRequired = useMemo(
+    () => listUnfilledRequiredAfterForm(binding?.inputs, formState),
+    [binding?.inputs, formState],
+  );
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const selected =
-      selectedIngredientId === NONE_INGREDIENT
-        ? null
-        : (libraryImages.find((item) => item.id === selectedIngredientId) ??
-          null);
+    if (unfilledRequired.length > 0) {
+      return;
+    }
 
-    await onSubmit(
-      buildAgentWorkflowRunInput({
-        cta,
-        extraInputs,
-        prompt,
-        referenceImageUrl: referenceImage,
-        selectedIngredient: selected,
-        topic,
-      }),
-    );
+    await onSubmit(buildAgentWorkflowRunInput(formState));
   }
 
   const missing = binding?.missingRequiredKeys ?? [];
@@ -234,6 +253,8 @@ export default function AgentWorkflowRunDialog({
     binding?.workflowLabel ||
     binding?.preferredWorkflowTemplateId ||
     'Default content workflow';
+  const canSubmit =
+    !isSubmitting && !isLoadingBinding && unfilledRequired.length === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -264,9 +285,15 @@ export default function AgentWorkflowRunDialog({
                     {binding.templateDescription}
                   </p>
                 ) : null}
-                {missing.length > 0 ? (
+                {unfilledRequired.length > 0 ? (
                   <p className="mt-1 text-warning">
-                    Still needs: {missing.join(', ')} — fill below before run.
+                    Fill required slots before run:{' '}
+                    {unfilledRequired.join(', ')}
+                  </p>
+                ) : missing.length > 0 ? (
+                  <p className="mt-1 text-foreground/50">
+                    Binding preview still lists: {missing.join(', ')} — form
+                    values will fill them on submit.
                   </p>
                 ) : (
                   <p className="mt-1 text-success">
@@ -430,7 +457,7 @@ export default function AgentWorkflowRunDialog({
               type="submit"
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
-              disabled={isSubmitting || isLoadingBinding}
+              disabled={!canSubmit}
             />
           </DialogFooter>
         </form>

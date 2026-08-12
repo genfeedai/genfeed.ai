@@ -312,7 +312,17 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentWorkflowBindCard.tsx',
     );
     expect(bindUi).toContain('preferredWorkflowId');
+    expect(bindUi).toContain('workflowInputOverrides');
     expect(bindUi).toContain('Save binding');
+    const runDialogUtil = readRepo(
+      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/library/agent-workflow-run-input.util.ts',
+    );
+    expect(runDialogUtil).toContain('listUnfilledRequiredAfterForm');
+    const credentialUtil = readRepo(
+      'apps/server/api/src/services/campaign/reply-bot-credential.util.ts',
+    );
+    expect(credentialUtil).toContain('toReplyBotCredentialData');
+    expect(credentialUtil).toContain('readReplyBotCredentialId');
   });
 
   it('reads X replies via official API first with Apify fallback only', () => {

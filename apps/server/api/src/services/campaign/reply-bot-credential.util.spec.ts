@@ -1,4 +1,7 @@
-import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
+import {
+  readReplyBotCredentialId,
+  toReplyBotCredentialData,
+} from '@api/services/campaign/reply-bot-credential.util';
 import { describe, expect, it } from 'vitest';
 
 describe('toReplyBotCredentialData', () => {
@@ -99,5 +102,24 @@ describe('toReplyBotCredentialData', () => {
         platform: 123,
       })?.platform,
     ).toBe('123');
+  });
+});
+
+describe('readReplyBotCredentialId', () => {
+  it('prefers root credentialId', () => {
+    expect(
+      readReplyBotCredentialId({
+        config: { credentialId: 'nested' },
+        credentialId: 'root',
+      }),
+    ).toBe('root');
+  });
+
+  it('falls back to nested config.credentialId', () => {
+    expect(
+      readReplyBotCredentialId({
+        config: { credentialId: 'nested' },
+      }),
+    ).toBe('nested');
   });
 });

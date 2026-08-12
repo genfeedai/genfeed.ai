@@ -70,3 +70,29 @@ export function toReplyBotCredentialData(
     username,
   };
 }
+
+/**
+ * Prefer root credentialId, then nested config.credentialId (legacy bag).
+ * Shared by queue fan-out, worker cron, and author-reply config reads.
+ */
+export function readReplyBotCredentialId(
+  config: Record<string, unknown> | { credentialId?: string; config?: unknown },
+): string | undefined {
+  const root = (config as { credentialId?: unknown }).credentialId;
+  if (typeof root === 'string' && root.trim()) {
+    return root.trim();
+  }
+
+  const nestedConfig = (config as { config?: unknown }).config;
+  const payload =
+    nestedConfig &&
+    typeof nestedConfig === 'object' &&
+    !Array.isArray(nestedConfig)
+      ? (nestedConfig as Record<string, unknown>)
+      : {};
+
+  const nested = payload.credentialId;
+  return typeof nested === 'string' && nested.trim()
+    ? nested.trim()
+    : undefined;
+}

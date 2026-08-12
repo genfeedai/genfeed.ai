@@ -131,3 +131,67 @@ export function seedExtraInputsFromBinding(
   }
   return seeded;
 }
+
+const TOPIC_KEYS = new Set(['topic', 'titleText', 'title', 'visualAngle']);
+const PROMPT_KEYS = new Set(['prompt', 'script', 'angle', 'body', 'copy']);
+const CTA_KEYS = new Set(['cta', 'ctaText', 'callToAction']);
+const IMAGE_KEYS = new Set([
+  'referenceImage',
+  'photoUrl',
+  'imageUrl',
+  'image',
+  'assetUrl',
+]);
+
+/**
+ * Required binding slots still empty after applying the current form values.
+ * Used to fail-closed the Run button before the API rejects the run.
+ */
+export function listUnfilledRequiredAfterForm(
+  inputs: AgentStrategyWorkflowInputPreview[] | undefined,
+  form: AgentWorkflowRunFormState,
+): string[] {
+  if (!inputs?.length) {
+    return [];
+  }
+
+  const payload = buildAgentWorkflowRunInput(form);
+  const merged: Record<string, unknown> = {
+    ...(payload.inputs ?? {}),
+  };
+  if (payload.topic) {
+    for (const key of TOPIC_KEYS) {
+      merged[key] = payload.topic;
+    }
+  }
+  if (payload.prompt) {
+    for (const key of PROMPT_KEYS) {
+      merged[key] = payload.prompt;
+    }
+  }
+  if (payload.cta) {
+    for (const key of CTA_KEYS) {
+      merged[key] = payload.cta;
+    }
+  }
+  if (payload.referenceImage) {
+    for (const key of IMAGE_KEYS) {
+      merged[key] = payload.referenceImage;
+    }
+  }
+
+  const unfilled: string[] = [];
+  for (const input of inputs) {
+    if (!input.required) {
+      continue;
+    }
+    const fromForm = merged[input.key];
+    const fromBinding = input.filledValue;
+    const hasForm = fromForm != null && String(fromForm).trim() !== '';
+    const hasBinding = fromBinding != null && String(fromBinding).trim() !== '';
+    if (!hasForm && !hasBinding) {
+      unfilled.push(input.key);
+    }
+  }
+  return unfilled;
+}

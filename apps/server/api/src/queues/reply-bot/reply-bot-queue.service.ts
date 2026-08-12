@@ -1,5 +1,5 @@
-import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
 import {
   REPLY_BOT_POLLING_QUEUE,
   ReplyBotPollingJobData,
@@ -9,6 +9,8 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
+
+export { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
 
 export type ReplyBotPollTarget = {
   credentialId: string;
@@ -77,7 +79,10 @@ export class ReplyBotQueueService implements OnModuleInit {
         organizationId,
       });
 
-      return job.id!;
+      if (!job.id) {
+        throw new Error('Polling queue did not return a job id');
+      }
+      return job.id;
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
       throw error;
@@ -190,31 +195,4 @@ export class ReplyBotQueueService implements OnModuleInit {
     await this.pollingQueue.resume();
     this.logger.log(`${this.constructorName} polling resumed`);
   }
-}
-
-/** Prefer root credentialId, then nested config.credentialId (legacy bag). */
-export function readReplyBotCredentialId(
-  config: ReplyBotConfigDocument | Record<string, unknown>,
-): string | undefined {
-  const root = (config as ReplyBotConfigDocument).credentialId;
-  if (typeof root === 'string' && root.trim()) {
-    return root.trim();
-  }
-
-  const payload =
-    (config as ReplyBotConfigDocument).config &&
-    typeof (config as ReplyBotConfigDocument).config === 'object'
-      ? ((config as ReplyBotConfigDocument).config as Record<string, unknown>)
-      : typeof (config as Record<string, unknown>).config === 'object' &&
-          (config as Record<string, unknown>).config !== null
-        ? ((config as Record<string, unknown>).config as Record<
-            string,
-            unknown
-          >)
-        : {};
-
-  const nested = payload.credentialId;
-  return typeof nested === 'string' && nested.trim()
-    ? nested.trim()
-    : undefined;
 }

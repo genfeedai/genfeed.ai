@@ -1,9 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -71,6 +72,8 @@ function intentBadgeVariant(
 export default function RepliesPage() {
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
   const getReplyBotService = useAuthedService(ReplyBotConfigsService);
+  const connectPlatform = usePlatformOAuthConnect({ brandId: brand?.id });
+  const [isConnecting, setIsConnecting] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const [items, setItems] = useState<InboxItem[]>([]);
@@ -266,6 +269,28 @@ export default function RepliesPage() {
     }
   }
 
+  async function handleConnectPlatform() {
+    if (!brandId) {
+      return;
+    }
+    setIsConnecting(true);
+    try {
+      await connectPlatform(
+        inboxPlatform === 'youtube' ? Platform.YOUTUBE : Platform.TWITTER,
+      );
+    } catch (error: unknown) {
+      logger.error('Replies platform connect failed', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : inboxPlatform === 'youtube'
+            ? 'Could not connect YouTube'
+            : 'Could not connect X',
+      );
+      setIsConnecting(false);
+    }
+  }
+
   if (isBrandLoading || !brandId) {
     return <Loading />;
   }
@@ -362,7 +387,21 @@ export default function RepliesPage() {
                 ? 'No unreplied YouTube comments in the last 48 hours — connect YouTube for this brand, or check back after people comment.'
                 : 'No unreplied comments in the last 24 hours — connect X and post, or check back after people reply.'
           }
-          bodyClassName="p-4"
+          bodyClassName="flex flex-col gap-3 p-4"
+          headerAction={
+            <Button
+              disabled={isConnecting}
+              onClick={() => void handleConnectPlatform()}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              {isConnecting
+                ? 'Connecting…'
+                : inboxPlatform === 'youtube'
+                  ? 'Connect YouTube'
+                  : 'Connect X'}
+            </Button>
+          }
         />
       ) : (
         <div className="flex flex-col gap-4">

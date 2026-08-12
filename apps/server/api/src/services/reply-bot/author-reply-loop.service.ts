@@ -9,7 +9,10 @@ import { ProcessedTweetsService } from '@api/collections/processed-tweets/servic
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
+import {
+  readReplyBotCredentialId,
+  toReplyBotCredentialData,
+} from '@api/services/campaign/reply-bot-credential.util';
 import { mergeAuthorClosedLoopData } from '@api/services/reply-bot/author-closed-loop.util';
 import type {
   AuthorReplyDraftResult,
@@ -680,19 +683,7 @@ export class AuthorReplyLoopService {
   }
 
   private readCredentialId(config: ReplyBotConfigDocument): string | undefined {
-    // Same dual-path as queue fan-out (root + nested config bag).
-    const fromDoc = config.credentialId;
-    if (typeof fromDoc === 'string' && fromDoc.trim()) {
-      return fromDoc.trim();
-    }
-    const payload =
-      config.config && typeof config.config === 'object'
-        ? (config.config as Record<string, unknown>)
-        : {};
-    return typeof payload.credentialId === 'string' &&
-      payload.credentialId.trim()
-      ? payload.credentialId.trim()
-      : undefined;
+    return readReplyBotCredentialId(config as Record<string, unknown>);
   }
 
   private async findBrandCredentialId(

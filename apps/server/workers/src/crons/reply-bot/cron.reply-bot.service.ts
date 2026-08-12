@@ -1,11 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import {
+  readReplyBotCredentialId,
+  toReplyBotCredentialData,
+} from '@api/services/campaign/reply-bot-credential.util';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 interface ReplyBotCronTarget {
@@ -122,11 +124,9 @@ export class CronReplyBotService {
 
     for (const config of configs) {
       const organizationId = config.organizationId;
-      const configPayload =
-        config.config && typeof config.config === 'object'
-          ? (config.config as Record<string, unknown>)
-          : undefined;
-      const credentialId = configPayload?.credentialId;
+      const credentialId = readReplyBotCredentialId(
+        config as Record<string, unknown>,
+      );
 
       if (
         typeof organizationId !== 'string' ||
@@ -161,17 +161,11 @@ export class CronReplyBotService {
       return null;
     }
 
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-      externalId: credential.externalId ?? undefined,
-      platform: credential.platform as ReplyBotPlatform,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username: credential.username ?? undefined,
-    };
+    return toReplyBotCredentialData(
+      credential as unknown as Record<string, unknown>,
+      {
+        organizationId: target.organizationId,
+      },
+    );
   }
 }

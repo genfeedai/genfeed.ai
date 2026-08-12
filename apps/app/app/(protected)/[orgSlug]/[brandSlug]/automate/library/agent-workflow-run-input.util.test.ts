@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAgentWorkflowRunInput,
   listEditableExtraSlots,
+  listUnfilledRequiredAfterForm,
   seedExtraInputsFromBinding,
 } from './agent-workflow-run-input.util';
 
@@ -143,5 +144,57 @@ describe('seedExtraInputsFromBinding', () => {
         },
       ]),
     ).toEqual({ customHook: 'hook default' });
+  });
+});
+
+describe('listUnfilledRequiredAfterForm', () => {
+  it('requires extra slots when form does not fill them', () => {
+    expect(
+      listUnfilledRequiredAfterForm(
+        [
+          {
+            defaultValue: null,
+            description: null,
+            filledValue: null,
+            key: 'topic',
+            label: 'Topic',
+            required: true,
+            source: 'unfilled',
+            type: 'string',
+          },
+          {
+            defaultValue: null,
+            description: null,
+            filledValue: null,
+            key: 'customHook',
+            label: 'Hook',
+            required: true,
+            source: 'unfilled',
+            type: 'string',
+          },
+        ],
+        { topic: 'Launch' },
+      ),
+    ).toEqual(['customHook']);
+  });
+
+  it('is empty when form fills required extras', () => {
+    expect(
+      listUnfilledRequiredAfterForm(
+        [
+          {
+            defaultValue: null,
+            description: null,
+            filledValue: null,
+            key: 'customHook',
+            label: 'Hook',
+            required: true,
+            source: 'unfilled',
+            type: 'string',
+          },
+        ],
+        { extraInputs: { customHook: 'open strong' } },
+      ),
+    ).toEqual([]);
   });
 });

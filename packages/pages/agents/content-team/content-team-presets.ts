@@ -29,6 +29,7 @@ export const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<
   [AgentType.SHORT_FORM_WRITER]: 'tiktok-slideshow-automation',
   [AgentType.CTA_CONTENT]: 'founder-x-post',
   [AgentType.YOUTUBE_SCRIPT]: 'youtube-thumbnail-script',
+  [AgentType.BRAND_INTERVIEW]: 'founder-newsletter',
 };
 
 export function preferredWorkflowTemplateIdForAgentType(

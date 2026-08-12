@@ -78,6 +78,11 @@ export const AGENT_TYPE_WORKFLOW_DEFAULTS: Partial<
     skillSlugs: ['content-writing', 'image-generation'],
     templateId: 'youtube-thumbnail-script',
   },
+  [AgentType.BRAND_INTERVIEW]: {
+    description: 'Brand interview notes → long-form newsletter/article graph.',
+    skillSlugs: ['content-writing'],
+    templateId: 'founder-newsletter',
+  },
 };
 
 export function getAgentTypeWorkflowDefault(
