@@ -41,7 +41,10 @@ import {
   runWithActionOrigin,
   scopedWhere,
 } from '@genfeedai/server';
-import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
+import {
+  applyWorkflowEtaProgress,
+  precomputeWorkflowEtaPlan,
+} from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -546,6 +549,7 @@ export class WorkflowExecutorService {
             ? WorkflowStatus.COMPLETED
             : WorkflowStatus.FAILED,
       });
+      this.progressService.clearEtaPlan(executionId);
 
       await this.progressService.publishWorkflowStatus(
         workflowId,
@@ -637,10 +641,12 @@ export class WorkflowExecutorService {
       executableWorkflow,
       event.data,
     );
-    const initialEta = buildWorkflowEtaSnapshot({
+    const etaPlan = precomputeWorkflowEtaPlan(
+      executableWorkflow.nodes,
+      executableWorkflow.edges,
+    );
+    const initialEta = applyWorkflowEtaProgress(etaPlan, {
       currentPhase: existingExecutionId ? 'Resuming' : 'Queued',
-      edges: executableWorkflow.edges,
-      nodes: executableWorkflow.nodes,
       startedAt,
     });
     const executionMetadata =
@@ -658,17 +664,20 @@ export class WorkflowExecutorService {
         event.userId,
         event.organizationId,
         {
+          estimatedDurationMs: initialEta.estimatedDurationMs,
+          etaConfidence: initialEta.etaConfidence,
+          etaCurrentPhase: initialEta.currentPhase,
           inputValues: event.data,
-          metadata: {
-            ...executionMetadata,
-            eta: initialEta,
-          },
+          metadata: executionMetadata,
+          remainingDurationMs: initialEta.remainingDurationMs,
+          totalNodes: executableWorkflow.nodes.length,
           trigger,
           workflowId,
         },
       );
       executionId = execution.id;
     }
+    this.progressService.rememberEtaPlan(executionId, etaPlan);
 
     try {
       await this.executionsService.startExecution(executionId);
@@ -725,6 +734,7 @@ export class WorkflowExecutorService {
               ? WorkflowStatus.COMPLETED
               : WorkflowStatus.FAILED,
         });
+        this.progressService.clearEtaPlan(executionId);
 
         if (
           trigger === WorkflowExecutionTrigger.SCHEDULED &&

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyWorkflowEtaProgress,
   buildGenerationEtaSnapshot,
   buildWorkflowEtaSnapshot,
   estimateWorkflowCriticalPath,
   formatEtaDuration,
   formatEtaRange,
+  precomputeWorkflowEtaPlan,
   shouldDisplayEta,
 } from './generation-eta.helper';
 
@@ -161,5 +163,27 @@ describe('workflow eta helper', () => {
 
     expect(estimate.etaConfidence).toBe('low');
     expect(estimate.criticalPathNodeIds).toEqual(['a', 'b']);
+  });
+
+  it('precomputes node durations and subtracts completed critical-path nodes', () => {
+    const plan = precomputeWorkflowEtaPlan(nodes, [
+      { source: 'image', target: 'video' },
+    ]);
+
+    expect(plan.criticalPathNodeIds).toEqual(['image', 'video']);
+    expect(plan.nodeDurationsMs.image).toBeGreaterThan(0);
+    expect(plan.nodeDurationsMs.video).toBeGreaterThan(0);
+
+    const remaining = applyWorkflowEtaProgress(plan, {
+      completedNodeIds: ['image'],
+      currentPhase: 'Generating Promo Video',
+      startedAt: new Date().toISOString(),
+    });
+
+    expect(remaining.criticalPathNodeIds).toEqual(['video']);
+    expect(remaining.remainingDurationMs).toBe(plan.nodeDurationsMs.video);
+    expect(remaining.remainingDurationMs).toBeLessThan(
+      plan.estimatedDurationMs,
+    );
   });
 });

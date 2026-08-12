@@ -248,25 +248,17 @@ export class WorkflowRunControlService {
     runId: string,
     result: ExecutionRunResult,
   ): Promise<void> {
+    const failedNodeId = this.findFirstFailedNodeId(result);
     await this.workflowExecutionsService?.completeExecution(
       runId,
       result.status === 'failed' ? result.error : undefined,
+      {
+        ...(result.totalCreditsUsed > 0
+          ? { creditsUsed: result.totalCreditsUsed }
+          : {}),
+        ...(failedNodeId ? { failedNodeId } : {}),
+      },
     );
-
-    if (result.totalCreditsUsed > 0) {
-      await this.workflowExecutionsService?.setCreditsUsed(
-        runId,
-        result.totalCreditsUsed,
-      );
-    }
-
-    const failedNodeId = this.findFirstFailedNodeId(result);
-    if (failedNodeId) {
-      await this.workflowExecutionsService?.setFailedNodeId(
-        runId,
-        failedNodeId,
-      );
-    }
   }
 
   /**
