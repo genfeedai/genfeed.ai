@@ -337,7 +337,6 @@ export class AgentStrategyWorkflowRunService {
         inputVariables: true,
         label: true,
         metadata: true,
-        name: true,
       },
       take: 50,
       where: {
@@ -366,7 +365,7 @@ export class AgentStrategyWorkflowRunService {
       inputVariables: Array.isArray(match.inputVariables)
         ? (match.inputVariables as WorkflowInputVariableLike[])
         : [],
-      label: match.label ?? match.name ?? null,
+      label: match.label ?? null,
       templateId,
     };
   }
