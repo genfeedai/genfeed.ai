@@ -26,6 +26,7 @@ provider values directly.
 | `DISCORD`               | Discord                                                | Discord OAuth              | Organization bot and channel messaging                  |
 | `TELEGRAM`              | Telegram                                               | Bot token                  | Bot verification and distribution                       |
 | `TWITCH`                | Twitch                                                 | Not connectable            | Reserved schema value; no active connect module         |
+| `RESTREAM`              | Restream                                               | Restream OAuth             | Multistream chat ingest and live-session context        |
 | `MEDIUM`                | Medium                                                 | Medium OAuth               | Article publishing                                      |
 | `THREADS`               | Threads                                                | Meta Threads OAuth         | Text and media publishing                               |
 | `FANVUE`                | Fanvue                                                 | Fanvue OAuth               | Creator account access and publishing                   |
@@ -68,6 +69,7 @@ the callback URI to the corresponding Genfeed verification route.
 | Slack                 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`                                                       |
 | Google Ads            | `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_REDIRECT_URI`          |
 | Google Search Console | `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`, `GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`, `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`       |
+| Restream              | `RESTREAM_CLIENT_ID`, `RESTREAM_CLIENT_SECRET`, `RESTREAM_REDIRECT_URI`                                              |
 
 Provider dashboards require an exact redirect URI match. Use the public API URL
 for the deployment; do not register localhost callbacks for production.
