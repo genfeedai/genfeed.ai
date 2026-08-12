@@ -26,6 +26,7 @@ type AnalyticsSyncWorkflowAction =
   | 'youtubeAnalyticsSync';
 
 type AnalyticsPost = PostEntity & {
+  analyticsNextCollectAt?: Date | null;
   brandId: string;
   credentialId: string;
   externalId?: string | null;
@@ -33,9 +34,14 @@ type AnalyticsPost = PostEntity & {
   platform: CredentialPlatform;
 };
 
+interface DueCursor {
+  at: Date;
+  id: string;
+}
+
 interface QueuePostsOptions {
   analyticsEnabledOnly: boolean;
-  orderBy?: Record<string, 'asc' | 'desc'>;
+  force?: boolean;
   platforms: CredentialPlatform[];
 }
 
@@ -48,6 +54,13 @@ export interface AnalyticsSyncWorkflowResult {
   reason?: string;
   skipped: number;
   status: 'enqueued' | 'skipped';
+}
+
+export interface OrganizationAnalyticsRefreshResult {
+  enqueued: number;
+  organizationId: string;
+  posts: number;
+  skipped: number;
 }
 
 const ANALYTICS_FACEBOOK_QUEUE = 'analytics-facebook';
@@ -75,8 +88,16 @@ const SIX_HOURS_MS = 6 * HOUR_MS;
 const CHUNK_SIZE = 50;
 const TWITTER_BATCH_SIZE = 100;
 const YOUTUBE_BATCH_SIZE = 50;
-/** Bound each postsService.findAll page — never load an unbounded findMany. */
+/** Bound each keyset page — never load an unbounded findMany. */
 const FIND_POSTS_PAGE_SIZE = 500;
+
+const SOCIAL_PLATFORMS: CredentialPlatform[] = [
+  CredentialPlatform.INSTAGRAM,
+  CredentialPlatform.LINKEDIN,
+  CredentialPlatform.MASTODON,
+  CredentialPlatform.PINTEREST,
+  CredentialPlatform.TIKTOK,
+];
 
 @Injectable()
 export class AnalyticsSyncWorkflowService {
@@ -92,268 +113,140 @@ export class AnalyticsSyncWorkflowService {
 
   async runFacebookAnalytics(
     organizationId: string,
+    options: { force?: boolean } = {},
   ): Promise<AnalyticsSyncWorkflowResult> {
-    const action: AnalyticsSyncWorkflowAction = 'analyticsFacebookSync';
-    const acquired = await this.acquireWindowLock(
-      action,
-      organizationId,
-      HOUR_MS,
-    );
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        ANALYTICS_FACEBOOK_QUEUE,
-        'facebook_analytics_already_enqueued',
-      );
-    }
-
-    const posts = await this.findAnalyticsPosts(organizationId, {
+    return this.runCredentialGroupedSync({
+      action: 'analyticsFacebookSync',
       analyticsEnabledOnly: true,
+      backoffDelay: 2000,
+      batchSize: CHUNK_SIZE,
+      emptyReason: 'no_facebook_posts_to_track',
+      force: options.force,
+      lockReason: 'facebook_analytics_already_enqueued',
+      organizationId,
       platforms: [CredentialPlatform.FACEBOOK],
-    });
-    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
-
-    let enqueued = 0;
-    for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
-      const jobData: SocialAnalyticsJobData = {
-        attemptKey,
-        posts: chunk.map((post) => ({
+      queueName: ANALYTICS_FACEBOOK_QUEUE,
+      skipLock: options.force === true,
+      windowMs: HOUR_MS,
+      buildJob: (credentialId, batch): SocialAnalyticsJobData => ({
+        attemptKey: this.attemptKey(
+          'analyticsFacebookSync',
+          organizationId,
+          HOUR_MS,
+        ),
+        posts: batch.map((post) => ({
           brandId: this.requiredBrandId(post),
-          credentialId: this.optionalId(post.credentialId),
+          credentialId,
           id: this.requiredId(post),
           externalId: this.requiredExternalId(post),
           organizationId,
           platform: post.platform,
         })),
-      };
-      await this.enqueueCollection(
-        ANALYTICS_FACEBOOK_QUEUE,
-        jobData,
-        chunk,
-        attemptKey,
-        organizationId,
-        2000,
-      );
-      enqueued++;
-    }
-
-    return this.result(
-      action,
-      organizationId,
-      ANALYTICS_FACEBOOK_QUEUE,
-      enqueued,
-      posts.length,
-      0,
-      posts.length === 0 ? 'no_facebook_posts_to_track' : undefined,
-    );
+      }),
+    });
   }
 
   async runSocialAnalytics(
     organizationId: string,
+    options: { force?: boolean } = {},
   ): Promise<AnalyticsSyncWorkflowResult> {
-    const action: AnalyticsSyncWorkflowAction = 'analyticsSocialSync';
-    const acquired = await this.acquireWindowLock(
-      action,
-      organizationId,
-      HOUR_MS,
-    );
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        ANALYTICS_SOCIAL_QUEUE,
-        'social_analytics_already_enqueued',
-      );
-    }
-
-    const posts = await this.findAnalyticsPosts(organizationId, {
+    return this.runCredentialGroupedSync({
+      action: 'analyticsSocialSync',
       analyticsEnabledOnly: true,
-      platforms: [
-        CredentialPlatform.INSTAGRAM,
-        CredentialPlatform.LINKEDIN,
-        CredentialPlatform.MASTODON,
-        CredentialPlatform.PINTEREST,
-        CredentialPlatform.TIKTOK,
-      ],
-    });
-    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
-
-    let enqueued = 0;
-    for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
-      const jobData: SocialAnalyticsJobData = {
-        attemptKey,
-        posts: chunk.map((post) => ({
+      backoffDelay: 2000,
+      batchSize: CHUNK_SIZE,
+      emptyReason: 'no_social_posts_to_track',
+      force: options.force,
+      lockReason: 'social_analytics_already_enqueued',
+      organizationId,
+      platforms: SOCIAL_PLATFORMS,
+      queueName: ANALYTICS_SOCIAL_QUEUE,
+      skipLock: options.force === true,
+      windowMs: HOUR_MS,
+      buildJob: (_credentialId, batch): SocialAnalyticsJobData => ({
+        attemptKey: this.attemptKey(
+          'analyticsSocialSync',
+          organizationId,
+          HOUR_MS,
+        ),
+        posts: batch.map((post) => ({
           brandId: this.requiredBrandId(post),
           id: this.requiredId(post),
           externalId: this.requiredExternalId(post),
           organizationId,
           platform: post.platform,
         })),
-      };
-      await this.enqueueCollection(
-        ANALYTICS_SOCIAL_QUEUE,
-        jobData,
-        chunk,
-        attemptKey,
-        organizationId,
-        2000,
-      );
-      enqueued++;
-    }
-
-    return this.result(
-      action,
-      organizationId,
-      ANALYTICS_SOCIAL_QUEUE,
-      enqueued,
-      posts.length,
-      0,
-      posts.length === 0 ? 'no_social_posts_to_track' : undefined,
-    );
+      }),
+    });
   }
 
   async runThreadsAnalytics(
     organizationId: string,
+    options: { force?: boolean } = {},
   ): Promise<AnalyticsSyncWorkflowResult> {
-    const action: AnalyticsSyncWorkflowAction = 'analyticsThreadsSync';
-    const acquired = await this.acquireWindowLock(
-      action,
-      organizationId,
-      HOUR_MS,
-    );
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        ANALYTICS_THREADS_QUEUE,
-        'threads_analytics_already_enqueued',
-      );
-    }
-
-    const posts = await this.findAnalyticsPosts(organizationId, {
+    return this.runCredentialGroupedSync({
+      action: 'analyticsThreadsSync',
       analyticsEnabledOnly: true,
+      backoffDelay: 2000,
+      batchSize: CHUNK_SIZE,
+      emptyReason: 'no_threads_posts_to_track',
+      force: options.force,
+      lockReason: 'threads_analytics_already_enqueued',
+      organizationId,
       platforms: [CredentialPlatform.THREADS],
-    });
-    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
-
-    let enqueued = 0;
-    for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
-      const jobData: SocialAnalyticsJobData = {
-        attemptKey,
-        posts: chunk.map((post) => ({
+      queueName: ANALYTICS_THREADS_QUEUE,
+      skipLock: options.force === true,
+      windowMs: HOUR_MS,
+      buildJob: (credentialId, batch): SocialAnalyticsJobData => ({
+        attemptKey: this.attemptKey(
+          'analyticsThreadsSync',
+          organizationId,
+          HOUR_MS,
+        ),
+        posts: batch.map((post) => ({
           brandId: this.requiredBrandId(post),
-          credentialId: this.optionalId(post.credentialId),
+          credentialId,
           id: this.requiredId(post),
           externalId: this.requiredExternalId(post),
           organizationId,
           platform: post.platform,
         })),
-      };
-      await this.enqueueCollection(
-        ANALYTICS_THREADS_QUEUE,
-        jobData,
-        chunk,
-        attemptKey,
-        organizationId,
-        2000,
-      );
-      enqueued++;
-    }
-
-    return this.result(
-      action,
-      organizationId,
-      ANALYTICS_THREADS_QUEUE,
-      enqueued,
-      posts.length,
-      0,
-      posts.length === 0 ? 'no_threads_posts_to_track' : undefined,
-    );
+      }),
+    });
   }
 
   async runTwitterAnalytics(
     organizationId: string,
+    options: { force?: boolean } = {},
   ): Promise<AnalyticsSyncWorkflowResult> {
-    const action: AnalyticsSyncWorkflowAction = 'analyticsTwitterSync';
-    const acquired = await this.acquireWindowLock(
-      action,
-      organizationId,
-      THIRTY_MINUTES_MS,
-    );
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        ANALYTICS_TWITTER_QUEUE,
-        'twitter_analytics_already_enqueued',
-      );
-    }
-
-    const posts = await this.findAnalyticsPosts(organizationId, {
+    return this.runCredentialGroupedSync({
+      action: 'analyticsTwitterSync',
       analyticsEnabledOnly: false,
-      orderBy: { publishedAt: 'desc' },
+      backoffDelay: 5000,
+      batchSize: TWITTER_BATCH_SIZE,
+      emptyReason: 'no_twitter_posts_to_track',
+      force: options.force,
+      lockReason: 'twitter_analytics_already_enqueued',
+      organizationId,
       platforms: [CredentialPlatform.TWITTER],
+      queueName: ANALYTICS_TWITTER_QUEUE,
+      skipLock: options.force === true,
+      windowMs: THIRTY_MINUTES_MS,
+      buildJob: (credentialId, batch): TwitterAnalyticsJobData => ({
+        attemptKey: this.attemptKey(
+          'analyticsTwitterSync',
+          organizationId,
+          THIRTY_MINUTES_MS,
+        ),
+        credentialId,
+        posts: batch.map((post) => ({
+          brandId: this.requiredBrandId(post),
+          id: this.requiredId(post),
+          externalId: this.requiredExternalId(post),
+          organizationId,
+        })),
+      }),
     });
-    const attemptKey = this.attemptKey(
-      action,
-      organizationId,
-      THIRTY_MINUTES_MS,
-    );
-
-    const postsByCredential = new Map<string, AnalyticsPost[]>();
-    let skipped = 0;
-
-    for (const post of posts) {
-      const credentialId = this.optionalId(post.credentialId);
-      if (!credentialId) {
-        skipped++;
-        this.logger.warn(`${this.logContext} skipped Twitter post`, {
-          organizationId,
-          postId: this.optionalId(post.id),
-          reason: 'missing_credential',
-        });
-        continue;
-      }
-      const group = postsByCredential.get(credentialId) ?? [];
-      group.push(post);
-      postsByCredential.set(credentialId, group);
-    }
-
-    let enqueued = 0;
-    for (const [credentialId, credentialPosts] of postsByCredential.entries()) {
-      for (const batch of this.chunk(credentialPosts, TWITTER_BATCH_SIZE)) {
-        const jobData: TwitterAnalyticsJobData = {
-          attemptKey,
-          credentialId,
-          posts: batch.map((post) => ({
-            brandId: this.requiredBrandId(post),
-            id: this.requiredId(post),
-            externalId: this.requiredExternalId(post),
-            organizationId,
-          })),
-        };
-        await this.enqueueCollection(
-          ANALYTICS_TWITTER_QUEUE,
-          jobData,
-          batch,
-          attemptKey,
-          organizationId,
-          5000,
-        );
-        enqueued++;
-      }
-    }
-
-    return this.result(
-      action,
-      organizationId,
-      ANALYTICS_TWITTER_QUEUE,
-      enqueued,
-      posts.length,
-      skipped,
-      posts.length === 0 ? 'no_twitter_posts_to_track' : undefined,
-    );
   }
 
   async runGenericAnalyticsSync(
@@ -398,88 +291,210 @@ export class AnalyticsSyncWorkflowService {
 
   async runYouTubeAnalytics(
     organizationId: string,
+    options: { force?: boolean } = {},
   ): Promise<AnalyticsSyncWorkflowResult> {
-    const action: AnalyticsSyncWorkflowAction = 'youtubeAnalyticsSync';
-    const acquired = await this.acquireWindowLock(
-      action,
-      organizationId,
-      HOUR_MS,
-    );
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        ANALYTICS_YOUTUBE_QUEUE,
-        'youtube_analytics_already_enqueued',
-      );
-    }
-
-    const posts = await this.findAnalyticsPosts(organizationId, {
+    return this.runCredentialGroupedSync({
+      action: 'youtubeAnalyticsSync',
       analyticsEnabledOnly: false,
+      backoffDelay: 2000,
+      batchSize: YOUTUBE_BATCH_SIZE,
+      emptyReason: 'no_youtube_posts_to_track',
+      force: options.force,
+      lockReason: 'youtube_analytics_already_enqueued',
+      organizationId,
       platforms: [CredentialPlatform.YOUTUBE],
-    });
-    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
-
-    const postsByBrand = new Map<string, AnalyticsPost[]>();
-    let skipped = 0;
-
-    for (const post of posts) {
-      const brandId = this.optionalId(post.brandId);
-      if (!brandId) {
-        skipped++;
-        this.logger.warn(`${this.logContext} skipped YouTube post`, {
-          organizationId,
-          postId: this.optionalId(post.id),
-          reason: 'missing_brand',
-        });
-        continue;
-      }
-      const group = postsByBrand.get(brandId) ?? [];
-      group.push(post);
-      postsByBrand.set(brandId, group);
-    }
-
-    let enqueued = 0;
-    for (const [brandId, brandPosts] of postsByBrand.entries()) {
-      for (const batch of this.chunk(brandPosts, YOUTUBE_BATCH_SIZE)) {
-        const jobData: YouTubeAnalyticsJobData = {
-          attemptKey,
-          brandId,
+      queueName: ANALYTICS_YOUTUBE_QUEUE,
+      skipLock: options.force === true,
+      windowMs: HOUR_MS,
+      buildJob: (credentialId, batch): YouTubeAnalyticsJobData => {
+        const [first] = batch;
+        if (!first) {
+          throw new Error('YouTube analytics batch is empty');
+        }
+        return {
+          attemptKey: this.attemptKey(
+            'youtubeAnalyticsSync',
+            organizationId,
+            HOUR_MS,
+          ),
+          brandId: this.requiredBrandId(first),
+          credentialId,
           organizationId,
           posts: batch.map((post) => ({
-            brandId,
+            brandId: this.requiredBrandId(post),
             id: this.requiredId(post),
             externalId: this.requiredExternalId(post),
             organizationId,
           })),
         };
-        await this.enqueueCollection(
-          ANALYTICS_YOUTUBE_QUEUE,
-          jobData,
-          batch,
-          attemptKey,
-          organizationId,
-          2000,
+      },
+    });
+  }
+
+  async runOrganizationRefresh(
+    organizationId: string,
+  ): Promise<OrganizationAnalyticsRefreshResult> {
+    const results = [
+      await this.runFacebookAnalytics(organizationId, { force: true }),
+      await this.runSocialAnalytics(organizationId, { force: true }),
+      await this.runThreadsAnalytics(organizationId, { force: true }),
+      await this.runTwitterAnalytics(organizationId, { force: true }),
+      await this.runYouTubeAnalytics(organizationId, { force: true }),
+    ];
+
+    return {
+      enqueued: results.reduce((sum, result) => sum + result.enqueued, 0),
+      organizationId,
+      posts: results.reduce((sum, result) => sum + result.posts, 0),
+      skipped: results.reduce((sum, result) => sum + result.skipped, 0),
+    };
+  }
+
+  private async runCredentialGroupedSync<T>(input: {
+    action: AnalyticsSyncWorkflowAction;
+    analyticsEnabledOnly: boolean;
+    backoffDelay: number;
+    batchSize: number;
+    buildJob: (credentialId: string, batch: AnalyticsPost[]) => T;
+    emptyReason: string;
+    force?: boolean;
+    lockReason: string;
+    organizationId: string;
+    platforms: CredentialPlatform[];
+    queueName: string;
+    skipLock?: boolean;
+    windowMs: number;
+  }): Promise<AnalyticsSyncWorkflowResult> {
+    if (!input.skipLock) {
+      const acquired = await this.acquireWindowLock(
+        input.action,
+        input.organizationId,
+        input.windowMs,
+      );
+      if (!acquired) {
+        return this.skipped(
+          input.action,
+          input.organizationId,
+          input.queueName,
+          input.lockReason,
         );
-        enqueued++;
       }
     }
 
+    const attemptKey = this.attemptKey(
+      input.action,
+      input.organizationId,
+      input.windowMs,
+    );
+
+    const totals = await this.forEachDuePage(
+      input.organizationId,
+      {
+        analyticsEnabledOnly: input.analyticsEnabledOnly,
+        force: input.force,
+        platforms: input.platforms,
+      },
+      async (page) => {
+        const postsByCredential = new Map<string, AnalyticsPost[]>();
+        let skipped = 0;
+
+        for (const post of page) {
+          const credentialId = this.optionalId(post.credentialId);
+          if (!credentialId) {
+            skipped++;
+            this.logger.warn(`${this.logContext} skipped analytics post`, {
+              organizationId: input.organizationId,
+              platform: post.platform,
+              postId: this.optionalId(post.id),
+              reason: 'missing_credential',
+            });
+            continue;
+          }
+          const group = postsByCredential.get(credentialId) ?? [];
+          group.push(post);
+          postsByCredential.set(credentialId, group);
+        }
+
+        let enqueued = 0;
+        for (const [credentialId, credentialPosts] of postsByCredential) {
+          for (const batch of this.chunk(credentialPosts, input.batchSize)) {
+            await this.enqueueCollection(
+              input.queueName,
+              input.buildJob(credentialId, batch),
+              batch,
+              attemptKey,
+              input.organizationId,
+              input.backoffDelay,
+            );
+            enqueued++;
+          }
+        }
+
+        return { enqueued, skipped };
+      },
+    );
+
     return this.result(
-      action,
-      organizationId,
-      ANALYTICS_YOUTUBE_QUEUE,
-      enqueued,
-      posts.length,
-      skipped,
-      posts.length === 0 ? 'no_youtube_posts_to_track' : undefined,
+      input.action,
+      input.organizationId,
+      input.queueName,
+      totals.enqueued,
+      totals.posts,
+      totals.skipped,
+      totals.posts === 0 ? input.emptyReason : undefined,
     );
   }
 
-  private async findAnalyticsPosts(
+  private async forEachDuePage(
     organizationId: string,
     options: QueuePostsOptions,
+    onPage: (
+      posts: AnalyticsPost[],
+    ) => Promise<{ enqueued: number; skipped: number }>,
+  ): Promise<{ enqueued: number; posts: number; skipped: number }> {
+    let cursor: DueCursor | undefined;
+    let posts = 0;
+    let enqueued = 0;
+    let skipped = 0;
+
+    for (;;) {
+      const page = await this.findDueAnalyticsPostsPage(
+        organizationId,
+        options,
+        cursor,
+      );
+      if (page.length === 0) {
+        break;
+      }
+
+      const pageResult = await onPage(page);
+      posts += page.length;
+      enqueued += pageResult.enqueued;
+      skipped += pageResult.skipped;
+
+      if (page.length < FIND_POSTS_PAGE_SIZE) {
+        break;
+      }
+
+      const last = page[page.length - 1];
+      if (!last) {
+        break;
+      }
+      cursor = {
+        at: last.analyticsNextCollectAt ?? new Date(0),
+        id: this.requiredId(last),
+      };
+    }
+
+    return { enqueued, posts, skipped };
+  }
+
+  private async findDueAnalyticsPostsPage(
+    organizationId: string,
+    options: QueuePostsOptions,
+    cursor?: DueCursor,
   ): Promise<AnalyticsPost[]> {
+    const now = new Date();
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       externalId: { not: null },
       platform:
@@ -493,42 +508,41 @@ export class AnalyticsSyncWorkflowService {
       where.isAnalyticsEnabled = { not: false };
     }
 
-    // Page through with take/skip rather than one unbounded findMany.
-    // Callers may pass orderBy (Twitter uses publishedAt desc); page offsets
-    // preserve that ordering without keyset cursor math.
-    const docs: AnalyticsPost[] = [];
-    let page = 1;
-
-    for (;;) {
-      const result = await this.postsService.findAll(
-        {
-          ...(options.orderBy ? { orderBy: options.orderBy } : {}),
-          where,
-        },
-        {
-          customLabels,
-          limit: FIND_POSTS_PAGE_SIZE,
-          page,
-          pagination: true,
-        },
-        false,
-      );
-
-      const pageDocs = result.docs as unknown as AnalyticsPost[];
-      if (pageDocs.length === 0) {
-        break;
-      }
-
-      docs.push(...pageDocs);
-
-      if (!result.hasNextPage || pageDocs.length < FIND_POSTS_PAGE_SIZE) {
-        break;
-      }
-
-      page += 1;
+    if (!options.force) {
+      where.analyticsNextCollectAt = { lte: now };
     }
 
-    return docs;
+    if (cursor) {
+      where.AND = [
+        {
+          OR: [
+            { analyticsNextCollectAt: { gt: cursor.at } },
+            {
+              AND: [
+                { analyticsNextCollectAt: cursor.at },
+                { id: { gt: cursor.id } },
+              ],
+            },
+          ],
+        },
+      ];
+    }
+
+    const result = await this.postsService.findAll(
+      {
+        orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
+        where,
+      },
+      {
+        customLabels,
+        limit: FIND_POSTS_PAGE_SIZE,
+        page: 1,
+        pagination: true,
+      },
+      false,
+    );
+
+    return result.docs as unknown as AnalyticsPost[];
   }
 
   private async enqueue<T>(

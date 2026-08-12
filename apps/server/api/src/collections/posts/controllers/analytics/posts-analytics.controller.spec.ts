@@ -14,6 +14,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -76,6 +77,10 @@ describe('PostsAnalyticsController', () => {
     findOne: vi.fn(),
   };
 
+  const mockAnalyticsSyncWorkflowService = {
+    runOrganizationRefresh: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PostsAnalyticsController],
@@ -91,6 +96,10 @@ describe('PostsAnalyticsController', () => {
         {
           provide: PostAnalyticsService,
           useValue: mockPostAnalyticsService,
+        },
+        {
+          provide: AnalyticsSyncWorkflowService,
+          useValue: mockAnalyticsSyncWorkflowService,
         },
         {
           provide: LoggerService,
@@ -252,6 +261,32 @@ describe('PostsAnalyticsController', () => {
       expect(
         mockPostAnalyticsService.trackPostAnalytics,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshAllAnalytics', () => {
+    it('enqueues a keyset-paged org refresh instead of loading every post', async () => {
+      mockAnalyticsSyncWorkflowService.runOrganizationRefresh.mockResolvedValue(
+        {
+          enqueued: 3,
+          organizationId: 'c07f1f77bcf86cd799439012',
+          posts: 12,
+          skipped: 1,
+        },
+      );
+
+      const result = await controller.refreshAllAnalytics(mockUser);
+
+      expect(
+        mockAnalyticsSyncWorkflowService.runOrganizationRefresh,
+      ).toHaveBeenCalledWith('c07f1f77bcf86cd799439012');
+      expect(mockPostsService.findAll).not.toHaveBeenCalled();
+      expect(result.data?.attributes).toEqual({
+        errorCount: 1,
+        lastRefreshed: expect.any(Date),
+        successCount: 3,
+        totalPosts: 12,
+      });
     });
   });
 });
