@@ -54,12 +54,14 @@ export function buildOAuthAuthorizationServerMetadata(
   configService: Pick<ConfigService, 'get'>,
 ) {
   const issuer = resolveOAuthIssuerUrl(configService);
+  const protectedResources = [resolveMcpResourceUrl(configService)];
 
   return {
     authorization_endpoint: `${issuer}/v1/oauth/authorize`,
     code_challenge_methods_supported: ['S256'],
     grant_types_supported: ['authorization_code'],
     issuer,
+    protected_resources: protectedResources,
     registration_endpoint: `${issuer}/v1/oauth/register`,
     response_types_supported: ['code'],
     scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],

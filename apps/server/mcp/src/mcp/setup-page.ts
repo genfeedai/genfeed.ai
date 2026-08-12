@@ -155,6 +155,36 @@ export function getMcpProtectedResourceMetadata() {
   };
 }
 
+export function getMcpServerCard() {
+  return {
+    $schema:
+      'https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json',
+    authentication: {
+      required: true,
+      schemes: ['bearer', 'oauth2'],
+    },
+    capabilities: {
+      resources: {},
+      tools: {},
+    },
+    description:
+      'Create, review, automate, and publish content through Genfeed.',
+    documentationUrl: 'https://docs.genfeed.ai/api-reference/mcp',
+    iconUrl: 'https://cdn.genfeed.ai/assets/branding/logo.jpg',
+    protocolVersion: '2025-06-18',
+    serverInfo: {
+      name: 'genfeed-mcp-server',
+      title: 'Genfeed MCP Server',
+      version: '1.0.0',
+    },
+    transport: {
+      endpoint: getPublicMcpUrl(),
+      type: 'streamable-http',
+    },
+    version: '1.0',
+  };
+}
+
 export function getPublicDocsUrl(): string {
   return readPublicUrl('GENFEED_DOCS_URL', DEFAULT_DOCS_URL);
 }

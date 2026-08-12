@@ -1,5 +1,6 @@
 import {
   getMcpProtectedResourceMetadata,
+  getMcpServerCard,
   getMcpWwwAuthenticateHeader,
   getPublicMcpResourceMetadataUrl,
   getPublicMcpUrl,
@@ -16,6 +17,19 @@ describe('MCP setup page', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it('publishes a discoverable server card for the remote MCP endpoint', () => {
+    expect(getMcpServerCard()).toMatchObject({
+      serverInfo: {
+        name: 'genfeed-mcp-server',
+        title: 'Genfeed MCP Server',
+      },
+      transport: {
+        endpoint: 'https://mcp.genfeed.ai/mcp',
+        type: 'streamable-http',
+      },
+    });
   });
 
   it('uses the production MCP endpoint by default', () => {

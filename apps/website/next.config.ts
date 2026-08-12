@@ -18,6 +18,10 @@ const config = createAppNextConfig({
     {
       headers: [
         {
+          key: 'Content-Signal',
+          value: 'ai-train=no, search=yes, ai-input=yes',
+        },
+        {
           key: 'Link',
           value: [
             '<https://genfeed.ai/sitemap.xml>; rel="sitemap"',
@@ -33,7 +37,32 @@ const config = createAppNextConfig({
       source: '/(.*)',
     },
   ],
+  rewrites: async () => [
+    {
+      destination: '/.well-known/agent-content/home',
+      has: [
+        {
+          key: 'accept',
+          type: 'header',
+          value: '.*text/markdown.*',
+        },
+      ],
+      source: '/',
+    },
+  ],
   redirects: async () => [
+    {
+      destination:
+        'https://api.genfeed.ai/.well-known/oauth-authorization-server',
+      permanent: false,
+      source: '/.well-known/oauth-authorization-server',
+    },
+    {
+      destination:
+        'https://mcp.genfeed.ai/.well-known/oauth-protected-resource',
+      permanent: false,
+      source: '/.well-known/oauth-protected-resource',
+    },
     {
       destination: '/analytics',
       permanent: true,
