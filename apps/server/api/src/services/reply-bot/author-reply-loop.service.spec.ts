@@ -72,6 +72,7 @@ describe('AuthorReplyLoopService', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         credentialId: 'cred-1',
+        filters: expect.objectContaining({ maxAgeHours: 24 }),
         isActive: true,
         type: 'comment_responder',
       }),
@@ -80,6 +81,7 @@ describe('AuthorReplyLoopService', () => {
       botConfigId: 'bot-1',
       created: true,
       isActive: true,
+      maxAgeHours: 24,
       platform: 'twitter',
     });
   });
@@ -139,6 +141,7 @@ describe('AuthorReplyLoopService', () => {
     expect(inbox.items).toHaveLength(1);
     expect(inbox.items[0]).toMatchObject({
       commentId: 'c1',
+      intent: 'thanks',
       parentPostId: 'p1',
     });
   });

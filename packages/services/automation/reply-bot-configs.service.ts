@@ -84,19 +84,21 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     botConfigId: string;
     created: boolean;
     isActive: boolean;
+    maxAgeHours: number;
     platform: string;
   }> {
     const response = await this.instance.post<{
       botConfigId: string;
       created: boolean;
       isActive: boolean;
+      maxAgeHours: number;
       platform: string;
     }>('author-reply/ensure', params);
     return response.data;
   }
 
   /**
-   * Comments on brand posts that still need an author reply.
+   * Comments on brand posts that still need a reply.
    */
   async getAuthorReplyInbox(params: {
     brandId: string;
@@ -111,9 +113,12 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
       commentText: string;
       commentUrl?: string;
       createdAt: string;
+      intent: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
+      intentLabel: string;
       parentPostId: string;
       parentPostPreview?: string;
       parentPostUrl?: string;
+      shouldSkipAuto: boolean;
     }>;
     platform: string;
     username?: string;
@@ -129,8 +134,15 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     commentAuthor: string;
     commentId: string;
     commentText: string;
+    intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostPreview?: string;
-  }): Promise<{ commentId: string; draft: string; harnessApplied: boolean }> {
+  }): Promise<{
+    commentId: string;
+    draft: string;
+    harnessApplied: boolean;
+    intent: string;
+    intentLabel: string;
+  }> {
     const response = await this.instance.post('author-reply/draft', params);
     return response.data;
   }
@@ -141,6 +153,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     commentAuthorId?: string;
     commentId: string;
     commentText: string;
+    intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostId: string;
     parentPostPreview?: string;
     replyText?: string;
@@ -149,6 +162,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     contentId?: string;
     contentUrl?: string;
     error?: string;
+    intent?: string;
     replyText: string;
     success: boolean;
   }> {

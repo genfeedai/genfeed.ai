@@ -316,4 +316,20 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(monitor).toContain('falling back to Apify');
     expect(monitor).toContain('preferOfficialApi');
   });
+
+  it('classifies reply intents and caps comment age at 48h', () => {
+    const intent = readRepo(
+      'apps/server/api/src/services/reply-bot/reply-intent.util.ts',
+    );
+    const authorLoop = readRepo(
+      'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
+    );
+    expect(intent).toContain('export type ReplyIntent');
+    expect(intent).toContain("'thanks'");
+    expect(intent).toContain("'troll'");
+    expect(intent).toContain('DEFAULT_REPLY_MAX_AGE_HOURS = 24');
+    expect(intent).toContain('MAX_REPLY_MAX_AGE_HOURS = 48');
+    expect(authorLoop).toContain('maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS');
+    expect(authorLoop).toContain('resolveReplyIntent');
+  });
 });

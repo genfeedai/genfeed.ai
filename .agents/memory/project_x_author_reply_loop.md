@@ -45,3 +45,10 @@ Reply bot routes still sit behind `reply_bot` feature flag on the controller.
 3. **Write** — always brand OAuth via `BotActionExecutorService.postReply`.
 
 Timeline listing already preferred official API the same way.
+
+## Age + intents
+
+- **Default max age:** 24h (hard cap 48h) on comments and parent posts.  
+- **Intents:** `thanks` | `question` | `troll` | `spam` | `default` via `reply-intent.util.ts`.  
+- Auto skips **spam**. Troll persona is controlled wit (not report-bait).  
+- UI: Automate → **Replies** shows intent badge + override select.

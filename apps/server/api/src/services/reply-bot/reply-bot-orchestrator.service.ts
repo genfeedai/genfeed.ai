@@ -31,6 +31,10 @@ import {
 } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import {
+  getReplyIntentPersona,
+  resolveReplyIntent,
+} from '@api/services/reply-bot/reply-intent.util';
+import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
@@ -530,19 +534,66 @@ export class ReplyBotOrchestratorService {
     try {
       const brandId =
         typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined;
+
+      // On comment_responder (Replies surface), route by intent persona.
+      const isOwnPostReplies =
+        botConfig.type === ReplyBotType.COMMENT_RESPONDER;
+      const intent = isOwnPostReplies
+        ? resolveReplyIntent(content.text)
+        : 'default';
+      const persona = getReplyIntentPersona(intent);
+
+      if (isOwnPostReplies && persona.shouldSkipAuto) {
+        await this.botActivitiesService.updateStatus(
+          activityId,
+          organizationId,
+          {
+            completedAt: new Date(),
+            errorMessage: 'Skipped spam/low-signal comment (intent filter)',
+            status: BotActivityStatus.SKIPPED,
+          },
+        );
+        await this.processedTweetsService.markAsProcessed(
+          content.id,
+          organizationId,
+          ReplyBotType.COMMENT_RESPONDER,
+          botConfigId,
+        );
+        return {
+          skipReason: BotActivitySkipReason.FILTERED_OUT,
+          skipped: true,
+        };
+      }
+
+      const intentInstructions = isOwnPostReplies
+        ? [persona.instructions, `Tone: ${persona.toneHint}.`]
+        : [];
       const replyText = await this.replyGenerationService.generateReply({
         brandId,
         context: this.mergeReplyContext(
           botConfig.context,
           content.replyContext,
         ),
-        customInstructions: botConfig.replyInstructions,
-        length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
+        customInstructions: [botConfig.replyInstructions, ...intentInstructions]
+          .filter(Boolean)
+          .join(' '),
+        length:
+          isOwnPostReplies && (intent === 'thanks' || intent === 'troll')
+            ? ReplyLength.SHORT
+            : (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
         organizationId,
         platform: String(
           botConfig.platform ?? credential.platform ?? 'twitter',
         ),
-        tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
+        tone: isOwnPostReplies
+          ? intent === 'troll'
+            ? ReplyTone.HUMOROUS
+            : intent === 'thanks'
+              ? ReplyTone.FRIENDLY
+              : intent === 'question'
+                ? ReplyTone.INFORMATIVE
+                : ReplyTone.ENGAGING
+          : (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
         tweetAuthor: content.authorUsername,
         tweetContent: content.text,
         userId: ownerUserId,

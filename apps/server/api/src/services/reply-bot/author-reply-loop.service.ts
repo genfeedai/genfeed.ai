@@ -21,6 +21,13 @@ import type {
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import {
+  clampReplyMaxAgeHours,
+  DEFAULT_REPLY_MAX_AGE_HOURS,
+  getReplyIntentPersona,
+  type ReplyIntent,
+  resolveReplyIntent,
+} from '@api/services/reply-bot/reply-intent.util';
+import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
@@ -39,7 +46,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-const DEFAULT_INBOX_HOURS = 24;
 const MAX_PARENT_POSTS = 12;
 const MAX_COMMENTS_PER_POST = 40;
 
@@ -98,6 +104,7 @@ export class AuthorReplyLoopService {
         botConfigId: refreshed?.id ?? existing.id,
         created: false,
         isActive: Boolean(refreshed?.isActive ?? existing.isActive),
+        maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
         platform,
       };
     }
@@ -119,16 +126,19 @@ export class AuthorReplyLoopService {
       actionType: ReplyBotActionType.REPLY_ONLY,
       brandId: params.brandId,
       context:
-        'You are the brand author closing conversation loops on your own posts. Reply as the author, not a reply-guy.',
+        'You are the brand author replying on your own posts. Not reply-guy.',
       credentialId: credentialId ?? undefined,
       description:
-        'Replies to comments on this brand’s own X posts (author-engaged reply signal).',
+        'Replies to comments on this brand’s own X posts (max 24h old).',
+      filters: {
+        maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
+      },
       isActive: Boolean(credentialId) && params.isActive !== false,
-      name: 'X author reply loop',
+      name: 'X replies',
       organizationId: params.organizationId,
       platform,
       replyInstructions:
-        'Answer the person with substance. Add one concrete next thought. Do not tag Grok. Do not use empty thank-you templates. Stay on-brand.',
+        'Route by intent: warm thanks, answer questions, controlled wit for trolls, skip spam. Stay on-brand. Do not tag Grok.',
       replyLength: ReplyLength.MEDIUM,
       replyTone: ReplyTone.ENGAGING,
       type: ReplyBotType.COMMENT_RESPONDER,
@@ -139,6 +149,7 @@ export class AuthorReplyLoopService {
       botConfigId: created.id,
       created: true,
       isActive: Boolean(created.isActive),
+      maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS,
       platform,
     };
   }
@@ -148,7 +159,7 @@ export class AuthorReplyLoopService {
     hours?: number;
     organizationId: string;
   }): Promise<AuthorReplyInboxResult> {
-    const hours = params.hours ?? DEFAULT_INBOX_HOURS;
+    const hours = clampReplyMaxAgeHours(params.hours);
     const credential = await this.loadTwitterCredential(
       params.organizationId,
       params.brandId,
@@ -179,8 +190,8 @@ export class AuthorReplyLoopService {
     );
 
     for (const post of posts) {
-      if (post.createdAt && post.createdAt.getTime() < cutoff - 7 * 86400000) {
-        // Skip very old parent posts even if still in timeline
+      // Parent posts older than the window are out of scope for fresh replies.
+      if (post.createdAt && post.createdAt.getTime() < cutoff) {
         continue;
       }
 
@@ -216,6 +227,9 @@ export class AuthorReplyLoopService {
           continue;
         }
 
+        const intent = resolveReplyIntent(comment.text);
+        const persona = getReplyIntentPersona(intent);
+
         items.push({
           authorDisplayName: comment.authorDisplayName,
           authorId: comment.authorId,
@@ -224,9 +238,12 @@ export class AuthorReplyLoopService {
           commentText: comment.text,
           commentUrl: comment.contentUrl,
           createdAt: comment.createdAt.toISOString(),
+          intent,
+          intentLabel: persona.label,
           parentPostId: post.id,
           parentPostPreview: post.text?.slice(0, 160),
           parentPostUrl: post.contentUrl,
+          shouldSkipAuto: persona.shouldSkipAuto,
         });
       }
     }
@@ -249,21 +266,48 @@ export class AuthorReplyLoopService {
     commentId: string;
     commentText: string;
     commentAuthor: string;
+    intent?: ReplyIntent;
     organizationId: string;
     parentPostPreview?: string;
     userId: string;
   }): Promise<AuthorReplyDraftResult> {
+    const intent = resolveReplyIntent(params.commentText, params.intent);
+    const persona = getReplyIntentPersona(intent);
+
+    if (persona.shouldSkipAuto && !params.intent) {
+      return {
+        commentId: params.commentId,
+        draft: '',
+        harnessApplied: false,
+        intent,
+        intentLabel: persona.label,
+      };
+    }
+
     const draft = await this.replyGenerationService.generateReply({
       brandId: params.brandId,
       context: params.parentPostPreview
         ? `Parent post: ${params.parentPostPreview}`
         : undefined,
-      customInstructions:
-        'You are the author of the parent post. Close the conversation loop with a real reply.',
-      length: ReplyLength.MEDIUM,
+      customInstructions: [
+        'You are the author of the parent post replying on your own thread.',
+        persona.instructions,
+        `Tone: ${persona.toneHint}.`,
+      ].join(' '),
+      length:
+        intent === 'thanks' || intent === 'troll'
+          ? ReplyLength.SHORT
+          : ReplyLength.MEDIUM,
       organizationId: params.organizationId,
       platform: 'twitter',
-      tone: ReplyTone.ENGAGING,
+      tone:
+        intent === 'troll'
+          ? ReplyTone.HUMOROUS
+          : intent === 'thanks'
+            ? ReplyTone.FRIENDLY
+            : intent === 'question'
+              ? ReplyTone.INFORMATIVE
+              : ReplyTone.ENGAGING,
       tweetAuthor: params.commentAuthor,
       tweetContent: params.commentText,
       userId: params.userId,
@@ -273,6 +317,8 @@ export class AuthorReplyLoopService {
       commentId: params.commentId,
       draft,
       harnessApplied: true,
+      intent,
+      intentLabel: persona.label,
     };
   }
 
@@ -282,6 +328,7 @@ export class AuthorReplyLoopService {
     commentText: string;
     commentAuthor: string;
     commentAuthorId?: string;
+    intent?: ReplyIntent;
     organizationId: string;
     parentPostId: string;
     parentPostPreview?: string;
@@ -296,7 +343,14 @@ export class AuthorReplyLoopService {
       throw new BadRequestException('No X credential for this brand');
     }
 
-    const replyText =
+    const intent = resolveReplyIntent(params.commentText, params.intent);
+    if (intent === 'spam' && !params.replyText?.trim()) {
+      throw new BadRequestException(
+        'Spam comments are skipped by default — provide replyText to force-send',
+      );
+    }
+
+    const drafted =
       params.replyText?.trim() ||
       (
         await this.draftReply({
@@ -304,11 +358,17 @@ export class AuthorReplyLoopService {
           commentAuthor: params.commentAuthor,
           commentId: params.commentId,
           commentText: params.commentText,
+          intent,
           organizationId: params.organizationId,
           parentPostPreview: params.parentPostPreview,
           userId: params.userId,
         })
       ).draft;
+
+    const replyText = drafted.trim();
+    if (!replyText) {
+      throw new BadRequestException('Reply text is empty');
+    }
 
     const result = await this.botActionExecutorService.postReply(
       credential,
@@ -348,6 +408,7 @@ export class AuthorReplyLoopService {
       contentId: result.contentId,
       contentUrl: result.contentUrl,
       error: result.error,
+      intent,
       replyText,
       success: result.success,
     };

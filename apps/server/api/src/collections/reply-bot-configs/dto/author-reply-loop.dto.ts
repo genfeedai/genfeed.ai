@@ -1,7 +1,9 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { ReplyIntent } from '@api/services/reply-bot/reply-intent.util';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,6 +11,14 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+
+const REPLY_INTENTS = [
+  'thanks',
+  'question',
+  'troll',
+  'spam',
+  'default',
+] as const satisfies readonly ReplyIntent[];
 
 export class EnsureAuthorResponderDto {
   @IsEntityId()
@@ -40,11 +50,11 @@ export class AuthorReplyInboxQueryDto {
 
   @IsNumber()
   @Min(1)
-  @Max(168)
+  @Max(48)
   @IsOptional()
   @ApiProperty({
     default: 24,
-    description: 'Lookback window in hours',
+    description: 'Lookback window in hours (capped at 48)',
     required: false,
   })
   hours?: number;
@@ -69,6 +79,15 @@ export class AuthorReplyDraftDto {
   @MaxLength(120)
   @ApiProperty()
   commentAuthor!: string;
+
+  @IsIn(REPLY_INTENTS)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Override auto-classified intent persona',
+    enum: REPLY_INTENTS,
+    required: false,
+  })
+  intent?: ReplyIntent;
 
   @IsString()
   @MaxLength(500)
@@ -102,6 +121,15 @@ export class AuthorReplySendDto {
   @IsOptional()
   @ApiProperty({ required: false })
   commentAuthorId?: string;
+
+  @IsIn(REPLY_INTENTS)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Override auto-classified intent persona',
+    enum: REPLY_INTENTS,
+    required: false,
+  })
+  intent?: ReplyIntent;
 
   @IsString()
   @MaxLength(64)
