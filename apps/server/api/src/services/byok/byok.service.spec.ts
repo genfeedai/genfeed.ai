@@ -24,7 +24,7 @@ describe('ByokService Argil validation', () => {
     ).resolves.toEqual({ isValid: true });
     expect(httpService.get).toHaveBeenCalledWith(
       'https://api.argil.ai/v1/avatars',
-      { headers: { 'x-api-key': 'argil-key' } },
+      { headers: { 'x-api-key': 'argil-key' }, timeout: 15_000 },
     );
   });
 

@@ -40,6 +40,12 @@ export class ArgilAvatarProvider implements AvatarVideoProvider {
       const jobId = await this.argilService.generateAvatarVideo({
         avatarId: input.avatarId,
         callbackId: input.callbackId,
+        onVideoCreated: async (videoId) => {
+          await input.onJobCreated?.({
+            jobId: videoId,
+            providerName: this.providerName,
+          });
+        },
         organizationId: input.organizationId,
         script: input.script,
         voiceId: input.voiceId,

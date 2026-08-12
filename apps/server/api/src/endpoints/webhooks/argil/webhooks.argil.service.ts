@@ -1,5 +1,8 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import {
+  ClipResultsService,
+  type ProviderTerminalTransitionInput,
+} from '@api/collections/clip-results/clip-results.service';
 import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -37,10 +40,7 @@ export class ArgilWebhookService {
     const record = clipResult as unknown as JsonRecord;
     const providerName = this.readString(record.providerName);
     const providerJobId = this.readString(record.providerJobId);
-    if (
-      providerName !== 'argil' ||
-      (providerJobId !== undefined && providerJobId !== videoId)
-    ) {
+    if (providerName !== 'argil' || providerJobId !== videoId) {
       throw new BadRequestException(
         'Argil callback does not match the stored provider job',
       );
@@ -52,20 +52,10 @@ export class ArgilWebhookService {
     }
 
     const organizationId = this.readString(record.organizationId);
-    const status = this.readString(record.status);
-    if (status === 'completed' || status === 'failed') {
-      this.loggerService.log('ArgilWebhookService terminal callback replay', {
-        callbackId,
-        status,
-        videoId,
-      });
-      await this.clipProjectsService.reconcileTerminalState(
-        projectId,
-        organizationId,
-      );
-      return;
-    }
-
+    let transition: Pick<
+      ProviderTerminalTransitionInput,
+      'error' | 'status' | 'videoUrl'
+    >;
     if (body.event === 'VIDEO_GENERATION_SUCCESS') {
       const videoUrl = this.readString(body.data?.videoUrl);
       if (!videoUrl) {
@@ -73,22 +63,32 @@ export class ArgilWebhookService {
           'Successful Argil callback requires data.videoUrl',
         );
       }
-      await this.clipResultsService.patch(callbackId, {
-        providerJobId: videoId,
-        status: 'completed',
-        videoUrl,
-      });
+      transition = { status: 'completed', videoUrl };
     } else if (body.event === 'VIDEO_GENERATION_FAILED') {
-      await this.clipResultsService.patch(callbackId, {
+      transition = {
         error:
           this.readString(body.data?.error) ??
           this.readString(body.data?.message) ??
           'Argil video generation failed',
-        providerJobId: videoId,
         status: 'failed',
-      });
+      };
     } else {
       throw new BadRequestException('Unsupported Argil callback event');
+    }
+
+    const transitioned =
+      await this.clipResultsService.transitionProviderTerminal({
+        clipResultId: callbackId,
+        providerJobId: videoId,
+        providerName: 'argil',
+        ...transition,
+      });
+    if (!transitioned) {
+      this.loggerService.log('ArgilWebhookService terminal callback replay', {
+        callbackId,
+        videoId,
+      });
+      return;
     }
 
     await this.clipProjectsService.reconcileTerminalState(

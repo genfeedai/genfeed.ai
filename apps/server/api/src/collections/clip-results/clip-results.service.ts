@@ -11,7 +11,11 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
-import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
+import {
+  CLIP_TERMINAL_STATUSES,
+  type ClipReferenceProvenance,
+  type ClipTerminalStatus,
+} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,6 +23,15 @@ import { Injectable } from '@nestjs/common';
 
 type ClipResultWriteDto = Partial<CreateClipResultDto & UpdateClipResultDto> &
   Record<string, unknown>;
+
+export type ProviderTerminalTransitionInput = {
+  clipResultId: string;
+  error?: string;
+  providerJobId: string;
+  providerName: string;
+  status: ClipTerminalStatus;
+  videoUrl?: string;
+};
 
 const RESULT_SCALAR_KEYS = new Set([
   'data',
@@ -165,6 +178,48 @@ export class ClipResultsService extends BaseService<
     });
 
     return result ? this.normalizeDocument(result) : null;
+  }
+
+  /**
+   * Atomically claims a provider-owned clip's terminal transition.
+   * Only one concurrent terminal delivery can move the row out of a
+   * nonterminal status; later deliveries observe a zero-row update.
+   */
+  async transitionProviderTerminal(
+    input: ProviderTerminalTransitionInput,
+  ): Promise<boolean> {
+    const where: Prisma.ClipResultWhereInput = {
+      data: { equals: input.providerName, path: ['providerName'] },
+      id: input.clipResultId,
+      isDeleted: false,
+      providerJobId: input.providerJobId,
+      status: { notIn: [...CLIP_TERMINAL_STATUSES] },
+    };
+    const existing = await this.delegate.findFirst({
+      select: { data: true },
+      where,
+    });
+    if (!existing) {
+      return false;
+    }
+
+    const updateDto: ClipResultWriteDto = {
+      providerJobId: input.providerJobId,
+      providerName: input.providerName,
+      status: input.status,
+      ...(input.error ? { error: input.error } : {}),
+      ...(input.videoUrl ? { videoUrl: input.videoUrl } : {}),
+    };
+    const result = await this.delegate.updateMany({
+      data: this.toPrismaWriteData(
+        updateDto,
+        'update',
+        this.readRecord(existing.data),
+      ),
+      where,
+    });
+
+    return result.count === 1;
   }
 
   // Named distinctly from BaseService.findAllByOrganization — this variant

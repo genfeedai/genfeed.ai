@@ -161,10 +161,18 @@ export class ClipGenerationService {
     return this.runGenerationLoop({
       dispatch: async ({ clipResultId, highlight }) => {
         const scriptText = this.buildAvatarScript(highlight);
+        let providerMetadataPersisted = false;
 
         const result = await avatarProvider.generateVideo({
           avatarId: avatarId as string,
           callbackId: clipResultId,
+          onJobCreated: async (job) => {
+            await this.clipResultsService.patch(clipResultId, {
+              providerJobId: job.jobId,
+              providerName: job.providerName,
+            });
+            providerMetadataPersisted = true;
+          },
           organizationId: orgId,
           ...(referenceImageUrl ? { referenceImageUrl } : {}),
           script: scriptText,
@@ -178,10 +186,12 @@ export class ClipGenerationService {
 
         return {
           jobId: result.jobId,
-          patch: {
-            providerJobId: result.jobId,
-            providerName: result.providerName,
-          },
+          patch: providerMetadataPersisted
+            ? undefined
+            : {
+                providerJobId: result.jobId,
+                providerName: result.providerName,
+              },
         };
       },
       failureProviderName: provider,

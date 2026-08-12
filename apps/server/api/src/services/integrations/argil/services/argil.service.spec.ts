@@ -30,6 +30,9 @@ describe('ArgilService', () => {
   });
 
   it('creates an Atom video and starts rendering with a signed callback URL', async () => {
+    const onVideoCreated = vi.fn(async () => {
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
     httpService.post
       .mockReturnValueOnce(of({ data: { id: 'video-1' } }))
       .mockReturnValueOnce(of({ data: {} }));
@@ -38,11 +41,14 @@ describe('ArgilService', () => {
       service.generateAvatarVideo({
         avatarId: 'avatar-1',
         callbackId: 'clip-1',
+        onVideoCreated,
         organizationId: 'org-1',
         script: 'Hello from Genfeed',
         voiceId: 'voice-1',
       }),
     ).resolves.toBe('video-1');
+
+    expect(onVideoCreated).toHaveBeenCalledWith('video-1');
 
     expect(byokService.resolveApiKey).toHaveBeenCalledWith(
       'org-1',
@@ -81,31 +87,53 @@ describe('ArgilService', () => {
     );
   });
 
-  it('uses the environment key when the organization has no Argil BYOK key', async () => {
+  it('fails before render when webhook verification is unavailable', async () => {
     byokService.resolveApiKey.mockResolvedValue(undefined);
     configService.get.mockImplementation((key: string) =>
       key === 'ARGIL_KEY' ? 'env-key' : undefined,
     );
     webhookTokenService.create.mockReturnValue(undefined);
-    httpService.post
-      .mockReturnValueOnce(of({ data: { videoId: 'video-2' } }))
-      .mockReturnValueOnce(of({ data: {} }));
+    httpService.post.mockReturnValueOnce(of({ data: { videoId: 'video-2' } }));
 
-    await service.generateAvatarVideo({
-      avatarId: 'avatar-2',
-      callbackId: 'clip-2',
-      organizationId: 'org-2',
-      script: 'Script',
-      voiceId: 'voice-2',
-    });
+    await expect(
+      service.generateAvatarVideo({
+        avatarId: 'avatar-2',
+        callbackId: 'clip-2',
+        organizationId: 'org-2',
+        script: 'Script',
+        voiceId: 'voice-2',
+      }),
+    ).rejects.toThrow('requires an HTTPS webhook URL');
 
-    expect(httpService.post).toHaveBeenLastCalledWith(
-      'https://api.argil.ai/v1/videos/video-2/render',
-      {},
+    expect(httpService.post).toHaveBeenCalledTimes(1);
+    expect(httpService.post).toHaveBeenCalledWith(
+      'https://api.argil.ai/v1/videos',
+      expect.any(Object),
       expect.objectContaining({
         headers: expect.objectContaining({ 'x-api-key': 'env-key' }),
       }),
     );
+  });
+
+  it('rejects an HTTP callback URL because Argil requires HTTPS', async () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'GENFEEDAI_WEBHOOKS_URL'
+        ? 'http://tunnel.example.com'
+        : undefined,
+    );
+    httpService.post.mockReturnValueOnce(of({ data: { id: 'video-http' } }));
+
+    await expect(
+      service.generateAvatarVideo({
+        avatarId: 'avatar-http',
+        callbackId: 'clip-http',
+        organizationId: 'org-http',
+        script: 'Script',
+        voiceId: 'voice-http',
+      }),
+    ).rejects.toThrow('requires an HTTPS webhook URL');
+
+    expect(httpService.post).toHaveBeenCalledTimes(1);
   });
 
   it('normalizes completed video status', async () => {

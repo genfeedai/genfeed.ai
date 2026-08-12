@@ -114,12 +114,9 @@ export const heygenSchema = {
  */
 export const argilSchema = {
   ARGIL_KEY: Joi.string().optional().allow(''),
-  ARGIL_WEBHOOK_SECRET: Joi.string()
-    .optional()
-    .allow('')
-    .description(
-      'Private secret used to derive per-video HMAC tokens for Argil callback URLs',
-    ),
+  ARGIL_WEBHOOK_SECRET: conditionalRequired().description(
+    'Private secret used to derive per-video HMAC tokens for Argil callback URLs',
+  ),
 };
 
 /**

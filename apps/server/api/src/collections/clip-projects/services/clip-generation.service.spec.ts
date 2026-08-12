@@ -161,6 +161,32 @@ describe('ClipGenerationService', () => {
     );
   });
 
+  it('persists provider metadata before a provider can deliver its callback', async () => {
+    provider.generateVideo.mockImplementation(async (input) => {
+      await input.onJobCreated?.({
+        jobId: 'argil-job-1',
+        providerName: 'argil',
+      });
+      return {
+        jobId: 'argil-job-1',
+        providerName: 'argil',
+        status: 'processing',
+      };
+    });
+
+    await service.generateClips(makeInput({ provider: 'argil' }));
+
+    expect(clipResultsService.patch).toHaveBeenCalledTimes(2);
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      2,
+      'clip-result-1',
+      {
+        providerJobId: 'argil-job-1',
+        providerName: 'argil',
+      },
+    );
+  });
+
   it('forwards a resolved reference only through the provider reference field', async () => {
     await service.generateClips(
       makeInput({

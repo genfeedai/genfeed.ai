@@ -36,6 +36,7 @@ export interface GenerateArgilVideoInput {
   avatarId: string;
   callbackId: string;
   organizationId: string;
+  onVideoCreated?: (videoId: string) => Promise<void>;
   script: string;
   voiceId: string;
 }
@@ -79,11 +80,19 @@ export class ArgilService {
       throw new Error('Argil did not return a video ID');
     }
 
+    await input.onVideoCreated?.(videoId);
+
     const callbackUrl = this.buildCallbackUrl(videoId);
+    if (!callbackUrl) {
+      throw new Error(
+        'Argil rendering requires an HTTPS webhook URL and ARGIL_WEBHOOK_SECRET',
+      );
+    }
+
     await firstValueFrom(
       this.httpService.post(
         `${this.endpoint}/videos/${encodeURIComponent(videoId)}/render`,
-        callbackUrl ? { callbackUrl } : {},
+        { callbackUrl },
         { headers: this.getHeaders(apiKey), timeout: 15_000 },
       ),
     );
@@ -194,6 +203,10 @@ export class ArgilService {
     }
 
     const callbackUrl = new URL('/v1/webhooks/argil/callback', baseUrl);
+    if (callbackUrl.protocol !== 'https:') {
+      return undefined;
+    }
+
     callbackUrl.searchParams.set('token', token);
     return callbackUrl.toString();
   }

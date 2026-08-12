@@ -1,4 +1,5 @@
 import { ArgilAvatarProvider } from '@api/services/avatar-video/providers/argil-avatar.provider';
+import type { GenerateArgilVideoInput } from '@api/services/integrations/argil/services/argil.service';
 
 describe('ArgilAvatarProvider', () => {
   const argilService = {
@@ -17,12 +18,19 @@ describe('ArgilAvatarProvider', () => {
   });
 
   it('dispatches an Argil avatar job', async () => {
-    argilService.generateAvatarVideo.mockResolvedValue('video-1');
+    const onJobCreated = vi.fn();
+    argilService.generateAvatarVideo.mockImplementation(
+      async (input: GenerateArgilVideoInput) => {
+        await input.onVideoCreated?.('video-1');
+        return 'video-1';
+      },
+    );
     await expect(
       provider.generateVideo({
         avatarId: 'avatar-1',
         callbackId: 'clip-1',
         organizationId: 'org-1',
+        onJobCreated,
         script: 'Script',
         userId: 'user-1',
         voiceId: 'voice-1',
@@ -31,6 +39,10 @@ describe('ArgilAvatarProvider', () => {
       jobId: 'video-1',
       providerName: 'argil',
       status: 'processing',
+    });
+    expect(onJobCreated).toHaveBeenCalledWith({
+      jobId: 'video-1',
+      providerName: 'argil',
     });
   });
 

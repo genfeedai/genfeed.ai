@@ -635,6 +635,7 @@ export class ByokService {
       await firstValueFrom(
         this.httpService.get('https://api.argil.ai/v1/avatars', {
           headers: { 'x-api-key': apiKey },
+          timeout: 15_000,
         }),
       );
       return { isValid: true };

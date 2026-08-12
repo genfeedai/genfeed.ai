@@ -2,7 +2,10 @@ import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argi
 
 describe('ArgilWebhookService', () => {
   const clipProjectsService = { reconcileTerminalState: vi.fn() };
-  const clipResultsService = { findOne: vi.fn(), patch: vi.fn() };
+  const clipResultsService = {
+    findOne: vi.fn(),
+    transitionProviderTerminal: vi.fn(),
+  };
   const loggerService = { log: vi.fn(), warn: vi.fn() };
   let service: ArgilWebhookService;
 
@@ -16,6 +19,7 @@ describe('ArgilWebhookService', () => {
       providerName: 'argil',
       status: 'processing',
     });
+    clipResultsService.transitionProviderTerminal.mockResolvedValue(true);
     service = new ArgilWebhookService(
       clipProjectsService as never,
       clipResultsService as never,
@@ -33,8 +37,10 @@ describe('ArgilWebhookService', () => {
       event: 'VIDEO_GENERATION_SUCCESS',
     });
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
+    expect(clipResultsService.transitionProviderTerminal).toHaveBeenCalledWith({
+      clipResultId: 'clip-1',
       providerJobId: 'video-1',
+      providerName: 'argil',
       status: 'completed',
       videoUrl: 'https://cdn.argil.ai/video-1.mp4',
     });
@@ -52,6 +58,7 @@ describe('ArgilWebhookService', () => {
       providerName: 'argil',
       status: 'completed',
     });
+    clipResultsService.transitionProviderTerminal.mockResolvedValue(false);
 
     await service.handleCallback({
       data: {
@@ -62,11 +69,7 @@ describe('ArgilWebhookService', () => {
       event: 'VIDEO_GENERATION_SUCCESS',
     });
 
-    expect(clipResultsService.patch).not.toHaveBeenCalled();
-    expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
-      'project-1',
-      'org-1',
-    );
+    expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
   });
 
   it('rejects a callback for a different provider job', async () => {
@@ -80,7 +83,9 @@ describe('ArgilWebhookService', () => {
         event: 'VIDEO_GENERATION_SUCCESS',
       }),
     ).rejects.toThrow('does not match the stored provider job');
-    expect(clipResultsService.patch).not.toHaveBeenCalled();
+    expect(
+      clipResultsService.transitionProviderTerminal,
+    ).not.toHaveBeenCalled();
   });
 
   it('marks only the matching clip failed', async () => {
@@ -93,14 +98,54 @@ describe('ArgilWebhookService', () => {
       event: 'VIDEO_GENERATION_FAILED',
     });
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
+    expect(clipResultsService.transitionProviderTerminal).toHaveBeenCalledWith({
+      clipResultId: 'clip-1',
       error: 'Render failed',
       providerJobId: 'video-1',
+      providerName: 'argil',
       status: 'failed',
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
       'org-1',
     );
+  });
+
+  it('allows only one concurrent terminal callback to reconcile the project', async () => {
+    let claimed = false;
+    clipResultsService.transitionProviderTerminal.mockImplementation(
+      async () => {
+        if (claimed) {
+          return false;
+        }
+        claimed = true;
+        await Promise.resolve();
+        return true;
+      },
+    );
+
+    await Promise.all([
+      service.handleCallback({
+        data: {
+          extras: { callbackId: 'clip-1' },
+          videoId: 'video-1',
+          videoUrl: 'https://cdn.argil.ai/video-1.mp4',
+        },
+        event: 'VIDEO_GENERATION_SUCCESS',
+      }),
+      service.handleCallback({
+        data: {
+          error: 'Late failure',
+          extras: { callbackId: 'clip-1' },
+          videoId: 'video-1',
+        },
+        event: 'VIDEO_GENERATION_FAILED',
+      }),
+    ]);
+
+    expect(clipResultsService.transitionProviderTerminal).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledTimes(1);
   });
 });
