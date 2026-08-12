@@ -17,6 +17,8 @@ import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
+import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -78,6 +80,14 @@ describe('ReplyBotConfigsController', () => {
         {
           provide: ReplyBotOrchestratorService,
           useValue: mockReplyBotOrchestratorService,
+        },
+        {
+          provide: AuthorReplyLoopService,
+          useValue: {},
+        },
+        {
+          provide: ReplyInboundQueueService,
+          useValue: {},
         },
         {
           provide: FeatureFlagService,

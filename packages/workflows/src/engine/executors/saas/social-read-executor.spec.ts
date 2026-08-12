@@ -27,11 +27,10 @@ describe('SocialReadExecutor', () => {
 
     const result = await executor.execute({
       context: {
-        brandId: 'brand-1',
         organizationId: 'org',
         userId: 'user',
       } as never,
-      inputs: new Map(),
+      inputs: new Map([['brand', { id: 'brand-1' }]]),
       node: {
         config: { limit: 10, mode: 'timeline', username: 'genfeed' },
         id: 'n1',

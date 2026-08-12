@@ -171,8 +171,14 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
         data: expect.objectContaining({
           status: toPrismaBatchStatus(BatchStatus.CANCELLED),
           items: [
-            { id: 'item-1', status: BatchItemStatus.SKIPPED },
-            { id: 'item-2', status: BatchItemStatus.COMPLETED },
+            expect.objectContaining({
+              id: 'item-1',
+              status: BatchItemStatus.SKIPPED,
+            }),
+            expect.objectContaining({
+              id: 'item-2',
+              status: BatchItemStatus.COMPLETED,
+            }),
           ],
         }),
         where: expect.objectContaining({

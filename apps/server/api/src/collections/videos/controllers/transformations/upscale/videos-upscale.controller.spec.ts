@@ -14,6 +14,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 
 vi.mock('@api/collections/activities/services/activities.service', () => ({
   ActivitiesService: class {},
@@ -56,12 +57,14 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
 import type { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { TransformationCategory } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ActivitySource, TransformationCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -185,6 +188,11 @@ describe('VideosUpscaleController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(ModelsGuard)
       .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_ctx: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
       .compile();
 
     controller = module.get<VideosUpscaleController>(VideosUpscaleController);
@@ -239,24 +247,17 @@ describe('VideosUpscaleController', () => {
     ).rejects.toBeDefined();
   });
 
-  it('should deduct credits after successful upscale', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+  it('should declare upscale credit pricing for the interceptor', () => {
     expect(
-      mockServices.creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      'c07f1f77bcf86cd799439013',
-      'c07f1f77bcf86cd799439012',
-      10,
-      expect.stringContaining('Video upscaling'),
-      expect.anything(),
-    );
+      Reflect.getMetadata(
+        CREDITS_KEY,
+        VideosUpscaleController.prototype.upscaleVideo,
+      ),
+    ).toEqual({
+      description: 'Video upscaling',
+      modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      source: ActivitySource.VIDEO_UPSCALE,
+    });
   });
 
   it('should handle failed generation when runModel returns null', async () => {

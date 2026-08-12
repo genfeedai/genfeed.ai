@@ -63,10 +63,13 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ActivitySource } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -231,44 +234,30 @@ describe('VideosReframeController', () => {
     );
   });
 
-  it('should deduct credits after successful generation', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'portrait' },
-    );
+  it('should declare reframe credit pricing for the interceptor', () => {
     expect(
-      mockServices.creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439013',
-      '507f1f77bcf86cd799439012',
-      10,
-      expect.stringContaining('Video reframe'),
-      expect.anything(),
-    );
+      Reflect.getMetadata(
+        CREDITS_KEY,
+        VideosReframeController.prototype.reframeVideo,
+      ),
+    ).toEqual({
+      description: 'Video reframe',
+      modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
+      source: ActivitySource.VIDEO_REFRAME,
+    });
   });
 
-  it('should fallback to 10 credits when model cost is 0 (falsy)', async () => {
+  it('should leave credit deduction to the interceptor', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    mockServices.modelsService.findOne.mockResolvedValueOnce({ cost: 0 });
     await controller.reframeVideo(
       mockReq,
       '507f1f77bcf86cd799439011',
       mockUser,
       { format: 'portrait' },
     );
-    // 0 is falsy so `modelData?.cost || 10` falls back to 10
     expect(
       mockServices.creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      10,
-      expect.anything(),
-      expect.anything(),
-    );
+    ).not.toHaveBeenCalled();
   });
 
   it('should handle failed generation when generateTextToVideo returns null', async () => {

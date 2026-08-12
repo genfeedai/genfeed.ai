@@ -179,7 +179,11 @@ describe('AuthorReplyLoopService', () => {
             lastAuthorReplyCommentId: 'c1',
           }),
         }),
-        where: { id: 'perf-1' },
+        where: {
+          id: 'perf-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });
