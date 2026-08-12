@@ -168,6 +168,40 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('Show more')).toBeTruthy();
   });
 
+  it('does not collapse a user prompt at the 600-character cap', () => {
+    render(
+      <AgentChatMessage message={buildMessage('user', 'C'.repeat(600))} />,
+    );
+
+    expect(screen.queryByText('Show more')).toBeNull();
+  });
+
+  it('collapses a short user prompt that exceeds eight lines', () => {
+    const nineLinePrompt = Array.from(
+      { length: 9 },
+      (_, index) => `line ${index + 1}`,
+    ).join('\n');
+
+    render(<AgentChatMessage message={buildMessage('user', nineLinePrompt)} />);
+
+    expect(screen.getByText('Show more')).toBeTruthy();
+  });
+
+  it('expands a collapsed user prompt with the Show more control', () => {
+    render(
+      <AgentChatMessage
+        message={buildMessage('user', `${'D'.repeat(700)} tail-marker-expand`)}
+      />,
+    );
+
+    act(() => {
+      screen.getByText('Show more').click();
+    });
+
+    expect(screen.getByText('Show less')).toBeTruthy();
+    expect(screen.getByText(/tail-marker-expand/)).toBeTruthy();
+  });
+
   it('does not render model controls in assistant runtime UI', () => {
     render(
       <AgentChatMessage
