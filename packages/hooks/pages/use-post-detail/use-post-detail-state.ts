@@ -14,6 +14,7 @@ import {
   PostsService,
   type PostUpdateInput,
 } from '@genfeedai/services/content/posts.service';
+import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
@@ -64,6 +65,7 @@ export interface UsePostDetailStateReturn {
 
   // Services
   getPostsService: () => Promise<PostsService>;
+  getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
   notificationsService: NotificationsService;
 
   // Core state
@@ -139,6 +141,9 @@ export function usePostDetailState({
 
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
+  );
+  const getReleaseGroupsService = useAuthedService((token: string) =>
+    ReleaseGroupsService.getInstance(token),
   );
 
   const notificationsService = NotificationsService.getInstance();
@@ -488,6 +493,7 @@ export function usePostDetailState({
     focusedPostId,
     generatingChildPostIds,
     getPostsService,
+    getReleaseGroupsService,
     handleUpdateChild,
     hasChildren,
     hasFirstComment,

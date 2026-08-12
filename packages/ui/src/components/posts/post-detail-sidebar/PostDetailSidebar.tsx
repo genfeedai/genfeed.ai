@@ -37,6 +37,7 @@ export default function PostDetailSidebar({
   reviewSummary,
   onScheduleChange,
   onScheduleSave,
+  onPublishNow,
   onScoreSeo,
   className = '',
 }: PostDetailSidebarProps) {
@@ -96,6 +97,7 @@ export default function PostDetailSidebar({
           browserTimezone={browserTimezone}
           onScheduleChange={onScheduleChange}
           onScheduleSave={onScheduleSave}
+          onPublishNow={onPublishNow}
         />
       )}
 

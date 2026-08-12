@@ -295,7 +295,10 @@ describe('PostGroupContractService', () => {
     );
     expect(() =>
       service.parseFutureScheduleDate('2026-07-19T11:59:59.000Z'),
-    ).toThrow('must be in the future');
+    ).toThrow('must be now or in the future');
+    expect(
+      service.parseFutureScheduleDate(new Date().toISOString()).getTime(),
+    ).toBeGreaterThan(Date.now() - 2000);
     expect(() => service.parseCredentialPlatform('unsupported')).toThrow(
       'not supported',
     );

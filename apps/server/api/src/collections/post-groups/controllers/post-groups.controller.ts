@@ -73,6 +73,27 @@ export class PostGroupsController {
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
 
+  @Post('from-post')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async ensureFromPost(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Body() body: unknown,
+  ) {
+    const metadata = getPublicMetadata(user);
+    const postId =
+      body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string, unknown>).postId
+        : undefined;
+    const data = await this.postGroupsService.ensureReleaseForPost(
+      metadata.organization,
+      user.id,
+      typeof postId === 'string' ? postId : '',
+    );
+    return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
   @Post('recurrence/preview')
   @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -187,6 +208,25 @@ export class PostGroupsController {
     @Body() body: unknown,
   ) {
     const metadata = getPublicMetadata(user);
+    const action =
+      body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string, unknown>).action
+        : undefined;
+    if (action === 'schedule') {
+      const scheduledDate =
+        body && typeof body === 'object' && !Array.isArray(body)
+          ? (body as Record<string, unknown>).scheduledDate
+          : undefined;
+      const data = await this.postGroupsService.scheduleTarget(
+        metadata.organization,
+        user.id,
+        id,
+        targetId,
+        typeof scheduledDate === 'string' ? scheduledDate : '',
+        { source: 'post-desk' },
+      );
+      return serializeSingle(req, ReleaseGroupSerializer, data);
+    }
     const data = await this.postGroupsService.updateTarget(
       metadata.organization,
       user.id,

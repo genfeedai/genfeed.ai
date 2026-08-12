@@ -75,6 +75,7 @@ export interface UsePostDetailReturn {
   // Handlers
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
+  handlePublishNow: () => Promise<void>;
   handleAddToThread: () => Promise<void>;
   handleDeletePost: () => void;
   handleDeleteChild: (childId: string) => void;
@@ -183,6 +184,7 @@ export function usePostDetail({
     descriptionDraft: drafts.descriptionDraft,
     fetchPost: state.fetchPost,
     getPostsService: state.getPostsService,
+    getReleaseGroupsService: state.getReleaseGroupsService,
     handleUpdateChild: state.handleUpdateChild,
     isContentDirty: drafts.isContentDirty,
     isDescriptionDirty: drafts.isDescriptionDirty,
@@ -246,6 +248,7 @@ export function usePostDetail({
     handlePerTweetEnhance: actions.handlePerTweetEnhance,
     handleQuickAction: actions.handleQuickAction,
     handleScheduleSave: actions.handleScheduleSave,
+    handlePublishNow: actions.handlePublishNow,
     handleSelectMedia: media.handleSelectMedia,
     handleToggleFirstComment: thread.handleToggleFirstComment,
     handleToggleGrokFeedback: thread.handleToggleGrokFeedback,
