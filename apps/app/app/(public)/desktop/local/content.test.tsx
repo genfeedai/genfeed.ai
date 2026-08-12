@@ -100,7 +100,10 @@ describe('LocalDesktopContent', () => {
 
     await waitFor(() => {
       expect(mocks.generateContent).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: 'Write a launch post' }),
+        expect.objectContaining({
+          prompt: 'Write a launch post',
+          type: 'caption',
+        }),
       );
     });
     expect(await screen.findByText('Generated locally')).toBeVisible();

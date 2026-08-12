@@ -90,7 +90,7 @@ export default function LocalDesktopContent() {
           platform: 'twitter',
           prompt: prompt.trim(),
           publishIntent: 'review',
-          type: 'post',
+          type: 'caption',
         }),
       );
     } catch (nextError) {
