@@ -533,7 +533,7 @@ export class AuthorReplyLoopService {
       );
     }
 
-    // YouTube reply API needs org/brand for token refresh; Instagram-style path.
+    // X OAuth2 send + YouTube reply both refresh via org/brand.
     credential.organizationId = params.organizationId;
     credential.brandId = params.brandId;
 
