@@ -14,6 +14,7 @@ import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflo
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -339,11 +340,9 @@ export class AgentStrategyWorkflowRunService {
         metadata: true,
       },
       take: 50,
-      where: {
-        isDeleted: false,
-        organizationId,
-        ...(brandId ? { brandId } : {}),
-      },
+      where: scopedWhere(organizationId, {
+        brandId: brandId ?? undefined,
+      }),
     });
 
     const match = rows.find((row) => {

@@ -157,6 +157,7 @@ export class XActivityWebhookService {
       return null;
     }
 
+    // tenant-scope-ignore: X supplies only an external user id, so this cross-tenant routing lookup returns the owning organizationId and every downstream queue operation is pinned to that resolved tenant
     const credential = await this.prisma.credential.findFirst({
       orderBy: { updatedAt: 'desc' },
       select: {

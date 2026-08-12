@@ -650,7 +650,7 @@ export class AuthorReplyLoopService {
             replyContentId: params.replyContentId,
           }) as Prisma.InputJsonValue,
         },
-        where: { id: target.id },
+        where: scopedWhere(params.organizationId, { id: target.id }),
       });
     } catch (error: unknown) {
       this.logger.warn(`${this.constructorName} closed-loop record failed`, {
