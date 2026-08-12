@@ -84,8 +84,10 @@ describe('Serializer Configurations', () => {
         reviewBatchId: 'batch-1',
         reviewDecision: 'approved',
         reviewItemId: 'item-1',
+        source: 'source-post-variations:source-post',
         sourceActionId: 'action-1',
         sourceWorkflowName: 'Clip Workflow',
+        variantId: 'gen-123:1/3',
       });
 
       expect(result.data.attributes).toHaveProperty('generation-id', 'gen-123');
@@ -105,6 +107,14 @@ describe('Serializer Configurations', () => {
       expect(result.data.attributes).toHaveProperty(
         'source-workflow-name',
         'Clip Workflow',
+      );
+      expect(result.data.attributes).toHaveProperty(
+        'source',
+        'source-post-variations:source-post',
+      );
+      expect(result.data.attributes).toHaveProperty(
+        'variant-id',
+        'gen-123:1/3',
       );
     });
   });

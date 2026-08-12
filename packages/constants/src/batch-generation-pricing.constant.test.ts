@@ -7,9 +7,15 @@ import {
   estimateBatchGenerationCredits,
   reconcileBatchGenerationCredits,
   resolveBatchPricingOptions,
+  sourcePostVariationCredits,
 } from './batch-generation-pricing.constant';
 
 describe('batch-generation-pricing', () => {
+  it('uses identical per-output arithmetic for variation preview and charge', () => {
+    expect(sourcePostVariationCredits(3)).toBe(3);
+    expect(sourcePostVariationCredits(10)).toBe(10);
+    expect(sourcePostVariationCredits(2.5)).toBe(0);
+  });
   it('prices a caption draft lower than a video slot', () => {
     const image = batchItemCredits(
       { format: ContentFormat.IMAGE },

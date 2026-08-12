@@ -19,6 +19,19 @@ function buildQuery(params: Record<string, string | undefined>): string {
   return query ? `?${query}` : '';
 }
 
+const SOURCE_POST_VARIATION_PLATFORMS = new Set([
+  'instagram',
+  'linkedin',
+  'tiktok',
+  'twitter',
+]);
+
+export function isSourcePostVariationPlatform(
+  platform: string | null | undefined,
+): platform is 'instagram' | 'linkedin' | 'tiktok' | 'twitter' {
+  return Boolean(platform && SOURCE_POST_VARIATION_PLATFORMS.has(platform));
+}
+
 export function buildAgentPromptHref(prompt: string): string {
   return `${APP_ROUTES.AGENT.NEW}${buildQuery({ prompt })}`;
 }
@@ -99,6 +112,22 @@ export function buildTrendSourceTwitterDraftHref(
     sourceUrl: source.sourceUrl,
     topic: trend.topic,
     trendId: trend.id,
+  })}`;
+}
+
+export function buildSourcePostVariationsHref(params: {
+  platform: string;
+  postId?: string;
+  sourcePostId?: string;
+  sourceReferenceId?: string;
+  trendId?: string;
+}): string {
+  return `${APP_ROUTES.PUBLISH.REMIX}${buildQuery({
+    platform: params.platform,
+    postId: params.postId,
+    sourcePostId: params.sourcePostId,
+    sourceReferenceId: params.sourceReferenceId,
+    trendId: params.trendId,
   })}`;
 }
 

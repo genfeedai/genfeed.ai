@@ -45,6 +45,7 @@ export class Post extends BaseEntity implements IPost {
   public declare externalId?: string;
   public declare externalShortcode?: string;
   public declare groupId?: string;
+  public declare generationId?: string | null;
   public declare url?: string;
   public declare scheduledDate?: string | null;
   public declare uploadedAt: string;
@@ -58,6 +59,11 @@ export class Post extends BaseEntity implements IPost {
   public declare parent?: string;
   public declare children?: IPost[];
   public declare order?: number;
+  public declare variantId?: string | null;
+  public declare source?: string | null;
+  public declare sourceActionId?: string | null;
+  public declare sourceWorkflowId?: string | null;
+  public declare sourceWorkflowName?: string | null;
   public declare isShareToFeedSelected?: boolean;
   public declare seoScore?: number | null;
   public declare seoBreakdown?: SeoScorecardSnapshot | null;

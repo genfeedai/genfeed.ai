@@ -13,15 +13,16 @@ import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
-import {
-  usePostRemixModal,
-  usePostRepurposeModal,
-} from '@providers/global-modals/global-modals.provider';
+import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
+import {
+  buildSourcePostVariationsHref,
+  isSourcePostVariationPlatform,
+} from '@utils/url/desktop-loop-url.util';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
@@ -47,7 +48,6 @@ export default function PostDetail({
 }: PostDetailProps) {
   const router = useRouter();
   const { href } = useOrgUrl();
-  const { openPostRemixModal } = usePostRemixModal();
   const { openPostRepurposeModal } = usePostRepurposeModal();
   const hookData = usePostDetail({ postId, scope });
 
@@ -134,36 +134,20 @@ export default function PostDetail({
       }
     : undefined;
 
-  // Handler for creating a remix post
+  // Published-post variations use the same setup and review path as Discover.
   const handleCreateRemix = useCallback(() => {
-    if (!post) {
+    if (!post?.platform) {
       return;
     }
-
-    openPostRemixModal(post, async (description, label) => {
-      try {
-        const service = await getPostsService();
-        const remixPost = await service.createRemix(
-          post.id,
-          description,
-          label,
-        );
-        notificationsService.success('Remix post created as draft');
-        // Navigate to the new post
-        router.push(href(getPublisherPostHref(remixPost.id)));
-      } catch (error) {
-        notificationsService.error('Failed to create remix post');
-        throw error;
-      }
-    });
-  }, [
-    post,
-    openPostRemixModal,
-    getPostsService,
-    notificationsService,
-    router,
-    href,
-  ]);
+    router.push(
+      href(
+        buildSourcePostVariationsHref({
+          platform: post.platform,
+          postId: post.id,
+        }),
+      ),
+    );
+  }, [href, post, router]);
 
   // Handler for repurposing the post to another channel (#2588)
   const handleRepurpose = useCallback(() => {
@@ -355,7 +339,11 @@ export default function PostDetail({
           isExpandingToThread={isExpandingToThread}
           onViewModeChange={setViewMode}
           onDelete={handleDeletePost}
-          onCreateRemix={handleCreateRemix}
+          onCreateRemix={
+            isSourcePostVariationPlatform(post.platform)
+              ? handleCreateRemix
+              : undefined
+          }
           onDuplicate={handleDuplicate}
           onExpandToThread={handleExpandToThread}
           onRepurpose={handleRepurpose}

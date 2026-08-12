@@ -1,163 +1,149 @@
 import '@testing-library/jest-dom/vitest';
-import { render, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoistedMocks = vi.hoisted(() => ({
-  generateTweetsMock: vi.fn(),
-  getPostsServiceMock: vi.fn(),
-  notificationErrorMock: vi.fn(),
-  notificationSuccessMock: vi.fn(),
-  pushMock: vi.fn(),
-  replaceMock: vi.fn(),
-  searchParamsState: new URLSearchParams(),
-  useBrandMock: vi.fn(),
-}));
-const desktopRuntimeMocks = vi.hoisted(() => ({
-  getDesktopBridge: vi.fn(),
-  isDesktopClient: vi.fn(),
-}));
-const {
-  generateTweetsMock,
-  getPostsServiceMock,
-  notificationSuccessMock,
-  replaceMock,
-  searchParamsState,
-  useBrandMock,
-} = hoistedMocks;
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => hoistedMocks.useBrandMock(),
+  return { useTranslations: translateFromCatalog };
+});
+
+const mocks = vi.hoisted(() => ({
+  generateSourceVariations: vi.fn(),
+  notifyError: vi.fn(),
+  notifySuccess: vi.fn(),
+  notifyWarning: vi.fn(),
+  searchParams: new URLSearchParams(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => hoistedMocks.getPostsServiceMock,
+  useAuthedService: () => async () => ({
+    generateSourceVariations: mocks.generateSourceVariations,
+  }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/moonrise-org/moonrise-studio${path}`,
-    orgHref: (path: string) => `/moonrise-org/~${path}`,
   }),
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: hoistedMocks.pushMock,
-    replace: hoistedMocks.replaceMock,
-  }),
-  useSearchParams: () => hoistedMocks.searchParamsState,
+  useSearchParams: () => mocks.searchParams,
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
-      error: hoistedMocks.notificationErrorMock,
-      success: hoistedMocks.notificationSuccessMock,
+      error: mocks.notifyError,
+      success: mocks.notifySuccess,
+      warning: mocks.notifyWarning,
     }),
   },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
-  logger: {
-    error: vi.fn(),
-  },
-}));
-
-vi.mock('@/lib/desktop/runtime', () => ({
-  getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
-}));
-
-vi.mock('@genfeedai/config/deployment', () => ({
-  isDesktopClient: desktopRuntimeMocks.isDesktopClient,
+  logger: { error: vi.fn() },
 }));
 
 import TrendRemixPage from './trend-remix-page';
 
 describe('TrendRemixPage', () => {
+  beforeAll(() => {
+    // Radix Select relies on pointer-capture and layout APIs jsdom omits.
+    Element.prototype.hasPointerCapture = () => false;
+    Element.prototype.setPointerCapture = () => undefined;
+    Element.prototype.releasePointerCapture = () => undefined;
+    Element.prototype.scrollIntoView = () => undefined;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
-    searchParamsState.forEach((_, key) => {
-      searchParamsState.delete(key);
+    mocks.searchParams.forEach((_, key) => {
+      mocks.searchParams.delete(key);
     });
-    searchParamsState.set('topic', 'AI operating systems');
-    useBrandMock.mockReturnValue({
-      credentials: [],
-      isReady: true,
-    });
-    getPostsServiceMock.mockResolvedValue({
-      generateTweets: generateTweetsMock,
-    });
-    desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
-    desktopRuntimeMocks.isDesktopClient.mockReturnValue(false);
-  });
-
-  it('generates a local desktop remix when no cloud credential is available', async () => {
-    const generateContent = vi.fn().mockResolvedValue({
-      content: 'Generated desktop remix',
-      id: 'generated-local-remix',
-      platform: 'twitter',
-      type: 'caption',
-    });
-    useBrandMock.mockReturnValue({
-      credentials: [],
-      isReady: false,
-    });
-    desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
-    desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
-      cloud: { generateContent },
-    });
-
-    render(<TrendRemixPage />);
-
-    await waitFor(() => {
-      expect(generateContent).toHaveBeenCalledWith({
-        platform: 'twitter',
-        prompt: expect.stringContaining('AI operating systems'),
-        publishIntent: 'review',
-        type: 'caption',
-      });
-    });
-
-    expect(replaceMock).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '/moonrise-org/moonrise-studio/agent/new?prompt=',
-      ),
-    );
-    expect(replaceMock).toHaveBeenCalledWith(
-      expect.stringContaining('Generated+desktop+remix'),
-    );
-    expect(notificationSuccessMock).toHaveBeenCalledWith(
-      'Tweet remix draft created',
-    );
-  });
-
-  it('uses the cloud post generation path when a Twitter credential exists', async () => {
-    useBrandMock.mockReturnValue({
-      credentials: [
+    mocks.searchParams.set('platform', 'linkedin');
+    mocks.searchParams.set('sourcePostId', 'source-post-1');
+    mocks.generateSourceVariations.mockResolvedValue({
+      meta: {
+        actualCount: 2,
+        creditCost: 2,
+        groupId: 'group-12345678',
+        partialReason: 'Generated 2 of 3: 1 duplicate.',
+        requestedCount: 3,
+        reviewBatchId: 'batch-12345678',
+        sourceKind: 'source-post',
+        voiceMode: 'organization-defaults',
+        voiceModeLabel: 'Organization defaults (no brand voice configured)',
+      },
+      posts: [
         {
-          id: 'cred-twitter',
-          platform: 'twitter',
+          description: 'First distinct variation',
+          id: 'post-1',
+          platform: 'linkedin',
+        },
+        {
+          description: 'Second distinct variation',
+          id: 'post-2',
+          platform: 'linkedin',
         },
       ],
-      isReady: true,
     });
-    generateTweetsMock.mockResolvedValue([{ id: 'post-1' }]);
+  });
 
+  it('defaults to three, previews per-output credits, and renders partial grouped results', async () => {
+    const user = userEvent.setup();
     render(<TrendRemixPage />);
 
+    expect(
+      screen.getByText(/Estimated cost: 3 credits \(1 each\)/),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Generate 3 variations' }),
+    );
+
     await waitFor(() => {
-      expect(generateTweetsMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          count: 1,
-          credentialId: 'cred-twitter',
-          topic: expect.stringContaining('AI operating systems'),
-        }),
+      expect(mocks.generateSourceVariations).toHaveBeenCalledWith({
+        count: 3,
+        platform: 'linkedin',
+        sourcePostId: 'source-post-1',
+      });
+    });
+    expect(screen.getByText('2 of 3 variations ready')).toBeInTheDocument();
+    expect(
+      screen.getByText('Organization defaults (no brand voice configured)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('First distinct variation')).toBeInTheDocument();
+    expect(screen.getByText('Second distinct variation')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Review all/ })).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/publish/review?batch=batch-12345678',
+    );
+    expect(mocks.notifyWarning).toHaveBeenCalledWith(
+      'Generated 2 of 3: 1 duplicate.',
+    );
+  });
+
+  it('offers every count through ten and submits the selected boundary', async () => {
+    const user = userEvent.setup();
+    render(<TrendRemixPage />);
+
+    await user.click(screen.getByRole('combobox', { name: 'Variation count' }));
+    await user.click(
+      await screen.findByRole('option', { name: '10 variations' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Generate 10 variations' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.generateSourceVariations).toHaveBeenCalledWith(
+        expect.objectContaining({ count: 10 }),
       );
     });
-
-    expect(replaceMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/publish?platform=twitter',
-    );
-    expect(desktopRuntimeMocks.getDesktopBridge).not.toHaveBeenCalled();
+    expect(screen.getByText(/Estimated cost: 10 credits/)).toBeInTheDocument();
   });
 });

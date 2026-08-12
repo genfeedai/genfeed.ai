@@ -28,10 +28,13 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
+import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
+import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -44,6 +47,7 @@ import { QuotaService } from '@api/services/quota/quota.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import {
   ApiKeyScope,
+  ContentIntelligencePlatform,
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
@@ -237,6 +241,7 @@ describe('PostsOperationsController', () => {
   const mockPostThreadGenerationService = {
     expandThread: vi.fn().mockResolvedValue(undefined),
   };
+  const mockPostVariationService = { generate: vi.fn() };
 
   const mockPromptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
@@ -341,6 +346,10 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: PostThreadGenerationService,
           useValue: mockPostThreadGenerationService,
         },
+        {
+          provide: PostVariationService,
+          useValue: mockPostVariationService,
+        },
         { provide: PostsService, useValue: mockPostsService },
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: QuotaService, useValue: mockQuotaService },
@@ -360,6 +369,8 @@ Tweet 3: Tech innovation is changing the world.`,
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
       .overrideGuard(SubscriptionGuard)
+      .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
+      .overrideGuard(PostVariationSourceGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
       .overrideGuard(CreditsGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
@@ -386,6 +397,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
   it.each([
     ['generateAccountContent', 'account-generations'],
+    ['generateSourceVariations', 'source-variations'],
     ['expandToThread', ':postId/thread-expansions'],
     ['enhancePost', ':postId/enhancements'],
     ['repurposePost', ':postId/repurpose'],
@@ -443,6 +455,69 @@ Tweet 3: Tech innovation is changing the world.`,
       ]);
     },
   );
+
+  it('keeps source authorization ahead of subscription and credit guards', () => {
+    const handler =
+      PostsGenerationController.prototype.generateSourceVariations;
+
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+      PostVariationSourceGuard,
+      SubscriptionGuard,
+      CreditsGuard,
+    ]);
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
+      CreditsInterceptor,
+    ]);
+  });
+
+  it('serializes generated variations and reconciles credits to actual output', async () => {
+    mockPostVariationService.generate.mockResolvedValue({
+      meta: {
+        actualCount: 2,
+        creditCost: 2,
+        groupId: 'group-1',
+        requestedCount: 3,
+        reviewBatchId: 'batch-1',
+        sourceKind: 'owned-post',
+        voiceMode: 'brand-voice',
+        voiceModeLabel: 'Brand voice',
+      },
+      posts: [
+        { ...mockPost, id: 'variation-1' },
+        { ...mockPost, id: 'variation-2' },
+      ],
+    });
+    const request = {
+      ...mockRequest,
+      creditsConfig: {
+        amount: 3,
+        description: 'Source post variation',
+      },
+      resolvedPostVariationSource: {
+        id: postId,
+        kind: 'owned-post',
+        text: mockPost.description,
+      },
+    } as unknown as SourcePostVariationRequest & {
+      creditsConfig: { amount: number; description: string };
+    };
+
+    const result = await generationController.generateSourceVariations(
+      request,
+      mockUser,
+      {
+        count: 3,
+        platform: ContentIntelligencePlatform.TWITTER,
+        postId,
+      },
+    );
+
+    expect(mockPostVariationService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 3, source: expect.any(Object) }),
+    );
+    expect(result.meta).toMatchObject({ actualCount: 2, requestedCount: 3 });
+    expect(request.creditsConfig.amount).toBe(2);
+  });
 
   // ==========================================================================
   // POST /posts/account-generations - generateAccountContent (post format)

@@ -53,7 +53,10 @@ describe('desktop release QA', () => {
     expect(smokeRunner).toContain("'--smoke-test'");
     expect(smokeRunner).toContain('90_000');
     expect(smokeRunner).toContain("child.kill('SIGTERM')");
-    expect(scripts?.['release:mac']).toContain('bun run release:manifest');
+    expect(scripts?.['release:mac']).not.toContain('release:manifest');
+    expect(scripts?.['release:metadata']).toContain(
+      'finalize-macos-release.cjs',
+    );
   });
 
   it('exposes macOS desktop QA as a reusable/manual workflow', () => {
@@ -169,6 +172,29 @@ describe('desktop release QA', () => {
     expect(verificationStep).toContain('APP_SIZE_MIB=');
     expect(verificationStep).toContain('exceeds the 500 MiB release budget');
     expect(verificationStep).toContain('## Desktop package size');
+  });
+
+  it('writes release metadata only after Apple staples the disk image', () => {
+    const releaseWorkflow = readText('.github/workflows/desktop-release.yml');
+    const notarizeIndex = releaseWorkflow.indexOf(
+      '- name: Notarize and staple macOS disk images',
+    );
+    const finalizeIndex = releaseWorkflow.indexOf(
+      '- name: Finalize notarized release metadata',
+    );
+    const verifyIndex = releaseWorkflow.indexOf(
+      '- name: Verify Developer ID signature, notarization, and app size',
+    );
+    const finalizeStep = readWorkflowStep(
+      releaseWorkflow,
+      'Finalize notarized release metadata',
+    );
+
+    expect(notarizeIndex).toBeGreaterThan(-1);
+    expect(finalizeIndex).toBeGreaterThan(notarizeIndex);
+    expect(verifyIndex).toBeGreaterThan(finalizeIndex);
+    expect(finalizeStep).toContain('release:metadata');
+    expect(finalizeStep).toContain('release:manifest');
   });
 
   it('documents the manual desktop release evidence checklist', () => {

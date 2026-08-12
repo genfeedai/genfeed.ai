@@ -465,6 +465,43 @@ describe('PostsService', () => {
     });
   });
 
+  describe('generateSourceVariations', () => {
+    it('posts the source/count contract and returns grouped response metadata', async () => {
+      mockInstance.post.mockResolvedValue({
+        data: {
+          data: [{ description: 'Variation one', id: 'post-1' }],
+          meta: {
+            actualCount: 1,
+            creditCost: 1,
+            groupId: 'group-1',
+            requestedCount: 3,
+            reviewBatchId: 'batch-1',
+            sourceKind: 'owned-post',
+            voiceMode: 'brand-voice',
+            voiceModeLabel: 'Brand voice',
+          },
+        },
+      });
+
+      const result = await service.generateSourceVariations({
+        count: 3,
+        platform: 'twitter',
+        postId: 'source-post-1',
+      });
+
+      expect(mockInstance.post).toHaveBeenCalledWith('/source-variations', {
+        count: 3,
+        platform: 'twitter',
+        postId: 'source-post-1',
+      });
+      expect(result.posts).toHaveLength(1);
+      expect(result.meta).toMatchObject({
+        actualCount: 1,
+        reviewBatchId: 'batch-1',
+      });
+    });
+  });
+
   describe('retry', () => {
     it('should queue a failed post for retry and map the response', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostData });

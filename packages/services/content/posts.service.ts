@@ -10,6 +10,9 @@ import {
 } from '@genfeedai/enums';
 import type {
   AccountPublishingContext,
+  GenerateSourcePostVariationsInput,
+  IPostVariationMeta,
+  IPostVariationResult,
   ScoreSeoRequest,
   SocialGenerationFormat,
 } from '@genfeedai/interfaces';
@@ -250,6 +253,24 @@ export class PostsService extends BaseService<
       input,
     );
     return this.mapOne(response.data);
+  }
+
+  /**
+   * Generate a grouped, reviewable set of variations from one authorized
+   * owned, followed, or imported source post.
+   */
+  public async generateSourceVariations(
+    input: GenerateSourcePostVariationsInput,
+  ): Promise<IPostVariationResult> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/source-variations',
+      input,
+    );
+    const posts = await this.mapMany(response.data);
+    return {
+      meta: response.data.meta as unknown as IPostVariationMeta,
+      posts,
+    };
   }
 
   /**

@@ -80,6 +80,7 @@ export const postAttributes = createEntityAttributes([
   'creativeVersion',
   'scheduleSlot',
   'publishIntent',
+  'source',
   'sourceActionId',
   'sourceWorkflowId',
   'sourceWorkflowName',

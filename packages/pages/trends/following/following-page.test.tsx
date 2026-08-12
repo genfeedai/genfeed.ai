@@ -397,17 +397,19 @@ describe('FollowingPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('routes twitter posts to the twitter draft flow on remix', async () => {
+  it('routes followed posts to the shared variation flow on remix', async () => {
     const user = userEvent.setup();
     render(<FollowingPage />);
 
     await user.click(screen.getByRole('button', { name: 'Remix' }));
 
     expect(mocks.routerPush).toHaveBeenCalledTimes(1);
-    expect(String(mocks.routerPush.mock.calls[0]?.[0])).toContain('twitter');
+    expect(mocks.routerPush).toHaveBeenCalledWith(
+      '/publish/remix?platform=twitter&sourcePostId=post-1',
+    );
   });
 
-  it('routes non-twitter posts to the agent flow on remix', async () => {
+  it('uses the same variation flow for non-twitter followed posts', async () => {
     const user = userEvent.setup();
     setFeed(
       makeFeed({
@@ -425,7 +427,9 @@ describe('FollowingPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remix' }));
 
-    expect(mocks.routerPush).toHaveBeenCalledTimes(1);
+    expect(mocks.routerPush).toHaveBeenCalledWith(
+      '/publish/remix?platform=instagram&sourcePostId=post-2',
+    );
   });
 
   it('creates a reply draft from the post dropdown for twitter posts', async () => {

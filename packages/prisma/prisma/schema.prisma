@@ -2763,7 +2763,7 @@ model AgentMessage {
   createdAt                          DateTime     @default(now())
   updatedAt                          DateTime     @updatedAt
 
-  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "agent_messages_org_thread_created_id_desc_idx")
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
 }

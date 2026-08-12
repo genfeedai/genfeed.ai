@@ -77,8 +77,44 @@ export interface IPost extends IBaseEntity {
   isShareToFeedSelected?: boolean;
   platformUrl?: string | null;
   sourceActionId?: string | null;
+  source?: string | null;
   sourceWorkflowId?: string | null;
   sourceWorkflowName?: string | null;
+  generationId?: string | null;
+  variantId?: string | null;
+}
+
+export type PostVariationSourceKind =
+  | 'owned-post'
+  | 'source-post'
+  | 'trend-reference';
+
+export type PostVariationVoiceMode = 'brand-voice' | 'organization-defaults';
+
+export interface GenerateSourcePostVariationsInput {
+  count?: number;
+  platform: 'instagram' | 'linkedin' | 'tiktok' | 'twitter';
+  postId?: string;
+  sourcePostId?: string;
+  sourceReferenceId?: string;
+  trendId?: string;
+}
+
+export interface IPostVariationMeta {
+  actualCount: number;
+  creditCost: number;
+  groupId: string;
+  partialReason?: string;
+  requestedCount: number;
+  reviewBatchId: string;
+  sourceKind: PostVariationSourceKind;
+  voiceMode: PostVariationVoiceMode;
+  voiceModeLabel: string;
+}
+
+export interface IPostVariationResult {
+  meta: IPostVariationMeta;
+  posts: IPost[];
 }
 
 export interface IPostPlatformConfig {
