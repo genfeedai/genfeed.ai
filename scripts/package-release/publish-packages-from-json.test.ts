@@ -17,6 +17,7 @@ import {
   rewriteDistForNodeResolution,
   sortReleaseRequests,
   validatePackedPackage,
+  waitForRegistryContent,
 } from '../publish-packages-from-json.mjs';
 
 describe('publish package release planning', () => {
@@ -240,6 +241,67 @@ describe('publish package release planning', () => {
       'does not match the plan',
     );
   });
+
+  it('retries tarball verification while a published version propagates', () => {
+    const attempts: string[] = [];
+    const delays: number[] = [];
+
+    expect(() =>
+      waitForRegistryContent('@genfeedai/create@0.2.0', 'sha256-matching', {
+        attempts: 3,
+        delaySeconds: 1,
+        npmViewFn: () => ({ version: '0.2.0' }),
+        packRegistryVersionFn: (packageSpec: string) => {
+          attempts.push(packageSpec);
+          if (attempts.length === 1) {
+            throw new Error(`npm pack ${packageSpec} failed`);
+          }
+          return 'sha256-matching';
+        },
+        sleepFn: (seconds: number) => delays.push(seconds),
+      }),
+    ).not.toThrow();
+    expect(attempts).toEqual([
+      '@genfeedai/create@0.2.0',
+      '@genfeedai/create@0.2.0',
+    ]);
+    expect(delays).toEqual([1]);
+  });
+
+  it('fails immediately when propagated tarball content is unexpected', () => {
+    const delays: number[] = [];
+
+    expect(() =>
+      waitForRegistryContent('@genfeedai/create@0.2.0', 'sha256-expected', {
+        npmViewFn: () => ({ version: '0.2.0' }),
+        packRegistryVersionFn: () => 'sha256-different',
+        sleepFn: (seconds: number) => delays.push(seconds),
+      }),
+    ).toThrow('unexpected tarball content');
+    expect(delays).toEqual([]);
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])(
+    'rejects invalid registry verification attempts: %s',
+    (attempts) => {
+      expect(() =>
+        waitForRegistryContent('fixture@1.0.0', 'sha256-expected', {
+          attempts,
+        }),
+      ).toThrow('attempts must be a positive integer');
+    },
+  );
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid registry verification delay: %s',
+    (delaySeconds) => {
+      expect(() =>
+        waitForRegistryContent('fixture@1.0.0', 'sha256-expected', {
+          delaySeconds,
+        }),
+      ).toThrow('delaySeconds must be a non-negative number');
+    },
+  );
 
   it('rewrites built dist for strict Node resolution at publish time', () => {
     const packageDir = mkdtempSync(path.join(tmpdir(), 'publish-rewrite-'));

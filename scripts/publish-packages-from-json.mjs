@@ -573,18 +573,50 @@ export function registryAction(expectedDigest, registryDigest) {
   fail('registry version exists with content that does not match the plan');
 }
 
-function waitForRegistryContent(packageSpec, expectedDigest) {
-  for (let attempt = 1; attempt <= 10; attempt += 1) {
-    if (npmView(packageSpec)) {
-      const registryDigest = packRegistryVersion(packageSpec);
+export function waitForRegistryContent(
+  packageSpec,
+  expectedDigest,
+  {
+    attempts = 10,
+    delaySeconds = 3,
+    npmViewFn = npmView,
+    packRegistryVersionFn = packRegistryVersion,
+    sleepFn = (seconds) => run('sleep', [String(seconds)]),
+  } = {},
+) {
+  if (!Number.isSafeInteger(attempts) || attempts < 1) {
+    fail('registry verification attempts must be a positive integer');
+  }
+  if (!Number.isFinite(delaySeconds) || delaySeconds < 0) {
+    fail('registry verification delaySeconds must be a non-negative number');
+  }
+
+  let lastPackError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (npmViewFn(packageSpec)) {
+      let registryDigest = null;
+      try {
+        registryDigest = packRegistryVersionFn(packageSpec);
+        lastPackError = null;
+      } catch (error) {
+        // npm's version metadata can become readable before the package tarball
+        // reaches every registry/CDN endpoint. Publishing is irreversible, so
+        // retry only this read-after-write verification and never npm publish.
+        lastPackError = error;
+      }
+
       if (registryDigest === expectedDigest) return;
       if (registryDigest !== null) {
         fail(`${packageSpec} reached npm with unexpected tarball content`);
       }
     }
-    if (attempt < 10) run('sleep', ['3']);
+    if (attempt < attempts) sleepFn(delaySeconds);
   }
-  fail(`${packageSpec} was not readable from npm after publication`);
+
+  const detail =
+    lastPackError instanceof Error ? `: ${lastPackError.message}` : '';
+  fail(`${packageSpec} was not readable from npm after publication${detail}`);
 }
 
 export function assertCleanWorkingTree(root) {
