@@ -91,12 +91,60 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   private async processTrigger(
     job: Job<WorkflowExecutionJobData>,
   ): Promise<unknown> {
-    const { triggerEvent } = job.data;
+    const { triggerEvent, priorExecutionIds } = job.data;
     if (!triggerEvent) {
       throw new Error('Trigger job missing triggerEvent data');
     }
 
+    // BullMQ retries re-invoke this handler. Re-running handleTriggerEvent
+    // would create *new* executions and re-fire every completed side-effect
+    // node (publish, DM, credits). When a prior attempt already recorded
+    // execution ids, short-circuit instead of double-firing (#2359).
+    if (
+      (job.attemptsMade ?? 0) > 0 &&
+      Array.isArray(priorExecutionIds) &&
+      priorExecutionIds.length > 0
+    ) {
+      this.logger.warn(
+        `${this.logContext} skipping re-trigger on job retry — prior executions already claimed`,
+        {
+          attemptsMade: job.attemptsMade,
+          jobId: job.id,
+          priorExecutionIds,
+        },
+      );
+
+      return {
+        executionCount: priorExecutionIds.length,
+        priorExecutionIds,
+        results: priorExecutionIds.map((executionId) => ({
+          executionId,
+          status: 'already_claimed',
+          workflowId: undefined,
+        })),
+        skippedReTrigger: true,
+      };
+    }
+
     const results = await this.executorService.handleTriggerEvent(triggerEvent);
+
+    const executionIds = results
+      .map((r) => r.executionId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+    if (executionIds.length > 0) {
+      try {
+        await job.updateData({
+          ...job.data,
+          priorExecutionIds: executionIds,
+        });
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.logContext} failed to persist priorExecutionIds on job`,
+          { error, jobId: job.id },
+        );
+      }
+    }
 
     // Check for delay pauses — schedule resume jobs
     for (const result of results) {

@@ -1,3 +1,4 @@
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionProgressService } from '@api/collections/workflows/services/workflow-execution-progress.service';
@@ -8,6 +9,10 @@ import type {
 } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
+import {
+  claimNodeOnce,
+  completeNodeClaim,
+} from '@api/collections/workflows/utils/workflow-node-idempotency.util';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   ExecutableEdge,
@@ -18,12 +23,30 @@ import type {
 } from '@genfeedai/workflows/engine';
 
 export class WorkflowNodeGraphRunnerService {
+  /**
+   * Process-local claim map for nodes that have already side-effected in
+   * this execution. Durable progress still lives in
+   * `workflow_executions.result.nodeResults`; this map blocks in-process
+   * re-entry and is re-hydrated from durable results at the start of a run
+   * so BullMQ retries of the *same* executionId cannot re-fire (#2359).
+   */
+  private readonly nodeClaims = new Map<
+    string,
+    {
+      nodeId: string;
+      status: 'completed' | 'failed' | 'running' | 'pending';
+      output?: unknown;
+      error?: string;
+    }
+  >();
+
   constructor(
     private readonly engineAdapter: WorkflowEngineAdapterService,
     private readonly graphService: WorkflowExecutionGraphService,
     private readonly progressService: WorkflowExecutionProgressService,
     private readonly nodeProgressTracker: WorkflowNodeProgressTrackerService,
     private readonly reviewGateService: WorkflowReviewGateService,
+    private readonly executionsService?: WorkflowExecutionsService,
   ) {}
 
   async executeNodeGraph(
@@ -46,6 +69,13 @@ export class WorkflowNodeGraphRunnerService {
     const skippedNodes = new Set<string>();
     let totalCreditsUsed = 0;
     const startedAt = options.startedAt;
+
+    await this.hydrateCompletedNodesFromExecution(
+      executionId,
+      nodeCache,
+      nodeResults,
+      completedNodes,
+    );
 
     await this.nodeProgressTracker.injectTriggerNode({
       completedNodes,
@@ -145,6 +175,38 @@ export class WorkflowNodeGraphRunnerService {
         }
       }
 
+      // Per-node claim (#2359): if this node already completed or is owned by
+      // another worker, re-emit the prior result instead of re-dispatching
+      // side effects (publish, DM, credit spend).
+      const claim = claimNodeOnce(this.nodeClaims, executionId, nodeId);
+      if (claim.action === 'skip' && claim.record) {
+        const skippedResult: NodeExecutionResult = {
+          completedAt: new Date(),
+          creditsUsed: 0,
+          error: claim.record.error,
+          nodeId,
+          output: claim.record.output,
+          retryCount: 0,
+          startedAt: new Date(),
+          status: claim.record.status === 'failed' ? 'failed' : 'completed',
+        };
+        nodeResults.set(nodeId, skippedResult);
+        if (skippedResult.status === 'completed') {
+          completedNodes.add(nodeId);
+          if (skippedResult.output !== undefined) {
+            nodeCache.set(nodeId, skippedResult.output);
+          }
+        }
+        continue;
+      }
+      if (claim.action === 'busy') {
+        // Another in-process owner holds the claim — treat as failed soft
+        // so the outer job can retry after the owner finishes.
+        executionError = `Node ${nodeId} is already running (idempotency claim busy)`;
+        executionStatus = 'failed';
+        break;
+      }
+
       await this.nodeProgressTracker.trackNodeStarted({
         completedNodes,
         executionId,
@@ -163,6 +225,12 @@ export class WorkflowNodeGraphRunnerService {
           workflow,
           executionId,
         );
+
+        completeNodeClaim(this.nodeClaims, claim.key, {
+          error: nodeResult.error,
+          output: nodeResult.output,
+          status: nodeResult.status === 'failed' ? 'failed' : 'completed',
+        });
 
         nodeResults.set(nodeId, nodeResult);
         totalCreditsUsed += nodeResult.creditsUsed;
@@ -301,6 +369,82 @@ export class WorkflowNodeGraphRunnerService {
         nodeCache.set(node.id, node.cachedOutput);
         completedNodes.add(node.id);
       }
+    }
+  }
+
+  /**
+   * Re-load durable completed node outputs so a job retry of the same
+   * executionId skips side-effect nodes that already landed (#2359).
+   */
+  private async hydrateCompletedNodesFromExecution(
+    executionId: string,
+    nodeCache: Map<string, unknown>,
+    nodeResults: Map<string, NodeExecutionResult>,
+    completedNodes: Set<string>,
+  ): Promise<void> {
+    if (!this.executionsService) {
+      return;
+    }
+
+    try {
+      const execution = await this.executionsService.findOne({
+        id: executionId,
+      });
+      if (!execution) {
+        return;
+      }
+
+      const rawResult =
+        execution.result &&
+        typeof execution.result === 'object' &&
+        !Array.isArray(execution.result)
+          ? (execution.result as Record<string, unknown>)
+          : {};
+      const prior = Array.isArray(rawResult.nodeResults)
+        ? rawResult.nodeResults
+        : [];
+
+      for (const entry of prior) {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+          continue;
+        }
+        const row = entry as Record<string, unknown>;
+        const nodeId = typeof row.nodeId === 'string' ? row.nodeId : null;
+        const status = String(row.status ?? '');
+        if (!nodeId) {
+          continue;
+        }
+        if (
+          status !== WorkflowExecutionStatus.COMPLETED &&
+          status !== 'completed'
+        ) {
+          continue;
+        }
+
+        const output = row.output;
+        completedNodes.add(nodeId);
+        if (output !== undefined) {
+          nodeCache.set(nodeId, output);
+        }
+        nodeResults.set(nodeId, {
+          completedAt: new Date(),
+          creditsUsed: 0,
+          nodeId,
+          output,
+          retryCount: 0,
+          startedAt: new Date(),
+          status: 'completed',
+        });
+        const claimKey = `${executionId}:${nodeId}`;
+        this.nodeClaims.set(claimKey, {
+          nodeId,
+          output,
+          status: 'completed',
+        });
+      }
+    } catch {
+      // Hydration is best-effort — missing prior progress falls through to a
+      // normal run rather than blocking the workflow.
     }
   }
 

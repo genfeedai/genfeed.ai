@@ -54,9 +54,11 @@ function createMockJob(
   overrides: Record<string, unknown> = {},
 ) {
   return {
+    attemptsMade: 0,
     data,
     id: 'job-1',
     name: data.type,
+    updateData: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -135,6 +137,54 @@ describe('WorkflowExecutionProcessor', () => {
 
       await expect(processor.process(job as never)).rejects.toThrow(
         'missing triggerEvent',
+      );
+    });
+
+    it('skips re-trigger on BullMQ retry when priorExecutionIds exist (#2359)', async () => {
+      const job = createMockJob(
+        {
+          priorExecutionIds: ['exec-1', 'exec-2'],
+          triggerEvent: {
+            data: {},
+            organizationId: 'org-1',
+            platform: 'twitter',
+            type: 'mentionTrigger',
+            userId: 'user-1',
+          },
+          type: 'trigger',
+        },
+        { attemptsMade: 1 },
+      );
+
+      const result = await processor.process(job as never);
+
+      expect(mockExecutor.handleTriggerEvent).not.toHaveBeenCalled();
+      expect(result).toEqual(
+        expect.objectContaining({
+          skippedReTrigger: true,
+          priorExecutionIds: ['exec-1', 'exec-2'],
+        }),
+      );
+    });
+
+    it('persists priorExecutionIds after the first trigger attempt', async () => {
+      const job = createMockJob({
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'twitter',
+          type: 'mentionTrigger',
+          userId: 'user-1',
+        },
+        type: 'trigger',
+      });
+
+      await processor.process(job as never);
+
+      expect(job.updateData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          priorExecutionIds: ['exec-1'],
+        }),
       );
     });
 

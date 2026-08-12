@@ -118,6 +118,7 @@ export class WorkflowExecutorService {
       this.progressService,
       this.nodeProgressTracker,
       this.reviewGateService,
+      this.executionsService,
     );
   }
 
