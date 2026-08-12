@@ -15,6 +15,11 @@ describe('WorkflowExecutorService', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    workflowNodeClaim: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    },
   };
   const logger = {
     debug: vi.fn(),
@@ -48,6 +53,9 @@ describe('WorkflowExecutorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.workflowNodeClaim.create.mockResolvedValue({ id: 'claim-1' });
+    prisma.workflowNodeClaim.findFirst.mockResolvedValue(null);
+    prisma.workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
 
     service = new WorkflowExecutorService(
       prisma as never,
@@ -448,5 +456,143 @@ describe('WorkflowExecutorService', () => {
     ).rejects.toThrow('Agent context is stale.');
 
     expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+  });
+
+  describe('continueExistingExecution (#2359)', () => {
+    const triggerEvent = {
+      data: { source: 'retry' },
+      organizationId: 'org-1',
+      platform: 'twitter',
+      type: 'mention',
+      userId: 'user-1',
+    };
+
+    it('returns a failed shell when the execution row is missing', async () => {
+      executionsService.findOne.mockResolvedValue(null);
+
+      const result = await service.continueExistingExecution(
+        'missing-exec',
+        triggerEvent,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          executionId: 'missing-exec',
+          status: WorkflowExecutionStatus.FAILED,
+          workflowId: '',
+        }),
+      );
+      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('no-ops when the prior execution already completed', async () => {
+      executionsService.findOne.mockResolvedValue({
+        completedAt: new Date('2026-08-12T10:00:00.000Z'),
+        id: 'exec-1',
+        startedAt: new Date('2026-08-12T09:00:00.000Z'),
+        status: WorkflowExecutionStatus.COMPLETED,
+        workflowId: 'workflow-1',
+      });
+
+      const result = await service.continueExistingExecution(
+        'exec-1',
+        triggerEvent,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          executionId: 'exec-1',
+          status: WorkflowExecutionStatus.COMPLETED,
+          workflowId: 'workflow-1',
+        }),
+      );
+      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      expect(executionsService.createExecution).not.toHaveBeenCalled();
+    });
+
+    it('re-enters the same execution id without creating a new row when failed', async () => {
+      const executableWorkflow: ExecutableWorkflow = {
+        edges: [],
+        id: 'workflow-1',
+        lockedNodeIds: [],
+        nodes: [
+          {
+            config: {},
+            id: 'publish-node',
+            inputs: [],
+            label: 'Publish',
+            type: 'publish',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      executionsService.findOne.mockResolvedValue({
+        id: 'exec-1',
+        status: WorkflowExecutionStatus.FAILED,
+        workflowId: 'workflow-1',
+      });
+      prisma.workflow.findFirst.mockResolvedValue({
+        config: {},
+        edges: [],
+        id: 'workflow-1',
+        inputVariables: [],
+        label: 'Retry workflow',
+        metadata: {},
+        nodes: [],
+        organizationId: 'org-1',
+        steps: [],
+        userId: 'user-1',
+      });
+      engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+        executableWorkflow,
+      );
+      engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+      executionsService.startExecution.mockResolvedValue({ id: 'exec-1' });
+      executionsService.updateExecutionMetadata.mockResolvedValue({
+        id: 'exec-1',
+      });
+      executionsService.updateNodeResult.mockResolvedValue({
+        id: 'exec-1',
+        progress: 100,
+      });
+      engineAdapter.executeWorkflow.mockResolvedValue({
+        completedAt: new Date(),
+        nodeResults: new Map([
+          [
+            'publish-node',
+            {
+              completedAt: new Date(),
+              creditsUsed: 0,
+              nodeId: 'publish-node',
+              output: { ok: true },
+              retryCount: 0,
+              startedAt: new Date(),
+              status: 'completed',
+            } satisfies NodeExecutionResult,
+          ],
+        ]),
+        runId: 'exec-1',
+        startedAt: new Date(),
+        status: 'completed',
+        totalCreditsUsed: 0,
+        workflowId: 'workflow-1',
+      });
+      executionsService.completeExecution.mockResolvedValue({
+        id: 'exec-1',
+        metadata: {},
+      });
+
+      const result = await service.continueExistingExecution(
+        'exec-1',
+        triggerEvent,
+      );
+
+      expect(executionsService.createExecution).not.toHaveBeenCalled();
+      expect(executionsService.startExecution).toHaveBeenCalledWith('exec-1');
+      expect(result.executionId).toBe('exec-1');
+      expect(result.workflowId).toBe('workflow-1');
+    });
   });
 });

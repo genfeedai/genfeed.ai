@@ -221,6 +221,27 @@ describe('WorkflowExecutionProcessor', () => {
       );
     });
 
+    it('falls through to handleTriggerEvent on retry without priorExecutionIds', async () => {
+      const job = createMockJob(
+        {
+          triggerEvent: {
+            data: {},
+            organizationId: 'org-1',
+            platform: 'twitter',
+            type: 'mentionTrigger',
+            userId: 'user-1',
+          },
+          type: 'trigger',
+        },
+        { attemptsMade: 2 },
+      );
+
+      await processor.process(job as never);
+
+      expect(mockExecutor.handleTriggerEvent).toHaveBeenCalledTimes(1);
+      expect(mockExecutor.continueExistingExecution).not.toHaveBeenCalled();
+    });
+
     it('should detect and schedule delay resume jobs', async () => {
       const delayJobData = {
         delayNodeId: 'delay-1',
