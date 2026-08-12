@@ -27,6 +27,7 @@ import {
   ContentIntelligencePlatform,
   fromPrismaCredentialPlatform,
   PostVisibility,
+  parsePlatform,
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
@@ -357,10 +358,17 @@ export class BatchGenerationProcessingService {
 
         // Posts store lowercase platform strings; credentials use Prisma
         // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
+        // Reject unmappable platforms before any content generation side
+        // effects so malformed persisted items cannot create bad posts (#2696).
         const platformRaw =
           typeof item.platform === 'string' && item.platform.trim().length > 0
             ? item.platform.trim()
             : undefined;
+        if (platformRaw && !parsePlatform(platformRaw)) {
+          throw new BadRequestException(
+            `Invalid batch item platform "${platformRaw}"`,
+          );
+        }
         const platformForCredential = platformRaw
           ? toPrismaCredentialPlatform(platformRaw)
           : undefined;

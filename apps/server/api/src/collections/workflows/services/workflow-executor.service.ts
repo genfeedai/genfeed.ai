@@ -20,6 +20,7 @@ import type {
   WorkflowExecutionResult,
 } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
@@ -85,6 +86,8 @@ export class WorkflowExecutorService {
     private readonly reviewGateNotifier?: ReviewGateNotificationService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
+    @Optional()
+    private readonly nodeClaimService?: WorkflowNodeClaimService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -112,6 +115,11 @@ export class WorkflowExecutorService {
       this.progressService,
       this.graphService,
     );
+    // Prefer injected claim service; fall back to a prisma-backed instance so
+    // durable (executionId, nodeId) claims always exist in process (#2359).
+    const durableClaims =
+      this.nodeClaimService ??
+      new WorkflowNodeClaimService(this.prisma, this.logger);
     this.graphRunner = new WorkflowNodeGraphRunnerService(
       this.engineAdapter,
       this.graphService,
@@ -119,6 +127,7 @@ export class WorkflowExecutorService {
       this.nodeProgressTracker,
       this.reviewGateService,
       this.executionsService,
+      durableClaims,
     );
   }
 

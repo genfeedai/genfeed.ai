@@ -34,6 +34,7 @@ describe('ReplicateWebhookController', () => {
   };
   let trainingsService: { findOne: vi.Mock; patch: vi.Mock };
   let verificationService: {
+    deferUntrustedDelivery: vi.Mock;
     isReplay: vi.Mock;
     resolveTrustedPayload: vi.Mock;
   };
@@ -50,6 +51,7 @@ describe('ReplicateWebhookController', () => {
 
   beforeEach(async () => {
     verificationService = {
+      deferUntrustedDelivery: vi.fn().mockResolvedValue(undefined),
       isReplay: vi.fn().mockResolvedValue(false),
       resolveTrustedPayload: vi.fn(async (payload: unknown) => payload),
     };
@@ -226,9 +228,8 @@ describe('ReplicateWebhookController', () => {
       expect(trainingsService.findOne).not.toHaveBeenCalled();
       expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
       expect(generationWebhookHandler.handleFailed).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('deferred for Replicate reconciliation'),
-        { predictionId: 'pred_untrusted' },
+      expect(verificationService.deferUntrustedDelivery).toHaveBeenCalledWith(
+        body,
       );
     });
 

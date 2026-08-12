@@ -37,4 +37,15 @@ describe('article + mongoId schema parity (Sentry 71/72, #2420)', () => {
     expect(editor).not.toContain('mongoId');
     expect(trend).not.toContain('mongoId');
   });
+
+  it('keeps the remove_mongo_identity migration in the tree (#2420)', () => {
+    const migration = readFileSync(
+      join(
+        prismaDir,
+        'migrations/20260805043000_remove_mongo_identity_columns/migration.sql',
+      ),
+      'utf8',
+    );
+    expect(migration.length).toBeGreaterThan(0);
+  });
 });

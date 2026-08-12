@@ -85,6 +85,31 @@ export class ReplicateWebhookVerificationService {
   }
 
   /**
+   * Park an untrusted delivery for later reconciliation. Never dispatches
+   * signed status/output; ops/reconcile can re-fetch by prediction id.
+   */
+  async deferUntrustedDelivery(
+    payload: ReplicateWebhookPayload,
+  ): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const predictionId = payload.id;
+
+    await this.cacheService.claimOnce(
+      this.cacheService.generateKey(
+        'webhook:replicate:untrusted',
+        predictionId,
+      ),
+      REPLAY_WINDOW_SECONDS,
+      ['webhook:replicate:untrusted'],
+    );
+
+    this.loggerService.warn(
+      `${url} untrusted Replicate delivery deferred for reconciliation`,
+      { predictionId },
+    );
+  }
+
+  /**
    * Returns a payload whose state-changing fields come from Replicate's own
    * record. A null result is untrusted and must never be dispatched.
    */

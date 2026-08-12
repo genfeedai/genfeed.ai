@@ -101,10 +101,7 @@ export class ReplicateWebhookController {
         await this.verificationService.resolveTrustedPayload(signedPayload);
 
       if (!payload) {
-        this.loggerService.warn(
-          `${url} untrusted payload deferred for Replicate reconciliation`,
-          { predictionId: signedPayload.id },
-        );
+        await this.verificationService.deferUntrustedDelivery(signedPayload);
         return;
       }
 

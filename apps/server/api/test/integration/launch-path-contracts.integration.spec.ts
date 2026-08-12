@@ -71,4 +71,13 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('skippedReTrigger');
     expect(source).toContain('attemptsMade');
   });
+
+  it('ships durable workflow_node_claims unique (executionId, nodeId)', () => {
+    const schema = readRepo('packages/prisma/prisma/schema.prisma');
+    const migration = readRepo(
+      'packages/prisma/prisma/migrations/20260812140000_workflow_node_claims/migration.sql',
+    );
+    expect(schema).toContain('model WorkflowNodeClaim');
+    expect(migration).toContain('workflow_node_claims_executionId_nodeId_key');
+  });
 });

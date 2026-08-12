@@ -3315,6 +3315,26 @@ model WorkflowExecution {
   @@map("workflow_executions")
 }
 
+/// Durable per-node idempotency claims for workflow execution (#2359).
+/// Unique on (executionId, nodeId): a second insert loses (P2002) and the
+/// runner re-emits the stored output instead of re-firing side effects.
+model WorkflowNodeClaim {
+  id             String   @id @default(cuid())
+  organizationId String
+  executionId    String
+  nodeId         String
+  /// running | completed | failed
+  status         String
+  output         Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([executionId, nodeId])
+  @@index([organizationId, executionId])
+  @@map("workflow_node_claims")
+}
+
 model BatchWorkflowJob {
   id             String       @id @default(cuid())
   organizationId String

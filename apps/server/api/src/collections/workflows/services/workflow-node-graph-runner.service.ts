@@ -7,6 +7,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.types';
+import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
 import {
@@ -47,6 +48,7 @@ export class WorkflowNodeGraphRunnerService {
     private readonly nodeProgressTracker: WorkflowNodeProgressTrackerService,
     private readonly reviewGateService: WorkflowReviewGateService,
     private readonly executionsService?: WorkflowExecutionsService,
+    private readonly nodeClaimService?: WorkflowNodeClaimService,
   ) {}
 
   async executeNodeGraph(
@@ -175,9 +177,42 @@ export class WorkflowNodeGraphRunnerService {
         }
       }
 
-      // Per-node claim (#2359): if this node already completed or is owned by
-      // another worker, re-emit the prior result instead of re-dispatching
+      // Per-node claim (#2359): durable unique row first, then process-local
+      // map. Duplicate insert / prior completion re-emits instead of re-running
       // side effects (publish, DM, credit spend).
+      if (this.nodeClaimService && workflow.organizationId) {
+        const durable = await this.nodeClaimService.tryClaim({
+          executionId,
+          nodeId,
+          organizationId: workflow.organizationId,
+        });
+        if (durable.action === 'skip') {
+          if (durable.status === 'running') {
+            executionError = `Node ${nodeId} is already running (durable claim busy)`;
+            executionStatus = 'failed';
+            break;
+          }
+          const skippedResult: NodeExecutionResult = {
+            completedAt: new Date(),
+            creditsUsed: 0,
+            error: durable.error,
+            nodeId,
+            output: durable.output,
+            retryCount: 0,
+            startedAt: new Date(),
+            status: durable.status === 'failed' ? 'failed' : 'completed',
+          };
+          nodeResults.set(nodeId, skippedResult);
+          if (skippedResult.status === 'completed') {
+            completedNodes.add(nodeId);
+            if (skippedResult.output !== undefined) {
+              nodeCache.set(nodeId, skippedResult.output);
+            }
+          }
+          continue;
+        }
+      }
+
       const claim = claimNodeOnce(this.nodeClaims, executionId, nodeId);
       if (claim.action === 'skip' && claim.record) {
         const skippedResult: NodeExecutionResult = {
@@ -200,8 +235,6 @@ export class WorkflowNodeGraphRunnerService {
         continue;
       }
       if (claim.action === 'busy') {
-        // Another in-process owner holds the claim — treat as failed soft
-        // so the outer job can retry after the owner finishes.
         executionError = `Node ${nodeId} is already running (idempotency claim busy)`;
         executionStatus = 'failed';
         break;
@@ -231,6 +264,15 @@ export class WorkflowNodeGraphRunnerService {
           output: nodeResult.output,
           status: nodeResult.status === 'failed' ? 'failed' : 'completed',
         });
+        if (this.nodeClaimService) {
+          await this.nodeClaimService.complete({
+            error: nodeResult.error,
+            executionId,
+            nodeId,
+            output: nodeResult.output,
+            status: nodeResult.status === 'failed' ? 'failed' : 'completed',
+          });
+        }
 
         nodeResults.set(nodeId, nodeResult);
         totalCreditsUsed += nodeResult.creditsUsed;
