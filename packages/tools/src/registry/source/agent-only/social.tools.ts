@@ -116,7 +116,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Draft a native X repost (retweet without commentary) for review. Does NOT publish until approved. Distinct from quote.',
+      'Draft a repost of an X post for review (no added text). Does NOT publish until approved. Distinct from quote.',
     name: 'draft_x_repost',
     parameters: {
       properties: {

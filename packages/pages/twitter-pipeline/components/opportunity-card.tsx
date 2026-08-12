@@ -119,13 +119,13 @@ export default function OpportunityCard({
         {opportunity.type === 'quote' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <SquarePen className="size-3" />
-            Quote with commentary
+            Quote
           </span>
         )}
         {opportunity.type === 'repost' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <RefreshCw className="size-3" />
-            Native repost (no commentary)
+            Repost
           </span>
         )}
       </div>

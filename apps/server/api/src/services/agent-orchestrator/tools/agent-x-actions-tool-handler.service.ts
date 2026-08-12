@@ -423,7 +423,7 @@ export class AgentXActionsToolHandler {
         message:
           action === 'quote'
             ? 'Quote draft added to the review queue. It will not publish until approved.'
-            : 'Native repost draft added to the review queue. It will not publish until approved.',
+            : 'Repost draft added to the review queue. It will not publish until approved.',
         targetPostId,
         targetPostUrl,
       },
