@@ -96,6 +96,10 @@
       "types": "./src/stores/*",
       "default": "./src/stores/*"
     },
+    "./utils/*": {
+      "types": "./src/utils/*",
+      "default": "./src/utils/*"
+    },
     "./workflow": {
       "types": "./src/workflow/index.ts",
       "default": "./src/workflow/index.ts"
