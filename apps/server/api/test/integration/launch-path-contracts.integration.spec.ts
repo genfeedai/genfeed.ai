@@ -143,4 +143,45 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     );
     expect(source).toContain("referenceType: 'batch-generation:upfront'");
   });
+
+  it('keeps multi-agent collaboration memory loadable for every host', () => {
+    const index = readRepo('.agents/memory/MEMORY.md');
+    const collab = readRepo(
+      '.agents/memory/feedback_multi_agent_collaboration.md',
+    );
+    const qaQueue = readRepo(
+      '.agents/memory/feedback_qa_queue_branch_protocol.md',
+    );
+    const tdd = readRepo('.agents/memory/feedback_tdd_first.md');
+    expect(index).toContain('feedback_multi_agent_collaboration');
+    expect(index).toContain('feedback_qa_queue_branch_protocol');
+    expect(index).toContain('feedback_tdd_first');
+    expect(collab).toMatch(/host-native/i);
+    expect(collab).toContain('Claim before spawn');
+    expect(collab).toContain('Handoff contract');
+    expect(qaQueue).toMatch(/commit only/i);
+    expect(tdd).toContain('Multi-agent handoff');
+  });
+
+  it('agent executeWorkflow is organization-scoped before the executor runs', () => {
+    const source = readRepo(
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-handler.service.ts',
+    );
+    const executeIdx = source.indexOf('async executeWorkflow(');
+    const slice = source.slice(executeIdx, executeIdx + 1200);
+    expect(slice).toContain('organizationId: ctx.organizationId');
+    expect(slice).toContain('Missing required workflow inputs');
+    expect(slice).toContain('executeManualWorkflow');
+  });
+
+  it('in-process node claim map hydrates completed nodes for same executionId', () => {
+    const source = readRepo(
+      'apps/server/api/src/collections/workflows/services/workflow-node-graph-runner.service.ts',
+    );
+    expect(source).toContain('hydrateCompletedNodesFromExecution');
+    expect(source).toContain('this.nodeClaims.set');
+    expect(source).toContain('claimNodeOnce');
+    expect(source).toContain('nodeClaimService.tryClaim');
+    expect(source).toContain('nodeClaimService.complete');
+  });
 });

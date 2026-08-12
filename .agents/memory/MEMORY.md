@@ -32,6 +32,8 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
+- [feedback_multi_agent_collaboration](feedback_multi_agent_collaboration.md) — Claude/Codex/Grok share memory+PR+tests; host-native children; claim+handoff so Vincent does not restate
+- [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA queue branch; commit-only when CI thrash is forbidden
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
 
 ## Rules (via the `.claude/rules` symlink)
