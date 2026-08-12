@@ -10,6 +10,7 @@ import {
 import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -215,8 +216,9 @@ export default function AgentWizardPage() {
     setIsSubmitting(true);
     try {
       const service = await getService();
+      const agentType = form.agentType as AgentType;
       await service.create({
-        agentType: form.agentType as AgentType,
+        agentType,
         autonomyMode: form.autonomyMode as AgentAutonomyMode,
         autoPublishConfidenceThreshold: form.autoPublishConfidenceThreshold,
         dailyCreditBudget: form.dailyCreditBudget,
@@ -224,6 +226,8 @@ export default function AgentWizardPage() {
         label: form.label,
         minCreditThreshold: form.minCreditThreshold,
         platforms: form.platforms,
+        preferredWorkflowTemplateId:
+          preferredWorkflowTemplateIdForAgentType(agentType),
         runFrequency: form.runFrequency,
         topics: form.topics
           ? form.topics.split(',').flatMap((topic) => {

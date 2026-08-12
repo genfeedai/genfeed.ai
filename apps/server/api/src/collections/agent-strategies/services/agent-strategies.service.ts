@@ -1,3 +1,4 @@
+import { getAgentTypeWorkflowDefault } from '@api/collections/agent-strategies/constants/agent-type-workflow-defaults.constant';
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
@@ -133,6 +134,17 @@ export class AgentStrategiesService extends BaseService<
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
     const now = new Date();
+    // Pin deterministic graph on create when client omits binding (wizard/autopilot).
+    const typeDefault = getAgentTypeWorkflowDefault(createDto.agentType);
+    const preferredWorkflowTemplateId =
+      typeof createDto.preferredWorkflowTemplateId === 'string' &&
+      createDto.preferredWorkflowTemplateId.trim()
+        ? createDto.preferredWorkflowTemplateId.trim()
+        : (typeDefault?.templateId ?? undefined);
+    const skillSlugs =
+      Array.isArray(createDto.skillSlugs) && createDto.skillSlugs.length > 0
+        ? createDto.skillSlugs
+        : (typeDefault?.skillSlugs ?? createDto.skillSlugs);
 
     const payload: AgentStrategyWriteDto = {
       ...createDto,
@@ -146,6 +158,8 @@ export class AgentStrategiesService extends BaseService<
               createDto.budgetPolicy.reserveTrendBudget,
           }
         : {}),
+      ...(preferredWorkflowTemplateId ? { preferredWorkflowTemplateId } : {}),
+      ...(skillSlugs ? { skillSlugs } : {}),
       // Defaults for counters that live in config
       consecutiveFailures: 0,
       creditsUsedThisWeek: 0,

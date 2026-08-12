@@ -1,6 +1,7 @@
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
 import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
 import {
   AgentStrategiesService,
@@ -17,6 +18,10 @@ type AgentStrategyPayload = CreateAgentStrategyInput & {
 };
 
 function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
+  const preferredWorkflowTemplateId = preferredWorkflowTemplateIdForAgentType(
+    form.agentType,
+  );
+
   return {
     agentType: form.agentType,
     autonomyMode: form.autonomyMode,
@@ -38,6 +43,7 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
       trendWatchersEnabled: form.trendWatchersEnabled,
     },
     platforms: form.platforms,
+    preferredWorkflowTemplateId,
     skillSlugs: form.skillSlugs,
     publishPolicy: {
       autoPublishEnabled: form.autoPublishEnabled,
