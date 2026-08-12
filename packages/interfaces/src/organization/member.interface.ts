@@ -7,10 +7,27 @@ import type {
 } from '../index';
 
 export interface IMemberInvitation {
+  id?: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  roleId: string;
+  organizationId?: string;
+  invitedByUserId?: string;
+  roleId?: string;
+  roleKey?: string;
+  status?:
+    | 'accepted'
+    | 'delivered'
+    | 'delivery-failed'
+    | 'expired'
+    | 'pending'
+    | 'revoked';
+  redirectUrl?: string;
+  expiresAt?: Date | string;
+  acceptedAt?: Date | string | null;
+  revokedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface IMember extends IBaseEntity {

@@ -2,8 +2,9 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
+import Alert from '@ui/feedback/alert/Alert';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
@@ -43,6 +44,49 @@ const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
+type InvitationNotice = {
+  message: string;
+  type: AlertCategory;
+};
+
+function getInvitationNotice(
+  outcome: string | null,
+): InvitationNotice | undefined {
+  switch (outcome) {
+    case 'accepted':
+      return {
+        message:
+          'Invitation accepted. Sign in to continue to your organization.',
+        type: AlertCategory.SUCCESS,
+      };
+    case 'already-accepted':
+      return {
+        message:
+          'This invitation was already accepted. Sign in, or ask an organization admin to resend it.',
+        type: AlertCategory.INFO,
+      };
+    case 'expired':
+      return {
+        message:
+          'This invitation has expired. Ask an organization admin to resend it.',
+        type: AlertCategory.WARNING,
+      };
+    case 'revoked':
+      return {
+        message:
+          'This invitation was revoked. Ask an organization admin for a new invitation.',
+        type: AlertCategory.WARNING,
+      };
+    case 'invalid':
+      return {
+        message:
+          'This invitation link is invalid or no longer available. Ask an organization admin for a new invitation.',
+        type: AlertCategory.ERROR,
+      };
+    default:
+      return undefined;
+  }
+}
 
 interface LoginBetterAuthProps {
   mode?: LoginMode;
@@ -88,6 +132,7 @@ export default function LoginBetterAuth({
   const passwordHref = getAuthFlowHref('/login/password', callbackURL);
   const forgotPasswordHref = getAuthFlowHref('/forgot-password', callbackURL);
   const signUpHref = getAuthFlowHref('/sign-up', callbackURL);
+  const invitationNotice = getInvitationNotice(searchParams.get('invitation'));
 
   useEffect(() => {
     if (!isDesktop) {
@@ -486,57 +531,62 @@ export default function LoginBetterAuth({
       logoSize="compact"
       title={LOGIN_TITLE}
     >
-      <AuthActionSurface
-        actions={
-          <>
-            <Button
-              type="button"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => handleSocialSignIn('google')}
-              icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
-              isLoading={isSocialSubmitting}
-              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
-            >
-              Google
-            </Button>
+      <div className="w-full space-y-4">
+        {invitationNotice ? (
+          <Alert type={invitationNotice.type}>{invitationNotice.message}</Alert>
+        ) : null}
+        <AuthActionSurface
+          actions={
+            <>
+              <Button
+                type="button"
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => handleSocialSignIn('google')}
+                icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
+                isLoading={isSocialSubmitting}
+                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Google
+              </Button>
 
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
-            >
-              <Link href={magicLinkHref}>
-                <Sparkles className="size-4" aria-hidden="true" />
-                <span>Magic Link</span>
-              </Link>
-            </Button>
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                <Link href={magicLinkHref}>
+                  <Sparkles className="size-4" aria-hidden="true" />
+                  <span>Magic Link</span>
+                </Link>
+              </Button>
 
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
-            >
-              <Link href={passwordHref}>
-                <KeyRound className="size-4" aria-hidden="true" />
-                <span>Email / Password</span>
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                <Link href={passwordHref}>
+                  <KeyRound className="size-4" aria-hidden="true" />
+                  <span>Email / Password</span>
+                </Link>
+              </Button>
+            </>
+          }
+          error={socialErrorMessage}
+          footer={
+            <AuthFooterPrompt>
+              Don&apos;t have an account?{' '}
+              <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
+                Sign up
               </Link>
-            </Button>
-          </>
-        }
-        error={socialErrorMessage}
-        footer={
-          <AuthFooterPrompt>
-            Don&apos;t have an account?{' '}
-            <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
-              Sign up
-            </Link>
-          </AuthFooterPrompt>
-        }
-        hideHeading
-      />
+            </AuthFooterPrompt>
+          }
+          hideHeading
+        />
+      </div>
     </AuthFormLayout>
   );
 }

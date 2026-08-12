@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
+import { MemberRole } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
@@ -34,6 +35,7 @@ const invitation = {
   organizationId: orgId,
   revokedAt: null,
   roleId: 'role_member',
+  roleKey: 'member',
   status: 'pending' as const,
   updatedAt: now,
 };
@@ -70,12 +72,25 @@ describe('MembersController — invitation endpoints', () => {
     vi.clearAllMocks();
   });
 
+  it.each(['listInvitations', 'revokeInvitation', 'resendInvitation'] as const)(
+    'restricts %s to organization owners and admins',
+    (handler) => {
+      expect(
+        Reflect.getMetadata('roles', MembersController.prototype[handler]),
+      ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
+    },
+  );
+
   describe('GET /members/invitations', () => {
     it('throws 400 when organization missing', async () => {
       const controller = buildController();
 
       await expect(
-        controller.listInvitations({}, makeUser({ organization: undefined })),
+        controller.listInvitations(
+          {} as never,
+          {},
+          makeUser({ organization: undefined }),
+        ),
       ).rejects.toThrow(HttpException);
     });
 
@@ -86,6 +101,7 @@ describe('MembersController — invitation endpoints', () => {
       ]);
 
       const result = await controller.listInvitations(
+        {} as never,
         { status: 'pending' },
         makeUser(),
       );
@@ -94,13 +110,14 @@ describe('MembersController — invitation endpoints', () => {
         orgId,
         'pending',
       );
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         data: [
           {
-            createdAt: now,
-            email: 'new@example.com',
+            attributes: expect.objectContaining({
+              email: 'new@example.com',
+              status: 'pending',
+            }),
             id: 'inv_123',
-            status: 'pending',
           },
         ],
       });
@@ -112,7 +129,7 @@ describe('MembersController — invitation endpoints', () => {
         invitation,
       ]);
 
-      await controller.listInvitations({}, makeUser());
+      await controller.listInvitations({} as never, {}, makeUser());
 
       expect(mockInvitationService.listInvitations).toHaveBeenCalledWith(
         orgId,
@@ -127,6 +144,7 @@ describe('MembersController — invitation endpoints', () => {
 
       await expect(
         controller.revokeInvitation(
+          {} as never,
           'inv_1',
           makeUser({ organization: undefined }),
         ),
@@ -142,13 +160,22 @@ describe('MembersController — invitation endpoints', () => {
         status: 'revoked',
       });
 
-      const result = await controller.revokeInvitation('inv_1', makeUser());
+      const result = await controller.revokeInvitation(
+        {} as never,
+        'inv_1',
+        makeUser(),
+      );
 
       expect(mockInvitationService.revokeInvitation).toHaveBeenCalledWith(
         'inv_1',
         orgId,
       );
-      expect(result).toEqual({ data: { id: 'inv_1', status: 'revoked' } });
+      expect(result).toMatchObject({
+        data: {
+          attributes: expect.objectContaining({ status: 'revoked' }),
+          id: 'inv_1',
+        },
+      });
     });
   });
 
@@ -246,25 +273,32 @@ describe('MembersController — invitation endpoints', () => {
   });
 
   describe('POST /members/invitations/:id/resend', () => {
-    it('resends a pending invitation', async () => {
+    it('retries delivery on the same invitation resource', async () => {
       const controller = buildController();
       vi.mocked(mockInvitationService.resendInvitation).mockResolvedValue({
         ...invitation,
-        id: 'inv_new',
+        id: 'inv_old',
+        status: 'delivered',
       });
 
-      const result = await controller.resendInvitation('inv_old', makeUser());
+      const result = await controller.resendInvitation(
+        {} as never,
+        'inv_old',
+        makeUser(),
+      );
 
       expect(mockInvitationService.resendInvitation).toHaveBeenCalledWith({
         invitationId: 'inv_old',
         invitedByUserId: userId,
         organizationId: orgId,
       });
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         data: {
-          email: 'new@example.com',
-          id: 'inv_new',
-          status: 'pending',
+          attributes: expect.objectContaining({
+            email: 'new@example.com',
+            status: 'delivered',
+          }),
+          id: 'inv_old',
         },
       });
     });

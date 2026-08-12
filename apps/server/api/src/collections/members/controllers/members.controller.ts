@@ -4,6 +4,7 @@ import { InvitationService } from '@api/collections/members/services/invitation.
 import { MembersService } from '@api/collections/members/services/members.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -18,8 +19,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { MemberRole } from '@genfeedai/enums';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
-import { MemberSerializer } from '@genfeedai/serializers';
+import {
+  MemberInvitationSerializer,
+  MemberSerializer,
+} from '@genfeedai/serializers';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -97,8 +102,10 @@ export class MembersController {
    * List invitations for the current organization, optionally filtered by status.
    */
   @Get('invitations')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async listInvitations(
+    @Req() request: Request,
     @Query() query: InvitationsQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
@@ -117,14 +124,9 @@ export class MembersController {
       query.status,
     );
 
-    return {
-      data: invitations.map((inv) => ({
-        createdAt: inv.createdAt,
-        email: inv.email,
-        id: inv.id,
-        status: inv.status,
-      })),
-    };
+    return serializeCollection(request, MemberInvitationSerializer, {
+      docs: invitations,
+    });
   }
 
   /**
@@ -132,8 +134,10 @@ export class MembersController {
    * Revoke a pending invitation.
    */
   @Delete('invitations/:invitationId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async revokeInvitation(
+    @Req() request: Request,
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: User,
   ): Promise<unknown> {
@@ -147,9 +151,12 @@ export class MembersController {
       );
     }
 
-    await this.invitationService.revokeInvitation(invitationId, orgId);
+    const invitation = await this.invitationService.revokeInvitation(
+      invitationId,
+      orgId,
+    );
 
-    return { data: { id: invitationId, status: 'revoked' } };
+    return serializeSingle(request, MemberInvitationSerializer, invitation);
   }
 
   /**
@@ -157,8 +164,10 @@ export class MembersController {
    * Resend a pending invitation email.
    */
   @Post('invitations/:invitationId/resend')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resendInvitation(
+    @Req() request: Request,
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: User,
   ): Promise<unknown> {
@@ -184,13 +193,7 @@ export class MembersController {
       organizationId: orgId,
     });
 
-    return {
-      data: {
-        email: newInvitation.email,
-        id: newInvitation.id,
-        status: newInvitation.status,
-      },
-    };
+    return serializeSingle(request, MemberInvitationSerializer, newInvitation);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
