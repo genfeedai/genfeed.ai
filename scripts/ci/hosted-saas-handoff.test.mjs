@@ -4,7 +4,9 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const releaseWorkflow = readFileSync(
-  fileURLToPath(new URL('../../.github/workflows/release.yml', import.meta.url)),
+  fileURLToPath(
+    new URL('../../.github/workflows/release.yml', import.meta.url),
+  ),
   'utf8',
 );
 
@@ -22,11 +24,17 @@ test('dispatches the exact stable-release SHA to private operations', () => {
   assert.match(deploy, /CONSOLE_REPOSITORY: genfeedai\/console\.genfeed\.ai/);
   assert.match(deploy, /CONSOLE_WORKFLOW: deploy-hosted-saas\.yml/);
   assert.match(deploy, /GH_TOKEN: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
-  assert.match(deploy, /RELEASE_SHA: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/);
+  assert.match(
+    deploy,
+    /RELEASE_SHA: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
+  );
   assert.match(deploy, /inputs\[release_sha\]=\$\{RELEASE_SHA\}/);
   assert.match(deploy, /inputs\[source_sha\]=\$\{RELEASE_SHA\}/);
   assert.match(deploy, /inputs\[correlation_id\]=\$\{correlation_id\}/);
-  assert.doesNotMatch(deploy, /id-token: write|secrets: inherit|_deploy-ecs-core/);
+  assert.doesNotMatch(
+    deploy,
+    /id-token: write|secrets: inherit|_deploy-ecs-core/,
+  );
 });
 
 test('fails closed while correlating and waiting for private deployment', () => {
