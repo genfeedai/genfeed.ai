@@ -1,6 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentThreadEvent } from '../../src/api/threads';
 
+const mockLiveStream = {
+  bind: vi.fn(),
+  close: vi.fn(),
+  drain: vi.fn(() => []),
+  waitForActivity: vi.fn(async () => undefined),
+  waitUntilReady: vi.fn(async () => undefined),
+};
+
+vi.mock('../../src/shell/agent-live-stream', () => ({
+  openAgentLiveStream: vi.fn(async () => mockLiveStream),
+}));
+
 const mockQuestion = vi.fn<[], Promise<string>>();
 const mockClose = vi.fn();
 

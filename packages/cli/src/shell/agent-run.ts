@@ -8,19 +8,52 @@ import {
   respondToInputRequest,
   startAgentChatStream,
 } from '@/api/threads';
+import {
+  type AgentLiveStream,
+  type AgentLiveStreamEvent,
+  openAgentLiveStream,
+} from '@/shell/agent-live-stream';
 import { extractString, isRecord } from '@/utils/extract';
+
+const EVENT_POLL_INTERVAL_MS = 250;
 
 type AgentRunStatus = 'completed' | 'failed' | 'timeout' | 'waiting-input';
 
-export interface AgentRunResult {
+export interface AgentRunStart {
+  brandId?: string | null;
+  contextVersion?: number;
+  runId?: string;
+  startedAt?: string;
+  threadId: string;
+}
+
+export interface AgentRunCallbacks {
+  onAssistantDelta?: (token: string, content: string) => void;
+  onAssistantFinalized?: (
+    content: string,
+    previousContent: string,
+    metadata?: Record<string, unknown>
+  ) => void;
+  onPersistedEvent?: (event: AgentThreadEvent) => Promise<void> | void;
+  onRunStarted?: (run: AgentRunStart) => Promise<void> | void;
+  onTransportError?: (error: Error) => void;
+}
+
+export interface AgentRunResult extends AgentRunStart {
   assistantMessage?: string;
   error?: string;
   lastSequence: number;
   pendingInputRequest?: AgentPendingInputRequest;
-  runId?: string;
-  startedAt?: string;
   status: AgentRunStatus;
-  threadId: string;
+  uiActions?: Array<Record<string, unknown>>;
+}
+
+interface RunAccumulator {
+  finalized: boolean;
+  finalizedContent?: string;
+  liveContent: string;
+  persistedContent: string;
+  result?: Omit<AgentRunResult, keyof AgentRunStart | 'lastSequence' | 'uiActions'>;
   uiActions?: Array<Record<string, unknown>>;
 }
 
@@ -50,142 +83,284 @@ function toPendingInputRequest(payload: Record<string, unknown>): AgentPendingIn
   };
 }
 
-async function collectRunResult(
-  threadId: string,
-  afterSequence: number,
-  timeoutMs: number
-): Promise<AgentRunResult> {
-  const startedAt = Date.now();
-  let lastSequence = afterSequence;
-  let assistantMessage = '';
-  let uiActions: Array<Record<string, unknown>> | undefined;
-
-  while (Date.now() - startedAt < timeoutMs) {
-    const events = await getThreadEvents(threadId, lastSequence);
-
-    if (events.length === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      continue;
-    }
-
-    for (const event of events) {
-      lastSequence = Math.max(lastSequence, event.sequence);
-
-      const outcome = handleThreadEvent(event, assistantMessage);
-      if (outcome.appendAssistantMessage) {
-        assistantMessage += outcome.appendAssistantMessage;
-      }
-      if (outcome.replaceAssistantMessage !== undefined) {
-        assistantMessage = outcome.replaceAssistantMessage;
-      }
-      if (outcome.uiActions) {
-        uiActions = outcome.uiActions;
-      }
-      if (outcome.result) {
-        return {
-          ...outcome.result,
-          assistantMessage: assistantMessage || outcome.result.assistantMessage,
-          lastSequence,
-          threadId,
-          uiActions,
-        };
-      }
-    }
-  }
-
-  return {
-    assistantMessage: assistantMessage || undefined,
-    error: `Timed out waiting for agent run after ${timeoutMs}ms`,
-    lastSequence,
-    status: 'timeout',
-    threadId,
-    uiActions,
-  };
+function currentAssistantMessage(accumulator: RunAccumulator): string {
+  return accumulator.finalizedContent ?? (accumulator.liveContent || accumulator.persistedContent);
 }
 
-function handleThreadEvent(
+function finalizeAssistantMessage(
+  accumulator: RunAccumulator,
+  content: string,
+  callbacks: AgentRunCallbacks,
+  metadata?: Record<string, unknown>
+): void {
+  if (accumulator.finalized) {
+    return;
+  }
+
+  const previousContent = currentAssistantMessage(accumulator);
+  accumulator.finalized = true;
+  accumulator.finalizedContent = content;
+  accumulator.uiActions = extractUiActions(metadata);
+  callbacks.onAssistantFinalized?.(content, previousContent, metadata);
+}
+
+function handleLiveEvent(
+  event: AgentLiveStreamEvent,
+  accumulator: RunAccumulator,
+  callbacks: AgentRunCallbacks
+): void {
+  switch (event.type) {
+    case 'token': {
+      if (accumulator.finalized) {
+        return;
+      }
+      accumulator.liveContent += event.payload.token;
+      callbacks.onAssistantDelta?.(event.payload.token, accumulator.liveContent);
+      return;
+    }
+    case 'done': {
+      finalizeAssistantMessage(
+        accumulator,
+        event.payload.fullContent,
+        callbacks,
+        event.payload.metadata
+      );
+      accumulator.result = { status: 'completed' };
+      return;
+    }
+    case 'error': {
+      accumulator.result = {
+        error: event.payload.error || 'Agent run failed',
+        status: 'failed',
+      };
+      return;
+    }
+    case 'disconnected': {
+      callbacks.onTransportError?.(
+        new Error(`Live stream disconnected: ${event.reason}; recovering from persisted events`)
+      );
+      return;
+    }
+    case 'transport-error': {
+      callbacks.onTransportError?.(event.error);
+      return;
+    }
+    case 'reconnected':
+      return;
+  }
+}
+
+function handlePersistedEvent(
   event: AgentThreadEvent,
-  assistantMessage: string
-): {
-  appendAssistantMessage?: string;
-  replaceAssistantMessage?: string;
-  result?: Omit<AgentRunResult, 'lastSequence' | 'threadId' | 'uiActions'>;
-  uiActions?: Array<Record<string, unknown>>;
-} {
+  accumulator: RunAccumulator,
+  callbacks: AgentRunCallbacks
+): void {
   const payload = event.payload ?? {};
 
   switch (event.type) {
     case 'assistant.delta': {
       const token = extractString(payload, 'content');
-      return token ? { appendAssistantMessage: token } : {};
+      if (token) {
+        // Persisted deltas are legacy catch-up data. Keep them out of the live
+        // renderer so a server that still has the historical first-token row
+        // cannot duplicate a token already delivered over socket.io.
+        accumulator.persistedContent += token;
+      }
+      return;
     }
     case 'assistant.finalized': {
-      const content = extractString(payload, 'content');
-      return {
-        replaceAssistantMessage: content ?? assistantMessage,
-        uiActions: extractUiActions(isRecord(payload.metadata) ? payload.metadata : undefined),
-      };
+      const content = extractString(payload, 'content') ?? currentAssistantMessage(accumulator);
+      const metadata = isRecord(payload.metadata) ? payload.metadata : undefined;
+      finalizeAssistantMessage(accumulator, content, callbacks, metadata);
+      return;
     }
     case 'input.requested': {
-      return {
-        result: {
-          assistantMessage: assistantMessage || undefined,
-          pendingInputRequest: toPendingInputRequest(payload),
-          status: 'waiting-input',
-        },
+      accumulator.result = {
+        pendingInputRequest: toPendingInputRequest(payload),
+        status: 'waiting-input',
       };
+      return;
     }
     case 'run.completed': {
-      return {
-        result: {
-          assistantMessage: assistantMessage || undefined,
-          status: 'completed',
-        },
-      };
+      accumulator.result = { status: 'completed' };
+      return;
     }
     case 'error.raised':
     case 'run.failed': {
-      return {
-        result: {
-          assistantMessage: assistantMessage || undefined,
-          error: extractString(payload, 'error') ?? 'Agent run failed',
-          status: 'failed',
-        },
+      accumulator.result = {
+        error: extractString(payload, 'error') ?? 'Agent run failed',
+        status: 'failed',
       };
+      return;
     }
     default:
-      return {};
+      return;
+  }
+}
+
+function buildResult(
+  accumulator: RunAccumulator,
+  run: AgentRunStart,
+  lastSequence: number
+): AgentRunResult | undefined {
+  if (!accumulator.result) {
+    return undefined;
+  }
+
+  const assistantMessage = currentAssistantMessage(accumulator);
+  return {
+    ...run,
+    ...accumulator.result,
+    assistantMessage: assistantMessage || accumulator.result.assistantMessage,
+    lastSequence,
+    uiActions: accumulator.uiActions,
+  };
+}
+
+async function consumePersistedEvents(
+  events: AgentThreadEvent[],
+  run: AgentRunStart,
+  lastSequence: number,
+  accumulator: RunAccumulator,
+  callbacks: AgentRunCallbacks
+): Promise<number> {
+  let nextSequence = lastSequence;
+
+  for (const event of events) {
+    nextSequence = Math.max(nextSequence, event.sequence);
+
+    if (run.runId && event.runId && event.runId !== run.runId) {
+      continue;
+    }
+
+    await callbacks.onPersistedEvent?.(event);
+    handlePersistedEvent(event, accumulator, callbacks);
+  }
+
+  return nextSequence;
+}
+
+async function collectRunResult(
+  run: AgentRunStart,
+  afterSequence: number,
+  timeoutMs: number,
+  callbacks: AgentRunCallbacks,
+  liveStream?: AgentLiveStream
+): Promise<AgentRunResult> {
+  const startedAt = Date.now();
+  let lastSequence = afterSequence;
+  const accumulator: RunAccumulator = {
+    finalized: false,
+    liveContent: '',
+    persistedContent: '',
+  };
+
+  while (Date.now() - startedAt < timeoutMs) {
+    for (const event of liveStream?.drain() ?? []) {
+      handleLiveEvent(event, accumulator, callbacks);
+    }
+
+    const liveResult = buildResult(accumulator, run, lastSequence);
+    if (liveResult) {
+      // The publisher persists assistant.finalized/run.completed before it
+      // emits agent:done. Read that durable tail once so the next shell turn
+      // starts after this run instead of re-consuming its terminal events.
+      const terminalEvents = await getThreadEvents(run.threadId, lastSequence);
+      lastSequence = await consumePersistedEvents(
+        terminalEvents,
+        run,
+        lastSequence,
+        accumulator,
+        callbacks
+      );
+      return buildResult(accumulator, run, lastSequence) ?? liveResult;
+    }
+
+    const events = await getThreadEvents(run.threadId, lastSequence);
+    lastSequence = await consumePersistedEvents(events, run, lastSequence, accumulator, callbacks);
+
+    const persistedResult = buildResult(accumulator, run, lastSequence);
+    if (persistedResult) {
+      return persistedResult;
+    }
+
+    if (liveStream) {
+      await liveStream.waitForActivity(EVENT_POLL_INTERVAL_MS);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, EVENT_POLL_INTERVAL_MS));
+    }
+  }
+
+  const assistantMessage = currentAssistantMessage(accumulator);
+  return {
+    ...run,
+    assistantMessage: assistantMessage || undefined,
+    error: `Timed out waiting for agent run after ${timeoutMs}ms`,
+    lastSequence,
+    status: 'timeout',
+    uiActions: accumulator.uiActions,
+  };
+}
+
+export async function observeAgentRun(
+  startRun: () => Promise<AgentRunStart>,
+  afterSequence: number | ((run: AgentRunStart) => number),
+  timeoutMs = 120_000,
+  callbacks: AgentRunCallbacks = {}
+): Promise<AgentRunResult> {
+  let liveStream: AgentLiveStream | undefined;
+
+  try {
+    try {
+      liveStream = await openAgentLiveStream();
+      await liveStream.waitUntilReady();
+    } catch (error) {
+      callbacks.onTransportError?.(
+        error instanceof Error ? error : new Error(`Live stream unavailable: ${String(error)}`)
+      );
+    }
+
+    const run = await startRun();
+    const initialSequence =
+      typeof afterSequence === 'function' ? afterSequence(run) : afterSequence;
+    liveStream?.bind({ runId: run.runId, threadId: run.threadId });
+    await callbacks.onRunStarted?.(run);
+
+    return await collectRunResult(run, initialSequence, timeoutMs, callbacks, liveStream);
+  } finally {
+    liveStream?.close();
   }
 }
 
 export async function runAgentTurn(
   request: AgentChatRequest,
-  timeoutMs = 120_000
+  timeoutMs = 120_000,
+  callbacks: AgentRunCallbacks = {}
 ): Promise<AgentRunResult> {
   const [thread, snapshot] = request.threadId
     ? await Promise.all([getThread(request.threadId), getThreadSnapshot(request.threadId)])
     : [undefined, undefined];
   const initialSequence = snapshot?.lastSequence ?? 0;
 
-  const run = await startAgentChatStream({
-    ...request,
-    brandId: thread?.brandId ?? null,
-    expectedContextVersion: thread?.contextVersion,
-  });
-  const result = await collectRunResult(run.threadId, initialSequence, timeoutMs);
-
-  return {
-    ...result,
-    runId: run.runId,
-    startedAt: run.startedAt,
-  };
+  return await observeAgentRun(
+    async () =>
+      await startAgentChatStream({
+        ...request,
+        brandId: thread?.brandId ?? null,
+        expectedContextVersion: thread?.contextVersion,
+      }),
+    initialSequence,
+    timeoutMs,
+    callbacks
+  );
 }
 
 export async function answerPendingInput(
   threadId: string,
   answer: string,
   requestId?: string,
-  timeoutMs = 120_000
+  timeoutMs = 120_000,
+  callbacks: AgentRunCallbacks = {}
 ): Promise<AgentRunResult> {
   const [thread, snapshot] = await Promise.all([getThread(threadId), getThreadSnapshot(threadId)]);
   const pendingInputRequest =
@@ -196,9 +371,16 @@ export async function answerPendingInput(
     throw new Error(`Thread ${threadId} has no pending input requests.`);
   }
 
-  await respondToInputRequest(threadId, pendingInputRequest.requestId, answer, {
-    brandId: thread.brandId ?? null,
-    expectedContextVersion: thread.contextVersion,
-  });
-  return await collectRunResult(threadId, snapshot.lastSequence ?? 0, timeoutMs);
+  return await observeAgentRun(
+    async () => {
+      await respondToInputRequest(threadId, pendingInputRequest.requestId, answer, {
+        brandId: thread.brandId ?? null,
+        expectedContextVersion: thread.contextVersion,
+      });
+      return { threadId };
+    },
+    snapshot.lastSequence ?? 0,
+    timeoutMs,
+    callbacks
+  );
 }

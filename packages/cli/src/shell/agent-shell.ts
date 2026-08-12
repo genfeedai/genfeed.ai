@@ -6,7 +6,6 @@ import {
   type AgentThreadEvent,
   archiveThread,
   getThread,
-  getThreadEvents,
   getThreadSnapshot,
   listThreads,
   respondToInputRequest,
@@ -18,6 +17,11 @@ import {
   getOrganizationId,
   setLastAgentThreadId,
 } from '@/config/store';
+import { type AgentRunCallbacks, type AgentRunResult, observeAgentRun } from '@/shell/agent-run';
+import {
+  type AssistantStreamRenderer,
+  createAssistantStreamRenderer,
+} from '@/shell/assistant-stream-renderer';
 import {
   formatError,
   formatHeader,
@@ -28,7 +32,7 @@ import {
   print,
 } from '@/ui/theme';
 import { setReplMode } from '@/utils/errors';
-import { extractString, isRecord } from '@/utils/extract';
+import { extractString } from '@/utils/extract';
 
 interface AgentShellOptions {
   initialThreadId?: string;
@@ -38,7 +42,6 @@ interface AgentShellOptions {
 interface AgentShellState {
   brandId?: string | null;
   contextVersion?: number;
-  isStreamingAssistant: boolean;
   lastSequence: number;
   model?: string;
   pendingInputRequest: AgentPendingInputRequest | null;
@@ -153,7 +156,6 @@ async function attachThread(
   state.threadId = threadId;
   state.lastSequence = snapshot.lastSequence ?? 0;
   state.pendingInputRequest = snapshot.pendingInputRequests.at(-1) ?? null;
-  state.isStreamingAssistant = false;
   await setLastAgentThreadId(threadId, await getOrganizationId());
 
   print(formatInfo(`${contextLabel}: ${threadId}`));
@@ -171,41 +173,14 @@ async function attachThread(
   }
 }
 
-async function handleThreadEvent(
-  state: AgentShellState,
-  event: AgentThreadEvent
-): Promise<'continue' | 'done' | 'waiting-input'> {
+function printPersistedRunEvent(event: AgentThreadEvent): void {
   const payload = event.payload ?? {};
 
   switch (event.type) {
-    case 'assistant.delta': {
-      const token = extractString(payload, 'content');
-      if (!token) return 'continue';
-      if (!state.isStreamingAssistant) {
-        process.stdout.write(`${chalk.green('\nAssistant:')} `);
-        state.isStreamingAssistant = true;
-      }
-      process.stdout.write(token);
-      return 'continue';
-    }
-    case 'assistant.finalized': {
-      const content = extractString(payload, 'content') ?? '';
-      if (state.isStreamingAssistant) {
-        process.stdout.write('\n');
-        state.isStreamingAssistant = false;
-      } else if (content) {
-        print(`${chalk.green('\nAssistant:')} ${content}`);
-      }
-      printUiActionSummary({
-        ...(isRecord(payload.metadata) ? payload.metadata : {}),
-        threadId: state.threadId,
-      });
-      return 'continue';
-    }
     case 'tool.started': {
       const toolName = extractString(payload, 'toolName') ?? 'unknown_tool';
       print(chalk.dim(`\n[tool:start] ${toolName}`));
-      return 'continue';
+      return;
     }
     case 'tool.completed': {
       const toolName = extractString(payload, 'toolName') ?? 'unknown_tool';
@@ -213,101 +188,94 @@ async function handleThreadEvent(
       const error = extractString(payload, 'error');
       const suffix = error ? ` - ${error}` : '';
       print(chalk.dim(`[tool:${status}] ${toolName}${suffix}`));
-      return 'continue';
-    }
-    case 'input.requested': {
-      if (state.isStreamingAssistant) {
-        process.stdout.write('\n');
-        state.isStreamingAssistant = false;
-      }
-      const request: AgentPendingInputRequest = {
-        allowFreeText:
-          typeof payload.allowFreeText === 'boolean' ? payload.allowFreeText : undefined,
-        fieldId: extractString(payload, 'fieldId'),
-        metadata: isRecord(payload.metadata) ? payload.metadata : undefined,
-        options: Array.isArray(payload.options)
-          ? (payload.options as AgentPendingInputRequest['options'])
-          : undefined,
-        prompt: extractString(payload, 'prompt') ?? 'Provide the requested input.',
-        recommendedOptionId: extractString(payload, 'recommendedOptionId'),
-        requestId: extractString(payload, 'requestId') ?? '',
-        title: extractString(payload, 'title') ?? 'Input requested',
-      };
-      state.pendingInputRequest = request;
-      printPendingInputRequest(request);
-      return 'waiting-input';
-    }
-    case 'run.completed': {
-      if (state.isStreamingAssistant) {
-        process.stdout.write('\n');
-        state.isStreamingAssistant = false;
-      }
-      state.pendingInputRequest = null;
-      print(chalk.dim('Run completed.'));
-      return 'done';
-    }
-    case 'run.failed':
-    case 'error.raised': {
-      if (state.isStreamingAssistant) {
-        process.stdout.write('\n');
-        state.isStreamingAssistant = false;
-      }
-      state.pendingInputRequest = null;
-      print(formatError(extractString(payload, 'error') ?? 'Agent run failed'));
-      return 'done';
+      return;
     }
     default:
-      return 'continue';
+      return;
   }
 }
 
-async function tailThreadRun(state: AgentShellState): Promise<void> {
-  const startedAt = Date.now();
+function createShellRunCallbacks(
+  state: AgentShellState,
+  renderer: AssistantStreamRenderer
+): AgentRunCallbacks {
+  return {
+    onAssistantDelta: (token) => renderer.onDelta(token),
+    onAssistantFinalized: (content, _previousContent, metadata) => {
+      renderer.onFinal(content);
+      printUiActionSummary({ ...(metadata ?? {}), threadId: state.threadId });
+    },
+    onPersistedEvent: printPersistedRunEvent,
+  };
+}
 
-  while (Date.now() - startedAt < 120_000) {
-    const events = await getThreadEvents(state.threadId!, state.lastSequence);
+function applyRunResult(state: AgentShellState, result: AgentRunResult): void {
+  state.lastSequence = result.lastSequence;
+  state.pendingInputRequest = result.pendingInputRequest ?? null;
 
-    if (events.length === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      continue;
-    }
-
-    for (const event of events) {
-      state.lastSequence = Math.max(state.lastSequence, event.sequence);
-      const outcome = await handleThreadEvent(state, event);
-      if (outcome === 'done' || outcome === 'waiting-input') {
-        return;
-      }
-    }
+  if (result.pendingInputRequest) {
+    printPendingInputRequest(result.pendingInputRequest);
+    return;
   }
 
-  print(formatWarning('Run is still active. Use `gf threads show <threadId>` to inspect it.'));
+  if (result.status === 'failed') {
+    print(formatError(result.error ?? 'Agent run failed'));
+    return;
+  }
+
+  if (result.status === 'timeout') {
+    print(formatWarning('Run is still active. Use `gf threads show <threadId>` to inspect it.'));
+    return;
+  }
+
+  print(chalk.dim('Run completed.'));
 }
 
 async function sendAgentTurn(state: AgentShellState, content: string): Promise<void> {
-  const response = await startAgentChatStream({
-    brandId: state.brandId ?? null,
-    content,
-    expectedContextVersion: state.contextVersion,
-    model: state.model,
-    source: 'agent',
-    threadId: state.threadId,
+  const renderer = createAssistantStreamRenderer({
+    prefix: `${chalk.green('\nAssistant:')} `,
   });
-  const threadChanged = response.threadId !== state.threadId;
-  state.threadId = response.threadId;
-  state.brandId = response.brandId;
-  state.contextVersion = response.contextVersion;
-  state.pendingInputRequest = null;
-  state.isStreamingAssistant = false;
-  await setLastAgentThreadId(response.threadId, await getOrganizationId());
+  let result: AgentRunResult;
 
-  if (threadChanged) {
-    print(formatSuccess(`Active thread: ${response.threadId}`));
-  } else {
-    print(chalk.dim(`Continuing thread ${shortId(response.threadId)}`));
+  try {
+    result = await observeAgentRun(
+      async () =>
+        await startAgentChatStream({
+          brandId: state.brandId ?? null,
+          content,
+          expectedContextVersion: state.contextVersion,
+          model: state.model,
+          source: 'agent',
+          threadId: state.threadId,
+        }),
+      (response) => (response.threadId === state.threadId ? state.lastSequence : 0),
+      120_000,
+      {
+        ...createShellRunCallbacks(state, renderer),
+        onRunStarted: async (response) => {
+          const threadChanged = response.threadId !== state.threadId;
+          state.threadId = response.threadId;
+          state.brandId = response.brandId;
+          state.contextVersion = response.contextVersion;
+          state.pendingInputRequest = null;
+          await setLastAgentThreadId(response.threadId, await getOrganizationId());
+
+          if (threadChanged) {
+            print(formatSuccess(`Active thread: ${response.threadId}`));
+          } else {
+            print(chalk.dim(`Continuing thread ${shortId(response.threadId)}`));
+          }
+        },
+      }
+    );
+  } finally {
+    renderer.finish();
   }
 
-  await tailThreadRun(state);
+  if (result.assistantMessage && !renderer.hasRenderedContent()) {
+    renderer.onFinal(result.assistantMessage);
+  }
+  applyRunResult(state, result);
 }
 
 async function submitPendingInput(state: AgentShellState, answer: string): Promise<void> {
@@ -316,13 +284,34 @@ async function submitPendingInput(state: AgentShellState, answer: string): Promi
     return;
   }
 
-  await respondToInputRequest(state.threadId, request.requestId, answer, {
-    brandId: state.brandId ?? null,
-    expectedContextVersion: state.contextVersion,
+  const renderer = createAssistantStreamRenderer({
+    prefix: `${chalk.green('\nAssistant:')} `,
   });
-  state.pendingInputRequest = null;
-  print(chalk.dim('Input submitted.'));
-  await tailThreadRun(state);
+  let result: AgentRunResult;
+
+  try {
+    result = await observeAgentRun(
+      async () => {
+        await respondToInputRequest(state.threadId!, request.requestId, answer, {
+          brandId: state.brandId ?? null,
+          expectedContextVersion: state.contextVersion,
+        });
+        state.pendingInputRequest = null;
+        print(chalk.dim('Input submitted.'));
+        return { threadId: state.threadId! };
+      },
+      state.lastSequence,
+      120_000,
+      createShellRunCallbacks(state, renderer)
+    );
+  } finally {
+    renderer.finish();
+  }
+
+  if (result.assistantMessage && !renderer.hasRenderedContent()) {
+    renderer.onFinal(result.assistantMessage);
+  }
+  applyRunResult(state, result);
 }
 
 async function handleSlashCommand(state: AgentShellState, input: string): Promise<boolean> {
@@ -344,7 +333,6 @@ async function handleSlashCommand(state: AgentShellState, input: string): Promis
       state.threadId = undefined;
       state.lastSequence = 0;
       state.pendingInputRequest = null;
-      state.isStreamingAssistant = false;
       await clearLastAgentThreadId(await getOrganizationId());
       print(formatInfo('Next message will start a new thread.'));
       return true;
@@ -369,7 +357,6 @@ export async function runAgentShell(options: AgentShellOptions = {}): Promise<vo
   setReplMode(true);
 
   const state: AgentShellState = {
-    isStreamingAssistant: false,
     lastSequence: 0,
     model: options.model,
     pendingInputRequest: null,
