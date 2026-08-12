@@ -15,6 +15,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
   AgentStrategyWorkflowBinding,
@@ -45,7 +46,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import AgentWorkflowRunDialog from '../library/AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
@@ -85,6 +86,8 @@ const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { href } = useOrgUrl();
   const requestedOpportunityId = searchParams.get('opportunity');
   const {
     strategy,
@@ -160,11 +163,15 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       try {
         const service = await getService();
         const result = await service.runWorkflow(agentId, input);
+        const executionPath = href(
+          `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${result.executionId}`,
+        );
         notificationsService.success(
-          `Workflow started (${result.status}). Execution ${result.executionId.slice(0, 8)}…`,
+          `Workflow started (${result.status}). Opening execution…`,
         );
         setWorkflowDialogOpen(false);
         await refresh();
+        router.push(executionPath);
       } catch (error) {
         logger.error('Failed to run agent workflow', { error });
         notificationsService.error(
@@ -174,7 +181,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         setIsSubmittingWorkflow(false);
       }
     },
-    [agentId, getService, notificationsService, refresh],
+    [agentId, getService, href, notificationsService, refresh, router],
   );
 
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);

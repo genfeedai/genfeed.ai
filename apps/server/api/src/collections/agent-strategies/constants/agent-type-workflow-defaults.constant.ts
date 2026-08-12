@@ -22,6 +22,12 @@ export interface AgentTypeWorkflowDefault {
 export const AGENT_TYPE_WORKFLOW_DEFAULTS: Partial<
   Record<AgentType, AgentTypeWorkflowDefault>
 > = {
+  [AgentType.GENERAL]: {
+    description:
+      'General content agent — founder-style short post graph as a safe default.',
+    skillSlugs: ['content-writing'],
+    templateId: 'founder-x-post',
+  },
   [AgentType.X_CONTENT]: {
     description: 'Founder-style X post from topic, angle, and optional CTA.',
     skillSlugs: ['content-writing'],

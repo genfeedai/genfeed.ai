@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgentWorkflowRunInput } from './agent-workflow-run-input.util';
+import {
+  buildAgentWorkflowRunInput,
+  listEditableExtraSlots,
+  seedExtraInputsFromBinding,
+} from './agent-workflow-run-input.util';
 
 describe('buildAgentWorkflowRunInput', () => {
   it('maps topic/prompt/cta without image', () => {
@@ -53,6 +57,20 @@ describe('buildAgentWorkflowRunInput', () => {
     });
   });
 
+  it('merges extra workflow slot inputs', () => {
+    const result = buildAgentWorkflowRunInput({
+      extraInputs: {
+        customHook: '  open with a question ',
+        empty: '   ',
+      },
+      topic: 'Hooks',
+    });
+
+    expect(result.inputs).toEqual({
+      customHook: 'open with a question',
+    });
+  });
+
   it('omits empty strings', () => {
     expect(
       buildAgentWorkflowRunInput({
@@ -67,5 +85,63 @@ describe('buildAgentWorkflowRunInput', () => {
       referenceImage: undefined,
       topic: undefined,
     });
+  });
+});
+
+describe('listEditableExtraSlots', () => {
+  it('skips standard keys and filled optional slots', () => {
+    const slots = listEditableExtraSlots([
+      {
+        defaultValue: null,
+        description: null,
+        filledValue: null,
+        key: 'topic',
+        label: 'Topic',
+        required: true,
+        source: 'unfilled',
+        type: 'string',
+      },
+      {
+        defaultValue: null,
+        description: null,
+        filledValue: null,
+        key: 'customHook',
+        label: 'Hook',
+        required: true,
+        source: 'unfilled',
+        type: 'string',
+      },
+      {
+        defaultValue: 'keep',
+        description: null,
+        filledValue: 'filled',
+        key: 'optionalNote',
+        label: 'Note',
+        required: false,
+        source: 'default',
+        type: 'string',
+      },
+    ]);
+
+    expect(slots.map((slot) => slot.key)).toEqual(['customHook']);
+  });
+});
+
+describe('seedExtraInputsFromBinding', () => {
+  it('seeds defaults for editable extras', () => {
+    expect(
+      seedExtraInputsFromBinding([
+        {
+          defaultValue: 'hook default',
+          description: null,
+          filledValue: null,
+          key: 'customHook',
+          label: 'Hook',
+          required: true,
+          source: 'default',
+          type: 'string',
+        },
+      ]),
+    ).toEqual({ customHook: 'hook default' });
   });
 });

@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, LivestreamTranscriptSource } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  LivestreamTranscriptSource,
+} from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
@@ -42,7 +46,9 @@ type RestreamCredentialOption = {
 
 type Props = {
   form: LivestreamFormState;
+  isConnectingRestream?: boolean;
   isSaving: boolean;
+  onConnectRestream?: () => void;
   onFormChange: (patch: Partial<LivestreamFormState>) => void;
   onSave: () => void;
   restreamCredentials?: RestreamCredentialOption[];
@@ -52,7 +58,9 @@ const NONE_RESTREAM = '__none__';
 
 export default function LivestreamBotConfigCard({
   form,
+  isConnectingRestream = false,
   isSaving,
+  onConnectRestream,
   onFormChange,
   onSave,
   restreamCredentials = [],
@@ -172,19 +180,48 @@ export default function LivestreamBotConfigCard({
               </SelectContent>
             </Select>
           ) : (
-            <Input
-              label="Restream credential id"
-              value={form.restreamCredentialId}
-              onChange={(event) =>
-                onFormChange({ restreamCredentialId: event.target.value })
-              }
-              placeholder="Connect Restream in brand settings first"
-            />
+            <div className="space-y-2">
+              <Input
+                label="Restream credential id"
+                value={form.restreamCredentialId}
+                onChange={(event) =>
+                  onFormChange({ restreamCredentialId: event.target.value })
+                }
+                placeholder="Connect Restream for this brand"
+              />
+              {onConnectRestream ? (
+                <Button
+                  label={
+                    isConnectingRestream
+                      ? 'Connecting…'
+                      : 'Connect Restream account'
+                  }
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isConnectingRestream}
+                  onClick={onConnectRestream}
+                />
+              ) : null}
+            </div>
           )}
           <p className="text-xs text-foreground/50">
-            Connect Restream under Brand → Social. Empty uses the brand&apos;s
-            connected RESTREAM credential automatically.
+            Connect Restream OAuth for unified multi-destination chat. Empty
+            auto-binds the brand&apos;s connected RESTREAM credential at
+            runtime.
           </p>
+          {restreamCredentials.length > 0 && onConnectRestream ? (
+            <Button
+              label={
+                isConnectingRestream
+                  ? 'Connecting…'
+                  : 'Connect another Restream'
+              }
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              disabled={isConnectingRestream}
+              onClick={onConnectRestream}
+            />
+          ) : null}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AgentStrategiesService,
   type AgentStrategy,
@@ -35,6 +36,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
@@ -178,6 +180,8 @@ function AgentCard({
 export default function AgentHubPage() {
   const { strategies, isLoading, refresh } = useAgentStrategies();
   const notificationsService = NotificationsService.getInstance();
+  const router = useRouter();
+  const { href } = useOrgUrl();
 
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
@@ -262,11 +266,15 @@ export default function AgentHubPage() {
       try {
         const service = await getService();
         const result = await service.runWorkflow(selectedStrategy.id, input);
+        const executionPath = href(
+          `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${result.executionId}`,
+        );
         notificationsService.success(
-          `Workflow started (${result.status}). Execution ${result.executionId.slice(0, 8)}…`,
+          `Workflow started (${result.status}). Opening execution…`,
         );
         setWorkflowDialogOpen(false);
         await refresh();
+        router.push(executionPath);
       } catch (error) {
         logger.error('Failed to run agent workflow', { error });
         const message =
@@ -276,7 +284,7 @@ export default function AgentHubPage() {
         setIsSubmittingWorkflow(false);
       }
     },
-    [getService, notificationsService, refresh, selectedStrategy],
+    [getService, href, notificationsService, refresh, router, selectedStrategy],
   );
 
   return (

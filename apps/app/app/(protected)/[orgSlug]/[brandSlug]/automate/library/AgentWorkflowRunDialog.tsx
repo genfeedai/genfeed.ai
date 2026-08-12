@@ -27,9 +27,11 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Workflow } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   buildAgentWorkflowRunInput,
+  listEditableExtraSlots,
+  seedExtraInputsFromBinding,
   type WorkflowIngredientSelection,
 } from './agent-workflow-run-input.util';
 
@@ -46,7 +48,6 @@ export interface AgentWorkflowRunDialogProps {
 const NONE_INGREDIENT = '__none__';
 
 function resolveIngredientUrl(row: Record<string, unknown>): string {
-  // Prefer model getter field first (Image.ingredientUrl), then raw columns.
   for (const key of [
     'ingredientUrl',
     'url',
@@ -99,6 +100,7 @@ export default function AgentWorkflowRunDialog({
   const [prompt, setPrompt] = useState('');
   const [referenceImage, setReferenceImage] = useState('');
   const [cta, setCta] = useState('');
+  const [extraInputs, setExtraInputs] = useState<Record<string, string>>({});
   const [selectedIngredientId, setSelectedIngredientId] =
     useState(NONE_INGREDIENT);
   const [libraryImages, setLibraryImages] = useState<
@@ -124,7 +126,15 @@ export default function AgentWorkflowRunDialog({
     setReferenceImage('');
     setCta('');
     setSelectedIngredientId(NONE_INGREDIENT);
+    setExtraInputs({});
   }, [isOpen, strategy]);
+
+  useEffect(() => {
+    if (!isOpen || !binding) {
+      return;
+    }
+    setExtraInputs(seedExtraInputsFromBinding(binding.inputs));
+  }, [binding, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -151,7 +161,6 @@ export default function AgentWorkflowRunDialog({
         }
         const list = (Array.isArray(rows) ? rows : []).flatMap((row) => {
           const record = row as unknown as Record<string, unknown>;
-          // Prefer class getter when present (ImagesService returns Image models).
           const modelUrl =
             typeof (row as { ingredientUrl?: unknown }).ingredientUrl ===
             'string'
@@ -176,15 +185,11 @@ export default function AgentWorkflowRunDialog({
           ];
         });
         setLibraryImages(list);
-      } catch (error) {
+      } catch {
         if (cancelled || controller.signal.aborted) {
           return;
         }
         setLibraryImages([]);
-        // Surface soft failure so operators know the list is not empty by choice.
-        if (error instanceof Error && error.name !== 'AbortError') {
-          // Dialog stays usable with URL paste fallback.
-        }
       } finally {
         if (!cancelled) {
           setIsLoadingLibrary(false);
@@ -199,6 +204,11 @@ export default function AgentWorkflowRunDialog({
     };
   }, [getImagesService, isOpen, strategy?.brand?.id, strategy?.brandId]);
 
+  const extraSlots = useMemo(
+    () => listEditableExtraSlots(binding?.inputs),
+    [binding?.inputs],
+  );
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const selected =
@@ -210,6 +220,7 @@ export default function AgentWorkflowRunDialog({
     await onSubmit(
       buildAgentWorkflowRunInput({
         cta,
+        extraInputs,
         prompt,
         referenceImageUrl: referenceImage,
         selectedIngredient: selected,
@@ -226,7 +237,7 @@ export default function AgentWorkflowRunDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Workflow className="size-4" />
@@ -255,7 +266,7 @@ export default function AgentWorkflowRunDialog({
                 ) : null}
                 {missing.length > 0 ? (
                   <p className="mt-1 text-warning">
-                    Still needs: {missing.join(', ')}
+                    Still needs: {missing.join(', ')} — fill below before run.
                   </p>
                 ) : (
                   <p className="mt-1 text-success">
@@ -349,10 +360,43 @@ export default function AgentWorkflowRunDialog({
             />
           </div>
 
+          {extraSlots.length > 0 ? (
+            <div className="space-y-3 rounded border border-foreground/10 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Additional workflow slots
+              </p>
+              {extraSlots.map((slot) => (
+                <div key={slot.key} className="space-y-1">
+                  <span className="text-xs font-medium text-foreground/80">
+                    {slot.label || slot.key}
+                    {slot.required ? ' *' : ''}
+                  </span>
+                  {slot.description ? (
+                    <p className="text-xs text-foreground/45">
+                      {slot.description}
+                    </p>
+                  ) : null}
+                  <Input
+                    id={`agent-workflow-slot-${slot.key}`}
+                    value={extraInputs[slot.key] ?? ''}
+                    onChange={(event) =>
+                      setExtraInputs((prev) => ({
+                        ...prev,
+                        [slot.key]: event.target.value,
+                      }))
+                    }
+                    placeholder={slot.key}
+                    aria-label={slot.label || slot.key}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {binding && binding.inputs.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto rounded border border-foreground/10 p-2 text-xs text-foreground/60">
+            <div className="max-h-28 overflow-y-auto rounded border border-foreground/10 p-2 text-xs text-foreground/60">
               <p className="mb-1 font-medium text-foreground/80">
-                Workflow slots
+                Slot preview
               </p>
               <ul className="space-y-1">
                 {binding.inputs.map((input) => (
@@ -362,9 +406,10 @@ export default function AgentWorkflowRunDialog({
                       {input.required ? ' *' : ''}
                     </span>
                     <span className="truncate text-foreground/40">
-                      {input.filledValue != null && input.filledValue !== ''
-                        ? String(input.filledValue)
-                        : '—'}
+                      {extraInputs[input.key]?.trim() ||
+                        (input.filledValue != null && input.filledValue !== ''
+                          ? String(input.filledValue)
+                          : '—')}
                     </span>
                   </li>
                 ))}

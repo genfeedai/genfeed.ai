@@ -18,6 +18,7 @@ import type { CreateAgentStrategyInput } from '@services/automation/agent-strate
 export const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<
   Record<AgentType, string>
 > = {
+  [AgentType.GENERAL]: 'founder-x-post',
   [AgentType.X_CONTENT]: 'founder-x-post',
   [AgentType.IMAGE_CREATOR]: 'founder-editorial-illustration',
   [AgentType.VIDEO_CREATOR]: 'social-media-video-series',

@@ -1,11 +1,16 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, Platform } from '@genfeedai/enums';
+import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import LivestreamBotConfigCard from './LivestreamBotConfigCard';
 import LivestreamPlatformTargets from './LivestreamPlatformTargets';
 import LivestreamSessionPanels from './LivestreamSessionPanels';
@@ -21,6 +26,10 @@ interface LivestreamChatBotPageProps {
 export default function LivestreamChatBotPage({
   defaultPlatform,
 }: LivestreamChatBotPageProps) {
+  const { brandId } = useBrand();
+  const connectPlatform = usePlatformOAuthConnect({ brandId });
+  const [isConnectingRestream, setIsConnectingRestream] = useState(false);
+
   const {
     form,
     handleApplyOverride,
@@ -46,6 +55,21 @@ export default function LivestreamChatBotPage({
     transcriptChunk,
   } = useLivestreamChatBotPage(defaultPlatform);
 
+  const handleConnectRestream = useCallback(async () => {
+    setIsConnectingRestream(true);
+    try {
+      await connectPlatform(Platform.RESTREAM);
+    } catch (error) {
+      logger.error('Restream OAuth connect failed', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Could not start Restream connect',
+      );
+      setIsConnectingRestream(false);
+    }
+  }, [connectPlatform]);
+
   if (isLoading) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
@@ -69,8 +93,10 @@ export default function LivestreamChatBotPage({
       <div className="space-y-6">
         <LivestreamBotConfigCard
           form={form}
+          isConnectingRestream={isConnectingRestream}
           isSaving={isSaving}
           restreamCredentials={restreamCredentials}
+          onConnectRestream={() => void handleConnectRestream()}
           onFormChange={(patch) =>
             setForm((current) => ({ ...current, ...patch }))
           }
