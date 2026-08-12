@@ -135,6 +135,33 @@ function createProject(
   } as unknown as ClipProjectDocument;
 }
 
+function withSelectedReference(
+  project: ClipProjectDocument,
+): ClipProjectDocument {
+  return {
+    ...project,
+    referenceFrames: {
+      candidates: [
+        {
+          assetId: 'asset-frame-1',
+          diagnostics: [],
+          id: 'frame-1',
+          mimeType: 'image/jpeg',
+          status: 'available',
+          storageKey:
+            'ingredients/images/organizations/org-1/clips/project-1/frame-1.jpg',
+          timestampSeconds: 12.5,
+          url: 'https://cdn.example.com/frame-1.jpg',
+        },
+      ],
+      diagnostics: [],
+      schemaVersion: 1,
+      selectedCandidateId: 'frame-1',
+      status: 'selected',
+    },
+  } as ClipProjectDocument;
+}
+
 describe('ClipProjectsController', () => {
   const organizationId = '507f191e810c19729de860ee'.toString();
   const projectId = '507f191e810c19729de860ee'.toString();
@@ -635,6 +662,18 @@ describe('ClipProjectsController', () => {
       );
     });
 
+    it('should reject unknown selected-reference policies', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        referencePolicy: 'best-effort',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'referencePolicy',
+      );
+    });
+
     it.each(['did', 'tavus', 'musetalk'] as const)(
       'should reject unsupported avatar provider %s',
       (avatarProvider) => {
@@ -883,6 +922,215 @@ describe('ClipProjectsController', () => {
     ).rejects.toThrow('requires a source video');
 
     expect(clipProjectsService.patch).not.toHaveBeenCalled();
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('resolves and forwards the tenant-authorized selected reference for HeyGen', async () => {
+    const project = withSelectedReference(
+      createProject(projectId, organizationId),
+    );
+    const dto: GenerateClipsDto = {
+      avatarId: 'avatar-1',
+      avatarProvider: 'heygen',
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      referencePolicy: 'strict',
+      selectedHighlightIds: ['highlight-1'],
+      voiceId: 'voice-1',
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['clip-result-1'],
+      providerJobIds: ['provider-job-1'],
+      queuedClipCount: 1,
+    });
+
+    const result = await controller.generateClips(
+      currentUser as never,
+      projectId,
+      dto,
+    );
+
+    expect(clipProjectsService.findOne).toHaveBeenCalledWith({
+      id: projectId,
+      organizationId,
+    });
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceImageUrl: 'https://cdn.example.com/frame-1.jpg',
+        referenceProvenance: expect.objectContaining({
+          application: expect.objectContaining({
+            nativeField: 'photo_url',
+            state: 'applied',
+          }),
+          source: expect.objectContaining({
+            candidateId: 'frame-1',
+            storageKey:
+              'ingredients/images/organizations/org-1/clips/project-1/frame-1.jpg',
+          }),
+        }),
+      }),
+    );
+    expect(result.reference).toEqual(
+      expect.objectContaining({ state: 'applied' }),
+    );
+    expect(JSON.stringify(result.reference)).not.toContain('cdn.example.com');
+  });
+
+  it('blocks an unsupported strict reference before credits or dispatch', async () => {
+    const project = withSelectedReference({
+      ...createProject(projectId, organizationId),
+      sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+    } as ClipProjectDocument);
+    const dto: GenerateClipsDto = {
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      mode: 'raw-cut',
+      referencePolicy: 'strict',
+      selectedHighlightIds: ['highlight-1'],
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+
+    await expect(
+      controller.generateClips(currentUser as never, projectId, dto),
+    ).rejects.toThrow(/cannot apply a separate reference image/);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(clipProjectsService.patch).not.toHaveBeenCalled();
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('blocks unsafe selected media before credits or provider dispatch', async () => {
+    const project = withSelectedReference(
+      createProject(projectId, organizationId),
+    );
+    if (project.referenceFrames?.candidates[0]) {
+      project.referenceFrames.candidates[0].url =
+        'https://cdn.example.com/frame.jpg?X-Amz-Signature=secret';
+    }
+    const dto: GenerateClipsDto = {
+      avatarId: 'avatar-1',
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      referencePolicy: 'strict',
+      selectedHighlightIds: ['highlight-1'],
+      voiceId: 'voice-1',
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+
+    await expect(
+      controller.generateClips(currentUser as never, projectId, dto),
+    ).rejects.toThrow(/unsafe or transient image URL/);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(clipProjectsService.patch).not.toHaveBeenCalled();
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('exposes and persists an explicit degradation for guided raw-cut generation', async () => {
+    const project = withSelectedReference({
+      ...createProject(projectId, organizationId),
+      sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+    } as ClipProjectDocument);
+    const dto: GenerateClipsDto = {
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      mode: 'raw-cut',
+      referencePolicy: 'guided',
+      selectedHighlightIds: ['highlight-1'],
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['clip-result-1'],
+      providerJobIds: ['raw-cut-job-1'],
+      queuedClipCount: 1,
+    });
+
+    const result = await controller.generateClips(
+      currentUser as never,
+      projectId,
+      dto,
+    );
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceProvenance: expect.objectContaining({
+          application: expect.objectContaining({
+            reason: expect.stringContaining('cannot apply'),
+            state: 'degraded',
+          }),
+        }),
+      }),
+    );
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.not.objectContaining({ referenceImageUrl: expect.anything() }),
+    );
+    expect(result.reference).toEqual(
+      expect.objectContaining({
+        reason: expect.stringContaining('cannot apply'),
+        state: 'degraded',
+      }),
+    );
+  });
+
+  it('does not resolve a reference across tenant boundaries', async () => {
+    const dto: GenerateClipsDto = {
+      avatarId: 'avatar-1',
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      referencePolicy: 'strict',
+      selectedHighlightIds: ['highlight-1'],
+      voiceId: 'voice-1',
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(null);
+
+    await expect(
+      controller.generateClips(currentUser as never, projectId, dto),
+    ).rejects.toThrow('ClipProject');
+
+    expect(clipProjectsService.findOne).toHaveBeenCalledWith({
+      id: projectId,
+      organizationId,
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
 

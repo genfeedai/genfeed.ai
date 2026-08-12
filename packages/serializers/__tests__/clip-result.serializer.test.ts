@@ -49,4 +49,44 @@ describe('ClipResultSerializer — raw-cut contract', () => {
     );
     expect('mode' in output.data.attributes).toBe(false);
   });
+
+  it('exposes only stable selected-reference provenance', () => {
+    const output = ClipResultSerializer.serialize({
+      id: 'ckclipresult00000000000003',
+      referenceProvenance: {
+        application: {
+          mode: 'avatar',
+          nativeField: 'photo_url',
+          provider: 'heygen',
+          state: 'applied',
+        },
+        schemaVersion: 1,
+        source: {
+          assetId: 'asset-frame-1',
+          candidateId: 'frame-1',
+          storageKey: 'ingredients/images/org-1/frame-1.jpg',
+          timestampSeconds: 12.5,
+        },
+      },
+    }) as SerializedResource;
+
+    expect(output.data.attributes.referenceProvenance).toEqual({
+      application: {
+        mode: 'avatar',
+        nativeField: 'photo_url',
+        provider: 'heygen',
+        state: 'applied',
+      },
+      schemaVersion: 1,
+      source: {
+        assetId: 'asset-frame-1',
+        candidateId: 'frame-1',
+        storageKey: 'ingredients/images/org-1/frame-1.jpg',
+        timestampSeconds: 12.5,
+      },
+    });
+    expect(
+      JSON.stringify(output.data.attributes.referenceProvenance),
+    ).not.toMatch(/https?:\/\/|apiKey|providerResponse/);
+  });
 });

@@ -18,6 +18,7 @@ export interface AvatarVideoJobInput {
   userId: string;
   voiceId: string;
   language?: string;
+  referenceImageUrl?: string;
 }
 
 export interface AvatarVideoJobResult {

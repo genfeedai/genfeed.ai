@@ -8,12 +8,19 @@ import type {
   ClipProjectHighlight,
 } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import {
+  type ResolvedClipReference,
+  resolveSelectedClipReference,
+} from '@api/collections/clip-projects/services/clip-reference-generation.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   AgentClipRunIdentity,
   ClipResultMode,
 } from '@genfeedai/interfaces';
-import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
+import {
+  DEFAULT_CLIP_REFERENCE_POLICY,
+  DEFAULT_CLIP_RESULT_MODE,
+} from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface PrepareClipGenerationParams {
@@ -27,6 +34,7 @@ export interface PreparedClipGeneration {
   mode: ClipResultMode;
   persistedHighlights: ClipProjectHighlight[];
   project: ClipProjectDocument;
+  reference: ResolvedClipReference;
   selectedHighlights: ClipProjectHighlight[];
 }
 
@@ -65,6 +73,13 @@ export class ClipGenerationRequestService {
         `Project is in '${project.status}' status. Must be 'analyzed' to generate clips.`,
       );
     }
+
+    const reference = resolveSelectedClipReference({
+      mode,
+      policy: dto.referencePolicy ?? DEFAULT_CLIP_REFERENCE_POLICY,
+      project,
+      provider: dto.avatarProvider ?? 'heygen',
+    });
 
     const identity =
       mode === 'avatar'
@@ -108,6 +123,7 @@ export class ClipGenerationRequestService {
       mode,
       persistedHighlights,
       project,
+      reference,
       selectedHighlights,
     };
   }

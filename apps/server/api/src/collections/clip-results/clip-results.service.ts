@@ -11,6 +11,7 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
+import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,9 +60,30 @@ export class ClipResultsService extends BaseService<
     createDto: CreateClipResultDto,
     populate: PopulateInput = [],
   ): Promise<ClipResultDocument> {
+    return this.persistCreate(
+      createDto as unknown as ClipResultWriteDto,
+      populate,
+    );
+  }
+
+  async createGenerated(
+    createDto: CreateClipResultDto,
+    referenceProvenance: ClipReferenceProvenance,
+    populate: PopulateInput = [],
+  ): Promise<ClipResultDocument> {
+    return this.persistCreate(
+      { ...createDto, referenceProvenance } as ClipResultWriteDto,
+      populate,
+    );
+  }
+
+  private async persistCreate(
+    createDto: ClipResultWriteDto,
+    populate: PopulateInput,
+  ): Promise<ClipResultDocument> {
     return await super.create(
       this.toPrismaWriteData(
-        createDto as unknown as ClipResultWriteDto,
+        createDto,
         'create',
       ) as unknown as CreateClipResultDto,
       populate,
