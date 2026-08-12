@@ -15,7 +15,9 @@ describe('toReplyBotCredentialData', () => {
     expect(result).toEqual({
       accessToken: 'access-token',
       accessTokenSecret: 'access-token-secret',
+      brandId: undefined,
       externalId: 'external-id',
+      organizationId: undefined,
       platform: 'twitter',
       refreshToken: 'refresh-token',
       username: 'bot-user',
@@ -41,11 +43,53 @@ describe('toReplyBotCredentialData', () => {
     ).toEqual({
       accessToken: 'access-token',
       accessTokenSecret: undefined,
+      brandId: undefined,
       externalId: undefined,
+      organizationId: undefined,
       platform: undefined,
       refreshToken: undefined,
       username: undefined,
     });
+  });
+
+  it('uses externalHandle when username is missing', () => {
+    expect(
+      toReplyBotCredentialData({
+        accessToken: 'access-token',
+        externalHandle: '@handle',
+      })?.username,
+    ).toBe('@handle');
+  });
+
+  it('applies org/brand/platform options at the decrypt boundary', () => {
+    expect(
+      toReplyBotCredentialData(
+        {
+          accessToken: 'access-token',
+          platform: 'TWITTER',
+        },
+        {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          platform: 'youtube',
+        },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'youtube',
+      }),
+    );
+  });
+
+  it('maps Prisma SCREAMING platform labels to domain lowercase', () => {
+    expect(
+      toReplyBotCredentialData({
+        accessToken: 'access-token',
+        platform: 'YOUTUBE',
+      })?.platform,
+    ).toBe('youtube');
   });
 
   it('keeps legacy platform string coercion', () => {

@@ -179,6 +179,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
    */
   async schedulePostWatch(params: {
     brandId: string;
+    platform?: 'twitter' | 'youtube';
     postId: string;
     postPreview?: string;
   }): Promise<{ scheduled: number }> {

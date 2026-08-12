@@ -229,6 +229,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     return this.replyInboundQueueService.schedulePostWatch({
       brandId: body.brandId,
       organizationId: publicMetadata.organization,
+      platform: body.platform,
       postId: body.postId,
       postPreview: body.postPreview,
     });

@@ -1,4 +1,5 @@
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyInboundProcessorService', () => {
@@ -37,9 +38,12 @@ describe('ReplyInboundProcessorService', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(
+      authorReplyLoopService.findResponderOwnerUserId,
+    ).toHaveBeenCalledWith('org-1', 'brand-1', ReplyBotPlatform.YOUTUBE);
     expect(authorReplyLoopService.sendReply).toHaveBeenCalledWith(
       expect.objectContaining({
-        platform: 'youtube',
+        platform: ReplyBotPlatform.YOUTUBE,
       }),
     );
   });
@@ -56,9 +60,12 @@ describe('ReplyInboundProcessorService', () => {
       source: 'xaa',
     });
 
+    expect(
+      authorReplyLoopService.findResponderOwnerUserId,
+    ).toHaveBeenCalledWith('org-1', 'brand-1', ReplyBotPlatform.TWITTER);
     expect(authorReplyLoopService.sendReply).toHaveBeenCalledWith(
       expect.objectContaining({
-        platform: 'twitter',
+        platform: ReplyBotPlatform.TWITTER,
       }),
     );
   });

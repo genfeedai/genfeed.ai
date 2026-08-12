@@ -30,8 +30,15 @@ export class ReplyPostWatchService {
     let enqueued = 0;
 
     try {
+      const watchPlatform =
+        data.platform === 'youtube'
+          ? ReplyBotPlatform.YOUTUBE
+          : ReplyBotPlatform.TWITTER;
+      const wirePlatform =
+        watchPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter';
+
       const comments = await this.socialMonitorService.getContentComments(
-        ReplyBotPlatform.TWITTER,
+        watchPlatform,
         data.postId,
         {
           brandId: data.brandId,
@@ -61,6 +68,7 @@ export class ReplyPostWatchService {
           organizationId: data.organizationId,
           parentPostId: data.postId,
           parentPostPreview: data.postPreview,
+          platform: wirePlatform,
           receivedAt: new Date().toISOString(),
           source: 'post-watch',
         });

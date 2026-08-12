@@ -46,7 +46,9 @@ export interface AgentWorkflowRunDialogProps {
 const NONE_INGREDIENT = '__none__';
 
 function resolveIngredientUrl(row: Record<string, unknown>): string {
+  // Prefer model getter field first (Image.ingredientUrl), then raw columns.
   for (const key of [
+    'ingredientUrl',
     'url',
     'src',
     'imageUrl',
@@ -60,9 +62,12 @@ function resolveIngredientUrl(row: Record<string, unknown>): string {
   }
   const file = row.file;
   if (file && typeof file === 'object' && !Array.isArray(file)) {
-    const fileUrl = (file as Record<string, unknown>).url;
-    if (typeof fileUrl === 'string' && fileUrl.trim()) {
-      return fileUrl.trim();
+    const fileRecord = file as Record<string, unknown>;
+    for (const key of ['url', 'cdnUrl', 'publicUrl'] as const) {
+      const fileUrl = fileRecord[key];
+      if (typeof fileUrl === 'string' && fileUrl.trim()) {
+        return fileUrl.trim();
+      }
     }
   }
   return '';
@@ -139,19 +144,26 @@ export default function AgentWorkflowRunDialog({
         const brandId = strategy?.brandId ?? strategy?.brand?.id;
         const rows = await service.findAll(
           brandId ? { brandId, limit: 40 } : { limit: 40 },
+          controller.signal,
         );
         if (cancelled || controller.signal.aborted) {
           return;
         }
         const list = (Array.isArray(rows) ? rows : []).flatMap((row) => {
           const record = row as unknown as Record<string, unknown>;
+          // Prefer class getter when present (ImagesService returns Image models).
+          const modelUrl =
+            typeof (row as { ingredientUrl?: unknown }).ingredientUrl ===
+            'string'
+              ? (row as { ingredientUrl: string }).ingredientUrl
+              : '';
           const id =
             typeof record.id === 'string'
               ? record.id
               : typeof row.id === 'string'
                 ? row.id
                 : '';
-          const url = resolveIngredientUrl(record);
+          const url = modelUrl.trim() || resolveIngredientUrl(record);
           if (!id || !url) {
             return [];
           }
@@ -164,9 +176,14 @@ export default function AgentWorkflowRunDialog({
           ];
         });
         setLibraryImages(list);
-      } catch {
-        if (!cancelled) {
-          setLibraryImages([]);
+      } catch (error) {
+        if (cancelled || controller.signal.aborted) {
+          return;
+        }
+        setLibraryImages([]);
+        // Surface soft failure so operators know the list is not empty by choice.
+        if (error instanceof Error && error.name !== 'AbortError') {
+          // Dialog stays usable with URL paste fallback.
         }
       } finally {
         if (!cancelled) {

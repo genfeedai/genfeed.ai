@@ -27,7 +27,7 @@ export class SchedulePostWatchDto {
 
   @IsString()
   @MaxLength(64)
-  @ApiProperty({ description: 'X post id to watch for 24h' })
+  @ApiProperty({ description: 'Post/video id to watch for 24h' })
   postId!: string;
 
   @IsString()
@@ -35,6 +35,16 @@ export class SchedulePostWatchDto {
   @IsOptional()
   @ApiProperty({ required: false })
   postPreview?: string;
+
+  @IsIn(['twitter', 'youtube'] as const)
+  @IsOptional()
+  @ApiProperty({
+    default: 'twitter',
+    description: 'Platform for the watched post (twitter | youtube)',
+    enum: ['twitter', 'youtube'],
+    required: false,
+  })
+  platform?: 'twitter' | 'youtube';
 }
 
 export class EnsureAuthorResponderDto {

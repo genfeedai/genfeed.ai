@@ -9,6 +9,7 @@ import { ProcessedTweetsService } from '@api/collections/processed-tweets/servic
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { mergeAuthorClosedLoopData } from '@api/services/reply-bot/author-closed-loop.util';
 import type {
   AuthorReplyDraftResult,
@@ -411,15 +412,12 @@ export class AuthorReplyLoopService {
     intent?: ReplyIntent;
     organizationId: string;
     parentPostPreview?: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: ReplyBotPlatform | 'twitter' | 'youtube';
     userId: string;
   }): Promise<AuthorReplyDraftResult> {
     const intent = resolveReplyIntent(params.commentText, params.intent);
     const persona = getReplyIntentPersona(intent);
-    const platform =
-      params.platform === 'youtube'
-        ? ReplyBotPlatform.YOUTUBE
-        : ReplyBotPlatform.TWITTER;
+    const platform = toAuthorReplyPlatform(params.platform);
 
     if (persona.shouldSkipAuto && !params.intent) {
       return {
@@ -448,7 +446,7 @@ export class AuthorReplyLoopService {
           ? ReplyLength.SHORT
           : ReplyLength.MEDIUM,
       organizationId: params.organizationId,
-      platform: platform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
+      platform: platform,
       tone:
         intent === 'troll'
           ? ReplyTone.HUMOROUS
@@ -481,14 +479,11 @@ export class AuthorReplyLoopService {
     organizationId: string;
     parentPostId: string;
     parentPostPreview?: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: ReplyBotPlatform | 'twitter' | 'youtube';
     replyText?: string;
     userId: string;
   }): Promise<AuthorReplySendResult> {
-    const replyPlatform =
-      params.platform === 'youtube'
-        ? ReplyBotPlatform.YOUTUBE
-        : ReplyBotPlatform.TWITTER;
+    const replyPlatform = toAuthorReplyPlatform(params.platform);
     const platformLabel =
       replyPlatform === ReplyBotPlatform.YOUTUBE ? 'YouTube' : 'X';
 
@@ -530,8 +525,7 @@ export class AuthorReplyLoopService {
           intent,
           organizationId: params.organizationId,
           parentPostPreview: params.parentPostPreview,
-          platform:
-            replyPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
+          platform: replyPlatform,
           userId: params.userId,
         })
       ).draft;
@@ -559,8 +553,7 @@ export class AuthorReplyLoopService {
         commentId: params.commentId,
         organizationId: params.organizationId,
         parentPostId: params.parentPostId,
-        platform:
-          replyPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
+        platform: replyPlatform,
         replyContentId: result.contentId,
       });
 
@@ -643,10 +636,12 @@ export class AuthorReplyLoopService {
   async findResponderOwnerUserId(
     organizationId: string,
     brandId: string,
+    platform: ReplyBotPlatform = ReplyBotPlatform.TWITTER,
   ): Promise<string | undefined> {
     const config = await this.findAuthorResponderConfig(
       organizationId,
       brandId,
+      platform,
     );
     if (!config) {
       return undefined;
@@ -685,16 +680,18 @@ export class AuthorReplyLoopService {
   }
 
   private readCredentialId(config: ReplyBotConfigDocument): string | undefined {
+    // Same dual-path as queue fan-out (root + nested config bag).
     const fromDoc = config.credentialId;
-    if (typeof fromDoc === 'string' && fromDoc) {
-      return fromDoc;
+    if (typeof fromDoc === 'string' && fromDoc.trim()) {
+      return fromDoc.trim();
     }
     const payload =
       config.config && typeof config.config === 'object'
         ? (config.config as Record<string, unknown>)
         : {};
-    return typeof payload.credentialId === 'string'
-      ? payload.credentialId
+    return typeof payload.credentialId === 'string' &&
+      payload.credentialId.trim()
+      ? payload.credentialId.trim()
       : undefined;
   }
 
@@ -703,9 +700,7 @@ export class AuthorReplyLoopService {
     brandId: string,
     platform: ReplyBotPlatform,
   ): Promise<string | undefined> {
-    const domainPlatform =
-      platform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter';
-    const prismaPlatform = toPrismaCredentialPlatform(domainPlatform);
+    const prismaPlatform = toPrismaCredentialPlatform(platform);
     if (!prismaPlatform) {
       return undefined;
     }
@@ -747,22 +742,18 @@ export class AuthorReplyLoopService {
       throw new NotFoundException('Credential', credentialId);
     }
 
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-      externalId: credential.externalId ?? undefined,
-      platform,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username:
-        credential.username ??
-        (platform === ReplyBotPlatform.YOUTUBE
-          ? (credential.externalId ?? undefined)
-          : undefined),
-    };
+    const shaped = toReplyBotCredentialData(
+      credential as unknown as Record<string, unknown>,
+      {
+        brandId,
+        organizationId,
+        platform,
+      },
+    );
+    if (!shaped) {
+      return null;
+    }
+    return shaped;
   }
 
   private loadTwitterCredential(
@@ -804,4 +795,14 @@ export class AuthorReplyLoopService {
       return new Set();
     }
   }
+}
+
+/** Author-reply surfaces only support X + YouTube today. */
+function toAuthorReplyPlatform(
+  platform?: ReplyBotPlatform | 'twitter' | 'youtube',
+): ReplyBotPlatform {
+  if (platform === ReplyBotPlatform.YOUTUBE || platform === 'youtube') {
+    return ReplyBotPlatform.YOUTUBE;
+  }
+  return ReplyBotPlatform.TWITTER;
 }

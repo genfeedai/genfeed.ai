@@ -935,7 +935,7 @@ export class CronPostsService {
   }
 
   /**
-   * After a successful X publish, schedule the 24h reply post-watch series.
+   * After a successful X or YouTube publish, schedule the 24h reply post-watch series.
    * Fire-and-forget — failures must not fail the publish path.
    */
   private scheduleReplyPostWatchAfterPublish(
@@ -948,7 +948,11 @@ export class CronPostsService {
       platformKey === 'twitter' ||
       platformKey === CredentialPlatform.TWITTER.toLowerCase() ||
       platform === CredentialPlatform.TWITTER;
-    if (!isX || !result.externalId) {
+    const isYouTube =
+      platformKey === 'youtube' ||
+      platformKey === CredentialPlatform.YOUTUBE.toLowerCase() ||
+      platform === CredentialPlatform.YOUTUBE;
+    if ((!isX && !isYouTube) || !result.externalId) {
       return;
     }
 
@@ -963,19 +967,22 @@ export class CronPostsService {
       readPostString(post, 'text') ||
       readPostString(post, 'content') ||
       undefined;
+    const watchPlatform = isYouTube ? 'youtube' : 'twitter';
 
     void this.replyInboundQueueService
       .schedulePostWatch({
         brandId: String(brandId),
         organizationId: String(organizationId),
+        platform: watchPlatform,
         postId: result.externalId,
         postPreview: postPreview?.slice(0, 200),
       })
       .then((scheduled) => {
         this.logger.log(
-          `${this.constructorName} scheduled reply post-watch after X publish`,
+          `${this.constructorName} scheduled reply post-watch after publish`,
           {
             externalId: result.externalId,
+            platform: watchPlatform,
             postId: post.id.toString(),
             scheduled: scheduled.scheduled,
           },

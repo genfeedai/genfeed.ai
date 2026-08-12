@@ -51,15 +51,17 @@ export class ReplyInboundQueueService {
   async schedulePostWatch(params: {
     brandId: string;
     organizationId: string;
+    platform?: 'twitter' | 'youtube';
     postId: string;
     postPreview?: string;
   }): Promise<{ scheduled: number }> {
     let scheduled = 0;
+    const platform = params.platform === 'youtube' ? 'youtube' : 'twitter';
 
     for (let attempt = 0; attempt < REPLY_POST_WATCH_MAX_ATTEMPTS; attempt++) {
       const delayMinutes = REPLY_POST_WATCH_DELAYS_MINUTES[attempt] ?? 1440;
       const delayMs = delayMinutes * 60 * 1000;
-      const jobId = `reply-post-watch-${params.organizationId}-${params.postId}-${attempt}`;
+      const jobId = `reply-post-watch-${params.organizationId}-${platform}-${params.postId}-${attempt}`;
 
       await this.postWatchQueue.add(
         'watch',
@@ -68,6 +70,7 @@ export class ReplyInboundQueueService {
           brandId: params.brandId,
           maxAttempts: REPLY_POST_WATCH_MAX_ATTEMPTS,
           organizationId: params.organizationId,
+          platform,
           postId: params.postId,
           postPreview: params.postPreview,
         },
@@ -84,6 +87,7 @@ export class ReplyInboundQueueService {
     this.logger.log(`${this.constructorName} scheduled post-watch series`, {
       brandId: params.brandId,
       organizationId: params.organizationId,
+      platform,
       postId: params.postId,
       scheduled,
     });

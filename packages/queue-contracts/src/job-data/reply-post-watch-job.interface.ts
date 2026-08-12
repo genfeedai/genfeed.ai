@@ -7,6 +7,11 @@ export interface ReplyPostWatchJobData {
   brandId: string;
   maxAttempts: number;
   organizationId: string;
+  /**
+   * Destination platform for comment fetch + inbound auto-send.
+   * Defaults to twitter/X when omitted (publish hooks + historical jobs).
+   */
+  platform?: 'twitter' | 'youtube';
   postId: string;
   /** Optional preview for draft context */
   postPreview?: string;

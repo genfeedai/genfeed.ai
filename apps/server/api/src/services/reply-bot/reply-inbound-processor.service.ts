@@ -7,7 +7,7 @@ import {
   getReplyIntentPersona,
   resolveReplyIntent,
 } from '@api/services/reply-bot/reply-intent.util';
-import { ReplyBotType } from '@genfeedai/enums';
+import { ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
 import type {
   ReplyInboundJobData,
   ReplyInboundResult,
@@ -74,10 +74,15 @@ export class ReplyInboundProcessorService {
       };
     }
 
+    const replyPlatform =
+      data.platform === 'youtube'
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
     const botUserId =
       await this.authorReplyLoopService.findResponderOwnerUserId(
         data.organizationId,
         data.brandId,
+        replyPlatform,
       );
     if (!botUserId) {
       return {
@@ -100,7 +105,7 @@ export class ReplyInboundProcessorService {
         organizationId: data.organizationId,
         parentPostId: data.parentPostId,
         parentPostPreview: data.parentPostPreview,
-        platform: data.platform === 'youtube' ? 'youtube' : 'twitter',
+        platform: replyPlatform,
         userId: botUserId,
       });
 
