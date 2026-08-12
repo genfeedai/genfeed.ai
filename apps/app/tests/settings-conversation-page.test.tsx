@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
   findAll: vi.fn(),
+  getService: vi.fn(),
   mutateUser: vi.fn(),
   organizationSettings: {
     agentReplyStyle: 'CONCISE',
@@ -44,12 +45,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn(async () => ({
-      findAll: mocks.findAll,
-      patchSettings: mocks.patchSettings,
-    })),
-  ),
+  useAuthedService: vi.fn(() => mocks.getService),
 }));
 
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
@@ -116,6 +112,10 @@ describe('SettingsConversationPage', () => {
     mocks.organizationSettings.agentReplyStyle = 'CONCISE';
     mocks.organizationSettings.enabledModelIds = ['anthropic/claude-sonnet-5'];
     mocks.findAll.mockResolvedValue([]);
+    mocks.getService.mockResolvedValue({
+      findAll: mocks.findAll,
+      patchSettings: mocks.patchSettings,
+    });
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
   });
