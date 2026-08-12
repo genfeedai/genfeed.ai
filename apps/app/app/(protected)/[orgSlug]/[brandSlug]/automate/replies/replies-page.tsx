@@ -366,7 +366,9 @@ export default function RepliesPage() {
         </div>
         <p className="text-sm text-muted-foreground">
           Official API reads first (Apify only if needed). Drafts use brand
-          harness + intent persona.
+          harness + intent persona. X real-time auto (XAA) is env-gated on the
+          server — Enable auto-replies still works via post-watch + poll when
+          XAA is off.
         </p>
         {inboxError ? (
           <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
