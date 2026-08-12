@@ -27,6 +27,9 @@ last_verified: 2026-08-12
 - Batch create platform normalize rejection/dedupe tests (#2696)
 - Hermetic contracts: durable claim complete on throw path; #2702 bootstrap pins
 - Processor: empty priorExecutionIds fallthrough + delay resume on continue path
+- continueExistingExecution no-ops CANCELLED (not only COMPLETED)
+- Batch process rejects invalid platforms *before* generateContent
+- BatchGenerationCard recomputes estimate when platforms leave suggestion
 
 ## After merge (human / deploy)
 
