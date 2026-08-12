@@ -1,6 +1,6 @@
 import type { IPost } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
-import PostCard from '@website/packages/components/content/post-card/PostCard';
+import PostCard from '@web-components/content/post-card/PostCard';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 

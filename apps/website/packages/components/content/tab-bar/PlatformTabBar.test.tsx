@@ -1,7 +1,7 @@
 import { PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
-import PlatformTabBar from '@website/packages/components/content/tab-bar/PlatformTabBar';
+import PlatformTabBar from '@web-components/content/tab-bar/PlatformTabBar';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockPosts: Partial<IPost>[] = [
