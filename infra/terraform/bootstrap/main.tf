@@ -363,21 +363,10 @@ resource "aws_iam_role_policy" "gha_deploy" {
   policy = data.aws_iam_policy_document.gha_deploy.json
 }
 
-# Keep production monitoring permissions in a separate additive policy so the
+# Keep production dashboard permissions in a separate additive policy so the
 # boundary is explicit and auditable independently from the general deploy
-# policy. Scope SNS tag inspection to the one operations topic; only discovery
-# actions that lack useful resource-level scoping retain the wildcard resource.
+# policy. Production alarms are managed outside this public stack.
 data "aws_iam_policy_document" "gha_deploy_monitoring" {
-  statement {
-    sid    = "ManageProductionAlarms"
-    effect = "Allow"
-    actions = [
-      "cloudwatch:DeleteAlarms",
-      "cloudwatch:PutMetricAlarm",
-    ]
-    resources = ["arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*"]
-  }
-
   statement {
     sid    = "ManageProductionDashboard"
     effect = "Allow"
@@ -395,19 +384,7 @@ data "aws_iam_policy_document" "gha_deploy_monitoring" {
       "cloudwatch:TagResource",
       "cloudwatch:UntagResource",
     ]
-    resources = [
-      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
-      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
-    ]
-  }
-
-  statement {
-    sid     = "ReadProductionAlarms"
-    effect  = "Allow"
-    actions = ["cloudwatch:DescribeAlarms"]
-    resources = [
-      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
-    ]
+    resources = ["arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production"]
   }
 
   statement {
@@ -420,31 +397,16 @@ data "aws_iam_policy_document" "gha_deploy_monitoring" {
   }
 
   statement {
-    sid     = "InspectProductionMonitoringTags"
-    effect  = "Allow"
-    actions = ["cloudwatch:ListTagsForResource"]
-    resources = [
-      "arn:${local.aws_partition}:cloudwatch:${var.region}:${local.account_id}:alarm:genfeed-production-*",
-      "arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production",
-    ]
+    sid       = "InspectProductionMonitoringTags"
+    effect    = "Allow"
+    actions   = ["cloudwatch:ListTagsForResource"]
+    resources = ["arn:${local.aws_partition}:cloudwatch::${local.account_id}:dashboard/genfeed-production"]
   }
 
   statement {
-    sid     = "InspectOperationsTopic"
-    effect  = "Allow"
-    actions = ["sns:ListTagsForResource"]
-    resources = [
-      "arn:${local.aws_partition}:sns:${var.region}:${local.account_id}:api-genfeed-ai",
-    ]
-  }
-
-  statement {
-    sid    = "DiscoverProductionMonitoring"
-    effect = "Allow"
-    actions = [
-      "cloudwatch:ListDashboards",
-      "sns:ListTopics",
-    ]
+    sid       = "DiscoverProductionMonitoring"
+    effect    = "Allow"
+    actions   = ["cloudwatch:ListDashboards"]
     resources = ["*"]
   }
 }
