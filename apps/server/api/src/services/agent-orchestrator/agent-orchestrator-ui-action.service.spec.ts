@@ -29,7 +29,7 @@ function createHost(): AgentOrchestratorUiActionHost {
     executeSynchronousChatLoop: vi.fn(),
     generatePlanModeResponse: vi.fn(),
     runInThreadLane: vi.fn(
-      async (_threadId: string, run: () => Promise<unknown>) => run(),
+      async <T>(_threadId: string, run: () => Promise<T>) => run(),
     ),
   };
 }

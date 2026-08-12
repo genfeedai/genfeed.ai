@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -193,7 +194,7 @@ describe('CreditsController', () => {
             subscriptionTier: 'pro',
             userId: 'user-db-id',
           },
-        },
+        } as unknown as RequestWithContext,
         mockUser,
       );
 

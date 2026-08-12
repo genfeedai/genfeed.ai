@@ -58,10 +58,12 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://cdn.example.com/output.mp4',
         s3Key: 'workflow/sound-overlay/output.mp4',
+        uploadUrl: 'https://upload.example.com/output.mp4',
       });
       filesClient.audioOverlay.mockResolvedValue({
         duration: 42,
         publicUrl: 'https://cdn.example.com/output.mp4',
+        s3Key: 'workflow/sound-overlay/output.mp4',
       });
 
       const result = await processor.process(validInput);
@@ -74,10 +76,12 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://cdn.example.com/out.mp4',
         s3Key: 'workflow/out.mp4',
+        uploadUrl: 'https://upload.example.com/out.mp4',
       });
       filesClient.audioOverlay.mockResolvedValue({
         duration: 10,
         publicUrl: 'https://cdn.example.com/out.mp4',
+        s3Key: 'workflow/out.mp4',
       });
 
       await processor.process(validInput);
@@ -93,10 +97,12 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://out.example.com/result.mp4',
         s3Key: 'wf/overlay.mp4',
+        uploadUrl: 'https://upload.example.com/result.mp4',
       });
       filesClient.audioOverlay.mockResolvedValue({
         duration: 5,
         publicUrl: 'https://out.example.com/result.mp4',
+        s3Key: 'wf/overlay.mp4',
       });
 
       const input: SoundOverlayInput = {
@@ -128,9 +134,11 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://out.example.com/x.mp4',
         s3Key: 'x.mp4',
+        uploadUrl: 'https://upload.example.com/x.mp4',
       });
       filesClient.audioOverlay.mockResolvedValue({
         publicUrl: 'https://out.example.com/x.mp4',
+        s3Key: 'x.mp4',
       });
 
       const result = await processor.process(validInput);
@@ -164,6 +172,7 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://cdn.example.com/out.mp4',
         s3Key: 'out.mp4',
+        uploadUrl: 'https://upload.example.com/out.mp4',
       });
       filesClient.audioOverlay.mockRejectedValue(new Error('FFmpeg failed'));
 
@@ -177,10 +186,12 @@ describe('SoundOverlayProcessor', () => {
       filesClient.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://out.example.com/out.mp4',
         s3Key: 'out.mp4',
+        uploadUrl: 'https://upload.example.com/out.mp4',
       });
       filesClient.audioOverlay.mockResolvedValue({
         duration: 30,
         publicUrl: 'https://out.example.com/out.mp4',
+        s3Key: 'out.mp4',
       });
 
       await processor.process(validInput);

@@ -1,4 +1,5 @@
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MediaUploadService', () => {
@@ -27,7 +28,7 @@ describe('MediaUploadService', () => {
     };
 
     service = new MediaUploadService(
-      filesClientService,
+      filesClientService as unknown as FilesClientService,
       metadataService,
       loggerService,
     );

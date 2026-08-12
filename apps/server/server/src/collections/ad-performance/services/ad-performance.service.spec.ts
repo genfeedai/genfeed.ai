@@ -152,7 +152,7 @@ describe('AdPerformanceService', () => {
 
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||campaign|acct-1|camp-1||');
+      ).toBe('v1|||campaign|acct-1|camp-1||');
     });
 
     it('falls back to externalAdGroupId for adset granularity', async () => {
@@ -166,7 +166,7 @@ describe('AdPerformanceService', () => {
       expect(upsert.mock.calls[0][0].create.externalAdSetId).toBe('group-1');
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||adset|acct-1||group-1|');
+      ).toBe('v1|||adset|acct-1||group-1|');
     });
 
     it('includes the ad id in the key for ad granularity', async () => {
@@ -179,7 +179,7 @@ describe('AdPerformanceService', () => {
 
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1||ad|acct-1|||ad-1');
+      ).toBe('v1|||ad|acct-1|||ad-1');
     });
 
     it('defaults brand and credential ids to null when absent', async () => {
