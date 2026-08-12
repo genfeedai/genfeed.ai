@@ -30,6 +30,11 @@ describe('DesktopPgliteService', () => {
     const migrationRows = await db.query<{
       migration_name: string;
     }>('SELECT migration_name FROM _prisma_migrations ORDER BY migration_name');
+    const baselineRows = await db.query<{ baseline_version: number }>(
+      `SELECT baseline_version
+       FROM desktop_schema_metadata
+       WHERE singleton_key = 'current'`,
+    );
     const workspaceRows = await db.query<{ name: string }>(
       "SELECT table_name AS name FROM information_schema.tables WHERE table_name = 'desktop_workspace'",
     );
@@ -45,13 +50,14 @@ describe('DesktopPgliteService', () => {
     );
 
     expect(service.getDataDir()).toBe(dataDir);
+    expect(service.didResetUnsupportedDatabase()).toBe(false);
     expect(migrationRows.rows).toEqual([
       { migration_name: '0001_init' },
       { migration_name: '0002_local_cloud_identity' },
       { migration_name: '0003_normalize_user_auth_provider_column' },
       { migration_name: '0004_desktop_asset_is_deleted' },
-      { migration_name: '0005_repair_legacy_workspace' },
     ]);
+    expect(baselineRows.rows).toEqual([{ baseline_version: 1 }]);
     expect(workspaceRows.rows).toEqual([{ name: 'desktop_workspace' }]);
     expect(userColumnRows.rows).toContainEqual({ name: 'auth_provider_id' });
     expect(userColumnRows.rows).not.toContainEqual({ name: 'authprovider_id' });

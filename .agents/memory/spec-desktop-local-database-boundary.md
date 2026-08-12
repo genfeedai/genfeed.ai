@@ -1,6 +1,6 @@
 ---
 name: desktop_local_database_boundary_spec
-description: Cloud-first desktop startup contract with explicit lazy activation and repair of the embedded local database.
+description: Cloud-first desktop startup contract with explicit lazy activation and a versioned first local-database baseline.
 type: project
 ---
 
@@ -36,7 +36,8 @@ prevent a cloud/web user from opening the desktop window.
   shows initialization progress, enters the canonical app shell when ready, and
   exposes retry or return-to-cloud recovery when initialization fails.
 - Desktop settings expose the current data mode and an explicit cloud/local
-  switch. Switching modes never deletes data and never occurs implicitly.
+  switch. Switching away from a supported local database preserves it and never
+  occurs implicitly.
 - Local-runtime IPC handlers share one idempotent lazy initializer. Before local
   mode is selected, they return a structured `LOCAL_MODE_NOT_ENABLED` result
   rather than constructing PGlite implicitly.
@@ -55,14 +56,15 @@ prevent a cloud/web user from opening the desktop window.
 - Local mode is usable without a Genfeed Cloud session. Cloud-only actions keep
   their existing sign-in boundary while local workspaces and BYOK/local provider
   settings use the Electron bridge.
-- Existing local data is preserved. A new idempotent migration repairs the
-  legacy `desktop_workspace` shape before Prisma-backed local services query it.
+- The current schema is the first supported desktop database baseline. An
+  unversioned pre-release database is discarded only after the user explicitly
+  selects local mode; it is not migrated or queried by Prisma-backed services.
 - Default web-shell startup does not create or touch `pglite-db`.
 
 ## Edge Cases And Failure Modes
 
 - A user with an existing PGlite directory but no explicit local-mode preference
-  starts in cloud mode; existing local data remains untouched.
+  starts in cloud mode; the directory remains untouched.
 - A user who explicitly selected local mode starts the local runtime on the next
   launch. If it fails, the app shows a local-mode recovery state while retaining
   access to the web shell.
@@ -70,8 +72,8 @@ prevent a cloud/web user from opening the desktop window.
   safely and the user signs in again; PGlite is not started as a fallback.
 - Multiple local IPC calls during activation share the same initialization and
   cannot run migrations concurrently.
-- The repair migration tolerates a fresh schema and the known legacy schema
-  where `linked_brand_id` and `sync_policy` are absent.
+- The local initializer accepts the versioned supported baseline and recreates
+  an unversioned pre-release database instead of maintaining compatibility code.
 - Switching back to cloud mode stops future local initialization; it does not
   delete the local database.
 - A local-mode user without a workspace receives the existing local workspace
@@ -98,9 +100,9 @@ prevent a cloud/web user from opening the desktop window.
 - IF local-runtime initialization fails THE SYSTEM SHALL keep the web shell
   available and SHALL report the local feature failure without showing the
   generic application-startup failure screen.
-- GIVEN a database created by the pre-0.1.1 desktop schema WHEN local mode starts
-  THE SYSTEM SHALL add the missing workspace columns idempotently before Prisma
-  queries the table and SHALL preserve existing rows.
+- GIVEN an unversioned pre-release database WHEN the user explicitly starts
+  local mode THE SYSTEM SHALL discard it before creating the first supported
+  baseline and SHALL NOT maintain a row-preserving compatibility path.
 - THE SYSTEM SHALL NOT install or start a system PostgreSQL server, Redis, a
   backend daemon, or a Homebrew dependency.
 
@@ -116,10 +118,9 @@ prevent a cloud/web user from opening the desktop window.
   activation and do not activate the runtime as a side effect.
 - App-shell component tests cover selecting local mode, progress, success,
   failure/retry, returning to cloud mode, and accessible control semantics.
-- Migration tests start from both a fresh schema and the known legacy
-  `desktop_workspace` schema and verify columns, defaults, ledger state, and row
-  preservation.
+- Database tests start from both a fresh schema and an unversioned pre-release
+  database and verify the supported baseline marker and explicit reset behavior.
 - Packaged-desktop smoke coverage verifies cloud startup without a PGlite
-  directory and local startup against a repaired legacy fixture.
+  directory and local startup against the supported database baseline.
 - PR CI supplies test, type-check, and build evidence; this MacBook does not run
   those workloads locally.

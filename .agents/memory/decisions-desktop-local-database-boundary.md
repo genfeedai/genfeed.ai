@@ -56,13 +56,14 @@ The scope does not expand into bundling model weights or inventing unsupported
 offline media adapters. Existing local/BYOK capabilities remain honest about
 whether their configured provider uses the network.
 
-## Legacy Data Decision
+## First Supported Database Baseline
 
-The migration ledger cannot be treated as proof that an older table has the
-current shape because the initial migration used `CREATE TABLE IF NOT EXISTS`.
-Add a forward-only, idempotent repair migration for the known missing
-`desktop_workspace.linked_brand_id` and `desktop_workspace.sync_policy` columns.
-Do not delete, recreate, or silently reset an existing local database.
+The current schema is the first supported desktop database baseline. Do not add
+compatibility migrations for pre-release database shapes. The supported schema
+records an explicit baseline version. If a database contains existing tables but
+lacks that marker, the local initializer closes and discards it before creating
+a fresh database. This reset happens only after explicit local-mode selection;
+cloud mode never opens, inspects, migrates, or deletes the directory.
 
 ## Failure Boundary
 
@@ -73,7 +74,7 @@ application-wide startup screen.
 
 **Why:** A desktop wrapper for the hosted app has no need for an embedded
 database unless the user deliberately chooses local data. The current eager
-dependency makes unrelated legacy-schema drift fatal to every desktop user.
+dependency makes unrelated pre-release schema drift fatal to every desktop user.
 
 **How to apply:** Keep every cloud startup dependency database-free. New local
 features must enter through the shared explicit local-runtime boundary and must

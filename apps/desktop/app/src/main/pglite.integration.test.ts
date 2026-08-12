@@ -37,38 +37,19 @@ describe('DesktopPgliteService integration', () => {
     await second.close();
   });
 
-  it('repairs the legacy workspace shape without deleting rows', {
+  it('discards an unsupported pre-release database before creating the supported baseline', {
     timeout: 20_000,
   }, async () => {
-    const legacyDataDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'genfeed-pglite-legacy-'),
+    const unsupportedDataDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'genfeed-pglite-unsupported-'),
     );
 
     try {
-      const legacy = new PGlite({ dataDir: legacyDataDir });
-      await legacy.waitReady;
-      await legacy.exec(`
-        CREATE TABLE desktop_workspace (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          path TEXT NOT NULL,
-          linked_project_id TEXT,
-          file_index TEXT NOT NULL DEFAULT '[]',
-          indexing_state TEXT NOT NULL DEFAULT 'idle',
-          local_draft_count INTEGER NOT NULL DEFAULT 0,
-          pending_sync_count INTEGER NOT NULL DEFAULT 0,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          last_opened_at TEXT NOT NULL,
-          linked_organization_id TEXT
-        );
-        INSERT INTO desktop_workspace (
-          id, name, path, created_at, updated_at, last_opened_at
-        ) VALUES (
-          'legacy-workspace', 'Legacy workspace', '/tmp/legacy',
-          '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z',
-          '2026-01-01T00:00:00.000Z'
-        );
+      const unsupported = new PGlite({ dataDir: unsupportedDataDir });
+      await unsupported.waitReady;
+      await unsupported.exec(`
+        CREATE TABLE pre_release_data (value TEXT NOT NULL);
+        INSERT INTO pre_release_data (value) VALUES ('discard-me');
         CREATE TABLE _prisma_migrations (
           id TEXT PRIMARY KEY,
           checksum TEXT,
@@ -87,37 +68,35 @@ describe('DesktopPgliteService integration', () => {
         '0003_normalize_user_auth_provider_column',
         '0004_desktop_asset_is_deleted',
       ]) {
-        await legacy.query(
+        await unsupported.query(
           `INSERT INTO _prisma_migrations (
             id, migration_name, started_at, applied_steps_count
           ) VALUES ($1, $1, $2, 1)`,
           [migrationName, '2026-01-01T00:00:00.000Z'],
         );
       }
-      await legacy.close();
+      await unsupported.close();
 
-      const service = new DesktopPgliteService(legacyDataDir);
-      const repaired = await service.init();
-      const columns = await repaired.query<{ column_name: string }>(
-        `SELECT column_name
-         FROM information_schema.columns
-         WHERE table_name = 'desktop_workspace'`,
+      const service = new DesktopPgliteService(unsupportedDataDir);
+      const current = await service.init();
+      const discardedTables = await current.query<{ table_name: string }>(
+        `SELECT table_name
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_name = 'pre_release_data'`,
       );
-      const workspaces = await repaired.query<{
-        id: string;
-        sync_policy: string;
-      }>('SELECT id, sync_policy FROM desktop_workspace WHERE id = $1', [
-        'legacy-workspace',
-      ]);
+      const baseline = await current.query<{ baseline_version: number }>(
+        `SELECT baseline_version
+         FROM desktop_schema_metadata
+         WHERE singleton_key = 'current'`,
+      );
 
-      expect(columns.rows).toContainEqual({ column_name: 'linked_brand_id' });
-      expect(columns.rows).toContainEqual({ column_name: 'sync_policy' });
-      expect(workspaces.rows).toEqual([
-        { id: 'legacy-workspace', sync_policy: 'local-only' },
-      ]);
+      expect(service.didResetUnsupportedDatabase()).toBe(true);
+      expect(discardedTables.rows).toEqual([]);
+      expect(baseline.rows).toEqual([{ baseline_version: 1 }]);
       await service.close();
     } finally {
-      fs.rmSync(legacyDataDir, { force: true, recursive: true });
+      fs.rmSync(unsupportedDataDir, { force: true, recursive: true });
     }
   });
 });

@@ -393,6 +393,11 @@ const initializeLocalRuntime = async (): Promise<void> => {
 
     try {
       const pglite = await nextPgliteService.init();
+      if (nextPgliteService.didResetUnsupportedDatabase()) {
+        logService?.info(
+          'Discarded an unsupported pre-release local database before initializing the current desktop schema.',
+        );
+      }
       const nextPrismaService = new DesktopPrismaService(pglite);
       const prismaClient = nextPrismaService.getClient();
       const nextKvService = new DesktopKvService(prismaClient);
