@@ -20,6 +20,12 @@ export interface RestreamProfile {
 }
 
 /**
+ * Official Restream OAuth scopes for livestream chat ingest + profile.
+ * @see https://developers.restream.io/authentication/code-exchange
+ */
+export const RESTREAM_OAUTH_SCOPE = 'profile.read chat.read';
+
+/**
  * Restream OAuth2 + Chat WebSocket helpers.
  * @see https://developers.restream.io/authentication/authorize-dialog
  * @see https://developers.restream.io/chat/getting-started
@@ -79,7 +85,7 @@ export class RestreamService {
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      // Request chat + profile scopes for livestream automation.
+      scope: RESTREAM_OAUTH_SCOPE,
       state,
     });
 
