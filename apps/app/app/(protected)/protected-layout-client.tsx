@@ -2,7 +2,10 @@
 
 import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
-import { APP_SWITCHER_FEATURE_FLAG_KEYS } from '@genfeedai/constants';
+import {
+  APP_SWITCHER_FEATURE_FLAG_KEYS,
+  REPLY_BOT_FEATURE_FLAG,
+} from '@genfeedai/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
@@ -16,6 +19,10 @@ import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
+const REMOTE_FEATURE_FLAG_KEYS = [
+  ...APP_SWITCHER_FEATURE_FLAG_KEYS,
+  REPLY_BOT_FEATURE_FLAG,
+] as const;
 
 export default function ProtectedLayoutClient({
   children,
@@ -47,7 +54,7 @@ export default function ProtectedLayoutClient({
     });
 
     return subscribeAnalyticsFeatureFlags(
-      APP_SWITCHER_FEATURE_FLAG_KEYS,
+      REMOTE_FEATURE_FLAG_KEYS,
       setRemoteFeatureFlags,
     );
   }, [user?.id, user?.primaryEmailAddress?.emailAddress]);

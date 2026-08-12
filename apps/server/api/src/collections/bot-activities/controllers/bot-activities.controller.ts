@@ -12,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
 import { BotActivitySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
@@ -20,7 +21,7 @@ import type { Request } from 'express';
 
 @ApiTags('Bot Activities')
 @AutoSwagger()
-@FeatureFlag('reply_bot')
+@FeatureFlag(REPLY_BOT_FEATURE_FLAG)
 @Controller('bot-activities')
 export class BotActivitiesController {
   constructor(

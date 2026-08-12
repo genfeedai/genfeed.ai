@@ -58,6 +58,8 @@ interface ApiEnvConfig extends IEnvConfig {
   API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
   FEATURE_FLAG_DEFAULTS?: string;
+  POSTHOG_HOST?: string;
+  POSTHOG_PROJECT_API_KEY?: string;
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
@@ -95,6 +97,8 @@ const apiSpecificSchema = {
     .optional()
     .allow(''),
   FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
+  POSTHOG_HOST: Joi.string().uri().optional().allow(''),
+  POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),
   GF_DEV_ENABLE_OPTIONAL_INIT: Joi.string()
     .valid('true', 'false')
     .optional()

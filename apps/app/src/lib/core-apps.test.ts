@@ -35,6 +35,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_discover: false,
       app_switcher_studio: false,
       app_switcher_workspace: false,
+      reply_bot: true,
       studio: true,
     });
   });
@@ -54,6 +55,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_discover: true,
       app_switcher_studio: true,
       app_switcher_workspace: true,
+      reply_bot: true,
       studio: true,
     });
   });
@@ -73,6 +75,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_discover: true,
       app_switcher_studio: true,
       app_switcher_workspace: true,
+      reply_bot: true,
       studio: true,
     });
   });

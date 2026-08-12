@@ -104,4 +104,47 @@ describe('useFeatureFlag', () => {
 
     expect(result.current).toBe(false);
   });
+
+  it('keeps reply_bot on when env JSON is missing, partial, or malformed', () => {
+    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
+
+    const { result: unconfigured } = renderHook(() =>
+      useFeatureFlag('reply_bot'),
+    );
+    const { result: otherDefaults } = renderHook(
+      () => useFeatureFlag('reply_bot'),
+      {
+        wrapper: createWrapper({ other: true }),
+      },
+    );
+    const { result: malformed } = renderHook(
+      () => useFeatureFlag('reply_bot'),
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    expect(unconfigured.current).toBe(true);
+    expect(otherDefaults.current).toBe(true);
+    expect(malformed.current).toBe(true);
+  });
+
+  it('honors an explicit reply_bot override from PostHog', () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        FeatureFlagProvider,
+        {
+          defaults: {},
+          overrides: { reply_bot: false },
+        },
+        children,
+      );
+    }
+
+    const { result } = renderHook(() => useFeatureFlag('reply_bot'), {
+      wrapper: Wrapper,
+    });
+
+    expect(result.current).toBe(false);
+  });
 });
