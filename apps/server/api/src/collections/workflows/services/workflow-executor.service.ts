@@ -198,6 +198,75 @@ export class WorkflowExecutorService {
     return results;
   }
 
+  /**
+   * Continue (or no-op) an existing execution on BullMQ job retry (#2359).
+   *
+   * - COMPLETED → return terminal result without re-running nodes
+   * - FAILED / RUNNING / PENDING → re-enter the graph on the **same**
+   *   executionId so durable claims + hydrated nodeResults skip completed
+   *   side-effect nodes instead of spawning a new execution
+   */
+  async continueExistingExecution(
+    executionId: string,
+    event: TriggerEvent,
+  ): Promise<WorkflowExecutionResult> {
+    const execution = await this.executionsService.findOne({
+      id: executionId,
+      organizationId: event.organizationId,
+    });
+
+    if (!execution) {
+      this.logger.warn(
+        `${this.logContext} continueExistingExecution: execution missing`,
+        { executionId, organizationId: event.organizationId },
+      );
+      return {
+        completedAt: new Date(),
+        error: `Execution ${executionId} not found`,
+        executionId,
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.FAILED,
+        totalCreditsUsed: 0,
+        workflowId: '',
+      };
+    }
+
+    const workflowId = String(execution.workflowId ?? '');
+    const status = String(execution.status);
+
+    if (status === WorkflowExecutionStatus.COMPLETED) {
+      return {
+        completedAt: execution.completedAt ?? new Date(),
+        error: undefined,
+        executionId,
+        nodeResults: [],
+        startedAt: execution.startedAt ?? new Date(),
+        status: WorkflowExecutionStatus.COMPLETED,
+        totalCreditsUsed: 0,
+        workflowId,
+      };
+    }
+
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      {
+        select: EXECUTABLE_WORKFLOW_SELECT,
+        where: scopedWhere(event.organizationId, { id: workflowId }),
+      },
+      'Workflow',
+      workflowId,
+    );
+
+    return this.executeWorkflowDocumentWithActionOrigin(
+      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      event,
+      WorkflowExecutionTrigger.EVENT,
+      { continuedFromExecutionId: executionId },
+      executionId,
+    );
+  }
+
   async executeTriggeredWorkflow(
     workflowDoc: WorkflowDocument,
     event: TriggerEvent,
@@ -540,6 +609,7 @@ export class WorkflowExecutorService {
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
+    existingExecutionId?: string,
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     const workflowId = String(
@@ -559,7 +629,7 @@ export class WorkflowExecutorService {
       event.data,
     );
     const initialEta = buildWorkflowEtaSnapshot({
-      currentPhase: 'Queued',
+      currentPhase: existingExecutionId ? 'Resuming' : 'Queued',
       edges: executableWorkflow.edges,
       nodes: executableWorkflow.nodes,
       startedAt,
@@ -573,21 +643,23 @@ export class WorkflowExecutorService {
           }
         : {});
 
-    const execution = await this.executionsService.createExecution(
-      event.userId,
-      event.organizationId,
-      {
-        inputValues: event.data,
-        metadata: {
-          ...executionMetadata,
-          eta: initialEta,
+    let executionId = existingExecutionId;
+    if (!executionId) {
+      const execution = await this.executionsService.createExecution(
+        event.userId,
+        event.organizationId,
+        {
+          inputValues: event.data,
+          metadata: {
+            ...executionMetadata,
+            eta: initialEta,
+          },
+          trigger,
+          workflowId,
         },
-        trigger,
-        workflowId,
-      },
-    );
-
-    const executionId = execution.id;
+      );
+      executionId = execution.id;
+    }
 
     try {
       await this.executionsService.startExecution(executionId);

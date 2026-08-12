@@ -98,15 +98,16 @@ export class WorkflowExecutionProcessor extends WorkerHost {
 
     // BullMQ retries re-invoke this handler. Re-running handleTriggerEvent
     // would create *new* executions and re-fire every completed side-effect
-    // node (publish, DM, credits). When a prior attempt already recorded
-    // execution ids, short-circuit instead of double-firing (#2359).
+    // node (publish, DM, credits). When a prior attempt recorded execution
+    // ids, continue those same executionIds so durable claims + hydrated
+    // nodeResults skip completed nodes (#2359).
     if (
       (job.attemptsMade ?? 0) > 0 &&
       Array.isArray(priorExecutionIds) &&
       priorExecutionIds.length > 0
     ) {
       this.logger.warn(
-        `${this.logContext} skipping re-trigger on job retry — prior executions already claimed`,
+        `${this.logContext} continuing prior executions on job retry (no new trigger fan-out)`,
         {
           attemptsMade: job.attemptsMade,
           jobId: job.id,
@@ -114,15 +115,37 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         },
       );
 
-      return {
-        executionCount: priorExecutionIds.length,
-        priorExecutionIds,
-        results: priorExecutionIds.map((executionId) => ({
+      const continued: Array<{
+        executionId: string;
+        status: string;
+        workflowId: string;
+      }> = [];
+      for (const executionId of priorExecutionIds) {
+        const result = await this.executorService.continueExistingExecution(
           executionId,
-          status: 'already_claimed',
-          workflowId: undefined,
+          triggerEvent,
+        );
+        continued.push(result);
+      }
+
+      for (const result of continued) {
+        const delayData = (result as unknown as Record<string, unknown>)
+          ._delayJobData as DelayResumeJobData | undefined;
+        if (delayData) {
+          const delayMs = this.calculateDelayMs(delayData);
+          await this.queueService.queueDelayedResume(delayData, delayMs);
+        }
+      }
+
+      return {
+        continuedOnRetry: true,
+        executionCount: continued.length,
+        priorExecutionIds,
+        results: continued.map((r) => ({
+          executionId: r.executionId,
+          status: r.status,
+          workflowId: r.workflowId,
         })),
-        skippedReTrigger: true,
       };
     }
 

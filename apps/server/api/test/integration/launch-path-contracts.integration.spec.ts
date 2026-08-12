@@ -63,12 +63,13 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).not.toContain('validation skipped (missing secret)');
   });
 
-  it('skips workflow re-trigger when priorExecutionIds exist on retry', () => {
+  it('continues prior executions on job retry instead of re-triggering', () => {
     const source = readRepo(
       'apps/server/workers/src/processors/api/collections/workflows/services/workflow-execution.processor.ts',
     );
     expect(source).toContain('priorExecutionIds');
-    expect(source).toContain('skippedReTrigger');
+    expect(source).toContain('continueExistingExecution');
+    expect(source).toContain('continuedOnRetry');
     expect(source).toContain('attemptsMade');
   });
 

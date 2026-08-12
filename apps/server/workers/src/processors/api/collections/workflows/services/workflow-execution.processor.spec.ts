@@ -15,6 +15,14 @@ function createMockLogger() {
 
 function createMockExecutorService() {
   return {
+    continueExistingExecution: vi.fn().mockResolvedValue({
+      executionId: 'exec-1',
+      nodeResults: [],
+      startedAt: new Date(),
+      status: WorkflowExecutionStatus.COMPLETED,
+      totalCreditsUsed: 0,
+      workflowId: 'wf-1',
+    }),
     handleTriggerEvent: vi.fn().mockResolvedValue([
       {
         executionId: 'exec-1',
@@ -140,7 +148,25 @@ describe('WorkflowExecutionProcessor', () => {
       );
     });
 
-    it('skips re-trigger on BullMQ retry when priorExecutionIds exist (#2359)', async () => {
+    it('continues prior executions on BullMQ retry instead of re-triggering (#2359)', async () => {
+      mockExecutor.continueExistingExecution
+        .mockResolvedValueOnce({
+          executionId: 'exec-1',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.COMPLETED,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-1',
+        })
+        .mockResolvedValueOnce({
+          executionId: 'exec-2',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.FAILED,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-2',
+        });
+
       const job = createMockJob(
         {
           priorExecutionIds: ['exec-1', 'exec-2'],
@@ -159,10 +185,17 @@ describe('WorkflowExecutionProcessor', () => {
       const result = await processor.process(job as never);
 
       expect(mockExecutor.handleTriggerEvent).not.toHaveBeenCalled();
+      expect(mockExecutor.continueExistingExecution).toHaveBeenCalledTimes(2);
+      expect(mockExecutor.continueExistingExecution).toHaveBeenNthCalledWith(
+        1,
+        'exec-1',
+        job.data.triggerEvent,
+      );
       expect(result).toEqual(
         expect.objectContaining({
-          skippedReTrigger: true,
+          continuedOnRetry: true,
           priorExecutionIds: ['exec-1', 'exec-2'],
+          executionCount: 2,
         }),
       );
     });
