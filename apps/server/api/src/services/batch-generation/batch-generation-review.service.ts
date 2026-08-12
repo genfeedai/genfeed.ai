@@ -40,14 +40,45 @@ export class BatchGenerationReviewService {
     private readonly summaryService: BatchGenerationSummaryService,
   ) {}
 
+  /**
+   * Bootstrap/overview review counts for an org (or brand).
+   *
+   * Previously loaded **every** batch row for the org and walked the full
+   * JSON items array in memory — that is O(all historical batches) on every
+   * cold `/auth/bootstrap/overview` hit. Cap to the most recent review-relevant
+   * batches, project only the columns we need, and skip cancelled work.
+   */
   async getReviewInboxSummary(
     orgId: string,
     brandId?: string,
     limit = 5,
   ): Promise<ReviewInboxSummary> {
+    /** Hard ceiling so one noisy org cannot pull an unbounded JSON payload. */
+    const BATCH_SCAN_LIMIT = 50;
+
     const batches = (await this.prisma.batch.findMany({
-      where: scopedWhere(orgId, { ...(brandId ? { brandId } : {}) }),
-    })) as BatchWithConfig[];
+      orderBy: { createdAt: 'desc' },
+      select: {
+        createdAt: true,
+        id: true,
+        items: true,
+      },
+      take: BATCH_SCAN_LIMIT,
+      where: scopedWhere(orgId, {
+        ...(brandId ? { brandId } : {}),
+        // Cancelled runs never contribute review items; exclude them so the
+        // scan stays on the active/completed queue.
+        status: {
+          in: [
+            toPrismaBatchStatus(BatchStatus.PENDING),
+            toPrismaBatchStatus(BatchStatus.PROCESSING),
+            toPrismaBatchStatus(BatchStatus.COMPLETED),
+            toPrismaBatchStatus(BatchStatus.PARTIAL),
+            toPrismaBatchStatus(BatchStatus.FAILED),
+          ],
+        },
+      }),
+    })) as Array<Pick<BatchWithConfig, 'createdAt' | 'id' | 'items'>>;
 
     let approvedCount = 0;
     let rejectedCount = 0;
@@ -55,6 +86,7 @@ export class BatchGenerationReviewService {
     let pendingCount = 0;
     let readyCount = 0;
     const readyItems: ReviewInboxItemSummary[] = [];
+    const recentLimit = Math.max(1, Math.min(limit, 10));
 
     for (const batch of batches) {
       const batchItems = cloneBatchItems(batch.items);
@@ -97,19 +129,18 @@ export class BatchGenerationReviewService {
       }
     }
 
-    // Sort ready items by createdAt desc, take limit
+    // Sort only the ready slice from the bounded scan (≤50 batches).
     readyItems.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-    const recentItems = readyItems.slice(0, Math.max(1, Math.min(limit, 10)));
 
     return {
       approvedCount,
       changesRequestedCount,
       pendingCount,
       readyCount,
-      recentItems,
+      recentItems: readyItems.slice(0, recentLimit),
       rejectedCount,
     };
   }

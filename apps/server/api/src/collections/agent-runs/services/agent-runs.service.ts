@@ -700,38 +700,55 @@ export class AgentRunsService extends BaseService<
     const trendStart = new Date(Date.now() - (timeRangeDays - 1) * DAY_IN_MS);
     trendStart.setHours(0, 0, 0, 0);
 
-    // Four parallel Prisma count queries replace the legacy MongoDB $facet aggregation.
-    // Each count is scoped to organizationId + isDeleted: false with the relevant status filter.
+    // Two groupBy queries replace four separate COUNTs: one lifetime status
+    // histogram + one "completed today / failed today" histogram. Same scope
+    // (organizationId + isDeleted + optional brand), fewer round-trips.
     const runScope = scopedWhere(organizationId, {
       ...brandScope(brandId),
     });
 
-    const [totalRuns, activeRuns, completedToday, failedToday] =
-      await Promise.all([
-        this.delegate.count({ where: runScope }),
-        this.delegate.count({
-          where: {
-            ...runScope,
-            status: {
-              in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
-            },
+    const [statusGroups, todayGroups] = await Promise.all([
+      this.delegate.groupBy({
+        _count: { _all: true },
+        by: ['status'],
+        where: runScope,
+      }),
+      this.delegate.groupBy({
+        _count: { _all: true },
+        by: ['status'],
+        where: {
+          ...runScope,
+          completedAt: { gte: todayStart },
+          status: {
+            in: [AgentExecutionStatus.COMPLETED, AgentExecutionStatus.FAILED],
           },
-        }),
-        this.delegate.count({
-          where: {
-            ...runScope,
-            status: AgentExecutionStatus.COMPLETED,
-            completedAt: { gte: todayStart },
-          },
-        }),
-        this.delegate.count({
-          where: {
-            ...runScope,
-            status: AgentExecutionStatus.FAILED,
-            completedAt: { gte: todayStart },
-          },
-        }),
-      ]);
+        },
+      }),
+    ]);
+
+    let totalRuns = 0;
+    let activeRuns = 0;
+    for (const group of statusGroups) {
+      const count = group._count._all;
+      totalRuns += count;
+      if (
+        group.status === AgentExecutionStatus.PENDING ||
+        group.status === AgentExecutionStatus.RUNNING
+      ) {
+        activeRuns += count;
+      }
+    }
+
+    let completedToday = 0;
+    let failedToday = 0;
+    for (const group of todayGroups) {
+      const count = group._count._all;
+      if (group.status === AgentExecutionStatus.COMPLETED) {
+        completedToday = count;
+      } else if (group.status === AgentExecutionStatus.FAILED) {
+        failedToday = count;
+      }
+    }
 
     const summary: AgentRunStatsSummary = {
       activeRuns,

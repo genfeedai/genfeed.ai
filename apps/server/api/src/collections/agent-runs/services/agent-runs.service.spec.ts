@@ -10,6 +10,7 @@ describe('AgentRunsService', () => {
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    groupBy: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
     upsert: vi.fn(),
@@ -30,6 +31,7 @@ describe('AgentRunsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     agentRun.count.mockResolvedValue(0);
+    agentRun.groupBy.mockResolvedValue([]);
     agentRun.create.mockImplementation(({ data }) =>
       Promise.resolve({ id: 'run-1', ...data }),
     );
@@ -119,34 +121,36 @@ describe('AgentRunsService', () => {
     );
   });
 
-  it('counts run stats with Prisma enum values', async () => {
+  it('aggregates run stats with two status groupBy queries', async () => {
+    agentRun.groupBy = vi.fn().mockResolvedValue([]);
+
     await service.getStats('org-1');
 
-    expect(agentRun.count).toHaveBeenNthCalledWith(2, {
-      where: {
-        isDeleted: false,
-        organizationId: 'org-1',
-        status: {
-          in: ['PENDING', 'RUNNING'],
+    expect(agentRun.groupBy).toHaveBeenCalledTimes(2);
+    expect(agentRun.groupBy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        by: ['status'],
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
         },
-      },
-    });
-    expect(agentRun.count).toHaveBeenNthCalledWith(
-      3,
+      }),
+    );
+    expect(agentRun.groupBy).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
+        by: ['status'],
         where: expect.objectContaining({
-          status: 'COMPLETED',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: {
+            in: ['COMPLETED', 'FAILED'],
+          },
         }),
       }),
     );
-    expect(agentRun.count).toHaveBeenNthCalledWith(
-      4,
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: 'FAILED',
-        }),
-      }),
-    );
+    expect(agentRun.count).not.toHaveBeenCalled();
   });
 
   it('persists canonical relation IDs on create', async () => {
