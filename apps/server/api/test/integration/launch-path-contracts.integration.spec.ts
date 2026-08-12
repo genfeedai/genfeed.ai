@@ -31,17 +31,17 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const source = readRepo(
       'apps/server/api/src/services/batch-generation/batch-generation-review.service.ts',
     );
-    expect(source).toContain('BATCH_SCAN_LIMIT = 50');
-    expect(source).toContain('take: BATCH_SCAN_LIMIT');
-    expect(source).toMatch(/select:\s*\{\s*createdAt:\s*true/);
-    expect(source).toMatch(/items:\s*true/);
+    expect(source).toContain('this.prisma.batchItem.groupBy({');
+    expect(source).toContain('this.prisma.batchItem.findMany({');
+    expect(source).toContain('take: recentLimit');
+    expect(source).toContain("by: ['status', 'reviewDecision']");
   });
 
   it('aggregates agent-run stats with groupBy instead of four counts', () => {
     const source = readRepo(
       'apps/server/api/src/collections/agent-runs/services/agent-runs.service.ts',
     );
-    expect(source).toContain('this.delegate.groupBy({');
+    expect(source).toContain('this.prisma.agentRun.groupBy({');
     expect(source).toContain("by: ['status']");
     // Guard against reintroducing the four-count fan-out on the bootstrap path.
     const countCalls = source.match(/this\.delegate\.count\(/g) ?? [];
@@ -404,7 +404,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(intent).toContain("'troll'");
     expect(intent).toContain('DEFAULT_REPLY_MAX_AGE_HOURS = 24');
     expect(intent).toContain('MAX_REPLY_MAX_AGE_HOURS = 48');
-    expect(authorLoop).toContain('maxAgeHours: DEFAULT_REPLY_MAX_AGE_HOURS');
+    expect(authorLoop).toContain('? 48 : DEFAULT_REPLY_MAX_AGE_HOURS');
+    expect(authorLoop).toContain('clampReplyMaxAgeHours(params.hours ?? 48)');
     expect(authorLoop).toContain('resolveReplyIntent');
   });
 });
