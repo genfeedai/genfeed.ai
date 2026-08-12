@@ -120,6 +120,67 @@ describe('AgentXActionsToolHandler', () => {
     expect(result.error).toMatch(/cannot do that yet/i);
   });
 
+  it('maps fetch and timeline tier-limit failures instead of empty success', async () => {
+    const { handler, twitterService } = createHandler();
+    twitterService.getTweetById.mockRejectedValue({
+      code: 453,
+      message: 'You currently have access to a subset of X API V2 endpoints',
+    });
+    twitterService.getUserTimelineByUsername.mockRejectedValue({
+      status: 403,
+      data: { title: 'client-not-enrolled' },
+    });
+
+    const fetchResult = await handler.execute(
+      AgentToolName.FETCH_X_POST,
+      { postIdOrUrl: '1234567890' },
+      ctx,
+    );
+    const timelineResult = await handler.execute(
+      AgentToolName.LIST_X_ACCOUNT_ACTIVITY,
+      { username: 'genfeed' },
+      ctx,
+    );
+
+    expect(fetchResult).toMatchObject({
+      creditsUsed: 0,
+      success: false,
+    });
+    expect(fetchResult.error).toMatch(/cannot do that yet/i);
+    expect(timelineResult.success).toBe(false);
+    expect(timelineResult.error).toMatch(/cannot do that yet/i);
+  });
+
+  it('maps rate-limit and missing-credential failures as distinct classes', async () => {
+    const { handler, twitterService } = createHandler();
+    twitterService.searchRecentTweets.mockRejectedValue({
+      code: 429,
+      message: 'Rate limit exceeded',
+      rateLimit: { reset: Date.parse('2026-08-18T00:53:20.000Z') / 1000 },
+    });
+
+    const rateLimited = await handler.execute(
+      AgentToolName.SEARCH_X_POSTS,
+      { query: 'ai' },
+      ctx,
+    );
+    expect(rateLimited.success).toBe(false);
+    expect(rateLimited.error).toMatch(
+      /try again after 2026-08-18T00:53:20.000Z/i,
+    );
+
+    twitterService.getTweetById.mockRejectedValue(
+      new Error('401 Unauthorized — token expired'),
+    );
+    const missingCredential = await handler.execute(
+      AgentToolName.FETCH_X_POST,
+      { postIdOrUrl: '1234567890' },
+      ctx,
+    );
+    expect(missingCredential.success).toBe(false);
+    expect(missingCredential.error).toMatch(/not connected/i);
+  });
+
   it('fetches a post by URL', async () => {
     const { handler, twitterService } = createHandler();
     twitterService.getTweetById.mockResolvedValue({

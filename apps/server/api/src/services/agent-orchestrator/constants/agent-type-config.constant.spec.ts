@@ -3,6 +3,7 @@ import {
   isRetiredAgentChatModel,
 } from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
 import {
   AGENT_TYPE_CONFIGS,
   detectPlatformIntentSuffix,
@@ -13,6 +14,19 @@ describe('getAgentTypeConfig', () => {
   it('returns config for a known agent type', () => {
     const config = getAgentTypeConfig(AgentType.X_CONTENT);
     expect(config.systemPromptSuffix).toContain('X/Twitter');
+  });
+
+  it('gives the X specialist the dedicated X read and draft tools', () => {
+    const config = getAgentTypeConfig(AgentType.X_CONTENT);
+    expect(config.defaultTools).toEqual(
+      expect.arrayContaining([
+        AgentToolName.SEARCH_X_POSTS,
+        AgentToolName.FETCH_X_POST,
+        AgentToolName.LIST_X_ACCOUNT_ACTIVITY,
+        AgentToolName.DRAFT_X_QUOTE,
+        AgentToolName.DRAFT_X_REPOST,
+      ]),
+    );
   });
 
   it('falls back to GENERAL for unknown agent type', () => {
