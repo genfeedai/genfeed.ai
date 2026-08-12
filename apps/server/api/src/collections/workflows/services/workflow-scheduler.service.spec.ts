@@ -374,6 +374,50 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
+  it('fires a node-based morning digest three times on schedule (#2664)', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-morning-digest',
+      inputVariables: [],
+      nodes: [
+        { id: 'read', type: 'socialRead' },
+        { id: 'analyze', type: 'analyze' },
+        { id: 'report', type: 'reportDelivery' },
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    const workflowExecutorService = {
+      executeManualWorkflow: vi.fn().mockResolvedValue({}),
+      executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
+    };
+    const { service } = createService({ prisma, workflowExecutorService });
+
+    await service.executeScheduledWorkflow('wf-morning-digest');
+    await service.executeScheduledWorkflow('wf-morning-digest');
+    await service.executeScheduledWorkflow('wf-morning-digest');
+
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledTimes(3);
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ id: 'wf-morning-digest' }),
+      'user-1',
+      'org-1',
+      {},
+      { triggeredBy: 'schedule' },
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument.mock.calls.every(
+        (call) => call[5] === WorkflowExecutionTrigger.SCHEDULED,
+      ),
+    ).toBe(true);
+  });
+
   it('removes the job scheduler for systemic templates without user/org', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({

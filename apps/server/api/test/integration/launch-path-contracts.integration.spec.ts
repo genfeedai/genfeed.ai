@@ -162,6 +162,32 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(tdd).toContain('Handoff proof');
   });
 
+  it('pins social-read + report-delivery residual contracts (#2664)', () => {
+    const registrar = readRepo(
+      'apps/server/api/src/collections/workflows/services/workflow-social-executor-registrar.service.ts',
+    );
+    const palette = readRepo(
+      'apps/app/src/features/workflows/components/CloudNodePalette.tsx',
+    );
+    const credits = readRepo(
+      'packages/workflows/src/engine/utils/credit-calculator.ts',
+    );
+    const canvas = readRepo(
+      'apps/app/src/features/workflows/nodes/merged-node-types.ts',
+    );
+    expect(registrar).toContain('formatSocialReadProviderError');
+    expect(registrar).toContain('formatReportDeliveryError');
+    expect(registrar).toContain('socialRead twitter rate limited');
+    expect(registrar).toContain('wireSocialReadExecutor');
+    expect(registrar).toContain('wireReportDeliveryExecutor');
+    expect(palette).toContain('socialRead');
+    expect(palette).toContain('reportDelivery');
+    expect(credits).toContain('socialRead: 1');
+    expect(credits).toContain('reportDelivery: 0');
+    expect(canvas).toContain('socialRead: TemplateCompatibilityNode');
+    expect(canvas).toContain('reportDelivery: TemplateCompatibilityNode');
+  });
+
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {
     const source = readRepo(
       'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-handler.service.ts',

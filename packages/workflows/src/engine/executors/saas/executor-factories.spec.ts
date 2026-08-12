@@ -38,6 +38,10 @@ import {
 } from './music-source-executor';
 import { createPublishExecutor, PublishExecutor } from './publish-executor';
 import {
+  createReportDeliveryExecutor,
+  ReportDeliveryExecutor,
+} from './report-delivery-executor';
+import {
   createSendEmailExecutor,
   SendEmailExecutor,
 } from './send-email-executor';
@@ -46,6 +50,10 @@ import {
   SeoRewriteExecutor,
 } from './seo-rewrite-executor';
 import { createSeoScoreExecutor, SeoScoreExecutor } from './seo-score-executor';
+import {
+  createSocialReadExecutor,
+  SocialReadExecutor,
+} from './social-read-executor';
 import {
   createSoundOverlayExecutor,
   SoundOverlayExecutor,
@@ -131,6 +139,16 @@ const cases: FactoryCase[] = [
     create: () => createPublishExecutor(),
     expected: PublishExecutor,
     name: 'publish',
+  },
+  {
+    create: () => createReportDeliveryExecutor({}),
+    expected: ReportDeliveryExecutor,
+    name: 'report delivery',
+  },
+  {
+    create: () => createSocialReadExecutor(async () => []),
+    expected: SocialReadExecutor,
+    name: 'social read',
   },
   {
     create: () => createSendEmailExecutor(),
