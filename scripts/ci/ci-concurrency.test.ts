@@ -30,8 +30,8 @@ describe('CI concurrency', () => {
     const workflow = readWorkflow('ci.yml');
 
     // Without the prefix this group collides with a caller using the same
-    // `${{ github.workflow }}-${{ github.ref }}` shape (full-suite → deploy-ecs),
-    // and the nested `ci` cancels itself at startup, killing production deploys.
+    // `${{ github.workflow }}-${{ github.ref }}` shape (release → full-suite),
+    // and the nested `ci` cancels itself at startup, killing stable releases.
     expect(workflow).toMatch(
       /group:\s*ci-\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.ref\s*\}\}/,
     );

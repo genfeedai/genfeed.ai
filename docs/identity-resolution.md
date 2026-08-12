@@ -82,17 +82,17 @@ The architecture relation-boundary guards enforce these rules in CI.
 
 ## Production runtime access (for debugging sessions)
 
-- Backend runs on ECS Fargate (`genfeed-production`, us-west-1); RDS
-  (`genfeed-data`) and Redis are **VPC-only**. There is no direct DB/Redis
-  path from a laptop, and ECS Exec is disabled on the `api` service.
+- Hosted backend and data services are private production infrastructure. There
+  is no supported direct production database or cache path from a contributor
+  laptop.
 - Practical implication: debug production identity issues from the **outside
   in** — `/v1/auth/get-session`, `/v1/auth/token`, `/v1/auth/bootstrap`,
   `/v1/organizations/mine` against `api.genfeed.ai` with a real session tell
   you what each resolution path believes. Disagreement between them localizes
   the bug (cache vs resolver vs endpoint query).
-- Deploys: `Deploy ECS (production)` workflow, dispatch-only, master-only.
-  See `.agents/memory/reference_prod_aws_runtime.md` and
-  `.agents/memory/reference_postgres_rds.md`.
+- Hosted deployment and production recovery are operated from the private
+  `genfeedai/console.genfeed.ai` repository. Public stable releases hand off the
+  exact pinned source SHA and wait for that private operation to succeed.
 
 ## Related documents
 

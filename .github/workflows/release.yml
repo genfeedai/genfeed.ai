@@ -140,17 +140,130 @@ jobs:
     secrets: inherit
 
   deploy-saas:
-    name: Deploy SaaS
+    name: Deploy hosted SaaS through private operations
     needs: [validate-release, verify-suite]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     permissions:
-      id-token: write
       contents: read
-      packages: read
-      issues: write
-    uses: ./.github/workflows/_deploy-ecs-core.yml
-    with:
-      allow_rollback: false
-    secrets: inherit
+    env:
+      CONSOLE_REPOSITORY: genfeedai/console.genfeed.ai
+      CONSOLE_WORKFLOW: deploy-hosted-saas.yml
+      GH_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+      RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
+    steps:
+      - name: Dispatch the pinned release to private operations
+        id: dispatch
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "::error::CONSOLE_DEPLOY_TOKEN is not configured. See RELEASING.md."
+            exit 1
+          fi
+          if [[ ! "${RELEASE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Release SHA is not an exact lowercase 40-character commit: ${RELEASE_SHA}"
+            exit 1
+          fi
+
+          correlation_id="release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${RELEASE_SHA}"
+          expected_title="Deploy hosted SaaS | ${RELEASE_SHA} | ${correlation_id}"
+
+          gh api \
+            --method POST \
+            "repos/${CONSOLE_REPOSITORY}/actions/workflows/${CONSOLE_WORKFLOW}/dispatches" \
+            -f ref=master \
+            -f "inputs[release_sha]=${RELEASE_SHA}" \
+            -f "inputs[source_sha]=${RELEASE_SHA}" \
+            -f "inputs[correlation_id]=${correlation_id}"
+
+          {
+            echo "correlation_id=${correlation_id}"
+            echo "expected_title=${expected_title}"
+          } >>"${GITHUB_OUTPUT}"
+
+      - name: Resolve the exact private deployment run
+        id: resolve
+        env:
+          EXPECTED_TITLE: ${{ steps.dispatch.outputs.expected_title }}
+        run: |
+          set -euo pipefail
+
+          for _ in $(seq 1 30); do
+            runs="$({ gh api \
+              --method GET \
+              "repos/${CONSOLE_REPOSITORY}/actions/workflows/${CONSOLE_WORKFLOW}/runs" \
+              -f event=workflow_dispatch \
+              -f branch=master \
+              -f per_page=100; } | jq \
+                --arg title "${EXPECTED_TITLE}" \
+                '[.workflow_runs[] | select(.display_title == $title and .event == "workflow_dispatch" and .head_branch == "master")]')"
+            count="$(jq 'length' <<<"${runs}")"
+
+            if [ "${count}" -gt 1 ]; then
+              echo "::error::Ambiguous private deploy handoff: ${count} runs match ${EXPECTED_TITLE}."
+              exit 1
+            fi
+            if [ "${count}" -eq 1 ]; then
+              run_id="$(jq -r '.[0].id' <<<"${runs}")"
+              run_url="$(jq -r '.[0].html_url' <<<"${runs}")"
+              if [[ ! "${run_id}" =~ ^[0-9]+$ ]] || [ -z "${run_url}" ] || [ "${run_url}" = "null" ]; then
+                echo "::error::Private deploy match returned an invalid run identity."
+                exit 1
+              fi
+              {
+                echo "run_id=${run_id}"
+                echo "run_url=${run_url}"
+              } >>"${GITHUB_OUTPUT}"
+              echo "Matched private deployment run ${run_url}."
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "::error::No private deployment run matched ${EXPECTED_TITLE} within five minutes."
+          exit 1
+
+      - name: Wait for the exact private deployment result
+        env:
+          EXPECTED_TITLE: ${{ steps.dispatch.outputs.expected_title }}
+          PRIVATE_RUN_ID: ${{ steps.resolve.outputs.run_id }}
+          PRIVATE_RUN_URL: ${{ steps.resolve.outputs.run_url }}
+        run: |
+          set -euo pipefail
+
+          for _ in $(seq 1 340); do
+            run="$(gh api "repos/${CONSOLE_REPOSITORY}/actions/runs/${PRIVATE_RUN_ID}")"
+            title="$(jq -r '.display_title' <<<"${run}")"
+            event="$(jq -r '.event' <<<"${run}")"
+            branch="$(jq -r '.head_branch' <<<"${run}")"
+            status="$(jq -r '.status' <<<"${run}")"
+            conclusion="$(jq -r '.conclusion // ""' <<<"${run}")"
+
+            if [ "${title}" != "${EXPECTED_TITLE}" ] || [ "${event}" != "workflow_dispatch" ] || [ "${branch}" != "master" ]; then
+              echo "::error::Private run identity changed or does not represent the requested release SHA."
+              exit 1
+            fi
+            if [ "${status}" = "completed" ]; then
+              if [ "${conclusion}" != "success" ]; then
+                echo "::error::Private hosted SaaS deployment concluded ${conclusion}: ${PRIVATE_RUN_URL}"
+                exit 1
+              fi
+              {
+                echo "## Hosted SaaS deployment"
+                echo ""
+                echo "Private operations deployed public release SHA \`${RELEASE_SHA}\` successfully."
+                echo "Run: ${PRIVATE_RUN_URL}"
+              } >>"${GITHUB_STEP_SUMMARY}"
+              exit 0
+            fi
+
+            sleep 30
+          done
+
+          echo "::error::Private hosted SaaS deployment timed out after 170 minutes: ${PRIVATE_RUN_URL}"
+          exit 1
 
   promote-community:
     name: Promote Community release channels
@@ -197,6 +310,7 @@ jobs:
     with:
       checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
       dry_run: false
+      trusted_release_call: true
     secrets: inherit
 
   publish-release:

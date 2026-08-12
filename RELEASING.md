@@ -24,7 +24,8 @@ After that shared gate it ships both distribution lanes from the same commit:
 
 - community: self-hosted image, public install assets, and anonymous install
   smoke
-- SaaS: ECS migrations/services, all Vercel frontends, and production smoke
+- SaaS: a constrained handoff asks the private operations repository to deploy
+  the exact pinned public commit and waits for its production checks
 
 The workflow creates a draft release before the gates so a failed attempt can
 reuse the same version safely. It publishes the GitHub release and advances
@@ -67,11 +68,21 @@ Do not change the visibility of the internal `genfeed.ai/server` package.
 release itself, from the same pinned SHA — see the npm section below. No manual
 follow-up dispatch is required.
 
-Standalone production recovery/fallback deploys remain available through
-`.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
-GitHub `production` environment. Stable releases call the same reusable ECS
-core after their shared release gate. The legacy `Deploy Production` workflow
-was removed after the Fargate cutover.
+Hosted SaaS infrastructure, deployment implementation, recovery controls, and
+production runbooks live in the private `genfeedai/console.genfeed.ai`
+operations repository. This public repository retains only the release
+handshake. `release.yml` dispatches `deploy-hosted-saas.yml` at private ref
+`master` with the exact pinned release/source SHA and a unique correlation ID,
+then waits for the uniquely matched private run to succeed. A missing,
+ambiguous, timed-out, mismatched, cancelled, or failed private run leaves the
+public release as a draft and prevents `latest` and npm promotion.
+
+Configure the public repository secret `CONSOLE_DEPLOY_TOKEN` with a dedicated
+fine-grained token whose repository access is limited to
+`genfeedai/console.genfeed.ai` and whose only repository permission is
+**Actions: read and write**. That permission is required to dispatch the private
+workflow and read its exact correlated run. Do not grant contents, secrets,
+administration, or organization-wide access, and never print the token.
 
 ## Desktop Release
 

@@ -131,7 +131,7 @@ jobs:
   verify-suite:
     name: Full Suite (pre-publish gate)
     needs: validate-master-ref
-    # Mirror deploy-ecs.yml's qa-before-deploy grant: ci.yml requests
+    # Mirror release.yml's pre-publish grant: ci.yml requests
     # pull-requests/statuses write, build-verify needs packages:write (GHCR
     # cache login), and full-suite's cancel-doomed-run needs actions:write to
     # cancel this run on a red gate. A reusable workflow is capped by the

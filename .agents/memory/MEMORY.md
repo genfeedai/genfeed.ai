@@ -71,7 +71,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Specs and decisions (per issue)
 
-- [AWS operational monitoring](spec-aws-operational-monitoring.md) · [decisions](decisions-aws-operational-monitoring.md) — #1
 - [multi-type-posts-library](spec-multi-type-posts-library.md) · [decisions](decisions-multi-type-posts-library.md) — #2604
 - [operational-app-home](spec-operational-app-home.md) · [decisions](decisions-operational-app-home.md) — #1866
 - [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
@@ -113,9 +112,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 ## References
 
 - [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
-- [reference_postgres_rds](reference_postgres_rds.md) — prod/dev instances, sslmode gotcha
-- [reference_prod_aws_runtime](reference_prod_aws_runtime.md) — live AWS source of truth
-- [reference_production_fargate_vercel_webhook](reference_production_fargate_vercel_webhook.md) — ECS state, webhook receiver
 - [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
 
 ## Context (auto-loaded via CLAUDE.md @import)

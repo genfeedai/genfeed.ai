@@ -11,6 +11,7 @@
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",
+    "@genfeedai/styles": "*",
     "@genfeedai/types": "*",
     "@genfeedai/workflows": "*",
     "@remotion/player": "4.0.508",
