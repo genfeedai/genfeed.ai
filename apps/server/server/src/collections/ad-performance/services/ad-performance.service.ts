@@ -8,9 +8,16 @@ import {
   type AdPerformanceBenchmarkFields,
   buildAdPerformanceBenchmarkFields,
 } from '@server/collections/ad-performance/utils/ad-performance-benchmark.util';
+import {
+  type AdPerformanceIdentityFields,
+  buildAdPerformanceIdentityKey,
+  resolveAdPerformanceIdentityFields,
+} from '@server/collections/ad-performance/utils/ad-performance-identity.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 import { scopedWhere } from '@server/tenancy/scoped-where';
 
+const DEFAULT_PAGE_SIZE = 50;
+const UPSERT_BATCH_CHUNK_SIZE = 50;
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
 const MIN_TOP_PERFORMER_LIMIT = 1;
 const MAX_TOP_PERFORMER_LIMIT = 100;
@@ -66,19 +73,6 @@ export class AdPerformanceService {
     return typeof value === 'number' && Number.isFinite(value)
       ? value
       : undefined;
-  }
-
-  private readDate(value: unknown): Date | undefined {
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-      return value;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-    }
-
-    return undefined;
   }
 
   private isScalarTopPerformerMetric(
@@ -163,6 +157,8 @@ export class AdPerformanceService {
     benchmarkFields: AdPerformanceBenchmarkFields;
     credentialId: string | null;
     data: Record<string, unknown>;
+    identity: AdPerformanceIdentityFields;
+    identityKey: string;
     organizationId: string;
   } {
     const normalizedData = JSON.parse(JSON.stringify(data)) as Record<
@@ -172,6 +168,7 @@ export class AdPerformanceService {
     const brandId = this.readString(normalizedData.brandId) ?? null;
     const credentialId = this.readString(normalizedData.credentialId) ?? null;
     const organizationId = this.readString(normalizedData.organizationId);
+    const identity = resolveAdPerformanceIdentityFields(data);
 
     if (!organizationId) {
       throw new Error('AdPerformance organizationId is required');
@@ -186,77 +183,67 @@ export class AdPerformanceService {
       brandId,
       credentialId,
       data: normalizedData,
+      identity,
+      identityKey: buildAdPerformanceIdentityKey(identity),
       organizationId,
     };
   }
 
-  private matchesUpsertKey(
-    record: AdPerformanceDocument,
-    key: Record<string, unknown>,
-  ): boolean {
-    const date = this.readDate(record.date);
-    const keyDate = this.readDate(key.date);
-
-    return (
-      this.readString(record.adPlatform) === this.readString(key.adPlatform) &&
-      this.readString(record.externalAccountId) ===
-        this.readString(key.externalAccountId) &&
-      this.readString(record.granularity) ===
-        this.readString(key.granularity) &&
-      (date?.getTime() ?? null) === (keyDate?.getTime() ?? null) &&
-      this.readString(record.externalCampaignId) ===
-        this.readString(key.externalCampaignId) &&
-      this.readString(record.externalAdSetId) ===
-        this.readString(key.externalAdSetId) &&
-      this.readString(record.externalAdId) === this.readString(key.externalAdId)
-    );
+  private toWriteData(payload: {
+    brandId: string | null;
+    benchmarkFields: AdPerformanceBenchmarkFields;
+    credentialId: string | null;
+    data: Record<string, unknown>;
+    identity: AdPerformanceIdentityFields;
+    identityKey: string;
+    organizationId: string;
+  }) {
+    return {
+      ...payload.benchmarkFields,
+      brandId: payload.brandId,
+      credentialId: payload.credentialId,
+      data: payload.data as never,
+      date: payload.identity.date,
+      externalAccountId: payload.identity.externalAccountId,
+      externalAdId: payload.identity.externalAdId,
+      externalAdSetId: payload.identity.externalAdSetId,
+      externalCampaignId: payload.identity.externalCampaignId,
+      granularity: payload.identity.granularity,
+      identityKey: payload.identityKey,
+      isDeleted: false,
+      organizationId: payload.organizationId,
+    };
   }
 
   async upsert(data: Record<string, unknown>): Promise<AdPerformanceDocument> {
-    const key = this.buildUpsertKey(data);
     const payload = this.toPersistencePayload(data);
-    // sql-risk-audit: documented unbounded-read -- Upsert key fields are still JSON-backed; organizationId/isDeleted bounds this sync-path lookup until scalar key columns exist.
-    const existing = (
-      await this.prisma.adPerformance.findMany({
-        where: scopedWhere(payload.organizationId),
-      })
-    )
-      .map((record) => this.normalizeRecord(record))
-      .find((record) => this.matchesUpsertKey(record, key));
-
-    if (existing) {
-      const updated = await this.prisma.adPerformance.update({
-        data: {
-          ...payload.benchmarkFields,
-          brandId: payload.brandId,
-          credentialId: payload.credentialId,
-          data: payload.data as never,
+    const writeData = this.toWriteData(payload);
+    const record = await this.prisma.adPerformance.upsert({
+      create: writeData,
+      update: writeData,
+      where: {
+        organizationId_identityKey: {
+          identityKey: payload.identityKey,
           organizationId: payload.organizationId,
         },
-        where: { id: existing.id },
-      });
-
-      return this.normalizeRecord(updated);
-    }
-
-    const created = await this.prisma.adPerformance.create({
-      data: {
-        ...payload.benchmarkFields,
-        brandId: payload.brandId,
-        credentialId: payload.credentialId,
-        data: payload.data as never,
-        organizationId: payload.organizationId,
       },
     });
 
-    return this.normalizeRecord(created);
+    return this.normalizeRecord(record);
   }
 
   async upsertBatch(records: Record<string, unknown>[]): Promise<number> {
     let count = 0;
-    for (const data of records) {
-      await this.upsert(data);
-      count++;
+    for (
+      let index = 0;
+      index < records.length;
+      index += UPSERT_BATCH_CHUNK_SIZE
+    ) {
+      const chunk = records.slice(index, index + UPSERT_BATCH_CHUNK_SIZE);
+      for (const data of chunk) {
+        await this.upsert(data);
+        count++;
+      }
     }
     return count;
   }
@@ -272,45 +259,28 @@ export class AdPerformanceService {
       offset?: number;
     },
   ): Promise<AdPerformanceDocument[]> {
-    // sql-risk-audit: documented unbounded-read -- This org-scoped optimization path still filters JSON-only date/granularity fields until those fields are scalarized.
+    const adPlatform = this.readString(params.adPlatform);
+    const granularity = this.readString(params.granularity);
+    const dateFilter =
+      params.startDate || params.endDate
+        ? {
+            ...(params.startDate ? { gte: params.startDate } : {}),
+            ...(params.endDate ? { lte: params.endDate } : {}),
+          }
+        : undefined;
+
     const records = await this.prisma.adPerformance.findMany({
-      where: scopedWhere(organizationId),
+      orderBy: { date: { nulls: 'last', sort: 'desc' } },
+      skip: params.offset ?? 0,
+      take: params.limit ?? DEFAULT_PAGE_SIZE,
+      where: scopedWhere(organizationId, {
+        ...(adPlatform ? { adPlatform } : {}),
+        ...(dateFilter ? { date: dateFilter } : {}),
+        ...(granularity ? { granularity } : {}),
+      }),
     });
 
-    return records
-      .map((record) => this.normalizeRecord(record))
-      .filter((record) => {
-        if (
-          params.adPlatform &&
-          this.readString(record.adPlatform) !== params.adPlatform
-        ) {
-          return false;
-        }
-
-        if (
-          params.granularity &&
-          this.readString(record.granularity) !== params.granularity
-        ) {
-          return false;
-        }
-
-        const date = this.readDate(record.date);
-        if (params.startDate && (!date || date < params.startDate)) {
-          return false;
-        }
-
-        if (params.endDate && (!date || date > params.endDate)) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        const aDate = this.readDate(a.date)?.getTime() ?? 0;
-        const bDate = this.readDate(b.date)?.getTime() ?? 0;
-        return bDate - aDate;
-      })
-      .slice(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50));
+    return records.map((record) => this.normalizeRecord(record));
   }
 
   async findTopPerformers(
@@ -378,17 +348,13 @@ export class AdPerformanceService {
   async findLatestSyncDateForCredential(
     credentialId: string,
   ): Promise<Date | null> {
-    // sql-risk-audit: documented unbounded-read -- Latest sync date is JSON-backed, so the scheduler needs the credential slice until date becomes scalar/indexed.
-    const records = await this.prisma.adPerformance.findMany({
-      where: { credentialId, isDeleted: false },
+    const record = await this.prisma.adPerformance.findFirst({
+      orderBy: { date: { sort: 'desc' } },
+      select: { date: true },
+      where: { credentialId, date: { not: null }, isDeleted: false },
     });
 
-    return (
-      records
-        .map((record) => this.readDate(this.normalizeRecord(record).date))
-        .filter((value): value is Date => Boolean(value))
-        .sort((a, b) => b.getTime() - a.getTime())[0] ?? null
-    );
+    return record?.date ?? null;
   }
 
   async removeOrgFromAggregation(organizationId: string): Promise<number> {
@@ -413,30 +379,5 @@ export class AdPerformanceService {
     );
 
     return records.length;
-  }
-
-  private buildUpsertKey(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const key: Record<string, unknown> = {
-      adPlatform: data.adPlatform,
-      date: data.date,
-      externalAccountId: data.externalAccountId,
-      granularity: data.granularity,
-    };
-
-    switch (data.granularity) {
-      case 'campaign':
-        key.externalCampaignId = data.externalCampaignId;
-        break;
-      case 'adset':
-        key.externalAdSetId = data.externalAdSetId ?? data.externalAdGroupId;
-        break;
-      case 'ad':
-        key.externalAdId = data.externalAdId;
-        break;
-    }
-
-    return key;
   }
 }

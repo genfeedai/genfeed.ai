@@ -4139,6 +4139,13 @@ model AdPerformance {
   credentialId              String?
   credential                Credential?  @relation(fields: [credentialId], references: [id])
   data                      Json         @default("{}")
+  date                      DateTime?
+  granularity               String?
+  externalAccountId         String?
+  externalCampaignId        String?
+  externalAdSetId           String?
+  externalAdId              String?
+  identityKey               String
   headlineText              String?
   ctaText                   String?
   adPlatform                String?
@@ -4159,10 +4166,14 @@ model AdPerformance {
   createdAt                 DateTime     @default(now())
   updatedAt                 DateTime     @updatedAt
 
+  @@unique([organizationId, identityKey], map: "ad_performance_organizationId_identityKey_key")
   @@index([isDeleted, scope, industry])
   @@index([isDeleted, scope, adPlatform, industry])
   @@index([isDeleted, scope, spendBucket, adPlatform, industry])
   @@index([organizationId, isDeleted])
+  @@index([organizationId, isDeleted, date(sort: Desc)], map: "ad_performance_org_deleted_date_idx")
+  @@index([organizationId, isDeleted, adPlatform, granularity, date(sort: Desc)], map: "ad_performance_org_deleted_platform_granularity_date_idx")
+  @@index([credentialId, isDeleted, date(sort: Desc)], map: "ad_performance_credential_deleted_date_idx")
   @@map("ad_performance")
 }
 
