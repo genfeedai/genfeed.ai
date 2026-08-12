@@ -1,3 +1,4 @@
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +30,7 @@ describe('MediaUploadService', () => {
 
     service = new MediaUploadService(
       filesClientService as unknown as FilesClientService,
-      metadataService,
+      metadataService as unknown as MetadataService,
       loggerService,
     );
   });

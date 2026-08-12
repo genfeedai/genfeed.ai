@@ -208,7 +208,11 @@ describe('InsightsService', () => {
           data: { forecast: { value: 42 }, isRead: true },
           isRead: true,
         },
-        where: { id: 'insight-1' },
+        where: {
+          id: 'insight-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
@@ -220,7 +224,11 @@ describe('InsightsService', () => {
           data: { forecast: { value: 42 }, isDismissed: true, isRead: false },
           isDismissed: true,
         },
-        where: { id: 'insight-1' },
+        where: {
+          id: 'insight-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
@@ -236,7 +244,11 @@ describe('InsightsService', () => {
           isDismissed: true,
           isRead: true,
         },
-        where: { id: 'insight-1' },
+        where: {
+          id: 'insight-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 

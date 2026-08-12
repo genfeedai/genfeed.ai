@@ -1129,14 +1129,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 9,
-      "file": "apps/server/api/src/collections/insights/controllers/insights.controller.spec.ts",
-      "fingerprint": "f7dcd84d55deeff5c17a",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/links/entities/link.entity.spec.ts",

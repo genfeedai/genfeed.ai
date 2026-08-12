@@ -1559,7 +1559,7 @@ describe('PostGroupsService', () => {
         'user-1',
         'group-1',
         'target-1',
-        '2026-07-08T22:25:13.000Z',
+        '2026-07-08T22:25:11.000Z',
       ),
     ).rejects.toThrow('must be in the future');
     await expect(
