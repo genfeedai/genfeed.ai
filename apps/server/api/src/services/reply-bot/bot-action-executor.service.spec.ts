@@ -1,4 +1,5 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
@@ -30,6 +31,10 @@ describe('BotActionExecutorService', () => {
     sendCommentReplyDm: vi.fn(),
   };
 
+  const mockYoutubeService = {
+    replyToComment: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,6 +42,7 @@ describe('BotActionExecutorService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: InstagramService, useValue: mockInstagramService },
+        { provide: YoutubeService, useValue: mockYoutubeService },
       ],
     }).compile();
 
@@ -63,8 +69,8 @@ describe('BotActionExecutorService', () => {
     it.each([
       { isSupported: true, platform: ReplyBotPlatform.TWITTER },
       { isSupported: true, platform: ReplyBotPlatform.INSTAGRAM },
+      { isSupported: true, platform: ReplyBotPlatform.YOUTUBE },
       { isSupported: false, platform: ReplyBotPlatform.TIKTOK },
-      { isSupported: false, platform: ReplyBotPlatform.YOUTUBE },
       { isSupported: false, platform: ReplyBotPlatform.REDDIT },
       { isSupported: false, platform: 'unknown' },
     ])(
@@ -77,6 +83,9 @@ describe('BotActionExecutorService', () => {
           )
           .mockResolvedValue({ contentId: 'reply-1', success: true });
         mockInstagramService.postComment.mockResolvedValue({
+          commentId: 'reply-1',
+        });
+        mockYoutubeService.replyToComment.mockResolvedValue({
           commentId: 'reply-1',
         });
         const credential = {
@@ -97,8 +106,10 @@ describe('BotActionExecutorService', () => {
           expect(result.error).toBeUndefined();
           if (platform === ReplyBotPlatform.TWITTER) {
             expect(postTwitterReply).toHaveBeenCalledOnce();
-          } else {
+          } else if (platform === ReplyBotPlatform.INSTAGRAM) {
             expect(mockInstagramService.postComment).toHaveBeenCalledOnce();
+          } else {
+            expect(mockYoutubeService.replyToComment).toHaveBeenCalledOnce();
           }
         } else {
           expect(result.error).toBe(
@@ -106,6 +117,7 @@ describe('BotActionExecutorService', () => {
           );
           expect(postTwitterReply).not.toHaveBeenCalled();
           expect(mockInstagramService.postComment).not.toHaveBeenCalled();
+          expect(mockYoutubeService.replyToComment).not.toHaveBeenCalled();
         }
       },
     );
@@ -148,6 +160,56 @@ describe('BotActionExecutorService', () => {
         authorId: 'author-1',
         authorUsername: 'user1',
         id: 'media-123',
+      };
+
+      const result = await service.postReply(
+        credential,
+        targetContent,
+        'reply',
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('organizationId and brandId required');
+    });
+
+    it('should route to YouTube when platform is youtube', async () => {
+      const credential = {
+        accessToken: 'token',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'youtube',
+      };
+      const targetContent = {
+        authorId: 'author-1',
+        authorUsername: 'viewer1',
+        id: 'comment-123',
+      };
+      mockYoutubeService.replyToComment.mockResolvedValue({
+        commentId: 'yt-reply-1',
+      });
+
+      const result = await service.postReply(
+        credential,
+        targetContent,
+        'Thanks for watching!',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.contentId).toBe('yt-reply-1');
+      expect(mockYoutubeService.replyToComment).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'comment-123',
+        'Thanks for watching!',
+      );
+    });
+
+    it('should return error for YouTube when organizationId is missing', async () => {
+      const credential = { accessToken: 'token', platform: 'youtube' };
+      const targetContent = {
+        authorId: 'author-1',
+        authorUsername: 'viewer1',
+        id: 'comment-123',
       };
 
       const result = await service.postReply(

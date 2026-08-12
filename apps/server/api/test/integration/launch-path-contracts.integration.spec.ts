@@ -294,12 +294,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const authorLoop = readRepo(
       'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
     );
+    const executor = readRepo(
+      'apps/server/api/src/services/reply-bot/bot-action-executor.service.ts',
+    );
     expect(controller).toContain("Post('author-reply/ensure')");
     expect(controller).toContain("Get('author-reply/inbox')");
     expect(controller).toContain("Post('author-reply/send')");
+    expect(controller).toContain('platform: body.platform');
     expect(replyGen).toContain('resolveHarnessContext');
     expect(authorLoop).toContain('recordAuthorClosedLoop');
     expect(authorLoop).toContain('COMMENT_RESPONDER');
+    expect(authorLoop).toContain('loadYouTubeCredential');
+    expect(executor).toContain('postYouTubeCommentReply');
+    expect(executor).toContain('replyToComment');
   });
 
   it('reads X replies via official API first with Apify fallback only', () => {

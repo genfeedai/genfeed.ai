@@ -185,6 +185,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       intent: body.intent,
       organizationId: publicMetadata.organization,
       parentPostPreview: body.parentPostPreview,
+      platform: body.platform,
       userId: user.id,
     });
   }
@@ -206,6 +207,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       organizationId: publicMetadata.organization,
       parentPostId: body.parentPostId,
       parentPostPreview: body.parentPostPreview,
+      platform: body.platform,
       replyText: body.replyText,
       userId: user.id,
     });

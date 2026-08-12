@@ -1,4 +1,5 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
@@ -24,6 +25,7 @@ export class BotActionExecutorService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly instagramService: InstagramService,
+    private readonly youtubeService: YoutubeService,
   ) {}
 
   /**
@@ -124,6 +126,12 @@ export class BotActionExecutorService {
         return this.postTwitterReply(credential, targetContent, replyText);
       case ReplyBotPlatform.INSTAGRAM:
         return this.postInstagramComment(credential, targetContent, replyText);
+      case ReplyBotPlatform.YOUTUBE:
+        return this.postYouTubeCommentReply(
+          credential,
+          targetContent,
+          replyText,
+        );
       default:
         return Promise.resolve({
           error: unsupportedReplyBotPlatformMessage(platformInput),
@@ -246,6 +254,55 @@ export class BotActionExecutorService {
         error: errorMessage,
         mediaId: targetContent.id,
         platform: ReplyBotPlatform.INSTAGRAM,
+      });
+
+      return {
+        error: errorMessage,
+        success: false,
+      };
+    }
+  }
+
+  /**
+   * Reply to a top-level YouTube comment (parentId = comment id).
+   */
+  private async postYouTubeCommentReply(
+    credential: IReplyBotCredentialData,
+    targetContent: IReplyBotContentData,
+    replyText: string,
+  ): Promise<IReplyBotReplyResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      if (!credential.organizationId || !credential.brandId) {
+        throw new Error('organizationId and brandId required for YouTube');
+      }
+
+      const result = await this.youtubeService.replyToComment(
+        credential.organizationId,
+        credential.brandId,
+        targetContent.id,
+        replyText,
+      );
+
+      this.loggerService.log(`${url} success`, {
+        commentId: result.commentId,
+        parentCommentId: targetContent.id,
+        platform: ReplyBotPlatform.YOUTUBE,
+        replyLength: replyText.length,
+      });
+
+      return {
+        contentId: result.commentId,
+        success: true,
+      };
+    } catch (error: unknown) {
+      const errorMessage = (error as Error)?.message || 'Unknown error';
+
+      this.loggerService.error(`${url} failed`, {
+        error: errorMessage,
+        parentCommentId: targetContent.id,
+        platform: ReplyBotPlatform.YOUTUBE,
       });
 
       return {

@@ -138,6 +138,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     commentText: string;
     intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
   }): Promise<{
     commentId: string;
     draft: string;
@@ -158,6 +159,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostId: string;
     parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
     replyText?: string;
   }): Promise<{
     commentId: string;

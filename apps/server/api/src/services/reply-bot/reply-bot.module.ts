@@ -27,6 +27,7 @@ import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -90,6 +91,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
     // Instagram for comment replies and DMs
     forwardRef(() => InstagramModule),
+
+    // YouTube for author-reply comment replies
+    forwardRef(() => YoutubeModule),
   ],
   providers: [
     AuthorReplyLoopService,

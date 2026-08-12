@@ -177,4 +177,89 @@ describe('AuthorReplyLoopService', () => {
       }),
     );
   });
+
+  it('drafts with youtube platform pack', async () => {
+    const result = await service.draftReply({
+      brandId: 'brand-1',
+      commentAuthor: 'viewer',
+      commentId: 'c1',
+      commentText: 'Great video!',
+      organizationId: 'org-1',
+      platform: 'youtube',
+      userId: 'user-1',
+    });
+
+    expect(replyGenerationService.generateReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: 'youtube',
+      }),
+    );
+    expect(result.draft).toContain('Solid take');
+    expect(result.harnessApplied).toBe(true);
+  });
+
+  it('sends YouTube replies via YouTube credential and executor', async () => {
+    replyBotConfigsService.find.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        config: { credentialId: 'yt-cred' },
+        id: 'bot-yt',
+        platform: 'youtube',
+        type: 'comment_responder',
+      },
+    ]);
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      id: 'yt-cred',
+      username: 'channel',
+    });
+    botActionExecutorService.postReply.mockResolvedValue({
+      contentId: 'yt-reply-1',
+      success: true,
+    });
+
+    const result = await service.sendReply({
+      brandId: 'brand-1',
+      commentAuthor: 'viewer',
+      commentAuthorId: 'ch-2',
+      commentId: 'c1',
+      commentText: 'Great video!',
+      organizationId: 'org-1',
+      parentPostId: 'video-1',
+      platform: 'youtube',
+      replyText: 'Thanks for watching!',
+      userId: 'user-1',
+    });
+
+    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'youtube',
+      }),
+      expect.objectContaining({ id: 'c1' }),
+      'Thanks for watching!',
+    );
+    expect(result.success).toBe(true);
+    expect(result.contentId).toBe('yt-reply-1');
+  });
+
+  it('rejects YouTube send without a YouTube credential', async () => {
+    replyBotConfigsService.find.mockResolvedValue([]);
+    prisma.credential.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.sendReply({
+        brandId: 'brand-1',
+        commentAuthor: 'viewer',
+        commentId: 'c1',
+        commentText: 'Great video!',
+        organizationId: 'org-1',
+        parentPostId: 'video-1',
+        platform: 'youtube',
+        replyText: 'Thanks!',
+        userId: 'user-1',
+      }),
+    ).rejects.toThrow(/YouTube credential/i);
+  });
 });

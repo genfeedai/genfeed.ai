@@ -4,6 +4,7 @@ import {
   BotCategory,
   BotPlatform,
   BotStatus,
+  LivestreamTranscriptSource,
   Platform,
   parsePlatform,
 } from '@genfeedai/enums';
@@ -441,8 +442,11 @@ export class AgentLivestreamToolHandler {
       prioritizeYoutube: true,
       scheduledCadenceMinutes: params.scheduledCadenceMinutes ?? 10,
       targetAudience: ['hosts', 'audience'],
+      // Restream-first: unified chat WS when brand has a RESTREAM OAuth credential.
+      // restreamCredentialId is auto-bound at runtime by BotsRestreamChatService.
       transcriptEnabled: params.transcriptEnabled ?? true,
       transcriptLookbackMinutes: 3,
+      transcriptSource: LivestreamTranscriptSource.RESTREAM_CHAT,
     };
   }
 

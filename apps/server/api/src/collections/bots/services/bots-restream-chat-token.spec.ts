@@ -27,6 +27,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
       logger as never,
       restreamService as never,
       credentialsService as never,
+      undefined,
     );
 
     const token = await service.resolveRestreamAccessToken({
@@ -65,6 +66,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
       logger as never,
       restreamService as never,
       credentialsService as never,
+      undefined,
     );
 
     const token = await service.resolveRestreamAccessToken({
@@ -82,6 +84,59 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
       'cred-stale',
       expect.objectContaining({
         accessToken: 'rotated-access',
+      }),
+    );
+  });
+
+  it('auto-binds brand RESTREAM credential when restreamCredentialId is missing', async () => {
+    const credentialsService = {
+      findOne: vi.fn().mockResolvedValue({
+        accessToken: 'brand-access',
+        accessTokenExpiry: new Date(Date.now() + 3_600_000),
+        id: 'cred-brand',
+        refreshToken: 'refresh-brand',
+      }),
+      patch: vi.fn(),
+    };
+    const botsService = {
+      patch: vi.fn().mockResolvedValue({}),
+    };
+    const restreamService = {
+      refreshAccessToken: vi.fn(),
+      collectChatActions: vi.fn(),
+    };
+
+    const service = new BotsRestreamChatService(
+      livestream as never,
+      logger as never,
+      restreamService as never,
+      credentialsService as never,
+      botsService as never,
+    );
+
+    const bot = {
+      brandId: 'brand-1',
+      id: 'bot-1',
+      livestreamSettings: {},
+      organizationId: 'org-1',
+    } as never;
+
+    const token = await service.resolveRestreamAccessToken(bot);
+
+    expect(token).toBe('brand-access');
+    expect(credentialsService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        platform: 'restream',
+      }),
+    );
+    expect(botsService.patch).toHaveBeenCalledWith(
+      'bot-1',
+      expect.objectContaining({
+        livestreamSettings: expect.objectContaining({
+          restreamCredentialId: 'cred-brand',
+          transcriptSource: 'restream_chat',
+        }),
       }),
     );
   });
@@ -109,6 +164,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
       logger as never,
       restreamService as never,
       credentialsService as never,
+      undefined,
     );
 
     const token = await service.resolveRestreamAccessToken(

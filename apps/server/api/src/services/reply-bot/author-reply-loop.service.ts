@@ -411,10 +411,15 @@ export class AuthorReplyLoopService {
     intent?: ReplyIntent;
     organizationId: string;
     parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
     userId: string;
   }): Promise<AuthorReplyDraftResult> {
     const intent = resolveReplyIntent(params.commentText, params.intent);
     const persona = getReplyIntentPersona(intent);
+    const platform =
+      params.platform === 'youtube'
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
 
     if (persona.shouldSkipAuto && !params.intent) {
       return {
@@ -432,7 +437,9 @@ export class AuthorReplyLoopService {
         ? `Parent post: ${params.parentPostPreview}`
         : undefined,
       customInstructions: [
-        'You are the author of the parent post replying on your own thread.',
+        platform === ReplyBotPlatform.YOUTUBE
+          ? 'You are the channel owner replying to a YouTube comment on your video.'
+          : 'You are the author of the parent post replying on your own thread.',
         persona.instructions,
         `Tone: ${persona.toneHint}.`,
       ].join(' '),
@@ -441,7 +448,7 @@ export class AuthorReplyLoopService {
           ? ReplyLength.SHORT
           : ReplyLength.MEDIUM,
       organizationId: params.organizationId,
-      platform: 'twitter',
+      platform: platform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
       tone:
         intent === 'troll'
           ? ReplyTone.HUMOROUS
@@ -474,16 +481,36 @@ export class AuthorReplyLoopService {
     organizationId: string;
     parentPostId: string;
     parentPostPreview?: string;
+    platform?: 'twitter' | 'youtube';
     replyText?: string;
     userId: string;
   }): Promise<AuthorReplySendResult> {
-    const credential = await this.loadTwitterCredential(
-      params.organizationId,
-      params.brandId,
-    );
+    const replyPlatform =
+      params.platform === 'youtube'
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
+    const platformLabel =
+      replyPlatform === ReplyBotPlatform.YOUTUBE ? 'YouTube' : 'X';
+
+    const credential =
+      replyPlatform === ReplyBotPlatform.YOUTUBE
+        ? await this.loadYouTubeCredential(
+            params.organizationId,
+            params.brandId,
+          )
+        : await this.loadTwitterCredential(
+            params.organizationId,
+            params.brandId,
+          );
     if (!credential) {
-      throw new BadRequestException('No X credential for this brand');
+      throw new BadRequestException(
+        `No ${platformLabel} credential for this brand`,
+      );
     }
+
+    // YouTube reply API needs org/brand for token refresh; Instagram-style path.
+    credential.organizationId = params.organizationId;
+    credential.brandId = params.brandId;
 
     const intent = resolveReplyIntent(params.commentText, params.intent);
     if (intent === 'spam' && !params.replyText?.trim()) {
@@ -503,6 +530,8 @@ export class AuthorReplyLoopService {
           intent,
           organizationId: params.organizationId,
           parentPostPreview: params.parentPostPreview,
+          platform:
+            replyPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
           userId: params.userId,
         })
       ).draft;
@@ -530,7 +559,8 @@ export class AuthorReplyLoopService {
         commentId: params.commentId,
         organizationId: params.organizationId,
         parentPostId: params.parentPostId,
-        platform: 'twitter',
+        platform:
+          replyPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter',
         replyContentId: result.contentId,
       });
 

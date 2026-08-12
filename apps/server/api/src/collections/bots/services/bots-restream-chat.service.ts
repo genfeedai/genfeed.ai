@@ -1,4 +1,5 @@
 import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
+import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
@@ -54,6 +55,9 @@ export class BotsRestreamChatService {
     private readonly logger: LoggerService,
     @Optional() private readonly restreamService?: RestreamService,
     @Optional() private readonly credentialsService?: CredentialsService,
+    @Optional()
+    @Inject(forwardRef(() => BotsService))
+    private readonly botsService?: BotsService,
   ) {}
 
   /**
@@ -342,11 +346,69 @@ export class BotsRestreamChatService {
         platform: Platform.RESTREAM,
       } as never);
       if (byBrand) {
+        const resolvedId =
+          typeof (byBrand as { id?: unknown }).id === 'string'
+            ? (byBrand as { id: string }).id
+            : undefined;
+        // Persist brand RESTREAM credential onto the bot so later loads skip discovery.
+        if (
+          resolvedId &&
+          bot.id &&
+          !bot.livestreamSettings?.restreamCredentialId
+        ) {
+          await this.bindRestreamCredentialId(bot, resolvedId);
+        }
         return byBrand as Record<string, unknown>;
       }
     }
 
     return null;
+  }
+
+  /**
+   * Best-effort durable bind of brand RESTREAM OAuth credential to livestream settings.
+   * Failures are logged and ignored — runtime already has the credential for this call.
+   */
+  private async bindRestreamCredentialId(
+    bot: BotDocument,
+    restreamCredentialId: string,
+  ): Promise<void> {
+    if (!this.botsService || !bot.id) {
+      return;
+    }
+
+    try {
+      const existingSettings =
+        bot.livestreamSettings && typeof bot.livestreamSettings === 'object'
+          ? { ...bot.livestreamSettings }
+          : {};
+
+      await this.botsService.patch(bot.id, {
+        livestreamSettings: {
+          ...existingSettings,
+          restreamCredentialId,
+          transcriptSource:
+            existingSettings.transcriptSource ??
+            LivestreamTranscriptSource.RESTREAM_CHAT,
+        },
+      } as never);
+
+      // Keep in-memory bot consistent for the rest of this request.
+      bot.livestreamSettings = {
+        ...existingSettings,
+        restreamCredentialId,
+        transcriptSource:
+          existingSettings.transcriptSource ??
+          LivestreamTranscriptSource.RESTREAM_CHAT,
+      };
+    } catch (error) {
+      this.logger.warn('Failed to auto-bind restreamCredentialId on bot', {
+        botId: bot.id,
+        context: this.logContext,
+        error,
+        restreamCredentialId,
+      });
+    }
   }
 }
 

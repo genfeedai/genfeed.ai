@@ -200,6 +200,7 @@ export default function RepliesPage() {
         commentText: item.commentText,
         intent,
         parentPostPreview: item.parentPostPreview,
+        platform: inboxPlatform,
       });
       setDrafts((prev) => ({ ...prev, [item.commentId]: result.draft }));
       if (result.intent) {
@@ -240,6 +241,7 @@ export default function RepliesPage() {
         intent,
         parentPostId: item.parentPostId,
         parentPostPreview: item.parentPostPreview,
+        platform: inboxPlatform,
         replyText: drafts[item.commentId],
       });
       if (!result.success) {

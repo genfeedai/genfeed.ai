@@ -130,6 +130,16 @@ export class AuthorReplyDraftDto {
   @IsOptional()
   @ApiProperty({ required: false })
   parentPostPreview?: string;
+
+  @IsIn(['twitter', 'youtube'] as const)
+  @IsOptional()
+  @ApiProperty({
+    default: 'twitter',
+    description: 'Platform for harness pack selection (twitter | youtube)',
+    enum: ['twitter', 'youtube'],
+    required: false,
+  })
+  platform?: 'twitter' | 'youtube';
 }
 
 export class AuthorReplySendDto {
@@ -186,4 +196,14 @@ export class AuthorReplySendDto {
     required: false,
   })
   replyText?: string;
+
+  @IsIn(['twitter', 'youtube'] as const)
+  @IsOptional()
+  @ApiProperty({
+    default: 'twitter',
+    description: 'Platform to post the author reply on (twitter | youtube)',
+    enum: ['twitter', 'youtube'],
+    required: false,
+  })
+  platform?: 'twitter' | 'youtube';
 }
