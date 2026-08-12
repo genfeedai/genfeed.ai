@@ -52,6 +52,8 @@ export const DESKTOP_IPC_CHANNELS = {
   appEnableOfflineMode: 'desktop:app:enableOfflineMode',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
   appOpenExternalPath: 'desktop:app:openExternalPath',
+  appRevealLogs: 'desktop:app:revealLogs',
+  appUseCloudMode: 'desktop:app:useCloudMode',
   authChanged: 'desktop:auth:changed',
   authGetSession: 'desktop:auth:getSession',
   authLogin: 'desktop:auth:login',
@@ -859,9 +861,11 @@ export interface IDesktopWorkflowRunResult {
 
 export interface IGenfeedDesktopBridge {
   app: {
-    enableOfflineMode: () => Promise<void>;
+    enableOfflineMode: () => Promise<IDesktopBootstrap>;
     getDiagnostics: () => Promise<{
       isPackaged: boolean;
+      logPath: string;
+      mode: 'cloud' | 'local';
       platform: string;
       releaseChannel: 'development' | 'production';
       version: string;
@@ -872,6 +876,8 @@ export interface IGenfeedDesktopBridge {
     ) => () => void;
     onToggleSidebar: (callback: () => void) => () => void;
     openExternalPath: (pathname: string) => Promise<void>;
+    revealLogs: () => Promise<void>;
+    switchToCloudMode: () => Promise<void>;
   };
   auth: {
     getSession: () => Promise<IDesktopSession | null>;

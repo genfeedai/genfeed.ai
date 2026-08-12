@@ -4,7 +4,14 @@
 
 There is no desktop-local React/Next.js renderer. Development and release builds
 run the canonical `apps/app` codebase, while Electron owns native lifecycle,
-PGlite, BYOK generation, sync/session services, terminal, tray, and updates.
+the opt-in PGlite runtime, BYOK generation, sync services, terminal, tray, and
+updates.
+
+Cloud mode is the default. It starts the web shell and encrypted desktop session
+store without constructing PGlite or touching `pglite-db`. The embedded database
+and its dependent services start only after the user selects a local workspace.
+No system PostgreSQL, Redis, Homebrew package, or separately managed backend is
+installed or started.
 
 Installed builds load the HTTPS app origin derived from
 `GENFEED_DESKTOP_AUTH_URL` first, then start the bundled app shell on
@@ -52,7 +59,7 @@ real API origin. This keeps the Better Auth cookie scoped to the shell origin.
 Genfeed Connect sign-in opens the system browser with PKCE. The callback returns
 through `genfeedai-desktop://auth`; Electron exchanges the code for a main-only
 `gf_` API key and an exact signed Better Auth session cookie. Electron stores
-both together using the existing encrypted session store and installs the
+both together using the small PGlite-independent encrypted session store and installs the
 HttpOnly cookie as a host-only cookie on the selected app origin. The API key is
 never exposed to `apps/app`; main only adds it to trusted shell requests as
 `x-genfeed-desktop-token`. Every trusted shell request also carries the app
@@ -173,9 +180,8 @@ Optional signing and notarization environment variables:
 
 - Electron desktop shell embedding the real `apps/app` frontend
 - No parallel desktop-local renderer or desktop-local Next.js configuration
-- Active typed IPC for system-browser sign-in, cloud content generation, and local generation provider settings
-- Dormant Phase-2 IPC/services retained for workspace, files, drafts, notifications, diagnostics, sync, terminal, and local workflow execution
-- PGlite-backed local cache for workspaces, recents, session metadata, provider settings, and sync/generation jobs
+- Active typed IPC for system-browser sign-in, explicit cloud/local mode switching, local workspaces, and local generation
+- PGlite-backed local state for workspaces, recents, provider settings, and sync/generation jobs; cloud session and selected mode live outside PGlite
 - Workspace-backed content run drafts stored in `.genfeed/content-runs.json`
 - Genfeed Cloud generation by default after sign-in, with optional offline generation through user-configured OpenAI-compatible local providers
 - macOS artifact generation via `electron-builder`, icon generation, and optional notarization hook

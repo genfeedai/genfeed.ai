@@ -52,6 +52,10 @@ export class DesktopAppShellService {
     private readonly environment: IDesktopEnvironment,
     private readonly getSession: () => IDesktopSession | null,
     private readonly getDataDir: () => string,
+    private readonly writeLog?: (
+      level: 'error' | 'info',
+      message: string,
+    ) => void,
   ) {}
 
   get appOrigin(): string {
@@ -134,11 +138,15 @@ export class DesktopAppShellService {
 
   private attachServerLogs(child: ChildProcess): void {
     child.stdout?.on('data', (chunk: Buffer | string) => {
-      process.stdout.write(`[desktop-app] ${chunk.toString()}`);
+      const message = `[desktop-app] ${chunk.toString()}`;
+      process.stdout.write(message);
+      this.writeLog?.('info', message);
     });
 
     child.stderr?.on('data', (chunk: Buffer | string) => {
-      process.stderr.write(`[desktop-app] ${chunk.toString()}`);
+      const message = `[desktop-app] ${chunk.toString()}`;
+      process.stderr.write(message);
+      this.writeLog?.('error', message);
     });
   }
 

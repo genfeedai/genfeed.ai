@@ -3,7 +3,7 @@ import type {
   IDesktopSession,
   IDesktopSyncConsent,
 } from '@genfeedai/desktop-contracts';
-import type { DesktopKvService } from './kv.service';
+import type { DesktopKeyValueStore } from './store.service';
 import {
   assertActiveSyncAccount,
   DesktopSyncConsentService,
@@ -25,7 +25,7 @@ const createKvMock = () => {
       values.set(key, value);
     },
     values,
-  } as unknown as DesktopKvService & { values: Map<string, string> };
+  } as unknown as DesktopKeyValueStore & { values: Map<string, string> };
 };
 
 describe('DesktopSyncConsentService', () => {

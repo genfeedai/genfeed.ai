@@ -6,12 +6,18 @@ import DesktopLocalProviderSettings from './DesktopLocalProviderSettings';
 
 const mocks = vi.hoisted(() => ({
   bridge: null as null | {
+    app: {
+      enableOfflineMode: ReturnType<typeof vi.fn>;
+      getBootstrap: ReturnType<typeof vi.fn>;
+    };
     generation: {
       getProviderConfig: ReturnType<typeof vi.fn>;
       saveProviderConfig: ReturnType<typeof vi.fn>;
       testProviderConfig: ReturnType<typeof vi.fn>;
     };
   },
+  enableOfflineMode: vi.fn(),
+  getBootstrap: vi.fn(),
   getProviderConfig: vi.fn(),
   saveProviderConfig: vi.fn(),
   testProviderConfig: vi.fn(),
@@ -57,6 +63,10 @@ vi.mock('@/lib/desktop/runtime', () => ({
 
 function setupBridge() {
   mocks.bridge = {
+    app: {
+      enableOfflineMode: mocks.enableOfflineMode,
+      getBootstrap: mocks.getBootstrap,
+    },
     generation: {
       getProviderConfig: mocks.getProviderConfig,
       saveProviderConfig: mocks.saveProviderConfig,
@@ -69,6 +79,7 @@ describe('DesktopLocalProviderSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupBridge();
+    mocks.getBootstrap.mockResolvedValue({ isOfflineMode: true });
     mocks.getProviderConfig.mockResolvedValue({
       apiKeyConfigured: true,
       baseUrl: 'http://localhost:9999/v1',
@@ -98,6 +109,14 @@ describe('DesktopLocalProviderSettings', () => {
       );
       expect(screen.getByPlaceholderText('API key saved')).toBeInTheDocument();
     });
+  });
+
+  it('does not touch local provider storage while cloud mode is active', async () => {
+    mocks.getBootstrap.mockResolvedValue({ isOfflineMode: false });
+    render(<DesktopLocalProviderSettings />);
+
+    expect(await screen.findByText('Local generation is off')).toBeVisible();
+    expect(mocks.getProviderConfig).not.toHaveBeenCalled();
   });
 
   it('applies provider presets and saves trimmed provider credentials', async () => {

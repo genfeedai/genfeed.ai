@@ -22,8 +22,11 @@ no local NestJS API clone.
 - Ollama, LM Studio, and generic OpenAI-compatible presets currently cover text/workflow JSON
   through `/chat/completions`; claim image/video/audio support only when a concrete local
   asset adapter exists.
-- Pure no-network local/offline asset generation is tracked in issue #363. Until it ships, the
-  desktop sign-in surface shows "Work offline" as a **disabled** demand signal, not a mode.
+- The desktop sign-in surface now exposes explicit local mode under #2824. That
+  mode starts PGlite and the Electron-main local services on demand. It does not
+  imply that every configured provider is network-free: Ollama/LM Studio can be
+  local, while Replicate/fal.ai and generic remote endpoints still use the
+  network and must be labeled accordingly.
 
 **How to apply:**
 - Keep local/BYOK generation in Electron main; expose it to `apps/app` only through the

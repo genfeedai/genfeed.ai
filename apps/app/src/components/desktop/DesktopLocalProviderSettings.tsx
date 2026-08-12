@@ -6,7 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 
 const PROVIDER_PRESETS: Record<
@@ -149,6 +149,7 @@ export default function DesktopLocalProviderSettings({
   variant = 'compact',
 }: DesktopLocalProviderSettingsProps) {
   const [state, dispatch] = useReducer(providerReducer, initialState);
+  const [isLocalMode, setIsLocalMode] = useState<boolean | null>(null);
   const {
     provider,
     baseUrl,
@@ -165,6 +166,10 @@ export default function DesktopLocalProviderSettings({
   const loadProvider = useCallback(async () => {
     const bridge = getDesktopBridge();
     if (!bridge) return;
+
+    const bootstrap = await bridge.app.getBootstrap();
+    setIsLocalMode(bootstrap.isOfflineMode);
+    if (!bootstrap.isOfflineMode) return;
 
     const config = await bridge.generation.getProviderConfig();
     if (!config) return;
@@ -250,6 +255,58 @@ export default function DesktopLocalProviderSettings({
       });
     }
   };
+
+  const handleStartLocalMode = async () => {
+    const bridge = getDesktopBridge();
+    if (!bridge) return;
+    dispatch({ type: 'SET_STATUS', payload: 'Starting local workspace…' });
+    try {
+      await bridge.app.enableOfflineMode();
+      window.location.assign('/desktop/local');
+    } catch (error) {
+      dispatch({
+        type: 'SET_STATUS',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Local mode could not start.',
+      });
+    }
+  };
+
+  if (isLocalMode === false) {
+    const inactiveContent = (
+      <>
+        <div className="text-sm font-medium text-foreground/88">
+          Local generation is off
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          PGlite and local provider settings start only after you switch to a
+          local workspace.
+        </p>
+        <Button
+          className="mt-3 rounded px-2 py-1 text-xs"
+          onClick={() => void handleStartLocalMode()}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          Use a local workspace
+        </Button>
+        {status ? (
+          <p className="mt-2 break-words text-[11px] text-foreground/48">
+            {status}
+          </p>
+        ) : null}
+      </>
+    );
+
+    return isCard ? (
+      <Card className="p-5">{inactiveContent}</Card>
+    ) : (
+      <div className="border-t border-white/[0.06] p-3">{inactiveContent}</div>
+    );
+  }
 
   const content = (
     <>

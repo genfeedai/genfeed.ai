@@ -811,6 +811,7 @@ async function resolveCanonicalProtectedPath(
 function isBetterAuthPublicRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/desktop/local') ||
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
     pathname.startsWith('/forgot-password') ||
