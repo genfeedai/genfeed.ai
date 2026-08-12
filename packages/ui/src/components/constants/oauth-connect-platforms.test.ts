@@ -92,7 +92,9 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
 
   it('carries an icon and colour for every tile', () => {
     for (const platform of OAUTH_CONNECT_PLATFORMS) {
-      expect(typeof platform.Icon).toBe('function');
+      // React component types may be functions or wrapper objects such as
+      // forwardRef; the catalog contract is that an icon is present.
+      expect(platform.Icon).toBeTruthy();
       expect(platform.iconClassName).toBeTruthy();
     }
   });
