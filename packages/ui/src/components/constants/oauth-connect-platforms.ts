@@ -10,6 +10,7 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import { Radio } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 export type OAuthConnectPlatformCategoryId =
@@ -140,6 +141,14 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     iconClassName: 'text-foreground',
     label: 'TikTok',
     platform: CredentialPlatform.TIKTOK,
+  },
+  {
+    category: 'video',
+    Icon: Radio,
+    iconClassName: 'text-violet-500',
+    label: 'Restream',
+    platform: CredentialPlatform.RESTREAM,
+    servicePath: 'restream',
   },
   {
     category: 'communities',
