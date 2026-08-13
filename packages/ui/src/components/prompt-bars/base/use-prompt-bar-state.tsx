@@ -53,6 +53,7 @@ import { useWatch } from 'react-hook-form';
 
 import {
   EMPTY_ARRAY,
+  PROMPT_BAR_TEXTAREA_MAX_HEIGHT,
   resizeTextarea,
   toAttachedPromptAsset,
 } from './prompt-bar.helpers';
@@ -183,12 +184,11 @@ export function usePromptBarState({
   const hasExpandedRef = useRef(false);
   const [promptBarHeight, setPromptBarHeight] = useState(0);
 
-  const textareaMaxHeight = isCollapsible ? 300 : 240;
   const resizePromptTextarea = useCallback(
     (textarea: HTMLTextAreaElement | null) => {
-      resizeTextarea(textarea, textareaMaxHeight);
+      resizeTextarea(textarea, PROMPT_BAR_TEXTAREA_MAX_HEIGHT);
     },
-    [textareaMaxHeight],
+    [],
   );
 
   useEffect(() => {
@@ -487,6 +487,20 @@ export function usePromptBarState({
       form.setValue('brand', brandId, { shouldValidate: true });
     }
   }, [brandId, form]);
+
+  // Simple mode has no model selector: the backend auto-selects the model
+  // from prompt + quality, so the form must opt into auto-select or generate
+  // would stay blocked on the (hidden) model requirement.
+  const hasSelectedModels = normalizedWatchedModels.length > 0;
+  useEffect(() => {
+    if (isAdvancedMode || hasSelectedModels) {
+      return;
+    }
+    if (form.getValues('autoSelectModel') !== true) {
+      form.setValue('autoSelectModel', true, { shouldValidate: true });
+      triggerConfigChange();
+    }
+  }, [isAdvancedMode, hasSelectedModels, form, triggerConfigChange]);
 
   useEffect(() => {
     if (!isCollapsible || hasExpandedRef.current) {

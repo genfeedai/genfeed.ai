@@ -239,7 +239,10 @@ function AgentChatMessageInner({
       id={messageAnchorId}
       className={cn(
         'mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
-        isUser ? 'justify-end' : 'justify-start',
+        // The user prompt pins to the top of the scroll viewport for the
+        // duration of its turn (Cursor-style); the turn wrapper in
+        // AgentChatTimeline is the sticky containing block.
+        isUser ? 'sticky top-0 z-10 justify-end' : 'justify-start',
       )}
       style={entranceAnimationStyle}
     >
@@ -250,7 +253,7 @@ function AgentChatMessageInner({
           'group relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[min(82%,36rem)] overflow-hidden rounded-lg border border-border/60 bg-background-secondary px-3.5 py-2.5 text-[13px] leading-5 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            ? 'max-w-[min(82%,36rem)] overflow-hidden rounded-lg border border-border/60 bg-background-secondary/95 px-3.5 py-2.5 text-[13px] leading-5 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)] backdrop-blur-md'
             : // Free-text assistant: no card chrome — document flow like T3/chat
               'w-full max-w-full border-0 bg-transparent px-0.5 py-1 text-[15px] leading-7 text-foreground shadow-none',
         )}

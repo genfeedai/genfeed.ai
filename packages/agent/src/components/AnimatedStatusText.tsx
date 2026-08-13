@@ -6,6 +6,10 @@ interface AnimatedStatusTextProps {
   text: string;
 }
 
+/**
+ * Busy/status label with a Cursor-style shimmer sweep. The gradient derives
+ * from `currentColor`, so callers keep controlling the color via text classes.
+ */
 export function AnimatedStatusText({
   className,
   text,
@@ -14,25 +18,11 @@ export function AnimatedStatusText({
     <output
       aria-label={text}
       className={cn(
-        'inline-flex flex-wrap items-center gap-[0.02em]',
+        'inline-block min-w-0 truncate animate-text-shimmer',
         className,
       )}
     >
-      {Array.from(text).map((character, index) => (
-        <span
-          key={`${character}-${index}`}
-          className={cn(
-            'inline-block motion-reduce:animate-none',
-            character.trim().length > 0 && 'animate-pulse',
-          )}
-          style={{
-            animationDelay: `${index * 55}ms`,
-            animationDuration: '1s',
-          }}
-        >
-          {character === ' ' ? '\u00A0' : character}
-        </span>
-      ))}
+      {text}
     </output>
   );
 }

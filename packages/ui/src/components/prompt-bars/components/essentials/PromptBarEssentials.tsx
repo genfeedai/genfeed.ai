@@ -9,6 +9,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { Textarea } from '@ui/primitives/textarea';
+import { PROMPT_BAR_TEXTAREA_MAX_HEIGHT } from '@ui/prompt-bars/base/prompt-bar.helpers';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
@@ -147,6 +148,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   voices = [],
 }: PromptBarEssentialsProps) {
   const isCollapsible = features.collapsible ?? true;
+  // Simple mode (Advanced Mode off) strips the bar to its essentials: type,
+  // speak, generate. Model, quality, format, and output choices are
+  // auto-selected by the backend from the prompt.
+  const isMinimalBar = !isAdvancedMode;
   const watchedTextTrimmed = form.watch('text')?.trim();
   const hasVisibleReferences = references.length > 0;
   const firstReference = hasVisibleReferences ? references[0] : null;
@@ -180,7 +185,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   return (
     <div className="flex flex-col gap-1 w-full">
       <PromptBarShell className="p-2">
-        {onToggleCollapse && (
+        {onToggleCollapse && !isMinimalBar && (
           <Button
             onClick={onToggleCollapse}
             tooltip="Collapse"
@@ -207,10 +212,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               handleSubmitForm();
             }
           }}
-          maxHeight={isCollapsible ? 300 : 240}
+          maxHeight={PROMPT_BAR_TEXTAREA_MAX_HEIGHT}
           className={cn(
-            'w-full resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0',
-            isCollapsible ? 'min-h-[72px] pr-24' : 'min-h-[96px] pr-12',
+            'min-h-9 w-full resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0',
+            isMinimalBar ? 'pr-4' : isCollapsible ? 'pr-24' : 'pr-12',
           )}
           data-testid="prompt-textarea"
         />
@@ -234,53 +239,56 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
 
         <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/8 pt-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-visible">
-            {isAdvancedMode &&
-            currentConfig.buttons?.model &&
-            models.length > 0 ? (
-              <PromptBarModelControls
-                isAdvancedMode={isAdvancedMode}
-                hasModelButton={Boolean(currentConfig.buttons?.model)}
-                models={models}
-                trainings={trainings}
-                trainingIds={trainingIds}
-                watchedFormat={watchedFormat}
+            {!isMinimalBar &&
+              (isAdvancedMode &&
+              currentConfig.buttons?.model &&
+              models.length > 0 ? (
+                <PromptBarModelControls
+                  isAdvancedMode={isAdvancedMode}
+                  hasModelButton={Boolean(currentConfig.buttons?.model)}
+                  models={models}
+                  trainings={trainings}
+                  trainingIds={trainingIds}
+                  watchedFormat={watchedFormat}
+                  normalizedWatchedModels={normalizedWatchedModels}
+                  selectedModels={selectedModels}
+                  watchedModels={watchedModels}
+                  modelDropdownRef={modelDropdownRef}
+                  promptBarHeight={promptBarHeight}
+                  isModelNotSet={isModelNotSet}
+                  controlClass={controlClass}
+                  form={form}
+                  getModelDefaultDuration={getModelDefaultDuration}
+                  getDefaultVideoResolution={getDefaultVideoResolution}
+                  triggerConfigChange={triggerConfigChange}
+                  currentModelCategory={currentModelCategory}
+                />
+              ) : (
+                <PromptBarQualityControls
+                  watchedQuality={watchedQuality}
+                  controlClass={controlClass}
+                  isDisabled={isDisabledState}
+                  form={form}
+                  triggerConfigChange={triggerConfigChange}
+                  subscriptionTier={subscriptionTier}
+                />
+              ))}
+
+            {!isMinimalBar && (
+              <PromptBarFormatControls
+                currentConfig={currentConfig}
+                formatIcon={formatIcon}
+                form={form}
                 normalizedWatchedModels={normalizedWatchedModels}
-                selectedModels={selectedModels}
-                watchedModels={watchedModels}
-                modelDropdownRef={modelDropdownRef}
-                promptBarHeight={promptBarHeight}
-                isModelNotSet={isModelNotSet}
-                controlClass={controlClass}
-                form={form}
-                getModelDefaultDuration={getModelDefaultDuration}
-                getDefaultVideoResolution={getDefaultVideoResolution}
+                watchedModel={watchedModel}
+                references={references}
+                setReferences={setReferences}
+                setReferenceSource={setReferenceSource}
                 triggerConfigChange={triggerConfigChange}
-                currentModelCategory={currentModelCategory}
-              />
-            ) : (
-              <PromptBarQualityControls
-                watchedQuality={watchedQuality}
+                isDisabledState={isDisabledState}
                 controlClass={controlClass}
-                isDisabled={isDisabledState}
-                form={form}
-                triggerConfigChange={triggerConfigChange}
-                subscriptionTier={subscriptionTier}
               />
             )}
-
-            <PromptBarFormatControls
-              currentConfig={currentConfig}
-              formatIcon={formatIcon}
-              form={form}
-              normalizedWatchedModels={normalizedWatchedModels}
-              watchedModel={watchedModel}
-              references={references}
-              setReferences={setReferences}
-              setReferenceSource={setReferenceSource}
-              triggerConfigChange={triggerConfigChange}
-              isDisabledState={isDisabledState}
-              controlClass={controlClass}
-            />
 
             {categoryType === IngredientCategory.AVATAR &&
               avatars.length > 0 && (
@@ -352,7 +360,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 />
               )}
 
-            {isCollapsible ? (
+            {isCollapsible && !isMinimalBar ? (
               <PromptBarDivider className="h-5 bg-white/10" />
             ) : null}
 
@@ -388,20 +396,24 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               </Button>
             )}
 
-            <Button
-              onClick={onToggleQuickOptions}
-              variant={ButtonVariant.GHOST}
-              className={cn(
-                iconButtonClass,
-                isQuickOptionsOpen && 'bg-white/8 text-white',
-              )}
-              tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
-              tooltipPosition="top"
-              ariaLabel={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
-              icon={<SlidersHorizontal className="size-4" />}
-            />
+            {!isMinimalBar && (
+              <Button
+                onClick={onToggleQuickOptions}
+                variant={ButtonVariant.GHOST}
+                className={cn(
+                  iconButtonClass,
+                  isQuickOptionsOpen && 'bg-white/8 text-white',
+                )}
+                tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
+                tooltipPosition="top"
+                ariaLabel={
+                  isQuickOptionsOpen ? 'Hide settings' : 'Show settings'
+                }
+                icon={<SlidersHorizontal className="size-4" />}
+              />
+            )}
 
-            {watchedTextTrimmed && (
+            {!isMinimalBar && watchedTextTrimmed && (
               <Button
                 onClick={() => handleCopy(form.getValues('text'))}
                 isDisabled={isDisabledState}
@@ -413,7 +425,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             )}
 
-            {watchedTextTrimmed && (
+            {!isMinimalBar && watchedTextTrimmed && (
               <Button
                 onClick={enhancePrompt}
                 isDisabled={isDisabledState || isEnhancing}
@@ -425,7 +437,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             )}
 
-            {previousPrompt && (
+            {!isMinimalBar && previousPrompt && (
               <Button
                 onClick={handleUndo}
                 isDisabled={isDisabledState}
@@ -439,7 +451,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
-            {!isCollapsible && (
+            {!isMinimalBar && !isCollapsible && (
               <PromptOutputsButton
                 form={form}
                 getMinFromAllModels={getMinFromAllModels}
@@ -449,7 +461,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             )}
 
-            {isCollapsible && (
+            {!isMinimalBar && isCollapsible && (
               <>
                 <PromptOutputsButton
                   form={form}

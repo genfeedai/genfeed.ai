@@ -4,8 +4,10 @@ export function AgentChatInputStyles(): ReactElement {
   return (
     <style>{`
         .ProseMirror {
+          /* One line at rest, grows to five lines (text-sm = 20px/line +
+             12px padding), then scrolls — Cursor-style composer. */
           min-height: 36px;
-          max-height: 200px;
+          max-height: 112px;
           overflow-y: auto;
           outline: none;
         }

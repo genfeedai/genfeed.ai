@@ -16,6 +16,11 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import type { ReactElement, RefObject } from 'react';
 
+type TimelineTurnGroup = {
+  id: string;
+  items: { entry: TimelineEntry; index: number }[];
+};
+
 type AgentChatTimelineProps = {
   timeline: TimelineEntry[];
   pendingUiActions: AgentUiAction[];
@@ -99,40 +104,63 @@ export function AgentChatTimeline({
   const isTerminalFailedRunWithoutAssistant =
     Boolean(terminalFailedWorkGroup) && !isGenerating && !isStreamingActive;
 
+  const renderTimelineEntry = (
+    entry: TimelineEntry,
+    index: number,
+  ): ReactElement | null => {
+    switch (entry.kind) {
+      case 'user-message':
+      case 'assistant-message':
+        return (
+          <AgentChatMessage
+            key={entry.id}
+            messageIndex={index}
+            message={entry.message}
+            messageAnchorId={`agent-message-${entry.message.id}`}
+            isHighlighted={highlightedMessageId === entry.message.id}
+            isBusy={isBusy}
+            isReadOnly={isReadOnly}
+            apiService={apiService}
+            onCopy={onCopy}
+            onRetry={onRetry}
+            onRegenerate={onRegenerate}
+            onOAuthConnect={onOAuthConnect}
+            onBrandCreate={onBrandCreate}
+            onSelectCreditPack={onSelectCreditPack}
+            onSelectIngredient={onSelectIngredient}
+            onUiAction={onUiAction}
+          />
+        );
+      case 'work-group':
+        return <TimelineWorkGroup key={entry.id} entry={entry} />;
+      case 'streaming':
+        return <TimelineStreamingRow key={entry.id} entry={entry} />;
+      default:
+        return null;
+    }
+  };
+
+  // Cursor-style turns: each user message opens a turn containing everything
+  // until the next user message. The turn wrapper is the sticky containing
+  // block, so the user prompt pins to the top of the viewport while its
+  // response scrolls under it, and unpins when the next turn scrolls in.
+  const turns: TimelineTurnGroup[] = [];
+  timeline.forEach((entry, index) => {
+    if (entry.kind === 'user-message' || turns.length === 0) {
+      turns.push({ id: entry.id, items: [] });
+    }
+    turns[turns.length - 1].items.push({ entry, index });
+  });
+
   return (
     <>
-      {timeline.map((entry, index) => {
-        switch (entry.kind) {
-          case 'user-message':
-          case 'assistant-message':
-            return (
-              <AgentChatMessage
-                key={entry.id}
-                messageIndex={index}
-                message={entry.message}
-                messageAnchorId={`agent-message-${entry.message.id}`}
-                isHighlighted={highlightedMessageId === entry.message.id}
-                isBusy={isBusy}
-                isReadOnly={isReadOnly}
-                apiService={apiService}
-                onCopy={onCopy}
-                onRetry={onRetry}
-                onRegenerate={onRegenerate}
-                onOAuthConnect={onOAuthConnect}
-                onBrandCreate={onBrandCreate}
-                onSelectCreditPack={onSelectCreditPack}
-                onSelectIngredient={onSelectIngredient}
-                onUiAction={onUiAction}
-              />
-            );
-          case 'work-group':
-            return <TimelineWorkGroup key={entry.id} entry={entry} />;
-          case 'streaming':
-            return <TimelineStreamingRow key={entry.id} entry={entry} />;
-          default:
-            return null;
-        }
-      })}
+      {turns.map((turn) => (
+        <div key={turn.id} className="relative">
+          {turn.items.map(({ entry, index }) =>
+            renderTimelineEntry(entry, index),
+          )}
+        </div>
+      ))}
 
       {isTerminalFailedRunWithoutAssistant ? (
         <AgentRunFailureCard
