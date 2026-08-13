@@ -35,8 +35,20 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
+/** Max pending rows lazily re-embedded inline per retrieval request. */
+const EMBEDDING_REBUILD_BATCH_LIMIT = 50;
+
 @Injectable()
 export class ContextsService {
+  /**
+   * Entry ids whose lazy re-embedding failed in this process run. A
+   * permanently failing row (e.g. malformed content the provider rejects)
+   * would otherwise retry on every retrieval request forever. Process-local by
+   * design: a restart retries everything once. A queue-based backfill with
+   * durable retry state is the deeper fix (noted as future work).
+   */
+  private readonly failedEmbeddingEntryIds = new Set<string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
@@ -137,26 +149,43 @@ export class ContextsService {
     metric: 'entryCount' | 'usageCount',
     delta: number,
   ): Promise<void> {
-    const existing = await this.prisma.contextBase.findFirst({
-      where: scopedWhere(organizationId, { id: contextBaseId }),
-    });
+    await this.adjustContextBaseMetrics(
+      [contextBaseId],
+      organizationId,
+      metric,
+      delta,
+    );
+  }
 
-    if (!existing) {
+  /**
+   * Atomically adjust a JSONB usage metric on every listed context base in one
+   * statement. The previous read-modify-write of the whole `data` blob lost
+   * updates under concurrency; `jsonb_set` moves the increment into Postgres
+   * so parallel requests serialize on the row instead of overwriting each
+   * other. The metric name is a compile-time union but still bound as a
+   * parameter (ARRAY[$n] path / ->> $n) — nothing is interpolated.
+   */
+  private async adjustContextBaseMetrics(
+    contextBaseIds: string[],
+    organizationId: string,
+    metric: 'entryCount' | 'usageCount',
+    delta: number,
+  ): Promise<void> {
+    if (contextBaseIds.length === 0) {
       return;
     }
 
-    const data = this.getDataRecord(existing.data);
-    const currentValue = typeof data[metric] === 'number' ? data[metric] : 0;
-
-    await this.prisma.contextBase.update({
-      data: {
-        data: {
-          ...data,
-          [metric]: Math.max(0, Number(currentValue) + delta),
-        } as never,
-      },
-      where: { id: contextBaseId },
-    });
+    await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE "context_bases"
+      SET "data" = jsonb_set(
+        COALESCE("data", '{}'::jsonb),
+        ARRAY[${metric}],
+        to_jsonb(GREATEST(0, COALESCE("data"->>${metric}, '0')::int + ${delta}))
+      )
+      WHERE "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+        AND "id" IN (${Prisma.join(contextBaseIds)})
+    `);
   }
 
   @HandleErrors('create context base', 'contexts')
@@ -424,18 +453,12 @@ export class ContextsService {
         };
       }
 
-      for (const base of contextBases) {
-        const baseId = String(
-          (base as Record<string, unknown>).id ??
-            (base as Record<string, unknown>).id,
-        );
-        await this.adjustContextBaseMetric(
-          baseId,
-          organizationId,
-          'usageCount',
-          1,
-        );
-      }
+      await this.adjustContextBaseMetrics(
+        contextBases.map((base) => String(base.id)),
+        organizationId,
+        'usageCount',
+        1,
+      );
 
       const avgRelevance =
         relevantEntries.reduce((sum, e) => sum + e.relevance, 0) /
@@ -614,10 +637,7 @@ export class ContextsService {
         }),
       });
 
-      const contextBaseId = String(
-        (contextBase as Record<string, unknown>).id ??
-          (contextBase as Record<string, unknown>).id,
-      );
+      const contextBaseId = String(contextBase.id);
 
       for (const post of posts) {
         const content = [post.label, post.description]
@@ -794,10 +814,18 @@ export class ContextsService {
     );
   }
 
+  /**
+   * Lazy inline backfill on the retrieval hot path. Bounded per request: at
+   * most EMBEDDING_REBUILD_BATCH_LIMIT pending rows (oldest first), and rows
+   * that already failed in this process run are excluded so a permanently
+   * failing entry cannot retry on every request. A queue-based backfill off
+   * the request path is the deeper follow-up.
+   */
   private async rebuildMissingEntryEmbeddings(
     organizationId: string,
     contextBaseIds: string[],
   ): Promise<void> {
+    const failedIds = [...this.failedEmbeddingEntryIds];
     const rows = await this.prisma.$queryRaw<
       ContextEntryPendingEmbeddingRow[]
     >(Prisma.sql`
@@ -807,6 +835,13 @@ export class ContextsService {
         AND "isDeleted" = false
         AND "contextBaseId" IN (${Prisma.join(contextBaseIds)})
         AND "embedding" IS NULL
+        ${
+          failedIds.length > 0
+            ? Prisma.sql`AND "id" NOT IN (${Prisma.join(failedIds)})`
+            : Prisma.empty
+        }
+      ORDER BY "createdAt" ASC
+      LIMIT ${EMBEDDING_REBUILD_BATCH_LIMIT}
     `);
 
     if (rows.length === 0) {
@@ -820,6 +855,8 @@ export class ContextsService {
 
     for (const row of rows) {
       if (!row.content) {
+        // No content can ever embed — exclude it from future sweeps too.
+        this.failedEmbeddingEntryIds.add(row.id);
         continue;
       }
 
@@ -828,6 +865,7 @@ export class ContextsService {
         await this.writeEntryEmbedding(row.id, organizationId, embedding);
         rebuiltCount += 1;
       } catch (error: unknown) {
+        this.failedEmbeddingEntryIds.add(row.id);
         this.logger.error('Failed to lazily re-embed context entry', {
           contextEntryId: row.id,
           error,

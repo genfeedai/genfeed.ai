@@ -34,6 +34,8 @@ import { AccountPublishingContextService } from '@api/collections/credentials/se
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -49,6 +51,7 @@ import {
   ModelCategory,
   PromptTemplateKey,
   SystemPromptKey,
+  TagCategory,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type {
@@ -92,7 +95,61 @@ export class ArticlesContentService {
     @Optional()
     private readonly accountPublishingContextService?: AccountPublishingContextService,
     @Optional() private readonly replicateService?: ReplicateService,
+    @Optional() private readonly tagsService?: TagsService,
   ) {}
+
+  /**
+   * Resolve AI-generated tag labels into Tag ids so createArticle can connect
+   * them (#2870 dropped generated tags because labels are not ids). Tag has no
+   * unique label constraint, so this is an org-scoped find-or-create by label.
+   * Best-effort: a tag failure must never fail article creation.
+   */
+  private async resolveGeneratedTagIds(params: {
+    brandId: string;
+    labels: string[] | undefined;
+    organizationId: string;
+    userId: string;
+  }): Promise<string[]> {
+    if (!this.tagsService || !params.labels?.length) {
+      return [];
+    }
+
+    const labels = [
+      ...new Set(params.labels.map((label) => label.trim()).filter(Boolean)),
+    ];
+    const ids: string[] = [];
+
+    for (const label of labels) {
+      try {
+        const existing = await this.tagsService.findOne({
+          isDeleted: false,
+          label: { equals: label, mode: 'insensitive' },
+          organizationId: params.organizationId,
+        });
+
+        if (existing) {
+          ids.push(existing.id);
+          continue;
+        }
+
+        const created = await this.tagsService.create({
+          brandId: params.brandId,
+          category: TagCategory.ARTICLE,
+          label,
+          organizationId: params.organizationId,
+          userId: params.userId,
+        } as unknown as CreateTagDto);
+        ids.push(created.id);
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.constructorName} failed to resolve generated tag`,
+          { error, label },
+        );
+      }
+    }
+
+    return ids;
+  }
 
   /**
    * Lazily resolve ArticlesService to break the module-init circular dependency
@@ -286,6 +343,12 @@ export class ArticlesContentService {
           prompt: generateDto.prompt,
           type: ArticleGenerationType.STANDARD,
         });
+        const tagIds = await this.resolveGeneratedTagIds({
+          brandId,
+          labels: generated.tags,
+          organizationId,
+          userId,
+        });
         const articlePayload: ArticleCreatePayload = {
           category,
           content: cycle.updated.content,
@@ -293,6 +356,7 @@ export class ArticlesContentService {
           slug: generated.slug || `article-${Date.now()}-${i}`,
           status: ArticleStatus.DRAFT,
           summary: cycle.updated.summary,
+          ...(tagIds.length > 0 ? { tags: tagIds } : {}),
         };
 
         const article = await createArticleFn(
@@ -462,6 +526,12 @@ export class ArticlesContentService {
         type: ArticleGenerationType.X_ARTICLE,
       });
 
+      const tagIds = await this.resolveGeneratedTagIds({
+        brandId,
+        labels: response.tags,
+        organizationId,
+        userId,
+      });
       const articlePayload: ArticleCreatePayload = {
         category: ArticleCategory.X_ARTICLE,
         content: cycle.updated.content,
@@ -469,6 +539,7 @@ export class ArticlesContentService {
         slug: response.slug || `x-article-${Date.now()}`,
         status: ArticleStatus.DRAFT,
         summary: cycle.updated.summary,
+        ...(tagIds.length > 0 ? { tags: tagIds } : {}),
       };
 
       const article = await createArticleFn(

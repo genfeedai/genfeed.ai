@@ -290,13 +290,25 @@ describe('BatchGenerationCreditsService', () => {
       }),
     ).resolves.toBe(true);
 
-    expect(batchDelegate.updateMany).toHaveBeenCalledWith({
-      data: { settlementShortfall: null, settlementShortfallSeq: null },
+    // The claim negates the marker — a real state transition, not a no-op
+    // write of the current value back onto itself.
+    expect(batchDelegate.updateMany).toHaveBeenNthCalledWith(1, {
+      data: { settlementShortfall: -ONE_DRAFT },
       where: expect.objectContaining({
         id: 'batch-1',
         isDeleted: false,
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+      }),
+    });
+    expect(batchDelegate.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { settlementShortfall: null, settlementShortfallSeq: null },
+      where: expect.objectContaining({
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        settlementShortfall: -ONE_DRAFT,
         settlementShortfallSeq: 3,
       }),
     });
@@ -315,6 +327,81 @@ describe('BatchGenerationCreditsService', () => {
         referenceType: 'batch-generation:settlement',
       }),
     );
+  });
+
+  it('lets exactly one of two interleaved sweeps collect the shortfall', async () => {
+    // Emulate the database row so updateMany behaves like a real guarded
+    // write: the claim only matches while the marker is still positive.
+    const row: {
+      settlementShortfall: number | null;
+      settlementShortfallSeq: number | null;
+    } = { settlementShortfall: ONE_DRAFT, settlementShortfallSeq: 3 };
+
+    batchDelegate.updateMany.mockImplementation(
+      ({
+        data,
+        where,
+      }: {
+        data: Partial<typeof row>;
+        where: Partial<typeof row>;
+      }) => {
+        const matches =
+          (!('settlementShortfall' in where) ||
+            row.settlementShortfall === where.settlementShortfall) &&
+          (!('settlementShortfallSeq' in where) ||
+            row.settlementShortfallSeq === where.settlementShortfallSeq);
+        if (!matches) {
+          return Promise.resolve({ count: 0 });
+        }
+        Object.assign(row, data);
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    const retry = () =>
+      service.retrySettlementShortfall({
+        batchId: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+        userId: 'user-1',
+      });
+
+    const [first, second] = await Promise.all([retry(), retry()]);
+
+    // Exactly one sweep wins the claim; the loser moves nothing.
+    expect([first, second].filter(Boolean)).toHaveLength(1);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
+    expect(row.settlementShortfall).toBeNull();
+    expect(row.settlementShortfallSeq).toBeNull();
+  });
+
+  it('restores the marker for the next sweep when the retry deduction fails', async () => {
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new Error('insufficient organization credits'),
+    );
+
+    await expect(
+      service.retrySettlementShortfall({
+        batchId: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(false);
+
+    expect(batchDelegate.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { settlementShortfall: ONE_DRAFT },
+      where: expect.objectContaining({
+        id: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: -ONE_DRAFT,
+        settlementShortfallSeq: 3,
+      }),
+    });
   });
 
   it('does not retry a stale sweep result after its marker was cleared', async () => {

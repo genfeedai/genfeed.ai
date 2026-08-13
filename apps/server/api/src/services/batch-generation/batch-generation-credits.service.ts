@@ -217,10 +217,13 @@ export class BatchGenerationCreditsService {
   /**
    * Retry only the exact shortfall recorded by a failed settlement deduction.
    *
-   * A compare-and-swap first confirms the exact marker still exists, so stale
-   * sweep results cannot charge after another worker collected it. The marker
-   * stays durable until collection succeeds, while the credit-transaction
-   * reference makes concurrent and ambiguous retries idempotent.
+   * The claim is a real compare-and-swap: the marker is negated while one
+   * worker collects it, so a concurrent sweep's guarded update matches 0 rows
+   * (the old form wrote the value back onto itself — an existence check both
+   * sweeps could pass, letting both deduct). The sweep only selects positive
+   * markers, so a claimed row is invisible until collection clears it or a
+   * failure restores it. The credit-transaction reference keeps ambiguous
+   * retries of the same occurrence idempotent.
    */
   async retrySettlementShortfall(params: {
     batchId: string;
@@ -233,8 +236,8 @@ export class BatchGenerationCreditsService {
       return false;
     }
 
-    const stillMarked = await this.prisma.batch.updateMany({
-      data: { settlementShortfall: params.settlementShortfall },
+    const claimed = await this.prisma.batch.updateMany({
+      data: { settlementShortfall: -params.settlementShortfall },
       where: scopedWhere(params.organizationId, {
         id: params.batchId,
         settlementShortfall: params.settlementShortfall,
@@ -242,7 +245,7 @@ export class BatchGenerationCreditsService {
       }),
     });
 
-    if (stillMarked.count !== 1) {
+    if (claimed.count !== 1) {
       return false;
     }
 
@@ -255,9 +258,10 @@ export class BatchGenerationCreditsService {
         userId: params.userId,
       });
     } catch (error: unknown) {
-      // The marker is still set, so the next sweep retries. The original
+      // Restore the positive marker so the next sweep retries. The original
       // failure already alerted; a recurring retry failure while the balance
       // stays exhausted is expected and must not spam Sentry every tick.
+      await this.restoreShortfallMarker(params);
       this.logger.error(
         `Batch ${params.batchId} settlement shortfall retry failed`,
         error,
@@ -275,12 +279,58 @@ export class BatchGenerationCreditsService {
       data: { settlementShortfall: null, settlementShortfallSeq: null },
       where: scopedWhere(params.organizationId, {
         id: params.batchId,
-        settlementShortfall: params.settlementShortfall,
+        settlementShortfall: -params.settlementShortfall,
         settlementShortfallSeq: params.settlementShortfallSeq,
       }),
     });
 
     return cleared.count === 1;
+  }
+
+  /**
+   * Hand a claimed (negated) marker back to the sweep after a failed
+   * collection. Guarded on the claimed form so it can never resurrect a marker
+   * another path already cleared.
+   */
+  private async restoreShortfallMarker(params: {
+    batchId: string;
+    organizationId: string;
+    settlementShortfall: number;
+    settlementShortfallSeq: number;
+  }): Promise<void> {
+    try {
+      await this.prisma.batch.updateMany({
+        data: { settlementShortfall: params.settlementShortfall },
+        where: scopedWhere(params.organizationId, {
+          id: params.batchId,
+          settlementShortfall: -params.settlementShortfall,
+          settlementShortfallSeq: params.settlementShortfallSeq,
+        }),
+      });
+    } catch (restoreError: unknown) {
+      // A stranded claimed marker stays visible in the column (negative) but
+      // is skipped by the sweep; alert so it can be restored by hand.
+      Sentry.captureException(restoreError, {
+        extra: {
+          batchId: params.batchId,
+          organizationId: params.organizationId,
+          settlementShortfall: params.settlementShortfall,
+          settlementShortfallSeq: params.settlementShortfallSeq,
+        },
+        tags: {
+          operation: 'batch-credit-settlement-marker',
+        },
+      });
+      this.logger.error(
+        `Batch ${params.batchId} settlement shortfall marker restore failed`,
+        restoreError,
+        {
+          batchId: params.batchId,
+          organizationId: params.organizationId,
+          settlementShortfall: params.settlementShortfall,
+        },
+      );
+    }
   }
 
   private async moveSettlementCredits(params: {

@@ -442,7 +442,7 @@ export function useReviewQueueContent() {
             error,
           );
         } else {
-          notifications.error('Review batch discard');
+          notifications.error('Failed to discard review batch');
           logger.error('Discard batch failed before cancellation', error);
         }
       } finally {

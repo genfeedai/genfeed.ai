@@ -66,7 +66,11 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     const contextEntry = storeDelegate(options.contextEntries ?? []);
 
     const service = new ContextsService(
-      { contextBase, contextEntry } as unknown as PrismaService,
+      {
+        $executeRaw: vi.fn().mockResolvedValue(1),
+        contextBase,
+        contextEntry,
+      } as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),

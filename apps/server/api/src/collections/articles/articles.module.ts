@@ -26,6 +26,7 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
+import { TagsModule } from '@api/collections/tags/tags.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -68,6 +69,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
     forwardRef(() => SeoModule),
+    forwardRef(() => TagsModule),
     forwardRef(() => TemplatesModule),
     forwardRef(() => UsersModule),
     forwardRef(() => ContentHarnessModule),

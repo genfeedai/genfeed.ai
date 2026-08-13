@@ -14,6 +14,7 @@ export * from './enhancement-response.interface';
 export * from './generation-payload.interface';
 export * from './model.interface';
 export * from './mood-board.interface';
+export * from './newsletter-feed.interface';
 export * from './persona.interface';
 export * from './post.interface';
 export * from './post-quick-action.interface';

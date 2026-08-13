@@ -196,6 +196,29 @@ describe('ArticlesService create persistence', () => {
     expect(data.status).toBe('DRAFT');
   });
 
+  it('converts tag ids into a nested relation connect write (#2870 follow-up)', async () => {
+    const { delegate, service } = buildService();
+
+    await service.createArticle(
+      { ...dto, tags: ['tag_1', 'tag_2'] } as CreateArticleDto,
+      userId,
+      organizationId,
+      brandId,
+    );
+
+    expect(readCreatedData(delegate).tags).toEqual({
+      connect: [{ id: 'tag_1' }, { id: 'tag_2' }],
+    });
+  });
+
+  it('omits the tags key entirely when the DTO has none', async () => {
+    const { delegate, service } = buildService();
+
+    await service.createArticle(dto, userId, organizationId, brandId);
+
+    expect('tags' in readCreatedData(delegate)).toBe(false);
+  });
+
   it('generate persist source never assigns unknown Prisma Article fields', () => {
     const source = readFileSync(
       fileURLToPath(new URL('./articles-content.service.ts', import.meta.url)),
