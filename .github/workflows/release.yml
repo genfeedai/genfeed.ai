@@ -152,35 +152,15 @@ jobs:
       GH_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
     steps:
-      - name: Dispatch the pinned release to private operations
+      - name: Checkout the pinned release SHA
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.validate-release.outputs.release_sha }}
+
+      - name: Preflight capability and dispatch the pinned release
         id: dispatch
-        run: |
-          set -euo pipefail
-
-          if [ -z "${GH_TOKEN}" ]; then
-            echo "::error::CONSOLE_DEPLOY_TOKEN is not configured. See RELEASING.md."
-            exit 1
-          fi
-          if [[ ! "${RELEASE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Release SHA is not an exact lowercase 40-character commit: ${RELEASE_SHA}"
-            exit 1
-          fi
-
-          correlation_id="release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${RELEASE_SHA}"
-          expected_title="Deploy hosted SaaS | ${RELEASE_SHA} | ${correlation_id}"
-
-          gh api \
-            --method POST \
-            "repos/${CONSOLE_REPOSITORY}/actions/workflows/${CONSOLE_WORKFLOW}/dispatches" \
-            -f ref=master \
-            -f "inputs[release_sha]=${RELEASE_SHA}" \
-            -f "inputs[source_sha]=${RELEASE_SHA}" \
-            -f "inputs[correlation_id]=${correlation_id}"
-
-          {
-            echo "correlation_id=${correlation_id}"
-            echo "expected_title=${expected_title}"
-          } >>"${GITHUB_OUTPUT}"
+        run: node scripts/ci/dispatch-hosted-saas.mjs
 
       - name: Resolve the exact private deployment run
         id: resolve
