@@ -164,7 +164,6 @@ export * from './knowledge-base/knowledge-base.interface';
 export * from './management/folder.interface';
 export * from './marketplace/checkout.interface';
 export * from './marketplace/listing.interface';
-export * from './marketplace/purchase.interface';
 export * from './marketplace/seller.interface';
 export * from './modals/error-debug.interface';
 export * from './modals/file-upload-status.interface';
