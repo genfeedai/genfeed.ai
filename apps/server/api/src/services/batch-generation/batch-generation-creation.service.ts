@@ -9,7 +9,10 @@ import type {
   BatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
-import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
+import {
+  persistBatchItemRows,
+  withBatchWriteTransaction,
+} from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
@@ -106,22 +109,25 @@ export class BatchGenerationCreationService {
       totalCount: dto.count,
     };
 
-    const batch = (await this.prisma.batch.create({
-      data: {
+    const batch = await withBatchWriteTransaction(this.prisma, async (tx) => {
+      const created = (await tx.batch.create({
+        data: {
+          brandId: dto.brandId,
+          config: config as Prisma.InputJsonValue,
+          isDeleted: false,
+          items: items as unknown as Prisma.InputJsonValue,
+          organizationId: orgId,
+          status: toPrismaBatchStatus(BatchStatus.PENDING),
+          userId,
+        },
+      })) as BatchWithConfig;
+      await persistBatchItemRows(tx, {
+        batchId: created.id,
         brandId: dto.brandId,
-        config: config as Prisma.InputJsonValue,
-        isDeleted: false,
-        items: items as unknown as Prisma.InputJsonValue,
+        items,
         organizationId: orgId,
-        status: toPrismaBatchStatus(BatchStatus.PENDING),
-        userId,
-      },
-    })) as BatchWithConfig;
-    await persistBatchItemRows(this.prisma, {
-      batchId: batch.id,
-      brandId: dto.brandId,
-      items,
-      organizationId: orgId,
+      });
+      return created;
     });
 
     this.logger.log(`Batch created: ${batch.id}`, {
@@ -190,23 +196,26 @@ export class BatchGenerationCreationService {
     let batch: BatchWithConfig;
     let createdBatchId: string | undefined;
     try {
-      batch = (await this.prisma.batch.create({
-        data: {
+      batch = await withBatchWriteTransaction(this.prisma, async (tx) => {
+        const created = (await tx.batch.create({
+          data: {
+            brandId: dto.brandId,
+            config: config as Prisma.InputJsonValue,
+            isDeleted: false,
+            items: batchItems as unknown as Prisma.InputJsonValue,
+            organizationId: orgId,
+            status: toPrismaBatchStatus(BatchStatus.COMPLETED),
+            userId,
+          },
+        })) as BatchWithConfig;
+        createdBatchId = created.id;
+        await persistBatchItemRows(tx, {
+          batchId: created.id,
           brandId: dto.brandId,
-          config: config as Prisma.InputJsonValue,
-          isDeleted: false,
-          items: batchItems as unknown as Prisma.InputJsonValue,
+          items: batchItems,
           organizationId: orgId,
-          status: toPrismaBatchStatus(BatchStatus.COMPLETED),
-          userId,
-        },
-      })) as BatchWithConfig;
-      createdBatchId = batch.id;
-      await persistBatchItemRows(this.prisma, {
-        batchId: batch.id,
-        brandId: dto.brandId,
-        items: batchItems,
-        organizationId: orgId,
+        });
+        return created;
       });
 
       await this.linkManualReviewPosts(

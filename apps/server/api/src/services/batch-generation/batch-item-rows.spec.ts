@@ -1,10 +1,13 @@
+import { BATCH_ITEM_UPSERT_CHUNK_SIZE } from '@api/services/batch-generation/batch-generation.constants';
 import {
   persistBatchItemRows,
   toBatchItemCreatedAt,
   toPrismaBatchItemStatus,
+  writeBatchJsonAndItemRows,
 } from '@api/services/batch-generation/batch-item-rows';
 import {
   BatchItemStatus,
+  BatchStatus,
   ContentFormat,
   PersistedReviewDecision,
   ReviewDecision,
@@ -157,5 +160,118 @@ describe('batch item row projection', () => {
     expect(call.create.isDeleted).toBe(false);
     expect(updated).toBe(true);
     expect(created).toBe(false);
+  });
+
+  it('upserts in bounded chunks instead of one unbounded Promise.all', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const upsert = vi.fn().mockImplementation(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      inFlight -= 1;
+    });
+    const itemCount = BATCH_ITEM_UPSERT_CHUNK_SIZE + 10;
+    const items = Array.from({ length: itemCount }, (_, index) => ({
+      format: ContentFormat.IMAGE,
+      id: `item-${index}`,
+      reviewDecision: ReviewDecision.UNSET,
+      status: BatchItemStatus.PENDING,
+    }));
+
+    await persistBatchItemRows(
+      { batchItem: { upsert } },
+      {
+        batchId: 'batch-1',
+        items,
+        organizationId: 'org-1',
+      },
+    );
+
+    expect(upsert).toHaveBeenCalledTimes(itemCount);
+    expect(maxInFlight).toBeLessThanOrEqual(BATCH_ITEM_UPSERT_CHUNK_SIZE);
+  });
+
+  it('writes Batch.items JSON and typed rows in one transaction', async () => {
+    const order: string[] = [];
+    const updateMany = vi.fn().mockImplementation(async () => {
+      order.push('json');
+      return { count: 1 };
+    });
+    const upsert = vi.fn().mockImplementation(async () => {
+      order.push('row');
+      return {};
+    });
+    const tx = { batch: { updateMany }, batchItem: { upsert } };
+    const $transaction = vi.fn(
+      async (run: (client: typeof tx) => Promise<unknown>) => run(tx),
+    );
+
+    const items = [
+      {
+        format: ContentFormat.IMAGE,
+        id: 'item-1',
+        reviewDecision: ReviewDecision.UNSET,
+        status: BatchItemStatus.COMPLETED,
+      },
+    ];
+
+    const result = await writeBatchJsonAndItemRows(
+      {
+        $transaction,
+        batch: { updateMany: vi.fn() },
+        batchItem: { upsert: vi.fn() },
+      },
+      {
+        batchId: 'batch-1',
+        brandId: 'brand-1',
+        extraBatchData: { status: BatchStatus.COMPLETED },
+        items,
+        organizationId: 'org-1',
+      },
+    );
+
+    expect($transaction).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ count: 1 });
+    expect(order).toEqual(['json', 'row']);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items,
+          status: BatchStatus.COMPLETED,
+        }),
+        where: expect.objectContaining({
+          id: 'batch-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips typed-row upserts when the JSON batch write matches no row', async () => {
+    const upsert = vi.fn();
+    const result = await writeBatchJsonAndItemRows(
+      {
+        batch: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        batchItem: { upsert },
+      },
+      {
+        batchId: 'batch-missing',
+        items: [
+          {
+            format: ContentFormat.IMAGE,
+            id: 'item-1',
+            reviewDecision: ReviewDecision.UNSET,
+            status: BatchItemStatus.PENDING,
+          },
+        ],
+        organizationId: 'org-1',
+      },
+    );
+
+    expect(result).toEqual({ count: 0 });
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

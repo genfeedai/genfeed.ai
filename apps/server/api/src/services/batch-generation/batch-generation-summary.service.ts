@@ -3,7 +3,7 @@ import {
   type BatchConfig,
   type BatchItemFull,
   type BatchWithConfig,
-  cloneBatchItems,
+  resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { fromPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -62,7 +62,7 @@ export class BatchGenerationSummaryService {
 
   async toBatchSummaries(batches: BatchWithConfig[]): Promise<IBatchSummary[]> {
     const batchItemsById = new Map(
-      batches.map((batch) => [batch.id, cloneBatchItems(batch.items)]),
+      batches.map((batch) => [batch.id, resolveBatchItems(batch)]),
     );
     const postIds = this.collectPostIds(batchItemsById);
     const organizationIds = this.collectOrganizationIds(batches);

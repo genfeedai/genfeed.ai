@@ -8,10 +8,13 @@ import {
   type BatchItemFull,
   type BatchProcessOptions,
   type BatchWithConfig,
-  cloneBatchItems,
+  resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
-import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
+import {
+  batchItemRowsInclude,
+  writeBatchJsonAndItemRows,
+} from '@api/services/batch-generation/batch-item-rows';
 import {
   fromPrismaBatchStatus,
   toPrismaBatchStatus,
@@ -119,16 +122,19 @@ export class BatchGenerationProcessingService {
 
     const batchRecord = (await findOrThrow(
       this.prisma.batch,
-      { where: scopedWhere(orgId, { id: batchId }) },
+      {
+        include: batchItemRowsInclude(orgId),
+        where: scopedWhere(orgId, { id: batchId }),
+      },
       'Batch',
       batchId,
-    )) as BatchWithConfig;
+    )) as unknown as BatchWithConfig;
 
     // Copied, not aliased: the resume path below bumps `resumeCount` in place,
     // and writing that through to the fetched record would leave the caller
     // holding a row that disagrees with what was persisted.
     const batchConfig = { ...((batchRecord.config ?? {}) as BatchConfig) };
-    const batchItems = cloneBatchItems(batchRecord.items);
+    const batchItems = resolveBatchItems(batchRecord);
 
     if (claim === 'resumed') {
       // The previous run died mid-batch. Items it had started but never
@@ -190,25 +196,19 @@ export class BatchGenerationProcessingService {
       failedCount,
     };
 
-    const finalized = await this.prisma.batch.updateMany({
-      data: {
+    const finalized = await writeBatchJsonAndItemRows(this.prisma, {
+      batchId,
+      brandId: batchRecord.brandId,
+      extraBatchData: {
         config: updatedConfig as Prisma.InputJsonValue,
-        items: batchItems as unknown as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(finalStatus),
       },
-      where: scopedWhere(orgId, {
-        id: batchId,
+      items: batchItems,
+      organizationId: orgId,
+      whereExtra: {
         status: toPrismaBatchStatus(BatchStatus.PROCESSING),
-      }),
+      },
     });
-    if (finalized.count === 1) {
-      await persistBatchItemRows(this.prisma, {
-        batchId,
-        brandId: batchRecord.brandId,
-        items: batchItems,
-        organizationId: orgId,
-      });
-    }
 
     if (finalized.count !== 1) {
       const currentBatch = await this.findScopedBatch(batchId, orgId);
@@ -488,10 +488,13 @@ export class BatchGenerationProcessingService {
   ): Promise<BatchWithConfig> {
     return (await findOrThrow(
       this.prisma.batch,
-      { where: scopedWhere(orgId, { id: batchId }) },
+      {
+        include: batchItemRowsInclude(orgId),
+        where: scopedWhere(orgId, { id: batchId }),
+      },
       'Batch',
       batchId,
-    )) as BatchWithConfig;
+    )) as unknown as BatchWithConfig;
   }
 
   /**
@@ -559,24 +562,18 @@ export class BatchGenerationProcessingService {
       failedCount,
     };
 
-    const persisted = await this.prisma.batch.updateMany({
-      data: {
+    const persisted = await writeBatchJsonAndItemRows(this.prisma, {
+      batchId,
+      brandId,
+      extraBatchData: {
         config: progressConfig as Prisma.InputJsonValue,
-        items: batchItems as unknown as Prisma.InputJsonValue,
       },
-      where: scopedWhere(orgId, {
-        id: batchId,
+      items: batchItems,
+      organizationId: orgId,
+      whereExtra: {
         status: toPrismaBatchStatus(BatchStatus.PROCESSING),
-      }),
+      },
     });
-    if (persisted.count === 1) {
-      await persistBatchItemRows(this.prisma, {
-        batchId,
-        brandId,
-        items: batchItems,
-        organizationId: orgId,
-      });
-    }
 
     return persisted.count === 1;
   }

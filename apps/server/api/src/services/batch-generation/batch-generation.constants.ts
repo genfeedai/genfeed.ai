@@ -24,3 +24,11 @@ export const BATCH_RECONCILE_SWEEP_LIMIT = 50;
 
 /** Upper bound on durable credit shortfalls retried per settlement sweep. */
 export const BATCH_SETTLEMENT_SHORTFALL_SWEEP_LIMIT = 50;
+
+/**
+ * Typed `batch_items` upserts stay bounded. Unbounded `Promise.all` over a
+ * 100-item batch opens 100 concurrent connections; chunk so one writer stays
+ * inside the pool. Tombstone restore still needs per-row upsert (not
+ * createMany skipDuplicates), so this is sequential chunks of upserts.
+ */
+export const BATCH_ITEM_UPSERT_CHUNK_SIZE = 50;

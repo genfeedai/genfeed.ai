@@ -2,8 +2,9 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import {
   type BatchConfig,
   type BatchCreditsLedger,
-  cloneBatchItems,
+  resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
+import { batchItemRowsReadArgs } from '@api/services/batch-generation/batch-item-rows';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BatchPricingOptions,
@@ -126,7 +127,12 @@ export class BatchGenerationCreditsService {
 
     for (let attempt = 0; attempt < SETTLE_MAX_ATTEMPTS; attempt++) {
       const batch = await this.prisma.batch.findFirst({
-        select: { config: true, items: true, updatedAt: true },
+        select: {
+          batchItems: batchItemRowsReadArgs(params.organizationId),
+          config: true,
+          items: true,
+          updatedAt: true,
+        },
         where: scopedWhere(params.organizationId, { id: params.batchId }),
       });
 
@@ -139,7 +145,7 @@ export class BatchGenerationCreditsService {
 
       // Bill completed drafts only, at the rates captured when the batch was
       // created — media-aware, so an item that gained a mediaUrl costs more.
-      const billableItems = cloneBatchItems(batch.items)
+      const billableItems = resolveBatchItems(batch)
         .filter(
           (item) => item.status === BatchItemStatus.COMPLETED && item.postId,
         )

@@ -1,5 +1,6 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import { BatchItemStatus, Platform } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -34,6 +35,7 @@ describe('AgentXActionsToolHandler', () => {
     };
 
     const batchGenerationService = {
+      cancelBatch: vi.fn().mockResolvedValue({}),
       createBatch: vi.fn().mockResolvedValue({ id: 'batch-1' }),
     };
 
@@ -257,13 +259,21 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.requiresConfirmation).toBe(true);
-    expect(batchGenerationService.createBatch).toHaveBeenCalled();
+    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        platforms: [Platform.TWITTER],
+      }),
+      ctx.userId,
+      ctx.organizationId,
+    );
     expect(internalApi.callInternalApi).toHaveBeenCalledWith(
       'POST',
       '/v1/batches/batch-1/items',
       expect.objectContaining({
         engagementAction: 'quote',
-        platform: 'twitter',
+        platform: Platform.TWITTER,
+        status: BatchItemStatus.PENDING,
         targetPostId: '1234567890',
         type: 'engagement',
       }),
@@ -287,9 +297,32 @@ describe('AgentXActionsToolHandler', () => {
       '/v1/batches/batch-1/items',
       expect.objectContaining({
         engagementAction: 'repost',
+        platform: Platform.TWITTER,
+        status: BatchItemStatus.PENDING,
         targetPostId: '55555',
       }),
       ctx,
+    );
+  });
+
+  it('returns the add-item error instead of a silent success', async () => {
+    const { batchGenerationService, handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockRejectedValue(new Error('add item failed'));
+
+    const result = await handler.execute(
+      AgentToolName.DRAFT_X_QUOTE,
+      {
+        quoteContent: 'Great take',
+        targetPostIdOrUrl: '1234567890',
+      },
+      ctx,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('add item failed');
+    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+      'batch-1',
+      ctx.organizationId,
     );
   });
 });

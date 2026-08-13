@@ -1,11 +1,20 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
+import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  buildSingleDayBatchDto,
+  createBatchThenAddItem,
+} from '@api/services/agent-orchestrator/tools/create-batch-then-add-item';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
-import { TargetExecutionState } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  parsePlatform,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -364,9 +373,9 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    const targetPostId = params.targetPostId as string;
-    const replyContent = params.replyContent as string;
-    const platform = params.platform as string;
+    const targetPostId = readOptionalString(params.targetPostId);
+    const replyContent = readOptionalString(params.replyContent);
+    const platform = parsePlatform(params.platform);
 
     if (!targetPostId || !replyContent || !platform) {
       return {
@@ -376,52 +385,49 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    // Create a batch with a single engagement item
-    const brandId = params.brandId as string | undefined;
+    const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'Brand is required for engagement drafts.',
+        success: false,
+      };
+    }
 
-    const batchData: Record<string, unknown> = {
-      brandId: brandId || undefined,
-      count: 1,
-      platforms: [platform],
-      source: 'proactive',
-    };
-
-    const batch = await this.batchGenerationService.createBatch(
-      batchData as never,
-      ctx.userId,
-      ctx.organizationId,
-    );
-
-    // Add the engagement item directly
-    const batchId = String(batch.id);
-    await this.internalApi
-      .callInternalApi(
-        'POST',
-        `/v1/batches/${batchId}/items`,
-        {
+    const result = await createBatchThenAddItem(
+      {
+        batchGenerationService: this.batchGenerationService,
+        internalApi: this.internalApi,
+        logger: this.loggerService,
+      },
+      {
+        batchDto: buildSingleDayBatchDto(brandId, platform),
+        ctx,
+        item: {
           caption: replyContent,
           platform,
-          status: 'pending',
-          targetAuthor: params.targetAuthor,
-          targetPostContent: params.targetPostContent,
+          status: BatchItemStatus.PENDING,
+          targetAuthor: readOptionalString(params.targetAuthor),
+          targetPostContent: readOptionalString(params.targetPostContent),
           targetPostId,
-          targetPostUrl: params.targetPostUrl,
+          targetPostUrl: readOptionalString(params.targetPostUrl),
           type: 'engagement',
         },
-        ctx,
-      )
-      .catch(() => {
-        // If direct item add fails, the batch was still created
-        this.loggerService.warn(
-          `Could not add engagement item to batch ${batchId} via API, batch created as placeholder`,
-          this.constructorName,
-        );
-      });
+      },
+    );
+
+    if (!result.success) {
+      return {
+        creditsUsed: 0,
+        error: result.error,
+        success: false,
+      };
+    }
 
     return {
       creditsUsed: 1,
       data: {
-        batchId,
+        batchId: result.batchId,
         message:
           'Reply draft is ready for review. Nothing posts until you approve it.',
         platform,
