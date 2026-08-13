@@ -123,12 +123,8 @@ describe('ContentEngineService', () => {
   }
 
   it('runOrchestrationCycle finalizes a skipped cycle when the campaign is not active', async () => {
-    const {
-      agentCampaignsService,
-      agentRuntimeService,
-      agentRunsService,
-      service,
-    } = createService();
+    const { agentCampaignsService, agentRuntimeService, service } =
+      createService();
 
     agentCampaignsService.findOne.mockResolvedValue(
       createCampaign({ status: 'paused' }),
@@ -285,15 +281,15 @@ describe('ContentEngineService', () => {
         sourceType: 'campaign-orchestrator',
       }),
     );
-    expect(agentRunsService.patch).toHaveBeenCalledWith(
+    expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
       runId,
+      organizationId,
       expect.objectContaining({
-        metadata: expect.objectContaining({
-          campaignId,
-          orchestrationSummary: expect.stringContaining('specialist run'),
-        }),
+        campaignId,
+        orchestrationSummary: expect.stringContaining('specialist run'),
       }),
     );
+    expect(agentRunsService.patch).not.toHaveBeenCalled();
   });
 
   it('runOrchestrationCycle favors the underrepresented weighted rotation target', async () => {
@@ -791,6 +787,19 @@ describe('ContentEngineService', () => {
         userId,
       }),
     );
+    expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
+      runId,
+      organizationId,
+      expect.objectContaining({
+        campaignId,
+        orchestrationDispatchReason: expect.any(String),
+        triggerMetadata: expect.objectContaining({
+          topic: 'AI marketing hooks',
+        }),
+        triggerType: 'trend_spike',
+      }),
+    );
+    expect(agentRunsService.patch).not.toHaveBeenCalled();
     expect(result.dispatchCount).toBe(1);
     expect(result.summary).toContain('trend_spike');
   });

@@ -270,8 +270,9 @@ export class AgentAuthService {
       );
     }
 
+    const exchangeReservedAt = new Date();
     const consumeResult = await this.prisma.agentAuthRegistration.updateMany({
-      data: { exchangedAt: new Date() },
+      data: { exchangedAt: exchangeReservedAt },
       where: {
         claimedAt: registration.claimedAt,
         exchangedAt: null,
@@ -290,20 +291,36 @@ export class AgentAuthService {
     }
 
     const expiresAt = new Date(Date.now() + AGENT_AUTH_CREDENTIAL_TTL_MS);
-    const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
-      category: ApiKeyCategory.GENFEEDAI,
-      description: 'Credential issued through Auth.md agent registration',
-      expiresAt: expiresAt.toISOString(),
-      label: 'Agent registration',
-      metadata: {
-        kind: 'agent-auth-registration',
-        registrationId: registration.id,
-      },
-      organizationId: registration.organizationId,
-      rateLimit: 120,
-      scopes: registration.requestedScopes,
-      userId: registration.userId,
-    });
+    let createdCredential: Awaited<ReturnType<ApiKeysService['createWithKey']>>;
+    try {
+      createdCredential = await this.apiKeysService.createWithKey({
+        category: ApiKeyCategory.GENFEEDAI,
+        description: 'Credential issued through Auth.md agent registration',
+        expiresAt: expiresAt.toISOString(),
+        label: 'Agent registration',
+        metadata: {
+          kind: 'agent-auth-registration',
+          registrationId: registration.id,
+        },
+        organizationId: registration.organizationId,
+        rateLimit: 120,
+        scopes: registration.requestedScopes,
+        userId: registration.userId,
+      });
+    } catch (error) {
+      await this.prisma.agentAuthRegistration.updateMany({
+        data: { exchangedAt: null },
+        where: {
+          exchangedAt: exchangeReservedAt,
+          id: registration.id,
+          organizationId: registration.organizationId,
+          revokedAt: null,
+          userId: registration.userId,
+        },
+      });
+      throw error;
+    }
+    const { apiKey, plainKey } = createdCredential;
     const persistedExpiry = apiKey.expiresAt ?? expiresAt;
 
     return {

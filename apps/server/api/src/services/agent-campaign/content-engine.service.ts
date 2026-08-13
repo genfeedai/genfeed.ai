@@ -296,14 +296,6 @@ export class ContentEngineService {
       });
     }
 
-    for (const plan of dispatchedRuns) {
-      await this.agentRunsService.mergeMetadata(plan.runId, organizationId, {
-        campaignId,
-        ...this.buildRotationMetadata(rotationResult.selection),
-        orchestrationDispatchReason: plan.reason,
-      });
-    }
-
     const nextOrchestratedAt = this.computeNextRunAt(campaign, new Date());
     const summary = this.buildCycleSummary(
       campaign,
@@ -322,14 +314,12 @@ export class ContentEngineService {
     );
 
     for (const plan of dispatchedRuns) {
-      await this.agentRunsService.patch(plan.runId, {
-        metadata: {
-          campaignId,
-          ...this.buildRotationMetadata(rotationResult.selection),
-          orchestrationDispatchReason: plan.reason,
-          orchestrationSummary: summary,
-        },
-      } as Record<string, unknown>);
+      await this.agentRunsService.mergeMetadata(plan.runId, organizationId, {
+        campaignId,
+        ...this.buildRotationMetadata(rotationResult.selection),
+        orchestrationDispatchReason: plan.reason,
+        orchestrationSummary: summary,
+      });
     }
 
     return await this.finalizeCycle(campaign, {
@@ -460,19 +450,11 @@ export class ContentEngineService {
         organizationId,
         {
           campaignId: input.campaignId,
-          triggerMetadata: input.triggerMetadata,
-          triggerType: input.triggerType,
-        },
-      );
-
-      await this.agentRunsService.patch(dispatch.runId, {
-        metadata: {
-          campaignId: input.campaignId,
           orchestrationDispatchReason: dispatch.reason,
           triggerMetadata: input.triggerMetadata,
           triggerType: input.triggerType,
         },
-      } as Record<string, unknown>);
+      );
     }
 
     this.logger.log(`${this.logContext} dispatched trigger-driven runs`, {

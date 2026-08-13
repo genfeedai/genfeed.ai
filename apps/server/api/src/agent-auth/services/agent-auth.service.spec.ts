@@ -351,6 +351,33 @@ describe('AgentAuthService', () => {
     expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
   });
 
+  it('releases the exchange reservation when credential minting fails', async () => {
+    const { apiKeysService, service } = buildService();
+    const registration = await register(service);
+    const claimAttemptToken = new URL(
+      registration.claim.verification_uri,
+    ).searchParams.get('claim_attempt_token');
+    await service.completeClaim(makeUser(), {
+      claim_attempt_token: claimAttemptToken ?? '',
+      user_code: registration.claim.user_code,
+    });
+    vi.mocked(apiKeysService.createWithKey).mockRejectedValueOnce(
+      new Error('credential mint failed'),
+    );
+
+    await expect(
+      service.exchangeClaim({ claim_token: registration.claim_token }),
+    ).rejects.toThrow('credential mint failed');
+
+    await expect(
+      service.exchangeClaim({ claim_token: registration.claim_token }),
+    ).resolves.toMatchObject({
+      credential: 'gf_live_agent_auth_secret',
+      credential_type: 'api_key',
+    });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(2);
+  });
+
   it('revokes only proof-of-possession credentials issued by agent auth', async () => {
     const { apiKeysService, prisma, service } = buildService();
 
