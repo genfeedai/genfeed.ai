@@ -77,9 +77,9 @@ That facade becomes the only allowed dependency for campaign orchestration, sub-
 
 The follow-on work is intentionally narrow enough to land after V1 setup:
 
-1. Add an `AgentRuntimeModule` facade that exports runtime operations backed by `AgentOrchestratorService`, `AgentThreadEngineService`, `AgentRuntimeSessionService`, and `AgentExecutionLaneService`.
+1. Add an `AgentRuntimeModule` facade that exports runtime operations backed by `AgentOrchestratorService`, `AgentThreadEngineService`, `AgentRuntimeSessionService`, and `AgentExecutionLaneService`. **Started:** `AgentRuntimeService.startTurn` exists for campaign callers (thread + run + queue + best-effort `thread.turn_requested`).
 2. Migrate `AgentSpawnService` to depend on the runtime facade instead of resolving `AgentOrchestratorService` through `ModuleRef`.
-3. Migrate campaign orchestration to create or resume runtime turns through the facade, keeping only recurrence, trigger evaluation, queue scheduling, and memory extraction in `agent-campaign`.
+3. Migrate campaign orchestration to create or resume runtime turns through the facade, keeping only recurrence, trigger evaluation, queue scheduling, and memory extraction in `agent-campaign`. **Partial:** `AgentCampaignExecutionService` uses `startTurn`; `content-engine.service.ts` still create-and-queues directly.
 4. Re-home or wrap legacy `workflow-executor` processors behind content orchestration or skill handlers before adding new V1 execution paths.
 5. Add a smoke test that proves a campaign trigger creates a runtime run, appends thread events, and records completion through the same snapshot path used by chat.
 

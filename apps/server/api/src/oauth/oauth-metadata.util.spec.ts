@@ -28,6 +28,22 @@ describe('OAuth metadata', () => {
     expect(metadata.protected_resources).toEqual([
       'https://mcp.genfeed.ai/mcp',
     ]);
+    expect(metadata.agent_auth).toEqual({
+      claim_endpoint: 'https://api.genfeed.ai/v1/agent/auth/claim',
+      claim_uri: 'https://api.genfeed.ai/v1/agent/auth/claim',
+      identity_endpoint: 'https://api.genfeed.ai/v1/agent/auth',
+      identity_types_supported: ['identity_assertion', 'service_auth'],
+      identity_assertion: {
+        assertion_types_supported: ['verified_email'],
+        credential_types_supported: ['api_key'],
+      },
+      register_uri: 'https://api.genfeed.ai/v1/agent/auth',
+      revocation_uri: 'https://api.genfeed.ai/v1/agent/auth/revoke',
+      service_auth: {
+        credential_types_supported: ['api_key'],
+      },
+      skill: 'https://genfeed.ai/auth.md',
+    });
   });
 
   it('falls back to service URLs for self-hosted deployments', () => {

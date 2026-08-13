@@ -165,53 +165,13 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'Legacy dynamic job dispatcher can still run non-workflow product jobs while old rows exist.',
       systemWorkflowIds: ['legacy-cron-workflow-adapter'],
     },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/reply-bot/cron.reply-bot.service.ts',
-      id: 'reply-bot-cron',
-      issue: 1011,
-      reason:
-        'Reply bot polling cron remains a hardcoded product scheduling path until reply/DM workflows own polling and dispatch.',
-      systemWorkflowIds: ['reply-dm-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/content-engine/cron.content-engine.service.ts',
-      id: 'content-engine-cron',
-      issue: 1011,
-      reason:
-        'Content engine cron-like worker remains a product automation path pending system workflow migration.',
-      systemWorkflowIds: ['content-engine-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/agent/cron.proactive-agent.service.ts',
-      id: 'proactive-agent-cron',
-      issue: 1011,
-      reason:
-        'Proactive agent cron-like worker remains a product automation path pending workflow-backed agent migration.',
-      systemWorkflowIds: ['agent-autopilot'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/agent-campaign/cron.agent-campaign-orchestrator.service.ts',
-      id: 'agent-campaign-orchestration-cron',
-      issue: 1011,
-      reason:
-        'Agent campaign orchestration worker remains documented until campaign orchestration is fully workflow-backed.',
-      systemWorkflowIds: ['campaign-orchestration'],
-    },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = [
-  '/agent/',
-  '/agent-campaign/',
-  '/content-engine/',
   '/content-pipeline/',
   '/content-schedules/',
   '/dynamic-jobs/',
   '/posts/',
-  '/reply-bot/',
 ];
 
 const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [

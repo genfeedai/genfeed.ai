@@ -13,12 +13,5 @@ export interface AgentCampaignDocument extends AgentCampaign {
     posts?: number;
     videos?: number;
   };
-  creditsAllocated: number;
-  creditsUsed: number;
-  lastOrchestratedAt?: Date | null;
-  lastOrchestrationSummary?: string;
-  nextOrchestratedAt?: Date | string | null;
-  orchestrationIntervalHours?: number;
-  status: 'active' | 'completed' | 'draft' | 'paused';
   [key: string]: unknown;
 }

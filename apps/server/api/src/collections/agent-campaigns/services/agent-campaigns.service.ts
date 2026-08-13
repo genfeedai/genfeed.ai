@@ -23,10 +23,11 @@ type AgentCampaignCreateInput = CreateAgentCampaignDto & {
   userId: string;
 };
 
-const CONFIG_BACKED_KEYS = [
-  'brief',
-  'contentQuota',
-  'contentRotation',
+/** Payload-only keys that remain in config JSON. */
+const CONFIG_BACKED_KEYS = ['contentQuota', 'contentRotation'] as const;
+
+/** First-class columns — not config JSON. */
+const COLUMN_BACKED_KEYS = [
   'creditsAllocated',
   'creditsUsed',
   'endDate',
@@ -57,8 +58,18 @@ export class AgentCampaignsService extends BaseService<
   ): AgentCampaignDocument {
     const record = super.normalizeDocument(document) as Record<string, unknown>;
     const config = this.readRecord(record.config) ?? {};
+    const brief =
+      typeof record.description === 'string'
+        ? record.description
+        : typeof config.brief === 'string'
+          ? config.brief
+          : undefined;
 
-    return { ...config, ...record } as AgentCampaignDocument;
+    return {
+      ...config,
+      ...record,
+      ...(brief !== undefined ? { brief } : {}),
+    } as AgentCampaignDocument;
   }
 
   override async create(
@@ -143,11 +154,31 @@ export class AgentCampaignsService extends BaseService<
           : { set: agentStrategyIds.map((id) => ({ id })) };
     }
 
+    for (const key of COLUMN_BACKED_KEYS) {
+      if (Object.hasOwn(dto, key)) {
+        data[key] = (dto as Record<string, unknown>)[key];
+        delete config[key];
+      }
+    }
+
     for (const key of CONFIG_BACKED_KEYS) {
       if (Object.hasOwn(dto, key)) {
         config[key] = (dto as Record<string, unknown>)[key];
       }
     }
+
+    // brief lives only on description — never re-stash into config
+    delete config.brief;
+    delete config.status;
+    delete config.startDate;
+    delete config.endDate;
+    delete config.creditsAllocated;
+    delete config.creditsUsed;
+    delete config.orchestrationEnabled;
+    delete config.orchestrationIntervalHours;
+    delete config.nextOrchestratedAt;
+    delete config.lastOrchestratedAt;
+    delete config.lastOrchestrationSummary;
 
     const suppliedConfig = this.readRecord(dto.config);
     data.config = suppliedConfig ? { ...config, ...suppliedConfig } : config;

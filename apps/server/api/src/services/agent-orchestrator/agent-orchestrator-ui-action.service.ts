@@ -66,6 +66,10 @@ import { Effect } from 'effect';
 const BRAND_IDENTITY_MESSAGE_PAGE_SIZE = 100;
 const BRAND_IDENTITY_MESSAGE_MAX_PAGES = 50;
 
+/** Distinct from session-guard `Authentication required` so clients can recover correctly. */
+const PROVIDER_AUTHENTICATION_DETAIL =
+  'The model provider rejected the credentials for this request.';
+
 /**
  * Host callbacks into the orchestrator for plan-follow-up turns that still
  * live on the main chat loops (phase 2 keeps those on the orchestrator).
@@ -986,7 +990,8 @@ export class AgentOrchestratorUiActionService {
   ): never {
     const status = this.inferAuthFailureStatus(error);
     if (status === HttpStatus.UNAUTHORIZED) {
-      ErrorResponse.unauthorized();
+      // Tool failures that reach this path already passed session guards.
+      ErrorResponse.unauthorized(PROVIDER_AUTHENTICATION_DETAIL);
     }
     if (status === HttpStatus.FORBIDDEN) {
       ErrorResponse.forbidden();
@@ -1008,7 +1013,7 @@ export class AgentOrchestratorUiActionService {
 
     const upstreamStatus = this.readUpstreamHttpStatus(error);
     if (upstreamStatus === HttpStatus.UNAUTHORIZED) {
-      ErrorResponse.unauthorized();
+      ErrorResponse.unauthorized(PROVIDER_AUTHENTICATION_DETAIL);
     }
     if (upstreamStatus === HttpStatus.FORBIDDEN) {
       ErrorResponse.forbidden();

@@ -5,6 +5,7 @@
  */
 
 import process from 'node:process';
+import { AgentAuthModule } from '@api/agent-auth/agent-auth.module';
 import { AuthModule } from '@api/auth/auth.module';
 import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
@@ -258,6 +259,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ApiKeysModule,
     ArticlesModule,
     AssetsModule,
+    AgentAuthModule,
     AuthModule,
     BetterAuthModule,
     OAuthModule,

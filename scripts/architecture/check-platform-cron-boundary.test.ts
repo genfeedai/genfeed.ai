@@ -37,6 +37,7 @@ describe('check-platform-cron-boundary', () => {
     );
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist: [],
     });
@@ -68,6 +69,7 @@ describe('check-platform-cron-boundary', () => {
     ];
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist,
     });
@@ -100,6 +102,7 @@ describe('check-platform-cron-boundary', () => {
     ];
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations,
       platformAllowlist: [],
     });
@@ -120,6 +123,7 @@ describe('check-platform-cron-boundary', () => {
     ];
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist,
     });
@@ -175,6 +179,7 @@ describe('check-platform-cron-boundary', () => {
     );
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist: [],
     });
@@ -197,6 +202,7 @@ describe('check-platform-cron-boundary', () => {
     );
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist: [],
     });
@@ -234,6 +240,7 @@ describe('check-platform-cron-boundary', () => {
     ];
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist,
     });
@@ -270,12 +277,63 @@ describe('check-platform-cron-boundary', () => {
     ];
 
     const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
       pendingMigrations: [],
       platformAllowlist,
     });
 
     expect(result.violations).toHaveLength(1);
     expect(result.violations[0]?.kind).toBe('duplicate-cron');
+  });
+
+  it('flags decorator-less workers cron services that are not allowlisted', () => {
+    writeFixture(
+      'apps/server/workers/src/crons/orphan/cron.orphan.service.ts',
+      `
+        export class CronOrphanService {
+          async runLeftover(): Promise<void> {}
+        }
+      `,
+    );
+
+    const result = runCheckPlatformCronBoundary({
+      pendingMigrations: [],
+      platformAllowlist: [],
+      sweepServiceAllowlist: [],
+    });
+
+    expect(
+      result.violations.some(
+        (violation) => violation.kind === 'orphan-cron-service',
+      ),
+    ).toBe(true);
+  });
+
+  it('allows decorator-less system sweep services on the allowlist', () => {
+    writeFixture(
+      'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+      `
+        export class CronPostsService {
+          async publishScheduledPosts(): Promise<void> {}
+        }
+      `,
+    );
+
+    const result = runCheckPlatformCronBoundary({
+      pendingMigrations: [],
+      platformAllowlist: [],
+      sweepServiceAllowlist: [
+        {
+          file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+          id: 'scheduled-posts-sweep',
+          methodName: 'publishScheduledPosts',
+          reason: 'Fixture system sweep.',
+        },
+      ],
+    });
+
+    expect(result.violations).toHaveLength(0);
+    expect(result.orphanCronServices).toHaveLength(1);
   });
 });
 

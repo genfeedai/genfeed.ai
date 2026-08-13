@@ -72,6 +72,9 @@ type AgentRunPageOptions = {
 };
 
 type AgentRunWriteData = Record<string, unknown>;
+type AgentRunCreateInput = CreateAgentRunDto & {
+  threadId?: string;
+};
 type AgentRunRetryOptions = {
   brandId?: string | null;
   retriedBy: string;
@@ -163,7 +166,7 @@ export class AgentRunsService extends BaseService<
    * the auth-derived value; this override validates the result is present.
    */
   override async create(
-    createDto: CreateAgentRunDto,
+    createDto: AgentRunCreateInput,
   ): Promise<AgentRunDocument> {
     const { artifactWrite, dto } = await this.prepareCreateData(createDto);
 

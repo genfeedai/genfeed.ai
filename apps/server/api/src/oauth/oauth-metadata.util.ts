@@ -55,8 +55,27 @@ export function buildOAuthAuthorizationServerMetadata(
 ) {
   const issuer = resolveOAuthIssuerUrl(configService);
   const protectedResources = [resolveMcpResourceUrl(configService)];
+  const agentAuthRegistrationUrl = `${issuer}/v1/agent/auth`;
+  const agentAuthClaimUrl = `${agentAuthRegistrationUrl}/claim`;
+  const agentAuthRevocationUrl = `${agentAuthRegistrationUrl}/revoke`;
 
   return {
+    agent_auth: {
+      claim_endpoint: agentAuthClaimUrl,
+      claim_uri: agentAuthClaimUrl,
+      identity_endpoint: agentAuthRegistrationUrl,
+      identity_types_supported: ['identity_assertion', 'service_auth'],
+      identity_assertion: {
+        assertion_types_supported: ['verified_email'],
+        credential_types_supported: ['api_key'],
+      },
+      register_uri: agentAuthRegistrationUrl,
+      revocation_uri: agentAuthRevocationUrl,
+      service_auth: {
+        credential_types_supported: ['api_key'],
+      },
+      skill: 'https://genfeed.ai/auth.md',
+    },
     authorization_endpoint: `${issuer}/v1/oauth/authorize`,
     code_challenge_methods_supported: ['S256'],
     grant_types_supported: ['authorization_code'],

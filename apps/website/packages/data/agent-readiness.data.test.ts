@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  AUTH_MARKDOWN,
   buildAgentSkillsIndex,
   buildMcpServerCard,
   getPublishedAgentSkill,
@@ -52,5 +53,18 @@ describe('agent readiness metadata', () => {
     expect(HOMEPAGE_AGENT_MARKDOWN).toContain(
       'https://genfeed.ai/.well-known/api-catalog',
     );
+  });
+
+  it('documents the complete verified-email agent registration ceremony', () => {
+    expect(AUTH_MARKDOWN).toContain(
+      'POST https://api.genfeed.ai/v1/agent/auth',
+    );
+    expect(AUTH_MARKDOWN).toContain('identity_assertion');
+    expect(AUTH_MARKDOWN).toContain('verified_email');
+    expect(AUTH_MARKDOWN).toContain('claim_token');
+    expect(AUTH_MARKDOWN).toContain('claim_attempt_token');
+    expect(AUTH_MARKDOWN).toContain('/v1/agent/auth/claim/complete');
+    expect(AUTH_MARKDOWN).toContain('/v1/agent/auth/revoke');
+    expect(AUTH_MARKDOWN).toContain('credential');
   });
 });

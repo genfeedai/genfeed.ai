@@ -119,7 +119,7 @@ export default function AgentCampaignNewPage() {
 
   return (
     <Container
-      label="New Campaign"
+      label="New Program"
       description="Coordinate agents for content production."
       icon={LayoutDashboard}
     >
@@ -251,7 +251,7 @@ export default function AgentCampaignNewPage() {
 
         <div className="flex items-center gap-3 pt-2">
           <Button
-            label="Create Campaign"
+            label="Create Program"
             type="submit"
             variant={ButtonVariant.DEFAULT}
             isDisabled={isSubmitting}

@@ -155,20 +155,72 @@ export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 
 export const AUTH_MARKDOWN = `# Genfeed auth.md
 
-Genfeed supports OAuth 2.0 Authorization Code with PKCE for interactive agents and scoped \`gf_\` API keys for server-to-server clients.
+Genfeed supports verified-email agent registration that issues a scoped, 30-day \`gf_\` API key after the user signs in and confirms a six-digit code. No credential is issued before that confirmation.
 
-## Discover OAuth
+## 1. Discover
 
 1. Read the [Genfeed protected resource metadata](${WEBSITE_ORIGIN}/.well-known/oauth-protected-resource).
 2. Read the [MCP protected resource metadata](https://mcp.genfeed.ai/.well-known/oauth-protected-resource) when connecting to MCP.
 3. Read the [authorization server metadata](https://api.genfeed.ai/.well-known/oauth-authorization-server).
-4. Dynamically register a public client with \`POST https://api.genfeed.ai/v1/oauth/register\`. Provide \`redirect_uris\`, use \`authorization_code\`, and set \`token_endpoint_auth_method\` to \`none\`.
-5. Send the user through the advertised authorization endpoint with a PKCE S256 challenge.
-6. Exchange the returned code at the advertised token endpoint and send the access token as an HTTP Bearer token.
 
-## API keys
+The authorization-server document includes an \`agent_auth\` block. Use its \`register_uri\`, \`claim_uri\`, and \`revocation_uri\` instead of guessing endpoint paths.
 
-Headless agents can create a scoped key from [Genfeed Connect](https://app.genfeed.ai/connect). Send it as \`Authorization: Bearer <gf_...>\` to the [MCP endpoint](https://mcp.genfeed.ai/mcp) or the REST API. Treat keys as secrets and never place them in prompts, logs, or source control.
+## 2. Register with verified email
+
+Confirm with the user which Genfeed scopes the agent will request, then send:
+
+\`\`\`http
+POST https://api.genfeed.ai/v1/agent/auth
+Content-Type: application/json
+
+{
+  "type": "identity_assertion",
+  "assertion_type": "verified_email",
+  "assertion": "user@example.com",
+  "requested_credential_type": "api_key",
+  "requested_scopes": ["videos:read", "images:create"]
+}
+\`\`\`
+
+Agents using the newer service-auth name may send \`{"type":"service_auth","login_hint":"user@example.com",...}\` to the same endpoint. The response contains a one-time \`claim_token\` plus a \`claim\` object with \`user_code\`, \`verification_uri\`, \`expires_in\`, and \`interval\`.
+
+## 3. Hand the claim to the user
+
+Show \`claim.verification_uri\` and \`claim.user_code\` to the user together. The user opens the URL, signs in with the same verified email, and enters the six-digit code. The URL contains an opaque \`claim_attempt_token\`; never replace it with the user code or log either token.
+
+The claim page submits the authenticated confirmation to \`POST https://api.genfeed.ai/v1/agent/auth/claim/complete\`. Agents must not call that endpoint because it requires the user's Genfeed session.
+
+## 4. Exchange the completed claim
+
+Honor the advertised polling interval and send:
+
+\`\`\`http
+POST https://api.genfeed.ai/v1/agent/auth/claim
+Content-Type: application/json
+
+{"claim_token":"<claim_token>"}
+\`\`\`
+
+Before confirmation the endpoint returns \`authorization_pending\`. After confirmation it returns \`credential_type: "api_key"\`, the copy-once \`credential\`, its expiry, and granted scopes. A claim can be exchanged only once.
+
+## 5. Use and revoke the credential
+
+Send the credential as \`Authorization: Bearer <gf_...>\` to the [MCP endpoint](https://mcp.genfeed.ai/mcp) or REST API. Treat it as a secret and never place it in prompts, logs, URLs, or source control.
+
+Revoke an Auth.md-issued credential by proving possession:
+
+\`\`\`http
+POST https://api.genfeed.ai/v1/agent/auth/revoke
+Content-Type: application/json
+
+{"token":"<gf_...>"}
+\`\`\`
+
+On expiry, revocation, or a 401 from a previously working credential, discard it and restart discovery. The revocation endpoint refuses to revoke keys that were not issued through this registration flow.
+
+## OAuth fallback
+
+Interactive agents may instead dynamically register a public OAuth client at \`POST https://api.genfeed.ai/v1/oauth/register\`, send the user through Authorization Code with PKCE S256, and exchange the code at the advertised token endpoint.
 
 See the [MCP setup guide](https://docs.genfeed.ai/api-reference/mcp) and [API key guide](https://docs.genfeed.ai/api-reference/api-keys) for scopes, rotation, and revocation.
 `;

@@ -66,8 +66,8 @@ describe('ContentEngineService', () => {
       mergeMetadata: vi.fn(),
       patch: vi.fn(),
     };
-    const agentRunQueueService = {
-      queueRun: vi.fn(),
+    const agentRuntimeService = {
+      startTurn: vi.fn(),
     };
     const analyticsService = {
       getOverview: vi.fn(),
@@ -93,7 +93,7 @@ describe('ContentEngineService', () => {
       agentCampaignsService,
       agentGoalsService,
       agentMemoryCaptureService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentRunsService,
       agentStrategiesService,
       analyticsService,
@@ -106,7 +106,6 @@ describe('ContentEngineService', () => {
         agentGoalsService as never,
         agentRunsService as never,
         new ContentRotationService(),
-        agentRunQueueService as never,
         analyticsService as never,
         agentMemoryCaptureService as never,
         campaignMemoryQueueService as never,
@@ -118,17 +117,14 @@ describe('ContentEngineService', () => {
           logger as never,
         ),
         logger as never,
+        agentRuntimeService as never,
       ),
     };
   }
 
   it('runOrchestrationCycle finalizes a skipped cycle when the campaign is not active', async () => {
-    const {
-      agentCampaignsService,
-      agentRunQueueService,
-      agentRunsService,
-      service,
-    } = createService();
+    const { agentCampaignsService, agentRuntimeService, service } =
+      createService();
 
     agentCampaignsService.findOne.mockResolvedValue(
       createCampaign({ status: 'paused' }),
@@ -153,15 +149,14 @@ describe('ContentEngineService', () => {
         nextOrchestratedAt: null,
       }),
     );
-    expect(agentRunsService.create).not.toHaveBeenCalled();
-    expect(agentRunQueueService.queueRun).not.toHaveBeenCalled();
+    expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
   });
 
   it('runOrchestrationCycle completes the campaign when the remaining credit budget is exhausted', async () => {
     const {
       agentCampaignsService,
       agentGoalsService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentStrategiesService,
       analyticsService,
       service,
@@ -212,7 +207,7 @@ describe('ContentEngineService', () => {
         nextOrchestratedAt: null,
       }),
     );
-    expect(agentRunQueueService.queueRun).not.toHaveBeenCalled();
+    expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
   });
 
   it('runOrchestrationCycle dispatches eligible specialist strategies and captures decision memory', async () => {
@@ -220,7 +215,7 @@ describe('ContentEngineService', () => {
       agentCampaignsService,
       agentGoalsService,
       agentMemoryCaptureService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentRunsService,
       agentStrategiesService,
       analyticsService,
@@ -245,14 +240,13 @@ describe('ContentEngineService', () => {
       totalPosts: 4,
       totalViews: 3200,
     });
-    agentRunsService.create.mockResolvedValue({
-      id: runId,
-      metadata: { existing: true },
-    });
     agentRunsService.findRecentByOrganization.mockResolvedValue([]);
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentRuntimeService.startTurn.mockResolvedValue({
+      runId,
+      threadId: 'thread-id',
+    });
     agentMemoryCaptureService.capture.mockResolvedValue({
       memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
@@ -269,12 +263,11 @@ describe('ContentEngineService', () => {
       'Campaign Spring Push dispatched 1 specialist run(s).',
     );
     expect(result.nextOrchestratedAt).toBeInstanceOf(Date);
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
+    expect(agentRuntimeService.startTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         campaignId,
         creditBudget: 24,
         organizationId,
-        runId,
         strategyId: String(strategy.id),
         userId,
       }),
@@ -288,15 +281,15 @@ describe('ContentEngineService', () => {
         sourceType: 'campaign-orchestrator',
       }),
     );
-    expect(agentRunsService.patch).toHaveBeenCalledWith(
+    expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
       runId,
+      organizationId,
       expect.objectContaining({
-        metadata: expect.objectContaining({
-          campaignId,
-          orchestrationSummary: expect.stringContaining('specialist run'),
-        }),
+        campaignId,
+        orchestrationSummary: expect.stringContaining('specialist run'),
       }),
     );
+    expect(agentRunsService.patch).not.toHaveBeenCalled();
   });
 
   it('runOrchestrationCycle favors the underrepresented weighted rotation target', async () => {
@@ -304,7 +297,7 @@ describe('ContentEngineService', () => {
       agentCampaignsService,
       agentGoalsService,
       agentMemoryCaptureService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentRunsService,
       agentStrategiesService,
       analyticsService,
@@ -360,13 +353,12 @@ describe('ContentEngineService', () => {
         metadata: { campaignId, contentRotationTargetKey: 'education' },
       },
     ]);
-    agentRunsService.create.mockResolvedValue({
-      id: 'education-run',
-      metadata: {},
-    });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentRuntimeService.startTurn.mockResolvedValue({
+      runId: 'education-run',
+      threadId: 'thread-id',
+    });
     agentMemoryCaptureService.capture.mockResolvedValue({
       memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
@@ -383,14 +375,9 @@ describe('ContentEngineService', () => {
       strategyId: 'education-strategy',
     });
     expect(result.summary).toContain('Weighted rotation: selected education');
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
+    expect(agentRuntimeService.startTurn).toHaveBeenCalledWith(
       expect.objectContaining({
-        runId: 'education-run',
         strategyId: 'education-strategy',
-      }),
-    );
-    expect(agentRunsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
         metadata: expect.objectContaining({
           campaignId,
           contentRotationTargetKey: 'education',
@@ -405,7 +392,7 @@ describe('ContentEngineService', () => {
       agentCampaignsService,
       agentGoalsService,
       agentMemoryCaptureService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentRunsService,
       agentStrategiesService,
       analyticsService,
@@ -448,10 +435,12 @@ describe('ContentEngineService', () => {
     // Empty history: every target is equally underrepresented, so rotation is
     // free to pick any candidate — what matters is that it SEES all 7.
     agentRunsService.findRecentByOrganization.mockResolvedValue([]);
-    agentRunsService.create.mockResolvedValue({ id: 'run', metadata: {} });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentRuntimeService.startTurn.mockResolvedValue({
+      runId: 'run',
+      threadId: 'thread-id',
+    });
     agentMemoryCaptureService.capture.mockResolvedValue({
       memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
@@ -585,7 +574,7 @@ describe('ContentEngineService', () => {
   });
 
   it('dispatchTriggeredRuns skips when the campaign is not active', async () => {
-    const { agentCampaignsService, agentRunsService, service } =
+    const { agentCampaignsService, agentRuntimeService, service } =
       createService();
 
     agentCampaignsService.findOneById.mockResolvedValue(
@@ -611,11 +600,11 @@ describe('ContentEngineService', () => {
       dispatchCount: 0,
       skippedReason: 'Campaign is paused, skipping trigger dispatch.',
     });
-    expect(agentRunsService.create).not.toHaveBeenCalled();
+    expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
   });
 
   it('dispatchTriggeredRuns skips when no strategies are selected', async () => {
-    const { agentCampaignsService, agentRunsService, service } =
+    const { agentCampaignsService, agentRuntimeService, service } =
       createService();
 
     agentCampaignsService.findOneById.mockResolvedValue(createCampaign());
@@ -636,14 +625,14 @@ describe('ContentEngineService', () => {
       dispatchCount: 0,
       skippedReason: 'No strategies selected for trigger dispatch.',
     });
-    expect(agentRunsService.create).not.toHaveBeenCalled();
+    expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
   });
 
   it('dispatchTriggeredRuns skips when the campaign credit budget is exhausted', async () => {
     const {
       agentCampaignsService,
       agentGoalsService,
-      agentRunsService,
+      agentRuntimeService,
       analyticsService,
       service,
     } = createService();
@@ -680,7 +669,7 @@ describe('ContentEngineService', () => {
       dispatchCount: 0,
       skippedReason: 'Campaign credit budget is exhausted.',
     });
-    expect(agentRunsService.create).not.toHaveBeenCalled();
+    expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
   });
 
   it('dispatchTriggeredRuns creates and queues trigger-driven runs', async () => {
@@ -688,7 +677,7 @@ describe('ContentEngineService', () => {
       agentCampaignsService,
       agentGoalsService,
       agentMemoryCaptureService,
-      agentRunQueueService,
+      agentRuntimeService,
       agentRunsService,
       analyticsService,
       logger,
@@ -729,12 +718,12 @@ describe('ContentEngineService', () => {
       wroteBrandInsight: false,
       wroteContextMemory: false,
     });
-    agentRunsService.create.mockResolvedValue({
-      id: runId,
-    });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentRuntimeService.startTurn.mockResolvedValue({
+      runId,
+      threadId: 'thread-id',
+    });
 
     const triggerService = new ContentEngineService(
       agentCampaignsService as never,
@@ -742,7 +731,6 @@ describe('ContentEngineService', () => {
       agentGoalsService as never,
       agentRunsService as never,
       new ContentRotationService(),
-      agentRunQueueService as never,
       analyticsService as never,
       agentMemoryCaptureService as never,
       { queueExtraction: vi.fn() } as never,
@@ -754,6 +742,7 @@ describe('ContentEngineService', () => {
         logger as never,
       ),
       logger as never,
+      agentRuntimeService as never,
     );
 
     const result = await triggerService.dispatchTriggeredRuns({
@@ -784,25 +773,33 @@ describe('ContentEngineService', () => {
       triggerType: 'trend_spike',
     });
 
-    expect(agentRunsService.create).toHaveBeenCalledWith(
+    expect(agentRuntimeService.startTurn).toHaveBeenCalledWith(
       expect.objectContaining({
+        campaignId,
         label: 'Campaign trigger: Spring Push -> Engagement responder',
         metadata: expect.objectContaining({
           campaignId,
           dispatchedBy: 'campaign_trigger_evaluator',
           triggerType: 'trend_spike',
         }),
-      }),
-    );
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        campaignId,
         organizationId,
-        runId,
         strategyId,
         userId,
       }),
     );
+    expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
+      runId,
+      organizationId,
+      expect.objectContaining({
+        campaignId,
+        orchestrationDispatchReason: expect.any(String),
+        triggerMetadata: expect.objectContaining({
+          topic: 'AI marketing hooks',
+        }),
+        triggerType: 'trend_spike',
+      }),
+    );
+    expect(agentRunsService.patch).not.toHaveBeenCalled();
     expect(result.dispatchCount).toBe(1);
     expect(result.summary).toContain('trend_spike');
   });

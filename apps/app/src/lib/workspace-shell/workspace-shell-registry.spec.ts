@@ -112,7 +112,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
     ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
-    ['/acme/moonrise/automate/campaigns/campaign-1', 'Automate', 'Campaign'],
+    ['/acme/moonrise/automate/campaigns/campaign-1', 'Automate', 'Program'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],

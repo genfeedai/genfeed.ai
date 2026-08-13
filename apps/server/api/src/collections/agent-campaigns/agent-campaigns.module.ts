@@ -10,6 +10,7 @@ import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
+import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -20,6 +21,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentRunsModule),
     forwardRef(() => QueuesModule),
     forwardRef(() => UsersModule),
+    forwardRef(() => AgentRuntimeModule),
   ],
   providers: [AgentCampaignsService, AgentCampaignExecutionService],
 })

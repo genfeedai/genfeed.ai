@@ -54,7 +54,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/orchestrator/OrchestratorGoalSection.tsx": 7,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/orchestrator/OrchestratorSpecialistsSection.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/overview/AutomationOverviewPage.tsx": 1,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/reply-campaigns/reply-campaigns-page.tsx": 15,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 15,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/ActiveRunsPanel.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/AgentRunCard.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/mission-control.tsx": 9,

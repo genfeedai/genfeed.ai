@@ -90,7 +90,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
       {
         accent: `${campaigns.length} total`,
         icon: <CirclePlay className="size-4 text-muted-foreground" />,
-        label: 'Active Campaigns',
+        label: 'Active Programs',
         value: String(activeCampaigns.length),
       },
       {
@@ -220,7 +220,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
     <section data-testid="campaign-active-cards">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
-          Active Campaigns
+          Active Programs
         </h2>
         {campaigns.filter((c) => c.status === 'active').length > 3 && (
           <Button
@@ -347,20 +347,20 @@ export default function AgentCampaignsPage() {
 
   return (
     <Container
-      label="Agent Campaigns"
-      description="Coordinated multi-agent content production."
+      label="Programs"
+      description="Coordinate agents for multi-agent content production."
       icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
           <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
-            <Plus /> New Campaign
+            <Plus /> New Program
           </Link>
         </Button>
       }
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-sm text-foreground/40">
-          Loading campaigns…
+          Loading programs…
         </div>
       ) : hasCampaigns ? (
         <div className="space-y-8">
@@ -369,7 +369,7 @@ export default function AgentCampaignsPage() {
           <section data-testid="campaign-table">
             <div className="mb-4">
               <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
-                All Campaigns
+                All Programs
               </h2>
             </div>
             <AppTable<AgentCampaign>
@@ -377,7 +377,7 @@ export default function AgentCampaignsPage() {
               columns={columns}
               isLoading={false}
               getRowKey={(campaign) => campaign.id}
-              emptyLabel="No campaigns yet."
+              emptyLabel="No programs yet."
             />
           </section>
         </div>
@@ -388,16 +388,16 @@ export default function AgentCampaignsPage() {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground/60">
-              No campaigns yet
+              No programs yet
             </p>
             <p className="mt-1 text-xs text-foreground/35">
-              Create your first multi-agent campaign to coordinate content
+              Create your first multi-agent program to coordinate content
               production.
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
             <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
-              <Plus /> New Campaign
+              <Plus /> New Program
             </Link>
           </Button>
         </div>

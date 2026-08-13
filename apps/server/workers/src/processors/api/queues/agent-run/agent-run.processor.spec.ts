@@ -285,10 +285,12 @@ describe('AgentRunProcessor', () => {
 
       expect(campaignExecutionService.updateCreditsUsed).toHaveBeenCalledWith(
         'campaign-1',
+        'org-1',
         7,
       );
       expect(campaignExecutionService.checkQuota).toHaveBeenCalledWith(
         'campaign-1',
+        'org-1',
       );
     });
 
@@ -304,6 +306,7 @@ describe('AgentRunProcessor', () => {
       expect(campaignExecutionService.updateCreditsUsed).not.toHaveBeenCalled();
       expect(campaignExecutionService.checkQuota).toHaveBeenCalledWith(
         'campaign-1',
+        'org-1',
       );
     });
 
