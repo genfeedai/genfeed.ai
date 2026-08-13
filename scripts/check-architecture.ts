@@ -65,6 +65,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-marketplace-boundary.ts',
+    ],
+    name: 'Marketplace public-boundary',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-deterministic-locale.ts',
     ],
     name: 'Deterministic locale boundary',

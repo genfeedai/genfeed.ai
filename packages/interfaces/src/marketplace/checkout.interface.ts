@@ -14,3 +14,9 @@ export interface IClaimFreeResponse {
   purchaseId: string;
   message: string;
 }
+
+export interface IOwnershipResponse {
+  listingId: string;
+  owned: boolean;
+  purchaseId?: string;
+}

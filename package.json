@@ -72,6 +72,7 @@
     "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
     "check:legacy-cron-surface": "bun run scripts/architecture/check-legacy-cron-jobs-surface.ts",
+    "check:marketplace-boundary": "bun run scripts/architecture/check-marketplace-boundary.ts",
     "check:product-workflow-boundary": "bun run scripts/architecture/check-product-workflow-boundary.ts",
     "check:project-references": "bun run scripts/architecture/check-project-reference-deps.ts",
     "check:relation-alias-reads": "bun run scripts/architecture/check-relation-alias-reads.ts",
