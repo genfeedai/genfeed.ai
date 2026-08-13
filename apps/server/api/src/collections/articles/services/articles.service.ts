@@ -218,14 +218,22 @@ export class ArticlesService extends BaseService<
 
     this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
+    // `tags` is a Tag[] relation, not a scalar column — Prisma create rejects a
+    // raw string[] (#2870). Convert tag IDs into a nested `connect` write.
+    const { tags, ...scalarDto } = createArticleDto;
     const articleData = ArticleFilterUtil.toArticlePersistenceData({
-      ...createArticleDto,
+      ...scalarDto,
       brandId,
       organizationId,
       userId,
     });
 
-    const result = await super.create(articleData);
+    const result = await super.create({
+      ...articleData,
+      ...(tags && tags.length > 0
+        ? { tags: { connect: tags.map((id) => ({ id })) } }
+        : {}),
+    } as CreateArticleDto);
 
     // Explicitly invalidate cache after create — canonical org/id keys + tags
     await this.invalidateArticleListCaches('create', {

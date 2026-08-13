@@ -107,5 +107,6 @@ export interface ArticleCreatePayload {
   slug: string;
   status: ArticleStatus;
   summary: string;
+  /** Resolved Tag ids (not labels) — connected via the `article_tags` relation. */
   tags?: string[];
 }
