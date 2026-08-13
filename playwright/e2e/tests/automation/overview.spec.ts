@@ -6,11 +6,12 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 
 /**
- * E2E tests for Automate surfaces after campaigns/outreach returned to Automate.
+ * E2E tests for Automate Programs and Messages outreach after the campaigns IA cut.
  *
- * Canonical campaign routes: `APP_ROUTES.AUTOMATE.CAMPAIGNS` /
- * `APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS`. Legacy `/publish/campaigns` and
- * `/publish/outreach-campaigns` permanently redirect there.
+ * - Agent Programs: `APP_ROUTES.AUTOMATE.CAMPAIGNS` (UI label Programs)
+ * - Outreach sequences: `APP_ROUTES.MESSAGES.OUTREACH`
+ * - Legacy `/publish/campaigns` → Automate Programs
+ * - Legacy `/publish/outreach-campaigns` and `/automate/outreach-campaigns` → Messages
  *
  * Sidebar nav item hrefs are org/brand-prefixed at render time by
  * `prefixHref()`, so assertions use `a[href$="..."]` on the route-constant
@@ -19,10 +20,10 @@ import { expect, test } from '../../fixtures/auth.fixture';
 const ORG_BRAND = '/test-org/brand-1';
 
 const workflowsLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.WORKFLOWS}"]`;
-const campaignsLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.CAMPAIGNS}"]`;
-const outreachCampaignsLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}"]`;
+const programsLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.CAMPAIGNS}"]`;
+const outreachSequencesLinkSelector = `a[href$="${APP_ROUTES.MESSAGES.OUTREACH}"]`;
 
-test.describe('Automate & Publish surfaces', () => {
+test.describe('Automate & Messages surfaces', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -53,7 +54,7 @@ test.describe('Automate & Publish surfaces', () => {
       ).toBeVisible();
     });
 
-    test('campaigns page renders the Agent Campaigns surface', async ({
+    test('programs page renders the Programs surface', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(
@@ -65,33 +66,30 @@ test.describe('Automate & Publish surfaces', () => {
         new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.CAMPAIGNS}$`),
       );
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'Agent Campaigns' }),
-      ).toBeVisible();
-      // mockAutomationData seeds one active campaign, so both the active-cards
-      // section and the full table render — neither is behind a conditional
-      // we control here, both are direct consequences of the fixed mock data.
-      await expect(
-        authenticatedPage.getByRole('heading', { name: 'Active Campaigns' }),
+        authenticatedPage.getByRole('heading', { name: 'Programs' }),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'All Campaigns' }),
+        authenticatedPage.getByRole('heading', { name: 'Active Programs' }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', { name: 'All Programs' }),
       ).toBeVisible();
     });
 
-    test('outreach campaigns page renders the Marketing Campaigns surface', async ({
+    test('outreach sequences page renders under Messages', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(
-        `${ORG_BRAND}${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}`,
+        `${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}`,
         { waitUntil: 'domcontentloaded' },
       );
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}$`),
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
       );
       await expect(
         authenticatedPage.getByRole('heading', {
-          name: 'Marketing Campaigns',
+          name: 'Outreach sequences',
         }),
       ).toBeVisible();
     });
@@ -116,41 +114,45 @@ test.describe('Automate & Publish surfaces', () => {
       );
     });
 
-    test('campaigns page links into the Outreach surface', async ({
+    test('automate Programs nav links to Programs', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(
-        `${ORG_BRAND}${APP_ROUTES.AUTOMATE.CAMPAIGNS}`,
-        { waitUntil: 'domcontentloaded' },
+      await authenticatedPage.goto(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.ROOT}`, {
+        waitUntil: 'domcontentloaded',
+      });
+
+      const programsLink = authenticatedPage
+        .locator(programsLinkSelector)
+        .first();
+      await expect(programsLink).toBeVisible();
+      await programsLink.click();
+
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.CAMPAIGNS}$`),
       );
+    });
+
+    test('messages outreach nav links to Outreach sequences', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto(`${ORG_BRAND}${APP_ROUTES.MESSAGES.ROOT}`, {
+        waitUntil: 'domcontentloaded',
+      });
 
       const outreachLink = authenticatedPage
-        .locator(outreachCampaignsLinkSelector)
+        .locator(outreachSequencesLinkSelector)
         .first();
       await expect(outreachLink).toBeVisible();
       await outreachLink.click();
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}$`),
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
       );
-    });
-
-    test('outreach campaigns page links back to Campaigns', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        `${ORG_BRAND}${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}`,
-        { waitUntil: 'domcontentloaded' },
-      );
-
-      await expect(
-        authenticatedPage.locator(campaignsLinkSelector).first(),
-      ).toBeVisible();
     });
   });
 
   test.describe('Legacy redirects', () => {
-    test('/publish/campaigns redirects to Automate campaigns', async ({
+    test('/publish/campaigns redirects to Automate Programs', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(`${ORG_BRAND}/publish/campaigns`, {
@@ -162,7 +164,7 @@ test.describe('Automate & Publish surfaces', () => {
       );
     });
 
-    test('/publish/outreach-campaigns redirects to Automate outreach', async ({
+    test('/publish/outreach-campaigns redirects to Messages outreach', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(`${ORG_BRAND}/publish/outreach-campaigns`, {
@@ -170,7 +172,19 @@ test.describe('Automate & Publish surfaces', () => {
       });
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}$`),
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
+      );
+    });
+
+    test('/automate/outreach-campaigns redirects to Messages outreach', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto(`${ORG_BRAND}/automate/outreach-campaigns`, {
+        waitUntil: 'domcontentloaded',
+      });
+
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
       );
     });
   });

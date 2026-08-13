@@ -130,6 +130,7 @@ function AppLayoutWithDynamicMenu({
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
+    isMessagesInboxRoute,
     isOrgRoute,
     suppressShellLowCreditsBanner,
     isDiscoverRoute,
@@ -154,6 +155,7 @@ function AppLayoutWithDynamicMenu({
     settingsMenuItems,
     studioMenuItems,
     automateMenuItems,
+    messagesMenuItems,
     isPublishRoute,
     taskContextSearchParams,
     handleNavigate,
@@ -242,7 +244,7 @@ function AppLayoutWithDynamicMenu({
   }, []);
   const messagesNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
-      isMessagesRoute
+      isMessagesInboxRoute
         ? {
             render: () => (
               <div
@@ -254,7 +256,7 @@ function AppLayoutWithDynamicMenu({
             sectionLabel: 'Messages',
           }
         : null,
-    [isMessagesRoute, workspaceNavPortalRef],
+    [isMessagesInboxRoute, workspaceNavPortalRef],
   );
   // Render Library nav in-shell (not via portal). The empty-portal pattern left
   // the column blank when portalTarget never attached (refresh, race, layout
@@ -316,6 +318,7 @@ function AppLayoutWithDynamicMenu({
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
         automateMenuItems={automateMenuItems}
+        messagesMenuItems={messagesMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
@@ -341,6 +344,7 @@ function AppLayoutWithDynamicMenu({
     isAutomateRoute,
     libraryMenuItems,
     menuItems,
+    messagesMenuItems,
     orgMenuItems,
     publishMenuItems,
     discoverMenuItems,
@@ -369,13 +373,15 @@ function AppLayoutWithDynamicMenu({
             ? studioMenuItems
             : isAutomateRoute
               ? automateMenuItems
-              : isAnalyticsRoute
-                ? analyticsMenuItems
-                : isDiscoverRoute
-                  ? discoverMenuItems
-                  : isOrgRoute
-                    ? orgMenuItems
-                    : menuItems;
+              : isMessagesRoute
+                ? messagesMenuItems
+                : isAnalyticsRoute
+                  ? analyticsMenuItems
+                  : isDiscoverRoute
+                    ? discoverMenuItems
+                    : isOrgRoute
+                      ? orgMenuItems
+                      : menuItems;
   const lowCreditsBanner =
     hasOrganizationBillingHint() &&
     isLowCreditsBannerEnabled &&

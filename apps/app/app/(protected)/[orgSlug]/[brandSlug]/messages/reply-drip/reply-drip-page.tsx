@@ -27,6 +27,8 @@ import { RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useReplyCampaigns } from './use-reply-campaigns';
 
+/** Reply drip — throttled outbound replies (Messages module). */
+
 const EMPTY_DRAFT: ReplyCampaignDraft = {
   bodyTemplate: '',
   maxPerDay: '50',
@@ -251,9 +253,9 @@ function ReplyCampaignsContent({
         </p>
       ) : null}
 
-      <Card label="New campaign" bodyClassName="gap-3 p-4">
+      <Card label="New reply drip" bodyClassName="gap-3 p-4">
         <Input
-          label="Campaign name"
+          label="Name"
           onChange={(event) => {
             setDraft((current) => ({ ...current, name: event.target.value }));
           }}
@@ -385,13 +387,13 @@ function ReplyCampaignsContent({
             }}
             size={ButtonSize.SM}
           >
-            Create campaign
+            Create drip
           </Button>
         </div>
       </Card>
 
       <Card
-        label="Campaigns"
+        label="Reply drips"
         bodyClassName="gap-3 p-4"
         headerAction={
           <Button
@@ -408,8 +410,8 @@ function ReplyCampaignsContent({
       >
         {campaigns.length === 0 && !isLoading ? (
           <p className="text-xs text-white/38">
-            No campaigns yet. Sync messages so open conversations are available
-            to enroll, then create one above.
+            No reply drips yet. Sync messages so open conversations are
+            available to enroll, then create one above.
           </p>
         ) : null}
 

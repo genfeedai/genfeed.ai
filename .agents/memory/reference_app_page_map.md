@@ -331,14 +331,20 @@ Workflows and automate:
 - `/:orgSlug/:brandSlug/automate/skills`
 - `/:orgSlug/:brandSlug/automate/content-runs`
 - `/:orgSlug/:brandSlug/automate/content-runs/:runId`
-- `/:orgSlug/:brandSlug/automate/campaigns`
+- `/:orgSlug/:brandSlug/automate/campaigns` (Programs — agent coordination)
 - `/:orgSlug/:brandSlug/automate/campaigns/new`
 - `/:orgSlug/:brandSlug/automate/campaigns/:id`
-- `/:orgSlug/:brandSlug/automate/outreach-campaigns`
-- `/:orgSlug/:brandSlug/automate/outreach-campaigns/new`
-- `/:orgSlug/:brandSlug/automate/outreach-campaigns/:id`
 - `/:orgSlug/:brandSlug/automate/library`
 - `/:orgSlug/:brandSlug/automate/library/:type`
+
+Messages (engagement + send-side sequences):
+
+- `/:orgSlug/:brandSlug/messages`
+- `/:orgSlug/:brandSlug/messages/outreach`
+- `/:orgSlug/:brandSlug/messages/outreach/new`
+- `/:orgSlug/:brandSlug/messages/outreach/:id`
+- `/:orgSlug/:brandSlug/messages/replies`
+- `/:orgSlug/:brandSlug/messages/reply-drip`
 
 Brand settings:
 

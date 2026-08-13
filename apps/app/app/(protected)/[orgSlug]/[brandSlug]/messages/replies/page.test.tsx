@@ -4,15 +4,15 @@ import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { describe, expect, it } from 'vitest';
 
 assertSourceHasExport(
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/replies/page.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/messages/replies/page.tsx',
 );
 
-describe('automate/replies/page.tsx', () => {
+describe('messages/replies/page.tsx', () => {
   it('gates Replies with the reply_bot feature flag', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'app/(protected)/[orgSlug]/[brandSlug]/automate/replies/page.tsx',
+        'app/(protected)/[orgSlug]/[brandSlug]/messages/replies/page.tsx',
       ),
       'utf8',
     );

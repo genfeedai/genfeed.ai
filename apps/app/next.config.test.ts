@@ -191,7 +191,7 @@ describe('app next.config', () => {
     },
   );
 
-  it('permanently hard-cuts Publish campaign routes into Automate', async () => {
+  it('permanently hard-cuts Publish agent-program routes into Automate and outreach into Messages', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
@@ -205,9 +205,24 @@ describe('app next.config', () => {
       source: '/publish/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
+      destination: APP_ROUTES.MESSAGES.OUTREACH,
       permanent: true,
       source: '/publish/outreach-campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.MESSAGES.OUTREACH,
+      permanent: true,
+      source: '/automate/outreach-campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.MESSAGES.REPLY_DRIP,
+      permanent: true,
+      source: '/automate/reply-campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.MESSAGES.REPLIES,
+      permanent: true,
+      source: '/automate/replies',
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(

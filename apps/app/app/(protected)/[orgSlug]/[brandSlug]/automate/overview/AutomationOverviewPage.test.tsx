@@ -86,7 +86,7 @@ describe('AutomationOverviewPage', () => {
       );
     }
     expect(screen.getByText('Workflows')).toBeInTheDocument();
-    expect(screen.getByText('Reply Campaigns')).toBeInTheDocument();
+    expect(screen.getByText('Programs')).toBeInTheDocument();
   });
 
   it('links to the content-runs index so the detail page is reachable', () => {

@@ -3,9 +3,9 @@ import { AgentCampaignNewPage } from '@pages/agents';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 
-export const generateMetadata = createPageMetadata('New Agent Campaign');
+export const generateMetadata = createPageMetadata('New Program');
 
-export default function AutomateCampaignNewRoute() {
+export default function AutomateProgramNewRoute() {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="list" />}>
       <AgentCampaignNewPage />

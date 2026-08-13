@@ -23,7 +23,7 @@ Reply to comments on **your** posts. Product name is just **Replies** (not “au
 | Auto | `comment_responder` bot + cron |
 | Closed-loop metric | `content_performance.data.authorClosedLoops` |
 | Winners ranking | X score + closed-loop boost |
-| App UI | Automate → **Replies** (`/automate/replies`) |
+| App UI | Messages → **Replies** (`/messages/replies`) |
 | Promote memory | Settings → Harness → **Promote winners to memory** |
 
 ## Operator flow

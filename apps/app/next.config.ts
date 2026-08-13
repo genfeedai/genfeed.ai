@@ -471,12 +471,21 @@ const config = createAppNextConfig({
     ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.PUBLISH.ROOT),
-    // Campaigns / outreach live under Automate (hard cut back from Publish).
+    // Agent Programs stay under Automate. Outreach / reply drip moved to Messages.
     ...legacyPathRedirects('/publish/campaigns', APP_ROUTES.AUTOMATE.CAMPAIGNS),
     ...legacyPathRedirects(
       '/publish/outreach-campaigns',
-      APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
+      APP_ROUTES.MESSAGES.OUTREACH,
     ),
+    ...legacyPathRedirects(
+      '/automate/outreach-campaigns',
+      APP_ROUTES.MESSAGES.OUTREACH,
+    ),
+    ...legacyPathRedirects(
+      '/automate/reply-campaigns',
+      APP_ROUTES.MESSAGES.REPLY_DRIP,
+    ),
+    ...legacyPathRedirects('/automate/replies', APP_ROUTES.MESSAGES.REPLIES),
   ],
   sentryProject: 'app-genfeed-ai',
 });

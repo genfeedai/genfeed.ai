@@ -210,7 +210,7 @@ export function useOutreachCampaignDetail() {
   }, [targets]);
 
   const handleBack = useCallback(() => {
-    router.push(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS);
+    router.push(APP_ROUTES.MESSAGES.OUTREACH);
   }, [router]);
 
   return {

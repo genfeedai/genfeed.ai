@@ -8,6 +8,7 @@ import {
   getAppSecondaryMenuItems,
   PUBLISH_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
+import { MESSAGES_MENU_ITEMS } from '@app-config/messages-menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { PUBLISH_MENU_ITEMS } from '@app-config/publish-menu-items.config';
 import {
@@ -96,6 +97,7 @@ export function useAppProtectedLayout(
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
+  const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
   // Dense studio canvases + mission-control runs: hide shell low-credits strip
@@ -328,6 +330,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const messagesMenuItems = useMemo(
+    () =>
+      MESSAGES_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const analyticsMenuItems = useMemo(
     () =>
       getAnalyticsMenuItemsForScope(brandSlug).map(
@@ -411,6 +424,7 @@ export function useAppProtectedLayout(
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
+    isMessagesInboxRoute,
     isMoodboardRoute,
     isOrgRoute,
     isPublishRoute,
@@ -443,6 +457,7 @@ export function useAppProtectedLayout(
     settingsMenuItems,
     studioMenuItems,
     automateMenuItems,
+    messagesMenuItems,
     // task context
     taskContextSearchParams,
     // handlers

@@ -30,6 +30,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
+- [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items
@@ -88,6 +89,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [adaptive-pr-validation](spec-adaptive-pr-validation.md) · [decisions](decisions-adaptive-pr-validation.md) — #1850
 - [pipeline-posts-filters](spec-pipeline-posts-filters.md) · [decisions](decisions-pipeline-posts-filters.md) — #2612
 - [messages-engagement-surfaces](spec-messages-engagement-surfaces.md) · [decisions](decisions-messages-engagement-surfaces.md) — #2742
+- [publish-content-campaigns](spec-publish-content-campaigns.md) · [decisions](decisions-publish-content-campaigns.md) — Publish Campaign desk + `Post.campaignId`
 - [source-post-variations](spec-source-post-variations.md) · [decisions](decisions-source-post-variations.md) — #2662
 
 ## Project state

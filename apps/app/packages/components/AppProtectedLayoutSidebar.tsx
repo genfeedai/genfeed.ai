@@ -6,6 +6,7 @@ import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
 import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
+import { MESSAGES_LOGO_HREF } from '@app-config/messages-menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { PUBLISH_LOGO_HREF } from '@app-config/publish-menu-items.config';
 import {
@@ -79,10 +80,12 @@ type Props = {
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
   automateMenuItems: MenuItemConfig[];
+  messagesMenuItems: MenuItemConfig[];
   /**
    * Supplied by the module that owns the active surface. When present its body
    * replaces that surface's menu items — today the conversation's thread list,
    * later Library → collections and Workflows → runs.
+   * Messages keeps primary destinations visible above the inbox panel body.
    */
   navPanel?: SidebarNavPanel | null;
   onOpenCommandPalette: () => void;
@@ -118,6 +121,7 @@ export default function AppProtectedLayoutSidebar({
   settingsMenuItems,
   studioMenuItems,
   automateMenuItems,
+  messagesMenuItems,
   navPanel,
   onOpenCommandPalette,
 }: Props) {
@@ -146,12 +150,16 @@ export default function AppProtectedLayoutSidebar({
   // A module owns the nav column by handing the shell a panel: the surface
   // keeps its logo, label and switchers, and the panel takes the place of its
   // menu items. Nothing here knows what the panel renders.
+  // Messages is the exception: destinations stay visible above the inbox body
+  // so Outreach / Replies / Reply drip remain reachable from the inbox.
   const navPanelProps = navPanel
     ? {
         collapsedSidebarWidth: 0,
-        items: [] satisfies MenuItemConfig[],
+        items: isMessagesRoute
+          ? messagesMenuItems
+          : ([] satisfies MenuItemConfig[]),
         renderBody: navPanel.render,
-        showPrimaryItems: false,
+        showPrimaryItems: isMessagesRoute,
       }
     : null;
 
@@ -206,8 +214,8 @@ export default function AppProtectedLayoutSidebar({
       {
         active: isMessagesRoute,
         currentApp,
-        items: [],
-        logoHref: buildHref(APP_ROUTES.MESSAGES.ROOT),
+        items: messagesMenuItems,
+        logoHref: buildHref(MESSAGES_LOGO_HREF),
         sectionLabel: 'Messages',
         showOrgSwitcher: true,
       },

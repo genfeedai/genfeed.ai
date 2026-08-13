@@ -138,8 +138,8 @@ describe('AgentCampaignsPage', () => {
   it('renders the page header and new campaign link', () => {
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByText('Agent Campaigns')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /new campaign/i })).toHaveAttribute(
+    expect(screen.getByText('Programs')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /new program/i })).toHaveAttribute(
       'href',
       '/automate/campaigns/new',
     );
@@ -184,10 +184,10 @@ describe('AgentCampaignsPage', () => {
 
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByText('No campaigns yet')).toBeInTheDocument();
+    expect(screen.getByText('No programs yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Create your first multi-agent campaign to coordinate content production.',
+        'Create your first multi-agent program to coordinate content production.',
       ),
     ).toBeInTheDocument();
   });
@@ -201,6 +201,6 @@ describe('AgentCampaignsPage', () => {
 
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByText('Loading campaigns…')).toBeInTheDocument();
+    expect(screen.getByText('Loading programs…')).toBeInTheDocument();
   });
 });

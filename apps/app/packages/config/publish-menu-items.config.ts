@@ -20,7 +20,9 @@ import {
  * Top: Overview · Posts · Calendar
  * Pipeline: Review · Drafts · Published (status shortcuts into the desk)
  *
- * Campaigns / outreach → Automate. Remix → Discover/Library action only.
+ * Agent Programs → Automate. Outreach / reply drip → Messages.
+ * Marketer multi-platform content Campaigns → Publish (P1).
+ * Remix → Discover/Library action only.
  * Newsletter writing → Agent; only its go-live lifecycle belongs here.
  */
 export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [

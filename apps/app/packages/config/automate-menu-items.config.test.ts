@@ -7,6 +7,7 @@ import {
 describe('AUTOMATE_MENU_ITEMS', () => {
   it('is non-empty', () => {
     expect(AUTOMATE_MENU_ITEMS.length).toBeGreaterThan(0);
+    expect(AUTOMATE_LOGO_HREF).toBe('/automate/overview');
   });
 
   it("has a logo href pointing back to Automate's own overview", () => {
@@ -44,11 +45,8 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ['Configuration', '/automate/configuration'],
     ['Team', '/automate/library'],
     ['Hire', '/automate/hire'],
-    ['Campaigns', '/automate/campaigns'],
-    ['Outreach', '/automate/outreach-campaigns'],
+    ['Programs', '/automate/campaigns'],
     ['Launch team', '/automate/orchestrator'],
-    ['Replies', '/automate/replies'],
-    ['Reply Campaigns', '/automate/reply-campaigns'],
     ['Workflows', '/automate/workflows'],
   ])('uses the canonical automate route for %s', (label, canonicalHref) => {
     const item = AUTOMATE_MENU_ITEMS.find(
@@ -59,6 +57,29 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(item?.matchPaths).toEqual(expect.arrayContaining([canonicalHref]));
     expect(
       item?.matchPaths?.some((path) => path.startsWith('/workflows')),
+    ).toBe(false);
+  });
+
+  it('does not host outreach or reply surfaces (those live in Messages)', () => {
+    expect(
+      AUTOMATE_MENU_ITEMS.some((item) =>
+        [
+          'Outreach',
+          'Outreach sequences',
+          'Replies',
+          'Reply Campaigns',
+          'Reply drip',
+          'Campaigns',
+        ].includes(item.label),
+      ),
+    ).toBe(false);
+    expect(
+      AUTOMATE_MENU_ITEMS.some(
+        (item) =>
+          item.href?.includes('outreach') ||
+          item.href?.includes('reply') ||
+          item.href?.includes('messages'),
+      ),
     ).toBe(false);
   });
 
@@ -83,7 +104,6 @@ describe('AUTOMATE_MENU_ITEMS', () => {
 
   it.each([
     '/automate/campaigns',
-    '/automate/outreach-campaigns',
     '/automate/content-runs',
     '/automate/hire',
     '/automate/orchestrator',
@@ -98,7 +118,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(isCovered).toBe(true);
   });
 
-  it('groups by usage (Workflows / Agents / Campaigns / Settings)', () => {
+  it('groups by usage (Workflows / Agents / Settings) — no Campaigns group', () => {
     const byGroup = new Map<string, string[]>();
     for (const item of AUTOMATE_MENU_ITEMS) {
       const group = item.group ?? '';
@@ -114,14 +134,10 @@ describe('AUTOMATE_MENU_ITEMS', () => {
       'Hire',
       'Skills',
       'Autopilot',
-    ]);
-    expect(byGroup.get('Campaigns')).toEqual([
-      'Campaigns',
-      'Outreach',
-      'Replies',
-      'Reply Campaigns',
+      'Programs',
       'Launch team',
     ]);
+    expect(byGroup.get('Campaigns')).toBeUndefined();
     expect(byGroup.get('Settings')).toEqual(['Configuration']);
     expect(byGroup.get('Build')).toBeUndefined();
     expect(byGroup.get('Insights')).toBeUndefined();

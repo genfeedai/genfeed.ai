@@ -1194,6 +1194,7 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automateMenuItems={[]}
+        messagesMenuItems={[]}
         onOpenCommandPalette={vi.fn()}
       />,
     );
@@ -1236,6 +1237,7 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automateMenuItems={[]}
+        messagesMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
           sectionLabel: 'Collections',
