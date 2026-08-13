@@ -1,15 +1,22 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
+import {
+  buildSingleDayBatchDto,
+  createBatchThenAddItem,
+} from '@api/services/agent-orchestrator/tools/create-batch-then-add-item';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
 } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  CredentialPlatform,
+  Platform,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -368,54 +375,46 @@ export class AgentXActionsToolHandler {
     }
     const caption =
       action === 'quote' ? (quoteContent as string) : `Repost ${targetPostId}`;
-
-    const day = new Date().toISOString().slice(0, 10);
-    const batchDto: CreateBatchDto = {
-      brandId,
-      count: 1,
-      dateRange: { end: day, start: day },
-      platforms: ['twitter'],
-    };
-    const batch = await this.batchGenerationService.createBatch(
-      batchDto,
-      ctx.userId,
-      ctx.organizationId,
-    );
-
-    const batchId = String(batch.id);
     const targetAuthor = readOptionalString(params.targetAuthor);
     const targetPostContent = readOptionalString(params.targetPostContent);
     const targetPostUrl = buildTwitterStatusUrl(targetPostId, targetAuthor);
 
-    await this.internalApi
-      .callInternalApi(
-        'POST',
-        `/v1/batches/${batchId}/items`,
-        {
+    const result = await createBatchThenAddItem(
+      {
+        batchGenerationService: this.batchGenerationService,
+        internalApi: this.internalApi,
+        logger: this.loggerService,
+      },
+      {
+        batchDto: buildSingleDayBatchDto(brandId, Platform.TWITTER),
+        ctx,
+        item: {
           caption,
           engagementAction: action,
-          platform: 'twitter',
-          status: 'pending',
+          platform: Platform.TWITTER,
+          status: BatchItemStatus.PENDING,
           targetAuthor,
           targetPostContent,
           targetPostId,
           targetPostUrl,
           type: 'engagement',
         },
-        ctx,
-      )
-      .catch(() => {
-        this.loggerService.warn(
-          `Could not add ${action} engagement item to batch ${batchId}`,
-          this.constructorName,
-        );
-      });
+      },
+    );
+
+    if (!result.success) {
+      return {
+        creditsUsed: 0,
+        error: result.error,
+        success: false,
+      };
+    }
 
     return {
       creditsUsed: 1,
       data: {
         action,
-        batchId,
+        batchId: result.batchId,
         message:
           action === 'quote'
             ? 'Quote draft is ready for review. Nothing posts until you approve it.'

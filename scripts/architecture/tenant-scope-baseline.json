@@ -3249,22 +3249,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "batch",
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "b40cc7878bcef3acd84e",
-      "method": "count",
-      "model": "Batch",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "batch",
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "154b867c747a6f2bdf8f",
-      "method": "findMany",
-      "model": "Batch",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "orgIntegration",
       "file": "apps/server/api/src/services/integrations/unipile/services/unipile.service.ts",
       "fingerprint": "b8fcdfaf9482656bd5ba",

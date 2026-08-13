@@ -99,7 +99,13 @@ export type BatchConfig = {
   resumeCount?: number;
 };
 
+export type BatchItemTypedRow = {
+  data?: unknown;
+  isDeleted?: boolean;
+};
+
 export type BatchWithConfig = Batch & {
+  batchItems?: BatchItemTypedRow[];
   config: BatchConfig;
   items: BatchItemFull[];
 };
@@ -156,7 +162,9 @@ export interface ReviewInboxSummary {
   rejectedCount: number;
 }
 
-export function cloneBatchItems(items: Batch['items']): BatchItemFull[] {
+export function cloneBatchItems(
+  items: Batch['items'] | null | undefined,
+): BatchItemFull[] {
   return ((items ?? []) as unknown as BatchItemFull[]).map((item) => ({
     ...item,
     reviewDecision: normalizeReviewDecision(item.reviewDecision),
@@ -165,4 +173,22 @@ export function cloneBatchItems(items: Batch['items']): BatchItemFull[] {
       decision: normalizeReviewDecision(event.decision),
     })),
   }));
+}
+
+/**
+ * Reader ratchet: prefer typed `batch_items` rows when present, otherwise
+ * fall back to `Batch.items` JSON. A later PR can drop the JSON blob once
+ * every writer and backfill goes through the typed table.
+ */
+export function resolveBatchItems(batch: {
+  batchItems?: BatchItemTypedRow[] | null;
+  items?: Batch['items'] | null;
+}): BatchItemFull[] {
+  const liveRows = (batch.batchItems ?? []).filter(
+    (row) => row.isDeleted !== true,
+  );
+  if (liveRows.length > 0) {
+    return cloneBatchItems(liveRows.map((row) => row.data) as Batch['items']);
+  }
+  return cloneBatchItems(batch.items);
 }

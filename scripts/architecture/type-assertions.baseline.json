@@ -63,7 +63,6 @@
     "apps/server/api/src/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service.ts": 2,
     "apps/server/api/src/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service.ts": 3,
     "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts": 1,
-    "apps/server/api/src/services/agent-orchestrator/tools/agent-proactive-tool-handler.service.ts": 1,
     "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts": 1,
     "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-create.service.ts": 2,
     "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts": 2,

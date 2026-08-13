@@ -7,10 +7,13 @@ import {
 } from '@api/services/batch-generation/batch-generation.constants';
 import {
   type BatchConfig,
-  cloneBatchItems,
+  resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
-import { persistBatchItemRows } from '@api/services/batch-generation/batch-item-rows';
+import {
+  batchItemRowsReadArgs,
+  writeBatchJsonAndItemRows,
+} from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
@@ -221,7 +224,12 @@ export class BatchGenerationReconcileService {
     userId: string;
   }): Promise<void> {
     const batch = await this.prisma.batch.findFirst({
-      select: { brandId: true, config: true, items: true },
+      select: {
+        batchItems: batchItemRowsReadArgs(params.organizationId),
+        brandId: true,
+        config: true,
+        items: true,
+      },
       where: scopedWhere(params.organizationId, { id: params.batchId }),
     });
 
@@ -230,7 +238,7 @@ export class BatchGenerationReconcileService {
     }
 
     const config = (batch.config ?? {}) as BatchConfig;
-    const items = cloneBatchItems(batch.items).map((item) =>
+    const items = resolveBatchItems(batch).map((item) =>
       item.status === BatchItemStatus.COMPLETED ||
       item.status === BatchItemStatus.FAILED
         ? item
@@ -255,17 +263,13 @@ export class BatchGenerationReconcileService {
       failedCount: items.length - completedCount,
     };
 
-    await this.prisma.batch.updateMany({
-      data: {
-        config: completedConfig as Prisma.InputJsonValue,
-        items: items as unknown as Prisma.InputJsonValue,
-        status: toPrismaBatchStatus(BatchStatus.FAILED),
-      },
-      where: scopedWhere(params.organizationId, { id: params.batchId }),
-    });
-    await persistBatchItemRows(this.prisma, {
+    await writeBatchJsonAndItemRows(this.prisma, {
       batchId: params.batchId,
       brandId: batch.brandId,
+      extraBatchData: {
+        config: completedConfig as Prisma.InputJsonValue,
+        status: toPrismaBatchStatus(BatchStatus.FAILED),
+      },
       items,
       organizationId: params.organizationId,
     });
