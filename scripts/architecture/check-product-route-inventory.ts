@@ -115,6 +115,7 @@ function classifyPublicRoutes(
 
 export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ...classifyPublicRoutes('app', 'authentication', [
+    '/agent-auth/claim',
     '/forgot-password',
     '/login',
     '/login/magic-link',

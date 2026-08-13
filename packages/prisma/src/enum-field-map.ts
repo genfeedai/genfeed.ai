@@ -220,6 +220,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
     },
   },
+  AgentAuthRegistration: {
+    allFields: [
+      'claimAttemptTokenHash',
+      'claimTokenHash',
+      'claimedAt',
+      'createdAt',
+      'emailHash',
+      'exchangedAt',
+      'expiresAt',
+      'failedAttempts',
+      'id',
+      'organizationId',
+      'revokedAt',
+      'updatedAt',
+      'userCodeHash',
+      'userId',
+    ],
+    listFields: ['requestedScopes'],
+    enumFields: {},
+    relationIdFields: {},
+  },
   AgentCampaign: {
     allFields: [
       'brand',

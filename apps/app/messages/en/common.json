@@ -27,6 +27,44 @@
       "ready": "Content is ready for review"
     }
   },
+  "agentAuth": {
+    "claim": {
+      "actions": {
+        "authorize": "Authorize agent",
+        "authorizing": "Authorizing…"
+      },
+      "code": {
+        "help": "Enter the code shown by the agent that opened this request.",
+        "label": "Six-digit code",
+        "placeholder": "123456"
+      },
+      "description": "Confirm that an agent may receive a scoped Genfeed API key for your account.",
+      "errors": {
+        "codeRequired": "Enter the six-digit code supplied by your agent.",
+        "completionFailed": "The agent authorization could not be completed.",
+        "sessionExpired": "Your session expired. Sign in and try again.",
+        "unavailable": "This claim request is unavailable."
+      },
+      "footer": "The credential is scoped, expires after 30 days, and can be revoked without exposing your password or browser session.",
+      "invalid": {
+        "description": "Restart registration from your agent to get a fresh link.",
+        "title": "Invalid claim link"
+      },
+      "loading": "Loading authorization request…",
+      "permissionsTitle": "This agent will receive access to",
+      "signIn": {
+        "action": "Sign in to continue",
+        "description": "Sign in with the same verified email the agent registered.",
+        "title": "Sign in required"
+      },
+      "success": {
+        "description": "Return to your agent. It can now finish the exchange and will receive the API key once.",
+        "title": "Agent authorized"
+      },
+      "title": "Authorize an agent",
+      "unavailableTitle": "Claim unavailable"
+    }
+  },
   "desktop": {
     "local": {
       "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",
