@@ -14,6 +14,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Calendar, CircleCheck, Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -22,22 +23,17 @@ import {
   useState,
 } from 'react';
 
-/**
- * Field labels and visibility options held as data so the copy stays one
- * translatable set — `packages/agent` ships without a message catalog.
- */
-const COPY = {
-  caption: 'Caption',
-  platforms: 'Platforms',
-  scheduleForLater: 'Schedule for later',
-  visibility: 'Visibility',
-};
+const VISIBILITY_VALUES = [
+  PostVisibility.PUBLIC,
+  PostVisibility.PRIVATE,
+  PostVisibility.UNLISTED,
+] as const;
 
-const VISIBILITY_OPTIONS: { label: string; value: PostVisibility }[] = [
-  { label: 'Public', value: PostVisibility.PUBLIC },
-  { label: 'Private', value: PostVisibility.PRIVATE },
-  { label: 'Unlisted', value: PostVisibility.UNLISTED },
-];
+const VISIBILITY_MESSAGE_KEYS = {
+  [PostVisibility.PRIVATE]: 'visibilityPrivate',
+  [PostVisibility.PUBLIC]: 'visibilityPublic',
+  [PostVisibility.UNLISTED]: 'visibilityUnlisted',
+} as const;
 
 interface PublishPostCardProps {
   action: AgentUiAction;
@@ -62,6 +58,7 @@ export function PublishPostCard({
   action,
   onUiAction,
 }: PublishPostCardProps): ReactElement {
+  const translate = useTranslations('agent.publishPostCard');
   const availablePlatforms = useMemo(
     () =>
       Array.isArray(action.data?.availablePlatforms)
@@ -175,9 +172,7 @@ export function PublishPostCard({
         <div className="flex items-center gap-2 text-emerald-600">
           <CircleCheck className="size-5" />
           <span className="text-sm font-medium">
-            {scheduledAt
-              ? 'Publish scheduled from chat.'
-              : 'Publish confirmed from chat.'}
+            {scheduledAt ? translate('scheduled') : translate('confirmed')}
           </span>
         </div>
       </div>
@@ -189,7 +184,7 @@ export function PublishPostCard({
       <div className="mb-3 flex items-center gap-2">
         <Send className="size-5 text-emerald-500" />
         <h3 className="text-sm font-semibold text-foreground">
-          {action.title || 'Publish selected content'}
+          {action.title || translate('defaultTitle')}
         </h3>
       </div>
 
@@ -204,20 +199,20 @@ export function PublishPostCard({
           htmlFor="publish-caption"
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
-          {COPY.caption}
+          {translate('caption')}
         </label>
         <Textarea
           id="publish-caption"
           value={caption}
           onChange={handleCaptionChange}
           rows={4}
-          placeholder="Optional caption override"
+          placeholder={translate('captionPlaceholder')}
         />
       </div>
 
       <div className="mb-3">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          {COPY.platforms}
+          {translate('platforms')}
         </span>
         <div className="flex flex-wrap gap-2">
           {availablePlatforms.map((platform) => {
@@ -244,19 +239,19 @@ export function PublishPostCard({
 
       <div className="mb-4">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          {COPY.visibility}
+          {translate('visibility')}
         </span>
         <Select
           value={visibility}
           onValueChange={(value) => setVisibility(value as PostVisibility)}
         >
-          <SelectTrigger aria-label="Post visibility">
-            <SelectValue placeholder="Select visibility" />
+          <SelectTrigger aria-label={translate('visibilityAria')}>
+            <SelectValue placeholder={translate('visibilityPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            {VISIBILITY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            {VISIBILITY_VALUES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {translate(VISIBILITY_MESSAGE_KEYS[value])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -269,7 +264,7 @@ export function PublishPostCard({
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
           <Calendar className="mr-1 inline size-3" />
-          {COPY.scheduleForLater}
+          {translate('scheduleForLater')}
         </label>
         <Input
           id="publish-schedule"
@@ -292,10 +287,10 @@ export function PublishPostCard({
       >
         <Send className="size-4" />
         {isSubmitting
-          ? 'Publishing...'
+          ? translate('publishing')
           : scheduledAt
-            ? 'Confirm schedule'
-            : 'Confirm publish'}
+            ? translate('confirmSchedule')
+            : translate('confirmPublish')}
       </Button>
     </div>
   );

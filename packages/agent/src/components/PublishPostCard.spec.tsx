@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { PostVisibility } from '@genfeedai/enums';
@@ -5,6 +7,12 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('PublishPostCard', () => {
+  it('resolves field labels through the host agent catalog', () => {
+    const source = readFileSync(join(__dirname, 'PublishPostCard.tsx'), 'utf8');
+    expect(source).toContain("useTranslations('agent.publishPostCard')");
+    expect(source).not.toContain('const COPY =');
+  });
+
   it('renders defaults and submits confirm_publish_post through the shared UI action handler', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
     const action: AgentUiAction = {
