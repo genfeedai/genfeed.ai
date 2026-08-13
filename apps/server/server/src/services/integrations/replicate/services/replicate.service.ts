@@ -249,6 +249,22 @@ export class ReplicateService {
     }
   }
 
+  public async cancelPrediction(
+    id: string,
+    apiKeyOverride?: string,
+  ): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      this.loggerService.log(`${url} started`, { id });
+
+      const client = this.getClientForRequest(apiKeyOverride);
+      await client.predictions.cancel(id);
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   public generateImageToVideo(
     version: string,
     input: Record<string, unknown>,

@@ -69,6 +69,7 @@ export interface ImageGenerationContext {
   waitForCompletion: boolean;
   websocketUrl: string;
   width: number;
+  abortSignal: AbortSignal;
 }
 
 export interface ImageGenerationCompletionPlan {
@@ -91,6 +92,8 @@ export interface ImageGenerationProviderRequest {
   referenceImageUrls: string[];
   style?: string;
   width: number;
+  abortSignal?: AbortSignal;
+  onExternalJobCreated?: (externalId: string) => Promise<void>;
 }
 
 export type ImageGenerationProviderResult =

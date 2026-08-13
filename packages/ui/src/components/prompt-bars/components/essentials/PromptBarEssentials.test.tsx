@@ -331,4 +331,28 @@ describe('PromptBarEssentials', () => {
     expect(setTextValue).toHaveBeenCalledWith('Use plan mode for this task');
     expect(onTextChange).toHaveBeenCalledWith('Use plan mode for this task');
   });
+
+  it('replaces Generate with Stop when generating and onCancel is provided', () => {
+    const onCancel = vi.fn();
+    render(
+      <PromptBarEssentials
+        {...defaultProps}
+        isGenerating
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(screen.queryByTestId('generate-button')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stop-generation-button'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Generate while generating when onCancel is omitted', () => {
+    render(<PromptBarEssentials {...defaultProps} isGenerating />);
+
+    expect(screen.getByTestId('generate-button')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('stop-generation-button'),
+    ).not.toBeInTheDocument();
+  });
 });

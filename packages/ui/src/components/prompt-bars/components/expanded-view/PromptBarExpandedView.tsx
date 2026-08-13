@@ -250,6 +250,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
       enhancePrompt={ctx.enhancePrompt}
       handleUndo={ctx.handleUndo}
       handleSubmitForm={ctx.handleSubmitForm}
+      onCancel={ctx.onCancel}
       suggestions={ctx.suggestions}
       onSuggestionSelect={ctx.onSuggestionSelect}
       showSuggestionsWhenEmpty={ctx.showSuggestionsWhenEmpty}

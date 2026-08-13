@@ -12,6 +12,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 
 const predictionsCreate = vi.fn();
 const predictionsGet = vi.fn();
+const predictionsCancel = vi.fn();
 const trainingsCreate = vi.fn();
 const modelsCreate = vi.fn();
 const wait = vi.fn();
@@ -24,7 +25,11 @@ vi.mock('replicate', () => ({
     constructed.push(options as { auth?: string });
     Object.assign(this as object, {
       models: { create: modelsCreate },
-      predictions: { create: predictionsCreate, get: predictionsGet },
+      predictions: {
+        cancel: predictionsCancel,
+        create: predictionsCreate,
+        get: predictionsGet,
+      },
       trainings: { create: trainingsCreate },
       wait,
     });
@@ -67,6 +72,7 @@ describe('ReplicateService', () => {
     isCloudMock.mockReturnValue(false);
     predictionsCreate.mockResolvedValue({ id: 'pred-1' });
     predictionsGet.mockResolvedValue({ id: 'pred-1', status: 'succeeded' });
+    predictionsCancel.mockResolvedValue({ id: 'pred-1', status: 'canceled' });
     trainingsCreate.mockResolvedValue({ id: 'train-1' });
     modelsCreate.mockResolvedValue({});
     wait.mockImplementation(async (prediction) => prediction);
@@ -235,6 +241,25 @@ describe('ReplicateService', () => {
       predictionsGet.mockRejectedValueOnce(new Error('gone'));
 
       await expect(service.getPrediction('pred-1')).rejects.toThrow('gone');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('cancelPrediction', () => {
+    it('cancels the prediction on the Replicate client', async () => {
+      const { service } = createHarness();
+
+      await expect(service.cancelPrediction('pred-1')).resolves.toBeUndefined();
+      expect(predictionsCancel).toHaveBeenCalledWith('pred-1');
+    });
+
+    it('logs and rethrows a cancel failure', async () => {
+      const { loggerService, service } = createHarness();
+      predictionsCancel.mockRejectedValueOnce(new Error('already ended'));
+
+      await expect(service.cancelPrediction('pred-1')).rejects.toThrow(
+        'already ended',
+      );
       expect(loggerService.error).toHaveBeenCalled();
     });
   });

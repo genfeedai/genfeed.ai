@@ -12,7 +12,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
-import { ArrowUp, ChevronUp, LayoutGrid, Mic } from 'lucide-react';
+import { ArrowUp, ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
 import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
@@ -36,6 +36,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   isGenerateDisabled,
   isGenerating,
   onSubmit,
+  onCancel,
   generateLabel,
   activeGenerationsCount,
   onExpand,
@@ -156,34 +157,54 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             className="h-10 w-full border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"
             data-testid="prompt-input"
           />
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            icon={<ArrowUp />}
-            isDisabled={
-              isGenerateBlocked ||
-              isGenerateDisabled ||
-              !isFormValid ||
-              !watchedTextTrimmed
-            }
-            isLoading={isGenerating}
-            onClick={() => onSubmit()}
-            tooltip={
-              activeGenerationsCount > 0
-                ? `${generateLabel} (Queue)`
-                : generateLabel
-            }
-            tooltipPosition="top"
-            ariaLabel={
-              activeGenerationsCount > 0
-                ? `${generateLabel} (Queue)`
-                : generateLabel
-            }
-            className={cn(
-              'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
-              activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
-            )}
-            data-testid="generate-button"
-          />
+          {isGenerating && onCancel ? (
+            <Button
+              variant={ButtonVariant.DESTRUCTIVE}
+              icon={
+                <Square
+                  aria-hidden
+                  className="size-2.5 fill-current stroke-none"
+                />
+              }
+              onClick={onCancel}
+              tooltip="Stop"
+              tooltipPosition="top"
+              ariaLabel="Stop generation"
+              className={cn(
+                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
+              )}
+              data-testid="stop-generation-button"
+            />
+          ) : (
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              icon={<ArrowUp />}
+              isDisabled={
+                isGenerateBlocked ||
+                isGenerateDisabled ||
+                !isFormValid ||
+                !watchedTextTrimmed
+              }
+              isLoading={isGenerating}
+              onClick={() => onSubmit()}
+              tooltip={
+                activeGenerationsCount > 0
+                  ? `${generateLabel} (Queue)`
+                  : generateLabel
+              }
+              tooltipPosition="top"
+              ariaLabel={
+                activeGenerationsCount > 0
+                  ? `${generateLabel} (Queue)`
+                  : generateLabel
+              }
+              className={cn(
+                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
+                activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
+              )}
+              data-testid="generate-button"
+            />
+          )}
         </div>
 
         {formatIcon &&

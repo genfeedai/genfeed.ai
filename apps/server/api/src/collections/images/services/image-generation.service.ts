@@ -15,6 +15,7 @@ import type {
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -23,6 +24,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -84,6 +86,7 @@ export class ImageGenerationService {
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
+    private readonly cancellationService: IngredientGenerationCancellationService,
   ) {}
 
   async generateImage(
@@ -169,6 +172,7 @@ export class ImageGenerationService {
       waitForCompletion: createImageDto.waitForCompletion === true,
       websocketUrl,
       width,
+      abortSignal: createRequestAbortSignal(request),
     };
 
     // Create activity + websocket update for image generation start
@@ -485,6 +489,12 @@ export class ImageGenerationService {
     plan: ImageGenerationCompletionPlan | null,
   ): Promise<JsonApiSingleResponse> {
     if (plan && context.waitForCompletion && plan.kind !== 'background-only') {
+      this.cancellationService.bindCancelOnAbort({
+        abortSignal: context.abortSignal,
+        id: context.ingredientData.id.toString(),
+        organizationId: context.publicMetadata.organization,
+        userId: context.publicMetadata.user,
+      });
       try {
         await plan.generationPromise;
         const completed = await this.resolveCompletedIngredient(context, plan);
@@ -546,6 +556,7 @@ export class ImageGenerationService {
           180_000, // 3 minutes timeout
           2_000, // 2 seconds poll interval
           IMAGE_POPULATE,
+          context.abortSignal,
         );
       return completedIngredients[0];
     }
@@ -556,6 +567,7 @@ export class ImageGenerationService {
       180000, // 3 minutes timeout
       2000, // 2 seconds poll interval
       IMAGE_POPULATE,
+      context.abortSignal,
     );
   }
 

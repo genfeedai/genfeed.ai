@@ -86,6 +86,7 @@ export interface PromptBarProps {
   promptData?: Partial<PromptTextareaSchema> & { isValid: boolean };
 
   onSubmit?: () => void;
+  onCancel?: () => void;
   onDatasetChange?: (
     data: Partial<PromptTextareaSchema> & {
       isValid: boolean;

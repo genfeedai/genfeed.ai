@@ -130,6 +130,7 @@ export interface PromptBarInternalContextValue {
   enhancePrompt: () => Promise<void>;
   handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
+  onCancel?: () => void;
 
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;

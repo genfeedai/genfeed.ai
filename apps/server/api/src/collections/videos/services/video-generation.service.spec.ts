@@ -183,6 +183,9 @@ describe('VideoGenerationService', () => {
       loggerService,
       videoMusicOrchestrationService as never,
       videosService as never,
+      {
+        bindCancelOnAbort: vi.fn(),
+      } as never,
     );
     const service = new VideoGenerationService(
       completionService,

@@ -1,4 +1,5 @@
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -28,6 +29,7 @@ export class VideoGenerationCompletionService {
     private readonly loggerService: LoggerService,
     private readonly videoMusicOrchestrationService: VideoMusicOrchestrationService,
     private readonly videosService: VideosService,
+    private readonly cancellationService: IngredientGenerationCancellationService,
   ) {}
 
   async complete(
@@ -104,12 +106,19 @@ export class VideoGenerationCompletionService {
     context: VideoGenerationContext,
   ): Promise<JsonApiSingleResponse> {
     try {
+      this.cancellationService.bindCancelOnAbort({
+        abortSignal: context.abortSignal,
+        id: context.ingredientData.id.toString(),
+        organizationId: context.publicMetadata.organization,
+        userId: context.publicMetadata.user,
+      });
       const completedIngredients =
         await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
           context.pendingIngredientIds,
           600_000,
           5_000,
           VIDEO_POPULATE,
+          context.abortSignal,
         );
       return serializeSingle(
         context.request,

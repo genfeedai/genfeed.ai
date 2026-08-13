@@ -1,6 +1,9 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
+import { Square } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type GenerationActionCardHeaderProps = {
@@ -8,6 +11,7 @@ type GenerationActionCardHeaderProps = {
   title: string;
   isCollapsed?: boolean;
   onToggleCollapsed?: () => void;
+  onStop?: () => void;
   statusLabel?: string | null;
 };
 
@@ -16,6 +20,7 @@ export function GenerationActionCardHeader({
   title,
   isCollapsed = false,
   onToggleCollapsed,
+  onStop,
   statusLabel,
 }: GenerationActionCardHeaderProps): ReactElement {
   return (
@@ -33,6 +38,20 @@ export function GenerationActionCardHeader({
         <span className="shrink-0 text-[11px] text-muted-foreground">
           {statusLabel}
         </span>
+      ) : null}
+      {onStop ? (
+        <Button
+          ariaLabel="Stop generation"
+          className="size-7 p-0"
+          icon={
+            <Square aria-hidden className="size-2.5 fill-current stroke-none" />
+          }
+          onClick={onStop}
+          size={ButtonSize.ICON}
+          tooltip="Stop"
+          variant={ButtonVariant.DESTRUCTIVE}
+          withWrapper={false}
+        />
       ) : null}
       {onToggleCollapsed ? (
         <AgentCardCollapseToggle

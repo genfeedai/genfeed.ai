@@ -35,6 +35,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     generateImage: vi.fn(),
   };
   const imagesService = {
+    findOne: vi.fn().mockResolvedValue({ status: IngredientStatus.PROCESSING }),
     patch: vi.fn(),
   };
   const klingAIService = {
@@ -54,6 +55,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     buildPrompt: vi.fn(),
   };
   const replicateService = {
+    cancelPrediction: vi.fn().mockResolvedValue(undefined),
     generateTextToImage: vi.fn(),
     getPrediction: vi.fn().mockResolvedValue({
       output: ['https://replicate.example.com/generated.png'],
@@ -130,6 +132,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       waitForCompletion: false,
       websocketUrl: '/images/ingredient-1',
       width: 1920,
+      abortSignal: new AbortController().signal,
       ...overrides,
     }) as unknown as ImageGenerationContext;
 
@@ -371,5 +374,49 @@ describe('ImageGenerationProviderDispatchService', () => {
       'ingredient-1',
       expect.objectContaining({ status: IngredientStatus.GENERATED }),
     );
+  });
+
+  it('persists the Replicate job id before local polling so Stop can cancel it', async () => {
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+    promptBuilderService.buildPrompt.mockResolvedValue({
+      input: { prompt: 'provider prompt' },
+    });
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    replicateService.getPrediction.mockImplementation(async () => {
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({
+          externalId: 'replicate-job',
+          externalProvider: 'replicate',
+        }),
+      );
+      return {
+        output: ['https://replicate.example.com/generated.png'],
+        status: 'succeeded',
+      };
+    });
+    const context = buildContext({ model });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips finalize when the ingredient is no longer processing', async () => {
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+    promptBuilderService.buildPrompt.mockResolvedValue({
+      input: { prompt: 'provider prompt' },
+    });
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    imagesService.findOne.mockResolvedValue({
+      status: IngredientStatus.FAILED,
+    });
+    const context = buildContext({ model });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
   });
 });

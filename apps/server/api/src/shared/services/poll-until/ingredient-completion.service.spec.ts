@@ -4,7 +4,10 @@ import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import {
+  PollAbortException,
+  PollTimeoutException,
+} from '@server/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
 /**
@@ -138,6 +141,26 @@ describe('IngredientCompletionService', () => {
         { id: ingredientA },
         populate,
       );
+    });
+
+    it('rejects with PollAbortException when the abort signal fires', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        ingredient(ingredientA, IngredientStatus.PROCESSING),
+      );
+      const abort = new AbortController();
+
+      const promise = service.waitForIngredientCompletion(
+        ingredientA,
+        60_000,
+        100,
+        [],
+        abort.signal,
+      );
+      abort.abort();
+      const expectation =
+        expect(promise).rejects.toBeInstanceOf(PollAbortException);
+      await vi.runAllTimersAsync();
+      await expectation;
     });
   });
 

@@ -181,6 +181,10 @@ describe('Library folder lifecycle persistence', () => {
     ingredientsController = new IngredientsController(
       ingredientsService,
       foldersService,
+      {
+        bindCancelOnAbort: vi.fn(),
+        cancelProcessingIngredient: vi.fn(),
+      } as never,
     );
   });
 

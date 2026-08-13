@@ -3,6 +3,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import { GenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import {
   isFalDestination,
   isGenfeedAiDestination,
@@ -67,13 +68,24 @@ export class ReplicateImageGenerationProviderAdapter
 
   private async waitForLocalPrediction(
     predictionId: string,
+    signal?: AbortSignal,
   ): Promise<string[]> {
     const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
 
     while (Date.now() < deadline) {
+      if (signal?.aborted) {
+        await this.replicateService.cancelPrediction(predictionId);
+        throw new GenerationCancelledError();
+      }
+
       const prediction = (await this.replicateService.getPrediction(
         predictionId,
       )) as ReplicatePrediction;
+
+      if (signal?.aborted) {
+        await this.replicateService.cancelPrediction(predictionId);
+        throw new GenerationCancelledError();
+      }
 
       if (prediction.status === 'succeeded') {
         const outputUrls = extractOutputUrls(prediction.output);
@@ -85,21 +97,44 @@ export class ReplicateImageGenerationProviderAdapter
         return outputUrls;
       }
 
-      if (prediction.status === 'failed' || prediction.status === 'canceled') {
+      if (prediction.status === 'canceled') {
+        throw new GenerationCancelledError();
+      }
+
+      if (prediction.status === 'failed') {
         throw new Error(
           prediction.error ||
             `Replicate prediction ${predictionId} ${prediction.status}`,
         );
       }
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, LOCAL_PREDICTION_POLL_INTERVAL_MS),
-      );
+      await this.sleep(LOCAL_PREDICTION_POLL_INTERVAL_MS, signal);
     }
 
     throw new Error(
       `Replicate prediction ${predictionId} timed out after ${LOCAL_PREDICTION_TIMEOUT_MS}ms`,
     );
+  }
+
+  private sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new GenerationCancelledError());
+        return;
+      }
+
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new GenerationCancelledError());
+      };
+
+      const timer = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
+
+      signal?.addEventListener('abort', onAbort, { once: true });
+    });
   }
 
   async prepare(
@@ -151,6 +186,7 @@ export class ReplicateImageGenerationProviderAdapter
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
         }
+        await request.onExternalJobCreated?.(generationId);
         // Cloud + public webhook URL: leave completion to the Replicate
         // webhook (finishGeneration polls the DB). Local SaaS
         // (GENFEED_CLOUD=true with api.genfeed.localhost) and self-hosted
@@ -159,7 +195,7 @@ export class ReplicateImageGenerationProviderAdapter
         const shouldPollForOutput =
           !isCloudDeployment() || !canReceiveProviderWebhooks();
         const outputUrls = shouldPollForOutput
-          ? await this.waitForLocalPrediction(generationId)
+          ? await this.waitForLocalPrediction(generationId, request.abortSignal)
           : undefined;
 
         return {

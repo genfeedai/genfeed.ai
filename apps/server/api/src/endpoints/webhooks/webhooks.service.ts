@@ -131,6 +131,20 @@ export class WebhooksService {
   }): Promise<void> {
     const logContext = `${this.constructorName} finalizeWebhookMedia`;
 
+    const current = await this.ingredientsService.findOne({
+      id: input.ingredientId,
+    });
+    if (!current || current.status !== IngredientStatus.PROCESSING) {
+      this.loggerService.log(
+        `${logContext} skipping finalize — generation is no longer in progress`,
+        {
+          ingredientId: input.ingredientId,
+          status: current?.status ?? null,
+        },
+      );
+      return;
+    }
+
     await this.metadataService.patch(input.metadataId, {
       ...(input.externalId ? { externalId: input.externalId } : {}),
       result: input.url,
@@ -161,6 +175,17 @@ export class WebhooksService {
         },
       );
       throw new Error('Ingredient not found after patch');
+    }
+
+    if (ingredient.status !== IngredientStatus.PROCESSING) {
+      this.loggerService.log(
+        `${logContext} skipping generated status — generation is no longer in progress`,
+        {
+          ingredientId: input.ingredientId,
+          status: ingredient.status,
+        },
+      );
+      return;
     }
 
     // 3. Mark ingredient as GENERATED

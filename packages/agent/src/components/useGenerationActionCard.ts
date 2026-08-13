@@ -286,6 +286,7 @@ export function useGenerationActionCard({
       setStatus('done');
     } catch (err: unknown) {
       if (controller.signal.aborted) {
+        setStatus('idle');
         return;
       }
       const rawMessage =
@@ -333,6 +334,10 @@ export function useGenerationActionCard({
   const handleGenerateVoid = useCallback(() => {
     void handleGenerate();
   }, [handleGenerate]);
+
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const handleToggleReference = useCallback((assetId: string) => {
     setReferenceIds((current) =>
@@ -408,6 +413,7 @@ export function useGenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleStop,
     handleToggleReference,
     handleUseResultAsReference,
     handleModelChange,
