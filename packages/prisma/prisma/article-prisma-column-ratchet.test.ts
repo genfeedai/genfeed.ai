@@ -16,6 +16,8 @@ const monorepoRoot = join(prismaDir, '../../..');
 
 const SCAN_ROOTS = [
   'apps/server/api/src/collections/articles',
+  'apps/server/api/src/endpoints/public/controllers/articles',
+  'apps/server/api/src/main.ts',
   'packages/serializers/src/attributes/content',
   'packages/serializers/src/server/content',
 ] as const;

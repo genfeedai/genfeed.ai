@@ -30,7 +30,12 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { isEntityId } from '@api-types/helpers/entity-id';
 import { ArticleScope } from '@genfeedai/enums';
-import { ArticleStatus, PrismaClient } from '@genfeedai/prisma';
+import {
+  ArticleStatus,
+  getMissingArticleColumns,
+  PrismaClient,
+  REQUIRED_ARTICLE_COLUMNS,
+} from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,
@@ -318,19 +323,7 @@ async function resolveOwner(params: {
   };
 }
 
-/** Every physical column written by both the create and refresh paths. */
-export const REQUIRED_ARTICLE_COLUMNS = [
-  'coverImageUrl',
-  'label',
-  'summary',
-] as const;
-
-export function getMissingArticleColumns(
-  presentColumns: readonly string[],
-): string[] {
-  const present = new Set(presentColumns);
-  return REQUIRED_ARTICLE_COLUMNS.filter((column) => !present.has(column));
-}
+export { getMissingArticleColumns, REQUIRED_ARTICLE_COLUMNS };
 
 export function isLocalDatabaseUrl(databaseUrl?: string): boolean {
   if (!databaseUrl) {
