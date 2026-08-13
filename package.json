@@ -52,7 +52,7 @@
     "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
     "posthog:funnel-alerts": "bun run scripts/posthog/setup-funnel-alerts.ts",
     "build": "bunx turbo run build --filter='./packages/*'",
-    "build:app": "bunx turbo run build --filter=@genfeedai/app",
+    "build:app": "NODE_OPTIONS=--max-old-space-size=6144 bunx turbo run build --filter=@genfeedai/app",
     "build:backend:parallel": "bunx turbo run build --filter='./apps/server/*'",
     "build:backend:sequential": "bunx turbo run build --filter='./apps/server/*' --concurrency=1",
     "build:cli": "bunx turbo run build --filter=@genfeedai/cli",

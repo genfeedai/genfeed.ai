@@ -455,6 +455,14 @@ describe('app next.config', () => {
     });
   });
 
+  it('aliases workflow UI and nodes to package source', () => {
+    expect(config.turbopack?.resolveAlias).toMatchObject({
+      '@genfeedai/workflows/nodes':
+        '../../packages/workflows/src/nodes/index.ts',
+      '@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts',
+    });
+  });
+
   it('exposes a non-empty build id that generateBuildId agrees with', async () => {
     const buildId = config.env?.NEXT_PUBLIC_BUILD_ID;
 

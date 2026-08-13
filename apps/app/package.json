@@ -54,7 +54,7 @@
   "scripts": {
     "analyze": "next build --turbopack --experimental-analyze",
     "analyze:serve": "next experimental-analyze",
-    "build": "next build --turbopack",
+    "build": "NODE_OPTIONS=--max-old-space-size=6144 next build --turbopack",
     "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "bun run ../../scripts/dev/run-portless.ts app -- bun run dev:process",
     "lint": "biome check app i18n messages src packages tests instrumentation.ts jsx-compat.d.ts next.config.ts next.config.test.ts package.json postcss.config.mjs proxy.ts proxy.test.ts remotion.d.ts sentry.edge.config.ts sentry.server.config.ts tailwind.config.ts tsconfig.json tsconfig.test.json vercel.json",

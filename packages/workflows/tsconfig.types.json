@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "ignoreDeprecations": "6.0",
+    "inlineSources": false,
+    "noEmit": false,
+    "sourceMap": false
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/ui/**",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}

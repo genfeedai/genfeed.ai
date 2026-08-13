@@ -63,55 +63,55 @@
       "default": "./dist/nodes/index.js"
     },
     "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.mjs",
-      "default": "./dist/ui/index.mjs"
+      "types": "./src/ui/index.ts",
+      "import": "./src/ui/index.ts",
+      "default": "./src/ui/index.ts"
     },
     "./ui/canvas": {
-      "types": "./dist/ui/canvas.d.ts",
-      "import": "./dist/ui/canvas.mjs",
-      "default": "./dist/ui/canvas.mjs"
+      "types": "./src/ui/canvas/index.ts",
+      "import": "./src/ui/canvas/index.ts",
+      "default": "./src/ui/canvas/index.ts"
     },
     "./ui/hooks": {
-      "types": "./dist/ui/hooks.d.ts",
-      "import": "./dist/ui/hooks.mjs",
-      "default": "./dist/ui/hooks.mjs"
+      "types": "./src/ui/hooks/index.ts",
+      "import": "./src/ui/hooks/index.ts",
+      "default": "./src/ui/hooks/index.ts"
     },
     "./ui/lib": {
-      "types": "./dist/ui/lib.d.ts",
-      "import": "./dist/ui/lib.mjs",
-      "default": "./dist/ui/lib.mjs"
+      "types": "./src/ui/lib/index.ts",
+      "import": "./src/ui/lib/index.ts",
+      "default": "./src/ui/lib/index.ts"
     },
     "./ui/nodes": {
-      "types": "./dist/ui/nodes.d.ts",
-      "import": "./dist/ui/nodes.mjs",
-      "default": "./dist/ui/nodes.mjs"
+      "types": "./src/ui/nodes/index.ts",
+      "import": "./src/ui/nodes/index.ts",
+      "default": "./src/ui/nodes/index.ts"
     },
     "./ui/panels": {
-      "types": "./dist/ui/panels.d.ts",
-      "import": "./dist/ui/panels.mjs",
-      "default": "./dist/ui/panels.mjs"
+      "types": "./src/ui/panels/index.ts",
+      "import": "./src/ui/panels/index.ts",
+      "default": "./src/ui/panels/index.ts"
     },
     "./ui/provider": {
-      "types": "./dist/ui/provider.d.ts",
-      "import": "./dist/ui/provider.mjs",
-      "default": "./dist/ui/provider.mjs"
+      "types": "./src/ui/provider/index.ts",
+      "import": "./src/ui/provider/index.ts",
+      "default": "./src/ui/provider/index.ts"
     },
     "./ui/stores": {
-      "types": "./dist/ui/stores.d.ts",
-      "import": "./dist/ui/stores.mjs",
-      "default": "./dist/ui/stores.mjs"
+      "types": "./src/ui/stores/index.ts",
+      "import": "./src/ui/stores/index.ts",
+      "default": "./src/ui/stores/index.ts"
     },
     "./ui/styles": "./src/ui/styles/workflow-ui.css",
     "./ui/toolbar": {
-      "types": "./dist/ui/toolbar.d.ts",
-      "import": "./dist/ui/toolbar.mjs",
-      "default": "./dist/ui/toolbar.mjs"
+      "types": "./src/ui/toolbar/index.ts",
+      "import": "./src/ui/toolbar/index.ts",
+      "default": "./src/ui/toolbar/index.ts"
     },
     "./ui/ui": {
-      "types": "./dist/ui/ui.d.ts",
-      "import": "./dist/ui/ui.mjs",
-      "default": "./dist/ui/ui.mjs"
+      "types": "./src/ui/ui/index.ts",
+      "import": "./src/ui/ui/index.ts",
+      "default": "./src/ui/ui/index.ts"
     },
     "./workflows/*": "./workflows/*"
   },
@@ -119,7 +119,7 @@
     "dist",
     "workflows",
     "metadata",
-    "src/ui/styles"
+    "src/ui"
   ],
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
@@ -139,8 +139,9 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsup && bun run scripts/prepend-use-client.ts",
-    "build:server": "tsup --config tsup.server.config.ts",
+    "build": "tsup && bun run build:types",
+    "build:server": "tsup",
+    "build:types": "tsc --emitDeclarationOnly -p tsconfig.types.json",
     "dev": "tsup --watch",
     "prepublishOnly": "bun run build",
     "test": "vitest run"

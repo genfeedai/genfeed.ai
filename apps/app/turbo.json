@@ -1,0 +1,14 @@
+{
+  "$schema": "https://v2-9-12.turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "//#env:check",
+        "@genfeedai/auth-client#build",
+        "@genfeedai/config#build",
+        "@genfeedai/pricing#build"
+      ]
+    }
+  }
+}
