@@ -124,6 +124,22 @@ export class HeygenWebhookVerificationService {
   }
 
   /**
+   * Give back a claim taken by {@link isReplay} for a delivery that failed
+   * processing. HeyGen retries with the same event id, so a claim left in
+   * place after a failure would suppress the retry for the whole replay
+   * window and the callback would be lost.
+   */
+  async releaseReplayClaim(eventId: unknown): Promise<void> {
+    if (typeof eventId !== 'string' || eventId.length === 0) {
+      return;
+    }
+
+    await this.cacheService.del(
+      this.cacheService.generateKey(REPLAY_CACHE_NAMESPACE, eventId),
+    );
+  }
+
+  /**
    * A signature stays valid for as long as the secret does, so a captured
    * delivery can be replayed indefinitely on its strength alone. The timestamp
    * bounds that window. It is not covered by the HMAC, so an attacker can

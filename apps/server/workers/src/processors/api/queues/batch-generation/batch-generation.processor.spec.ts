@@ -1,3 +1,4 @@
+import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
 import type { BatchGenerationJobData } from '@genfeedai/queue-contracts';
 import { BadRequestException } from '@nestjs/common';
 import { BatchGenerationProcessor } from '@workers/processors/api/queues/batch-generation/batch-generation.processor';
@@ -84,13 +85,27 @@ describe('BatchGenerationProcessor', () => {
 
   it('returns without settling when another run owns the batch', async () => {
     batchGenerationService.processBatch.mockRejectedValue(
-      new BadRequestException('batch already processing'),
+      new BatchAlreadyOwnedException('batch-1', 'processing'),
     );
 
     await processor.process(buildJob({}));
 
     expect(creditsService.settleBatchCredits).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('settles and rethrows a validation BadRequestException instead of swallowing it', async () => {
+    // Only the ownership claim may short-circuit; a validation or credit
+    // failure that returned silently would strand the batch (BullMQ would
+    // never retry) with its estimate still charged.
+    batchGenerationService.processBatch.mockRejectedValue(
+      new BadRequestException('Invalid batch item platform "myspace"'),
+    );
+
+    await expect(processor.process(buildJob({}))).rejects.toThrow(
+      'Invalid batch item platform',
+    );
+    expect(creditsService.settleBatchCredits).toHaveBeenCalledTimes(1);
   });
 
   it('settles and rethrows on a genuine processing failure', async () => {

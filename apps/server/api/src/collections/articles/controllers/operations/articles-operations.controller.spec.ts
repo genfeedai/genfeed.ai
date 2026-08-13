@@ -283,6 +283,33 @@ describe('ArticlesOperationsController', () => {
       expect(service.generateArticles).not.toHaveBeenCalled();
     });
 
+    it('gates the model against active, non-legacy registry rows only', async () => {
+      // Phase C registry policy (#2479): retired (isLegacy) or disabled
+      // (isActive: false) keys must not route through even when they exist
+      // and are TEXT-category. The registry lookup itself carries the filter,
+      // so such rows come back as null and the gate rejects.
+      const dto: GenerateArticlesDto = {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+        prompt: 'AI Technology',
+      };
+
+      mockModelsService.findOne.mockResolvedValue(null);
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.generateArticles(mockRequest, dto, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+      expect(mockModelsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isActive: true,
+          isDeleted: false,
+          isLegacy: false,
+        }),
+      );
+      expect(service.generateArticles).not.toHaveBeenCalled();
+    });
+
     it('rejects a generation model from a non-text category', async () => {
       const dto: GenerateArticlesDto = {
         model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,

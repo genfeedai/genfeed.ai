@@ -216,8 +216,33 @@ export function usePostDetailActions({
   ]);
 
   const handlePublishNow = useCallback(async () => {
-    await commitSchedule(new Date().toISOString(), 'Publishing now');
-  }, [commitSchedule]);
+    if (!post) {
+      return;
+    }
+
+    setIsSavingSchedule(true);
+    try {
+      // No client timestamp: the server stamps its own clock so skew or
+      // latency can't reject the request or silently schedule it instead.
+      const releases = await getReleaseGroupsService();
+      const groupId = await resolveReleaseGroupId();
+      await releases.publishTargetNow(groupId, requirePostId(post));
+      await fetchPost(true);
+      notificationsService.success('Publishing now');
+    } catch (err) {
+      logger.error('Failed to publish now', err);
+      notificationsService.error('Failed to publish now');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  }, [
+    fetchPost,
+    getReleaseGroupsService,
+    notificationsService,
+    post,
+    resolveReleaseGroupId,
+    setIsSavingSchedule,
+  ]);
 
   // Delete post handler
   const handleDeletePost = useCallback(() => {

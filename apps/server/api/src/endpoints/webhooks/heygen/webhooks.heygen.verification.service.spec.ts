@@ -16,7 +16,7 @@ const WEBHOOK_SECRET = 'whsec_heygen_test';
 
 describe('HeygenWebhookVerificationService', () => {
   let service: HeygenWebhookVerificationService;
-  let cacheService: { claimOnce: vi.Mock; generateKey: vi.Mock };
+  let cacheService: { claimOnce: vi.Mock; del: vi.Mock; generateKey: vi.Mock };
   let configService: { get: vi.Mock };
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
 
@@ -35,6 +35,7 @@ describe('HeygenWebhookVerificationService', () => {
   beforeEach(async () => {
     cacheService = {
       claimOnce: vi.fn().mockResolvedValue('claimed'),
+      del: vi.fn().mockResolvedValue(true),
       generateKey: vi.fn((...parts: string[]) => parts.join(':')),
     };
     configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
@@ -174,6 +175,25 @@ describe('HeygenWebhookVerificationService', () => {
       async (eventId) => {
         await expect(service.isReplay(eventId)).resolves.toBe(false);
         expect(cacheService.claimOnce).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('releaseReplayClaim', () => {
+    it('deletes the claim key so a retried delivery can process', async () => {
+      await service.releaseReplayClaim('evt_abc');
+
+      expect(cacheService.del).toHaveBeenCalledWith(
+        'webhook:heygen:delivery:evt_abc',
+      );
+    });
+
+    it.each([undefined, null, '', 42])(
+      'ignores an unusable event id (%s)',
+      async (eventId) => {
+        await service.releaseReplayClaim(eventId);
+
+        expect(cacheService.del).not.toHaveBeenCalled();
       },
     );
   });

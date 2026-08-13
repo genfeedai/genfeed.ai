@@ -137,7 +137,10 @@ export class SocialInboxIngestionService {
       return winner;
     }
 
-    await this.prisma.socialConversation.update({
+    // Platform APIs return batches reverse-chronological, so an older message
+    // can be ingested after a newer one. Only advance the preview fields when
+    // this message is the newest seen; the unread counter always increments.
+    const previewAdvanced = await this.prisma.socialConversation.updateMany({
       data: {
         latestMessageAt: messageCreatedAt,
         latestMessageText: clamp(body, 500),
@@ -145,8 +148,24 @@ export class SocialInboxIngestionService {
         unreadCount: { increment: 1 },
         updatedAt: new Date(),
       },
-      where: { id: conversation.id },
+      where: scopedWhere(input.organizationId, {
+        id: conversation.id,
+        OR: [
+          { latestMessageAt: null },
+          { latestMessageAt: { lte: messageCreatedAt } },
+        ],
+      }),
     });
+
+    if (previewAdvanced.count === 0) {
+      await this.prisma.socialConversation.update({
+        data: {
+          unreadCount: { increment: 1 },
+          updatedAt: new Date(),
+        },
+        where: { id: conversation.id },
+      });
+    }
 
     await this.queueCommentTrigger(input, message, conversation);
 
@@ -214,35 +233,40 @@ export class SocialInboxIngestionService {
           );
           const isNewMessage = !existing.messageIds.has(comment.commentId);
 
-          await this.ingestInboundMessage({
-            accountExternalId: credential.externalId ?? undefined,
-            accountHandle:
-              credential.externalHandle ?? credential.username ?? undefined,
-            accountName:
-              credential.externalName ?? credential.label ?? undefined,
-            body: comment.text,
-            brandId: post.brandId,
-            conversationType: SocialConversationType.COMMENT,
-            credentialId: credential.id,
-            createdAt: comment.createdAt,
-            externalConversationId: comment.threadId,
-            externalMessageId: comment.commentId,
-            externalParentId: comment.commentId,
-            externalThreadId: comment.threadId,
-            organizationId: scope.organizationId,
-            participantAvatarUrl: comment.authorAvatarUrl,
-            participantExternalId: comment.authorChannelId,
-            participantHandle: comment.authorChannelUrl,
-            participantName: comment.authorDisplayName,
-            platform: Platform.YOUTUBE,
-            postId: post.id,
-            sourceContentId: String(post.externalId),
-            sourceContentTitle: post.label ?? post.description.slice(0, 120),
-            sourceContentType: 'video',
-            sourceContentUrl:
-              post.url ?? `https://www.youtube.com/watch?v=${post.externalId}`,
-            userId: credential.userId ?? scope.userId,
-          });
+          await this.ingestSyncedMessage(
+            {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: comment.text,
+              brandId: post.brandId,
+              conversationType: SocialConversationType.COMMENT,
+              credentialId: credential.id,
+              createdAt: comment.createdAt,
+              externalConversationId: comment.threadId,
+              externalMessageId: comment.commentId,
+              externalParentId: comment.commentId,
+              externalThreadId: comment.threadId,
+              organizationId: scope.organizationId,
+              participantAvatarUrl: comment.authorAvatarUrl,
+              participantExternalId: comment.authorChannelId,
+              participantHandle: comment.authorChannelUrl,
+              participantName: comment.authorDisplayName,
+              platform: Platform.YOUTUBE,
+              postId: post.id,
+              sourceContentId: String(post.externalId),
+              sourceContentTitle: post.label ?? post.description.slice(0, 120),
+              sourceContentType: 'video',
+              sourceContentUrl:
+                post.url ??
+                `https://www.youtube.com/watch?v=${post.externalId}`,
+              userId: credential.userId ?? scope.userId,
+            },
+            existing.messagesByExternalId.get(comment.commentId),
+            existing.conversationsByExternalId.get(comment.threadId),
+          );
 
           if (isNewMessage) {
             messagesCreated++;
@@ -310,33 +334,37 @@ export class SocialInboxIngestionService {
           );
           const isNewMessage = !existing.messageIds.has(comment.commentId);
 
-          await this.ingestInboundMessage({
-            accountExternalId: credential.externalId ?? undefined,
-            accountHandle:
-              credential.externalHandle ?? credential.username ?? undefined,
-            accountName:
-              credential.externalName ?? credential.label ?? undefined,
-            body: comment.text,
-            brandId: post.brandId,
-            conversationType: SocialConversationType.COMMENT,
-            createdAt: comment.createdAt,
-            credentialId: credential.id,
-            externalConversationId: comment.threadId,
-            externalMessageId: comment.commentId,
-            externalParentId: comment.commentId,
-            externalThreadId: comment.threadId,
-            organizationId: scope.organizationId,
-            participantExternalId: comment.authorExternalId,
-            participantHandle: comment.authorUsername,
-            participantName: comment.authorUsername,
-            platform: Platform.INSTAGRAM,
-            postId: post.id,
-            sourceContentId: String(post.externalId),
-            sourceContentTitle: post.label ?? post.description.slice(0, 120),
-            sourceContentType: 'media',
-            sourceContentUrl: post.url ?? undefined,
-            userId: credential.userId ?? scope.userId,
-          });
+          await this.ingestSyncedMessage(
+            {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: comment.text,
+              brandId: post.brandId,
+              conversationType: SocialConversationType.COMMENT,
+              createdAt: comment.createdAt,
+              credentialId: credential.id,
+              externalConversationId: comment.threadId,
+              externalMessageId: comment.commentId,
+              externalParentId: comment.commentId,
+              externalThreadId: comment.threadId,
+              organizationId: scope.organizationId,
+              participantExternalId: comment.authorExternalId,
+              participantHandle: comment.authorUsername,
+              participantName: comment.authorUsername,
+              platform: Platform.INSTAGRAM,
+              postId: post.id,
+              sourceContentId: String(post.externalId),
+              sourceContentTitle: post.label ?? post.description.slice(0, 120),
+              sourceContentType: 'media',
+              sourceContentUrl: post.url ?? undefined,
+              userId: credential.userId ?? scope.userId,
+            },
+            existing.messagesByExternalId.get(comment.commentId),
+            existing.conversationsByExternalId.get(comment.threadId),
+          );
 
           if (isNewMessage) {
             messagesCreated++;
@@ -399,35 +427,46 @@ export class SocialInboxIngestionService {
       );
 
       for (const thread of threads) {
-        for (const message of thread.messages) {
+        // The Graph messages edge returns reverse-chronological batches;
+        // ingest oldest-first so the conversation preview lands on the
+        // newest message.
+        const orderedMessages = [...thread.messages].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        );
+
+        for (const message of orderedMessages) {
           const isNewConversation = !existing.conversationIds.has(
             thread.conversationId,
           );
           const isNewMessage = !existing.messageIds.has(message.messageId);
 
-          await this.ingestInboundMessage({
-            accountExternalId: credential.externalId ?? undefined,
-            accountHandle:
-              credential.externalHandle ?? credential.username ?? undefined,
-            accountName:
-              credential.externalName ?? credential.label ?? undefined,
-            body: message.text,
-            brandId,
-            conversationType: SocialConversationType.DM,
-            createdAt: message.createdAt,
-            credentialId: credential.id,
-            externalConversationId: thread.conversationId,
-            externalMessageId: message.messageId,
-            externalThreadId: thread.conversationId,
-            organizationId: scope.organizationId,
-            participantExternalId:
-              message.senderExternalId ?? thread.participantExternalId,
-            participantHandle:
-              message.senderUsername ?? thread.participantUsername,
-            participantName: message.senderName ?? thread.participantName,
-            platform: Platform.INSTAGRAM,
-            userId: credential.userId ?? scope.userId,
-          });
+          await this.ingestSyncedMessage(
+            {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: message.text,
+              brandId,
+              conversationType: SocialConversationType.DM,
+              createdAt: message.createdAt,
+              credentialId: credential.id,
+              externalConversationId: thread.conversationId,
+              externalMessageId: message.messageId,
+              externalThreadId: thread.conversationId,
+              organizationId: scope.organizationId,
+              participantExternalId:
+                message.senderExternalId ?? thread.participantExternalId,
+              participantHandle:
+                message.senderUsername ?? thread.participantUsername,
+              participantName: message.senderName ?? thread.participantName,
+              platform: Platform.INSTAGRAM,
+              userId: credential.userId ?? scope.userId,
+            },
+            existing.messagesByExternalId.get(message.messageId),
+            existing.conversationsByExternalId.get(thread.conversationId),
+          );
 
           if (isNewMessage) {
             messagesCreated++;
@@ -447,23 +486,27 @@ export class SocialInboxIngestionService {
   /**
    * Batched dedup lookup for one sync batch: one findMany per entity keyed by
    * the external ids, replacing the per-item findFirst pair. Org scoping
-   * ({ organizationId, isDeleted: false }) is preserved. Returns the sets of
-   * external ids that already exist so the caller can decide which ingests are
-   * net-new without re-querying.
+   * ({ organizationId, isDeleted: false }) is preserved. Returns the rows that
+   * already exist keyed by external id so the caller can both count net-new
+   * ingests and skip the per-item lookups for known items entirely.
    */
   private async findExistingExternalIds(
     organizationId: string,
     platform: string,
     threadIds: string[],
     commentIds: string[],
-  ): Promise<{ conversationIds: Set<string>; messageIds: Set<string> }> {
+  ): Promise<{
+    conversationIds: Set<string>;
+    conversationsByExternalId: Map<string, SocialConversationDocument>;
+    messageIds: Set<string>;
+    messagesByExternalId: Map<string, SocialMessageDocument>;
+  }> {
     const uniqueThreadIds = [...new Set(threadIds)];
     const uniqueCommentIds = [...new Set(commentIds)];
 
     const [conversations, messages] = await Promise.all([
       uniqueThreadIds.length
         ? this.prisma.socialConversation.findMany({
-            select: { externalConversationId: true },
             where: scopedWhere(organizationId, {
               externalConversationId: { in: uniqueThreadIds },
               platform,
@@ -472,7 +515,6 @@ export class SocialInboxIngestionService {
         : Promise.resolve([]),
       uniqueCommentIds.length
         ? this.prisma.socialMessage.findMany({
-            select: { externalMessageId: true },
             where: scopedWhere(organizationId, {
               externalMessageId: { in: uniqueCommentIds },
               platform,
@@ -481,18 +523,45 @@ export class SocialInboxIngestionService {
         : Promise.resolve([]),
     ]);
 
+    const conversationsByExternalId = new Map<
+      string,
+      SocialConversationDocument
+    >(
+      conversations
+        .filter((row) => Boolean(row.externalConversationId))
+        .map((row) => [String(row.externalConversationId), row]),
+    );
+    const messagesByExternalId = new Map<string, SocialMessageDocument>(
+      messages
+        .filter((row) => Boolean(row.externalMessageId))
+        .map((row) => [String(row.externalMessageId), row]),
+    );
+
     return {
-      conversationIds: new Set(
-        conversations
-          .map((row) => row.externalConversationId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-      messageIds: new Set(
-        messages
-          .map((row) => row.externalMessageId)
-          .filter((id): id is string => Boolean(id)),
-      ),
+      conversationIds: new Set(conversationsByExternalId.keys()),
+      conversationsByExternalId,
+      messageIds: new Set(messagesByExternalId.keys()),
+      messagesByExternalId,
     };
+  }
+
+  /**
+   * Ingest one synced item: already-known messages skip the per-item
+   * findOrCreateConversation + findFirst pair (the batched dedup already
+   * proved they exist) but still run the workflow trigger claim, which is a
+   * deliberate retry path for triggers that previously failed to enqueue.
+   */
+  private async ingestSyncedMessage(
+    input: InboundSocialMessageInput,
+    knownMessage: SocialMessageDocument | undefined,
+    knownConversation: SocialConversationDocument | undefined,
+  ): Promise<void> {
+    if (knownMessage && knownConversation) {
+      await this.queueCommentTrigger(input, knownMessage, knownConversation);
+      return;
+    }
+
+    await this.ingestInboundMessage(input);
   }
 
   private async findConnectedCredentials(

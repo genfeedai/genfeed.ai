@@ -1190,6 +1190,73 @@ describe('PostGroupsService', () => {
     );
   });
 
+  it('publishes a target now with server time, skipping the future validator', async () => {
+    // The old client path sent `new Date().toISOString()` through the strict
+    // future validator; any clock skew made "Publish now" a 400 or a silent
+    // schedule. The explicit action carries no timestamp at all.
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        publishApproval: null,
+        publishApprovalId: null,
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        scheduledDate: now,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.publishTargetNow('org-1', 'user-1', 'group-1', 'target-1', {
+      source: 'post-desk',
+    });
+
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutation: expect.objectContaining({
+          scheduledDate: now,
+        }),
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
+      }),
+      prisma,
+    );
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'immediate',
+        postId: 'target-1',
+        provenance: {
+          releaseId: 'group-1',
+          surface: 'post-desk-schedule',
+        },
+      }),
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postId: 'target-1',
+        source: 'publish_now',
+      }),
+    );
+  });
+
   it('replays an exact canonical schedule without mutating the target or creating a second queue job', async () => {
     const scheduledAt = '2026-07-09T12:00:00.000Z';
     const target = makeTarget({

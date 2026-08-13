@@ -211,8 +211,48 @@ export class PostGroupsService {
     scheduledAt: string,
     provenance?: PostGroupCreateProvenance,
   ): Promise<IReleaseGroup> {
-    const scheduledDate =
-      this.contractService.parseFutureScheduleDate(scheduledAt);
+    return this.scheduleTargetAt(
+      organizationId,
+      userId,
+      groupId,
+      targetId,
+      this.contractService.parseFutureScheduleDate(scheduledAt),
+      provenance,
+    );
+  }
+
+  /**
+   * Publish one target immediately, stamped with server time. A client
+   * timestamp round-tripped through the strict future validator turns
+   * "Publish now" into a 400 (clock skew / latency puts it >1s in the past)
+   * or a silent schedule (skew ahead pushes it past the due-now window), so
+   * the explicit action carries no timestamp at all.
+   */
+  async publishTargetNow(
+    organizationId: string,
+    userId: string,
+    groupId: string,
+    targetId: string,
+    provenance?: PostGroupCreateProvenance,
+  ): Promise<IReleaseGroup> {
+    return this.scheduleTargetAt(
+      organizationId,
+      userId,
+      groupId,
+      targetId,
+      new Date(),
+      provenance,
+    );
+  }
+
+  private async scheduleTargetAt(
+    organizationId: string,
+    userId: string,
+    groupId: string,
+    targetId: string,
+    scheduledDate: Date,
+    provenance?: PostGroupCreateProvenance,
+  ): Promise<IReleaseGroup> {
     const isDueNow = scheduledDate.getTime() <= Date.now() + 5000;
 
     const scheduled = await this.prisma.$transaction(async (tx) => {
