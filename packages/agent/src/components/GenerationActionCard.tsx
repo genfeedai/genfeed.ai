@@ -132,7 +132,7 @@ export function GenerationActionCard({
       />
 
       {isEffectivelyCollapsed ? (
-        status === 'error' || status === 'done' ? (
+        status === 'done' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
               status={status}
