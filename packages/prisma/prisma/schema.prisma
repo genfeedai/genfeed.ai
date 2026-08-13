@@ -566,6 +566,8 @@ model User {
   brandInterviews          BrandInterview[]
   warmupAccountsOperated   WarmupAccount[]           @relation("warmup_account_operator")
   warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
+  socialWarmupEnrollments  SocialWarmupEnrollment[]  @relation("social_warmup_enrollment_enrolled_by")
+  socialWarmupEvents       SocialWarmupEvent[]       @relation("social_warmup_event_actor")
   lifecycleEmailPreference LifecycleEmailPreference?
   lifecycleEmailDeliveries LifecycleEmailDelivery[]
   contentVersionPins       ContentVersionPin[]
@@ -650,6 +652,9 @@ model Organization {
   listeningTopics               ListeningTopic[]
   listeningTopicSources         ListeningTopicSource[]
   listeningEvidence             ListeningEvidence[]
+  socialWarmupEnrollments       SocialWarmupEnrollment[]
+  socialWarmupEvents            SocialWarmupEvent[]
+  socialWarmupSignals           SocialWarmupSignal[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
@@ -838,6 +843,9 @@ model Brand {
   listeningTopics            ListeningTopic[]
   listeningTopicSources      ListeningTopicSource[]
   listeningEvidence          ListeningEvidence[]
+  socialWarmupEnrollments    SocialWarmupEnrollment[]
+  socialWarmupEvents         SocialWarmupEvent[]
+  socialWarmupSignals        SocialWarmupSignal[]
   brandMemories              BrandMemory[]
   links                      Link[]
   trackedLinks               TrackedLink[]
@@ -1308,6 +1316,9 @@ model Credential {
   socialMessages      SocialMessage[]
   personas            Persona[]            @relation("persona_credentials")
   outreachCampaigns   OutreachCampaign[]
+  socialWarmupEnrollments SocialWarmupEnrollment[]
+  socialWarmupEvents      SocialWarmupEvent[]
+  socialWarmupSignals     SocialWarmupSignal[]
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
@@ -4827,6 +4838,8 @@ model ContextEntry {
   organization   Organization @relation(fields: [organizationId], references: [id])
   data           Json         @default("{}")
   embedding      Unsupported("vector(1024)")?
+  embeddingClaimedAt DateTime?
+  embeddingFailedAt  DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -4835,6 +4848,7 @@ model ContextEntry {
   // prefix remains the selective hot-path key; organizationId is applied in
   // the same query as a tenant-isolation guard.
   @@index([contextBaseId, isDeleted], map: "context_entries_context_base_deleted_idx")
+  @@index([organizationId, contextBaseId, isDeleted], map: "context_entries_org_base_deleted_idx")
   @@map("context_entries")
 }
 
