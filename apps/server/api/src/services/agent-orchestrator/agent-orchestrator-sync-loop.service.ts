@@ -227,6 +227,11 @@ export class AgentOrchestratorSyncLoopService {
             tools,
           }),
           context.organizationId,
+          {
+            runId: context.runId,
+            threadId,
+            userId: context.userId,
+          },
         );
         const actualModel = await this.turnRoundRunner.recordAgentResponseModel(
           {

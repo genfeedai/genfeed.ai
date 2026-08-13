@@ -694,6 +694,7 @@ model Organization {
   subscriptions                 Subscription[]
   creditBalances                CreditBalance[]
   creditTransactions            CreditTransaction[]
+  llmVendorCosts                LlmVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
   leads                         Lead[]                         @relation("lead_org")
@@ -2419,6 +2420,31 @@ model CreditTransaction {
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@map("credit_transactions")
+}
+
+/// Per-completion LLM vendor cost (#2361). Micro-USD integers; BYOK rows
+/// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
+/// completion content.
+model LlmVendorCost {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  provider         String
+  model            String
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+  latencyMs        Int          @default(0)
+  vendorCostMicros Int          @default(0)
+  isByok           Boolean      @default(false)
+  threadId         String?
+  runId            String?
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
+  @@map("llm_vendor_costs")
 }
 
 model CustomerInstance {
