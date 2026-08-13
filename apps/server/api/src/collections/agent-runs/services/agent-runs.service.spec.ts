@@ -233,6 +233,7 @@ describe('AgentRunsService', () => {
         durationMs: 0,
         error: failure,
         id: 'attempt-1',
+        isDeleted: false,
         organizationId: 'org-1',
         retryCount: 1,
         status: 'FAILED',
@@ -243,15 +244,82 @@ describe('AgentRunsService', () => {
         completedAt: expect.any(Date),
         durationMs: 0,
         error: failure,
+        isDeleted: false,
         retryCount: 1,
         status: 'FAILED',
       }),
       where: {
         id: 'attempt-1',
-        isDeleted: false,
         organizationId: 'org-1',
       },
     });
+    expect(agentRun.upsert.mock.calls[0][0].where).not.toHaveProperty(
+      'isDeleted',
+    );
+  });
+
+  it('matches a soft-deleted unique row and restores it instead of creating', async () => {
+    const existing = {
+      error: 'stale',
+      id: 'attempt-tombstone',
+      isDeleted: true,
+      organizationId: 'org-1',
+      status: 'CANCELLED',
+    };
+    let created = false;
+    let updated = false;
+
+    agentRun.upsert.mockImplementation(
+      async (args: {
+        create: { id: string; isDeleted: boolean; organizationId: string };
+        update: { isDeleted: boolean };
+        where: { id?: string; isDeleted?: boolean; organizationId?: string };
+      }) => {
+        const uniqueMatches =
+          args.where.id === existing.id &&
+          args.where.organizationId === existing.organizationId;
+        const softDeleteFilterBlocks =
+          args.where.isDeleted !== undefined &&
+          args.where.isDeleted !== existing.isDeleted;
+
+        if (uniqueMatches && !softDeleteFilterBlocks) {
+          updated = true;
+          return { ...existing, ...args.update };
+        }
+
+        if (uniqueMatches) {
+          throw new Error('Unique constraint failed on the fields: (`id`)');
+        }
+
+        created = true;
+        return args.create;
+      },
+    );
+
+    const result = await service.recordFailedAttempt(
+      'attempt-tombstone',
+      {
+        label: 'Retry restore',
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        trigger: 'manual',
+        userId: 'user-1',
+      } as never,
+      'retry after tombstone',
+    );
+
+    const call = agentRun.upsert.mock.calls[0][0];
+    expect(call.where).toEqual({
+      id: 'attempt-tombstone',
+      organizationId: 'org-1',
+    });
+    expect(call.where).not.toHaveProperty('isDeleted');
+    expect(call.update.isDeleted).toBe(false);
+    expect(call.create.isDeleted).toBe(false);
+    expect(updated).toBe(true);
+    expect(created).toBe(false);
+    expect(result.id).toBe('attempt-tombstone');
+    expect(result.isDeleted).toBe(false);
   });
 
   it('queries failed attempts by thread and organization through existing scoped paths', async () => {
