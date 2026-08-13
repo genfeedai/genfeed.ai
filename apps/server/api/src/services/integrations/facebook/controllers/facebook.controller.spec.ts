@@ -125,6 +125,7 @@ describe('FacebookController', () => {
         email: 'person@example.com',
         id: 'fb-user-1',
         name: 'Person',
+        picture: { data: { url: 'https://facebook.example/avatar.jpg' } },
       });
 
       const result = await controller.verify({} as never, {
@@ -136,6 +137,16 @@ describe('FacebookController', () => {
         mockCredentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FACEBOOK);
       expect(mockCredentialsService.patch).toHaveBeenCalled();
+      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'cred-1',
+        'test-object-id',
+        {
+          avatarUrl: 'https://facebook.example/avatar.jpg',
+          handle: 'person@example.com',
+          id: 'fb-user-1',
+          name: 'Person',
+        },
+      );
       expect(result).toBeDefined();
     });
 

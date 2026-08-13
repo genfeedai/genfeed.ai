@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BETTER_AUTH_SECRET_REQUIRED_MESSAGE,
   DESKTOP_SHELL_TRUSTED_ORIGINS,
   parseCommaSeparated,
   resolveBetterAuthBaseUrl,
+  resolveBetterAuthRuntimeConfig,
   resolveBooleanFlag,
   resolveCookieDomain,
   resolveExperimentalJoins,
@@ -59,6 +61,12 @@ describe('Better Auth config', () => {
         expect(origins).not.toContain('http://genfeed.localhost:*');
         expect(origins).not.toContain('http://local.genfeed.ai:*');
       }
+    });
+
+    it('does not auto-trust localhost when production has no env-listed origins', () => {
+      expect(resolveTrustedOrigins(undefined, 'production')).toEqual([
+        DESKTOP_SHELL_TRUSTED_ORIGINS[0],
+      ]);
     });
   });
 
@@ -122,6 +130,67 @@ describe('Better Auth config', () => {
       expect(resolveSocialProviderConfig('google-client', '')).toBeUndefined();
       expect(resolveSocialProviderConfig('', 'google-secret')).toBeUndefined();
       expect(resolveSocialProviderConfig(undefined, undefined)).toBeUndefined();
+    });
+  });
+
+  describe('resolveBetterAuthRuntimeConfig', () => {
+    it('fails closed when the signing secret is absent', () => {
+      expect(() =>
+        resolveBetterAuthRuntimeConfig({
+          BETTER_AUTH_URL: 'https://api.genfeed.ai',
+        }),
+      ).toThrow(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+      expect(() =>
+        resolveBetterAuthRuntimeConfig({
+          BETTER_AUTH_SECRET: '',
+          BETTER_AUTH_URL: 'https://api.genfeed.ai',
+        }),
+      ).toThrow(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+    });
+
+    it('does not infer a cookie domain from a cloud hostname', () => {
+      const runtime = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        BETTER_AUTH_URL: 'https://api.genfeed.ai',
+        NODE_ENV: 'production',
+      });
+
+      expect(runtime.baseURL).toBe('https://api.genfeed.ai');
+      expect(runtime.cookieDomain).toBeUndefined();
+    });
+
+    it('uses only BETTER_AUTH_COOKIE_DOMAIN for cloud cookie sharing', () => {
+      const runtime = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_COOKIE_DOMAIN: ' .genfeed.ai ',
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        BETTER_AUTH_URL: 'https://api.genfeed.ai',
+        NODE_ENV: 'production',
+      });
+
+      expect(runtime.cookieDomain).toBe('.genfeed.ai');
+    });
+
+    it('auto-trusts localhost and local.genfeed.ai only outside production', () => {
+      const development = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        NODE_ENV: 'development',
+      });
+      const production = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        BETTER_AUTH_TRUSTED_ORIGINS: 'https://app.genfeed.ai',
+        NODE_ENV: 'production',
+      });
+
+      expect(development.trustedOrigins).toEqual(
+        expect.arrayContaining([
+          'http://localhost:*',
+          'http://local.genfeed.ai:*',
+        ]),
+      );
+      expect(production.trustedOrigins).toEqual([
+        'https://app.genfeed.ai',
+        DESKTOP_SHELL_TRUSTED_ORIGINS[0],
+      ]);
     });
   });
 });
