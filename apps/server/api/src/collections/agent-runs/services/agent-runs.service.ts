@@ -195,6 +195,7 @@ export class AgentRunsService extends BaseService<
       completedAt,
       durationMs: 0,
       error,
+      isDeleted: false,
       retryCount: 1,
       status: AgentExecutionStatus.FAILED,
     } satisfies Prisma.AgentRunUncheckedUpdateInput;
@@ -206,12 +207,15 @@ export class AgentRunsService extends BaseService<
       userId,
     } as Prisma.AgentRunUncheckedCreateInput;
 
+    // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so unique upsert restores tombstones
     return (await this.prisma.agentRun.upsert({
       create: createData,
       update: terminalData,
-      where: scopedWhere(organizationId, {
+      // Unique selector must omit isDeleted so a tombstone can match and restore.
+      where: {
         id: attemptId,
-      }) as Prisma.AgentRunWhereUniqueInput,
+        organizationId,
+      },
     })) as AgentRunDocument;
   }
 
