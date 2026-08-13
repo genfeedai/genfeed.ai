@@ -5,6 +5,7 @@ import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-messag
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
@@ -24,6 +25,7 @@ import {
   readConversationComposerDraft,
   writeConversationComposerAttachments,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
 import {
   computeStableTimelineEntries,
   EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
@@ -33,6 +35,7 @@ import {
   composeTimelineWithStream,
   deriveHistoricalTimeline,
 } from '@genfeedai/agent/utils/derive-timeline';
+import { estimateConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import type {
   AttachmentItem,
@@ -263,6 +266,7 @@ export function useAgentChatContainer({
 
   const isRunActive =
     activeRunStatus === 'running' || activeRunStatus === 'cancelling';
+  const shouldQueueFollowUps = isBusy && !error;
 
   const activeThreadTitle = useMemo(() => {
     if (!activeThreadId) {
@@ -364,6 +368,25 @@ export function useAgentChatContainer({
     [],
   );
 
+  const flushFollowUp = useCallback(
+    (item: ComposerFollowUp) => {
+      followLatestTurn('smooth');
+      sendMessage(item.content, {
+        artifactReferences: item.options?.artifactReferences,
+        attachments: item.attachments,
+        ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
+        planModeEnabled: item.options?.planModeEnabled ?? false,
+      });
+    },
+    [followLatestTurn, sendMessage],
+  );
+
+  const followUpQueue = useComposerFollowUpQueue({
+    isIdle: !shouldQueueFollowUps,
+    onFlush: flushFollowUp,
+    threadId: activeThreadId,
+  });
+
   const togglePlanMode = useCallback(
     async (enabled: boolean) => {
       setDraftPlanModeEnabled(enabled);
@@ -406,6 +429,17 @@ export function useAgentChatContainer({
         setError('Archived threads are read-only.');
         return;
       }
+      if (shouldQueueFollowUps) {
+        followUpQueue.enqueue(content, {
+          attachments,
+          options: {
+            artifactReferences: options?.artifactReferences,
+            ...(options?.brandId ? { brandId: options.brandId } : {}),
+            planModeEnabled: options?.planModeEnabled ?? false,
+          },
+        });
+        return;
+      }
       followLatestTurn('smooth');
       sendMessage(content, {
         artifactReferences: options?.artifactReferences,
@@ -414,7 +448,14 @@ export function useAgentChatContainer({
         planModeEnabled: options?.planModeEnabled ?? false,
       });
     },
-    [followLatestTurn, isReadOnly, sendMessage, setError],
+    [
+      followLatestTurn,
+      followUpQueue,
+      isReadOnly,
+      sendMessage,
+      setError,
+      shouldQueueFollowUps,
+    ],
   );
 
   const handleIngredientSelect = useCallback(
@@ -426,17 +467,10 @@ export function useAgentChatContainer({
       const label = ingredient.title
         ? `${ingredient.id} (${ingredient.title})`
         : ingredient.id;
-      followLatestTurn('smooth');
-      sendMessage(`Selected ingredient: ${label}`);
+      handleSend(`Selected ingredient: ${label}`);
       onSelectIngredientProp?.(ingredient);
     },
-    [
-      followLatestTurn,
-      isReadOnly,
-      sendMessage,
-      onSelectIngredientProp,
-      setError,
-    ],
+    [handleSend, isReadOnly, onSelectIngredientProp, setError],
   );
 
   const handleCopy = useCallback(
@@ -461,12 +495,11 @@ export function useAgentChatContainer({
 
   const handleRetry = useCallback(
     async (message: AgentChatMessageType) => {
-      if (isBusy) {
-        return;
-      }
-
       try {
         if (onRegenerate) {
+          if (isBusy) {
+            return;
+          }
           followLatestTurn('smooth');
           await onRegenerate(message);
           return;
@@ -478,13 +511,12 @@ export function useAgentChatContainer({
           return;
         }
 
-        followLatestTurn('smooth');
-        sendMessage(retryPrompt);
+        handleSend(retryPrompt);
       } catch {
         setError('Failed to retry this message.');
       }
     },
-    [followLatestTurn, isBusy, messages, onRegenerate, sendMessage, setError],
+    [followLatestTurn, handleSend, isBusy, messages, onRegenerate, setError],
   );
 
   const handleStopRun = useCallback(async () => {
@@ -501,6 +533,28 @@ export function useAgentChatContainer({
       setError('Failed to stop the active agent run.');
     }
   }, [activeRunId, activeRunStatus, apiService, setActiveRunStatus, setError]);
+
+  const sendFollowUpNow = useCallback(
+    (id: string) => {
+      const item = followUpQueue.queue.find((entry) => entry.id === id);
+      if (!item) {
+        return;
+      }
+      followUpQueue.remove(id);
+      void handleStopRun();
+      flushFollowUp(item);
+    },
+    [flushFollowUp, followUpQueue, handleStopRun],
+  );
+
+  const contextUsage = useMemo(
+    () =>
+      estimateConversationContextUsage([
+        ...messages.map((message) => message.content),
+        streamState.streamingContent,
+      ]),
+    [messages, streamState.streamingContent],
+  );
 
   const handleSubmitInputRequest = useCallback(
     async (answer: string) => {
@@ -928,6 +982,9 @@ export function useAgentChatContainer({
     handleCopy,
     handleRetry,
     handleStopRun,
+    sendFollowUpNow,
+    followUpQueue,
+    contextUsage,
     handleSubmitInputRequest,
     handleUiAction,
     handleApprovePlan,

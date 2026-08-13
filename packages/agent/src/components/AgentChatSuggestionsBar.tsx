@@ -4,7 +4,6 @@ import { type ReactElement, useMemo } from 'react';
 
 interface AgentChatSuggestionsBarProps {
   suggestedActions: SuggestedAction[];
-  isBusy: boolean;
   isReadOnly: boolean;
   onSend: (prompt: string) => void;
 }
@@ -18,7 +17,6 @@ function isPlanModeSuggestion(action: SuggestedAction): boolean {
 
 export function AgentChatSuggestionsBar({
   suggestedActions,
-  isBusy,
   isReadOnly,
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
@@ -55,7 +53,7 @@ export function AgentChatSuggestionsBar({
         // Full prompt is sent (or typed into the turn) — label stays short.
         onSend(action.prompt);
       }}
-      isDisabled={isBusy || isReadOnly}
+      isDisabled={isReadOnly}
       maxSuggestions={3}
       variant={hasDescriptions ? 'cards' : 'chips'}
     />

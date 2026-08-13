@@ -6,7 +6,10 @@ import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInput
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
-import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import {
+  AGENT_CONVERSATION_SCROLL_CLASS,
+  AGENT_CONVERSATION_TRACK_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentInputRequest,
@@ -150,10 +153,7 @@ export function AgentChatContainerThreadView({
       ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
-      <div
-        ref={scrollContainerRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
-      >
+      <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
         <div
           className={cn(
             AGENT_CONVERSATION_TRACK_CLASS,

@@ -168,6 +168,44 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Stop agent')).toBeTruthy();
   });
 
+  it('shows queue send beside stop when the composer has text during a run', async () => {
+    storeState.composerSeed = {
+      content: 'Follow up after this run',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(
+      <AgentChatInput
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        showStop
+        willQueueFollowUp
+      />,
+    );
+
+    expect(screen.getByLabelText('Stop agent')).toBeTruthy();
+    expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
+  });
+
+  it('renders the context usage meter', () => {
+    render(
+      <AgentChatInput
+        contextUsage={{
+          label: '12k / 128k',
+          ratio: 0.1,
+          usedTokens: 12_400,
+          windowTokens: 128_000,
+        }}
+        onSend={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('composer-context-usage')).toHaveTextContent(
+      '12k / 128k',
+    );
+  });
+
   it('keeps plan mode out and exposes the compact attachment control', () => {
     render(<AgentChatInput onSend={vi.fn()} addFiles={vi.fn()} />);
 

@@ -3,6 +3,7 @@ import {
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
+import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 import type {
@@ -15,6 +16,8 @@ import type {
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
+import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
+import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -32,7 +35,10 @@ type AgentChatPromptBarProps = {
   activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
+  contextUsage?: ConversationContextUsage | null;
+  followUps?: readonly ComposerFollowUp[];
   isBusy: boolean;
+  isComposerUnavailable?: boolean;
   isReadOnly: boolean;
   isRunActive: boolean;
   placeholder?: string;
@@ -53,6 +59,9 @@ type AgentChatPromptBarProps = {
     options?: ConversationComposerSendOptions,
   ) => void;
   onStop: () => void;
+  onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
+  onRemoveFollowUp?: (id: string) => void;
+  onSendFollowUpNow?: (id: string) => void;
   activeWorkEvent: AgentWorkEvent | null;
   error: string | null;
   isSubmittingInputRequest: boolean;
@@ -76,7 +85,10 @@ export function AgentChatPromptBar({
   activeGenerationAction,
   apiService,
   layoutMode,
+  contextUsage = null,
+  followUps = [],
   isBusy,
+  isComposerUnavailable = false,
   isReadOnly,
   isRunActive,
   placeholder,
@@ -92,6 +104,9 @@ export function AgentChatPromptBar({
   clearAllAttachments,
   onSend,
   onStop,
+  onMoveFollowUp,
+  onRemoveFollowUp,
+  onSendFollowUpNow,
   activeWorkEvent,
   error,
   isSubmittingInputRequest,
@@ -127,6 +142,17 @@ export function AgentChatPromptBar({
     showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
   const topContent = (
     <>
+      {followUps.length > 0 &&
+      onMoveFollowUp &&
+      onRemoveFollowUp &&
+      onSendFollowUpNow ? (
+        <ComposerFollowUpQueue
+          onMove={onMoveFollowUp}
+          onRemove={onRemoveFollowUp}
+          onSendNow={onSendFollowUpNow}
+          queue={followUps}
+        />
+      ) : null}
       {!isReadOnly && activeGenerationAction ? (
         <div className="pb-2">
           <GenerationActionCard
@@ -169,8 +195,11 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
+        contextUsage={contextUsage}
         disabled={
-          isBusy || isReadOnly || composerShell?.isConsequentiallyBlocked
+          isReadOnly ||
+          isComposerUnavailable ||
+          composerShell?.isConsequentiallyBlocked
         }
         placeholder={
           isReadOnly
@@ -183,6 +212,7 @@ export function AgentChatPromptBar({
         apiService={apiService}
         // Error ends the turn from the operator's POV — show Send again, not Stop.
         showStop={isRunActive && !error}
+        willQueueFollowUp={isBusy}
         density={isInspectorComposer ? 'inspector' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}

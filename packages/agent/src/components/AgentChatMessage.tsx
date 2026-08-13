@@ -3,6 +3,7 @@ import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGenerat
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS } from '@genfeedai/agent/constants/agent-message-collapse.constant';
+import { AGENT_CONVERSATION_STICKY_TOP_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
@@ -242,7 +243,9 @@ function AgentChatMessageInner({
         // The user prompt pins to the top of the scroll viewport for the
         // duration of its turn (Cursor-style); the turn wrapper in
         // AgentChatTimeline is the sticky containing block.
-        isUser ? 'sticky top-0 z-10 justify-end' : 'justify-start',
+        isUser
+          ? `sticky ${AGENT_CONVERSATION_STICKY_TOP_CLASS} z-10 justify-end`
+          : 'justify-start',
       )}
       style={entranceAnimationStyle}
     >

@@ -5,6 +5,7 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -65,6 +66,8 @@ interface AgentChatInputProps {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
+  contextUsage?: ConversationContextUsage | null;
+  willQueueFollowUp?: boolean;
 }
 
 function mapAttachmentToTrayAsset(
@@ -103,6 +106,8 @@ export function AgentChatInput({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
+  contextUsage = null,
+  willQueueFollowUp = false,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -214,6 +219,7 @@ export function AgentChatInput({
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
             creditsAvailable={creditsAvailable}
+            contextUsage={contextUsage}
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}
@@ -235,6 +241,7 @@ export function AgentChatInput({
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={Boolean(showStop)}
+            willQueueFollowUp={willQueueFollowUp}
             // Inspector rail is narrow — use compact icon-only toolbar density.
             density={isCompact || isInspector ? 'compact' : 'default'}
           />

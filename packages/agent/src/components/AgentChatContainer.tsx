@@ -359,7 +359,6 @@ export function AgentChatContainer({
   const promptBarSuggestions = suggestedActions?.length ? (
     <AgentChatSuggestionsBar
       suggestedActions={suggestedActions}
-      isBusy={container.isBusy}
       isReadOnly={isReadOnly}
       onSend={handleSuggestionSend}
     />
@@ -451,6 +450,7 @@ export function AgentChatContainer({
             dragState={container.dragState}
             emptyStateTitle={emptyStateTitle}
             emptyStateDescription={emptyStateDescription}
+            followUps={container.followUpQueue.queue}
             getCompletedAttachments={container.getCompletedAttachments}
             isAttachmentUploading={container.isAttachmentUploading}
             isBusy={container.isBusy}
@@ -466,7 +466,11 @@ export function AgentChatContainer({
             variant={
               composerShell?.placement === 'inspector' ? 'inspector' : 'default'
             }
+            contextUsage={container.contextUsage}
+            onMoveFollowUp={container.followUpQueue.move}
+            onRemoveFollowUp={container.followUpQueue.remove}
             onSend={container.handleSend}
+            onSendFollowUpNow={container.sendFollowUpNow}
             onStop={container.handleStopRun}
             placeholder={placeholder}
             promptBarSuggestions={promptBarSuggestions}
@@ -566,11 +570,12 @@ export function AgentChatContainer({
               error={isComposerDocked ? container.error : null}
               getCompletedAttachments={container.getCompletedAttachments}
               isAttachmentUploading={container.isAttachmentUploading}
-              isBusy={
-                container.isBusy ||
-                isLoadingThread ||
-                stableSocketConnectionState !== 'connected'
+              isBusy={container.isBusy}
+              isComposerUnavailable={
+                isLoadingThread || stableSocketConnectionState !== 'connected'
               }
+              contextUsage={container.contextUsage}
+              followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}
               isRunActive={container.isRunActive}
               isSubmittingInputRequest={container.isSubmittingInputRequest}
@@ -579,8 +584,11 @@ export function AgentChatContainer({
               onClearError={() => container.setError(null)}
               creditsAvailable={creditsRemaining}
               onModelChange={handleModelChange}
+              onMoveFollowUp={container.followUpQueue.move}
               onPrioritizeChange={handlePrioritizeChange}
+              onRemoveFollowUp={container.followUpQueue.remove}
               onSend={container.handleSend}
+              onSendFollowUpNow={container.sendFollowUpNow}
               onStop={container.handleStopRun}
               onSubmitInputRequest={container.handleSubmitInputRequest}
               onUiAction={container.handleUiAction}

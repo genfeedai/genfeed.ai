@@ -42,7 +42,19 @@ const activeGenerationAction = {
   type: 'generation_action_card',
 } satisfies AgentUiAction;
 
-function renderPromptBar(isReadOnly: boolean): void {
+function renderPromptBar(
+  isReadOnly: boolean,
+  extras: Partial<{
+    followUps: Array<{
+      content: string;
+      createdAt: string;
+      id: string;
+    }>;
+    onMoveFollowUp: () => void;
+    onRemoveFollowUp: () => void;
+    onSendFollowUpNow: () => void;
+  }> = {},
+): void {
   render(
     <AgentChatPromptBar
       activeGenerationAction={activeGenerationAction}
@@ -59,6 +71,7 @@ function renderPromptBar(isReadOnly: boolean): void {
       }}
       dragState={{ isActive: false }}
       error={null}
+      followUps={extras.followUps}
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
       isBusy={false}
@@ -69,7 +82,10 @@ function renderPromptBar(isReadOnly: boolean): void {
       layoutMode="fixed"
       models={[]}
       onClearError={vi.fn()}
+      onMoveFollowUp={extras.onMoveFollowUp}
+      onRemoveFollowUp={extras.onRemoveFollowUp}
       onSend={vi.fn()}
+      onSendFollowUpNow={extras.onSendFollowUpNow}
       onStop={vi.fn()}
       onSubmitInputRequest={vi.fn()}
       onUiAction={vi.fn()}
@@ -95,5 +111,24 @@ describe('AgentChatPromptBar', () => {
     renderPromptBar(false);
 
     expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
+  });
+
+  it('renders queued follow-ups above the composer', () => {
+    renderPromptBar(false, {
+      followUps: [
+        {
+          content: 'Write a caption next',
+          createdAt: '2026-08-13T00:00:00.000Z',
+          id: 'q-1',
+        },
+      ],
+      onMoveFollowUp: vi.fn(),
+      onRemoveFollowUp: vi.fn(),
+      onSendFollowUpNow: vi.fn(),
+    });
+
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Write a caption next',
+    );
   });
 });

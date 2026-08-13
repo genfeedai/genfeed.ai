@@ -6,6 +6,7 @@ import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailure
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
+import { AGENT_TIMELINE_DEFERRED_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiAction,
@@ -14,12 +15,8 @@ import type {
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
+import { groupTimelineTurns } from '@genfeedai/agent/utils/group-timeline-turns.util';
 import type { ReactElement, RefObject } from 'react';
-
-type TimelineTurnGroup = {
-  id: string;
-  items: { entry: TimelineEntry; index: number }[];
-};
 
 type AgentChatTimelineProps = {
   timeline: TimelineEntry[];
@@ -140,24 +137,20 @@ export function AgentChatTimeline({
     }
   };
 
-  // Cursor-style turns: each user message opens a turn containing everything
-  // until the next user message. The turn wrapper is the sticky containing
-  // block, so the user prompt pins to the top of the viewport while its
-  // response scrolls under it, and unpins when the next turn scrolls in.
-  const turns: TimelineTurnGroup[] = [];
-  timeline.forEach((entry, index) => {
-    if (entry.kind === 'user-message' || turns.length === 0) {
-      turns.push({ id: entry.id, items: [] });
-    }
-    turns[turns.length - 1].items.push({ entry, index });
-  });
+  const turns = groupTimelineTurns(timeline);
 
   return (
     <>
       {turns.map((turn) => (
-        <div key={turn.id} className="relative">
+        <div className="relative" key={turn.id}>
           {turn.items.map(({ entry, index }) =>
-            renderTimelineEntry(entry, index),
+            entry.kind === 'user-message' ? (
+              renderTimelineEntry(entry, index)
+            ) : (
+              <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
+                {renderTimelineEntry(entry, index)}
+              </div>
+            ),
           )}
         </div>
       ))}

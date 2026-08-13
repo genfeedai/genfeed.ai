@@ -803,14 +803,14 @@ export function useAgentChatInput({
   // Org Voice Control + browser MediaRecorder. When both are true and the
   // field is empty, mic *replaces* the send button on the trailing edge.
   const canUseVoiceInput =
-    isVoiceControlEnabled && isSupported && !showStop && !isTranscribing;
+    isVoiceControlEnabled && isSupported && !isTranscribing;
 
   const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer;
 
-  // Send whenever we are not in the mic-replacement slot (and not Stop).
-  // Empty + voice off → disabled send stays visible.
+  // Send stays available during a run so Enter queues a follow-up. Stop and
+  // send sit side by side; mic still replaces send only when the field is empty.
   const shouldShowSendButton =
-    !showStop && !isTranscribing && !shouldShowVoiceInput;
+    !isTranscribing && !shouldShowVoiceInput && (!showStop || canSendMessage);
 
   return {
     actionFeedback,

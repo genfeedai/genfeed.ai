@@ -2,8 +2,11 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
+import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
+import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -25,6 +28,7 @@ type AgentChatEmptyStateProps = {
   dragState: DragState;
   emptyStateTitle: string;
   emptyStateDescription: string;
+  followUps?: readonly ComposerFollowUp[];
   getCompletedAttachments: () => ChatAttachment[];
   isAttachmentUploading: boolean;
   isBusy: boolean;
@@ -34,12 +38,16 @@ type AgentChatEmptyStateProps = {
   isWideLayout: boolean;
   /** Compact rail layout for the workspace inspector drawer. */
   variant?: 'default' | 'inspector';
+  contextUsage?: ConversationContextUsage | null;
+  onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
+  onRemoveFollowUp?: (id: string) => void;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
     options?: ConversationComposerSendOptions,
   ) => void;
+  onSendFollowUpNow?: (id: string) => void;
   onStop: () => void;
   placeholder?: string;
   promptBarSuggestions: ReactNode;
@@ -63,6 +71,7 @@ export function AgentChatEmptyState({
   dragState,
   emptyStateTitle,
   emptyStateDescription,
+  followUps = [],
   getCompletedAttachments,
   isAttachmentUploading,
   isBusy,
@@ -71,8 +80,12 @@ export function AgentChatEmptyState({
   isRunActive,
   isWideLayout,
   variant = 'default',
+  contextUsage = null,
+  onMoveFollowUp,
   onSend,
+  onSendFollowUpNow,
   onStop,
+  onRemoveFollowUp,
   placeholder,
   promptBarSuggestions,
   removeAttachment,
@@ -85,6 +98,18 @@ export function AgentChatEmptyState({
   creditsAvailable = null,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
+  const followUpQueue =
+    followUps.length > 0 &&
+    onMoveFollowUp &&
+    onRemoveFollowUp &&
+    onSendFollowUpNow ? (
+      <ComposerFollowUpQueue
+        onMove={onMoveFollowUp}
+        onRemove={onRemoveFollowUp}
+        onSendNow={onSendFollowUpNow}
+        queue={followUps}
+      />
+    ) : null;
 
   if (isInspector) {
     return (
@@ -134,6 +159,7 @@ export function AgentChatEmptyState({
               className="w-full"
               layoutMode="inflow"
               maxWidth="full"
+              topContent={followUpQueue}
               zIndex={60}
             >
               <AgentChatInput
@@ -141,7 +167,8 @@ export function AgentChatEmptyState({
                 apiService={apiService}
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
-                disabled={isBusy || isReadOnly}
+                contextUsage={contextUsage}
+                disabled={isReadOnly}
                 dragHandlers={dragHandlers}
                 dragState={dragState}
                 getCompletedAttachments={getCompletedAttachments}
@@ -153,6 +180,7 @@ export function AgentChatEmptyState({
                 placeholder={placeholder}
                 removeAttachment={removeAttachment}
                 showStop={isRunActive}
+                willQueueFollowUp={isBusy}
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
                 onPrioritizeChange={onPrioritizeChange}
