@@ -8,6 +8,9 @@ const notifyError = vi.fn();
 const notifySuccess = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: { slug: 'brand-1' },
+  }),
   useBrandId: () => 'brand-1',
 }));
 
