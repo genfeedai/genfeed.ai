@@ -30,6 +30,27 @@ type RegistrationRecord = {
   userId: string | null;
 };
 
+type RegistrationCreateData = Pick<
+  RegistrationRecord,
+  | 'claimAttemptTokenHash'
+  | 'claimTokenHash'
+  | 'emailHash'
+  | 'expiresAt'
+  | 'requestedScopes'
+  | 'userCodeHash'
+>;
+
+type RegistrationUpdateData = Omit<
+  Partial<RegistrationRecord>,
+  'failedAttempts'
+> & {
+  failedAttempts?: number | { increment: number };
+};
+
+type RegistrationWhere = Omit<Partial<RegistrationRecord>, 'expiresAt'> & {
+  expiresAt?: Date | { gt: Date };
+};
+
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -58,14 +79,19 @@ function buildService() {
     }),
     findByKey: vi.fn().mockResolvedValue({
       id: 'api_key_1',
-      metadata: { kind: 'agent-auth-registration' },
+      metadata: {
+        kind: 'agent-auth-registration',
+        registrationId: 'registration_1',
+      },
+      organizationId,
+      userId,
     }),
     revoke: vi.fn().mockResolvedValue({ id: 'api_key_1', isRevoked: true }),
   } as unknown as ApiKeysService;
   const prisma = {
     agentAuthRegistration: {
-      create: vi.fn(({ data }: { data: RegistrationRecord }) => {
-        const record = {
+      create: vi.fn(({ data }: { data: RegistrationCreateData }) => {
+        const record: RegistrationRecord = {
           claimedAt: null,
           exchangedAt: null,
           failedAttempts: 0,
@@ -99,19 +125,33 @@ function buildService() {
           data,
           where,
         }: {
-          data: Partial<RegistrationRecord>;
-          where: Partial<RegistrationRecord>;
+          data: RegistrationUpdateData;
+          where: RegistrationWhere;
         }) => {
           const record = Array.from(records.values()).find((candidate) =>
             Object.entries(where).every(([key, value]) => {
-              if (key === 'expiresAt') {
-                return candidate.expiresAt > (value as { gt: Date }).gt;
+              if (
+                key === 'expiresAt' &&
+                value &&
+                typeof value === 'object' &&
+                'gt' in value
+              ) {
+                const lowerBound = Reflect.get(value, 'gt');
+                return (
+                  lowerBound instanceof Date && candidate.expiresAt > lowerBound
+                );
               }
               return candidate[key as keyof RegistrationRecord] === value;
             }),
           );
           if (!record) return { count: 0 };
-          Object.assign(record, data);
+          const { failedAttempts, ...scalarData } = data;
+          Object.assign(record, scalarData);
+          if (typeof failedAttempts === 'number') {
+            record.failedAttempts = failedAttempts;
+          } else if (failedAttempts) {
+            record.failedAttempts += failedAttempts.increment;
+          }
           return { count: 1 };
         },
       ),
@@ -221,7 +261,7 @@ describe('AgentAuthService', () => {
   });
 
   it('issues one scoped API key after claim and rejects replay', async () => {
-    const { apiKeysService, service } = buildService();
+    const { apiKeysService, prisma, service } = buildService();
     const registration = await register(service);
     const claimAttemptToken = new URL(
       registration.claim.verification_uri,
@@ -250,6 +290,13 @@ describe('AgentAuthService', () => {
         userId,
       }),
     );
+    expect(prisma.apiKey.count).toHaveBeenCalledWith({
+      where: {
+        isRevoked: false,
+        organizationId,
+        userId,
+      },
+    });
     await expect(
       service.exchangeClaim({ claim_token: registration.claim_token }),
     ).rejects.toThrow('already exchanged');
@@ -293,12 +340,21 @@ describe('AgentAuthService', () => {
   });
 
   it('revokes only proof-of-possession credentials issued by agent auth', async () => {
-    const { apiKeysService, service } = buildService();
+    const { apiKeysService, prisma, service } = buildService();
 
     await expect(
       service.revokeCredential({ token: 'gf_live_agent_auth_secret' }),
     ).resolves.toEqual({ revoked: true });
     expect(apiKeysService.revoke).toHaveBeenCalledWith('api_key_1');
+    expect(prisma.agentAuthRegistration.updateMany).toHaveBeenCalledWith({
+      data: { revokedAt: expect.any(Date) },
+      where: {
+        id: 'registration_1',
+        organizationId,
+        revokedAt: null,
+        userId,
+      },
+    });
 
     vi.mocked(apiKeysService.findByKey).mockResolvedValueOnce({
       id: 'api_key_other',

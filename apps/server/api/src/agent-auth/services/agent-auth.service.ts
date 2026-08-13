@@ -148,6 +148,7 @@ export class AgentAuthService {
     }
 
     if (registration.userCodeHash !== hashToken(dto.user_code)) {
+      // sql-risk-audit: ignore bulk-write-tenant-review -- Pre-claim registrations are global by design; the unique registration id plus unclaimed/unexchanged state bounds this atomic attempt counter to one ceremony.
       await this.prisma.agentAuthRegistration.updateMany({
         data: { failedAttempts: { increment: 1 } },
         where: {
@@ -195,6 +196,7 @@ export class AgentAuthService {
       );
     }
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Pre-claim registrations have no tenant yet; the unique registration id, verified-email match, expiry, and unclaimed state bound this ownership transition to one ceremony.
     const claimResult = await this.prisma.agentAuthRegistration.updateMany({
       data: {
         claimedAt: new Date(),
@@ -329,7 +331,12 @@ export class AgentAuthService {
     if (typeof metadata.registrationId === 'string') {
       await this.prisma.agentAuthRegistration.updateMany({
         data: { revokedAt: new Date() },
-        where: { id: metadata.registrationId, revokedAt: null },
+        where: {
+          id: metadata.registrationId,
+          organizationId: apiKey.organizationId,
+          revokedAt: null,
+          userId: apiKey.userId,
+        },
       });
     }
     return { revoked: true };
