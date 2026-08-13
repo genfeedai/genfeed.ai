@@ -265,13 +265,7 @@ export function useLivestreamChatBotPage(
               return false;
             }
             // Prefer brand-scoped bot when brand context is set.
-            const candidateBrandId =
-              typeof candidate.brand === 'string'
-                ? candidate.brand
-                : 'brandId' in candidate &&
-                    typeof candidate.brandId === 'string'
-                  ? candidate.brandId
-                  : undefined;
+            const candidateBrandId = candidate.brandId;
             if (brandId && candidateBrandId) {
               return candidateBrandId === brandId;
             }
