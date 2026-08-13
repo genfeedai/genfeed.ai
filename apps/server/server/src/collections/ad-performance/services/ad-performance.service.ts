@@ -218,6 +218,7 @@ export class AdPerformanceService {
   async upsert(data: Record<string, unknown>): Promise<AdPerformanceDocument> {
     const payload = this.toPersistencePayload(data);
     const writeData = this.toWriteData(payload);
+    // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so unique upsert restores tombstones
     const record = await this.prisma.adPerformance.upsert({
       create: writeData,
       update: writeData,

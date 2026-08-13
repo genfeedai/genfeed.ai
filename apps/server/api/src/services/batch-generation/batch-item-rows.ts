@@ -62,6 +62,7 @@ export async function persistBatchItemRows(
         status,
       };
 
+      // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so unique upsert restores tombstones
       return prisma.batchItem.upsert({
         create: {
           ...row,
