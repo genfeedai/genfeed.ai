@@ -160,6 +160,10 @@
   "agent": {
     "composerFollowUpQueue": {
       "queued": "Queued"
+    },
+    "generationActionCard": {
+      "stop": "Stop",
+      "stopAria": "Stop generation"
     }
   },
   "automation": {
