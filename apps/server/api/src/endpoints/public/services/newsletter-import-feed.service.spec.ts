@@ -85,13 +85,14 @@ describe('NewsletterImportFeedService', () => {
     expect(feed).not.toContain('alert(1)');
   });
 
-  it('queries only eligible public-import records within the brand', async () => {
+  it('queries only eligible public-import records within the brand, capped at 50 newest', async () => {
     await service.generateBrandFeed(brand.id);
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: brand.id,
       isDeleted: false,
     });
+    // RSS convention: newest 50 items, never the whole published archive.
     expect(newslettersService.findAll).toHaveBeenCalledWith(
       {
         orderBy: [{ publishedAt: -1 }, { id: 1 }],
@@ -103,7 +104,7 @@ describe('NewsletterImportFeedService', () => {
           status: 'published',
         },
       },
-      { pagination: false },
+      { limit: 50, page: 1 },
       false,
     );
   });

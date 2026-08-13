@@ -2,6 +2,10 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { sanitizeHtml } from '@genfeedai/helpers';
+import type {
+  NewsletterFeedBrand,
+  NewsletterImportRecord,
+} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import { marked } from 'marked';
@@ -10,24 +14,8 @@ import RSS from 'rss';
 const PUBLISHED_NEWSLETTER_STATUS = 'published';
 const CONTENT_NAMESPACE = 'http://purl.org/rss/1.0/modules/content/';
 
-interface NewsletterImportRecord {
-  id: string;
-  brandId?: string | null;
-  content?: string | null;
-  createdAt?: Date;
-  isDeleted?: boolean;
-  label: string;
-  publishedAt?: Date | null;
-  status: string;
-  summary?: string | null;
-  updatedAt?: Date;
-}
-
-interface NewsletterFeedBrand {
-  id: string;
-  label?: string | null;
-  slug?: string | null;
-}
+/** RSS convention: serve the newest items, not the entire archive. */
+const FEED_ITEM_LIMIT = 50;
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
@@ -196,7 +184,7 @@ export class NewsletterImportFeedService {
           status: PUBLISHED_NEWSLETTER_STATUS,
         },
       },
-      { pagination: false },
+      { limit: FEED_ITEM_LIMIT, page: 1 },
       false,
     );
 
