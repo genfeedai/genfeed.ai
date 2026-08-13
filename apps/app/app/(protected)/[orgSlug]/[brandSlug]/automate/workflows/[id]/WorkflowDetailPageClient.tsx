@@ -34,11 +34,12 @@ import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
-import { Play } from 'lucide-react';
+import { CalendarClock, Play } from 'lucide-react';
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
+import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
@@ -82,6 +83,7 @@ export default function WorkflowDetailPageClient({
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   const [showRunPanel, setShowRunPanel] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [closedInitialExecutionId, setClosedInitialExecutionId] = useState<
     string | null
   >(null);
@@ -351,6 +353,15 @@ export default function WorkflowDetailPageClient({
 
                     <div className="flex items-center gap-2">
                       <Button
+                        variant={ButtonVariant.SECONDARY}
+                        size={ButtonSize.SM}
+                        onClick={() => setIsScheduleDialogOpen(true)}
+                        icon={<CalendarClock className="size-4" />}
+                        tooltip="Set a recurring schedule"
+                      >
+                        Schedule
+                      </Button>
+                      <Button
                         variant={ButtonVariant.DEFAULT}
                         size={ButtonSize.SM}
                         onClick={handleRunButtonClick}
@@ -384,6 +395,14 @@ export default function WorkflowDetailPageClient({
               />
             }
           />
+
+          {isScheduleDialogOpen ? (
+            <WorkflowScheduleDialog
+              isOpen
+              onOpenChange={setIsScheduleDialogOpen}
+              workflowId={currentWorkflowId ?? workflowId}
+            />
+          ) : null}
         </div>
       </ReactFlowProvider>
     </WorkflowUIProvider>

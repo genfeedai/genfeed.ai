@@ -7,11 +7,22 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
-import { Cloud, CloudUpload, Copy, Plus, Search, Zap } from 'lucide-react';
+import {
+  CalendarClock,
+  Cloud,
+  CloudUpload,
+  Copy,
+  Plus,
+  Search,
+  Zap,
+} from 'lucide-react';
 
 import Link from 'next/link';
+import { useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
+import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { isCanonicalSystemWorkflow } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 import EmptyWorkflowState from './EmptyWorkflowState';
@@ -36,8 +47,12 @@ export default function WorkflowLibraryPage() {
     handleDuplicate,
     handleDelete,
     handleToggleSchedule,
+    applyScheduleUpdate,
     filteredWorkflows,
   } = useWorkflowLibraryPage();
+  const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
+    string | null
+  >(null);
 
   // Loading skeleton
   if (isLoading && workflows.length === 0) {
@@ -223,6 +238,11 @@ export default function WorkflowLibraryPage() {
                       canDelete={!isSystemWorkflow}
                       onDuplicate={() => handleDuplicate(workflow.id)}
                       onDelete={() => handleDelete(workflow.id)}
+                      onSchedule={
+                        isSystemWorkflow
+                          ? undefined
+                          : () => setSchedulingWorkflowId(workflow.id)
+                      }
                     />
                   </div>
                 }
@@ -238,6 +258,25 @@ export default function WorkflowLibraryPage() {
                     name={workflow.label}
                     thumbnail={workflow.thumbnail}
                   />
+                  {workflow.schedule ? (
+                    <div className="flex items-center gap-1.5 text-xs text-foreground/60">
+                      <CalendarClock className="size-3.5 shrink-0" />
+                      <span className="truncate">
+                        {describeCadence(workflow.schedule)}
+                        {workflow.isScheduleEnabled && workflow.nextRunAt ? (
+                          <>
+                            {' · Next run '}
+                            <ClientFormattedDate
+                              format="relative"
+                              value={workflow.nextRunAt}
+                            />
+                          </>
+                        ) : workflow.isScheduleEnabled ? null : (
+                          ' · Paused'
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between text-xs text-foreground/50">
                     <span>
                       Updated{' '}
@@ -260,6 +299,19 @@ export default function WorkflowLibraryPage() {
           })}
         </div>
       )}
+
+      {schedulingWorkflowId ? (
+        <WorkflowScheduleDialog
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) {
+              setSchedulingWorkflowId(null);
+            }
+          }}
+          onSaved={applyScheduleUpdate}
+          workflowId={schedulingWorkflowId}
+        />
+      ) : null}
     </Container>
   );
 }

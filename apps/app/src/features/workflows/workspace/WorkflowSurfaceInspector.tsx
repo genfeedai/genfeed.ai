@@ -522,6 +522,10 @@ export function WorkflowSurfaceInspector({
           <p className="mt-2 text-xs text-foreground">
             {workflow.isScheduleEnabled ? 'Enabled' : 'Disabled'} ·{' '}
             {workflow.schedule} · {workflow.timezone ?? 'UTC'}
+            {workflow.isScheduleEnabled &&
+            formatTimestamp(workflow.nextRunAt ?? undefined)
+              ? ` · Next run ${formatTimestamp(workflow.nextRunAt ?? undefined)}`
+              : ''}
           </p>
         </section>
       ) : null}
