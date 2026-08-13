@@ -413,6 +413,11 @@ export function usePostDetailState({
         return null;
       }
 
+      if (typeof post.id !== 'string' || post.id.length === 0) {
+        notificationsService.error('Post is missing an id');
+        return null;
+      }
+
       const url = `PATCH /posts/${post.id}`;
       setIsUpdating(true);
 

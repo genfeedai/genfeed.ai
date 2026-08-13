@@ -222,6 +222,11 @@ test('enforces relation alias read and write guards on every pull request', () =
       `the guards job must run ${script}`,
     );
   }
+  assert.match(
+    guards,
+    /check-relation-alias-reads\.test\.ts/,
+    'the guards job must run relation-alias-read inventory tests, not only the floor reporter',
+  );
 });
 
 // The curated action catalog decides whether a product action is exposed on

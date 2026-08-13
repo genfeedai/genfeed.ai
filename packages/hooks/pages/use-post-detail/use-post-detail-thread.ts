@@ -57,8 +57,18 @@ export interface UsePostDetailThreadReturn {
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
 }
 
+function requirePostId(post: IPost): string {
+  if (typeof post.id !== 'string' || post.id.length === 0) {
+    throw new Error('Post is missing an id');
+  }
+  return post.id;
+}
+
 function requireCredentialId(post: IPost): string {
-  const credentialId = post.credential?.id;
+  const credentialId =
+    typeof post.credentialId === 'string' && post.credentialId.length > 0
+      ? post.credentialId
+      : post.credential?.id;
   if (!credentialId) {
     throw new Error('Select a publishing account before adding a thread post.');
   }
@@ -131,7 +141,7 @@ export function usePostDetailThread({
         ingredients: [],
         label: 'Thread reply',
         order: newPostOrder,
-        parentId: post.id,
+        parentId: requirePostId(post),
         targetExecutionState: TargetExecutionState.DRAFT,
         visibility: post.visibility ?? PostVisibility.PUBLIC,
       });
@@ -195,10 +205,14 @@ export function usePostDetailThread({
 
       try {
         const service = await getPostsService();
-        const createdPosts = await service.expandToThread(post.id, count);
+        const createdPosts = await service.expandToThread(
+          requirePostId(post),
+          count,
+        );
 
+        const postId = requirePostId(post);
         const childPostIds = createdPosts
-          .filter((p) => p.id !== post.id)
+          .filter((p) => p.id !== postId)
           .map((p) => p.id);
 
         setGeneratingChildPostIds(new Set(childPostIds));
@@ -350,7 +364,7 @@ export function usePostDetailThread({
             ingredients: [],
             label: 'Grok feedback request',
             order: currentChildren.length + 1,
-            parentId: post.id,
+            parentId: requirePostId(post),
             targetExecutionState: TargetExecutionState.DRAFT,
             visibility: post.visibility ?? PostVisibility.PUBLIC,
           });
@@ -431,7 +445,7 @@ export function usePostDetailThread({
             ingredients: [],
             label: 'First comment',
             order: currentChildren.length + 1,
-            parentId: post.id,
+            parentId: requirePostId(post),
             targetExecutionState: TargetExecutionState.DRAFT,
             visibility: post.visibility ?? PostVisibility.PUBLIC,
           });

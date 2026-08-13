@@ -1,7 +1,5 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { RestreamController } from '@api/services/integrations/restream/controllers/restream.controller';
-import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,5 +89,26 @@ describe('RestreamController OAuth encrypt path', () => {
         refreshToken: 'plain-refresh',
       }),
     );
+  });
+
+  it('fails closed when organization id is missing on verify', async () => {
+    vi.mocked(getPublicMetadata).mockReturnValueOnce({
+      organization: '',
+      user: 'user-1',
+    } as never);
+
+    await expect(
+      controller.verify(
+        { headers: {} } as never,
+        { id: 'user-1' } as never,
+        'oauth-code',
+        'oauth-state',
+      ),
+    ).rejects.toThrow(
+      "Restream OAuth is missing a resolvable 'organization' id",
+    );
+    expect(
+      credentialsService.findPendingOAuthCredential,
+    ).not.toHaveBeenCalled();
   });
 });

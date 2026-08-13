@@ -1,3 +1,5 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RESTREAM_OAUTH_SCOPE, RestreamService } from './restream.service';
 
@@ -56,6 +58,44 @@ describe('RestreamService', () => {
   it('builds chat websocket URL', () => {
     expect(service.buildChatWebSocketUrl('tok')).toBe(
       'wss://chat.api.restream.io/ws?accessToken=tok',
+    );
+  });
+
+  it('reads the Restream profile id as a scalar', async () => {
+    http.get.mockReturnValue(of({ data: { id: 'rs-1', username: 'host' } }));
+
+    await expect(service.getProfile('tok')).resolves.toEqual({
+      email: undefined,
+      id: 'rs-1',
+      username: 'host',
+    });
+  });
+
+  it('fails closed when the Restream profile has no id', async () => {
+    http.get.mockReturnValue(of({ data: { username: 'host' } }));
+
+    const error = await service.getProfile('tok').catch((caught) => caught);
+    expect(error).toBeInstanceOf(HttpException);
+    expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect((error as HttpException).getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Restream profile is missing an id',
+      }),
+    );
+  });
+
+  it('fails closed when Restream profile lookup errors', async () => {
+    http.get.mockImplementation(() => {
+      throw new Error('network');
+    });
+
+    const error = await service.getProfile('tok').catch((caught) => caught);
+    expect(error).toBeInstanceOf(HttpException);
+    expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect((error as HttpException).getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Failed to load Restream profile',
+      }),
     );
   });
 });

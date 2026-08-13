@@ -6,6 +6,8 @@ describe('BotsLivestreamService', () => {
   const prisma = {
     bot: { findFirst: vi.fn() },
     livestreamBotSession: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
     },
@@ -26,6 +28,14 @@ describe('BotsLivestreamService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.livestreamBotSession.findMany.mockResolvedValue([]);
+    prisma.livestreamBotSession.findFirst.mockResolvedValue(null);
+    prisma.livestreamBotSession.create.mockResolvedValue(
+      sessionRow('session-new', {
+        botId: 'bot-1',
+        organizationId: 'org-1',
+        status: 'stopped',
+      }),
+    );
     prisma.bot.findFirst.mockResolvedValue(null);
     runtimeService.getDeliveryEligibility.mockReturnValue({ allowed: false });
 
@@ -166,6 +176,31 @@ describe('BotsLivestreamService', () => {
       skipped: 1,
       status: 'skipped',
     });
+  });
+
+  it('fails closed when creating a session without organizationId', async () => {
+    await expect(
+      service.getOrCreateSession(
+        botRow('bot-1', { organizationId: undefined }) as never,
+      ),
+    ).rejects.toThrow(
+      "Livestream bot is missing a resolvable 'organization' id",
+    );
+    expect(prisma.livestreamBotSession.create).not.toHaveBeenCalled();
+  });
+
+  it('does not create a session from the Document organization alias', async () => {
+    await expect(
+      service.getOrCreateSession(
+        botRow('bot-1', {
+          organization: 'org-1',
+          organizationId: undefined,
+        }) as never,
+      ),
+    ).rejects.toThrow(
+      "Livestream bot is missing a resolvable 'organization' id",
+    );
+    expect(prisma.livestreamBotSession.create).not.toHaveBeenCalled();
   });
 });
 

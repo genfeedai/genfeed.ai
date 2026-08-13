@@ -21,9 +21,9 @@ export class Bot extends BaseEntity implements IBot {
   public declare category: BotCategory;
   public declare status: BotStatus;
   public declare scope: BotScope;
-  public declare organization?: string;
-  public declare brand?: string;
-  public declare user?: string;
+  public declare organizationId?: string;
+  public declare brandId?: string;
+  public declare userId?: string;
   public declare platforms: BotPlatform[];
   public declare targets: IBotTarget[];
   public declare settings: IBotSettings;

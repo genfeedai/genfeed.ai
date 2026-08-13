@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { globSync } from 'glob';
-import ts from 'typescript';
+import * as ts from 'typescript';
 import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
 
 /**
@@ -26,27 +26,30 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
  * (apps/server/api/src/shared/utils/relation-id/relation-id.util.ts). Those two
  * are the sanctioned readers and are exempt here.
  *
- * Scope: only the two shapes where reading the alias is broken under every
- * call path — coercing it to a string id, and using it as the value of an
- * id-shaped filter key. Plain reads are left alone: plenty of call sites do
- * pass a populate and legitimately walk into the relation object
- * (`ingredient.metadata.duration`), and this guard has no type checker to tell
- * the two apart.
+ * Inventory — the ratchet flags every identity-shaped alias use it can prove
+ * from syntax, then holds the count at or below the baseline:
+ *   - coercing a relation alias to a string id
+ *   - feeding a relation alias into an id-shaped filter value
+ *   - comparing a relation alias to an id (`post.organization !== orgId`)
+ *   - using `_id` / `organization` / `user` as an object key for a scalar id
  *
- * Known blind spots — the count this guard reports is a floor, not an
- * inventory. Treat a zero as "nothing of these two shapes", never as "this
- * file is clean":
- *   - A bare comparison (`if (post.organization !== orgId)`) matches neither
- *     rule, and that is precisely how a tenant gate is written. An identical
- *     hole spelled without a coercion or a filter key scores zero here.
- *   - Files where no binding resolves to a row read are skipped outright, so
- *     an alias reached through a helper's return value is invisible.
- * Audit by reading the file; the ratchet only stops the shapes it knows.
+ * Sub-property walks (`post.organization.slug`) stay allowed: those only work
+ * when the relation is populated. Auth-metadata values
+ * (`publicMetadata.organization`) are not row reads and are not flagged as
+ * filter values.
  *
  * @see .agents/memory/rules/prisma_legacy_alias_fields.md
  */
 
-const INCLUDE_GLOBS = ['apps/server/**/*.ts'];
+const INCLUDE_GLOBS = [
+  'apps/server/**/*.ts',
+  'packages/hooks/**/*.ts',
+  'packages/interfaces/src/**/*.ts',
+  'packages/models/**/*.ts',
+  'packages/pages/**/*.ts',
+  'packages/serializers/src/**/*.ts',
+  'packages/services/**/*.ts',
+];
 
 const IGNORE_GLOBS = [
   '**/*.spec.ts',
@@ -127,7 +130,20 @@ const ROW_ARRAY_CALLBACK_METHODS = new Set([
 
 const SUPPRESSION_COMMENT = 'relation-alias-ok';
 
-export type RelationAliasRule = 'filter-value' | 'id-coercion';
+const IDENTITY_ALIAS_KEYS = new Set(['_id', 'organization', 'user']);
+
+const COMPARISON_OPERATORS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+export type RelationAliasRule =
+  | 'filter-value'
+  | 'id-coercion'
+  | 'identity-comparison'
+  | 'identity-key';
 
 export type RelationAliasViolation = {
   alias: string;
@@ -418,6 +434,63 @@ function isIdCoercion(access: ts.PropertyAccessExpression): boolean {
   return ts.isTemplateSpan(parent);
 }
 
+function looksLikeIdOperand(expression: ts.Expression): boolean {
+  const value = unwrapInputExpression(expression);
+  if (ts.isIdentifier(value)) {
+    return /Id$/i.test(value.text) || value.text === 'id';
+  }
+  if (ts.isPropertyAccessExpression(value)) {
+    return /Id$/i.test(value.name.text) || value.name.text === 'id';
+  }
+  return ts.isStringLiteral(value);
+}
+
+/**
+ * `if (post.organization !== orgId)` — `undefined === undefined` passes, so a
+ * tenant gate written against the alias never runs.
+ */
+function isIdentityComparison(access: ts.PropertyAccessExpression): boolean {
+  const value = unwrapValueExpression(access);
+  const parent = value.parent;
+  if (!parent || !ts.isBinaryExpression(parent)) {
+    return false;
+  }
+  if (!COMPARISON_OPERATORS.has(parent.operatorToken.kind)) {
+    return false;
+  }
+  const other = parent.left === value ? parent.right : parent.left;
+  return looksLikeIdOperand(other);
+}
+
+function isScalarIdInitializer(expression: ts.Expression): boolean {
+  const value = unwrapInputExpression(expression);
+  return (
+    ts.isIdentifier(value) && (/Id$/i.test(value.text) || value.text === 'id')
+  );
+}
+
+/**
+ * `{ organization: organizationId }` / `{ user: userId }` / `{ _id: id }` —
+ * the server reads the scalar FK, so an alias key is dropped or never matches.
+ */
+function identityKeyFromAssignment(
+  node: ts.PropertyAssignment,
+  aliases: ReadonlyMap<string, string>,
+): { alias: string; scalar: string } | null {
+  if (!ts.isIdentifier(node.name) && !ts.isStringLiteral(node.name)) {
+    return null;
+  }
+  const alias = ts.isIdentifier(node.name) ? node.name.text : node.name.text;
+  if (!IDENTITY_ALIAS_KEYS.has(alias)) {
+    return null;
+  }
+  const scalar = aliases.get(alias);
+  if (!scalar || !isScalarIdInitializer(node.initializer)) {
+    return null;
+  }
+  return { alias, scalar };
+}
+
 /**
  * `{ _id: post.credential, organization: post.organization }` — an id-shaped
  * key fed from a relation alias. `normalizeWhere` drops `undefined` values, so
@@ -583,18 +656,28 @@ function checkFile(
   );
 
   const rowBindings = collectRowBindings(sourceFile);
-  if (rowBindings.size === 0) {
-    return [];
-  }
-
   const violations: RelationAliasViolation[] = [];
-  const aliasValueBindings = collectAliasValueBindings(
-    sourceFile,
-    rowBindings,
-    aliases,
-  );
+  const aliasValueBindings =
+    rowBindings.size === 0
+      ? new Map<string, AliasValueBinding>()
+      : collectAliasValueBindings(sourceFile, rowBindings, aliases);
 
   const visit = (node: ts.Node): void => {
+    if (ts.isPropertyAssignment(node) && file.startsWith('packages/')) {
+      const identityKey = identityKeyFromAssignment(node, aliases);
+      if (identityKey && !isSuppressed(sourceFile, node.getStart())) {
+        violations.push({
+          alias: identityKey.alias,
+          file,
+          line:
+            sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+          receiver: 'record',
+          rule: 'identity-key',
+          scalar: identityKey.scalar,
+        });
+      }
+    }
+
     if (
       ts.isPropertyAccessExpression(node) &&
       ts.isIdentifier(node.expression) &&
@@ -608,7 +691,9 @@ function checkFile(
           ? 'id-coercion'
           : isIdShapedFilterValue(node, alias)
             ? 'filter-value'
-            : null;
+            : isIdentityComparison(node)
+              ? 'identity-comparison'
+              : null;
 
       if (scalar && rule && !isSuppressed(sourceFile, node.getStart())) {
         violations.push({
@@ -719,7 +804,11 @@ function describe(violation: RelationAliasViolation): string {
   const consequence =
     violation.rule === 'id-coercion'
       ? 'coerces a relation alias to a string id — that is "[object Object]" when populated and "undefined" when not'
-      : 'feeds a relation alias into an id-shaped filter key — an undefined value is dropped by normalizeWhere, silently unscoping the query';
+      : violation.rule === 'identity-comparison'
+        ? 'compares a relation alias to an id — undefined === undefined passes, so the tenant gate never runs'
+        : violation.rule === 'identity-key'
+          ? 'uses a Document identity alias as an object key for a scalar id — the server reads the scalar FK, so this key is dropped or never matches'
+          : 'feeds a relation alias into an id-shaped filter key — an undefined value is dropped by normalizeWhere, silently unscoping the query';
   return (
     `  ${violation.file}:${violation.line} — '${violation.receiver}.${violation.alias}' ${consequence}. ` +
     `Read '${violation.receiver}.${violation.scalar}' instead, or route it through ` +

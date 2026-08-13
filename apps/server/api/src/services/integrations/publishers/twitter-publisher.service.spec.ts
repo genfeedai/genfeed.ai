@@ -612,6 +612,33 @@ describe('TwitterPublisherService', () => {
           'Twitter credential not found or invalid',
         );
       });
+
+      it('fails closed when the credential id is missing', async () => {
+        const context = createPublishContext(mockTextPost);
+        context.credential = {
+          ...mockCredential,
+          id: undefined,
+        } as unknown as CredentialDocument;
+
+        await expect(service.publish(context)).rejects.toThrow(
+          "Twitter credential is missing a resolvable 'id' id",
+        );
+        expect(credentialsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('does not look up a credential from the Document _id alias', async () => {
+        const context = createPublishContext(mockTextPost);
+        context.credential = {
+          ...mockCredential,
+          _id: mockCredentialId,
+          id: undefined,
+        } as unknown as CredentialDocument;
+
+        await expect(service.publish(context)).rejects.toThrow(
+          "Twitter credential is missing a resolvable 'id' id",
+        );
+        expect(credentialsService.findOne).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -723,6 +750,27 @@ describe('TwitterPublisherService', () => {
           targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
+    });
+
+    it('does not patch a thread child that only has a Document _id alias', async () => {
+      const context = createPublishContext(mockTextPost);
+
+      await service.publishThreadChildren(
+        context,
+        [
+          {
+            _id: '507f1f77bcf86cd799439099',
+            category: PostCategory.TEXT,
+            description: '<p>Alias only</p>',
+            ingredients: [],
+            order: 1,
+          } as never,
+        ],
+        mockParentExternalId,
+      );
+
+      expect(mockTweet).not.toHaveBeenCalled();
+      expect(postsService.patch).not.toHaveBeenCalled();
     });
 
     it('should continue publishing other children when one fails', async () => {

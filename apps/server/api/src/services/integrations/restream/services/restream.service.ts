@@ -224,9 +224,26 @@ export class RestreamService {
         }),
       );
       const data = response.data ?? {};
+      const id =
+        typeof data.id === 'string' && data.id.length > 0
+          ? data.id
+          : typeof data.userId === 'string' && data.userId.length > 0
+            ? data.userId
+            : undefined;
+
+      if (!id) {
+        throw new HttpException(
+          {
+            detail: 'Restream profile is missing an id',
+            title: 'Profile Lookup Failed',
+          },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
       return {
         email: typeof data.email === 'string' ? data.email : undefined,
-        id: String(data.id ?? data.userId ?? 'restream-user'),
+        id,
         username:
           typeof data.username === 'string'
             ? data.username
@@ -234,8 +251,17 @@ export class RestreamService {
               ? data.displayName
               : undefined,
       };
-    } catch {
-      return { id: 'restream-user', username: 'Restream' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        {
+          detail: 'Failed to load Restream profile',
+          title: 'Profile Lookup Failed',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
     }
   }
 

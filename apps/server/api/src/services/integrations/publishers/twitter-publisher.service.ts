@@ -14,6 +14,10 @@ import {
 } from '@api/services/integrations/twitter/services/twitter.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
+  requireRelationId,
+  resolveEntityId,
+} from '@api/shared/utils/relation-id/relation-id.util';
+import {
   CredentialPlatform,
   PostCategory,
   TargetExecutionState,
@@ -58,6 +62,26 @@ function toBuffer(data: unknown): Buffer {
   }
 
   throw new Error('Unsupported media response type');
+}
+
+function requireThreadChildId(child: ThreadChild): string | undefined {
+  return typeof child.id === 'string' && child.id.length > 0
+    ? child.id
+    : undefined;
+}
+
+function requireIngredientId(
+  ingredient: NonNullable<ThreadChild['ingredients']>[number],
+): string | undefined {
+  if (typeof ingredient === 'string' && ingredient.length > 0) {
+    return ingredient;
+  }
+
+  if (ingredient && typeof ingredient === 'object') {
+    return resolveEntityId(ingredient.id);
+  }
+
+  return undefined;
 }
 
 @Injectable()
@@ -213,6 +237,14 @@ export class TwitterPublisherService extends BasePublisherService {
 
     // Publish each child as a reply
     for (const child of sortedChildren) {
+      const childId = requireThreadChildId(child);
+      if (!childId) {
+        this.logger.error(`${url} skipped thread child without a scalar id`, {
+          order: child.order,
+        });
+        continue;
+      }
+
       try {
         const childExternalId = await this.publishChildTweet(
           child,
@@ -222,7 +254,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
         if (childExternalId) {
           // Update child post with externalId and status
-          await this.postsService.patch(child.id.toString(), {
+          await this.postsService.patch(childId, {
             externalId: childExternalId,
             publicationDate: new Date(),
             targetExecutionState: TargetExecutionState.PUBLISHED,
@@ -230,7 +262,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
           this.logger.log(`${url} published thread child`, {
             childExternalId,
-            childPostId: child.id.toString(),
+            childPostId: childId,
             order: child.order,
             replyToId,
           });
@@ -239,24 +271,24 @@ export class TwitterPublisherService extends BasePublisherService {
           replyToId = childExternalId;
         } else {
           this.logger.error(`${url} failed to publish thread child`, {
-            childPostId: child.id.toString(),
+            childPostId: childId,
             order: child.order,
           });
 
           // Mark child as failed but continue with other children
-          await this.postsService.patch(child.id.toString(), {
+          await this.postsService.patch(childId, {
             targetExecutionState: TargetExecutionState.FAILED,
           });
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error publishing thread child`, {
-          childPostId: child.id.toString(),
+          childPostId: childId,
           error: (error as Error)?.message,
           order: child.order,
         });
 
         // Mark child as failed but continue with other children
-        await this.postsService.patch(child.id.toString(), {
+        await this.postsService.patch(childId, {
           targetExecutionState: TargetExecutionState.FAILED,
         });
       }
@@ -276,20 +308,9 @@ export class TwitterPublisherService extends BasePublisherService {
     replyToId: string,
     credential: CredentialDocument,
   ): Promise<string | null> {
-    const childIngredients = child.ingredients || [];
-
-    // Extract ingredient IDs from scalar IDs or populated records.
-    const childIngredientIds = childIngredients.map((ingredient) => {
-      if (typeof ingredient === 'string') {
-        return ingredient;
-      }
-
-      if (ingredient?.id) {
-        return ingredient.id.toString();
-      }
-
-      return String(ingredient);
-    });
+    const childIngredientIds = (child.ingredients || [])
+      .map((ingredient) => requireIngredientId(ingredient))
+      .filter((id): id is string => Boolean(id));
 
     // TEXT posts with ingredients are treated as IMAGE posts
     const childIsImagePost =
@@ -376,8 +397,19 @@ export class TwitterPublisherService extends BasePublisherService {
   private async getTwitterClient(
     context: PublishContext,
   ): Promise<TwitterClient> {
+    const credentialId = requireRelationId(
+      context.credential.id,
+      'id',
+      'Twitter credential',
+    );
+    const organizationId = requireRelationId(
+      context.organizationId,
+      'organization',
+      'Twitter publish',
+    );
     const credential = await this.credentialsService.findOne({
-      id: context.credential.id,
+      id: credentialId,
+      organizationId,
     });
 
     if (!credential?.accessToken) {

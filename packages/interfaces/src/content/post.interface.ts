@@ -26,8 +26,11 @@ export interface IPost extends IBaseEntity {
   category: PostCategory;
   format?: PostFormat;
   credential?: ICredential;
+  credentialId?: string;
   user: IUser;
+  userId?: string;
   organization: IOrganization;
+  organizationId?: string;
   brand: IBrand;
   platform?: CredentialPlatform;
   externalId?: string;

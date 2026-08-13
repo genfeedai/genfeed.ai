@@ -15,5 +15,8 @@
  * the guard is noisy.
  */
 
-export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> =
-  {};
+export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
+  'packages/hooks/pages/use-article-detail/use-article-detail.ts': 1,
+  'packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.ts': 1,
+  'packages/services/organization/organizations.service.ts': 3,
+};
