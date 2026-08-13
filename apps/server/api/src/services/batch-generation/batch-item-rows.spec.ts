@@ -75,7 +75,6 @@ describe('batch item row projection', () => {
         }),
         where: {
           id: 'item-ready',
-          isDeleted: false,
           organizationId: 'org-1',
         },
       }),
@@ -88,10 +87,75 @@ describe('batch item row projection', () => {
         }),
         where: {
           id: 'item-approved',
-          isDeleted: false,
           organizationId: 'org-1',
         },
       }),
     );
+  });
+
+  it('matches a soft-deleted row and restores it instead of creating', async () => {
+    const existing = {
+      id: 'item-tombstone',
+      isDeleted: true,
+      organizationId: 'org-1',
+    };
+    let created = false;
+    let updated = false;
+
+    const upsert = vi
+      .fn()
+      .mockImplementation(
+        async (args: {
+          create: { id: string; isDeleted: boolean; organizationId: string };
+          update: { isDeleted: boolean };
+          where: { id?: string; isDeleted?: boolean; organizationId?: string };
+        }) => {
+          const uniqueMatches =
+            args.where.id === existing.id &&
+            args.where.organizationId === existing.organizationId;
+          const softDeleteFilterBlocks =
+            args.where.isDeleted !== undefined &&
+            args.where.isDeleted !== existing.isDeleted;
+
+          if (uniqueMatches && !softDeleteFilterBlocks) {
+            updated = true;
+            return { ...existing, ...args.update };
+          }
+
+          if (uniqueMatches) {
+            throw new Error('Unique constraint failed on the fields: (`id`)');
+          }
+
+          created = true;
+          return args.create;
+        },
+      );
+
+    await persistBatchItemRows(
+      { batchItem: { upsert } },
+      {
+        batchId: 'batch-1',
+        items: [
+          {
+            format: ContentFormat.IMAGE,
+            id: 'item-tombstone',
+            reviewDecision: ReviewDecision.UNSET,
+            status: BatchItemStatus.PENDING,
+          },
+        ],
+        organizationId: 'org-1',
+      },
+    );
+
+    const call = upsert.mock.calls[0][0];
+    expect(call.where).toEqual({
+      id: 'item-tombstone',
+      organizationId: 'org-1',
+    });
+    expect(call.where).not.toHaveProperty('isDeleted');
+    expect(call.update.isDeleted).toBe(false);
+    expect(call.create.isDeleted).toBe(false);
+    expect(updated).toBe(true);
+    expect(created).toBe(false);
   });
 });

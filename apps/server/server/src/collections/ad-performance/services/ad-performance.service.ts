@@ -221,12 +221,14 @@ export class AdPerformanceService {
     const record = await this.prisma.adPerformance.upsert({
       create: writeData,
       update: writeData,
-      where: scopedWhere(payload.organizationId, {
+      // Unique selector must omit isDeleted so a tombstone can match and restore.
+      where: {
+        organizationId: payload.organizationId,
         organizationId_identityKey: {
           identityKey: payload.identityKey,
           organizationId: payload.organizationId,
         },
-      }),
+      },
     });
 
     return this.normalizeRecord(record);
