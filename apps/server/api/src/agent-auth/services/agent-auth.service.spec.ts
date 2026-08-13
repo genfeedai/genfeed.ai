@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { PlatformRole } from '@genfeedai/enums';
+import { PlatformRole, SubscriptionTier } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 
 vi.mock('@genfeedai/config', async (importOriginal) => {
@@ -165,7 +165,9 @@ function buildService() {
       count: vi.fn().mockResolvedValue(0),
     },
     organizationSetting: {
-      findUnique: vi.fn().mockResolvedValue({ subscriptionTier: 'PRO' }),
+      findUnique: vi.fn().mockResolvedValue({
+        subscriptionTier: SubscriptionTier.PRO,
+      }),
     },
     user: {
       findFirst: vi.fn().mockResolvedValue({
