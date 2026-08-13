@@ -459,14 +459,6 @@
     {
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "c9864c99c27984af48bd",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "35ab8488455d903d9ad5",
       "method": "update",
       "model": "ContextBase",
@@ -476,14 +468,6 @@
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "78890308bcf2433750af",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "bb3d62c53f19486e049d",
       "method": "update",
       "model": "ContextBase",
       "reason": "missing-organization-id"
@@ -1987,7 +1971,7 @@
     {
       "delegate": "socialConversation",
       "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
-      "fingerprint": "bd40048b488d31bb8d12",
+      "fingerprint": "906ba0d1652034e3c55f",
       "method": "update",
       "model": "SocialConversation",
       "reason": "missing-is-deleted"
@@ -1995,7 +1979,7 @@
     {
       "delegate": "socialConversation",
       "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
-      "fingerprint": "8a890d6ab4181864d5dd",
+      "fingerprint": "67a2e86b2693b3b8b363",
       "method": "update",
       "model": "SocialConversation",
       "reason": "missing-organization-id"
@@ -2755,7 +2739,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "05ad519a3b77425f5c7c",
+      "fingerprint": "a879ea2f50b49fd21374",
       "method": "findFirst",
       "model": "Workflow",
       "reason": "missing-organization-id"
