@@ -428,6 +428,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(intent).toContain('MAX_REPLY_MAX_AGE_HOURS = 48');
     expect(authorLoop).toContain('? 48 : DEFAULT_REPLY_MAX_AGE_HOURS');
     expect(authorLoop).toContain('clampReplyMaxAgeHours(params.hours ?? 48)');
+    // Non-YouTube inbox path. Leading `:` so this cannot match `?? 48`.
+    expect(authorLoop).toContain(': clampReplyMaxAgeHours(params.hours)');
     expect(authorLoop).toContain('resolveReplyIntent');
   });
 });
