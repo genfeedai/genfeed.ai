@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import LocalDesktopContent from './content';
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function LocalDesktopPage() {
-  return <LocalDesktopContent />;
+  return (
+    <Suspense fallback={null}>
+      <LocalDesktopContent />
+    </Suspense>
+  );
 }
