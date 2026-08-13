@@ -1364,6 +1364,29 @@ model DesktopAuthCode {
   @@map("desktop_auth_codes")
 }
 
+model AgentAuthRegistration {
+  id                    String    @id @default(cuid())
+  claimTokenHash        String    @unique
+  claimAttemptTokenHash String    @unique
+  userCodeHash          String
+  emailHash             String
+  requestedScopes       String[]  @default([])
+  failedAttempts        Int       @default(0)
+  userId                String?
+  organizationId        String?
+  expiresAt             DateTime
+  claimedAt             DateTime?
+  exchangedAt           DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([expiresAt])
+  @@index([emailHash, claimedAt])
+  @@index([userId, organizationId])
+  @@map("agent_auth_registrations")
+}
+
 model OAuthClient {
   id                      String   @id @default(cuid())
   clientId                String   @unique
