@@ -334,6 +334,26 @@ describe('WebhooksService', () => {
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);
     });
 
+    it('skips finalize when the ingredient is no longer processing', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.processMediaFromWebhook(
+        integration,
+        IngredientCategory.IMAGE,
+        externalId,
+        url,
+      );
+
+      expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+      expect(ingredientsService.patch).not.toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.GENERATED },
+      );
+    });
+
     it('should process video from webhook successfully', async () => {
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
         ingredient: mockVideoIngredientDoc,
@@ -422,9 +442,11 @@ describe('WebhooksService', () => {
     });
 
     it('should throw error when ingredient not found after patch', async () => {
-      // findOne returns null after the patch (re-populate step)
+      // First findOne is the PROCESSING guard; second is the re-populate step.
       ingredientsService.patch.mockResolvedValue(mockIngredientDoc);
-      ingredientsService.findOne.mockResolvedValue(null);
+      ingredientsService.findOne
+        .mockResolvedValueOnce(mockIngredientDoc)
+        .mockResolvedValueOnce(null);
 
       await expect(
         service.processMediaFromWebhook(

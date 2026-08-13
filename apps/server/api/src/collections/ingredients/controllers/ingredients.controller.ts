@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -26,6 +27,7 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -42,6 +44,7 @@ export class IngredientsController {
   constructor(
     private readonly ingredientsService: IngredientsService,
     private readonly foldersService: FoldersService,
+    private readonly cancellationService: IngredientGenerationCancellationService,
   ) {}
 
   @Get('batch')
@@ -142,5 +145,28 @@ export class IngredientsController {
     );
 
     return serializeSingle(request, IngredientSerializer, data);
+  }
+
+  @Post(':ingredientId/cancellations')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    operationId: 'IngredientsController.cancelGeneration',
+    summary: 'Cancel an in-flight studio generation',
+  })
+  @ApiResponse({ description: 'Generation cancelled', status: 200 })
+  async cancelGeneration(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const ingredient =
+      await this.cancellationService.cancelProcessingIngredient({
+        id: ingredientId,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      });
+
+    return serializeSingle(request, IngredientSerializer, ingredient);
   }
 }

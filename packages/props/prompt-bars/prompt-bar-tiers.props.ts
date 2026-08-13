@@ -90,6 +90,7 @@ export interface PromptBarEssentialsProps {
   enhancePrompt: () => Promise<void>;
   handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
+  onCancel?: () => void;
   onOpenAdvanced?: () => void;
   onToggleCollapse?: () => void;
   secondaryContent?: ReactNode;

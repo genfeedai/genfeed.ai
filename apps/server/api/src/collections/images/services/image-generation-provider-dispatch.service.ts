@@ -1,15 +1,8 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type {
-  ImageGenerationCompletionPlan,
-  ImageGenerationContext,
-  ImageGenerationProviderResult,
-  ImageGenerationSaveDocumentsResult,
-  ImageGenerationSavedIngredient,
-  PreparedImageGenerationProvider,
-} from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -61,10 +54,21 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
   ): Promise<ImageGenerationCompletionPlan | null> {
     const provider = await this.providerRegistry.prepare({
+      abortSignal: context.abortSignal,
       brandPromptBranding: context.brandPromptBranding,
       createImageDto: context.createImageDto,
       height: context.height,
       model: context.model,
+      onExternalJobCreated: async (externalId) => {
+        await this.metadataService.patch(
+          context.metadataData.id,
+          new MetadataEntity({
+            externalId,
+            externalProvider:
+              this.providerRegistry.providerFor(context.model) ?? undefined,
+          }),
+        );
+      },
       organizationId: context.publicMetadata.organization,
       outputs: context.outputs,
       prompt: context.promptData.original,
@@ -217,7 +221,7 @@ export class ImageGenerationProviderDispatchService {
     try {
       const result = await provider.generate();
       const externalId = this.externalId(result);
-      await this.patchExternalId(context.metadataData.id, result);
+      await this.patchExternalId(context.metadataData.id, result, context);
       await this.finalizeReturnedOutput(
         context,
         context.ingredientData.id,
@@ -316,7 +320,11 @@ export class ImageGenerationProviderDispatchService {
     try {
       const primaryResult = await provider.generate();
       primaryId = this.externalId(primaryResult);
-      await this.patchExternalId(context.metadataData.id, primaryResult);
+      await this.patchExternalId(
+        context.metadataData.id,
+        primaryResult,
+        context,
+      );
       await this.finalizeReturnedOutput(
         context,
         context.ingredientData.id,
@@ -355,7 +363,7 @@ export class ImageGenerationProviderDispatchService {
       ingredientId = documents.ingredientData.id;
       const result = await provider.generate();
       await Promise.all([
-        this.patchExternalId(documents.metadataData.id, result),
+        this.patchExternalId(documents.metadataData.id, result, context),
         this.imagesService.patch(documents.ingredientData.id, {
           promptId: context.promptData.id,
         }),
@@ -430,12 +438,15 @@ export class ImageGenerationProviderDispatchService {
   private patchExternalId(
     metadataId: string,
     result: ImageGenerationProviderResult,
+    context: ImageGenerationContext,
   ): Promise<unknown> {
     const externalId = this.externalId(result);
     return this.metadataService.patch(
       metadataId,
       new MetadataEntity({
         externalId,
+        externalProvider:
+          this.providerRegistry.providerFor(context.model) ?? undefined,
         ...(result.kind === 'external-id' && result.promptId
           ? { promptId: result.promptId }
           : {}),
@@ -451,6 +462,11 @@ export class ImageGenerationProviderDispatchService {
     outputIndex = 0,
   ): Promise<void> {
     if (result.kind !== 'external-id' || !result.outputUrls) {
+      return;
+    }
+
+    const current = await this.imagesService.findOne({ id: ingredientId });
+    if (!current || current.status !== IngredientStatus.PROCESSING) {
       return;
     }
 
@@ -520,6 +536,10 @@ export class ImageGenerationProviderDispatchService {
     ingredientId: ImageGenerationSavedIngredient['id'] = context.ingredientData
       .id,
   ): Promise<never> {
+    if (isGenerationCancelledError(error)) {
+      throw error;
+    }
+
     this.loggerService.error(`${label} failed`, error);
     const errorMessage = getErrorMessage(error);
 

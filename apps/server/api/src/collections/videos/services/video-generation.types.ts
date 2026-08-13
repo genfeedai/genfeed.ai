@@ -72,6 +72,7 @@ export interface ResolvedVideoGenerationRequest {
 }
 
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
+  abortSignal: AbortSignal;
   height: number;
   ingredientData: VideoGenerationSaveDocumentsResult['ingredientData'];
   metadataData: VideoGenerationSaveDocumentsResult['metadataData'];

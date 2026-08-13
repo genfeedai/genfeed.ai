@@ -1,6 +1,6 @@
 ---
 name: Simple mode minimal prompt bar
-description: Advanced Mode off = prompt/voice/generate only; backend auto-selects; Cursor-style sticky turns, queued follow-ups, and context meter
+description: Advanced Mode off = prompt/voice/generate only; backend auto-selects; Cursor-style sticky turns, queued follow-ups, context meter, and a real Studio Stop
 type: feedback
 ---
 
@@ -30,14 +30,21 @@ stops the current run. Queue only on `isBusy`, not leftover `activeRunStatus`.
 The composer toolbar shows a compact context-usage meter
 (`estimateConversationContextUsage`).
 
-Studio generate has no cancel API — do not add a fake Stop on that bar.
+Studio generate Stop is a real cancel: abort the `waitForCompletion` request,
+persist the provider job id before polling, `POST /ingredients/:id/cancellations`
+cancels Replicate when possible, and webhooks skip finalize if the ingredient
+is no longer PROCESSING. Do not add a Stop that only clears local loading state.
 
 **Why:** The user wants a Cursor-like, low-chrome creation UX: type and create;
 options are opt-in via Advanced Mode, not default clutter. Keep typing during a
-run instead of disabling the composer.
+run instead of disabling the composer. Stop must actually stop the GPU job.
 
 **How to apply:** When adding prompt-bar controls, gate anything non-essential
 behind `isAdvancedMode` (`isMinimalBar` in `PromptBarEssentials`). Don't add
 new always-visible buttons to the bar. Keep status animations on the shared
 shimmer utility rather than inventing new loaders. New send-while-busy paths
-must enqueue, not call `sendMessage` (that aborts the live stream).
+must enqueue, not call `sendMessage` (that aborts the live stream). Studio
+Stop on `GenerationActionCard` aborts the `waitForCompletion` fetch so the
+server can cancel Replicate and mark the placeholder FAILED. PromptBar shows
+Stop only when the parent passes `onCancel` backed by that abort — never a
+button that only clears local loading state.

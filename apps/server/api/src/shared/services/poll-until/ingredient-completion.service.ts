@@ -46,11 +46,12 @@ export class IngredientCompletionService {
     timeoutMs: number,
     pollIntervalMs: number,
     populate: PopulateOption[] = [],
+    signal?: AbortSignal,
   ): Promise<IngredientDocument> {
     const { value } = await this.pollUntilService.poll(
       () => this.readIngredientOrThrow(ingredientId, populate),
       (ingredient) => isTerminalStatus(ingredient.status),
-      { intervalMs: pollIntervalMs, timeoutMs },
+      { intervalMs: pollIntervalMs, signal, timeoutMs },
     );
     return value;
   }
@@ -67,6 +68,7 @@ export class IngredientCompletionService {
     timeoutMs: number,
     pollIntervalMs: number,
     populate: PopulateOption[] = [],
+    signal?: AbortSignal,
   ): Promise<IngredientDocument[]> {
     const uniqueIds = [...new Set(ingredientIds)];
     const completed = new Map<string, IngredientDocument>();
@@ -88,7 +90,7 @@ export class IngredientCompletionService {
         return completed;
       },
       (terminalIngredients) => terminalIngredients.size === uniqueIds.length,
-      { intervalMs: pollIntervalMs, timeoutMs },
+      { intervalMs: pollIntervalMs, signal, timeoutMs },
     );
 
     return ingredientIds

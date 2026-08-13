@@ -21,6 +21,7 @@ import {
   resolveGenerationDefaultModel,
 } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -233,6 +234,7 @@ export class VideoGenerationPreparationService {
 
     return {
       ...resolved,
+      abortSignal: createRequestAbortSignal(request),
       height,
       ingredientData,
       metadataData,

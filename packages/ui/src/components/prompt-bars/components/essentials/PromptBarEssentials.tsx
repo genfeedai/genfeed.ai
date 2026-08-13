@@ -24,6 +24,7 @@ import {
   Mic,
   SlidersHorizontal,
   Sparkles,
+  Square,
   Undo2,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -119,6 +120,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   enhancePrompt,
   handleUndo,
   handleSubmitForm,
+  onCancel,
   onToggleCollapse,
   secondaryContent,
   suggestions = [],
@@ -494,31 +496,49 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               </Button>
             ) : null}
 
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              icon={<ArrowUp />}
-              isDisabled={
-                isGenerateBlocked ||
-                isGenerateDisabled ||
-                !form.formState.isValid ||
-                !watchedTextTrimmed
-              }
-              isLoading={isGenerating}
-              onClick={() => handleSubmitForm()}
-              tooltip={
-                activeGenerations.length > 0
-                  ? `${generateLabel} (Queue)`
-                  : generateLabel
-              }
-              tooltipPosition="top"
-              ariaLabel={
-                activeGenerations.length > 0
-                  ? `${generateLabel} (Queue)`
-                  : generateLabel
-              }
-              className={cn('transition-all duration-300', 'size-9 p-0')}
-              data-testid="generate-button"
-            />
+            {isGenerating && onCancel ? (
+              <Button
+                variant={ButtonVariant.DESTRUCTIVE}
+                icon={
+                  <Square
+                    aria-hidden
+                    className="size-2.5 fill-current stroke-none"
+                  />
+                }
+                onClick={onCancel}
+                tooltip="Stop"
+                tooltipPosition="top"
+                ariaLabel="Stop generation"
+                className={cn('transition-all duration-300', 'size-9 p-0')}
+                data-testid="stop-generation-button"
+              />
+            ) : (
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                icon={<ArrowUp />}
+                isDisabled={
+                  isGenerateBlocked ||
+                  isGenerateDisabled ||
+                  !form.formState.isValid ||
+                  !watchedTextTrimmed
+                }
+                isLoading={isGenerating}
+                onClick={() => handleSubmitForm()}
+                tooltip={
+                  activeGenerations.length > 0
+                    ? `${generateLabel} (Queue)`
+                    : generateLabel
+                }
+                tooltipPosition="top"
+                ariaLabel={
+                  activeGenerations.length > 0
+                    ? `${generateLabel} (Queue)`
+                    : generateLabel
+                }
+                className={cn('transition-all duration-300', 'size-9 p-0')}
+                data-testid="generate-button"
+              />
+            )}
           </div>
         </div>
       </PromptBarShell>

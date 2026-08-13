@@ -513,4 +513,52 @@ describe('GenerationActionCard', () => {
       );
     });
   });
+
+  it('aborts the in-flight generate request when Stop is pressed', async () => {
+    let rejectGenerate: ((reason?: unknown) => void) | undefined;
+    const generateIngredient = vi.fn(
+      (_type: unknown, _body: unknown, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          rejectGenerate = reject;
+          signal?.addEventListener('abort', () => {
+            const error = new Error('The operation was aborted');
+            error.name = 'AbortError';
+            reject(error);
+          });
+        }),
+    );
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'A cinematic sunrise over the ocean.',
+          },
+          generationType: 'image',
+          id: 'action-stop',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({ generateIngredient })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /stop generation/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: /stop generation/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /generate image/i }),
+      ).toBeInTheDocument();
+    });
+    expect(rejectGenerate).toBeDefined();
+  });
 });

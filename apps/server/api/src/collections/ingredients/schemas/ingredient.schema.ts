@@ -15,6 +15,7 @@ export interface IngredientMetadataDocument {
   id?: string;
   duration?: number;
   extension?: string;
+  externalId?: string;
   externalProvider?: string;
   height?: number;
   model?: string;

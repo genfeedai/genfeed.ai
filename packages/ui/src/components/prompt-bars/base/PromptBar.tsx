@@ -35,6 +35,7 @@ function PromptBar({
   categoryType,
   onDatasetChange = () => {},
   onSubmit,
+  onCancel,
   isGenerating = false,
   isGenerateDisabled = false,
   requiresModelSelection = true,
@@ -103,6 +104,7 @@ function PromptBar({
     categoryType,
     onDatasetChange,
     onSubmit,
+    onCancel,
     isGenerating,
     isGenerateDisabled,
     requiresModelSelection,
@@ -152,6 +154,7 @@ function PromptBar({
                   isGenerating={isGenerating}
                   selectedModelCost={selectedModelCost}
                   onSubmit={handleSubmitForm}
+                  onCancel={onCancel}
                   generateLabel={generateLabel}
                   activeGenerationsCount={activeGenerations.length}
                   onExpand={() => setIsCollapsed(false)}
