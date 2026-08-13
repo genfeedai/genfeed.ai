@@ -85,7 +85,11 @@ import {
   createMockReplicateService,
 } from '@api-test/mocks/external-services.mocks';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, CreditTransactionCategory } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -186,7 +190,10 @@ const createImageGenerationService = () => {
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
-    findOne: vi.fn().mockResolvedValue({ _id: 'ing-0', status: 'completed' }),
+    findOne: vi.fn().mockResolvedValue({
+      id: 'ing-0',
+      status: IngredientStatus.PROCESSING,
+    }),
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const activitiesService = {
@@ -288,6 +295,10 @@ const createImageGenerationService = () => {
     promptsService as never,
     routerService as never,
     sharedService as never,
+    {
+      bindCancelOnAbort: vi.fn(),
+      cancelProcessingIngredient: vi.fn(),
+    } as never,
   );
 
   return {

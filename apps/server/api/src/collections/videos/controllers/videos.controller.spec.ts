@@ -17,6 +17,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -254,6 +255,13 @@ describe('VideosController', () => {
           provide: IngredientsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: IngredientGenerationCancellationService,
+          useValue: {
+            bindCancelOnAbort: vi.fn(),
+            cancelProcessingIngredient: vi.fn(),
           },
         },
         {
@@ -1431,6 +1439,13 @@ beforeAll(async () => {
         useValue: { handleFailedVideoGeneration: vi.fn() },
       },
       { provide: IngredientsService, useValue: { findOne: vi.fn() } },
+      {
+        provide: IngredientGenerationCancellationService,
+        useValue: {
+          bindCancelOnAbort: vi.fn(),
+          cancelProcessingIngredient: vi.fn(),
+        },
+      },
       {
         provide: IngredientCompletionService,
         useValue: { waitForMultipleIngredientsCompletion: vi.fn() },

@@ -82,6 +82,7 @@ type UsePromptBarStateParams = Pick<
   | 'categoryType'
   | 'onDatasetChange'
   | 'onSubmit'
+  | 'onCancel'
   | 'isGenerating'
   | 'isGenerateDisabled'
   | 'requiresModelSelection'
@@ -124,6 +125,7 @@ export function usePromptBarState({
   categoryType,
   onDatasetChange = () => {},
   onSubmit,
+  onCancel,
   isGenerating = false,
   isGenerateDisabled = false,
   requiresModelSelection = true,
@@ -744,6 +746,7 @@ export function usePromptBarState({
     modelDropdownRef,
     models,
     normalizedWatchedModels,
+    onCancel,
     openAttachedAssetsBrowser,
     openGallery: openGallery as unknown as (
       options: GalleryModalOptions,
@@ -825,6 +828,7 @@ export function usePromptBarState({
     currentModelCategory,
     isGenerating,
     isGenerateDisabled,
+    onCancel,
     // voice
     isSupported,
     settings,

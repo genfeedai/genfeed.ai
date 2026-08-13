@@ -124,6 +124,7 @@ type UsePromptBarInternalContextValueParams = {
   enhancePrompt: () => Promise<void>;
   handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
+  onCancel?: () => void;
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
@@ -238,6 +239,7 @@ export function usePromptBarInternalContextValue(
       enhancePrompt: p.enhancePrompt,
       handleUndo: p.handleUndo,
       handleSubmitForm: p.handleSubmitForm,
+      onCancel: p.onCancel,
       suggestions: p.suggestions,
       onSuggestionSelect: p.onSuggestionSelect,
       showSuggestionsWhenEmpty: p.showSuggestionsWhenEmpty,
@@ -350,6 +352,7 @@ export function usePromptBarInternalContextValue(
       p.enhancePrompt,
       p.handleUndo,
       p.handleSubmitForm,
+      p.onCancel,
       p.suggestions,
       p.onSuggestionSelect,
       p.showSuggestionsWhenEmpty,

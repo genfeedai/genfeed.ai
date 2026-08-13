@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw, Square } from 'lucide-react';
 import type { ReactElement, RefObject } from 'react';
 
 type GenerationActionCardControlsProps = {
@@ -48,7 +48,9 @@ type GenerationActionCardControlsProps = {
   isImage: boolean;
   isPromptEmpty: boolean;
   showGenerate: boolean;
+  showStop?: boolean;
   onGenerate: () => void;
+  onStop?: () => void;
 };
 
 export function GenerationActionCardControls({
@@ -76,7 +78,9 @@ export function GenerationActionCardControls({
   isImage,
   isPromptEmpty,
   showGenerate,
+  showStop = false,
   onGenerate,
+  onStop,
 }: GenerationActionCardControlsProps): ReactElement {
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   // An empty catalog is indistinguishable from a failed fetch at the picker —
@@ -211,6 +215,19 @@ export function GenerationActionCardControls({
               </SelectContent>
             </Select>
           </div>
+        ) : null}
+
+        {showStop ? (
+          <Button
+            ariaLabel="Stop generation"
+            className={cn('shrink-0 px-3 text-xs', SHELL_CONTROL_HEIGHT_CLASS)}
+            onClick={onStop}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DESTRUCTIVE}
+          >
+            <Square className="size-3.5 fill-current stroke-none" />
+            Stop
+          </Button>
         ) : null}
 
         {showGenerate ? (

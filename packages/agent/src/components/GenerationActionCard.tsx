@@ -75,6 +75,7 @@ export function GenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleStop,
     handleToggleReference,
     handleUseResultAsReference,
     handleModelChange,
@@ -90,14 +91,18 @@ export function GenerationActionCard({
 
   // Large prompt cards own the chat column — collapse frees the thread.
   // Auto-collapse once generation starts so progress stays visible without
-  // burying prior messages. Errors always render expanded so Generate stays
-  // reachable above the sticky composer error stack.
+  // burying prior messages. Idle and error expand so Generate stays
+  // reachable above the sticky composer.
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isEffectivelyCollapsed = isCollapsed && status !== 'error';
 
   useEffect(() => {
     if (status === 'generating') {
       setIsCollapsed(true);
+      return;
+    }
+    if (status === 'error' || status === 'idle') {
+      setIsCollapsed(false);
     }
   }, [status]);
 
@@ -128,6 +133,7 @@ export function GenerationActionCard({
         title={action.title}
         isCollapsed={isEffectivelyCollapsed}
         statusLabel={statusLabelFor(status)}
+        onStop={status === 'generating' ? handleStop : undefined}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
@@ -176,7 +182,9 @@ export function GenerationActionCard({
             isImage={isImage}
             isPromptEmpty={!prompt.trim()}
             showGenerate={status === 'idle' || status === 'error'}
+            showStop={status === 'generating'}
             onGenerate={handleGenerateVoid}
+            onStop={handleStop}
           />
 
           {status === 'error' ? (

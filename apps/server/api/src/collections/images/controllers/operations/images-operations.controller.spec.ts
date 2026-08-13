@@ -55,6 +55,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -335,6 +336,13 @@ describe('ImagesOperationsController', () => {
           provide: IngredientsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: IngredientGenerationCancellationService,
+          useValue: {
+            bindCancelOnAbort: vi.fn(),
+            cancelProcessingIngredient: vi.fn(),
           },
         },
         {

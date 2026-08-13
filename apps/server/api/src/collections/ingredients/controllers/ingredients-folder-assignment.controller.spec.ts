@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -69,6 +70,12 @@ describe('IngredientsController folder assignment', () => {
           provide: FoldersService,
           useValue: {
             findOne: vi.fn(),
+          },
+        },
+        {
+          provide: IngredientGenerationCancellationService,
+          useValue: {
+            cancelProcessingIngredient: vi.fn(),
           },
         },
       ],

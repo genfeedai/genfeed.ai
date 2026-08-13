@@ -12,7 +12,11 @@ import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, PromptStatus } from '@genfeedai/enums';
+import {
+  IngredientStatus,
+  ModelCategory,
+  PromptStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -129,6 +133,7 @@ const createService = () => {
     generateImage: vi.fn().mockResolvedValue({ url: 'https://fal/0.png' }),
   };
   const replicateService = {
+    cancelPrediction: vi.fn().mockResolvedValue(undefined),
     generateTextToImage: vi.fn().mockResolvedValue('rep-gen'),
     getPrediction: vi.fn().mockResolvedValue({
       output: ['https://replicate/generated.png'],
@@ -137,7 +142,10 @@ const createService = () => {
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
-    findOne: vi.fn().mockResolvedValue({ id: 'ing-0', status: 'completed' }),
+    findOne: vi.fn().mockResolvedValue({
+      id: 'ing-0',
+      status: IngredientStatus.PROCESSING,
+    }),
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const activitiesService = {
@@ -247,6 +255,10 @@ const createService = () => {
     promptsService as never,
     routerService as never,
     sharedService as never,
+    {
+      bindCancelOnAbort: vi.fn(),
+      cancelProcessingIngredient: vi.fn(),
+    } as never,
   );
 
   return {
