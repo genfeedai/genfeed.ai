@@ -1268,6 +1268,7 @@ describe('VideosController', () => {
         600000,
         5000,
         expect.any(Array),
+        expect.any(AbortSignal),
       );
       expect(result).toBeDefined();
     });
