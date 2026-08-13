@@ -57,12 +57,6 @@ interface TikTokTokenResponse {
   scope?: string;
 }
 
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 @Injectable()
 export class TiktokService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -416,10 +410,25 @@ export class TiktokService {
       } = (tokenRes.data || {}) as TikTokTokenResponse;
       const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
       const grantedScopes = scope ? parseTikTokGrantedScopes(scope) : undefined;
-      const warmupSignals = readJsonRecord(credential.warmupSignals);
 
       if (!access_token) {
         throw new Error('TikTok refresh response missing access token');
+      }
+
+      if (grantedScopes) {
+        // Atomic per-key merge: replacing the whole warmupSignals object from
+        // a stale read would erase evidence written by concurrent warmup
+        // writers (authorized-signal snapshots, account-health assessments).
+        await this.credentialsService.mergeWarmupSignals(
+          credential.id,
+          credential.organizationId ?? organizationId,
+          {
+            tiktokAuthorization: {
+              grantedScopes,
+              observedAt: new Date().toISOString(),
+            },
+          },
+        );
       }
 
       const updatedCredential = await this.credentialsService.patch(
@@ -434,17 +443,6 @@ export class TiktokService {
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
-          ...(grantedScopes
-            ? {
-                warmupSignals: {
-                  ...warmupSignals,
-                  tiktokAuthorization: {
-                    grantedScopes: [...new Set(grantedScopes)].sort(),
-                    observedAt: new Date().toISOString(),
-                  },
-                },
-              }
-            : {}),
         },
       );
 
@@ -615,6 +613,20 @@ export class TiktokService {
           ? ['follower_count', 'following_count', 'likes_count', 'video_count']
           : []),
       ];
+
+      // TikTok rejects `fields=` outright, so with no user.info scope granted
+      // (including an explicitly empty grant) return the deterministic empty
+      // profile instead of issuing a request that can only fail.
+      if (fields.length === 0) {
+        this.loggerService.warn(
+          `${url} skipped user info request - no user.info scope granted`,
+          { grantedScopes: exactScopes },
+        );
+        return {
+          isConnected: true,
+          platform: CredentialPlatform.TIKTOK,
+        };
+      }
 
       // Request only fields backed by the exact scopes returned by OAuth.
       const userInfoRes = await firstValueFrom(

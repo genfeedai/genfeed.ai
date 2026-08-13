@@ -140,6 +140,30 @@ export class CredentialsService extends BaseService<
     );
   }
 
+  /**
+   * Atomically merge top-level keys into `warmupSignals` (Postgres `jsonb ||`).
+   *
+   * Several writers share this column — account-health assessments, TikTok
+   * token refreshes, and authorized-signal snapshot persistence — each owning
+   * distinct top-level keys. A read-modify-write `patch` replaces the whole
+   * object and silently drops keys written concurrently by another writer, so
+   * every partial `warmupSignals` write must go through this merge instead.
+   */
+  async mergeWarmupSignals(
+    id: string,
+    organizationId: string,
+    signals: Record<string, unknown>,
+  ): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE "credentials"
+      SET "warmupSignals" = COALESCE("warmupSignals", '{}'::jsonb) || ${JSON.stringify(signals)}::jsonb,
+          "updatedAt" = NOW()
+      WHERE "id" = ${id}
+        AND "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+    `;
+  }
+
   countConnected(organizationId: string, brandId?: string): Promise<number> {
     return this.prisma.credential.count({
       where: scopedWhere(organizationId, {

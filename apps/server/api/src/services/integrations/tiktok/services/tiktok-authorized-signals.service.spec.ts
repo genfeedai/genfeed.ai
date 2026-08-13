@@ -5,6 +5,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
@@ -16,6 +17,7 @@ import {
 } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 
@@ -139,12 +141,12 @@ function makePreviousSnapshot(): TikTokAuthorizedSignalsSnapshot {
 describe('TiktokAuthorizedSignalsService', () => {
   let service: TiktokAuthorizedSignalsService;
   let cacheService: {
-    generateKey: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
   };
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
+    mergeWarmupSignals: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let httpService: {
@@ -176,13 +178,15 @@ describe('TiktokAuthorizedSignalsService', () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
 
+    vi.mocked(EncryptionUtil.decrypt).mockClear();
+
     cacheService = {
-      generateKey: vi.fn(() => 'tiktok-authorized-signals:credential-1'),
       get: vi.fn().mockResolvedValue(null),
       set: vi.fn().mockResolvedValue(true),
     };
     credentialsService = {
       findOne: vi.fn().mockResolvedValue(credential),
+      mergeWarmupSignals: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue(credential),
     };
     httpService = {
@@ -618,6 +622,7 @@ describe('TiktokAuthorizedSignalsService', () => {
     expect(httpService.post).not.toHaveBeenCalled();
     expect(prisma.post.findMany).not.toHaveBeenCalled();
     expect(credentialsService.patch).not.toHaveBeenCalled();
+    expect(credentialsService.mergeWarmupSignals).not.toHaveBeenCalled();
   });
 
   it('maps only canonical platform and Genfeed evidence keys', async () => {
@@ -640,5 +645,114 @@ describe('TiktokAuthorizedSignalsService', () => {
     expect(JSON.stringify(snapshot)).not.toMatch(
       /watch history|for you page|likes made|saves|comments made|accounts followed|scroll duration|manual phone/i,
     );
+  });
+
+  it('throws the canonical 404 for a missing or cross-organization credential', async () => {
+    credentialsService.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      service.refresh({
+        credentialId: 'credential-other-org',
+        organizationId: 'org-2',
+      }),
+    ).rejects.toThrow(NotFoundException);
+    expect(credentialsService.mergeWarmupSignals).not.toHaveBeenCalled();
+  });
+
+  it('persists snapshots by merging only the TikTok-owned warmup keys', async () => {
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    // A full-object patch built from the stale credential read would erase
+    // keys written concurrently by other warmup writers; only the atomic
+    // per-key merge may be used.
+    expect(credentialsService.patch).not.toHaveBeenCalled();
+    expect(credentialsService.mergeWarmupSignals).toHaveBeenCalledWith(
+      credential.id,
+      'org-1',
+      {
+        tiktokAuthorization: {
+          grantedScopes: snapshot.grantedScopes,
+          observedAt: snapshot.refreshAttemptedAt,
+        },
+        tiktokAuthorized: snapshot,
+      },
+    );
+  });
+
+  it('uses a raw OAuth exchange token verbatim without decrypting it', async () => {
+    await service.refresh({
+      accessToken: 'raw-oauth-token',
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(EncryptionUtil.decrypt).not.toHaveBeenCalled();
+    expect(httpService.get).toHaveBeenCalledWith(
+      expect.stringContaining('/user/info/'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer raw-oauth-token',
+        }),
+      }),
+    );
+  });
+
+  it('decrypts only the persisted credential token when none is provided', async () => {
+    await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(EncryptionUtil.decrypt).toHaveBeenCalledTimes(1);
+    expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('access-token');
+  });
+
+  it('bounds every TikTok provider request with a timeout', async () => {
+    await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    for (const call of httpService.get.mock.calls) {
+      expect(call[1]).toMatchObject({ timeout: 10_000 });
+    }
+    for (const call of httpService.post.mock.calls) {
+      expect(call[2]).toMatchObject({ timeout: 10_000 });
+    }
+    expect(httpService.get).toHaveBeenCalled();
+    expect(httpService.post).toHaveBeenCalled();
+  });
+
+  it('omits the profile value entirely when no profile scope is granted', async () => {
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: [USER_STATS_SCOPE],
+      organizationId: 'org-1',
+    });
+
+    // Stats-only grants still run the user-info request, but the profile
+    // evidence must match the statistics builder's permission-limited shape.
+    const profile = evidenceOf(snapshot, 'profile-completeness-signal');
+    expect(profile).toMatchObject({
+      reason: 'missing_scope',
+      status: 'permission_limited',
+    });
+    expect(profile).not.toHaveProperty('value');
+    expect(evidenceOf(snapshot, 'profile-statistics-snapshot')).toMatchObject({
+      status: 'available',
+      value: { followerCount: 0, videoCount: 1 },
+    });
   });
 });

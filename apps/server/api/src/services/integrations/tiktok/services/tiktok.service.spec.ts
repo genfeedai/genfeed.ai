@@ -81,6 +81,7 @@ describe('TiktokService', () => {
       accessToken: 'access',
       accessTokenExpiry: new Date(),
     }),
+    mergeWarmupSignals: vi.fn().mockResolvedValue(undefined),
     patch: vi.fn().mockResolvedValue({}),
   } as unknown as CredentialsService;
 
@@ -390,7 +391,7 @@ describe('TiktokService', () => {
       ).rejects.toThrow('No refresh token available');
     });
 
-    it('persists the exact scopes returned by token refresh', async () => {
+    it('persists the exact scopes returned by token refresh through an atomic merge', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
         id: 'credential-id',
         refreshToken: 'ref',
@@ -414,17 +415,22 @@ describe('TiktokService', () => {
 
       await service.refreshToken('org-id', 'brand-id');
 
+      // The scope observation merges its own key in the database; rewriting
+      // the whole warmupSignals object from the pre-refresh read would drop
+      // evidence persisted concurrently by other warmup writers.
+      expect(credentialsMock.mergeWarmupSignals).toHaveBeenCalledWith(
+        'credential-id',
+        'org-id',
+        {
+          tiktokAuthorization: {
+            grantedScopes: ['user.info.basic', 'video.list'],
+            observedAt: expect.any(String),
+          },
+        },
+      );
       expect(credentialsMock.patch).toHaveBeenCalledWith(
         'credential-id',
-        expect.objectContaining({
-          warmupSignals: {
-            connectedDays: 2,
-            tiktokAuthorization: {
-              grantedScopes: ['user.info.basic', 'video.list'],
-              observedAt: expect.any(String),
-            },
-          },
-        }),
+        expect.not.objectContaining({ warmupSignals: expect.anything() }),
       );
     });
   });
@@ -460,6 +466,34 @@ describe('TiktokService', () => {
           },
         }),
       );
+    });
+
+    it('returns a deterministic empty profile without requesting when no user.info scope is granted', async () => {
+      const result = await service.getTiktokInfo(
+        'org-id',
+        'brand-id',
+        'access-token',
+        'video.list,video.publish',
+      );
+
+      expect(httpService.get).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        isConnected: true,
+        platform: 'tiktok',
+      });
+    });
+
+    it('treats an explicitly empty scope grant as no selectable fields', async () => {
+      const result = await service.getTiktokInfo(
+        'org-id',
+        'brand-id',
+        'access-token',
+        [],
+      );
+
+      expect(httpService.get).not.toHaveBeenCalled();
+      expect(result.username).toBeUndefined();
+      expect(result.isConnected).toBe(true);
     });
   });
 

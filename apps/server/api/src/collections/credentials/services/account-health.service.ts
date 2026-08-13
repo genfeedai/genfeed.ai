@@ -171,25 +171,28 @@ export class AccountHealthService {
       params.request?.signals,
     );
     const summary = this.createSummary(credential, thresholds, signals);
+    const assessedAt = summary.assessedAt
+      ? new Date(summary.assessedAt)
+      : new Date();
 
-    await this.prisma.credential.update({
-      data: {
-        warmupAssessedAt: summary.assessedAt
-          ? new Date(summary.assessedAt)
-          : new Date(),
-        warmupHoldReason: summary.holdReason ?? null,
-        warmupRiskLevel: summary.riskLevel,
-        warmupScore: summary.score,
-        warmupSignals: {
-          ...readJsonRecord(credential.warmupSignals),
-          ...summary.signals,
-        } as unknown as Prisma.InputJsonValue,
-        warmupState: summary.state,
-        warmupThresholds:
-          summary.thresholds as unknown as Prisma.InputJsonValue,
-      },
-      where: scopedWhere(params.organizationId, { id: credential.id }),
-    });
+    // `warmupSignals` is shared with concurrent provider-evidence writers
+    // (TikTok authorized-signal persistence, token refreshes). A stale
+    // read-modify-write replacement would erase their keys, so the health
+    // signals are merged atomically with `jsonb ||` in the database instead.
+    await this.prisma.$executeRaw`
+      UPDATE "credentials"
+      SET "warmupAssessedAt" = ${assessedAt},
+          "warmupHoldReason" = ${summary.holdReason ?? null},
+          "warmupRiskLevel" = ${summary.riskLevel},
+          "warmupScore" = ${summary.score},
+          "warmupSignals" = COALESCE("warmupSignals", '{}'::jsonb) || ${JSON.stringify(summary.signals)}::jsonb,
+          "warmupState" = ${summary.state},
+          "warmupThresholds" = ${JSON.stringify(summary.thresholds)}::jsonb,
+          "updatedAt" = NOW()
+      WHERE "id" = ${credential.id}
+        AND "organizationId" = ${params.organizationId}
+        AND "isDeleted" = false
+    `;
 
     return summary;
   }
