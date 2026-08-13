@@ -150,7 +150,10 @@ export function AgentChatContainerThreadView({
       ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
         <div
           className={cn(
             AGENT_CONVERSATION_TRACK_CLASS,
