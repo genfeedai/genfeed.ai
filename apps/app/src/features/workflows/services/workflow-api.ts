@@ -55,6 +55,8 @@ export interface CloudWorkflowData {
   schedule?: string;
   timezone?: string;
   isScheduleEnabled?: boolean;
+  /** Derived next fire instant (ISO). Null when disabled or unscheduled. */
+  nextRunAt?: string | null;
   createdBy?: string;
   createdAt: string;
   metadata?: WorkflowMetadata;
@@ -87,6 +89,8 @@ export interface WorkflowSummary {
   schedule?: string;
   timezone?: string;
   isScheduleEnabled?: boolean;
+  /** Derived next fire instant (ISO). Null when disabled or unscheduled. */
+  nextRunAt?: string | null;
 }
 
 export function isCanonicalSystemWorkflow(workflow: {
@@ -96,9 +100,10 @@ export function isCanonicalSystemWorkflow(workflow: {
 }
 
 /** Payload for PATCH /workflows/:id (schedule fields) */
-export interface SetScheduleInput {
-  enabled: boolean;
-  schedule: string;
+export interface WorkflowScheduleInput {
+  isScheduleEnabled: boolean;
+  /** Canonical cron expression; null removes the schedule. */
+  schedule: string | null;
   timezone?: string;
 }
 
@@ -546,16 +551,28 @@ export class WorkflowApiService extends HTTPBaseService {
     }
   }
 
-  /** Enable or disable the schedule for a workflow (PATCH /workflows/:id) */
-  async setSchedule(id: string, body: SetScheduleInput): Promise<void> {
+  /**
+   * Set, edit, disable, or remove the recurring schedule for a workflow
+   * (PATCH /workflows/:id — registers/unregisters the scheduler server-side).
+   * Pass `schedule: null` to remove the schedule entirely.
+   */
+  async updateSchedule(
+    id: string,
+    body: WorkflowScheduleInput,
+  ): Promise<CloudWorkflowData> {
     try {
-      await this.instance.patch(`/${id}`, {
-        isScheduleEnabled: body.enabled,
-        schedule: body.schedule,
-        ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
-      });
+      const response = await this.instance.patch<JsonApiResponseDocument>(
+        `/${id}`,
+        {
+          isScheduleEnabled: body.isScheduleEnabled,
+          schedule: body.schedule,
+          ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+        },
+      );
+      const item = deserializeResource<CloudWorkflowData>(response.data);
+      return this.normalizeWorkflowData(item);
     } catch (error) {
-      logger.error('Failed to set workflow schedule', {
+      logger.error('Failed to update workflow schedule', {
         error,
         workflowId: id,
       });

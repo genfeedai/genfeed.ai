@@ -5,6 +5,7 @@ import { logger } from '@services/core/logger.service';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  type CloudWorkflowData,
   createWorkflowApiService,
   isCanonicalSystemWorkflow,
   type WorkflowSummary,
@@ -129,11 +130,16 @@ export function useWorkflowLibraryPage() {
 
       try {
         const service = await getService();
-        await service.setSchedule(id, {
-          enabled,
+        const updated = await service.updateSchedule(id, {
+          isScheduleEnabled: enabled,
           schedule: previous.schedule,
           timezone: previous.timezone,
         });
+        setWorkflows((prev) =>
+          prev.map((w) =>
+            w.id === id ? { ...w, nextRunAt: updated.nextRunAt ?? null } : w,
+          ),
+        );
       } catch (err) {
         // Revert on error
         setWorkflows((prev) =>
@@ -150,6 +156,31 @@ export function useWorkflowLibraryPage() {
       }
     },
     [getService, workflows],
+  );
+
+  /** Merge a schedule mutation result back into the loaded summaries. */
+  const applyScheduleUpdate = useCallback(
+    (
+      updated: Pick<
+        CloudWorkflowData,
+        'id' | 'isScheduleEnabled' | 'nextRunAt' | 'schedule' | 'timezone'
+      >,
+    ) => {
+      setWorkflows((prev) =>
+        prev.map((w) =>
+          w.id === updated.id
+            ? {
+                ...w,
+                isScheduleEnabled: updated.isScheduleEnabled ?? false,
+                nextRunAt: updated.nextRunAt ?? null,
+                schedule: updated.schedule,
+                timezone: updated.timezone,
+              }
+            : w,
+        ),
+      );
+    },
+    [],
   );
 
   // Filter client-side for instant feedback during debounce
@@ -176,6 +207,7 @@ export function useWorkflowLibraryPage() {
     handleDuplicate,
     handleDelete,
     handleToggleSchedule,
+    applyScheduleUpdate,
     filteredWorkflows,
   };
 }

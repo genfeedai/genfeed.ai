@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   serviceList: vi.fn(),
   serviceDuplicate: vi.fn(),
   serviceRemove: vi.fn(),
-  serviceSetSchedule: vi.fn(),
+  serviceUpdateSchedule: vi.fn(),
   getService: vi.fn(),
 }));
 
@@ -79,16 +79,22 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
         label: 'Unscheduled Workflow',
       }),
     ]);
-    mocks.serviceSetSchedule.mockResolvedValue(undefined);
+    mocks.serviceUpdateSchedule.mockResolvedValue({
+      id: 'wf-1',
+      isScheduleEnabled: true,
+      nextRunAt: '2099-01-01T09:00:00.000Z',
+      schedule: '0 9 * * 1',
+      timezone: 'UTC',
+    });
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
-      setSchedule: mocks.serviceSetSchedule,
+      updateSchedule: mocks.serviceUpdateSchedule,
     });
   });
 
-  it('calls setSchedule with enabled=true when toggling on a workflow that has a schedule', async () => {
+  it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
     const { result } = renderHook(() => useWorkflowLibraryPage());
 
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
@@ -97,18 +103,33 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('wf-1', true);
     });
 
-    expect(mocks.serviceSetSchedule).toHaveBeenCalledWith('wf-1', {
-      enabled: true,
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('wf-1', {
+      isScheduleEnabled: true,
       schedule: '0 9 * * 1',
       timezone: 'UTC',
     });
   });
 
+  it('reflects the derived next run after the toggle resolves', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.handleToggleSchedule('wf-1', true);
+    });
+
+    const wf = result.current.workflows.find((w) => w.id === 'wf-1');
+    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+  });
+
   it('applies an optimistic update before the API resolves', async () => {
-    let resolveSchedule!: () => void;
-    mocks.serviceSetSchedule.mockImplementation(
+    let resolveSchedule!: (value: {
+      id: string;
+      nextRunAt: string | null;
+    }) => void;
+    mocks.serviceUpdateSchedule.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ id: string; nextRunAt: string | null }>((resolve) => {
           resolveSchedule = resolve;
         }),
     );
@@ -127,11 +148,13 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     });
 
     // Resolve the API call
-    act(() => resolveSchedule());
+    act(() => resolveSchedule({ id: 'wf-1', nextRunAt: null }));
   });
 
   it('reverts the optimistic update when the API call fails', async () => {
-    mocks.serviceSetSchedule.mockRejectedValueOnce(new Error('network error'));
+    mocks.serviceUpdateSchedule.mockRejectedValueOnce(
+      new Error('network error'),
+    );
 
     const { result } = renderHook(() => useWorkflowLibraryPage());
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
@@ -153,7 +176,7 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('wf-2', true);
     });
 
-    expect(mocks.serviceSetSchedule).not.toHaveBeenCalled();
+    expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
   });
 
   it('does not toggle schedules on canonical system workflows', async () => {
@@ -179,8 +202,29 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('system-wf', false);
     });
 
-    expect(mocks.serviceSetSchedule).not.toHaveBeenCalled();
+    expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
     expect(result.current.workflows[0]?.isScheduleEnabled).toBe(true);
+  });
+
+  it('merges a schedule dialog result into the loaded summaries', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      result.current.applyScheduleUpdate({
+        id: 'wf-2',
+        isScheduleEnabled: true,
+        nextRunAt: '2099-01-01T09:00:00.000Z',
+        schedule: '0 9 * * *',
+        timezone: 'Europe/Paris',
+      });
+    });
+
+    const wf = result.current.workflows.find((w) => w.id === 'wf-2');
+    expect(wf?.schedule).toBe('0 9 * * *');
+    expect(wf?.timezone).toBe('Europe/Paris');
+    expect(wf?.isScheduleEnabled).toBe(true);
+    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
   });
 });
 
@@ -198,7 +242,7 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
       list: mocks.serviceList,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
-      setSchedule: mocks.serviceSetSchedule,
+      updateSchedule: mocks.serviceUpdateSchedule,
     });
   });
 
