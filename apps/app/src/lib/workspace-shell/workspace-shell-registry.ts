@@ -452,29 +452,19 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/messages',
-      '/:orgSlug/~/messages/outreach',
-      '/:orgSlug/~/messages/outreach/new',
-      '/:orgSlug/~/messages/outreach/:id',
-      '/:orgSlug/~/messages/replies',
-      '/:orgSlug/~/messages/reply-drip',
-    ],
-    {
-      adapter: {
-        key: 'messages',
-        status: 'embedded',
-      },
-      fallback: '/:orgSlug/~/messages',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'messages',
-      switcherItems: ['messages'],
-      telemetryClass: 'product',
+  ...registerRoutes(['/:orgSlug/~/messages'], {
+    adapter: {
+      key: 'messages',
+      status: 'embedded',
     },
-  ),
+    fallback: '/:orgSlug/~/messages',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'organization',
+    surfaceKey: 'messages',
+    switcherItems: ['messages'],
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/~/discover/overview',
