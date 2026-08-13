@@ -123,6 +123,7 @@ export class UploadService {
 
   private async prepareFileUpload(
     source: FileUploadSource,
+    knownContentType?: string,
   ): Promise<PreparedUpload> {
     const filePath = resolveContainedPath(
       FILES_TMP_ROOT,
@@ -130,26 +131,21 @@ export class UploadService {
       createBadRequest,
     );
     const size = fs.statSync(filePath).size;
-    let contentType = 'application/octet-stream';
+    // A transport-provided type (e.g. the HTTP Content-Type of a remote
+    // download) wins over the extension sniff, which cannot classify
+    // extension-less URLs and only knows a narrow extension list.
+    const contentType =
+      this.normalizeContentType(knownContentType) ??
+      this.resolveContentType(undefined, filePath);
     let width: number | undefined;
     let height: number | undefined;
     let duration: number | undefined;
     let hasAudio = false;
 
-    if (filePath.match(/\.mp4$/i)) {
-      contentType = 'video/mp4';
+    if (contentType.startsWith('video/')) {
       const metadata = await this.getVideoDimensions(filePath);
       ({ width, height, duration, hasAudio } = metadata);
-    } else if (filePath.match(/\.zip$/i)) {
-      contentType = 'application/zip';
-    } else if (filePath.match(/\.jpe?g$/i)) {
-      contentType = 'image/jpeg';
-      ({ width, height } = await this.getImageDimensions(filePath));
-    } else if (filePath.match(/\.png$/i)) {
-      contentType = 'image/png';
-      ({ width, height } = await this.getImageDimensions(filePath));
-    } else if (filePath.match(/\.webp$/i)) {
-      contentType = 'image/webp';
+    } else if (contentType.startsWith('image/')) {
       ({ width, height } = await this.getImageDimensions(filePath));
     }
 
@@ -186,7 +182,7 @@ export class UploadService {
     remoteUrl: string,
     key: string,
     url: string,
-  ): Promise<string> {
+  ): Promise<{ contentType: string; tmpPath: string }> {
     this.loggerService.log(`${url} downloading remote file`, {
       key,
       url: remoteUrl,
@@ -230,7 +226,7 @@ export class UploadService {
         url: remoteUrl,
       });
 
-      return tmpPath;
+      return { contentType, tmpPath };
     } catch (error: unknown) {
       const parsedError = error as {
         code?: string;
@@ -262,12 +258,22 @@ export class UploadService {
     url: string,
   ): Promise<PreparedUpload> {
     this.assertRemoteUrl(source.url);
-    const spooledPath = await this.spoolRemoteUpload(source.url, key, url);
-    const prepared = await this.prepareFileUpload({
-      path: spooledPath,
-      type: 'file',
-    });
-    return { ...prepared, spooledPath };
+    const spooled = await this.spoolRemoteUpload(source.url, key, url);
+    try {
+      const prepared = await this.prepareFileUpload(
+        { path: spooled.tmpPath, type: 'file' },
+        spooled.contentType,
+      );
+      return { ...prepared, spooledPath: spooled.tmpPath };
+    } catch (error: unknown) {
+      // uploadToS3's finally only sees spooledPath once preparation returned;
+      // a corrupt download (sharp/ffprobe failure) would otherwise leak the
+      // spooled file in FILES_TMP_ROOT/downloads forever.
+      if (fs.existsSync(spooled.tmpPath)) {
+        fs.unlinkSync(spooled.tmpPath);
+      }
+      throw error;
+    }
   }
 
   private async prepareBinaryUpload(
@@ -319,7 +325,12 @@ export class UploadService {
     key: string,
     url: string,
   ): Promise<ProcessedUpload> {
-    if (!prepared.contentType.startsWith('image/')) {
+    // Gifs pass through untouched: re-encoding via sharp would flatten an
+    // animated gif to its first frame.
+    if (
+      !prepared.contentType.startsWith('image/') ||
+      prepared.contentType.includes('gif')
+    ) {
       return { ...prepared, imageProcessingDuration: 0 };
     }
 
@@ -525,6 +536,19 @@ export class UploadService {
       default:
         return '';
     }
+  }
+
+  /**
+   * A usable media type from a transport header, or undefined when the header
+   * is absent or carries no information (octet-stream), so callers can fall
+   * back to the extension sniff.
+   */
+  private normalizeContentType(value?: string): string | undefined {
+    const mime = value?.split(';')[0]?.trim().toLowerCase();
+    if (!mime || mime === 'application/octet-stream') {
+      return undefined;
+    }
+    return mime;
   }
 
   private resolveContentType(headerValue?: string, url?: string): string {

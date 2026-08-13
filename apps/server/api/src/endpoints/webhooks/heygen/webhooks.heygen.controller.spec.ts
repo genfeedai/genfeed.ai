@@ -20,6 +20,7 @@ describe('HeygenWebhookController', () => {
   let verificationService: {
     assertSignature: vi.Mock;
     isReplay: vi.Mock;
+    releaseReplayClaim: vi.Mock;
   };
 
   /** A delivery as express hands it over once `express.raw` has run. */
@@ -38,6 +39,7 @@ describe('HeygenWebhookController', () => {
     verificationService = {
       assertSignature: vi.fn(),
       isReplay: vi.fn().mockResolvedValue(false),
+      releaseReplayClaim: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -181,6 +183,63 @@ describe('HeygenWebhookController', () => {
         'HeygenWebhookController heygen callback failed',
         error,
       );
+    });
+
+    it('releases the replay claim when callback handling fails', async () => {
+      heygenWebhookService.handleCallback.mockRejectedValue(
+        new Error('Video processing failed'),
+      );
+
+      await expect(
+        controller.handleCallback(signedRequest({ callback_id: 'cb_789' })),
+      ).rejects.toThrow('Video processing failed');
+
+      expect(verificationService.releaseReplayClaim).toHaveBeenCalledWith(
+        'evt_1',
+      );
+    });
+
+    it('keeps the replay claim when callback handling succeeds', async () => {
+      heygenWebhookService.handleCallback.mockResolvedValue(undefined);
+
+      await controller.handleCallback(signedRequest({ callback_id: 'cb_789' }));
+
+      expect(verificationService.releaseReplayClaim).not.toHaveBeenCalled();
+    });
+
+    it('processes a retried delivery whose first attempt failed', async () => {
+      // Simulates the real claim store: the first delivery claims the event
+      // id, a failure releases it, and HeyGen's retry with the same id must
+      // be processed instead of being suppressed as "already processed".
+      const claimed = new Set<string>();
+      verificationService.isReplay.mockImplementation(
+        async (eventId: string) => {
+          if (claimed.has(eventId)) {
+            return true;
+          }
+          claimed.add(eventId);
+          return false;
+        },
+      );
+      verificationService.releaseReplayClaim.mockImplementation(
+        async (eventId: string) => {
+          claimed.delete(eventId);
+        },
+      );
+      heygenWebhookService.handleCallback
+        .mockRejectedValueOnce(new Error('transient failure'))
+        .mockResolvedValueOnce(undefined);
+
+      await expect(
+        controller.handleCallback(signedRequest({ callback_id: 'cb_retry' })),
+      ).rejects.toThrow('transient failure');
+
+      const retry = await controller.handleCallback(
+        signedRequest({ callback_id: 'cb_retry' }),
+      );
+
+      expect(retry).toEqual({ detail: 'Webhook received' });
+      expect(heygenWebhookService.handleCallback).toHaveBeenCalledTimes(2);
     });
   });
 });

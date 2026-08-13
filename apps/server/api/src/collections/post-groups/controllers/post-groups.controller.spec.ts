@@ -31,6 +31,7 @@ describe('PostGroupsController', () => {
     publishNow: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
     ensureReleaseForPost: ReturnType<typeof vi.fn>;
+    publishTargetNow: ReturnType<typeof vi.fn>;
     scheduleTarget: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
@@ -67,6 +68,7 @@ describe('PostGroupsController', () => {
             pause: vi.fn().mockResolvedValue({ id: 'group-1' }),
             publishNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             resume: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            publishTargetNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             scheduleTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
             update: vi.fn().mockResolvedValue({ id: 'group-1' }),
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
@@ -156,6 +158,22 @@ describe('PostGroupsController', () => {
       '2026-09-01T10:00:00.000Z',
       { source: 'post-desk' },
     );
+    expect(service.updateTarget).not.toHaveBeenCalled();
+  });
+
+  it('routes target publish-now through publishTargetNow without a client timestamp', async () => {
+    await controller.updateTarget(req, user, 'group-1', 'target-1', {
+      action: 'publish-now',
+    });
+
+    expect(service.publishTargetNow).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      { source: 'post-desk' },
+    );
+    expect(service.scheduleTarget).not.toHaveBeenCalled();
     expect(service.updateTarget).not.toHaveBeenCalled();
   });
 

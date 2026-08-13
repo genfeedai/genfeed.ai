@@ -328,7 +328,8 @@ export class CacheService {
    * every inbound event for the duration of the outage, which is a far worse
    * failure than handling one event twice.
    *
-   * Callers deliberately never release the claim; it expires with the window.
+   * Claims normally expire with the window; a caller whose processing fails
+   * after claiming may `del` the key so the sender's retry is not suppressed.
    *
    * @param key - Namespaced identity of the thing being claimed
    * @param ttlSeconds - How long the claim suppresses repeats

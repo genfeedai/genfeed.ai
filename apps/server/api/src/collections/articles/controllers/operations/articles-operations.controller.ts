@@ -360,6 +360,10 @@ export class ArticlesOperationsController {
    * failing the request with nothing to bill and nothing to show. Reject it up
    * front instead. No override means the org/system default applies and there
    * is nothing to check.
+   *
+   * Retired (`isLegacy`) and disabled (`isActive: false`) registry keys are
+   * rejected the same way — the Phase C registry policy (#2479) routes only
+   * active, non-legacy keys.
    */
   private async assertGenerationModelOverrideSupported(
     modelKey?: string,
@@ -369,7 +373,9 @@ export class ArticlesOperationsController {
     }
 
     const model = await this.modelsService.findOne({
+      isActive: true,
       isDeleted: false,
+      isLegacy: false,
       key: baseModelKey(modelKey),
     });
 

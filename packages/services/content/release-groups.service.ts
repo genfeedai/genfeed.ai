@@ -263,4 +263,18 @@ export class ReleaseGroupsService extends HTTPBaseService {
       scheduledDate,
     } as UpdateChannelTargetInput);
   }
+
+  /**
+   * Publish one target immediately. Sends no timestamp on purpose: the server
+   * stamps its own clock, so client clock skew can neither trip the strict
+   * future validator nor silently turn "Publish now" into a schedule.
+   */
+  async publishTargetNow(
+    groupId: string,
+    targetId: string,
+  ): Promise<IReleaseGroup> {
+    return this.updateTarget(groupId, targetId, {
+      action: 'publish-now',
+    } as UpdateChannelTargetInput);
+  }
 }

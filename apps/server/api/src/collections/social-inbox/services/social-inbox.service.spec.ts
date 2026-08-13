@@ -162,6 +162,9 @@ function matchesWhere<T extends Record<string, unknown>>(
       if ('lt' in operator) {
         return Number(item[key]) < Number(operator.lt);
       }
+      if ('lte' in operator) {
+        return item[key] != null && Number(item[key]) <= Number(operator.lte);
+      }
       if ('in' in operator && Array.isArray(operator.in)) {
         return operator.in.includes(item[key]);
       }
@@ -1391,6 +1394,36 @@ describe('SocialInboxService', () => {
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
     });
+
+    it('skips the per-comment lookups for already-known comments on a resweep', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestYoutubeComments(scope, { limit: 50 });
+
+      context.prisma.socialConversation.findFirst.mockClear();
+      context.prisma.socialMessage.findFirst.mockClear();
+      context.prisma.socialMessage.updateMany.mockClear();
+
+      const second = await context.service.ingestYoutubeComments(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      // The batched dedup already told us these rows exist; a resweep must not
+      // re-run the findOrCreateConversation + findFirst pair per comment.
+      expect(
+        context.prisma.socialConversation.findFirst,
+      ).not.toHaveBeenCalled();
+      expect(context.prisma.socialMessage.findFirst).not.toHaveBeenCalled();
+      // The workflow trigger retry claim still runs for known messages.
+      expect(context.prisma.socialMessage.updateMany).toHaveBeenCalledTimes(3);
+    });
   });
 
   describe('ingestInstagramComments', () => {
@@ -1575,6 +1608,10 @@ describe('SocialInboxService', () => {
       };
 
       await context.service.ingestInstagramDms(scope, { limit: 25 });
+
+      context.prisma.socialConversation.findFirst.mockClear();
+      context.prisma.socialMessage.findFirst.mockClear();
+
       const second = await context.service.ingestInstagramDms(scope, {
         limit: 25,
       });
@@ -1582,6 +1619,114 @@ describe('SocialInboxService', () => {
       expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
       expect(context.conversations).toHaveLength(1);
       expect(context.messages).toHaveLength(2);
+      // Known messages skip the per-item conversation + message lookups.
+      expect(
+        context.prisma.socialConversation.findFirst,
+      ).not.toHaveBeenCalled();
+      expect(context.prisma.socialMessage.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('shows the newest message in the preview when Graph returns newest-first', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@studio',
+          externalId: 'ig-account-1',
+          externalName: 'Studio',
+          id: 'credential-1',
+          label: 'Studio',
+          userId: 'user-1',
+          username: 'studio',
+        },
+      ]);
+      // The Graph messages edge returns reverse-chronological batches.
+      context.instagramService.listConversations.mockResolvedValue([
+        {
+          conversationId: 'ig-thread-1',
+          messages: [
+            {
+              createdAt: new Date('2026-01-01T00:02:00.000Z'),
+              messageId: 'ig-dm-3',
+              senderExternalId: 'ig-participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Newest message',
+            },
+            {
+              createdAt: new Date('2026-01-01T00:01:00.000Z'),
+              messageId: 'ig-dm-2',
+              senderExternalId: 'ig-participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Middle message',
+            },
+            {
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              messageId: 'ig-dm-1',
+              senderExternalId: 'ig-participant-1',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Oldest message',
+            },
+          ],
+          participantExternalId: 'ig-participant-1',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+          updatedAt: new Date('2026-01-01T00:02:00.000Z'),
+        },
+      ]);
+
+      const result = await context.service.ingestInstagramDms(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 25 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 3 });
+      expect(context.conversations[0].latestMessageText).toBe('Newest message');
+      expect(context.conversations[0].latestMessageAt).toEqual(
+        new Date('2026-01-01T00:02:00.000Z'),
+      );
+      expect(context.conversations[0].lastInboundAt).toEqual(
+        new Date('2026-01-01T00:02:00.000Z'),
+      );
+      expect(context.conversations[0].unreadCount).toBe(3);
+    });
+  });
+
+  describe('ingestInboundMessage preview ordering', () => {
+    it('does not regress the preview when an older message arrives late', async () => {
+      const { conversations, service } = createContext();
+      const base = {
+        brandId: 'brand-1',
+        conversationType: 'dm',
+        externalConversationId: 'thread-1',
+        organizationId: 'org-1',
+        participantExternalId: 'author-1',
+        participantName: 'Taylor',
+        platform: 'instagram',
+      };
+
+      await service.ingestInboundMessage({
+        ...base,
+        body: 'Newest message',
+        createdAt: new Date('2026-01-01T00:02:00.000Z'),
+        externalMessageId: 'dm-newest',
+      });
+      await service.ingestInboundMessage({
+        ...base,
+        body: 'Older message',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        externalMessageId: 'dm-older',
+      });
+
+      expect(conversations).toHaveLength(1);
+      expect(conversations[0].latestMessageText).toBe('Newest message');
+      expect(conversations[0].latestMessageAt).toEqual(
+        new Date('2026-01-01T00:02:00.000Z'),
+      );
+      // The unread counter still counts the out-of-order message.
+      expect(conversations[0].unreadCount).toBe(2);
     });
   });
 });

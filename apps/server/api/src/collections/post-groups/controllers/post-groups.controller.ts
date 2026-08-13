@@ -227,6 +227,16 @@ export class PostGroupsController {
       );
       return serializeSingle(req, ReleaseGroupSerializer, data);
     }
+    if (action === 'publish-now') {
+      const data = await this.postGroupsService.publishTargetNow(
+        metadata.organization,
+        user.id,
+        id,
+        targetId,
+        { source: 'post-desk' },
+      );
+      return serializeSingle(req, ReleaseGroupSerializer, data);
+    }
     const data = await this.postGroupsService.updateTarget(
       metadata.organization,
       user.id,

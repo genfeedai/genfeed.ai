@@ -10,6 +10,7 @@
  * processing service's resume path picks up where the dead run stopped instead
  * of regenerating drafts that already landed.
  */
+import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
@@ -21,7 +22,7 @@ import {
 import { runWithActionOrigin } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { BadRequestException, forwardRef, Inject } from '@nestjs/common';
+import { forwardRef, Inject } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
 @Processor(BATCH_GENERATION_QUEUE, { concurrency: 3 })
@@ -80,8 +81,10 @@ export class BatchGenerationProcessor extends WorkerHost {
       // A live run already owns this batch — a duplicate delivery, or a sweep
       // that raced the original job. Return without settling: the owning run
       // is still producing drafts, and settling now would price a batch that
-      // is only half finished.
-      if (error instanceof BadRequestException) {
+      // is only half finished. Only the dedicated ownership error may short-
+      // circuit; any other BadRequestException (validation, credits) must
+      // settle what landed and rethrow so BullMQ retries or fails the job.
+      if (error instanceof BatchAlreadyOwnedException) {
         this.logger.warn(`${url} batch already owned by another run`, {
           batchId: data.batchId,
         });

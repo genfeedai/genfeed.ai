@@ -72,6 +72,12 @@ export class HeygenWebhookController {
       return { detail: 'Webhook received' };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+      // The replay claim was taken before processing; releasing it here lets
+      // HeyGen's retry (same event id) be processed instead of being
+      // suppressed as "already processed" for the whole replay window.
+      await this.heygenWebhookVerificationService.releaseReplayClaim(
+        request.headers['heygen-event-id'],
+      );
       throw error;
     }
   }

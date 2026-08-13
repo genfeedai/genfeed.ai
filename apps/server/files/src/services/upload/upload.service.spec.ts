@@ -391,6 +391,76 @@ describe('UploadService', () => {
       expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalled();
     });
 
+    it('keeps the response content type for a gif and extracts dimensions', async () => {
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: Buffer.from('gif-content'),
+          headers: { 'content-type': 'image/gif' },
+        } as unknown as AxiosResponse<ArrayBuffer>),
+      );
+
+      const result = await service.uploadToS3('test-key', 'images', {
+        type: 'url',
+        url: 'https://example.com/animation.gif',
+      });
+
+      expect(result.width).toBe(1920);
+      expect(result.height).toBe(1080);
+      // Gif is uploaded as-is (re-encoding would flatten the animation).
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/images/test-key',
+        expect.stringContaining('test-key.gif'),
+        'image/gif',
+      );
+    });
+
+    it('keeps the response content type for an extension-less webm URL', async () => {
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: Buffer.from('webm-content'),
+          headers: { 'content-type': 'video/webm' },
+        } as unknown as AxiosResponse<ArrayBuffer>),
+      );
+
+      const result = await service.uploadToS3('test-key', 'videos', {
+        type: 'url',
+        url: 'https://example.com/clips/12345',
+      });
+
+      expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalled();
+      expect(result.duration).toBe(60);
+      expect(result.hasAudio).toBe(true);
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/videos/test-key',
+        expect.any(String),
+        'video/webm',
+      );
+    });
+
+    it('removes the spooled download when preparation fails', async () => {
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: Buffer.from('video-content'),
+          headers: { 'content-type': 'video/mp4' },
+        } as unknown as AxiosResponse<ArrayBuffer>),
+      );
+      mockFfmpegService.getVideoMetadata.mockRejectedValue(
+        new Error('ffprobe failed'),
+      );
+
+      await expect(
+        service.uploadToS3('test-key', 'videos', {
+          type: 'url',
+          url: 'https://example.com/video.mp4',
+        }),
+      ).rejects.toThrow('ffprobe failed');
+
+      expect(fs.unlinkSync).toHaveBeenCalledWith(
+        expect.stringContaining('test-key.mp4'),
+      );
+      expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
+    });
+
     it('should handle ZIP files from URL', async () => {
       mockHttpService.get.mockReturnValue(
         of({
