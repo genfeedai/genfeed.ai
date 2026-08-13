@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createScanner,
+  LanguageVariant,
+  ScriptTarget,
+  SyntaxKind,
+} from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -9,13 +15,33 @@ function readPackageFile(relativePath: string): string {
   return readFileSync(join(packageRoot, relativePath), 'utf8');
 }
 
+function readPackageCode(relativePath: string): string {
+  const scanner = createScanner(
+    ScriptTarget.Latest,
+    true,
+    LanguageVariant.Standard,
+    readPackageFile(relativePath),
+  );
+  const tokens: string[] = [];
+
+  for (
+    let token = scanner.scan();
+    token !== SyntaxKind.EndOfFileToken;
+    token = scanner.scan()
+  ) {
+    tokens.push(scanner.getTokenText());
+  }
+
+  return tokens.join(' ');
+}
+
 describe('workflows package build contract', () => {
   it('does not emit declarations or the UI bundle through tsup', () => {
-    const tsupConfig = readPackageFile('tsup.config.ts');
+    const tsupConfig = readPackageCode('tsup.config.ts');
 
     expect(tsupConfig).not.toMatch(/\bdts\s*:/);
     expect(tsupConfig).not.toContain('src/ui');
-    expect(tsupConfig).toContain('sourcemap: false');
+    expect(tsupConfig).toMatch(/\bsourcemap\s*:\s*false/);
     expect(tsupConfig).toContain('src/engine/index.ts');
   });
 
