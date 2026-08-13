@@ -1,4 +1,7 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type {
+  CredentialPlatform,
+  SocialWarmupSignalStatus,
+} from '@genfeedai/enums';
 
 export type AccountWarmupState =
   | 'not_started'
@@ -16,10 +19,22 @@ export interface AccountHealthThresholds {
 }
 
 export interface AccountHealthSignals {
+  accountAgeDays?: number | null;
+  accountAgeSource?: string;
+  accountAgeStatus?: SocialWarmupSignalStatus;
   connectedDays: number;
   publishedPosts: number;
   profileSignals: number;
   recentFailures: number;
+}
+
+export type AccountHealthReconnectReason = 'disconnected' | 'partial_scopes';
+
+export interface AccountHealthReconnect {
+  credentialId: string;
+  isAvailable: boolean;
+  platform?: string;
+  reason: AccountHealthReconnectReason;
 }
 
 export interface AccountHealthOverride {
@@ -39,6 +54,7 @@ export interface AccountHealthSummary {
   label: string;
   override: AccountHealthOverride;
   platform: CredentialPlatform;
+  reconnect?: AccountHealthReconnect;
   riskLevel: AccountHealthRiskLevel;
   score: number;
   signals: AccountHealthSignals;

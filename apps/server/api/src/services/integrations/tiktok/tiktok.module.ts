@@ -1,5 +1,6 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
@@ -18,7 +19,7 @@ const BaseModule = createServiceModule(TiktokService, {
 @Module({
   controllers: [TiktokController],
   exports: [...(BaseModule.exports ?? []), TiktokAuthorizedSignalsService],
-  imports: BaseModule.imports,
+  imports: [...(BaseModule.imports ?? []), SocialWarmupEnrollmentsModule],
   providers: [...(BaseModule.providers ?? []), TiktokAuthorizedSignalsService],
 })
 export class TiktokModule {}
