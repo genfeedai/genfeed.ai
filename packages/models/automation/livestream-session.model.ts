@@ -50,9 +50,9 @@ export interface LivestreamDeliveryRecord {
 export interface ILivestreamSession {
   id: string;
   bot: string;
-  organization?: string;
-  brand?: string;
-  user?: string;
+  organizationId?: string;
+  brandId?: string;
+  userId?: string;
   status: LivestreamSessionStatus;
   context: LivestreamContextState;
   transcriptChunks: LivestreamTranscriptChunk[];
@@ -69,9 +69,9 @@ export class LivestreamSession
   implements ILivestreamSession
 {
   public declare bot: string;
-  public declare organization?: string;
-  public declare brand?: string;
-  public declare user?: string;
+  public declare organizationId?: string;
+  public declare brandId?: string;
+  public declare userId?: string;
   public declare status: LivestreamSessionStatus;
   public declare context: LivestreamContextState;
   public declare transcriptChunks: LivestreamTranscriptChunk[];
@@ -85,9 +85,9 @@ export class LivestreamSession
   constructor(data: Partial<ILivestreamSession> = {}) {
     super(data);
     this.bot = data.bot ?? '';
-    this.organization = data.organization;
-    this.brand = data.brand;
-    this.user = data.user;
+    this.organizationId = data.organizationId;
+    this.brandId = data.brandId;
+    this.userId = data.userId;
     this.status = data.status ?? 'stopped';
     this.context = {
       ...data.context,

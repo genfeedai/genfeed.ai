@@ -5,6 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -44,6 +45,12 @@ export class RestreamController {
     @Body('brandId') brandId: string,
   ) {
     const { organization, user: userId } = getPublicMetadata(user);
+    const organizationId = requireRelationId(
+      organization,
+      'organization',
+      'Restream OAuth',
+    );
+    const resolvedUserId = requireRelationId(userId, 'user', 'Restream OAuth');
     const brandsService = this.resolveRequiredProvider(
       this.brandsService,
       BrandsService,
@@ -54,7 +61,7 @@ export class RestreamController {
     );
     const brand = await brandsService.findOne({
       id: brandId,
-      organizationId: organization,
+      organizationId,
     });
 
     if (!brand) {
@@ -80,7 +87,7 @@ export class RestreamController {
 
     const { state } = await credentialsService.beginOAuthForBrand(
       brand,
-      userId,
+      resolvedUserId,
       CredentialPlatform.RESTREAM,
       { isConnected: false },
     );
@@ -114,6 +121,12 @@ export class RestreamController {
     }
 
     const { organization, user: userId } = getPublicMetadata(user);
+    const organizationId = requireRelationId(
+      organization,
+      'organization',
+      'Restream OAuth',
+    );
+    const resolvedUserId = requireRelationId(userId, 'user', 'Restream OAuth');
     const credentialsService = this.resolveRequiredProvider(
       this.credentialsService,
       CredentialsService,
@@ -121,7 +134,7 @@ export class RestreamController {
     const credential = await credentialsService.findPendingOAuthCredential(
       state,
       CredentialPlatform.RESTREAM,
-      { organizationId: organization, userId },
+      { organizationId, userId: resolvedUserId },
     );
 
     if (!credential) {
@@ -149,18 +162,21 @@ export class RestreamController {
       tokenData.access_token,
     );
 
-    const updatedCredential = await credentialsService.patch(credential.id, {
-      accessToken: tokenData.access_token,
-      accessTokenExpiry: tokenData.expires_in
-        ? new Date(Date.now() + tokenData.expires_in * 1000)
-        : undefined,
-      externalHandle: profile.username,
-      externalId: profile.id,
-      externalName: profile.username || 'Restream',
-      isConnected: true,
-      oauthState: null,
-      refreshToken: tokenData.refresh_token,
-    });
+    const updatedCredential = await credentialsService.patch(
+      requireRelationId(credential.id, 'id', 'Restream credential'),
+      {
+        accessToken: tokenData.access_token,
+        accessTokenExpiry: tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000)
+          : undefined,
+        externalHandle: profile.username,
+        externalId: profile.id,
+        externalName: profile.username || 'Restream',
+        isConnected: true,
+        oauthState: null,
+        refreshToken: tokenData.refresh_token,
+      },
+    );
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);
   }

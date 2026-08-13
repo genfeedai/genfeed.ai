@@ -18,23 +18,35 @@ export class BotsService extends BaseService<Bot> {
   }
 
   async findAllByOrganization(organizationId: string): Promise<Bot[]> {
+    if (!organizationId) {
+      throw new Error('Organization id is required');
+    }
+
     return this.findAllPages({
-      organization: organizationId,
+      organizationId,
       scope: 'organization',
     });
   }
 
   async findAllByAccount(brandId: string): Promise<Bot[]> {
+    if (!brandId) {
+      throw new Error('Brand id is required');
+    }
+
     return this.findAllPages({
-      brand: brandId,
+      brandId,
       scope: 'brand',
     });
   }
 
   async findAllByUser(userId: string): Promise<Bot[]> {
+    if (!userId) {
+      throw new Error('User id is required');
+    }
+
     return this.findAllPages({
       scope: 'user',
-      user: userId,
+      userId,
     });
   }
 

@@ -19,6 +19,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { BotLivestreamSessionStatus } from '@genfeedai/enums';
 import {
   BotSerializer,
@@ -64,25 +65,27 @@ export class BotsController extends BaseCRUDController<
           : 'user');
 
     if (scope === 'organization') {
-      const organizationId =
-        query.organizationId || publicMetadata.organization?.toString();
-      if (organizationId) {
-        match.organizationId = organizationId;
-      }
+      match.organizationId = requireRelationId(
+        query.organizationId || publicMetadata.organization,
+        'organization',
+        'Bot listing',
+      );
     }
 
     if (scope === 'brand') {
-      const brandId = query.brandId || publicMetadata.brand?.toString();
-      if (brandId) {
-        match.brandId = brandId;
-      }
+      match.brandId = requireRelationId(
+        query.brandId || publicMetadata.brand,
+        'brand',
+        'Bot listing',
+      );
     }
 
     if (scope === 'user') {
-      const userId = query.userId || publicMetadata.user?.toString();
-      if (userId) {
-        match.userId = userId;
-      }
+      match.userId = requireRelationId(
+        query.userId || publicMetadata.user,
+        'user',
+        'Bot listing',
+      );
     }
 
     // Use CollectionFilterUtil for common filtering patterns
@@ -110,22 +113,22 @@ export class BotsController extends BaseCRUDController<
 
   public canUserModifyEntity(user: User, entity: BotDocument): boolean {
     const publicMetadata = getPublicMetadata(user);
+    const callerUserId = publicMetadata.user;
+    const callerBrandId = publicMetadata.brand;
+    const callerOrganizationId = publicMetadata.organization;
 
-    if (entity.userId === publicMetadata.user) {
+    if (entity.userId && callerUserId && entity.userId === callerUserId) {
+      return true;
+    }
+
+    if (entity.brandId && callerBrandId && entity.brandId === callerBrandId) {
       return true;
     }
 
     if (
-      entity.brandId &&
-      publicMetadata.brand &&
-      entity.brandId === publicMetadata.brand
-    ) {
-      return true;
-    }
-
-    if (
-      publicMetadata.organization &&
-      entity.organizationId === publicMetadata.organization
+      entity.organizationId &&
+      callerOrganizationId &&
+      entity.organizationId === callerOrganizationId
     ) {
       return true;
     }

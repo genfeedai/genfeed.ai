@@ -107,12 +107,19 @@ describe('BotsService', () => {
       const orgId = 'org-123';
       await service.findAllByOrganization(orgId);
       expect(mockFindAllPages).toHaveBeenCalledWith({
-        organization: orgId,
+        organizationId: orgId,
         scope: 'organization',
       });
     });
 
-    it('returns bots array', async () => {
+    it('fails closed when organization id is missing', async () => {
+      await expect(service.findAllByOrganization('')).rejects.toThrow(
+        'Organization id is required',
+      );
+      expect(mockFindAllPages).not.toHaveBeenCalled();
+    });
+
+    it('returns bots from findAllPages', async () => {
       mockFindAllPages.mockResolvedValueOnce([
         { id: 'bot-1' },
         { id: 'bot-2' },
@@ -128,9 +135,16 @@ describe('BotsService', () => {
       const brandId = 'brand-456';
       await service.findAllByAccount(brandId);
       expect(mockFindAllPages).toHaveBeenCalledWith({
-        brand: brandId,
+        brandId: brandId,
         scope: 'brand',
       });
+    });
+
+    it('fails closed when brand id is missing', async () => {
+      await expect(service.findAllByAccount('')).rejects.toThrow(
+        'Brand id is required',
+      );
+      expect(mockFindAllPages).not.toHaveBeenCalled();
     });
   });
 
@@ -140,8 +154,15 @@ describe('BotsService', () => {
       await service.findAllByUser(userId);
       expect(mockFindAllPages).toHaveBeenCalledWith({
         scope: 'user',
-        user: userId,
+        userId: userId,
       });
+    });
+
+    it('fails closed when user id is missing', async () => {
+      await expect(service.findAllByUser('')).rejects.toThrow(
+        'User id is required',
+      );
+      expect(mockFindAllPages).not.toHaveBeenCalled();
     });
   });
 

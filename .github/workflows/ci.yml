@@ -229,6 +229,8 @@ jobs:
         run: bun run check:type-assertions
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
+      - name: Relation Alias Read Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-relation-alias-reads.test.ts
       - name: Relation Alias Writes
         run: bun run check:relation-alias-writes
       - name: Controller Route Shadowing

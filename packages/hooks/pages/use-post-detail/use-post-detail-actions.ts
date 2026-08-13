@@ -64,6 +64,13 @@ export interface UsePostDetailActionsReturn {
   ) => Promise<void>;
 }
 
+function requirePostId(post: IPost): string {
+  if (typeof post.id !== 'string' || post.id.length === 0) {
+    throw new Error('Post is missing an id');
+  }
+  return post.id;
+}
+
 export function usePostDetailActions({
   post,
   setPost,
@@ -131,7 +138,7 @@ export function usePostDetailActions({
       return post.groupId;
     }
     const releases = await getReleaseGroupsService();
-    const release = await releases.ensureFromPost(post.id);
+    const release = await releases.ensureFromPost(requirePostId(post));
     return release.id;
   }, [getReleaseGroupsService, post]);
 
@@ -145,7 +152,11 @@ export function usePostDetailActions({
       try {
         const releases = await getReleaseGroupsService();
         const groupId = await resolveReleaseGroupId();
-        await releases.scheduleTarget(groupId, post.id, scheduledAt);
+        await releases.scheduleTarget(
+          groupId,
+          requirePostId(post),
+          scheduledAt,
+        );
         await fetchPost(true);
         notificationsService.success(successMessage);
       } catch (err) {
@@ -216,14 +227,14 @@ export function usePostDetailActions({
 
     openConfirmDelete({
       entity: {
-        id: post.id,
+        id: requirePostId(post),
         label: post.label || post.description || 'this post',
       },
       entityName: 'post',
       onConfirm: async () => {
         try {
           const service = await getPostsService();
-          await service.delete(post.id);
+          await service.delete(requirePostId(post));
           notificationsService.success('Post deleted successfully');
           router.push(href('/publish'));
         } catch (err) {

@@ -23,6 +23,8 @@ const SCHEMA = [
   '  brand          Brand?        @relation(fields: [brandId], references: [id])',
   '  credentialId   String?',
   '  credential     Credential?   @relation(fields: [credentialId], references: [id])',
+  '  userId         String?',
+  '  user           User?         @relation(fields: [userId], references: [id])',
   '  metadataId     String?',
   '  metadata       Metadata?     @relation(fields: [metadataId], references: [id])',
   '}',
@@ -56,6 +58,7 @@ describe('check-relation-alias-reads', () => {
       expect(aliases.get('organization')).toBe('organizationId');
       expect(aliases.get('brand')).toBe('brandId');
       expect(aliases.get('credential')).toBe('credentialId');
+      expect(aliases.get('user')).toBe('userId');
       expect(aliases.get('_id')).toBe('id');
     });
 
@@ -302,6 +305,94 @@ describe('check-relation-alias-reads', () => {
       );
 
       expect(runCheckRelationAliasReads().violations).toEqual([]);
+    });
+  });
+
+  describe('identity-comparison rule', () => {
+    it('flags a tenant gate that compares a relation alias to an id', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.controller.ts',
+        [
+          "import type { PostDocument } from './post.schema';",
+          '',
+          'export function canModify(post: PostDocument, orgId: string) {',
+          '  return post.organization !== orgId;',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          receiver: 'post',
+          rule: 'identity-comparison',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+
+    it('flags a user-id comparison against the Document alias', () => {
+      writeFixture(
+        'apps/server/api/src/bots/bots.controller.ts',
+        [
+          "import type { BotDocument } from './bot.schema';",
+          '',
+          'export function owns(entity: BotDocument, userId: string) {',
+          '  return entity.user === userId;',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'user',
+          rule: 'identity-comparison',
+          scalar: 'userId',
+        }),
+      ]);
+    });
+  });
+
+  describe('identity-key rule', () => {
+    it('flags Document alias keys paired with a scalar id value', () => {
+      writeFixture(
+        'packages/services/automation/bots.service.ts',
+        [
+          'export async function findAllByOrganization(service, organizationId: string) {',
+          '  return service.findAllPages({',
+          '    organization: organizationId,',
+          '    scope: "organization",',
+          '  });',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          rule: 'identity-key',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+
+    it('flags a create payload that writes organization instead of organizationId', () => {
+      writeFixture(
+        'packages/pages/agents/library/useLivestreamChatBotPage.ts',
+        [
+          'export function payload(organizationId: string, brandId: string) {',
+          '  return { brand: brandId, organization: organizationId };',
+          '}',
+        ].join('\n'),
+      );
+
+      const aliases = runCheckRelationAliasReads().violations.map(
+        (entry) => entry.alias,
+      );
+      expect(aliases.sort()).toEqual(['organization']);
+      expect(runCheckRelationAliasReads().violations[0].rule).toBe(
+        'identity-key',
+      );
     });
   });
 

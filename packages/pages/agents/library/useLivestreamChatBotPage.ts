@@ -367,14 +367,19 @@ export function useLivestreamChatBotPage(
     setIsSaving(true);
 
     try {
+      if (bot && (!bot.id || bot.id.length === 0)) {
+        notificationsService.error('Bot id is required');
+        return;
+      }
+
       const service = await getBotsService();
       const payload = {
-        brand: brandId,
+        brandId,
         category: BotCategory.CHAT,
         description: form.description,
         label: form.label,
         livestreamSettings: buildLivestreamSettings(form),
-        organization: organizationId,
+        organizationId,
         platforms: [BotPlatform.YOUTUBE, BotPlatform.TWITCH],
         settings: {
           messagesPerMinute: 5,
@@ -388,6 +393,11 @@ export function useLivestreamChatBotPage(
       const savedBot = bot
         ? await service.patch(bot.id, payload)
         : await service.post(payload);
+
+      if (!savedBot.id) {
+        notificationsService.error('Saved bot is missing an id');
+        return;
+      }
 
       startTransition(() => {
         setBot(savedBot);
@@ -405,7 +415,7 @@ export function useLivestreamChatBotPage(
   async function handleSessionAction(
     action: 'start' | 'pause' | 'resume' | 'stop',
   ): Promise<void> {
-    if (!bot) {
+    if (!bot?.id) {
       notificationsService.error('Save the bot before changing session state');
       return;
     }

@@ -147,9 +147,9 @@ export interface IBotLivestreamDeliveryRecord {
 export interface IBotLivestreamSession {
   id: string;
   bot: string;
-  organization?: string;
-  brand?: string;
-  user?: string;
+  organizationId?: string;
+  brandId?: string;
+  userId?: string;
   status: BotLivestreamSessionStatus;
   context: IBotLivestreamContextState;
   platformStates: IBotLivestreamPlatformState[];
@@ -169,9 +169,9 @@ export interface IBot {
   category: BotCategory;
   status: BotStatus;
   scope: BotScope;
-  organization?: string;
-  brand?: string;
-  user?: string;
+  organizationId?: string;
+  brandId?: string;
+  userId?: string;
   platforms: BotPlatform[];
   targets: IBotTarget[];
   settings: IBotSettings;

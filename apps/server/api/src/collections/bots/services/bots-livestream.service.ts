@@ -15,6 +15,7 @@ import type {
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -457,8 +458,12 @@ export class BotsLivestreamService {
     bot: BotDocument,
   ): Promise<LivestreamBotSessionDocument> {
     const normalizedBot = this.normalizeBotDocument(bot);
-    const botId = String(normalizedBot.id);
-    const organizationId = normalizedBot.organizationId;
+    const botId = requireRelationId(normalizedBot.id, 'id', 'Livestream bot');
+    const organizationId = requireRelationId(
+      normalizedBot.organizationId,
+      'organization',
+      'Livestream bot',
+    );
     const existingSession = await this.findExistingSession(
       botId,
       organizationId,
@@ -490,7 +495,11 @@ export class BotsLivestreamService {
     }
 
     const brandId = normalizedBot.brandId ?? null;
-    const userId = normalizedBot.userId;
+    const userId = requireRelationId(
+      normalizedBot.userId,
+      'user',
+      'Livestream bot',
+    );
 
     const created = await this.prisma.livestreamBotSession.create({
       data: {

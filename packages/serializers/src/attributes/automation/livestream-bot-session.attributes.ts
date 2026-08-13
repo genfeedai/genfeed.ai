@@ -2,9 +2,9 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const livestreamBotSessionAttributes = createEntityAttributes([
   'bot',
-  'organization',
-  'brand',
-  'user',
+  'organizationId',
+  'brandId',
+  'userId',
   'status',
   'context',
   'transcriptChunks',

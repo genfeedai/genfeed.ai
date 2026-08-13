@@ -229,6 +229,68 @@ describe('usePostDetailThread', () => {
         'Failed to add tweet to thread',
       );
     });
+
+    it('uses the scalar credentialId when the populated credential is missing', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({
+            post: createPost({
+              credential: undefined,
+              credentialId: 'cred-scalar',
+            }),
+          }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleAddToThread();
+      });
+
+      expect(mockServicePost).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'cred-scalar' }),
+      );
+    });
+
+    it('does not read a Document _id alias off the credential', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({
+            post: createPost({
+              credential: { _id: 'legacy-cred' } as never,
+              credentialId: undefined,
+            }),
+          }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleAddToThread();
+      });
+
+      expect(mockServicePost).not.toHaveBeenCalled();
+      expect(notificationsService.error).toHaveBeenCalledWith(
+        'Failed to add tweet to thread',
+      );
+    });
+
+    it('fails closed when the post id is missing', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({
+            post: createPost({ id: undefined as unknown as string }),
+          }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleAddToThread();
+      });
+
+      expect(mockServicePost).not.toHaveBeenCalled();
+      expect(notificationsService.error).toHaveBeenCalledWith(
+        'Failed to add tweet to thread',
+      );
+    });
   });
 
   describe('handleExpandToThread', () => {
