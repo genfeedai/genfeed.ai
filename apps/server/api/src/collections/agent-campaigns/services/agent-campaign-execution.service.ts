@@ -207,10 +207,14 @@ export class AgentCampaignExecutionService {
   /**
    * Atomically increment creditsUsed on the campaign.
    */
-  async updateCreditsUsed(campaignId: string, credits: number): Promise<void> {
+  async updateCreditsUsed(
+    campaignId: string,
+    organizationId: string,
+    credits: number,
+  ): Promise<void> {
     await this.agentCampaignsService.prisma.agentCampaign.updateMany({
       data: { creditsUsed: { increment: credits } },
-      where: { id: campaignId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: campaignId }),
     });
 
     this.logger.log(
@@ -222,10 +226,14 @@ export class AgentCampaignExecutionService {
   /**
    * Check content quota and auto-complete campaign if reached
    */
-  async checkQuota(campaignId: string): Promise<boolean> {
-    const campaign = await this.agentCampaignsService.findOne({
-      id: campaignId,
-    });
+  async checkQuota(
+    campaignId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const campaign = await this.agentCampaignsService.findOneById(
+      campaignId,
+      organizationId,
+    );
 
     if (campaign?.status !== 'active') {
       return false;
@@ -235,10 +243,13 @@ export class AgentCampaignExecutionService {
       campaign.creditsAllocated > 0 &&
       campaign.creditsUsed >= campaign.creditsAllocated
     ) {
-      await this.agentCampaignsService.patch(campaignId, {
-        nextOrchestratedAt: null,
-        status: 'completed',
-      } as Record<string, unknown>);
+      await this.agentCampaignsService.prisma.agentCampaign.updateMany({
+        data: {
+          nextOrchestratedAt: null,
+          status: 'completed',
+        },
+        where: scopedWhere(organizationId, { id: campaignId }),
+      });
 
       this.logger.log(
         `${this.constructorName} campaign ${campaignId} auto-completed — credit budget reached`,
@@ -293,6 +304,12 @@ export class AgentCampaignExecutionService {
           0,
         )
       : 0;
+    const status =
+      campaign.status === 'active' ||
+      campaign.status === 'completed' ||
+      campaign.status === 'paused'
+        ? campaign.status
+        : 'draft';
 
     return {
       agentsRunning,
@@ -301,7 +318,7 @@ export class AgentCampaignExecutionService {
       contentQuota: campaign.contentQuota,
       creditsAllocated: campaign.creditsAllocated ?? 0,
       creditsUsed: campaign.creditsUsed ?? 0,
-      status: campaign.status ?? 'draft',
+      status,
     };
   }
 }

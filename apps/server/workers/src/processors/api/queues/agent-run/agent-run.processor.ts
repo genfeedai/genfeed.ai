@@ -256,10 +256,14 @@ export class AgentRunProcessor extends WorkerHost {
         if (creditsUsed > 0) {
           await this.campaignExecutionService.updateCreditsUsed(
             data.campaignId,
+            data.organizationId,
             creditsUsed,
           );
         }
-        await this.campaignExecutionService.checkQuota(data.campaignId);
+        await this.campaignExecutionService.checkQuota(
+          data.campaignId,
+          data.organizationId,
+        );
       }
 
       // 5c. Workspace task result rollup
