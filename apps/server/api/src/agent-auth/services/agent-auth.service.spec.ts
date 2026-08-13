@@ -306,7 +306,12 @@ describe('AgentAuthService', () => {
     });
     await expect(
       service.exchangeClaim({ claim_token: registration.claim_token }),
-    ).rejects.toThrow('already exchanged');
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        error: 'invalid_grant',
+        error_description: expect.stringContaining('already exchanged'),
+      }),
+    });
     expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
   });
 
