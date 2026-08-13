@@ -3116,7 +3116,18 @@ model AgentCampaign {
   campaignLeadStrategy   AgentStrategy? @relation("campaign_lead", fields: [campaignLeadStrategyId], references: [id])
   label                  String?
   description            String?
+  /// Remaining free-form payload (contentQuota, contentRotation). Scalars live as columns.
   config                 Json           @default("{}")
+  status                 String?        @default("draft")
+  startDate              DateTime?
+  endDate                DateTime?
+  creditsAllocated       Int            @default(0)
+  creditsUsed            Int            @default(0)
+  orchestrationEnabled   Boolean        @default(false)
+  orchestrationIntervalHours Int?
+  nextOrchestratedAt     DateTime?
+  lastOrchestratedAt     DateTime?
+  lastOrchestrationSummary String?
   isDeleted              Boolean        @default(false)
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
@@ -3124,9 +3135,9 @@ model AgentCampaign {
   agents   AgentStrategy[] @relation("campaign_agents")
   memories AgentMemory[]
 
-  status String? @default("draft")
-
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([isDeleted, orchestrationEnabled, status, nextOrchestratedAt])
+  @@index([organizationId, isDeleted, status, nextOrchestratedAt])
   @@map("agent_campaigns")
 }
 

@@ -50,7 +50,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaignId}`,
+              href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
               label: 'Open campaign',
             },
             {
@@ -157,7 +157,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaignId}`,
+              href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
               label: 'Open campaign',
             },
           ],

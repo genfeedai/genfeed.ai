@@ -67,35 +67,11 @@ describe('CampaignOrchestrationWorkflowService', () => {
     expect(cacheService.releaseLock).not.toHaveBeenCalled();
   });
 
-  it('queues due active campaigns for orchestration and memory extraction', async () => {
+  it('queues due active campaigns for orchestration via column predicates', async () => {
     prisma.agentCampaign.findMany.mockResolvedValue([
       {
-        config: {
-          nextOrchestratedAt: '2026-06-24T08:59:00.000Z',
-          orchestrationEnabled: true,
-          status: 'active',
-        },
         id: 'campaign-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      {
-        config: {
-          nextOrchestratedAt: '2026-06-24T08:59:00.000Z',
-          orchestrationEnabled: false,
-          status: 'active',
-        },
-        id: 'campaign-disabled',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      {
-        config: {
-          nextOrchestratedAt: '2026-06-24T09:05:00.000Z',
-          orchestrationEnabled: true,
-          status: 'active',
-        },
-        id: 'campaign-future',
+        nextOrchestratedAt: new Date('2026-06-24T08:59:00.000Z'),
         organizationId: 'org-1',
         userId: 'user-1',
       },
@@ -104,9 +80,15 @@ describe('CampaignOrchestrationWorkflowService', () => {
     const result = await service.runDueCampaignOrchestration('org-1');
 
     expect(prisma.agentCampaign.findMany).toHaveBeenCalledWith({
-      orderBy: { updatedAt: 'asc' },
-      take: 100,
-      where: { isDeleted: false, organizationId: 'org-1' },
+      orderBy: { nextOrchestratedAt: 'asc' },
+      take: 20,
+      where: {
+        isDeleted: false,
+        nextOrchestratedAt: { lte: new Date('2026-06-24T09:00:00.000Z') },
+        orchestrationEnabled: true,
+        organizationId: 'org-1',
+        status: 'active',
+      },
     });
     expect(orchestratorQueueService.queueCampaignRun).toHaveBeenCalledWith({
       campaignId: 'campaign-1',
@@ -133,25 +115,22 @@ describe('CampaignOrchestrationWorkflowService', () => {
   });
 
   it('returns a skipped trigger evaluation result when no campaigns are eligible', async () => {
-    prisma.agentCampaign.findMany.mockResolvedValue([
-      {
-        agents: [],
-        config: { orchestrationEnabled: true, status: 'active' },
-        id: 'campaign-without-agents',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      {
-        agents: [{}],
-        config: { orchestrationEnabled: true, status: 'paused' },
-        id: 'campaign-paused',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-    ]);
+    prisma.agentCampaign.findMany.mockResolvedValue([]);
 
     const result = await service.runTriggerEvaluations('org-1');
 
+    expect(prisma.agentCampaign.findMany).toHaveBeenCalledWith({
+      include: { agents: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+      where: {
+        agents: { some: { isDeleted: false } },
+        isDeleted: false,
+        orchestrationEnabled: true,
+        organizationId: 'org-1',
+        status: 'active',
+      },
+    });
     expect(result).toMatchObject({
       action: 'agentCampaignTriggerEvaluation',
       enqueued: 0,
@@ -159,16 +138,12 @@ describe('CampaignOrchestrationWorkflowService', () => {
       reason: 'no_trigger_evaluation_campaigns',
       status: 'skipped',
     });
-    expect(
-      triggerEvaluatorQueueService.queueCampaignEvaluation,
-    ).not.toHaveBeenCalled();
   });
 
-  it('queues trigger evaluation for active campaigns with agents', async () => {
+  it('queues eligible campaigns for trigger evaluation', async () => {
     prisma.agentCampaign.findMany.mockResolvedValue([
       {
-        agents: [{}],
-        config: { orchestrationEnabled: true, status: 'active' },
+        agents: [{ id: 'strategy-1' }],
         id: 'campaign-1',
         organizationId: 'org-1',
         userId: 'user-1',
@@ -177,12 +152,6 @@ describe('CampaignOrchestrationWorkflowService', () => {
 
     const result = await service.runTriggerEvaluations('org-1');
 
-    expect(prisma.agentCampaign.findMany).toHaveBeenCalledWith({
-      include: { agents: true },
-      orderBy: { updatedAt: 'desc' },
-      take: 100,
-      where: { isDeleted: false, organizationId: 'org-1' },
-    });
     expect(
       triggerEvaluatorQueueService.queueCampaignEvaluation,
     ).toHaveBeenCalledWith({

@@ -65,10 +65,21 @@ export type CronBoundaryViolation =
       entry: CronBoundaryEntry | PendingCronMigrationEntry;
       kind: 'stale-entry';
       message: string;
+    }
+  | {
+      entry: CronBoundaryEntry;
+      kind: 'orphan-cron-service';
+      message: string;
+    }
+  | {
+      entry: CronBoundaryEntry;
+      kind: 'stale-sweep-allowlist';
+      message: string;
     };
 
 export type CronBoundaryResult = {
   detectedCrons: DetectedCron[];
+  orphanCronServices: CronBoundaryEntry[];
   pendingMigrationCrons: Array<{
     cron: DetectedCron;
     entry: PendingCronMigrationEntry;
@@ -86,6 +97,8 @@ export type CronBoundaryOptions = {
   pendingMigrations?: PendingCronMigrationEntry[];
   platformAllowlist?: CronBoundaryEntry[];
   rootDir?: string;
+  sweepServiceAllowlist?: CronBoundaryEntry[];
+  workersCronServiceGlobs?: string[];
 };
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
@@ -203,6 +216,55 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'trends-corpus-backfill',
     methodName: 'backfillGlobalTrendCorpus',
     reason: 'Platform global trends corpus backfill.',
+  },
+];
+
+/**
+ * Decorator-less services under workers/crons that SystemSweepsProcessor
+ * (BullMQ job schedulers, #1092) still invokes. They must NOT regain @Cron.
+ */
+export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
+  {
+    file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
+    id: 'batch-generation-reconcile-sweep',
+    methodName: 'reconcileSettlementShortfalls',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+    id: 'scheduled-posts-sweep',
+    methodName: 'publishScheduledPosts',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/review-gate/cron.review-gate-timeout.service.ts',
+    id: 'review-gate-timeout-sweep',
+    methodName: 'resolveTimedOutReviewGates',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
+    id: 'streaks-sweep',
+    methodName: 'processStreaks',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts',
+    id: 'tiktok-status-sweep',
+    methodName: 'checkPendingTiktokPosts',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
+    id: 'youtube-status-sweep',
+    methodName: 'checkScheduledYoutubeVideos',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
   },
 ];
 
@@ -382,6 +444,74 @@ function detectCronDecorators(
   return detected;
 }
 
+function detectOrphanCronServices(
+  rootDir: string,
+  workersCronServiceGlobs: string[],
+  ignoreGlobs: string[],
+  sweepServiceAllowlist: CronBoundaryEntry[],
+  violations: CronBoundaryViolation[],
+): CronBoundaryEntry[] {
+  const allowlistedFiles = new Set(
+    sweepServiceAllowlist.map((entry) => normalizePath(entry.file)),
+  );
+  const orphanCronServices: CronBoundaryEntry[] = [];
+  const files = globSync(workersCronServiceGlobs, {
+    absolute: true,
+    cwd: rootDir,
+    ignore: ignoreGlobs,
+    nodir: true,
+  }).sort();
+
+  for (const filePath of files) {
+    const relativeFile = normalizePath(path.relative(rootDir, filePath));
+    const detected = detectCronDecorators(filePath, rootDir);
+
+    if (detected.length > 0) {
+      continue;
+    }
+
+    if (allowlistedFiles.has(relativeFile)) {
+      const entry = sweepServiceAllowlist.find(
+        (candidate) => normalizePath(candidate.file) === relativeFile,
+      );
+
+      if (entry) {
+        orphanCronServices.push(entry);
+      }
+      continue;
+    }
+
+    violations.push({
+      entry: {
+        file: relativeFile,
+        id: 'orphan-cron-service',
+        methodName: '(decorator-less)',
+        reason: 'Decorator-less workers/crons service without allowlist entry.',
+      },
+      kind: 'orphan-cron-service',
+      message:
+        'Decorator-less workers/crons service is not allowlisted. Delete dead leftovers, or add a SystemSweeps allowlist entry if BullMQ still invokes it.',
+    });
+  }
+
+  for (const entry of sweepServiceAllowlist) {
+    const absolutePath = path.join(rootDir, entry.file);
+
+    try {
+      readFileSync(absolutePath);
+    } catch {
+      violations.push({
+        entry,
+        kind: 'stale-sweep-allowlist',
+        message:
+          'System sweep allowlist entry no longer matches a workers/crons service file. Remove or update this entry.',
+      });
+    }
+  }
+
+  return orphanCronServices;
+}
+
 export function runCheckPlatformCronBoundary(
   options: CronBoundaryOptions = {},
 ): CronBoundaryResult {
@@ -392,6 +522,11 @@ export function runCheckPlatformCronBoundary(
     options.platformAllowlist ?? PLATFORM_CRON_ALLOWLIST;
   const pendingMigrations =
     options.pendingMigrations ?? PENDING_TENANT_CRON_MIGRATIONS;
+  const sweepServiceAllowlist =
+    options.sweepServiceAllowlist ?? SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST;
+  const workersCronServiceGlobs = options.workersCronServiceGlobs ?? [
+    'apps/server/workers/src/crons/**/*.service.ts',
+  ];
 
   const indexedEntries = new Map<string, IndexedEntry>();
   const violations: CronBoundaryViolation[] = [];
@@ -490,8 +625,17 @@ export function runCheckPlatformCronBoundary(
     }
   }
 
+  const orphanCronServices = detectOrphanCronServices(
+    rootDir,
+    workersCronServiceGlobs,
+    ignoreGlobs,
+    sweepServiceAllowlist,
+    violations,
+  );
+
   return {
     detectedCrons,
+    orphanCronServices,
     pendingMigrationCrons,
     platformCrons,
     violations,
@@ -523,7 +667,11 @@ if (isMainModule()) {
         continue;
       }
 
-      if (violation.kind === 'stale-entry') {
+      if (
+        violation.kind === 'stale-entry' ||
+        violation.kind === 'orphan-cron-service' ||
+        violation.kind === 'stale-sweep-allowlist'
+      ) {
         console.error(
           `- ${violation.entry.file}#${violation.entry.methodName}: ${violation.message}`,
         );
@@ -565,6 +713,6 @@ if (isMainModule()) {
   }
 
   console.log(
-    `Platform cron boundary passed. ${result.platformCrons.length} platform cron(s), ${result.pendingMigrationCrons.length} tracked migration cron(s).`,
+    `Platform cron boundary passed. ${result.platformCrons.length} platform cron(s), ${result.pendingMigrationCrons.length} tracked migration cron(s), ${result.orphanCronServices.length} system-sweep service(s).`,
   );
 }

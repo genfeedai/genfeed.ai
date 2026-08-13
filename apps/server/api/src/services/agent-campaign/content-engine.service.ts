@@ -2,7 +2,7 @@ import { type AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
-import { type AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { type AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
@@ -11,7 +11,6 @@ import {
   AnalyticsService,
 } from '@api/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import {
   type CampaignWinnerExtractionResult,
@@ -27,11 +26,12 @@ import {
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
+import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
   avgEngagementRate?: number;
@@ -91,13 +91,14 @@ export class ContentEngineService {
     private readonly agentGoalsService: AgentGoalsService,
     private readonly agentRunsService: AgentRunsService,
     private readonly contentRotationService: ContentRotationService,
-    private readonly agentRunQueueService: AgentRunQueueService,
     private readonly analyticsService: AnalyticsService,
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
     private readonly campaignMemoryQueueService: CampaignMemoryQueueService,
     private readonly orchestratorQueueService: OrchestratorQueueService,
     private readonly campaignWinnerExtractionService: CampaignWinnerExtractionService,
     private readonly logger: LoggerService,
+    @Inject(forwardRef(() => AgentRuntimeService))
+    private readonly agentRuntimeService: AgentRuntimeService,
   ) {}
 
   private requireAgentType(
@@ -241,7 +242,6 @@ export class ContentEngineService {
         : null;
 
     const dispatchedRuns: OrchestrationDispatchPlan[] = [];
-    const runRecords: AgentRunDocument[] = [];
 
     for (const strategy of selectedStrategies) {
       const reason = this.buildDispatchReason(
@@ -264,7 +264,11 @@ export class ContentEngineService {
             )
           : strategy.dailyCreditBudget || undefined;
 
-      const run = await this.agentRunsService.create({
+      const handle = await this.agentRuntimeService.startTurn({
+        agentType: this.requireAgentType(strategy.agentType),
+        autonomyMode: strategy.autonomyMode,
+        brandId: campaign.brandId ?? undefined,
+        campaignId,
         creditBudget,
         label: `Campaign orchestrator: ${campaign.label} -> ${strategy.label}`,
         metadata: {
@@ -274,25 +278,12 @@ export class ContentEngineService {
           dispatchedStrategyId: String(strategy.id),
           reason,
         },
-        objective,
-        organizationId: organizationId,
-        strategyId: String(strategy.id),
-        trigger: AgentExecutionTrigger.CRON,
-        userId: userId,
-      });
-
-      runRecords.push(run);
-
-      await this.agentRunQueueService.queueRun({
-        agentType: this.requireAgentType(strategy.agentType),
-        autonomyMode: strategy.autonomyMode,
-        campaignId,
-        creditBudget,
         model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
-        runId: String(run.id),
         strategyId: String(strategy.id),
+        threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategy.id}`,
+        trigger: AgentExecutionTrigger.CRON,
         userId,
       });
 
@@ -300,7 +291,7 @@ export class ContentEngineService {
         agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
-        runId: String(run.id),
+        runId: handle.runId,
         strategyId: String(strategy.id),
       });
     }
@@ -329,17 +320,6 @@ export class ContentEngineService {
       goalSummaries,
       summary,
     );
-
-    for (const run of runRecords) {
-      await this.agentRunsService.patch(String(run.id), {
-        metadata: {
-          ...((run.metadata ?? {}) as Record<string, unknown>),
-          campaignId,
-          ...this.buildRotationMetadata(rotationResult.selection),
-          orchestrationSummary: summary,
-        },
-      } as Record<string, unknown>);
-    }
 
     for (const plan of dispatchedRuns) {
       await this.agentRunsService.patch(plan.runId, {
@@ -442,7 +422,11 @@ export class ContentEngineService {
             )
           : strategy.dailyCreditBudget || undefined;
 
-      const run = await this.agentRunsService.create({
+      const handle = await this.agentRuntimeService.startTurn({
+        agentType: this.requireAgentType(strategy.agentType),
+        autonomyMode: strategy.autonomyMode,
+        brandId: campaign.brandId ?? undefined,
+        campaignId: input.campaignId,
         creditBudget,
         label: `Campaign trigger: ${campaign.label} -> ${strategy.label}`,
         metadata: {
@@ -452,23 +436,12 @@ export class ContentEngineService {
           triggerMetadata: input.triggerMetadata,
           triggerType: input.triggerType,
         },
-        objective,
-        organizationId: organizationId,
-        strategyId: String(strategy.id),
-        trigger: AgentExecutionTrigger.CRON,
-        userId: userId,
-      });
-
-      await this.agentRunQueueService.queueRun({
-        agentType: this.requireAgentType(strategy.agentType),
-        autonomyMode: strategy.autonomyMode,
-        campaignId: input.campaignId,
-        creditBudget,
         model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
-        runId: String(run.id),
         strategyId: String(strategy.id),
+        threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategy.id}`,
+        trigger: AgentExecutionTrigger.CRON,
         userId,
       });
 
@@ -476,7 +449,7 @@ export class ContentEngineService {
         agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
-        runId: String(run.id),
+        runId: handle.runId,
         strategyId: String(strategy.id),
       });
     }
