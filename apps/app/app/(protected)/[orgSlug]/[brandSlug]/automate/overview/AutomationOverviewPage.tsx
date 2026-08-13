@@ -15,11 +15,12 @@ import {
   ClipboardList,
   Cpu,
   House as Home,
+  LayoutDashboard,
   List,
-  Megaphone,
   MessageSquare,
   Settings,
   Sparkles,
+  Workflow,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -63,19 +64,19 @@ export default function AutomationOverviewPage() {
       description:
         'Run fixed automation graphs for repeatable content pipelines',
       href: href(APP_ROUTES.AUTOMATE.WORKFLOWS),
-      icon: Megaphone,
+      icon: Workflow,
       id: 'workflows',
       label: 'Workflows',
     },
     {
-      color: 'bg-rose-500/12 text-rose-300',
-      cta: 'Open Reply Campaigns',
+      color: 'bg-violet-500/12 text-violet-300',
+      cta: 'Open Programs',
       description:
-        'Throttle social replies and DMs so they drip one recipient at a time',
-      href: href(APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS),
-      icon: Megaphone,
-      id: 'reply-campaigns',
-      label: 'Reply Campaigns',
+        'Coordinate multi-agent content production with budgets and quotas',
+      href: href(APP_ROUTES.AUTOMATE.CAMPAIGNS),
+      icon: LayoutDashboard,
+      id: 'programs',
+      label: 'Programs',
     },
     {
       color: 'bg-blue-500/12 text-blue-300',
@@ -133,7 +134,7 @@ export default function AutomationOverviewPage() {
       description:
         'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
       href: href(APP_ROUTES.AUTOMATE.WORKFLOWS),
-      icon: Megaphone,
+      icon: Workflow,
       kicker: 'Automation',
       label: 'Workflow Engine',
     },

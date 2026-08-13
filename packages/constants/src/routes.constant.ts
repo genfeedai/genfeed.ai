@@ -124,26 +124,29 @@ export const APP_ROUTES = {
     SKILLS: '/automate/skills',
     STRATEGIES: '/automate/strategies',
     /**
-     * Agent-driven content campaigns (bulk production programs).
-     * Canonical home under Automate — not Publish.
+     * Agent Programs (budget/quota wrappers around strategies).
+     * UI label is "Programs"; path kept for deep-link stability.
+     * Marketer multi-platform content campaigns belong in Publish (P1).
      */
     CAMPAIGNS: '/automate/campaigns',
     CAMPAIGNS_NEW: '/automate/campaigns/new',
     /**
-     * Outreach / growth engagement campaigns (replies, DMs).
-     * Canonical home under Automate — not Publish.
+     * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
+     * Value points at Messages so stale imports land correctly.
      */
-    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
-    /** Throttled social reply drip campaigns. */
-    REPLY_CAMPAIGNS: '/automate/reply-campaigns',
+    OUTREACH_CAMPAIGNS: '/messages/outreach',
+    /** @deprecated Use APP_ROUTES.MESSAGES.OUTREACH_NEW. */
+    OUTREACH_CAMPAIGNS_NEW: '/messages/outreach/new',
     /**
-     * Replies surface: reply to comments on *your* posts (X, later YT).
-     * Not reply-guy / outreach on other people's posts.
+     * @deprecated Canonical path is APP_ROUTES.MESSAGES.REPLY_DRIP.
      */
-    REPLIES: '/automate/replies',
-    /** @deprecated Use APP_ROUTES.AUTOMATE.REPLIES */
-    AUTHOR_REPLIES: '/automate/replies',
+    REPLY_CAMPAIGNS: '/messages/reply-drip',
+    /**
+     * @deprecated Canonical path is APP_ROUTES.MESSAGES.REPLIES.
+     */
+    REPLIES: '/messages/replies',
+    /** @deprecated Use APP_ROUTES.MESSAGES.REPLIES */
+    AUTHOR_REPLIES: '/messages/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automate/workflows',
     WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',
@@ -220,6 +223,20 @@ export const APP_ROUTES = {
     VOICES: '/library/voices',
   },
   MESSAGES: {
+    /**
+     * Outreach / growth engagement sequences (DMs, launches).
+     * Lives in Messages — send-side of the engagement inbox.
+     */
+    OUTREACH: '/messages/outreach',
+    OUTREACH_NEW: '/messages/outreach/new',
+    /**
+     * Author replies on your own posts (reply-bot surface).
+     */
+    REPLIES: '/messages/replies',
+    /**
+     * Throttled social reply drip (not a blast sender).
+     */
+    REPLY_DRIP: '/messages/reply-drip',
     ROOT: '/messages',
   },
   ONBOARDING: {
@@ -242,19 +259,20 @@ export const APP_ROUTES = {
     /** Posts queued to enter the publishing pipeline. */
     PENDING: '/publish/pending',
     /**
-     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
+     * @deprecated Agent Programs live at APP_ROUTES.AUTOMATE.CAMPAIGNS.
      * Legacy `/publish/campaigns` permanently redirects there.
+     * Future marketer content Campaigns reclaim this Publish prefix (P1).
      */
     CAMPAIGNS: '/automate/campaigns',
     /** @deprecated Use APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW. */
     CAMPAIGNS_NEW: '/automate/campaigns/new',
     /**
-     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS.
+     * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
      * Legacy `/publish/outreach-campaigns` permanently redirects there.
      */
-    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
-    /** @deprecated Use APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW. */
-    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
+    OUTREACH_CAMPAIGNS: '/messages/outreach',
+    /** @deprecated Use APP_ROUTES.MESSAGES.OUTREACH_NEW. */
+    OUTREACH_CAMPAIGNS_NEW: '/messages/outreach/new',
     /**
      * Canonical Publish home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /

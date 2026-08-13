@@ -140,12 +140,12 @@ export default function OutreachCampaignsList() {
   );
 
   const handleCreateCampaign = useCallback(() => {
-    router.push(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW);
+    router.push(APP_ROUTES.MESSAGES.OUTREACH_NEW);
   }, [router]);
 
   const handleConfigureCampaign = useCallback(
     (campaign: OutreachCampaign) => {
-      router.push(`${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaign.id}`);
+      router.push(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`);
     },
     [router],
   );
@@ -197,8 +197,8 @@ export default function OutreachCampaignsList() {
 
   return (
     <Container
-      label="Marketing Campaigns"
-      description="Outreach for launches and distribution."
+      label="Outreach sequences"
+      description="DM and growth sequences for launches and distribution."
       icon={Rocket}
       right={
         <>
@@ -210,7 +210,7 @@ export default function OutreachCampaignsList() {
           <Button
             label={
               <>
-                <Plus /> New Campaign
+                <Plus /> New sequence
               </>
             }
             variant={ButtonVariant.DEFAULT}

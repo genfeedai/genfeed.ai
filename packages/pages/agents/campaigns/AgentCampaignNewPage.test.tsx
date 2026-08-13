@@ -160,9 +160,9 @@ describe('AgentCampaignNewPage', () => {
   it('renders the new campaign form shell', () => {
     render(<AgentCampaignNewPage />);
 
-    expect(screen.getByText('New Campaign')).toBeInTheDocument();
+    expect(screen.getByText('New Program')).toBeInTheDocument();
     expect(screen.getByLabelText('Campaign Label *')).toBeInTheDocument();
-    expect(screen.getByText('Create Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Create Program')).toBeInTheDocument();
     expect(
       screen.getByText('No agent strategies available. Create agents first.'),
     ).toBeInTheDocument();

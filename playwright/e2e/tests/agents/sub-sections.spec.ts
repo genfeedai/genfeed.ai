@@ -11,9 +11,9 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Agents Sub-Routes
  *
- * Covers: /automate/campaigns, /automate/campaigns/new, /automate/outreach-campaigns,
- *         /automate/outreach-campaigns/new, /automate/runs, /automate/strategies,
- *         /workflows, /workflows/new, /workflows/templates
+ * Covers: /automate/campaigns (Programs), /automate/campaigns/new,
+ *         /messages/outreach, /messages/outreach/new, /automate/runs,
+ *         /automate/strategies, /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -26,19 +26,17 @@ test.describe('Agents — Sub-Sections', () => {
     });
   });
 
-  test('campaigns page loads campaigns list', async ({ authenticatedPage }) => {
+  test('programs page loads programs list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
     await authenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(/automate\/campaigns/);
-    await expect(
-      authenticatedPage.getByText(/campaign/i).first(),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByText(/program/i).first()).toBeVisible();
   });
 
-  test('campaigns/new shows campaign creation form', async ({
+  test('campaigns/new shows program creation form', async ({
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
@@ -51,27 +49,25 @@ test.describe('Agents — Sub-Sections', () => {
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
 
-  test('outreach-campaigns page loads campaigns list', async ({
+  test('outreach sequences page loads under Messages', async ({
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS);
+    await authenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
 
-    await expect(authenticatedPage).toHaveURL(/automate\/outreach-campaigns/);
+    await expect(authenticatedPage).toHaveURL(/messages\/outreach/);
     await expect(
-      authenticatedPage.getByText(/campaign/i).first(),
+      authenticatedPage.getByText(/outreach/i).first(),
     ).toBeVisible();
   });
 
-  test('outreach-campaigns/new shows campaign creation form', async ({
+  test('outreach/new shows sequence creation form', async ({
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW);
+    await authenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH_NEW);
 
-    await expect(authenticatedPage).toHaveURL(
-      /automate\/outreach-campaigns\/new/,
-    );
+    await expect(authenticatedPage).toHaveURL(/messages\/outreach\/new/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
 
@@ -168,14 +164,14 @@ test.describe('Agents — Sub-Sections', () => {
 
     await expect(unauthenticatedPage).toHaveURL(/automate\/campaigns/);
     await expect(
-      unauthenticatedPage.getByRole('heading', { name: 'Agent Campaigns' }),
+      unauthenticatedPage.getByRole('heading', { name: 'Programs' }),
     ).toBeVisible();
   });
 
-  test('unauthenticated user is redirected from outreach campaign routes', async ({
+  test('unauthenticated user is redirected from outreach sequence routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS);
+    await unauthenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

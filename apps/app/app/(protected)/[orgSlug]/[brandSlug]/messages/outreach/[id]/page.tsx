@@ -3,9 +3,9 @@ import { OutreachCampaignDetail } from '@pages/agents';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 
-export const generateMetadata = createPageMetadata('Outreach Campaign Details');
+export const generateMetadata = createPageMetadata('Outreach sequence');
 
-export default function OutreachCampaignDetailRoute() {
+export default function OutreachSequenceDetailRoute() {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <OutreachCampaignDetail />
