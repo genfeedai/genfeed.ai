@@ -443,7 +443,9 @@ export default function FollowSourceModal({
                 {getPlatformIcon(postReference.platform, 'h-4 w-4')}
                 <span className="font-medium">
                   {translate('postLabel', {
-                    platform: formatPlatformLabel(postReference.platform),
+                    platform:
+                      formatPlatformLabel(postReference.platform) ??
+                      postReference.platform,
                   })}
                 </span>
                 {postReference.authorHandle ? (
