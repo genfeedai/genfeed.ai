@@ -37,31 +37,29 @@ const config = createAppNextConfig({
       source: '/(.*)',
     },
   ],
-  rewrites: async () => [
-    {
-      destination: '/.well-known/agent-content/home',
-      has: [
-        {
-          key: 'accept',
-          type: 'header',
-          value: '.*text/markdown.*',
-        },
-      ],
-      source: '/',
-    },
-  ],
+  rewrites: async () => ({
+    afterFiles: [],
+    beforeFiles: [
+      {
+        destination: '/.well-known/agent-content/home',
+        has: [
+          {
+            key: 'accept',
+            type: 'header',
+            value: '.*text/markdown.*',
+          },
+        ],
+        source: '/',
+      },
+    ],
+    fallback: [],
+  }),
   redirects: async () => [
     {
       destination:
         'https://api.genfeed.ai/.well-known/oauth-authorization-server',
       permanent: false,
       source: '/.well-known/oauth-authorization-server',
-    },
-    {
-      destination:
-        'https://mcp.genfeed.ai/.well-known/oauth-protected-resource',
-      permanent: false,
-      source: '/.well-known/oauth-protected-resource',
     },
     {
       destination: '/analytics',

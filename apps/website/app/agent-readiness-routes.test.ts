@@ -19,12 +19,14 @@ import {
   dynamic as mcpAliasDynamic,
   revalidate as mcpAliasRevalidate,
 } from './.well-known/mcp.json/route';
+import { GET as getProtectedResourceMetadata } from './.well-known/oauth-protected-resource/route';
 
 describe('website discovery routes', () => {
   it.each([
     '.well-known/auth.md/route.ts',
     '.well-known/mcp.json/route.ts',
     '.well-known/mcp/server-cards.json/route.ts',
+    '.well-known/oauth-protected-resource/route.ts',
   ])('declares static route config locally in %s', (relativePath) => {
     const source = readFileSync(
       join(import.meta.dirname, relativePath),
@@ -64,6 +66,21 @@ describe('website discovery routes', () => {
     expect(body.transport.endpoint).toBe('https://mcp.genfeed.ai/mcp');
   });
 
+  it('serves origin-bound OAuth Protected Resource Metadata', async () => {
+    const response = getProtectedResourceMetadata();
+    const body = await response.json();
+
+    expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    expect(body).toMatchObject({
+      authorization_servers: ['https://api.genfeed.ai'],
+      bearer_methods_supported: ['header'],
+      resource: 'https://genfeed.ai',
+    });
+    expect(body.scopes_supported).toEqual(
+      expect.arrayContaining(['brands:read', 'posts:draft', 'analytics:read']),
+    );
+  });
+
   it('keeps compatibility aliases static while sharing canonical handlers', async () => {
     expect([authAliasDynamic, mcpAliasDynamic, mcpCardsAliasDynamic]).toEqual([
       'force-static',
@@ -81,6 +98,7 @@ describe('website discovery routes', () => {
     const mcpCardsResponse = getMcpCardsAlias();
 
     expect(authResponse.headers.get('content-type')).toContain('text/markdown');
+    expect(await authResponse.text()).toMatch(/^# .*auth\.md/im);
     expect(await mcpResponse.json()).toEqual(await mcpCardsResponse.json());
   });
 });
