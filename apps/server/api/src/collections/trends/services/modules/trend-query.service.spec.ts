@@ -6,7 +6,7 @@ type PrismaMock = {
   trend: {
     findMany: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -44,7 +44,7 @@ describe('TrendQueryService', () => {
       trend: {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
-        update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
     };
 
@@ -216,31 +216,53 @@ describe('TrendQueryService', () => {
       expect(result[0]?.topic).toBe('#RealSignal');
     });
 
-    it('soft-deletes synthetic prelaunch rows on purge', async () => {
+    it('soft-deletes synthetic prelaunch rows in one batched update', async () => {
       prisma.trend.findMany.mockResolvedValue([
         {
-          brandId: null,
-          createdAt: new Date(),
           data: {
             metadata: { prelaunchCorpus: true },
             platform: 'twitter',
             topic: 'seed',
           },
           id: 'prelaunch-1',
-          isDeleted: false,
-          organizationId: null,
-          updatedAt: new Date(),
+        },
+        {
+          data: {
+            metadata: { source: 'apify' },
+            platform: 'twitter',
+            topic: 'real',
+          },
+          id: 'real-1',
         },
       ]);
-      prisma.trend.update.mockResolvedValue({});
+      prisma.trend.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.purgeSyntheticTrendRows();
 
       expect(result).toEqual({ purged: 1 });
-      expect(prisma.trend.update).toHaveBeenCalledWith({
+      expect(prisma.trend.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.trend.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: 'prelaunch-1' },
+        where: { id: { in: ['prelaunch-1'] } },
       });
+    });
+
+    it('skips the update entirely when no synthetic rows exist', async () => {
+      prisma.trend.findMany.mockResolvedValue([
+        {
+          data: {
+            metadata: { source: 'apify' },
+            platform: 'twitter',
+            topic: 'real',
+          },
+          id: 'real-1',
+        },
+      ]);
+
+      await expect(service.purgeSyntheticTrendRows()).resolves.toEqual({
+        purged: 0,
+      });
+      expect(prisma.trend.updateMany).not.toHaveBeenCalled();
     });
   });
 });

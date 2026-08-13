@@ -51,7 +51,7 @@ describe('PostRepurposeService', () => {
 
   const prisma = {
     credential: { findFirst: vi.fn() },
-    ingredient: { findMany: vi.fn() },
+    ingredient: { findFirst: vi.fn() },
     post: { count: vi.fn(), updateMany: vi.fn() },
   };
 
@@ -94,7 +94,7 @@ describe('PostRepurposeService', () => {
     }));
     prisma.post.count.mockResolvedValue(0);
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
-    prisma.ingredient.findMany.mockResolvedValue([]);
+    prisma.ingredient.findFirst.mockResolvedValue(null);
   });
 
   describe('deterministic mode', () => {

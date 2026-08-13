@@ -2600,7 +2600,7 @@ describe('AgentToolExecutorService', () => {
           organizationId: 'c7a123456789012345678901',
         }),
       }),
-      { pagination: false },
+      { limit: 1, page: 1 },
     );
     expect(postAnalyticsService.getPostAnalyticsSummary).toHaveBeenCalledWith(
       'c7a123456789012345678972',

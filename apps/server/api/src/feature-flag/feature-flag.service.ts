@@ -15,9 +15,13 @@ interface ParsedFeatureFlagDefaults {
 
 interface CachedFeatureFlagDecision {
   enabled: boolean;
+  freshUntil: number;
 }
 
 const REPLY_BOT_CACHE_TTL_MS = 30_000;
+// Hard cap so per-user decisions cannot grow the map unboundedly; entries are
+// kept in recency order (Map insertion order) and the oldest one is evicted.
+const REPLY_BOT_CACHE_MAX_ENTRIES = 1_000;
 
 @Injectable()
 export class FeatureFlagService implements OnModuleInit {
@@ -27,7 +31,10 @@ export class FeatureFlagService implements OnModuleInit {
     string,
     CachedFeatureFlagDecision
   >();
-  private readonly replyBotFreshUntil = new Map<string, number>();
+  private readonly replyBotRefreshes = new Map<
+    string,
+    Promise<boolean | undefined>
+  >();
 
   constructor(
     private readonly configService: ConfigService,
@@ -96,8 +103,8 @@ export class FeatureFlagService implements OnModuleInit {
 
     const cacheKey = replyBotCacheKey(attributes);
     const cached = this.replyBotDecisions.get(cacheKey);
-    const freshUntil = this.replyBotFreshUntil.get(cacheKey) ?? 0;
-    if (cached && freshUntil > Date.now()) {
+    if (cached && cached.freshUntil > Date.now()) {
+      this.touchReplyBotDecision(cacheKey, cached);
       this.loggerService.debug('Feature flag evaluated', {
         flagKey: REPLY_BOT_FEATURE_FLAG,
         isEnabled: cached.enabled,
@@ -115,17 +122,25 @@ export class FeatureFlagService implements OnModuleInit {
       return true;
     }
 
-    const remoteEnabled = await this.postHogFeatureFlagEvaluator.isEnabled(
-      REPLY_BOT_FEATURE_FLAG,
+    if (cached) {
+      // Stale-while-revalidate: serve the last known decision without
+      // blocking the request; the refresh replaces the entry when it lands.
+      void this.refreshReplyBotDecision(cacheKey, attributes);
+      this.touchReplyBotDecision(cacheKey, cached);
+      this.loggerService.debug('Feature flag evaluated', {
+        flagKey: REPLY_BOT_FEATURE_FLAG,
+        isEnabled: cached.enabled,
+        source: 'posthogStaleWhileRevalidate',
+      });
+      return cached.enabled;
+    }
+
+    const remoteEnabled = await this.refreshReplyBotDecision(
+      cacheKey,
       attributes,
     );
 
     if (typeof remoteEnabled === 'boolean') {
-      this.replyBotDecisions.set(cacheKey, { enabled: remoteEnabled });
-      this.replyBotFreshUntil.set(
-        cacheKey,
-        Date.now() + REPLY_BOT_CACHE_TTL_MS,
-      );
       this.loggerService.debug('Feature flag evaluated', {
         flagKey: REPLY_BOT_FEATURE_FLAG,
         isEnabled: remoteEnabled,
@@ -134,21 +149,74 @@ export class FeatureFlagService implements OnModuleInit {
       return remoteEnabled;
     }
 
-    if (cached) {
-      this.loggerService.debug('Feature flag evaluated', {
-        flagKey: REPLY_BOT_FEATURE_FLAG,
-        isEnabled: cached.enabled,
-        source: 'posthogCachedFallback',
-      });
-      return cached.enabled;
-    }
-
     this.loggerService.debug('Feature flag evaluated', {
       flagKey: REPLY_BOT_FEATURE_FLAG,
       isEnabled: true,
       source: 'posthogFailOpen',
     });
     return true;
+  }
+
+  /**
+   * Fetch the remote decision once per cache key at a time; concurrent
+   * callers share the same in-flight request. A boolean result replaces the
+   * cached entry; `undefined` (PostHog unreachable) keeps the stale entry as
+   * the fallback.
+   */
+  private refreshReplyBotDecision(
+    cacheKey: string,
+    attributes?: FeatureFlagAttributes,
+  ): Promise<boolean | undefined> {
+    const inFlight = this.replyBotRefreshes.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const refresh = (async (): Promise<boolean | undefined> => {
+      try {
+        const remoteEnabled = await this.postHogFeatureFlagEvaluator?.isEnabled(
+          REPLY_BOT_FEATURE_FLAG,
+          attributes,
+        );
+        if (typeof remoteEnabled === 'boolean') {
+          this.storeReplyBotDecision(cacheKey, remoteEnabled);
+        }
+        return remoteEnabled;
+      } catch (error) {
+        this.loggerService.warn('Reply-bot feature flag refresh failed', {
+          error,
+        });
+        return undefined;
+      } finally {
+        this.replyBotRefreshes.delete(cacheKey);
+      }
+    })();
+
+    this.replyBotRefreshes.set(cacheKey, refresh);
+    return refresh;
+  }
+
+  private storeReplyBotDecision(cacheKey: string, enabled: boolean): void {
+    this.replyBotDecisions.delete(cacheKey);
+    this.replyBotDecisions.set(cacheKey, {
+      enabled,
+      freshUntil: Date.now() + REPLY_BOT_CACHE_TTL_MS,
+    });
+    if (this.replyBotDecisions.size > REPLY_BOT_CACHE_MAX_ENTRIES) {
+      const oldestKey = this.replyBotDecisions.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.replyBotDecisions.delete(oldestKey);
+      }
+    }
+  }
+
+  /** Move a hit to the back of the map so eviction drops the coldest key. */
+  private touchReplyBotDecision(
+    cacheKey: string,
+    entry: CachedFeatureFlagDecision,
+  ): void {
+    this.replyBotDecisions.delete(cacheKey);
+    this.replyBotDecisions.set(cacheKey, entry);
   }
 
   private isLocalDefaultEnabled(flagKey: string): boolean {

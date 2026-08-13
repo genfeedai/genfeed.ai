@@ -30,6 +30,82 @@ type ReleaseProjectionRecord = {
   targets: SchedulerPostTarget[];
 };
 
+type ScheduleWindow = { gte: Date; lte: Date };
+
+/** Exactly the columns the release projection consumes — nothing else. */
+const SCHEDULER_POST_GROUP_SELECT = {
+  attachments: true,
+  baseContent: true,
+  brandId: true,
+  createdAt: true,
+  id: true,
+  idempotencyKey: true,
+  isDeleted: true,
+  media: true,
+  organizationId: true,
+  ownerId: true,
+  publishedAt: true,
+  recurrence: true,
+  scheduledAt: true,
+  status: true,
+  statusTransitions: true,
+  timezone: true,
+  title: true,
+  updatedAt: true,
+} satisfies Prisma.PostGroupSelect;
+
+/**
+ * Exactly the `SchedulerPostTarget` columns; drops the heavy editorial and
+ * review columns (`reviewEvents`, `seoBreakdown`, `promptUsed`, …) the
+ * projection never reads.
+ */
+const SCHEDULER_POST_TARGET_SELECT = {
+  agentContextSource: true,
+  agentContextVersion: true,
+  agentRunId: true,
+  agentStrategyId: true,
+  agentThreadId: true,
+  analyticsCollectedAt: true,
+  analyticsCollectionAttemptKey: true,
+  analyticsCollectionError: true,
+  analyticsCollectionRequestedAt: true,
+  analyticsCollectionState: true,
+  brandId: true,
+  category: true,
+  createdAt: true,
+  credentialId: true,
+  description: true,
+  externalId: true,
+  externalShortcode: true,
+  groupId: true,
+  id: true,
+  isDeleted: true,
+  label: true,
+  lastAttemptAt: true,
+  order: true,
+  organizationId: true,
+  platform: true,
+  publishApprovalId: true,
+  publishedAt: true,
+  retryCount: true,
+  scheduledDate: true,
+  status: true,
+  targetAttachments: true,
+  targetError: true,
+  targetExecutionState: true,
+  targetIdempotencyKey: true,
+  targetReadiness: true,
+  targetSettings: true,
+  targetValidationIssues: true,
+  targetValidationState: true,
+  timezone: true,
+  updatedAt: true,
+  url: true,
+  userId: true,
+  visibility: true,
+  workflowExecutionId: true,
+} satisfies Prisma.PostSelect;
+
 @Injectable()
 export class PostGroupPersistenceService {
   constructor(
@@ -224,11 +300,29 @@ export class PostGroupPersistenceService {
   async listReleaseGroups(
     query: ReleaseGroupListQuery,
   ): Promise<ReleaseGroupListResult> {
+    const brandFilter = query.brandId ? { brandId: query.brandId } : {};
+    const window: ScheduleWindow | undefined =
+      query.startDate && query.endDate
+        ? { gte: query.startDate, lte: query.endDate }
+        : undefined;
+
+    // The schedule window is the only list filter expressible before the
+    // release projection is derived (status, search, and target facets all
+    // need the derived shape). When present, prefilter both hydration reads
+    // with two id-only queries so a calendar page stops scanning the
+    // organization's full posting history. `matchesListQuery` below remains
+    // the source of truth for every filter, including the window itself.
+    const windowGroupIds = window
+      ? await this.findGroupIdsInScheduleWindow(query, window)
+      : undefined;
+
     const [groups, targets] = await Promise.all([
       this.prisma.postGroup.findMany({
         orderBy: { id: 'asc' },
+        select: SCHEDULER_POST_GROUP_SELECT,
         where: scopedWhere(query.organizationId, {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
+          ...brandFilter,
+          ...(windowGroupIds ? { id: { in: windowGroupIds } } : {}),
         }),
       }) as Promise<SchedulerPostGroup[]>,
       this.prisma.post.findMany({
@@ -238,9 +332,18 @@ export class PostGroupPersistenceService {
           { createdAt: 'asc' },
           { id: 'asc' },
         ],
+        select: SCHEDULER_POST_TARGET_SELECT,
         where: scopedWhere(query.organizationId, {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
+          ...brandFilter,
           parentId: null,
+          ...(window && windowGroupIds
+            ? {
+                OR: [
+                  { groupId: { in: windowGroupIds } },
+                  { groupId: null, scheduledDate: window },
+                ],
+              }
+            : {}),
         }),
       }) as Promise<SchedulerPostTarget[]>,
     ]);
@@ -329,6 +432,45 @@ export class PostGroupPersistenceService {
       totalDocs,
       totalPages,
     };
+  }
+
+  /**
+   * Ids of every release whose group-level schedule or at least one target
+   * schedule intersects the window — the same membership rule
+   * `matchesListQuery` applies to the derived projection.
+   */
+  private async findGroupIdsInScheduleWindow(
+    query: ReleaseGroupListQuery,
+    window: ScheduleWindow,
+  ): Promise<string[]> {
+    const brandFilter = query.brandId ? { brandId: query.brandId } : {};
+    const [groupRows, targetRows] = await Promise.all([
+      this.prisma.postGroup.findMany({
+        select: { id: true },
+        where: scopedWhere(query.organizationId, {
+          ...brandFilter,
+          scheduledAt: window,
+        }),
+      }),
+      this.prisma.post.findMany({
+        select: { groupId: true },
+        where: scopedWhere(query.organizationId, {
+          ...brandFilter,
+          groupId: { not: null },
+          parentId: null,
+          scheduledDate: window,
+        }),
+      }),
+    ]);
+
+    return [
+      ...new Set([
+        ...groupRows.map((row) => row.id),
+        ...targetRows
+          .map((row) => row.groupId)
+          .filter((id): id is string => id !== null),
+      ]),
+    ];
   }
 
   private toSyntheticGroup(

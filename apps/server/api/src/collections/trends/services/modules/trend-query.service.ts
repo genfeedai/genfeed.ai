@@ -81,7 +81,10 @@ export class TrendQueryService {
    */
   async countActiveGlobalTrends(): Promise<number> {
     const now = new Date();
+    // The isCurrent/expiresAt predicates live inside the `data` JSON blob, so
+    // the filter stays in JS — but only the blob is fetched, not full rows.
     const allGlobalTrends = await this.prisma.trend.findMany({
+      select: { data: true },
       where: { isDeleted: false, organizationId: null },
     });
 
@@ -105,24 +108,29 @@ export class TrendQueryService {
   async purgeSyntheticTrendRows(): Promise<{ purged: number }> {
     // tenant-scope-ignore: platform maintenance sweep — prelaunch seed rows were planted across every organization, so the purge must see all of them
     const docs = await this.prisma.trend.findMany({
+      select: { data: true, id: true },
       where: { isDeleted: false },
     });
 
-    let purged = 0;
-    for (const doc of docs) {
-      const data = doc.data as unknown as Record<string, unknown>;
-      if (!this.isSyntheticTrendData(data)) {
-        continue;
-      }
-      // tenant-scope-ignore: purging a synthetic row found by the sweep above, addressed by its own primary key
-      await this.prisma.trend.update({
-        data: { isDeleted: true },
-        where: { id: doc.id },
-      });
-      purged += 1;
+    const syntheticIds = docs
+      .filter((doc) =>
+        this.isSyntheticTrendData(
+          doc.data as unknown as Record<string, unknown>,
+        ),
+      )
+      .map((doc) => doc.id);
+
+    if (syntheticIds.length === 0) {
+      return { purged: 0 };
     }
 
-    return { purged };
+    // tenant-scope-ignore: purging the synthetic rows found by the sweep above, addressed by their own primary keys
+    const result = await this.prisma.trend.updateMany({
+      data: { isDeleted: true },
+      where: { id: { in: syntheticIds } },
+    });
+
+    return { purged: result.count };
   }
 
   /**

@@ -93,7 +93,8 @@ export class AgentAnalyticsToolHandler {
           publicationDate: -1,
         },
       },
-      { pagination: false },
+      // Only the newest published post is read — never load the whole history.
+      { limit: 1, page: 1 },
     );
 
     const [post] =
@@ -123,7 +124,8 @@ export class AgentAnalyticsToolHandler {
           publicationDate: -1,
         },
       },
-      { pagination: false },
+      // Only the newest published post is read — never load the whole history.
+      { limit: 1, page: 1 },
     );
 
     const [post] =
