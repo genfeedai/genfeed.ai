@@ -206,6 +206,11 @@ describe('batch item row projection', () => {
     const $transaction = vi.fn(
       async (run: (client: typeof tx) => Promise<unknown>) => run(tx),
     );
+    const prisma = {
+      $transaction,
+      batch: { updateMany: vi.fn() },
+      batchItem: { upsert: vi.fn() },
+    };
 
     const items = [
       {
@@ -216,20 +221,13 @@ describe('batch item row projection', () => {
       },
     ];
 
-    const result = await writeBatchJsonAndItemRows(
-      {
-        $transaction,
-        batch: { updateMany: vi.fn() },
-        batchItem: { upsert: vi.fn() },
-      },
-      {
-        batchId: 'batch-1',
-        brandId: 'brand-1',
-        extraBatchData: { status: BatchStatus.COMPLETED },
-        items,
-        organizationId: 'org-1',
-      },
-    );
+    const result = await writeBatchJsonAndItemRows(prisma, {
+      batchId: 'batch-1',
+      brandId: 'brand-1',
+      extraBatchData: { status: BatchStatus.COMPLETED },
+      items,
+      organizationId: 'org-1',
+    });
 
     expect($transaction).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ count: 1 });
