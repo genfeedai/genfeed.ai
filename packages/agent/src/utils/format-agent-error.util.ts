@@ -23,6 +23,8 @@ const CONFIG_PATTERNS: Array<{
   recovery: string;
   /** When true, include a scrubbed slice of the raw error as detail. */
   includeRawDetail?: boolean;
+  /** Defaults to true. Session/auth recoveries are not env configuration. */
+  isConfigurationError?: boolean;
 }> = [
   {
     match:
@@ -67,6 +69,17 @@ const CONFIG_PATTERNS: Array<{
     recovery:
       'Apply pending database migrations, restart the API, then retry. If it persists, report the tool name and time.',
     includeRawDetail: true,
+  },
+  {
+    // Session / gateway auth before connection ("failed to fetch …") and before
+    // the generic provider-401 rule. Confirmed UI-action provider failures use
+    // a distinct detail so they do not collide with this pattern.
+    match:
+      /authentication required|session expired|token expired|jwt is expired|sign in again/i,
+    title: 'Session expired',
+    summary: 'Your Genfeed session is no longer valid for this request.',
+    recovery: 'Refresh the page or sign in again, then retry.',
+    isConfigurationError: false,
   },
   {
     match:
@@ -177,7 +190,7 @@ export function formatAgentError(
         : extractSafeContext(original);
       return {
         detail,
-        isConfigurationError: true,
+        isConfigurationError: pattern.isConfigurationError !== false,
         recovery: pattern.recovery,
         summary: pattern.summary,
         title: pattern.title,

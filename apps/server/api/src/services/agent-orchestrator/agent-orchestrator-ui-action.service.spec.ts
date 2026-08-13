@@ -183,7 +183,7 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(error).not.toBeInstanceOf(InternalServerErrorException);
     expect(error.getResponse()).toEqual(
       expect.objectContaining({
-        detail: 'Authentication required',
+        detail: 'The model provider rejected the credentials for this request.',
         status: HttpStatus.UNAUTHORIZED,
         title: 'Unauthorized',
       }),
@@ -191,7 +191,7 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(threadEventRecorder.recordRunFailed).toHaveBeenCalled();
   });
 
-  it('maps an expired-session 401 from generate-media to 401', async () => {
+  it('maps an upstream Unauthorized tool failure to provider-auth 401 detail', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({
         creditsUsed: 0,
@@ -210,6 +210,12 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     );
 
     expect(error).not.toBeInstanceOf(InternalServerErrorException);
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'The model provider rejected the credentials for this request.',
+        status: HttpStatus.UNAUTHORIZED,
+      }),
+    );
   });
 
   it('maps a provider 401 thrown through generate-media to 401', async () => {

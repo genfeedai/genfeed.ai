@@ -121,6 +121,24 @@ describe('formatAgentError', () => {
     expect(formatted.isConfigurationError).toBe(true);
   });
 
+  it('classifies session Authentication required separately from provider 401s', () => {
+    // Must win over the connection pattern's "failed to fetch" substring and
+    // over the generic provider-401 matcher.
+    const session = formatAgentError(
+      'Failed to fetch threads: 401 - Authentication required',
+    );
+    expect(session.title).toBe('Session expired');
+    expect(session.recovery).toMatch(/sign in again/i);
+    expect(session.isConfigurationError).toBe(false);
+
+    const provider = formatAgentError(
+      'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.',
+    );
+    expect(provider.title).toBe('Provider authentication failed');
+    expect(provider.recovery).toMatch(/provider API key/i);
+    expect(provider.isConfigurationError).toBe(true);
+  });
+
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {
     expect(formatAgentError('prompt used 512 tokens').title).not.toBe(
       'Provider temporarily unavailable',
