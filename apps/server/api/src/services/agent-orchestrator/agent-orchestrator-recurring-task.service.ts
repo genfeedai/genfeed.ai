@@ -15,6 +15,10 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
+  type ParsedCadencePhrase,
+  parseCadencePhrase,
+} from '@api/services/agent-orchestrator/utils/agent-cadence-phrase.util';
+import {
   extractRecurringContentCount,
   extractStyleNotes,
 } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
@@ -34,15 +38,10 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
-import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { Injectable, Optional } from '@nestjs/common';
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type RecurringTaskInputField = 'prompt' | 'schedule' | 'variationBrief';
-type ParsedRecurringSchedule = {
-  schedule: string;
-  timezone?: string;
-};
 
 interface RecurringTaskDraft extends Record<string, unknown> {
   contentType: RecurringTaskContentType;
@@ -573,10 +572,13 @@ export class AgentOrchestratorRecurringTaskService {
   private isRecurringTaskIntent(content: string): boolean {
     const normalized = content.toLowerCase();
     const hasRecurringSignal =
-      normalized.includes('every day') ||
+      /\b(?:every|each)\s+(?:day|week|month|weekday|morning|afternoon|evening|night)\b/.test(
+        normalized,
+      ) ||
       normalized.includes('daily') ||
-      normalized.includes('every week') ||
       normalized.includes('weekly') ||
+      normalized.includes('monthly') ||
+      normalized.includes('weekdays') ||
       normalized.includes('recurring');
     const hasAssetSignal = /(image|video|post|newsletter)/.test(normalized);
 
@@ -650,7 +652,7 @@ export class AgentOrchestratorRecurringTaskService {
       .replace(/\bposts?\b/gi, '')
       .replace(/\bnewsletters?\b/gi, '')
       .replace(
-        /\b(?:every day|daily|every weekday|weekdays|each month|every month|every week|weekly)(?:.*)$/i,
+        /\b(?:(?:every|each)\s+(?:day|weekday|week|month|morning|afternoon|evening|night)|daily|weekly|monthly|weekdays)(?:.*)$/i,
         '',
       )
       .replace(/\bin\s+an?\s+.+?\s+style\b/gi, '')
@@ -668,128 +670,8 @@ export class AgentOrchestratorRecurringTaskService {
 
   private extractCronScheduleFromMessage(
     content: string,
-  ): ParsedRecurringSchedule | null {
-    const timezone = this.extractTimezoneFromMessage(content);
-    const extractTime = (
-      match: RegExpMatchArray,
-    ): { hour: number; minute: number } => {
-      const minute = match[2] ? Number.parseInt(match[2], 10) : 0;
-      let hour = Number.parseInt(match[1], 10);
-      const meridiem = match[3];
-
-      if (meridiem === 'pm' && hour < 12) {
-        hour += 12;
-      }
-      if (meridiem === 'am' && hour === 12) {
-        hour = 0;
-      }
-
-      return { hour, minute };
-    };
-
-    const dailyMatch = content.match(
-      /\b(?:every day|daily)(?:\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/,
-    );
-
-    if (dailyMatch) {
-      const { hour, minute } = extractTime(dailyMatch);
-      return { schedule: `${minute} ${hour} * * *`, timezone };
-    }
-
-    const weekdayMatch = content.match(
-      /\b(?:every weekday|weekdays)(?:\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/,
-    );
-    if (weekdayMatch) {
-      const { hour, minute } = extractTime(weekdayMatch);
-      return { schedule: `${minute} ${hour} * * 1-5`, timezone };
-    }
-
-    const weeklyMatch = content.match(
-      /\b(?:every|each)(?:\s+week)?\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/,
-    );
-    if (weeklyMatch) {
-      const weekdayMap: Record<string, number> = {
-        friday: 5,
-        monday: 1,
-        saturday: 6,
-        sunday: 0,
-        thursday: 4,
-        tuesday: 2,
-        wednesday: 3,
-      };
-      const minute = weeklyMatch[3] ? Number.parseInt(weeklyMatch[3], 10) : 0;
-      let hour = Number.parseInt(weeklyMatch[2], 10);
-      const meridiem = weeklyMatch[4];
-      if (meridiem === 'pm' && hour < 12) {
-        hour += 12;
-      }
-      if (meridiem === 'am' && hour === 12) {
-        hour = 0;
-      }
-
-      return {
-        schedule: `${minute} ${hour} * * ${weekdayMap[weeklyMatch[1]]}`,
-        timezone,
-      };
-    }
-
-    const monthlyMatch = content.match(
-      /\b(?:every|each)\s+month(?:\s+on)?\s+(?:day\s+)?(\d{1,2})(?:st|nd|rd|th)?(?:\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/,
-    );
-    if (monthlyMatch) {
-      const minute = monthlyMatch[3] ? Number.parseInt(monthlyMatch[3], 10) : 0;
-      let hour = Number.parseInt(monthlyMatch[2], 10);
-      const meridiem = monthlyMatch[4];
-      if (meridiem === 'pm' && hour < 12) {
-        hour += 12;
-      }
-      if (meridiem === 'am' && hour === 12) {
-        hour = 0;
-      }
-
-      return {
-        schedule: `${minute} ${hour} ${monthlyMatch[1]} * *`,
-        timezone,
-      };
-    }
-
-    return null;
-  }
-
-  private extractTimezoneFromMessage(content: string): string | undefined {
-    const ianaMatch = content.match(/\b([a-z]+\/[a-z_]+(?:\/[a-z_]+)?)\b/i);
-    if (ianaMatch?.[1]) {
-      return ianaMatch[1];
-    }
-
-    const timezoneAliases: Record<string, string> = {
-      cet: 'Europe/Paris',
-      cst: 'America/Chicago',
-      est: 'America/New_York',
-      london: 'Europe/London',
-      malta: 'Europe/Malta',
-      paris: 'Europe/Paris',
-      pst: 'America/Los_Angeles',
-      utc: 'UTC',
-    };
-
-    for (const timezone of TIMEZONES) {
-      const normalizedLabel = timezone.label.toLowerCase();
-      if (
-        content.includes(timezone.value.toLowerCase()) ||
-        content.includes(normalizedLabel.split(' ')[0])
-      ) {
-        return timezone.value;
-      }
-    }
-
-    for (const [alias, resolvedTimezone] of Object.entries(timezoneAliases)) {
-      if (new RegExp(`\\b${alias}\\b`, 'i').test(content)) {
-        return resolvedTimezone;
-      }
-    }
-
-    return undefined;
+  ): ParsedCadencePhrase | null {
+    return parseCadencePhrase(content);
   }
 
   private getNextRecurringTaskField(

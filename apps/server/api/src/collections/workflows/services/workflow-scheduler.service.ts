@@ -1,3 +1,7 @@
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -12,7 +16,12 @@ import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 
 function toWorkflowDocument(workflow: unknown): WorkflowDocument {
   return workflow as WorkflowDocument;
@@ -336,7 +345,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
   }
 
   /**
-   * Update workflow schedule
+   * Update workflow schedule.
+   *
+   * The single shared schedule-mutation contract (UI PATCH, agent tool, MCP,
+   * brand publishing defaults all converge here): the cadence and timezone are
+   * validated before persistence, system workflows are rejected, and scheduler
+   * registration failures surface to the caller instead of logging silently.
    */
   async updateSchedule(
     workflowId: string,
@@ -345,33 +359,70 @@ export class WorkflowSchedulerService implements OnModuleInit {
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
-      select: { id: true },
+      select: { id: true, metadata: true },
       where: { id: workflowId, isDeleted: false },
     });
 
-    const workflow = existing
-      ? await this.prisma.workflow.update({
-          data: {
-            isScheduleEnabled: isEnabled && !!schedule,
-            schedule,
-            timezone,
-          },
-          where: { id: workflowId },
-        })
-      : null;
-
-    if (workflow) {
-      const workflowDocument = toWorkflowDocument(workflow);
-
-      if (schedule && isEnabled) {
-        await this.scheduleWorkflow(workflowDocument);
-      } else {
-        await this.unscheduleWorkflow(workflowId);
-      }
-
-      return workflowDocument;
+    if (!existing) {
+      return null;
     }
 
-    return null;
+    // System workflows carry a schedule for display only; their actions fire
+    // from the workers sweep scheduler. Accepting the write here would persist
+    // a cadence that never registers — a silent failure.
+    if (getSystemWorkflowMetadata(existing.metadata)) {
+      throw new BadRequestException(
+        'System workflow schedules are managed by the platform and cannot be edited. Duplicate the workflow to schedule your own copy.',
+      );
+    }
+
+    if (schedule) {
+      // The timezone is half of the schedule: an unknown IANA zone would only
+      // explode later inside the scheduler, so reject it up front with the
+      // field the user actually got wrong.
+      if (!isSchedulableTimezone(timezone)) {
+        throw new BadRequestException(
+          `Invalid timezone "${timezone}". Use an IANA timezone name, for example "Europe/Berlin".`,
+        );
+      }
+
+      try {
+        computeNextRunAtOrThrow(schedule, timezone);
+      } catch {
+        throw new BadRequestException(
+          `Invalid cron expression "${schedule}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
+        );
+      }
+    }
+
+    const workflow = await this.prisma.workflow.update({
+      data: {
+        isScheduleEnabled: isEnabled && !!schedule,
+        schedule,
+        timezone,
+      },
+      where: { id: workflowId },
+    });
+
+    const workflowDocument = toWorkflowDocument(workflow);
+
+    if (schedule && isEnabled) {
+      // No try/catch: a failed registration on the save path must reach the
+      // caller (the boot-sync path in scheduleWorkflow keeps its own catch).
+      await this.workflowExecutionQueueService.upsertWorkflowScheduler({
+        cronExpression: schedule,
+        timezone: timezone || 'UTC',
+        workflowId,
+      });
+
+      this.logger.log(
+        `Scheduled workflow ${workflowId} with cron: ${schedule}`,
+        'WorkflowSchedulerService',
+      );
+    } else {
+      await this.unscheduleWorkflow(workflowId);
+    }
+
+    return workflowDocument;
   }
 }

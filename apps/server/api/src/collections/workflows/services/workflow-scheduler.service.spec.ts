@@ -175,6 +175,78 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
     expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
   });
+
+  it('rejects an invalid cron expression before persistence', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
+    const { queueService, service } = createService({ prisma });
+
+    await expect(
+      service.updateSchedule('wf-1', 'not a cron', 'UTC', true),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('not a cron'),
+      status: 400,
+    });
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown IANA timezone before persistence', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
+    const { queueService, service } = createService({ prisma });
+
+    await expect(
+      service.updateSchedule('wf-1', '0 7 * * *', 'Mars/Olympus', true),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('Mars/Olympus'),
+      status: 400,
+    });
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('rejects schedule mutations on system workflows with an explanation', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-system',
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'scheduled-post-publishing',
+        }),
+      },
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await expect(
+      service.updateSchedule('wf-system', '0 7 * * *', 'UTC', true),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('System workflow'),
+      status: 400,
+    });
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('surfaces scheduler registration failures to the caller instead of logging silently', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
+    prisma.workflow.update.mockResolvedValue({
+      id: 'wf-1',
+      isScheduleEnabled: true,
+      schedule: '0 7 * * *',
+      timezone: 'UTC',
+    });
+    const queueService = createMockQueueService();
+    queueService.upsertWorkflowScheduler.mockRejectedValue(
+      new Error('redis unavailable'),
+    );
+    const { service } = createService({ prisma, queueService });
+
+    await expect(
+      service.updateSchedule('wf-1', '0 7 * * *', 'UTC', true),
+    ).rejects.toThrow('redis unavailable');
+  });
 });
 
 describe('WorkflowSchedulerService — boot sync', () => {

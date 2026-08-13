@@ -10,6 +10,7 @@ import {
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
+import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -95,7 +96,11 @@ export class WorkflowCrudController {
         publicMetadata.brand || undefined,
       );
 
-      return serializeSingle(request, WorkflowSerializer, workflow);
+      return serializeSingle(
+        request,
+        WorkflowSerializer,
+        withNextRunAt(workflow),
+      );
     }, 'Failed to create workflow');
   }
 
@@ -172,7 +177,10 @@ export class WorkflowCrudController {
 
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);
-    return serializeCollection(request, WorkflowSerializer, data);
+    return serializeCollection(request, WorkflowSerializer, {
+      ...data,
+      docs: data.docs.map(withNextRunAt),
+    });
   }
 
   @Get(':workflowId/export-comfyui')
@@ -214,7 +222,11 @@ export class WorkflowCrudController {
       },
     );
 
-    return serializeSingle(request, WorkflowSerializer, workflow);
+    return serializeSingle(
+      request,
+      WorkflowSerializer,
+      withNextRunAt(workflow),
+    );
   }
 
   /**
@@ -309,7 +321,11 @@ export class WorkflowCrudController {
           },
         );
 
-        return serializeSingle(request, WorkflowSerializer, updated);
+        return serializeSingle(
+          request,
+          WorkflowSerializer,
+          withNextRunAt(updated),
+        );
       }, 'Failed to update workflow schedule');
     }
 
@@ -319,7 +335,7 @@ export class WorkflowCrudController {
     );
 
     return data
-      ? serializeSingle(request, WorkflowSerializer, data)
+      ? serializeSingle(request, WorkflowSerializer, withNextRunAt(data))
       : returnNotFound(this.constructorName, workflowId);
   }
 
