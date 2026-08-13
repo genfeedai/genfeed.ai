@@ -1049,7 +1049,8 @@ describe('PromptBar', () => {
         shouldValidate: true,
       });
       expect(mockSetTextValue).toHaveBeenCalledWith('Existing hello');
-      expect(textarea.style.height).toBe('300px');
+      // Caps at PROMPT_BAR_TEXTAREA_MAX_HEIGHT (5 lines), then scrolls.
+      expect(textarea.style.height).toBe('116px');
       expect(textarea.style.overflowY).toBe('auto');
       expect(mockNotifications.success).toHaveBeenCalledWith(
         'Voice input transcribed (2 credits used)',

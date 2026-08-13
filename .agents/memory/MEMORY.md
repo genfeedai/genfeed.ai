@@ -35,6 +35,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items
+- [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, context meter
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps

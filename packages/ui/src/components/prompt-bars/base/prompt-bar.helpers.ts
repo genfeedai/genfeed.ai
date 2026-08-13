@@ -4,6 +4,12 @@ import type { DragEvent } from 'react';
 
 export const EMPTY_ARRAY: never[] = [];
 
+/**
+ * Prompt textarea grows from one line to five (text-sm leading-5 = 20px per
+ * line + 16px vertical padding), then scrolls — Cursor-style composer input.
+ */
+export const PROMPT_BAR_TEXTAREA_MAX_HEIGHT = 116;
+
 export function resizeTextarea(
   textarea: HTMLTextAreaElement | null,
   maxHeight: number,

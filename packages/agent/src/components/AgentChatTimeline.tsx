@@ -6,6 +6,7 @@ import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailure
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
+import { AGENT_TIMELINE_DEFERRED_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiAction,
@@ -14,6 +15,7 @@ import type {
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
+import { groupTimelineTurns } from '@genfeedai/agent/utils/group-timeline-turns.util';
 import type { ReactElement, RefObject } from 'react';
 
 type AgentChatTimelineProps = {
@@ -99,40 +101,59 @@ export function AgentChatTimeline({
   const isTerminalFailedRunWithoutAssistant =
     Boolean(terminalFailedWorkGroup) && !isGenerating && !isStreamingActive;
 
+  const renderTimelineEntry = (
+    entry: TimelineEntry,
+    index: number,
+  ): ReactElement | null => {
+    switch (entry.kind) {
+      case 'user-message':
+      case 'assistant-message':
+        return (
+          <AgentChatMessage
+            key={entry.id}
+            messageIndex={index}
+            message={entry.message}
+            messageAnchorId={`agent-message-${entry.message.id}`}
+            isHighlighted={highlightedMessageId === entry.message.id}
+            isBusy={isBusy}
+            isReadOnly={isReadOnly}
+            apiService={apiService}
+            onCopy={onCopy}
+            onRetry={onRetry}
+            onRegenerate={onRegenerate}
+            onOAuthConnect={onOAuthConnect}
+            onBrandCreate={onBrandCreate}
+            onSelectCreditPack={onSelectCreditPack}
+            onSelectIngredient={onSelectIngredient}
+            onUiAction={onUiAction}
+          />
+        );
+      case 'work-group':
+        return <TimelineWorkGroup key={entry.id} entry={entry} />;
+      case 'streaming':
+        return <TimelineStreamingRow key={entry.id} entry={entry} />;
+      default:
+        return null;
+    }
+  };
+
+  const turns = groupTimelineTurns(timeline);
+
   return (
     <>
-      {timeline.map((entry, index) => {
-        switch (entry.kind) {
-          case 'user-message':
-          case 'assistant-message':
-            return (
-              <AgentChatMessage
-                key={entry.id}
-                messageIndex={index}
-                message={entry.message}
-                messageAnchorId={`agent-message-${entry.message.id}`}
-                isHighlighted={highlightedMessageId === entry.message.id}
-                isBusy={isBusy}
-                isReadOnly={isReadOnly}
-                apiService={apiService}
-                onCopy={onCopy}
-                onRetry={onRetry}
-                onRegenerate={onRegenerate}
-                onOAuthConnect={onOAuthConnect}
-                onBrandCreate={onBrandCreate}
-                onSelectCreditPack={onSelectCreditPack}
-                onSelectIngredient={onSelectIngredient}
-                onUiAction={onUiAction}
-              />
-            );
-          case 'work-group':
-            return <TimelineWorkGroup key={entry.id} entry={entry} />;
-          case 'streaming':
-            return <TimelineStreamingRow key={entry.id} entry={entry} />;
-          default:
-            return null;
-        }
-      })}
+      {turns.map((turn) => (
+        <div className="relative" key={turn.id}>
+          {turn.items.map(({ entry, index }) =>
+            entry.kind === 'user-message' ? (
+              renderTimelineEntry(entry, index)
+            ) : (
+              <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
+                {renderTimelineEntry(entry, index)}
+              </div>
+            ),
+          )}
+        </div>
+      ))}
 
       {isTerminalFailedRunWithoutAssistant ? (
         <AgentRunFailureCard

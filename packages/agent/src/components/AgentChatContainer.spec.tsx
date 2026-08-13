@@ -524,6 +524,7 @@ describe('AgentChatContainer', () => {
     storeState.runStartedAt = null;
     storeState.stream.streamingContent = '';
     storeState.threads = [];
+    storeState.isGenerating = false;
   });
 
   it('submits pending input through the response endpoint instead of chat send', async () => {
@@ -1038,6 +1039,66 @@ describe('AgentChatContainer', () => {
     });
   });
 
+  it('queues a suggestion while a turn is in flight', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+
+    expect(sendNonStreaming).not.toHaveBeenCalled();
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Review the current branch',
+    );
+  });
+
+  it('queues retry from an older message while a turn is in flight', async () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.isGenerating = true;
+    storeState.messages = [
+      {
+        content: 'Original prompt',
+        createdAt: '2026-03-10T09:59:00.000Z',
+        id: 'user-original',
+        role: 'user',
+        threadId: 'thread-1',
+      },
+      buildAssistantMessage({
+        content: 'Initial failed result',
+        id: 'assistant-retry-target',
+      }),
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} />);
+
+    const retryButton = await screen.findByRole('button', {
+      name: 'Retry message',
+    });
+    fireEvent.click(retryButton);
+
+    expect(sendNonStreaming).not.toHaveBeenCalled();
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Original prompt',
+    );
+  });
+
   it('scrolls to the latest turn when retrying from an older message', async () => {
     const apiService = createApiService();
 
@@ -1069,7 +1130,10 @@ describe('AgentChatContainer', () => {
     fireEvent.click(retryButton);
 
     await waitFor(() => {
-      expect(sendNonStreaming).toHaveBeenCalledWith('Original prompt');
+      expect(sendNonStreaming).toHaveBeenCalledWith(
+        'Original prompt',
+        expect.objectContaining({ planModeEnabled: false }),
+      );
     });
     await waitFor(() => {
       expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });

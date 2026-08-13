@@ -1,5 +1,7 @@
+import { ComposerContextUsageIndicator } from '@genfeedai/agent/components/ComposerContextUsageIndicator';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import {
   ButtonSize,
   ButtonVariant,
@@ -37,6 +39,7 @@ import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
   creditsAvailable?: number | null;
+  contextUsage?: ConversationContextUsage | null;
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
@@ -61,6 +64,8 @@ export interface AgentChatInputToolbarProps {
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
+  /** Send will enqueue instead of starting a new turn. */
+  willQueueFollowUp?: boolean;
   density?: 'compact' | 'default';
 }
 
@@ -74,6 +79,7 @@ function AgentChatInputToolbarInner({
   isUploading,
   models,
   creditsAvailable = null,
+  contextUsage = null,
   onAddFiles,
   onInsertReference,
   onModelChange,
@@ -88,6 +94,7 @@ function AgentChatInputToolbarInner({
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
+  willQueueFollowUp = false,
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -162,29 +169,10 @@ function AgentChatInputToolbarInner({
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
-  // Trailing primary: Stop run | stop-mic (listening) | idle-mic (voice-on +
-  // empty) | send (otherwise). Mic replaces send — never both. Enter is gated
-  // in useAgentChatInput while listening so text cannot send without a send control.
+  // Trailing primary: Stop (optional, during a run) plus send or mic.
   let trailingPrimary: ReactElement | null = null;
 
-  if (showStop && onStop) {
-    trailingPrimary = (
-      <Button
-        ariaLabel="Stop agent"
-        className={trailingControlClass}
-        icon={
-          <Square aria-hidden className="size-2.5 fill-current stroke-none" />
-        }
-        onClick={() => {
-          void onStop();
-        }}
-        size={ButtonSize.ICON}
-        tooltip="Stop"
-        variant={ButtonVariant.DESTRUCTIVE}
-        withWrapper={false}
-      />
-    );
-  } else if (isTranscribing) {
+  if (isTranscribing) {
     trailingPrimary = (
       <Button
         ariaLabel="Transcribing"
@@ -219,34 +207,65 @@ function AgentChatInputToolbarInner({
         />
       </Button>
     );
-  } else if (shouldShowVoiceInput) {
-    trailingPrimary = (
-      <Button
-        ariaLabel="Start voice input"
-        className={trailingControlClass}
-        icon={<Mic className="size-4" />}
-        isDisabled={disabled}
-        onClick={onStartListening}
-        size={ButtonSize.ICON}
-        tooltip="Voice input"
-        variant={ButtonVariant.DEFAULT}
-        withWrapper={false}
-      />
-    );
-  } else if (shouldShowSendButton) {
-    trailingPrimary = (
-      <Button
-        ariaLabel="Send message"
-        className={trailingControlClass}
-        icon={<ArrowUp className="size-4" />}
-        isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
-        onClick={onSend}
-        size={ButtonSize.ICON}
-        tooltip="Send (Enter)"
-        variant={ButtonVariant.DEFAULT}
-        withWrapper={false}
-      />
-    );
+  } else {
+    const stopButton =
+      showStop && onStop ? (
+        <Button
+          ariaLabel="Stop agent"
+          className={trailingControlClass}
+          icon={
+            <Square aria-hidden className="size-2.5 fill-current stroke-none" />
+          }
+          onClick={() => {
+            void onStop();
+          }}
+          size={ButtonSize.ICON}
+          tooltip="Stop"
+          variant={ButtonVariant.DESTRUCTIVE}
+          withWrapper={false}
+        />
+      ) : null;
+
+    let actionButton: ReactElement | null = null;
+    if (shouldShowVoiceInput) {
+      actionButton = (
+        <Button
+          ariaLabel="Start voice input"
+          className={trailingControlClass}
+          icon={<Mic className="size-4" />}
+          isDisabled={disabled}
+          onClick={onStartListening}
+          size={ButtonSize.ICON}
+          tooltip="Voice input"
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
+        />
+      );
+    } else if (shouldShowSendButton) {
+      actionButton = (
+        <Button
+          ariaLabel={willQueueFollowUp ? 'Queue follow-up' : 'Send message'}
+          className={trailingControlClass}
+          icon={<ArrowUp className="size-4" />}
+          isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
+          onClick={onSend}
+          size={ButtonSize.ICON}
+          tooltip={
+            willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'
+          }
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
+        />
+      );
+    }
+
+    trailingPrimary =
+      stopButton || actionButton ? (
+        <>
+          {stopButton}
+          {actionButton}
+        </>
+      ) : null;
   }
 
   return (
@@ -340,9 +359,12 @@ function AgentChatInputToolbarInner({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        {contextUsage ? (
+          <ComposerContextUsageIndicator usage={contextUsage} />
+        ) : null}
       </div>
 
-      {/* Trailing: stop | mic (voice-on + empty) | send */}
+      {/* Trailing: stop + send (queue while running) | mic */}
       <div
         className={cn(
           'flex min-w-0 shrink items-center justify-end',
