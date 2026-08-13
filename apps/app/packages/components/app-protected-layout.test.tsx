@@ -869,11 +869,7 @@ describe('AppProtectedLayout', () => {
       'Automate',
       'Content Run',
     ],
-    [
-      '/org-123/brand-123/automate/campaigns/campaign-1',
-      'Automate',
-      'Campaign',
-    ],
+    ['/org-123/brand-123/automate/campaigns/campaign-1', 'Automate', 'Program'],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -1026,10 +1022,24 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',
-        items: [],
+        items: expect.arrayContaining([
+          expect.objectContaining({ href: '/messages', label: 'Inbox' }),
+          expect.objectContaining({
+            href: '/messages/outreach',
+            label: 'Outreach sequences',
+          }),
+          expect.objectContaining({
+            href: '/messages/replies',
+            label: 'Replies',
+          }),
+          expect.objectContaining({
+            href: '/messages/reply-drip',
+            label: 'Reply drip',
+          }),
+        ]),
         renderBody: expect.any(Function),
         sectionLabel: 'Messages',
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }),
     );
     expect(
