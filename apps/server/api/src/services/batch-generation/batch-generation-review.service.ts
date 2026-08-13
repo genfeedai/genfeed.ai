@@ -144,20 +144,25 @@ export class BatchGenerationReviewService {
     const limit = Math.min(query?.limit ?? 20, 100);
     const offset = query?.offset ?? 0;
 
-    const where: Record<string, unknown> = scopedWhere(orgId);
-    if (query?.status) {
-      where.status = toPrismaBatchStatus(query.status);
-    }
-
     const [batches, total] = await Promise.all([
       this.prisma.batch.findMany({
         include: batchItemRowsInclude(orgId),
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        where: where as Prisma.BatchWhereInput,
+        where: scopedWhere(orgId, {
+          ...(query?.status
+            ? { status: toPrismaBatchStatus(query.status) }
+            : {}),
+        }),
       }),
-      this.prisma.batch.count({ where: where as Prisma.BatchWhereInput }),
+      this.prisma.batch.count({
+        where: scopedWhere(orgId, {
+          ...(query?.status
+            ? { status: toPrismaBatchStatus(query.status) }
+            : {}),
+        }),
+      }),
     ]);
 
     return {
