@@ -181,6 +181,38 @@ export class ApifyTikTokService {
   }
 
   /**
+   * Fetch one TikTok video/photo post by its canonical URL (single-post import).
+   * Hard-fails without a token or when the post cannot be resolved so the
+   * import flow never reports an empty success.
+   */
+  async getTikTokVideoByUrl(videoUrl: string): Promise<ApifyTikTokVideo> {
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape TikTok posts',
+      );
+    }
+
+    const input = {
+      postURLs: [videoUrl],
+      resultsPerPage: 1,
+    };
+
+    const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
+      this.baseService.ACTORS.TIKTOK_SCRAPER,
+      input,
+    );
+
+    const video = rawVideos[0];
+    if (!video?.id) {
+      throw new Error(
+        'TikTok post not found via Apify — it may be deleted or private',
+      );
+    }
+    return video;
+  }
+
+  /**
    * Search TikTok videos by hashtag
    */
   async searchTikTokByHashtag(

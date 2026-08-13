@@ -1,7 +1,9 @@
 import type { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
+import type { ImportSocialPostDto } from '@api/collections/social-sources/dto/import-social-post.dto';
 import type { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import type { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
 import type {
+  SocialPostImportDocumentResult,
   SocialSourceBrandSyncDocumentResult,
   SocialSourceDocument,
   SocialSourceSyncDocumentResult,
@@ -10,9 +12,13 @@ import type { SourcePostDocument } from '@api/collections/source-posts/schemas/s
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
-import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
+import type {
+  CollectedSourcePost,
+  SourceCollectResult,
+} from '@api/services/source-collector/source-collector.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  parseSocialPostUrl,
   SocialSourcePlatform,
   SocialSourceType,
   toPrismaCredentialPlatform,
@@ -281,7 +287,150 @@ export class SocialSourcesService {
     options: { limit?: number } = {},
   ): Promise<SocialSourceSyncDocumentResult> {
     const source = await this.findOneScoped(id, context);
+    if (source.sourceType === SocialSourceType.POST) {
+      throw new BadRequestException(
+        'Imported posts have no timeline sync — re-import the post URL to refresh its metrics',
+      );
+    }
     return this.syncResolvedSource(source, options);
+  }
+
+  /**
+   * Import exactly one post by URL as a source item (issue #2660).
+   *
+   * The URL is parsed into `{ platform, postId }` — never fetched raw — then
+   * the post is collected through the existing provider chain. Re-importing a
+   * URL that already exists for this org/brand deduplicates onto the existing
+   * item and refreshes its metrics snapshot.
+   */
+  async importPostScoped(
+    dto: ImportSocialPostDto,
+    context: { organizationId: string; brandId: string; userId: string },
+  ): Promise<SocialPostImportDocumentResult> {
+    const reference = parseSocialPostUrl(dto.url);
+    if (!reference) {
+      throw new BadRequestException(
+        'URL is not a recognizable X, Instagram, or TikTok post link',
+      );
+    }
+
+    await this.ensureBrandAccess(context.organizationId, context.brandId);
+
+    let collected: SourceCollectResult;
+    try {
+      collected = await this.sourceCollector.collectPost(reference, {
+        brandId: context.brandId,
+        organizationId: context.organizationId,
+      });
+    } catch (error: unknown) {
+      const message = (error as Error)?.message ?? 'Failed to fetch post';
+      this.logger.error('Social post import fetch failed', {
+        error: message,
+        platform: reference.platform,
+        postId: reference.postId,
+      });
+      if (/not found|deleted|private|incomplete/i.test(message)) {
+        throw new NotFoundException({
+          message:
+            'Post could not be resolved — it may be deleted, private, or the link is wrong',
+        });
+      }
+      throw new BadRequestException(`Post import failed: ${message}`);
+    }
+
+    const collectedPost = collected.posts[0];
+    const existing = await this.sourcePostsService.findByExternalIdScoped(
+      context,
+      reference.platform,
+      collectedPost.id,
+    );
+
+    // Reuse the existing item's source; fall back to an import container when
+    // the original source was since removed.
+    const existingSource = existing
+      ? await this.prisma.socialSource.findFirst({
+          where: scopedWhere(context.organizationId, {
+            brandId: context.brandId,
+            id: existing.sourceId,
+          }),
+        })
+      : null;
+    const source =
+      existingSource ??
+      (await this.resolveImportContainer(reference, collectedPost, context));
+
+    const normalized = normalizeCollectedPost(source, collectedPost);
+    const posts = await this.sourcePostsService.upsertCollectedPosts(source, [
+      { ...normalized, sourceUrl: normalized.sourceUrl ?? reference.url },
+    ]);
+
+    this.logger.log('Social post imported', {
+      deduplicated: Boolean(existing),
+      platform: reference.platform,
+      postId: collectedPost.id,
+      provider: collected.provider,
+      sourceId: source.id,
+    });
+
+    return {
+      deduplicated: Boolean(existing),
+      post: posts[0],
+      source,
+    };
+  }
+
+  /**
+   * Find or create the per-author container source (`sourceType: post`) that
+   * imported posts hang off. Containers are inactive so brand timeline sync
+   * never picks them up.
+   */
+  private async resolveImportContainer(
+    reference: NonNullable<ReturnType<typeof parseSocialPostUrl>>,
+    collectedPost: CollectedSourcePost,
+    context: { organizationId: string; brandId: string; userId: string },
+  ): Promise<SocialSourceDocument> {
+    const handle = (
+      collectedPost.authorUsername ||
+      reference.authorHandle ||
+      'unknown'
+    )
+      .replace(/^@/, '')
+      .toLowerCase();
+
+    const existingContainer = await this.prisma.socialSource.findFirst({
+      where: scopedWhere(context.organizationId, {
+        brandId: context.brandId,
+        handle,
+        platform: reference.platform,
+        sourceType: SocialSourceType.POST,
+      }),
+    });
+    if (existingContainer) {
+      return existingContainer;
+    }
+
+    return this.prisma.socialSource.create({
+      data: {
+        avatarUrl: collectedPost.authorAvatarUrl ?? null,
+        bio: null,
+        brandId: context.brandId,
+        credentialId: null,
+        displayName: collectedPost.authorDisplayName ?? null,
+        externalId: collectedPost.authorId ?? null,
+        followersCount: collectedPost.authorFollowersCount ?? null,
+        handle,
+        isActive: false,
+        metadata: {},
+        organizationId: context.organizationId,
+        platform: reference.platform,
+        profileUrl:
+          handle === 'unknown'
+            ? null
+            : buildProfileUrl(reference.platform, handle),
+        sourceType: SocialSourceType.POST,
+        userId: context.userId,
+      },
+    });
   }
 
   async syncBrand(
@@ -484,6 +633,13 @@ function normalizeHandle(platform: string, input: string): string {
   const trimmed = input.trim();
   try {
     if (/^https?:\/\//i.test(trimmed)) {
+      // Regression guard (#2660): a URL with a post identifier must never
+      // silently degrade into following the whole account.
+      if (parseSocialPostUrl(trimmed)) {
+        throw new BadRequestException(
+          'This link points to a specific post — use "Import post" instead, or enter the account handle to follow the account',
+        );
+      }
       const url = new URL(trimmed);
       const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
       const allowedHosts = getPlatformHosts(platform);

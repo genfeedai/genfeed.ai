@@ -134,6 +134,43 @@ export class ApifyTwitterService {
   }
 
   /**
+   * Fetch one tweet by its canonical URL (single-post import fallback).
+   * Hard-fails without a token or when the tweet cannot be resolved so the
+   * import flow never reports an empty success.
+   */
+  async getTweetByUrl(
+    tweetUrl: string,
+    tweetId: string,
+  ): Promise<ApifyNormalizedTweet> {
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape X posts',
+      );
+    }
+
+    const input = {
+      maxTweets: 1,
+      startUrls: [tweetUrl],
+    };
+
+    const rawTweets = await this.baseService.runActor<ApifyTwitterTweet>(
+      this.baseService.ACTORS.TWITTER_SCRAPER,
+      input,
+    );
+
+    const tweet = this.normalizeTwitterTweets(rawTweets).find(
+      (candidate) => candidate.id === tweetId,
+    );
+    if (!tweet) {
+      throw new Error(
+        'Tweet not found via Apify — it may be deleted or private',
+      );
+    }
+    return tweet;
+  }
+
+  /**
    * Get replies to a specific tweet
    * Used to find reply chains for context
    */

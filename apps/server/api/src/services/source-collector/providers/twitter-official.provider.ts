@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import type { SocialPostUrlReference } from '@genfeedai/enums';
 import { SocialSourcePlatform } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
@@ -69,6 +70,28 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
       provider: 'brand-oauth',
     };
   }
+
+  async collectPost(
+    reference: SocialPostUrlReference,
+    context: SourceCollectContext,
+  ): Promise<SourceCollectResult> {
+    if (!context.organizationId || !context.brandId) {
+      throw new Error(
+        'Brand OAuth provider requires organizationId and brandId',
+      );
+    }
+    const tweet = await this.twitterService.getTweetById(reference.postId, {
+      brandId: context.brandId,
+      organizationId: context.organizationId,
+    });
+
+    return {
+      handle: tweet.authorUsername ?? reference.authorHandle ?? '',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [mapSingleTweet(tweet)],
+      provider: 'brand-oauth',
+    };
+  }
 }
 
 @Injectable()
@@ -101,6 +124,47 @@ export class TwitterAppBearerProvider implements SourceTimelineProvider {
       provider: 'app-bearer',
     };
   }
+
+  async collectPost(
+    reference: SocialPostUrlReference,
+  ): Promise<SourceCollectResult> {
+    const tweet = await this.twitterService.getTweetById(reference.postId);
+
+    return {
+      handle: tweet.authorUsername ?? reference.authorHandle ?? '',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [mapSingleTweet(tweet)],
+      provider: 'app-bearer',
+    };
+  }
+}
+
+function mapSingleTweet(tweet: {
+  authorId?: string;
+  authorUsername?: string;
+  createdAt?: string;
+  id: string;
+  likeCount?: number;
+  replyCount?: number;
+  retweetCount?: number;
+  text: string;
+  url: string;
+}): CollectedSourcePost {
+  return {
+    authorId: tweet.authorId,
+    authorUsername: tweet.authorUsername,
+    contentType: 'tweet',
+    contentUrl: tweet.url,
+    createdAt: tweet.createdAt ? new Date(tweet.createdAt) : undefined,
+    id: tweet.id,
+    metrics: {
+      comments: tweet.replyCount,
+      likes: tweet.likeCount,
+      shares: tweet.retweetCount,
+    },
+    platform: SocialSourcePlatform.TWITTER,
+    text: tweet.text,
+  };
 }
 
 function mapOfficialTweet(tweet: {

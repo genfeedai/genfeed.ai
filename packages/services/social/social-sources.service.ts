@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   CreateSocialSourceInput,
+  SocialPostImportResult,
   SocialSourceBrandSyncResult,
   SocialSourceSyncResult,
   SocialSourcesResponse,
@@ -60,6 +61,18 @@ export class SocialSourcesService extends BaseService<
     const response = await this.instance.post<SocialSourceBrandSyncResult>(
       '/sync',
       { limit: options.limit },
+      { params: { brandId: options.brandId } },
+    );
+    return response.data;
+  }
+
+  async importPost(
+    url: string,
+    options: { brandId?: string } = {},
+  ): Promise<SocialPostImportResult> {
+    const response = await this.instance.post<SocialPostImportResult>(
+      '/import-post',
+      { url },
       { params: { brandId: options.brandId } },
     );
     return response.data;

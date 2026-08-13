@@ -17,8 +17,10 @@ import FollowSourceModal, {
 const validateSourceMock = vi.fn();
 const postMock = vi.fn();
 const syncSourceMock = vi.fn();
+const importPostMock = vi.fn();
 
 const socialSourcesServiceMock = {
+  importPost: importPostMock,
   post: postMock,
   syncSource: syncSourceMock,
   validateSource: validateSourceMock,
@@ -86,6 +88,7 @@ describe('FollowSourceModal', () => {
     validateSourceMock.mockReset();
     postMock.mockReset();
     syncSourceMock.mockReset();
+    importPostMock.mockReset();
 
     validateSourceMock.mockImplementation(async (platform: string) => {
       if (platform === SocialSourcePlatform.TWITTER) {
@@ -226,5 +229,101 @@ describe('FollowSourceModal', () => {
     });
     expect(onFollowed).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  describe('post URL import choice (#2660)', () => {
+    const postUrl = 'https://x.com/VincentShipsIt/status/1234567890';
+
+    function renderModal(
+      overrides: { onFollowed?: () => void; onOpenChange?: () => void } = {},
+    ) {
+      render(
+        <FollowSourceModal
+          brandId="brand-1"
+          existingSources={[]}
+          open
+          onFollowed={overrides.onFollowed ?? vi.fn()}
+          onOpenChange={overrides.onOpenChange ?? vi.fn()}
+        />,
+      );
+    }
+
+    it('shows the import/follow choice instead of searching — the silent-follow regression', async () => {
+      renderModal();
+
+      fireEvent.change(screen.getByLabelText('Search'), {
+        target: { value: postUrl },
+      });
+
+      expect(
+        await screen.findByRole('button', { name: 'Import post' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {
+          name: 'Follow @vincentshipsit instead',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Search' }),
+      ).not.toBeInTheDocument();
+
+      // Enter must not create or search anything without an explicit choice.
+      const form = screen.getByLabelText('Search').closest('form');
+      expect(form).not.toBeNull();
+      fireEvent.submit(form as HTMLFormElement);
+      expect(validateSourceMock).not.toHaveBeenCalled();
+      expect(importPostMock).not.toHaveBeenCalled();
+      expect(postMock).not.toHaveBeenCalled();
+    });
+
+    it('imports the exact post when Import post is chosen', async () => {
+      const user = userEvent.setup();
+      const onFollowed = vi.fn();
+      const onOpenChange = vi.fn();
+      importPostMock.mockResolvedValue({
+        deduplicated: false,
+        post: { id: 'post-1' },
+        source: { id: 'container-1' },
+      });
+
+      renderModal({ onFollowed, onOpenChange });
+
+      fireEvent.change(screen.getByLabelText('Search'), {
+        target: { value: postUrl },
+      });
+      await user.click(
+        await screen.findByRole('button', { name: 'Import post' }),
+      );
+
+      await waitFor(() => {
+        expect(importPostMock).toHaveBeenCalledWith(postUrl, {
+          brandId: 'brand-1',
+        });
+      });
+      expect(postMock).not.toHaveBeenCalled();
+      expect(onFollowed).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    it('runs the account search when Follow instead is chosen', async () => {
+      const user = userEvent.setup();
+      renderModal();
+
+      fireEvent.change(screen.getByLabelText('Search'), {
+        target: { value: postUrl },
+      });
+      await user.click(
+        await screen.findByRole('button', {
+          name: 'Follow @vincentshipsit instead',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('1 account available')).toBeInTheDocument();
+      });
+      expect(importPostMock).not.toHaveBeenCalled();
+      // Following still requires the explicit Follow selected click.
+      expect(postMock).not.toHaveBeenCalled();
+    });
   });
 });

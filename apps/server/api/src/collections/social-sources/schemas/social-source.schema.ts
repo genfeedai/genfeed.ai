@@ -14,3 +14,9 @@ export interface SocialSourceBrandSyncDocumentResult {
   failures: Array<{ error: string; sourceId: string }>;
   results: SocialSourceSyncDocumentResult[];
 }
+
+export interface SocialPostImportDocumentResult {
+  deduplicated: boolean;
+  post: SourcePostDocument;
+  source: SocialSourceDocument;
+}

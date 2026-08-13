@@ -3,6 +3,9 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardVariant,
+  formatPlatformLabel,
+  parseSocialPostUrl,
   SocialSourcePlatform,
 } from '@genfeedai/enums';
 import type {
@@ -15,6 +18,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
+import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -27,7 +31,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Download, Loader2, Plus, Search, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import {
   type ChangeEvent,
@@ -112,10 +116,16 @@ export default function FollowSourceModal({
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [candidates, setCandidates] = useState<SourceCandidate[]>([]);
   // string[] (not Set) so React state updates stay referentially obvious in tests/UI
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // A pasted URL with a post identifier switches the modal into the explicit
+  // import-post vs follow-account choice (#2660) — it never silently degrades
+  // into following the whole account.
+  const postReference = useMemo(() => parseSocialPostUrl(query), [query]);
 
   const followedKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -132,6 +142,7 @@ export default function FollowSourceModal({
     setQuery('');
     setIsSearching(false);
     setIsFollowing(false);
+    setIsImporting(false);
     setHasSearched(false);
     setCandidates([]);
     setSelectedKeys([]);
@@ -157,72 +168,119 @@ export default function FollowSourceModal({
     [selectableCandidates, selectedKeySet],
   );
 
-  const runSearch = useCallback(async () => {
-    const handle = normalizeSearchQuery(query);
-    if (!handle) {
-      notifications.error('Enter a handle to search');
+  const importPost = useCallback(async () => {
+    if (!postReference) {
       return;
     }
 
     try {
-      setIsSearching(true);
-      setHasSearched(true);
+      setIsImporting(true);
       const service = await getSocialSourcesService();
-
-      const results = await Promise.all(
-        PLATFORM_OPTIONS.map(async (option) => {
-          try {
-            const result = await service.validateSource(option.value, handle);
-            return { option, result };
-          } catch (error: unknown) {
-            logger.error('Source search failed', {
-              error,
-              handle,
-              platform: option.value,
-            });
-            const failed: SocialSourceValidationResult = {
-              error: (error as Error)?.message ?? 'Lookup failed',
-              valid: false,
-            };
-            return { option, result: failed };
-          }
-        }),
+      const result = await service.importPost(query.trim(), { brandId });
+      notifications.success(
+        result.deduplicated
+          ? 'Post already imported — metrics refreshed'
+          : 'Post imported',
       );
-
-      const nextCandidates: SourceCandidate[] = results.map(
-        ({ option, result }) => {
-          const resolvedHandle = (result.handle || handle)
-            .replace(/^@/, '')
-            .toLowerCase();
-          const key = candidateKey(option.value, resolvedHandle);
-          return {
-            avatarUrl: result.avatarUrl,
-            displayName: result.displayName,
-            error: result.error,
-            externalId: result.externalId,
-            followersCount: result.followersCount,
-            handle: resolvedHandle,
-            isAlreadyFollowed: followedKeys.has(key),
-            isValid: result.valid,
-            key,
-            platform: option.value,
-            profileUrl: result.profileUrl,
-          };
-        },
-      );
-
-      setCandidates(nextCandidates);
-      // Auto-select every new match so a single hit is ready to follow immediately.
-      setSelectedKeys(
-        nextCandidates.filter(isCandidateSelectable).map((item) => item.key),
-      );
+      await onFollowed();
+      onOpenChange(false);
     } catch (error) {
-      logger.error('Follow source search failed', error);
-      notifications.error('Could not search for that handle');
+      logger.error('Failed to import post', {
+        error,
+        platform: postReference.platform,
+        postId: postReference.postId,
+      });
+      notifications.error((error as Error)?.message || 'Failed to import post');
     } finally {
-      setIsSearching(false);
+      setIsImporting(false);
     }
-  }, [followedKeys, getSocialSourcesService, notifications, query]);
+  }, [
+    brandId,
+    getSocialSourcesService,
+    notifications,
+    onFollowed,
+    onOpenChange,
+    postReference,
+    query,
+  ]);
+
+  const runSearch = useCallback(
+    async (queryOverride?: string) => {
+      const handle = normalizeSearchQuery(queryOverride ?? query);
+      if (!handle) {
+        notifications.error('Enter a handle to search');
+        return;
+      }
+
+      try {
+        setIsSearching(true);
+        setHasSearched(true);
+        const service = await getSocialSourcesService();
+
+        const results = await Promise.all(
+          PLATFORM_OPTIONS.map(async (option) => {
+            try {
+              const result = await service.validateSource(option.value, handle);
+              return { option, result };
+            } catch (error: unknown) {
+              logger.error('Source search failed', {
+                error,
+                handle,
+                platform: option.value,
+              });
+              const failed: SocialSourceValidationResult = {
+                error: (error as Error)?.message ?? 'Lookup failed',
+                valid: false,
+              };
+              return { option, result: failed };
+            }
+          }),
+        );
+
+        const nextCandidates: SourceCandidate[] = results.map(
+          ({ option, result }) => {
+            const resolvedHandle = (result.handle || handle)
+              .replace(/^@/, '')
+              .toLowerCase();
+            const key = candidateKey(option.value, resolvedHandle);
+            return {
+              avatarUrl: result.avatarUrl,
+              displayName: result.displayName,
+              error: result.error,
+              externalId: result.externalId,
+              followersCount: result.followersCount,
+              handle: resolvedHandle,
+              isAlreadyFollowed: followedKeys.has(key),
+              isValid: result.valid,
+              key,
+              platform: option.value,
+              profileUrl: result.profileUrl,
+            };
+          },
+        );
+
+        setCandidates(nextCandidates);
+        // Auto-select every new match so a single hit is ready to follow immediately.
+        setSelectedKeys(
+          nextCandidates.filter(isCandidateSelectable).map((item) => item.key),
+        );
+      } catch (error) {
+        logger.error('Follow source search failed', error);
+        notifications.error('Could not search for that handle');
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [followedKeys, getSocialSourcesService, notifications, query],
+  );
+
+  const followAuthorInstead = useCallback(() => {
+    if (!postReference?.authorHandle) {
+      return;
+    }
+    setQuery(postReference.authorHandle);
+    runSearch(postReference.authorHandle).catch(() => undefined);
+  }, [postReference, runSearch]);
 
   const toggleCandidate = useCallback((key: string) => {
     setSelectedKeys((current) =>
@@ -323,9 +381,14 @@ export default function FollowSourceModal({
   const handleSubmitSearch = useCallback(
     (event: FormEvent) => {
       event.preventDefault();
+      // A pasted post URL requires an explicit import/follow choice — Enter
+      // must not create anything on its own.
+      if (postReference) {
+        return;
+      }
       runSearch().catch(() => undefined);
     },
-    [runSearch],
+    [postReference, runSearch],
   );
 
   return (
@@ -334,8 +397,8 @@ export default function FollowSourceModal({
         <DialogHeader>
           <DialogTitle>Follow sources</DialogTitle>
           <DialogDescription>
-            Search a handle once — we look it up on X, Instagram, and TikTok so
-            you can follow every matching public account in one step.
+            Search a handle to follow accounts on X, Instagram, and TikTok — or
+            paste a post link to import that exact post.
           </DialogDescription>
         </DialogHeader>
 
@@ -353,26 +416,79 @@ export default function FollowSourceModal({
                   setHasSearched(false);
                   setSelectedKeys([]);
                 }}
-                placeholder="Search handle (e.g. vincentshipsit)"
+                placeholder="Handle or post URL (e.g. x.com/…/status/…)"
               />
             </div>
-            <Button
-              icon={
-                isSearching ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Search className="size-4" />
-                )
-              }
-              isLoading={isSearching}
-              label="Search"
-              type="submit"
-              variant={ButtonVariant.SECONDARY}
-            />
+            {!postReference ? (
+              <Button
+                icon={
+                  isSearching ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Search className="size-4" />
+                  )
+                }
+                isLoading={isSearching}
+                label="Search"
+                type="submit"
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
           </div>
         </form>
 
         <div className="min-h-40 space-y-3">
+          {postReference ? (
+            <Card bodyClassName="space-y-3" variant={CardVariant.DEFAULT}>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                {getPlatformIcon(postReference.platform, 'h-4 w-4')}
+                <span className="font-medium">
+                  {formatPlatformLabel(postReference.platform)} post
+                </span>
+                {postReference.authorHandle ? (
+                  <span className="text-foreground/60">
+                    by @{postReference.authorHandle}
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-xs leading-5 text-foreground/58">
+                This link points to one specific post. Import it as inspiration
+                with its metrics, or follow the whole account instead — nothing
+                happens until you choose.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  icon={
+                    isImporting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )
+                  }
+                  isLoading={isImporting}
+                  label="Import post"
+                  onClick={() => {
+                    importPost().catch(() => undefined);
+                  }}
+                  size={ButtonSize.SM}
+                  type="button"
+                  variant={ButtonVariant.DEFAULT}
+                />
+                {postReference.authorHandle ? (
+                  <Button
+                    icon={<UserPlus className="size-4" />}
+                    isDisabled={isImporting}
+                    label={`Follow @${postReference.authorHandle} instead`}
+                    onClick={followAuthorInstead}
+                    size={ButtonSize.SM}
+                    type="button"
+                    variant={ButtonVariant.SECONDARY}
+                  />
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
+
           {isSearching ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/60">
               <Loader2 className="size-4 animate-spin" />
@@ -380,13 +496,16 @@ export default function FollowSourceModal({
             </div>
           ) : null}
 
-          {!isSearching && hasSearched && !candidates.length ? (
+          {!isSearching &&
+          !postReference &&
+          hasSearched &&
+          !candidates.length ? (
             <div className="rounded-card border border-border px-4 py-8 text-center text-sm text-foreground/62">
               No accounts found for that handle.
             </div>
           ) : null}
 
-          {!isSearching && candidates.length > 0 ? (
+          {!isSearching && !postReference && candidates.length > 0 ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-foreground/55">
@@ -538,10 +657,10 @@ export default function FollowSourceModal({
             </>
           ) : null}
 
-          {!isSearching && !hasSearched ? (
+          {!isSearching && !postReference && !hasSearched ? (
             <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm leading-6 text-foreground/58">
-              Try a public handle. We’ll check X, Instagram, and TikTok and let
-              you follow every match together.
+              Try a public handle to follow accounts, or paste a post link (X,
+              Instagram, or TikTok) to import that exact post.
             </div>
           ) : null}
         </div>
