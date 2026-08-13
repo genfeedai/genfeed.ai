@@ -105,6 +105,7 @@ export * from './severity.enum';
 export * from './social-inbox.enum';
 export * from './social-media.enum';
 export * from './social-message-workflow-trigger-status.enum';
+export * from './social-post-url.util';
 export * from './sort.enum';
 export * from './sound-category.enum';
 export * from './source-collector.enum';

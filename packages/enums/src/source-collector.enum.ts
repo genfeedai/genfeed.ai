@@ -6,6 +6,8 @@ export enum SocialSourcePlatform {
 
 export enum SocialSourceType {
   ACCOUNT = 'account',
+  /** Container for single posts imported by URL — no sync cadence. */
+  POST = 'post',
 }
 
 export enum ListeningSourcePlatform {

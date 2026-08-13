@@ -159,6 +159,39 @@ export class ApifyInstagramService {
   }
 
   /**
+   * Fetch one Instagram post/reel by its canonical URL (single-post import).
+   * Hard-fails without a token or when the post cannot be resolved so the
+   * import flow never reports an empty success.
+   */
+  async getInstagramPostByUrl(postUrl: string): Promise<ApifyInstagramPost> {
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape Instagram posts',
+      );
+    }
+
+    const input = {
+      directUrls: [postUrl],
+      resultsLimit: 1,
+      resultsType: 'posts',
+    };
+
+    const rawPosts = await this.baseService.runActor<ApifyInstagramPost>(
+      this.baseService.ACTORS.INSTAGRAM_SCRAPER,
+      input,
+    );
+
+    const post = rawPosts[0];
+    if (!post?.id) {
+      throw new Error(
+        'Instagram post not found via Apify — it may be deleted or private',
+      );
+    }
+    return post;
+  }
+
+  /**
    * Search Instagram posts by hashtag
    */
   async searchInstagramByHashtag(

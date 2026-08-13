@@ -8,6 +8,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import type { SocialPostUrlReference } from '@genfeedai/enums';
 import { SocialSourcePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -85,6 +86,64 @@ export class SourceCollectorService {
 
     throw new Error(
       `All source collectors failed for ${platform}/@${handle}: ${errors.join(' | ')}`,
+    );
+  }
+
+  /**
+   * Fetch exactly one post through the same provider chain (single-post import).
+   * Throws when every capable provider fails — no silent empty success.
+   */
+  async collectPost(
+    reference: SocialPostUrlReference,
+    context: SourceCollectContext = {},
+  ): Promise<SourceCollectResult> {
+    const candidates = this.providers.filter(
+      (
+        provider,
+      ): provider is SourceTimelineProvider &
+        Required<Pick<SourceTimelineProvider, 'collectPost'>> =>
+        provider.platforms.includes(reference.platform) &&
+        typeof provider.collectPost === 'function',
+    );
+
+    if (candidates.length === 0) {
+      throw new Error(
+        `No single-post collectors registered for ${reference.platform}`,
+      );
+    }
+
+    const errors: string[] = [];
+
+    for (const provider of candidates) {
+      try {
+        const can = await provider.canCollect(reference.platform, context);
+        if (!can) {
+          continue;
+        }
+        const result = await provider.collectPost(reference, context);
+        if (!result.posts.length) {
+          throw new Error('post not found');
+        }
+        this.logger.log('SourceCollector collected post', {
+          platform: reference.platform,
+          postId: reference.postId,
+          provider: result.provider,
+        });
+        return result;
+      } catch (error: unknown) {
+        const message = (error as Error)?.message ?? 'unknown error';
+        errors.push(`${provider.name}: ${message}`);
+        this.logger.warn('SourceCollector post provider failed', {
+          error: message,
+          platform: reference.platform,
+          postId: reference.postId,
+          provider: provider.name,
+        });
+      }
+    }
+
+    throw new Error(
+      `All single-post collectors failed for ${reference.platform} post ${reference.postId}: ${errors.join(' | ')}`,
     );
   }
 }

@@ -7,7 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('SocialSourcesService', () => {
@@ -19,10 +19,12 @@ describe('SocialSourcesService', () => {
   } as unknown as LoggerService;
 
   const sourcePostsService = {
+    findByExternalIdScoped: vi.fn(),
     listByBrand: vi.fn(),
     upsertCollectedPosts: vi.fn(),
   };
   const sourceCollector = {
+    collectPost: vi.fn(),
     collectTimeline: vi.fn(),
   };
   const brand = {
@@ -286,6 +288,202 @@ describe('SocialSourcesService', () => {
       { error: 'first failed', sourceId: 'source-1' },
     ]);
     expect(result.results).toHaveLength(1);
+  });
+
+  describe('importPostScoped', () => {
+    const context = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const collectedTweet = {
+      authorDisplayName: 'OpenAI',
+      authorId: 'author-1',
+      authorUsername: 'OpenAI',
+      contentType: 'tweet',
+      contentUrl: 'https://x.com/openai/status/123',
+      createdAt: new Date('2026-08-01T10:00:00Z'),
+      id: '123',
+      metrics: { comments: 5, likes: 100, shares: 10 },
+      platform: SocialSourcePlatform.TWITTER,
+      text: 'viral post',
+    };
+
+    it('rejects URLs that are not recognizable post links', async () => {
+      await expect(
+        service.importPostScoped({ url: 'https://x.com/openai' }, context),
+      ).rejects.toThrow('not a recognizable');
+      expect(sourceCollector.collectPost).not.toHaveBeenCalled();
+    });
+
+    it('imports a post into a new inactive post-type container', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      sourceCollector.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [collectedTweet],
+        provider: 'app-bearer',
+      });
+      sourcePostsService.findByExternalIdScoped.mockResolvedValue(null);
+      socialSource.findFirst.mockResolvedValue(null);
+      socialSource.create.mockResolvedValue({
+        brandId: 'brand-1',
+        handle: 'openai',
+        id: 'container-1',
+        organizationId: 'org-1',
+        platform: SocialSourcePlatform.TWITTER,
+        sourceType: SocialSourceType.POST,
+        userId: 'user-1',
+      });
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue([
+        { externalId: '123', id: 'post-1' },
+      ]);
+
+      const result = await service.importPostScoped(
+        { url: 'https://x.com/openai/status/123' },
+        context,
+      );
+
+      expect(sourceCollector.collectPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authorHandle: 'openai',
+          platform: SocialSourcePlatform.TWITTER,
+          postId: '123',
+        }),
+        { brandId: 'brand-1', organizationId: 'org-1' },
+      );
+      expect(socialSource.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          handle: 'openai',
+          isActive: false,
+          organizationId: 'org-1',
+          sourceType: SocialSourceType.POST,
+        }),
+      });
+      expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'container-1' }),
+        [
+          expect.objectContaining({
+            externalId: '123',
+            sourceUrl: 'https://x.com/openai/status/123',
+          }),
+        ],
+      );
+      expect(result.deduplicated).toBe(false);
+      expect(result.post).toEqual({ externalId: '123', id: 'post-1' });
+    });
+
+    it('deduplicates onto the existing item and refreshes metrics', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      sourceCollector.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [collectedTweet],
+        provider: 'apify',
+      });
+      sourcePostsService.findByExternalIdScoped.mockResolvedValue({
+        externalId: '123',
+        id: 'post-1',
+        sourceId: 'source-1',
+      });
+      socialSource.findFirst.mockResolvedValue({
+        brandId: 'brand-1',
+        handle: 'openai',
+        id: 'source-1',
+        organizationId: 'org-1',
+        platform: SocialSourcePlatform.TWITTER,
+        sourceType: SocialSourceType.ACCOUNT,
+        userId: 'user-1',
+      });
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue([
+        { externalId: '123', id: 'post-1' },
+      ]);
+
+      const result = await service.importPostScoped(
+        { url: 'https://x.com/openai/status/123' },
+        context,
+      );
+
+      expect(socialSource.create).not.toHaveBeenCalled();
+      expect(sourcePostsService.findByExternalIdScoped).toHaveBeenCalledWith(
+        context,
+        SocialSourcePlatform.TWITTER,
+        '123',
+      );
+      expect(result.deduplicated).toBe(true);
+    });
+
+    it('maps an unresolvable post to an actionable not-found error', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      sourceCollector.collectPost.mockRejectedValue(
+        new Error('Tweet not found via Apify — it may be deleted or private'),
+      );
+
+      await expect(
+        service.importPostScoped(
+          { url: 'https://x.com/openai/status/123' },
+          context,
+        ),
+      ).rejects.toThrow(/could not be resolved/);
+      expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+    });
+
+    it('surfaces provider failures as retryable errors, not empty success', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      sourceCollector.collectPost.mockRejectedValue(
+        new Error('rate limited by provider'),
+      );
+
+      await expect(
+        service.importPostScoped(
+          { url: 'https://x.com/openai/status/123' },
+          context,
+        ),
+      ).rejects.toThrow(/Post import failed: rate limited/);
+    });
+  });
+
+  it('rejects post URLs in follow flows — the silent account-follow regression', async () => {
+    brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+
+    await expect(
+      service.createScoped(
+        {
+          handle: 'https://x.com/openai/status/1234567890',
+          platform: SocialSourcePlatform.TWITTER,
+        },
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).rejects.toThrow(/points to a specific post/);
+    expect(socialSource.create).not.toHaveBeenCalled();
+
+    await expect(
+      service.validateSource(
+        SocialSourcePlatform.TIKTOK,
+        'https://www.tiktok.com/@user/video/7000000001',
+      ),
+    ).rejects.toThrow(/points to a specific post/);
+    expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
+  });
+
+  it('refuses timeline sync for imported post containers', async () => {
+    socialSource.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      handle: 'openai',
+      id: 'container-1',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      sourceType: SocialSourceType.POST,
+      userId: 'user-1',
+    });
+
+    await expect(
+      service.syncSource('container-1', {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).rejects.toThrow(/no timeline sync/);
+    expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
   });
 
   it('scopes source lookup and refreshes profile URL after platform changes', async () => {

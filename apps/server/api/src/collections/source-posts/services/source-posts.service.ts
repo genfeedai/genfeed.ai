@@ -162,6 +162,20 @@ export class SourcePostsService {
     };
   }
 
+  async findByExternalIdScoped(
+    context: { organizationId: string; brandId: string },
+    platform: string,
+    externalId: string,
+  ): Promise<SourcePostDocument | null> {
+    return this.db.sourcePost.findFirst({
+      where: scopedWhere(context.organizationId, {
+        brandId: context.brandId,
+        externalId,
+        platform,
+      }),
+    });
+  }
+
   async findOneScoped(
     id: string,
     context: { organizationId: string; brandId: string },

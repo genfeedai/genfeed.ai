@@ -6,6 +6,7 @@ import {
   ButtonSize,
   ButtonVariant,
   SocialSourcePlatform,
+  SocialSourceType,
   SourcePostActionType,
 } from '@genfeedai/enums';
 import type {
@@ -565,6 +566,7 @@ function SourceRow({
   onSync: (id: string) => Promise<void>;
   source: ISocialSource;
 }) {
+  const isImportContainer = source.sourceType === SocialSourceType.POST;
   const syncStatus = source.lastSyncStatus ?? null;
   const statusLabel =
     syncStatus === 'failed'
@@ -589,6 +591,7 @@ function SourceRow({
           <span className="truncate">
             @{source.handle || source.displayName || 'source'}
           </span>
+          {isImportContainer ? <Badge variant="ghost">Imported</Badge> : null}
           {statusLabel ? (
             <Badge
               variant={
@@ -604,9 +607,11 @@ function SourceRow({
           ) : null}
         </div>
         <div className={`mt-1 text-xs ${statusClass}`}>
-          {source.lastSyncedAt
-            ? `Synced ${getRelativeTime(source.lastSyncedAt)}`
-            : 'Never synced'}
+          {isImportContainer
+            ? 'Imported posts — re-import a post URL to refresh metrics'
+            : source.lastSyncedAt
+              ? `Synced ${getRelativeTime(source.lastSyncedAt)}`
+              : 'Never synced'}
         </div>
         {source.lastSyncError ? (
           <p className="mt-1 text-xs leading-5 text-foreground/55">
@@ -615,18 +620,20 @@ function SourceRow({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Button
-          ariaLabel="Sync source"
-          icon={<RefreshCw className="size-4" />}
-          isLoading={busyId === source.id}
-          label=""
-          onClick={() => {
-            onSync(source.id).catch(() => undefined);
-          }}
-          size={ButtonSize.SM}
-          tooltip="Sync source"
-          variant={ButtonVariant.SECONDARY}
-        />
+        {!isImportContainer ? (
+          <Button
+            ariaLabel="Sync source"
+            icon={<RefreshCw className="size-4" />}
+            isLoading={busyId === source.id}
+            label=""
+            onClick={() => {
+              onSync(source.id).catch(() => undefined);
+            }}
+            size={ButtonSize.SM}
+            tooltip="Sync source"
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : null}
         <Button
           ariaLabel="Remove source"
           icon={<Trash2 className="size-4" />}

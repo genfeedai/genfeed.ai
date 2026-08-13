@@ -1,4 +1,7 @@
-import type { SocialSourcePlatform } from '@genfeedai/enums';
+import type {
+  SocialPostUrlReference,
+  SocialSourcePlatform,
+} from '@genfeedai/enums';
 import type {
   SourceCollectContext,
   SourceCollectResult,
@@ -23,6 +26,16 @@ export interface SourceTimelineProvider {
   collectTimeline(
     platform: SocialSourcePlatform,
     handle: string,
+    context: SourceCollectContext,
+  ): Promise<SourceCollectResult>;
+
+  /**
+   * Fetch exactly one post by its parsed URL reference (single-post import).
+   * Optional — providers without single-post support are skipped by the chain.
+   * Must throw (never return an empty result) when the post cannot be resolved.
+   */
+  collectPost?(
+    reference: SocialPostUrlReference,
     context: SourceCollectContext,
   ): Promise<SourceCollectResult>;
 }

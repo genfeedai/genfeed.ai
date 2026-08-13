@@ -92,6 +92,10 @@ export class ApifyService {
     return this.tiktokService.getTikTokUserVideos(username, options);
   }
 
+  getTikTokVideoByUrl(videoUrl: string): Promise<ApifyTikTokVideo> {
+    return this.tiktokService.getTikTokVideoByUrl(videoUrl);
+  }
+
   searchTikTokByHashtag(
     hashtag: string,
     options?: { limit?: number },
@@ -123,6 +127,10 @@ export class ApifyService {
     return this.instagramService.getInstagramUserPosts(username, options);
   }
 
+  getInstagramPostByUrl(postUrl: string): Promise<ApifyInstagramPost> {
+    return this.instagramService.getInstagramPostByUrl(postUrl);
+  }
+
   searchInstagramByHashtag(
     hashtag: string,
     options?: { limit?: number },
@@ -148,6 +156,13 @@ export class ApifyService {
     options?: { limit?: number; sinceId?: string },
   ): Promise<ApifyNormalizedTweet[]> {
     return this.twitterService.getTwitterUserTimeline(username, options);
+  }
+
+  getTweetByUrl(
+    tweetUrl: string,
+    tweetId: string,
+  ): Promise<ApifyNormalizedTweet> {
+    return this.twitterService.getTweetByUrl(tweetUrl, tweetId);
   }
 
   getTwitterTweetReplies(

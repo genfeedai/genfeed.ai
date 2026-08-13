@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
+import { ImportSocialPostDto } from '@api/collections/social-sources/dto/import-social-post.dto';
 import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import { SyncSocialSourceDto } from '@api/collections/social-sources/dto/sync-social-source.dto';
 import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
@@ -47,6 +48,17 @@ export class SocialSourcesController {
   @HttpCode(HttpStatus.OK)
   validate(@Body() body: ValidateSocialSourceDto) {
     return this.socialSourcesService.validateSource(body.platform, body.handle);
+  }
+
+  @Post('import-post')
+  @HttpCode(HttpStatus.OK)
+  importPost(
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Body() body: ImportSocialPostDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    return this.socialSourcesService.importPostScoped(body, context);
   }
 
   @Post('sync')

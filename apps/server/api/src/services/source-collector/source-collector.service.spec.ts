@@ -12,6 +12,7 @@ describe('SourceCollectorService', () => {
     name: 'brand-oauth',
     platforms: [SocialSourcePlatform.TWITTER],
     canCollect: vi.fn(),
+    collectPost: vi.fn(),
     collectTimeline: vi.fn(),
   };
 
@@ -19,6 +20,7 @@ describe('SourceCollectorService', () => {
     name: 'app-bearer',
     platforms: [SocialSourcePlatform.TWITTER],
     canCollect: vi.fn(),
+    collectPost: vi.fn(),
     collectTimeline: vi.fn(),
   };
 
@@ -30,6 +32,7 @@ describe('SourceCollectorService', () => {
       SocialSourcePlatform.TIKTOK,
     ],
     canCollect: vi.fn(),
+    collectPost: vi.fn(),
     collectTimeline: vi.fn(),
   };
 
@@ -98,5 +101,70 @@ describe('SourceCollectorService', () => {
         organizationId: 'o',
       }),
     ).rejects.toThrow(/All source collectors failed/);
+  });
+
+  describe('collectPost', () => {
+    const reference = {
+      authorHandle: 'openai',
+      platform: SocialSourcePlatform.TWITTER,
+      postId: '123',
+      url: 'https://x.com/openai/status/123',
+    };
+
+    it('collects one post through the highest-priority capable provider', async () => {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      brandOAuth.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [
+          { id: '123', platform: SocialSourcePlatform.TWITTER, text: 'hi' },
+        ],
+        provider: 'brand-oauth',
+      });
+
+      const result = await service.collectPost(reference, {
+        brandId: 'b1',
+        organizationId: 'o1',
+      });
+
+      expect(result.provider).toBe('brand-oauth');
+      expect(result.posts[0].id).toBe('123');
+      expect(appBearer.collectPost).not.toHaveBeenCalled();
+    });
+
+    it('falls through to the next provider on failure', async () => {
+      brandOAuth.canCollect.mockResolvedValue(false);
+      appBearer.canCollect.mockResolvedValue(true);
+      appBearer.collectPost.mockRejectedValue(new Error('bearer down'));
+      apify.canCollect.mockResolvedValue(true);
+      apify.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [
+          { id: '123', platform: SocialSourcePlatform.TWITTER, text: 'hi' },
+        ],
+        provider: 'apify',
+      });
+
+      const result = await service.collectPost(reference, {});
+
+      expect(result.provider).toBe('apify');
+    });
+
+    it('treats an empty provider result as a failure — no silent empty success', async () => {
+      brandOAuth.canCollect.mockResolvedValue(false);
+      appBearer.canCollect.mockResolvedValue(false);
+      apify.canCollect.mockResolvedValue(true);
+      apify.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [],
+        provider: 'apify',
+      });
+
+      await expect(service.collectPost(reference, {})).rejects.toThrow(
+        /All single-post collectors failed/,
+      );
+    });
   });
 });

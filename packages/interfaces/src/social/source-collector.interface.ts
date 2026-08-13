@@ -121,6 +121,12 @@ export interface SocialSourceValidationResult {
   valid: boolean;
 }
 
+export interface SocialPostImportResult {
+  deduplicated: boolean;
+  post: ISourcePost;
+  source: ISocialSource;
+}
+
 export interface SourcePostDraftActionInput {
   actionType?: SourcePostActionType | string;
   text?: string;
