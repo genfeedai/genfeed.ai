@@ -12,6 +12,8 @@ export class UpdateCredentialDto extends PartialType(
     'externalHandle',
     'externalId',
     'externalName',
+    'grantedScopes',
+    'grantedScopesCapturedAt',
     'isConnected',
     'label',
     'oauthToken',

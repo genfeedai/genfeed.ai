@@ -2,6 +2,10 @@ import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-cre
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -122,6 +126,13 @@ export class YoutubeAuthService {
       if (newCredentials.expiry_date) {
         updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
       }
+
+      Object.assign(
+        updateData,
+        buildGrantedScopesCredentialPatch(
+          readOAuthTokenScopeField(newCredentials),
+        ),
+      );
 
       await this.credentialsService.patch(
         credentials.id,

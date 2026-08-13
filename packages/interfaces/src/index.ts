@@ -193,6 +193,7 @@ export * from './organization/organization-setting.interface';
 export * from './organization/quota-status.interface';
 export * from './providers/providers.interface';
 export * from './publisher/credential-token-publishing-readiness-input.interface';
+export * from './publisher/granted-oauth-scopes.interface';
 export * from './publisher/publish-approval.interface';
 export * from './publisher/publisher.interface';
 export * from './publisher/publishing-readiness.interface';

@@ -1278,6 +1278,8 @@ model Credential {
   accessTokenExpiry               DateTime?
   refreshToken                    String?
   refreshTokenExpiry              DateTime?
+  grantedScopes                   String[]           @default([])
+  grantedScopesCapturedAt         DateTime?
   label                           String?
   description                     String?
   warmupState                     String             @default("not_started")

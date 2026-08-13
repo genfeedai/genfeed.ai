@@ -78,6 +78,7 @@ describe('TwitterController', () => {
       },
       expiresIn: 7200,
       refreshToken: 'oauth2-refresh-token',
+      scope: 'tweet.read tweet.write users.read',
     });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -201,6 +202,8 @@ describe('TwitterController', () => {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'oauth2-refresh-token',
+          grantedScopes: ['tweet.read', 'tweet.write', 'users.read'],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
