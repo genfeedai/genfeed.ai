@@ -9,6 +9,7 @@ import { Input } from '@ui/primitives/input';
 import { CircleCheck, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +35,7 @@ type ClaimState = {
 };
 
 export default function AgentAuthClaimContent() {
+  const translate = useTranslations('common.agentAuth.claim');
   const searchParams = useSearchParams();
   const { getToken, isLoaded, isSignedIn } = useAuthIdentity();
   const controllerRef = useRef<AbortController | null>(null);
@@ -92,7 +94,7 @@ export default function AgentAuthClaimContent() {
               data.detail ||
               data.message ||
               data.error ||
-              'This claim request is unavailable.',
+              translate('errors.unavailable'),
           );
         }
         if (!controller.signal.aborted) {
@@ -103,7 +105,7 @@ export default function AgentAuthClaimContent() {
           setClaimDetailsError(
             error instanceof Error
               ? error.message
-              : 'This claim request is unavailable.',
+              : translate('errors.unavailable'),
           );
         }
       }
@@ -111,12 +113,12 @@ export default function AgentAuthClaimContent() {
 
     void loadClaimDetails();
     return () => controller.abort();
-  }, [claimAttemptToken, hasValidRequest, isSignedIn]);
+  }, [claimAttemptToken, hasValidRequest, isSignedIn, translate]);
 
   async function completeClaim(): Promise<void> {
     if (!claimAttemptToken || !/^\d{6}$/.test(userCode)) {
       setClaimState({
-        error: 'Enter the six-digit code supplied by your agent.',
+        error: translate('errors.codeRequired'),
         isComplete: false,
         isSubmitting: false,
       });
@@ -135,7 +137,7 @@ export default function AgentAuthClaimContent() {
     try {
       const token = await resolveAuthToken(getToken);
       if (!token) {
-        throw new Error('Your session expired. Sign in and try again.');
+        throw new Error(translate('errors.sessionExpired'));
       }
 
       const response = await fetch(
@@ -160,7 +162,7 @@ export default function AgentAuthClaimContent() {
             data.detail ||
             data.message ||
             data.error ||
-            'The agent authorization could not be completed.',
+            translate('errors.completionFailed'),
         );
       }
 
@@ -173,7 +175,7 @@ export default function AgentAuthClaimContent() {
         error:
           error instanceof Error
             ? error.message
-            : 'The agent authorization could not be completed.',
+            : translate('errors.completionFailed'),
         isComplete: false,
         isSubmitting: false,
       });
@@ -192,11 +194,10 @@ export default function AgentAuthClaimContent() {
             <KeyRound className="size-5 text-white/60" aria-hidden="true" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
-            Authorize an agent
+            {translate('title')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Confirm that an agent may receive a scoped Genfeed API key for your
-            account.
+            {translate('description')}
           </p>
         </div>
 
@@ -204,21 +205,21 @@ export default function AgentAuthClaimContent() {
           <CardContent className="space-y-6 p-8">
             {!hasValidRequest ? (
               <div className="space-y-2 text-center">
-                <h2 className="font-semibold">Invalid claim link</h2>
+                <h2 className="font-semibold">{translate('invalid.title')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Restart registration from your agent to get a fresh link.
+                  {translate('invalid.description')}
                 </p>
               </div>
             ) : !isSignedIn ? (
               <div className="space-y-4 text-center">
                 <div className="space-y-2">
-                  <h2 className="font-semibold">Sign in required</h2>
+                  <h2 className="font-semibold">{translate('signIn.title')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Sign in with the same verified email the agent registered.
+                    {translate('signIn.description')}
                   </p>
                 </div>
                 <Button asChild className="w-full" withWrapper={false}>
-                  <Link href={loginHref}>Sign in to continue</Link>
+                  <Link href={loginHref}>{translate('signIn.action')}</Link>
                 </Button>
               </div>
             ) : claimState.isComplete || claimDetails?.status === 'claimed' ? (
@@ -227,28 +228,29 @@ export default function AgentAuthClaimContent() {
                   className="mx-auto size-8 text-success"
                   aria-hidden="true"
                 />
-                <h2 className="font-semibold">Agent authorized</h2>
+                <h2 className="font-semibold">{translate('success.title')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Return to your agent. It can now finish the exchange and will
-                  receive the API key once.
+                  {translate('success.description')}
                 </p>
               </div>
             ) : claimDetailsError ? (
               <div className="space-y-2 text-center">
-                <h2 className="font-semibold">Claim unavailable</h2>
+                <h2 className="font-semibold">
+                  {translate('unavailableTitle')}
+                </h2>
                 <p className="text-sm text-destructive" role="alert">
                   {claimDetailsError}
                 </p>
               </div>
             ) : !claimDetails ? (
               <p className="text-center text-sm text-muted-foreground">
-                Loading authorization request…
+                {translate('loading')}
               </p>
             ) : (
               <>
                 <div className="space-y-3 border-b border-white/[0.08] pb-5">
                   <p className="text-sm font-medium">
-                    This agent will receive access to
+                    {translate('permissionsTitle')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {claimDetails.requested_scopes.map((scope) => (
@@ -267,14 +269,14 @@ export default function AgentAuthClaimContent() {
                     className="text-sm font-medium"
                     htmlFor="agent-auth-user-code"
                   >
-                    Six-digit code
+                    {translate('code.label')}
                   </label>
                   <Input
                     autoComplete="one-time-code"
                     id="agent-auth-user-code"
                     inputMode="numeric"
                     maxLength={6}
-                    placeholder="123456"
+                    placeholder={translate('code.placeholder')}
                     value={userCode}
                     onChange={(event) =>
                       setUserCode(
@@ -283,7 +285,7 @@ export default function AgentAuthClaimContent() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter the code shown by the agent that opened this request.
+                    {translate('code.help')}
                   </p>
                 </div>
 
@@ -298,7 +300,9 @@ export default function AgentAuthClaimContent() {
                   disabled={claimState.isSubmitting || userCode.length !== 6}
                   onClick={() => void completeClaim()}
                 >
-                  {claimState.isSubmitting ? 'Authorizing…' : 'Authorize agent'}
+                  {claimState.isSubmitting
+                    ? translate('actions.authorizing')
+                    : translate('actions.authorize')}
                 </Button>
               </>
             )}
@@ -306,8 +310,7 @@ export default function AgentAuthClaimContent() {
         </Card>
 
         <p className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground/50">
-          The credential is scoped, expires after 30 days, and can be revoked
-          without exposing your password or browser session.
+          {translate('footer')}
         </p>
       </div>
     </AuthFormLayout>

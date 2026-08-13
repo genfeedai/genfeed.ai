@@ -10,6 +10,15 @@ const useAuthMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
+  const translate = translateFromCatalog('common.agentAuth.claim');
+
+  return { useTranslations: () => translate };
+});
+
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthMock(),
 }));
