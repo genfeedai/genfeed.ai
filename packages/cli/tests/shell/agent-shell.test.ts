@@ -161,9 +161,6 @@ describe('shell/agent-shell', () => {
         threadId: 'thread-2',
       });
       mockGetThreadEvents.mockResolvedValueOnce([]).mockResolvedValueOnce([
-        makeEvent('assistant.delta', 6, { content: 'Hi ' }),
-        makeEvent('assistant.delta', 7, { content: 'there' }),
-        makeEvent('assistant.delta', 8, {}),
         makeEvent('tool.started', 9, { toolName: 'generate_image' }),
         makeEvent('tool.completed', 10, {
           error: 'quota hit',
@@ -253,7 +250,7 @@ describe('shell/agent-shell', () => {
           makeEvent('run.completed', 2, {}),
         ])
         .mockResolvedValueOnce([
-          makeEvent('assistant.delta', 3, { content: 'streaming' }),
+          makeEvent('assistant.finalized', 3, { content: 'streaming' }),
           makeEvent('run.completed', 4, {}),
         ]);
 
@@ -298,7 +295,6 @@ describe('shell/agent-shell', () => {
       mockRespondToInputRequest.mockResolvedValue({});
       mockGetThreadEvents
         .mockResolvedValueOnce([
-          makeEvent('assistant.delta', 3, { content: 'ok' }),
           makeEvent('input.requested', 4, {
             prompt: 'Need more?',
             requestId: 'req-2',

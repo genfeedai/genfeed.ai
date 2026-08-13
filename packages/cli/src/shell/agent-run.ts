@@ -52,7 +52,6 @@ interface RunAccumulator {
   finalized: boolean;
   finalizedContent?: string;
   liveContent: string;
-  persistedContent: string;
   result?: Omit<AgentRunResult, keyof AgentRunStart | 'lastSequence' | 'uiActions'>;
   uiActions?: Array<Record<string, unknown>>;
 }
@@ -84,7 +83,7 @@ function toPendingInputRequest(payload: Record<string, unknown>): AgentPendingIn
 }
 
 function currentAssistantMessage(accumulator: RunAccumulator): string {
-  return accumulator.finalizedContent ?? (accumulator.liveContent || accumulator.persistedContent);
+  return accumulator.finalizedContent ?? accumulator.liveContent;
 }
 
 function finalizeAssistantMessage(
@@ -157,17 +156,10 @@ function handlePersistedEvent(
 ): void {
   const payload = event.payload ?? {};
 
+  // `assistant.delta` rows are no longer persisted (#2793) and every call site
+  // reads events from the thread's current tail, so persisted deltas can never
+  // reach this switch — streaming tokens arrive via the live transport only.
   switch (event.type) {
-    case 'assistant.delta': {
-      const token = extractString(payload, 'content');
-      if (token) {
-        // Persisted deltas are legacy catch-up data. Keep them out of the live
-        // renderer so a server that still has the historical first-token row
-        // cannot duplicate a token already delivered over socket.io.
-        accumulator.persistedContent += token;
-      }
-      return;
-    }
     case 'assistant.finalized': {
       const content = extractString(payload, 'content') ?? currentAssistantMessage(accumulator);
       const metadata = isRecord(payload.metadata) ? payload.metadata : undefined;
@@ -252,7 +244,6 @@ async function collectRunResult(
   const accumulator: RunAccumulator = {
     finalized: false,
     liveContent: '',
-    persistedContent: '',
   };
 
   while (Date.now() - startedAt < timeoutMs) {

@@ -295,7 +295,7 @@ describe('shell/agent-run', () => {
       expect(result.status).toBe('completed');
     });
 
-    it('collects streamed deltas and completes without an existing thread', async () => {
+    it('completes from persisted terminal events without an existing thread', async () => {
       mockStartAgentChatStream.mockResolvedValue({
         runId: 'run-1',
         startedAt: '2026-08-09T00:00:00.000Z',
@@ -304,9 +304,7 @@ describe('shell/agent-run', () => {
       mockGetThreadEvents
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
-          makeEvent('assistant.delta', 1, { content: 'Hello ' }),
-          makeEvent('assistant.delta', 2, { content: 'world' }),
-          makeEvent('assistant.delta', 3, {}),
+          makeEvent('assistant.finalized', 3, { content: 'Hello world' }),
           makeEvent('unknown.event', 4, {}),
           makeEvent('run.completed', 5, {}),
         ]);
@@ -365,7 +363,7 @@ describe('shell/agent-run', () => {
       expect(result.uiActions).toEqual([{ type: 'workflow_card' }]);
     });
 
-    it('keeps accumulated deltas when finalized carries no content', async () => {
+    it('ignores legacy persisted assistant.delta rows (#2793 removed the write)', async () => {
       mockStartAgentChatStream.mockResolvedValue({
         runId: 'run-3',
         startedAt: '2026-08-09T00:00:00.000Z',
@@ -380,7 +378,8 @@ describe('shell/agent-run', () => {
       const { runAgentTurn } = await import('../../src/shell/agent-run');
       const result = await runAgentTurn({ content: 'hi' });
 
-      expect(result.assistantMessage).toBe('partial');
+      expect(result.status).toBe('completed');
+      expect(result.assistantMessage).toBeUndefined();
       expect(result.uiActions).toBeUndefined();
     });
 
