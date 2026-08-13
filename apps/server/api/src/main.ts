@@ -366,6 +366,7 @@ async function main() {
     bootstrapLogger.log('API bootstrap: verifying public article schema');
     const prisma = app.get(PrismaService);
     await assertLiveArticleColumnContract({
+      clientFields: Object.keys(prisma.article.fields),
       findPresentColumns: async () => {
         const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
           SELECT column_name

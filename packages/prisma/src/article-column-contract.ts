@@ -28,6 +28,12 @@ export type ArticleColumnContractInput = {
   presentColumns: readonly string[];
 };
 
+/** Inputs for checking the generated client against the live articles table. */
+export interface LiveArticleColumnContractParams {
+  clientFields: readonly string[];
+  findPresentColumns: () => Promise<readonly string[]>;
+}
+
 export function getMissingArticleColumns(
   presentColumns: readonly string[],
 ): string[] {
@@ -93,10 +99,9 @@ export function assertArticleColumnContract(
   }
 }
 
-export async function assertLiveArticleColumnContract(params: {
-  clientFields?: readonly string[];
-  findPresentColumns: () => Promise<readonly string[]>;
-}): Promise<void> {
+export async function assertLiveArticleColumnContract(
+  params: LiveArticleColumnContractParams,
+): Promise<void> {
   assertArticleColumnContract({
     clientFields: resolveArticleClientFields(params.clientFields),
     presentColumns: await params.findPresentColumns(),

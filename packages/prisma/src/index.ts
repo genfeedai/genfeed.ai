@@ -1,6 +1,9 @@
 export * from '../generated/prisma/client/client';
 export { Prisma, PrismaClient } from '../generated/prisma/client/client';
-export type { ArticleColumnContractInput } from './article-column-contract';
+export type {
+  ArticleColumnContractInput,
+  LiveArticleColumnContractParams,
+} from './article-column-contract';
 export {
   ARTICLE_COLUMN_CONTRACT_MIGRATION,
   assertArticleColumnContract,

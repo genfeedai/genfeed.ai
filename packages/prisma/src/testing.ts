@@ -17,10 +17,14 @@
  * this subpath exists to avoid.
  */
 export * from '../generated/prisma/client/enums';
-export type { ArticleColumnContractInput } from './article-column-contract';
+export type {
+  ArticleColumnContractInput,
+  LiveArticleColumnContractParams,
+} from './article-column-contract';
 export {
   ARTICLE_COLUMN_CONTRACT_MIGRATION,
   assertArticleColumnContract,
+  assertLiveArticleColumnContract,
   getMissingArticleColumns,
   getRetiredArticleClientFields,
   REQUIRED_ARTICLE_COLUMNS,

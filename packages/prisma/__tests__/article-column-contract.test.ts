@@ -9,6 +9,7 @@ import {
   resolveArticleClientFields,
 } from '../src/article-column-contract';
 import { getModelMeta } from '../src/enum-field-map';
+import { assertLiveArticleColumnContract } from '../src/testing';
 
 const migratedColumns = [
   'id',
@@ -92,11 +93,7 @@ describe('article column contract (Sentry 71/72)', () => {
     ).toThrow(/Article model metadata is missing/);
   });
 
-  it('awaits the live finder before asserting', async () => {
-    const { assertLiveArticleColumnContract } = await import(
-      '../src/article-column-contract'
-    );
-
+  it('uses the supplied generated-client fields instead of committed metadata', async () => {
     await expect(
       assertLiveArticleColumnContract({
         clientFields: ['id', 'title'],
