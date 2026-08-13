@@ -108,6 +108,7 @@ vi.mock('@ui/primitives/select', () => ({
 
 const storeState = {
   activeThreadId: 'thread-1',
+  setError: vi.fn(),
   setThreadUiBusy: vi.fn(),
 };
 
@@ -168,6 +169,7 @@ function createApiServiceMock(options?: {
 describe('GenerationActionCard', () => {
   beforeEach(() => {
     storeState.activeThreadId = 'thread-1';
+    storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();
     capturedModelSelectorPopoverProps.autoLabel = undefined;
     capturedModelSelectorPopoverProps.models = undefined;
@@ -403,12 +405,73 @@ describe('GenerationActionCard', () => {
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', true);
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', false);
 
+    // Primary Generate control must stay available after failure — the sticky
+    // composer error stack often covers the bottom Try Again row.
+    expect(
+      screen.getByRole('button', { name: /generate image/i }),
+    ).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
     });
 
+    expect(
+      await screen.findByRole('link', { name: 'Library' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps Generate clickable after failure and clears the composer error', async () => {
+    const generateIngredient = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Request failed with status code 401'))
+      .mockResolvedValueOnce({
+        id: 'image-2',
+        url: 'https://cdn.test/image-2.png',
+      });
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+            prompt: 'Broadcast newsroom crypto banner.',
+          },
+          generationType: 'image',
+          id: 'action-generate-after-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByText(/provider authentication failed/i),
+    ).toBeInTheDocument();
+
+    const generateAgain = screen.getByRole('button', {
+      name: /generate image/i,
+    });
+    fireEvent.click(generateAgain);
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(2);
+    });
+    expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
       await screen.findByRole('link', { name: 'Library' }),
     ).toBeInTheDocument();

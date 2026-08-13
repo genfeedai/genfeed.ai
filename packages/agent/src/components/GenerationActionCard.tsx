@@ -89,9 +89,11 @@ export function GenerationActionCard({
   });
 
   // Large prompt cards own the chat column — collapse frees the thread.
-  // Auto-collapse once generation starts so the run error/progress stays
-  // visible without burying prior messages.
+  // Auto-collapse once generation starts so progress stays visible without
+  // burying prior messages. Errors always render expanded so Generate stays
+  // reachable above the sticky composer error stack.
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const isEffectivelyCollapsed = isCollapsed && status !== 'error';
 
   useEffect(() => {
     if (status === 'generating') {
@@ -124,12 +126,12 @@ export function GenerationActionCard({
       <GenerationActionCardHeader
         Icon={Icon}
         title={action.title}
-        isCollapsed={isCollapsed}
+        isCollapsed={isEffectivelyCollapsed}
         statusLabel={statusLabelFor(status)}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
-      {isCollapsed ? (
+      {isEffectivelyCollapsed ? (
         status === 'error' || status === 'done' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
@@ -173,9 +175,25 @@ export function GenerationActionCard({
             onDurationChange={handleDurationChange}
             isImage={isImage}
             isPromptEmpty={!prompt.trim()}
-            showGenerate={status === 'idle'}
+            showGenerate={status === 'idle' || status === 'error'}
             onGenerate={handleGenerateVoid}
           />
+
+          {status === 'error' ? (
+            <GenerationActionCardStatusPanel
+              status={status}
+              isImage={isImage}
+              resultUrl={resultUrl}
+              resultId={resultId}
+              error={error}
+              generationType={generationType}
+              qualityScore={qualityScore}
+              qualityFeedback={qualityFeedback}
+              onRetry={handleRetryVoid}
+              onRegenerateProp={onRegenerateProp}
+              onUseAsReference={handleUseAsReference}
+            />
+          ) : null}
 
           <GenerationActionCanvas
             generationType={generationType}
@@ -187,19 +205,21 @@ export function GenerationActionCard({
             onToggleReference={handleToggleAssetReference}
           />
 
-          <GenerationActionCardStatusPanel
-            status={status}
-            isImage={isImage}
-            resultUrl={resultUrl}
-            resultId={resultId}
-            error={error}
-            generationType={generationType}
-            qualityScore={qualityScore}
-            qualityFeedback={qualityFeedback}
-            onRetry={handleRetryVoid}
-            onRegenerateProp={onRegenerateProp}
-            onUseAsReference={handleUseAsReference}
-          />
+          {status !== 'error' ? (
+            <GenerationActionCardStatusPanel
+              status={status}
+              isImage={isImage}
+              resultUrl={resultUrl}
+              resultId={resultId}
+              error={error}
+              generationType={generationType}
+              qualityScore={qualityScore}
+              qualityFeedback={qualityFeedback}
+              onRetry={handleRetryVoid}
+              onRegenerateProp={onRegenerateProp}
+              onUseAsReference={handleUseAsReference}
+            />
+          ) : null}
         </div>
       )}
     </div>
