@@ -15,36 +15,39 @@ describe('website next.config', () => {
   it('negotiates markdown for the homepage when an agent requests it', async () => {
     const rewrites = await config.rewrites?.();
 
-    expect(rewrites).toContainEqual({
-      destination: '/.well-known/agent-content/home',
-      has: [
+    expect(rewrites).toEqual({
+      afterFiles: [],
+      beforeFiles: [
         {
-          key: 'accept',
-          type: 'header',
-          value: '.*text/markdown.*',
+          destination: '/.well-known/agent-content/home',
+          has: [
+            {
+              key: 'accept',
+              type: 'header',
+              value: '.*text/markdown.*',
+            },
+          ],
+          source: '/',
         },
       ],
-      source: '/',
+      fallback: [],
     });
   });
 
-  it('delegates OAuth discovery to the canonical API resource hosts', async () => {
+  it('delegates authorization-server discovery without redirecting origin-bound resource metadata', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toEqual(
+    expect(redirects).toContainEqual({
+      destination:
+        'https://api.genfeed.ai/.well-known/oauth-authorization-server',
+      permanent: false,
+      source: '/.well-known/oauth-authorization-server',
+    });
+    expect(redirects).not.toEqual(
       expect.arrayContaining([
-        {
-          destination:
-            'https://api.genfeed.ai/.well-known/oauth-authorization-server',
-          permanent: false,
-          source: '/.well-known/oauth-authorization-server',
-        },
-        {
-          destination:
-            'https://mcp.genfeed.ai/.well-known/oauth-protected-resource',
-          permanent: false,
+        expect.objectContaining({
           source: '/.well-known/oauth-protected-resource',
-        },
+        }),
       ]),
     );
   });

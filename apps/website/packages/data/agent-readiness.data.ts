@@ -3,6 +3,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 
 const WEBSITE_ORIGIN = 'https://genfeed.ai';
 const MCP_ENDPOINT = 'https://mcp.genfeed.ai/mcp';
@@ -120,6 +121,16 @@ export function buildMcpServerCard() {
   };
 }
 
+export function buildWebsiteProtectedResourceMetadata() {
+  return {
+    authorization_servers: ['https://api.genfeed.ai'],
+    bearer_methods_supported: ['header'],
+    resource: WEBSITE_ORIGIN,
+    resource_name: 'Genfeed',
+    scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+  };
+}
+
 export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 
 > The open-source AI operating system for content creation, automation, publishing, and analytics.
@@ -142,17 +153,18 @@ export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 - [Full LLM context](${WEBSITE_ORIGIN}/llms-full.txt)
 `;
 
-export const AUTH_MARKDOWN = `# Authenticate an agent with Genfeed
+export const AUTH_MARKDOWN = `# Genfeed auth.md
 
 Genfeed supports OAuth 2.0 Authorization Code with PKCE for interactive agents and scoped \`gf_\` API keys for server-to-server clients.
 
 ## Discover OAuth
 
-1. Read the [authorization server metadata](https://api.genfeed.ai/.well-known/oauth-authorization-server).
-2. For MCP, read the [protected resource metadata](https://mcp.genfeed.ai/.well-known/oauth-protected-resource).
-3. Dynamically register a public client with \`POST https://api.genfeed.ai/v1/oauth/register\`. Provide \`redirect_uris\`, use \`authorization_code\`, and set \`token_endpoint_auth_method\` to \`none\`.
-4. Send the user through the advertised authorization endpoint with a PKCE S256 challenge.
-5. Exchange the returned code at the advertised token endpoint and send the access token as an HTTP Bearer token.
+1. Read the [Genfeed protected resource metadata](${WEBSITE_ORIGIN}/.well-known/oauth-protected-resource).
+2. Read the [MCP protected resource metadata](https://mcp.genfeed.ai/.well-known/oauth-protected-resource) when connecting to MCP.
+3. Read the [authorization server metadata](https://api.genfeed.ai/.well-known/oauth-authorization-server).
+4. Dynamically register a public client with \`POST https://api.genfeed.ai/v1/oauth/register\`. Provide \`redirect_uris\`, use \`authorization_code\`, and set \`token_endpoint_auth_method\` to \`none\`.
+5. Send the user through the advertised authorization endpoint with a PKCE S256 challenge.
+6. Exchange the returned code at the advertised token endpoint and send the access token as an HTTP Bearer token.
 
 ## API keys
 
