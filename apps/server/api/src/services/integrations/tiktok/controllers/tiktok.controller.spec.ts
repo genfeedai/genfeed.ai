@@ -13,6 +13,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
@@ -20,7 +21,7 @@ import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tikto
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { of } from 'rxjs';
@@ -298,6 +299,23 @@ describe('TiktokController', () => {
   });
 
   describe('refreshAuthorizedSignals', () => {
+    it('returns the documented 404 when the credential is missing or cross-org', async () => {
+      tiktokAuthorizedSignalsService.refresh.mockRejectedValueOnce(
+        new NotFoundException('TikTok credential'),
+      );
+
+      const failure = await controller
+        .refreshAuthorizedSignals(mockRequest, mockUser, 'missing-credential')
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
+    });
+
     it('refreshes and returns only the caller organization credential', async () => {
       const result = await controller.refreshAuthorizedSignals(
         mockRequest,

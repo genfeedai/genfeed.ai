@@ -38,6 +38,7 @@ function makeCredential(overrides: Record<string, unknown> = {}) {
 describe('AccountHealthService', () => {
   let service: AccountHealthService;
   let prisma: {
+    $executeRaw: ReturnType<typeof vi.fn>;
     credential: {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
@@ -53,6 +54,7 @@ describe('AccountHealthService', () => {
     vi.setSystemTime(now);
 
     prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
       credential: {
         findFirst: vi.fn().mockResolvedValue(makeCredential()),
         findMany: vi.fn().mockResolvedValue([]),
@@ -80,20 +82,14 @@ describe('AccountHealthService', () => {
     expect(gate.holdPublishing).toBe(true);
     expect(gate.summary.state).toBe('not_started');
     expect(gate.summary.riskLevel).toBe('high');
-    expect(prisma.credential.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          warmupHoldReason: expect.stringContaining(
-            'tiktok publishing is held',
-          ),
-          warmupState: 'not_started',
-        }),
-        where: {
-          id: 'credential-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      }),
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$executeRaw.mock.calls[0]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('tiktok publishing is held'),
+        'not_started',
+        'credential-1',
+        'org-1',
+      ]),
     );
   });
 
@@ -193,7 +189,7 @@ describe('AccountHealthService', () => {
     expect(summary.state).toBe('risky');
   });
 
-  it('preserves provider evidence when refreshing legacy health signals', async () => {
+  it('merges health signals atomically without replacing concurrent provider evidence', async () => {
     prisma.credential.findFirst.mockResolvedValueOnce(
       makeCredential({
         warmupSignals: {
@@ -207,15 +203,26 @@ describe('AccountHealthService', () => {
       organizationId: 'org-1',
     });
 
-    expect(prisma.credential.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          warmupSignals: expect.objectContaining({
-            connectedDays: expect.any(Number),
-            tiktokAuthorized: { state: 'partial' },
-          }),
-        }),
-      }),
+    // The write must be an in-database jsonb merge scoped to health keys —
+    // never a full-object replacement built from the stale credential read —
+    // so a snapshot persisted between the read and this write survives.
+    expect(prisma.credential.update).not.toHaveBeenCalled();
+    const [query, ...values] = prisma.$executeRaw.mock.calls[0] as [
+      TemplateStringsArray,
+      ...unknown[],
+    ];
+    expect(query.join('$')).toContain(
+      `COALESCE("warmupSignals", '{}'::jsonb) ||`,
     );
+    const signalsJson = values.find(
+      (value) => typeof value === 'string' && value.includes('connectedDays'),
+    ) as string;
+    expect(JSON.parse(signalsJson)).toEqual({
+      connectedDays: expect.any(Number),
+      profileSignals: expect.any(Number),
+      publishedPosts: expect.any(Number),
+      recentFailures: expect.any(Number),
+    });
+    expect(signalsJson).not.toContain('tiktokAuthorized');
   });
 });

@@ -1,5 +1,11 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
@@ -27,12 +33,12 @@ import { firstValueFrom } from 'rxjs';
 
 const TIKTOK_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const TIKTOK_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
-const TIKTOK_AUTHORIZED_SIGNALS_CACHE_NAMESPACE = 'tiktok-authorized-signals';
 const TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY = 'tiktokAuthorized';
 const TIKTOK_AUTHORIZATION_STORAGE_KEY = 'tiktokAuthorization';
 const TIKTOK_SIGNAL_MAX_ATTEMPTS = 2;
 const TIKTOK_SIGNAL_RETRY_FALLBACK_MS = 1_000;
 const TIKTOK_SIGNAL_RETRY_MAX_MS = 5_000;
+const TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const TIKTOK_VIDEO_LIMIT = 20;
 
 const USER_BASIC_SCOPE = 'user.info.basic';
@@ -159,6 +165,11 @@ interface TikTokCreatorInfoResponse {
 }
 
 export interface RefreshTikTokAuthorizedSignalsParams {
+  /**
+   * Raw (plaintext) OAuth access token from a just-completed token exchange.
+   * Used verbatim — never decrypted — so callers must not pass the encrypted
+   * persisted credential token here; omit it to use the stored credential.
+   */
   accessToken?: string;
   credentialId: string;
   force?: boolean;
@@ -261,12 +272,11 @@ export class TiktokAuthorizedSignalsService {
     });
 
     if (!credential) {
-      throw new Error('TikTok credential not found');
+      throw new NotFoundException('TikTok credential');
     }
 
     const previousSnapshot = this.readStoredSnapshot(credential);
-    const cacheKey = this.cacheService.generateKey(
-      TIKTOK_AUTHORIZED_SIGNALS_CACHE_NAMESPACE,
+    const cacheKey = CACHE_PATTERNS.TIKTOK_AUTHORIZED_SIGNALS_SINGLE(
       credential.id,
     );
 
@@ -294,6 +304,7 @@ export class TiktokAuthorizedSignalsService {
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
         credential,
+        params.organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -332,14 +343,16 @@ export class TiktokAuthorizedSignalsService {
           previousSnapshot,
         );
       }
-      const encryptedAccessToken =
-        params.accessToken ?? validCredential.accessToken;
-
-      if (!encryptedAccessToken) {
-        throw new Error('TikTok credential is missing an access token');
+      if (params.accessToken) {
+        // Raw token from the OAuth exchange — used as-is; only tokens read
+        // back from the credential store are encrypted at rest.
+        accessToken = params.accessToken;
+      } else {
+        if (!validCredential.accessToken) {
+          throw new Error('TikTok credential is missing an access token');
+        }
+        accessToken = EncryptionUtil.decrypt(validCredential.accessToken);
       }
-
-      accessToken = EncryptionUtil.decrypt(encryptedAccessToken);
     } catch (error: unknown) {
       if (
         await this.tiktokService.handleAuthorizationError(
@@ -350,6 +363,7 @@ export class TiktokAuthorizedSignalsService {
       ) {
         return await this.persistSnapshot(
           credential,
+          params.organizationId,
           cacheKey,
           this.buildRevokedSnapshot(
             credential.id,
@@ -401,6 +415,7 @@ export class TiktokAuthorizedSignalsService {
       );
       return await this.persistSnapshot(
         credential,
+        params.organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -457,7 +472,12 @@ export class TiktokAuthorizedSignalsService {
       state: this.resolveSnapshotState(evidence),
     });
 
-    return await this.persistSnapshot(credential, cacheKey, snapshot);
+    return await this.persistSnapshot(
+      credential,
+      params.organizationId,
+      cacheKey,
+      snapshot,
+    );
   }
 
   private async fetchUserInfo(
@@ -477,6 +497,7 @@ export class TiktokAuthorizedSignalsService {
             'Content-Type': this.contentType,
           },
           params: { fields },
+          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
         },
       ),
     );
@@ -498,6 +519,7 @@ export class TiktokAuthorizedSignalsService {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': this.contentType,
           },
+          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
         },
       ),
     );
@@ -544,6 +566,7 @@ export class TiktokAuthorizedSignalsService {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': this.contentType,
           },
+          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
         },
       ),
     );
@@ -603,7 +626,13 @@ export class TiktokAuthorizedSignalsService {
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
     const requiredScopes = [USER_BASIC_SCOPE, USER_PROFILE_SCOPE];
-    if (!result.value) {
+    // Mirror buildStatisticsEvidence: with no profile scope granted the
+    // evidence must omit `value` entirely instead of emitting an object of
+    // undefined members, so permission-limited siblings share one shape.
+    if (
+      !requiredScopes.some((scope) => grantedScopes.includes(scope)) ||
+      !result.value
+    ) {
       return this.buildUnavailableEvidence(
         'profile-completeness-signal',
         requiredScopes,
@@ -1185,22 +1214,30 @@ export class TiktokAuthorizedSignalsService {
 
   private async persistSnapshot(
     credential: CredentialDocument,
+    organizationId: string,
     cacheKey: string,
     snapshot: TikTokAuthorizedSignalsSnapshot,
   ): Promise<TikTokAuthorizedSignalsSnapshot> {
-    const warmupSignals = readRecord(credential.warmupSignals);
-    await this.credentialsService.patch(credential.id, {
-      warmupSignals: {
-        ...warmupSignals,
+    // Merge only the TikTok-owned keys atomically so concurrent warmup
+    // writers (token refresh, account-health assessments, overlapping
+    // refreshes) never lose their evidence to a stale full-object replace.
+    await this.credentialsService.mergeWarmupSignals(
+      credential.id,
+      organizationId,
+      {
         [TIKTOK_AUTHORIZATION_STORAGE_KEY]: {
           grantedScopes: snapshot.grantedScopes,
           observedAt: snapshot.refreshAttemptedAt,
         },
         [TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
       },
-    });
+    );
     await this.cacheService.set(cacheKey, snapshot, {
-      tags: [TIKTOK_AUTHORIZED_SIGNALS_CACHE_NAMESPACE, credential.id],
+      tags: [
+        CACHE_TAGS.TIKTOK_AUTHORIZED_SIGNALS,
+        SCOPED_CACHE_TAGS.TIKTOK_AUTHORIZED_SIGNALS(organizationId),
+        credential.id,
+      ],
       ttl:
         snapshot.state === 'stale' || snapshot.state === 'revoked'
           ? TIKTOK_STALE_SIGNALS_CACHE_TTL_SECONDS
