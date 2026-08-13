@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
@@ -11,6 +10,9 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
+}));
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org-1/brand-1${path}` }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({ createResearchBriefRun: vi.fn() }),
@@ -43,14 +45,12 @@ describe('TrendContentCard', () => {
 
   beforeEach(() => vi.clearAllMocks());
 
-  it('routes an imported trend reference to the shared variation flow', async () => {
-    const user = userEvent.setup();
+  it('links an imported trend reference to the org- and brand-scoped variation flow', () => {
     render(<TrendContentCard item={item} />);
 
-    await user.click(screen.getByRole('button', { name: 'Remix' }));
-
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/publish/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
+    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
+      'href',
+      '/org-1/brand-1/publish/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
     );
   });
 });

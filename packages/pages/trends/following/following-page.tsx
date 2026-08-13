@@ -17,6 +17,7 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   useOptionalResearchWorkSurface,
@@ -115,6 +116,7 @@ export default function FollowingPage() {
   const brandId = useBrandId();
   const surface = useOptionalResearchWorkSurface();
   const router = useRouter();
+  const { href } = useOrgUrl();
   const queryClient = useQueryClient();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const [platform, setPlatform] = useResearchSearchParamState<string>({
@@ -286,13 +288,15 @@ export default function FollowingPage() {
   const openRemix = useCallback(
     (post: ISourcePost) => {
       router.push(
-        buildSourcePostVariationsHref({
-          platform: post.platform,
-          sourcePostId: post.id,
-        }),
+        href(
+          buildSourcePostVariationsHref({
+            platform: post.platform,
+            sourcePostId: post.id,
+          }),
+        ),
       );
     },
-    [router],
+    [href, router],
   );
 
   const openFollowModal = useCallback(() => {
