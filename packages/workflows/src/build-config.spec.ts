@@ -1,8 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createScanner,
+  LanguageVariant,
+  ScriptTarget,
+  SyntaxKind,
+} from 'typescript';
 import { describe, expect, it } from 'vitest';
-import tsupConfig from '../tsup.config';
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -10,18 +15,34 @@ function readPackageFile(relativePath: string): string {
   return readFileSync(join(packageRoot, relativePath), 'utf8');
 }
 
+function readPackageCode(relativePath: string): string {
+  const scanner = createScanner(
+    ScriptTarget.Latest,
+    true,
+    LanguageVariant.Standard,
+    readPackageFile(relativePath),
+  );
+  const tokens: string[] = [];
+
+  for (
+    let token = scanner.scan();
+    token !== SyntaxKind.EndOfFileToken;
+    token = scanner.scan()
+  ) {
+    tokens.push(scanner.getTokenText());
+  }
+
+  return tokens.join(' ');
+}
+
 describe('workflows package build contract', () => {
   it('does not emit declarations or the UI bundle through tsup', () => {
-    if (typeof tsupConfig === 'function' || Array.isArray(tsupConfig)) {
-      throw new TypeError('Expected one static tsup configuration');
-    }
+    const tsupConfig = readPackageCode('tsup.config.ts');
 
-    expect(tsupConfig).not.toHaveProperty('dts');
-    expect(tsupConfig.entry).not.toEqual(
-      expect.arrayContaining([expect.stringMatching(/^src\/ui(?:\/|$)/)]),
-    );
-    expect(tsupConfig.sourcemap).toBe(false);
-    expect(tsupConfig.entry).toContain('src/engine/index.ts');
+    expect(tsupConfig).not.toMatch(/\bdts\s*:/);
+    expect(tsupConfig).not.toContain('src/ui');
+    expect(tsupConfig).toMatch(/\bsourcemap\s*:\s*false/);
+    expect(tsupConfig).toContain('src/engine/index.ts');
   });
 
   it('keeps the default build as server JS plus tsc declarations', () => {
