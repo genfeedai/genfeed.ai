@@ -5,9 +5,14 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PlatformRole } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 
-vi.mock('@genfeedai/config', () => ({
-  isCloudDeployment: () => true,
-}));
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isCloudDeployment: () => true,
+  };
+});
 
 const { AgentAuthService } = await import('./agent-auth.service');
 
