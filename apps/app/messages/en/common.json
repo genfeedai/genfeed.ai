@@ -157,6 +157,11 @@
       "open": "Open calendar"
     }
   },
+  "agent": {
+    "composerFollowUpQueue": {
+      "queued": "Queued"
+    }
+  },
   "automation": {
     "agentHub": {
       "card": {
@@ -226,6 +231,78 @@
       "requiredMissing": "Fill required slots before run: {slots}",
       "requiredReady": "Required slots can be filled from this form + agent defaults.",
       "title": "Run workflow"
+    },
+    "workflows": {
+      "actions": {
+        "archive": "Archive",
+        "delete": "Delete",
+        "duplicate": "Duplicate",
+        "menu": "Workflow actions",
+        "publish": "Publish",
+        "retry": "Retry",
+        "run": "Run",
+        "running": "Running…",
+        "schedule": "Schedule",
+        "scheduleTooltip": "Set a recurring schedule"
+      },
+      "detail": {
+        "loadingEditor": "Loading editor…"
+      },
+      "library": {
+        "autopilot": "Autopilot",
+        "created": "Created",
+        "description": "Use workflows for fixed, reusable automation graphs and scheduled pipelines.",
+        "info": "are explicit automation graphs. Schedule a workflow when the steps should be predictable and repeatable. For adaptive agent behavior, use",
+        "infoSuffix": ".",
+        "local": "local",
+        "newWorkflow": "New Workflow",
+        "nextRun": "Next run",
+        "noMatching": "No workflows matching “{search}”",
+        "searchPlaceholder": "Search workflows...",
+        "synced": "synced",
+        "system": "System",
+        "templates": "Templates",
+        "title": "Workflows",
+        "updated": "Updated"
+      },
+      "schedule": {
+        "actions": {
+          "cancel": "Cancel",
+          "remove": "Remove schedule",
+          "save": "Save schedule",
+          "saving": "Saving…"
+        },
+        "cadence": {
+          "custom": "Custom…",
+          "label": "Cadence",
+          "placeholder": "Choose when to run"
+        },
+        "custom": {
+          "description": "Advanced cron format. Prefer a preset unless you need something specific.",
+          "title": "Custom schedule"
+        },
+        "description": "Run this workflow automatically on a recurring cadence.",
+        "descriptionNamed": "Run “{workflow}” automatically on a recurring cadence.",
+        "errors": {
+          "cadenceRequired": "Pick a cadence before saving the schedule.",
+          "load": "Failed to load the workflow",
+          "remove": "Failed to remove the schedule",
+          "save": "Failed to save the schedule"
+        },
+        "loading": "Loading schedule…",
+        "nextRun": "Next run {nextRun}",
+        "paused": "Paused",
+        "recurring": {
+          "description": "Run this workflow automatically on the cadence and timezone below.",
+          "title": "Recurring schedule"
+        },
+        "runs": "Runs",
+        "timezone": {
+          "label": "Timezone",
+          "placeholder": "Select timezone"
+        },
+        "title": "Schedule workflow"
+      }
     }
   },
   "following": {
@@ -243,8 +320,21 @@
     "filters": {
       "allPlatforms": "All platforms"
     },
+    "followModal": {
+      "byAuthor": "by @{author}",
+      "description": "Search a handle to follow accounts on X, Instagram, and TikTok — or paste a post link to import that exact post.",
+      "emptyHint": "Try a public handle to follow accounts, or paste a post link (X, Instagram, or TikTok) to import that exact post.",
+      "following": "Following",
+      "lookingUp": "Looking up accounts across platforms…",
+      "noAccounts": "No accounts found for that handle.",
+      "notFound": "Not found",
+      "postChoice": "This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.",
+      "postLabel": "{platform} post",
+      "title": "Follow sources"
+    },
     "manage": {
       "empty": "No followed sources yet.",
+      "imported": "Imported",
       "summary": "{active} active of {total} sources",
       "title": "Manage sources"
     }
@@ -313,6 +403,24 @@
       "summary": "Group {group} · {credits} credits charged"
     },
     "title": "Generate brand-voice variations"
+  },
+  "trends": {
+    "card": {
+      "actions": {
+        "copyPrompt": "Copy prompt",
+        "openSource": "Open source",
+        "remix": "Remix",
+        "sendToAgent": "Send to agent"
+      },
+      "metrics": {
+        "comments": "{count} comments",
+        "likes": "{count} likes",
+        "mentions": "{count} mentions",
+        "shares": "{count} shares",
+        "views": "{count} views"
+      },
+      "rank": "Rank #{rank}"
+    }
   },
   "subscription": {
     "plans": {
