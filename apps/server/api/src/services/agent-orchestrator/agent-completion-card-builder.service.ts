@@ -131,23 +131,24 @@ export class AgentCompletionCardBuilderService {
       });
     });
 
-    // Every card was the platform-less generic picker — the client already
-    // renders only the first of those, so leave the shape untouched.
-    if (platforms.length === 0) {
-      return uiActions;
-    }
-
     const [firstCard] = connectCards;
-    const collapsed: AgentUiAction = {
-      ...firstCard,
-      description:
-        firstCard.description ??
-        'Connect an account to unlock publishing and scheduling.',
-      id: `oauth-connect-collapsed-${firstCard.id}`,
-      platform: platforms.length === 1 ? platforms[0] : undefined,
-      platforms,
-      title: platforms.length === 1 ? firstCard.title : 'Connect an account',
-    };
+    const collapsed: AgentUiAction =
+      platforms.length === 0
+        ? // Every card was the platform-less generic picker: persist only the
+          // first one, matching the client collapse behavior so stored turns
+          // and streamed turns render the same way.
+          firstCard
+        : {
+            ...firstCard,
+            description:
+              firstCard.description ??
+              'Connect an account to unlock publishing and scheduling.',
+            id: `oauth-connect-collapsed-${firstCard.id}`,
+            platform: platforms.length === 1 ? platforms[0] : undefined,
+            platforms,
+            title:
+              platforms.length === 1 ? firstCard.title : 'Connect an account',
+          };
 
     let hasEmittedCollapsed = false;
 

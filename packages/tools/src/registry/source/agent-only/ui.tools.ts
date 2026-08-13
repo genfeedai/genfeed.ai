@@ -367,8 +367,9 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
         },
         steps: {
           description:
-            'The offered choices, in the order they should be presented.',
+            'The offered choices, in the order they should be presented. Every step must carry a destination and/or a prompt — a title alone is not actionable and fails the whole call.',
           items: {
+            anyOf: [{ required: ['destination'] }, { required: ['prompt'] }],
             properties: {
               description: {
                 description: 'One-line explanation of what this step does.',
