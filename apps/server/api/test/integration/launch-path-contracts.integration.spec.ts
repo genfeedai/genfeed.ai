@@ -19,6 +19,35 @@ function readRepo(relativePath: string): string {
 }
 
 describe('launch-path contracts (hermetic E2E tier)', () => {
+  it('refuses to serve public articles when the live schema drifts (#2832)', () => {
+    const main = readRepo('apps/server/api/src/main.ts');
+    const listenIdx = main.indexOf('app.listen(port)');
+    const contractCallIdx = main.indexOf(
+      'await assertLiveArticleColumnContract({',
+    );
+    const clientFieldsIdx = main.indexOf(
+      'clientFields: Object.keys(prisma.article.fields)',
+    );
+    const informationSchemaIdx = main.indexOf('information_schema.columns');
+    const articlesTableIdx = main.indexOf("table_name = 'articles'");
+    expect(contractCallIdx).toBeGreaterThan(-1);
+    expect(clientFieldsIdx).toBeGreaterThan(contractCallIdx);
+    expect(informationSchemaIdx).toBeGreaterThan(-1);
+    expect(articlesTableIdx).toBeGreaterThan(-1);
+    expect(informationSchemaIdx).toBeGreaterThan(clientFieldsIdx);
+    expect(listenIdx).toBeGreaterThan(informationSchemaIdx);
+    expect(main).toContain('API-GENFEED-AI-71');
+
+    const contract = readRepo('packages/prisma/src/article-column-contract.ts');
+    expect(contract).toContain('REQUIRED_ARTICLE_COLUMNS');
+    expect(contract).toContain("'label'");
+    expect(contract).toContain("'summary'");
+    expect(contract).toContain(
+      '20260811160000_rename_article_title_excerpt_to_label_summary',
+    );
+    expect(contract).toContain('articles.title does not exist');
+  });
+
   it('keeps the agent_messages cursor migration free of DROP INDEX CONCURRENTLY', () => {
     const sql = readRepo(
       'packages/prisma/prisma/migrations/20260811170000_agent_messages_cursor_index_id_desc/migration.sql',

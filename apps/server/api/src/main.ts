@@ -9,9 +9,9 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
-import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { DocsService } from '@api/endpoints/docs/docs.service';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
@@ -29,6 +29,7 @@ import {
 import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
@@ -36,6 +37,7 @@ import {
   initializeLicenseVerification,
   reportLicenseVerificationWarning,
 } from '@genfeedai/config/license-server';
+import { assertLiveArticleColumnContract } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -356,6 +358,25 @@ async function main() {
     };
 
     expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
+
+    // Sentry API-GENFEED-AI-71 / 72: refuse to bind the listener when the
+    // running Prisma Article client still selects the retired title column or
+    // the live table is missing `label`/`summary`. BOOT_CHECK and OpenAPI emit
+    // exit above, so this only gates real traffic.
+    bootstrapLogger.log('API bootstrap: verifying public article schema');
+    const prisma = app.get(PrismaService);
+    await assertLiveArticleColumnContract({
+      clientFields: Object.keys(prisma.article.fields),
+      findPresentColumns: async () => {
+        const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_name = 'articles'
+            AND table_schema = current_schema()
+        `;
+        return rows.map((row) => row.column_name);
+      },
+    });
 
     bootstrapLogger.log(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
