@@ -136,6 +136,7 @@ import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { OAuthModule } from '@api/oauth/oauth.module';
@@ -510,6 +511,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: ActionOriginInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
     },
   ],
 })
