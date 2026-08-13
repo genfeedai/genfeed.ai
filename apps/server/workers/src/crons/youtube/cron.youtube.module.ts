@@ -8,7 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
-import { CronYoutubeAnalyticsService } from '@workers/crons/youtube/cron.youtube-analytics.service';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -25,7 +24,6 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
   ],
   exports: [CronYoutubeStatusService],
   providers: [
-    CronYoutubeAnalyticsService,
     CronYoutubeMessagesService,
     CronYoutubeStatusService,
     SystemWorkflowProvenanceService,

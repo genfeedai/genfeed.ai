@@ -12,17 +12,7 @@ type CampaignWorkflowAction =
   | 'agentCampaignOrchestration'
   | 'agentCampaignTriggerEvaluation';
 
-type AgentCampaignConfig = {
-  nextOrchestratedAt?: string;
-  orchestrationEnabled?: boolean;
-  status?: 'active' | 'completed' | 'draft' | 'paused';
-};
-
-type AgentCampaignWithConfig = AgentCampaign & {
-  config: AgentCampaignConfig;
-};
-
-type AgentCampaignWithAgents = AgentCampaignWithConfig & {
+type AgentCampaignWithAgents = AgentCampaign & {
   agents: unknown[];
 };
 
@@ -70,15 +60,15 @@ export class CampaignOrchestrationWorkflowService {
 
     try {
       const now = new Date();
-      const campaigns = (await this.prisma.agentCampaign.findMany({
-        orderBy: { updatedAt: 'asc' },
-        take: MAX_CAMPAIGNS_PER_CYCLE * 5,
-        where: scopedWhere(organizationId, {}),
-      })) as AgentCampaignWithConfig[];
-
-      const dueCampaigns = campaigns
-        .filter((campaign) => this.isDueForOrchestration(campaign, now))
-        .slice(0, MAX_CAMPAIGNS_PER_CYCLE);
+      const dueCampaigns = await this.prisma.agentCampaign.findMany({
+        orderBy: { nextOrchestratedAt: 'asc' },
+        take: MAX_CAMPAIGNS_PER_CYCLE,
+        where: scopedWhere(organizationId, {
+          nextOrchestratedAt: { lte: now },
+          orchestrationEnabled: true,
+          status: 'active',
+        }),
+      });
 
       let enqueued = 0;
       let skipped = 0;
@@ -125,16 +115,16 @@ export class CampaignOrchestrationWorkflowService {
     }
 
     try {
-      const campaigns = (await this.prisma.agentCampaign.findMany({
+      const eligibleCampaigns = await this.prisma.agentCampaign.findMany({
         include: { agents: true },
         orderBy: { updatedAt: 'desc' },
-        take: MAX_CAMPAIGNS_PER_CYCLE * 5,
-        where: scopedWhere(organizationId, {}),
-      })) as AgentCampaignWithAgents[];
-
-      const eligibleCampaigns = campaigns
-        .filter((campaign) => this.isEligibleForTriggerEvaluation(campaign))
-        .slice(0, MAX_CAMPAIGNS_PER_CYCLE);
+        take: MAX_CAMPAIGNS_PER_CYCLE,
+        where: scopedWhere(organizationId, {
+          agents: { some: { isDeleted: false } },
+          orchestrationEnabled: true,
+          status: 'active',
+        }),
+      });
 
       let enqueued = 0;
       let skipped = 0;
@@ -162,40 +152,12 @@ export class CampaignOrchestrationWorkflowService {
     }
   }
 
-  private isDueForOrchestration(
-    campaign: AgentCampaignWithConfig,
-    now: Date,
-  ): boolean {
-    const config = this.readConfig(campaign);
-    const nextOrchestratedAt = this.parseDate(config.nextOrchestratedAt);
-
-    return (
-      config.orchestrationEnabled === true &&
-      config.status === 'active' &&
-      nextOrchestratedAt !== null &&
-      nextOrchestratedAt <= now
-    );
-  }
-
-  private isEligibleForTriggerEvaluation(
-    campaign: AgentCampaignWithAgents,
-  ): boolean {
-    const config = this.readConfig(campaign);
-
-    return (
-      config.orchestrationEnabled === true &&
-      config.status === 'active' &&
-      campaign.agents.length > 0
-    );
-  }
-
   private async queueCampaignOrchestration(
-    campaign: AgentCampaignWithConfig,
+    campaign: AgentCampaign,
     now: Date,
   ): Promise<boolean> {
     try {
-      const config = this.readConfig(campaign);
-      const scheduledAt = this.parseDate(config.nextOrchestratedAt) ?? now;
+      const scheduledAt = campaign.nextOrchestratedAt ?? now;
 
       await this.orchestratorQueueService.queueCampaignRun({
         campaignId: campaign.id,
@@ -281,19 +243,6 @@ export class CampaignOrchestrationWorkflowService {
       skipped,
       status: 'skipped',
     };
-  }
-
-  private readConfig(campaign: AgentCampaignWithConfig): AgentCampaignConfig {
-    return campaign.config ?? {};
-  }
-
-  private parseDate(value: unknown): Date | null {
-    if (typeof value !== 'string' && !(value instanceof Date)) {
-      return null;
-    }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private lockKey(

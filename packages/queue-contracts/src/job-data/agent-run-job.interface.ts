@@ -23,4 +23,6 @@ export interface AgentRunJobData {
   creditBudget?: number;
   /** Campaign ID — links the run to an agent campaign for coordination */
   campaignId?: string;
+  /** Thread ID — runtime-visible conversation the run belongs to */
+  threadId?: string;
 }

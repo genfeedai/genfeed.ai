@@ -14,6 +14,7 @@ import { ContentRotationService } from '@api/services/agent-campaign/content-rot
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
+import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
@@ -44,6 +45,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AnalyticsModule),
     forwardRef(() => TrendsModule),
     forwardRef(() => QueuesModule),
+    forwardRef(() => AgentRuntimeModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

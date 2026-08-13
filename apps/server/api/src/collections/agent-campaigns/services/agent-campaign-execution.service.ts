@@ -3,13 +3,18 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
+import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class AgentCampaignExecutionService {
@@ -20,7 +25,8 @@ export class AgentCampaignExecutionService {
     private readonly agentCampaignsService: AgentCampaignsService,
     private readonly agentStrategiesService: AgentStrategiesService,
     private readonly agentRunsService: AgentRunsService,
-    private readonly agentRunQueueService: AgentRunQueueService,
+    @Inject(forwardRef(() => AgentRuntimeService))
+    private readonly agentRuntimeService: AgentRuntimeService,
   ) {}
 
   /**
@@ -50,7 +56,6 @@ export class AgentCampaignExecutionService {
       throw new BadRequestException('Cannot execute a completed campaign');
     }
 
-    // Set campaign to active
     const now = new Date();
     const updated = await this.agentCampaignsService.patch(campaignId, {
       nextOrchestratedAt: now,
@@ -63,7 +68,6 @@ export class AgentCampaignExecutionService {
       });
     }
 
-    // Trigger each agent strategy
     for (const agentId of campaign.agents) {
       try {
         const strategyId = agentId.toString();
@@ -80,7 +84,6 @@ export class AgentCampaignExecutionService {
           continue;
         }
 
-        // Activate strategy if not already active
         if (!strategy.isActive) {
           await this.agentStrategiesService.setActive(
             strategyId,
@@ -89,35 +92,48 @@ export class AgentCampaignExecutionService {
           );
         }
 
+        // Orchestrator strategies are driven by the workflow-backed scanner,
+        // not by an immediate run on campaign start.
         if (isOrchestratorAgentType(strategy.agentType)) {
           this.logger.log(
-            `${this.constructorName} scheduled campaign orchestration for strategy ${strategyId}`,
+            `${this.constructorName} leaving orchestrator strategy ${strategyId} to workflow scanner`,
             { campaignId, strategyId },
           );
           continue;
         }
 
-        // Create a run for this strategy
-        const run = await this.agentRunsService.create({
-          label: `Campaign run: ${campaign.label} - ${strategy.label}`,
-          organizationId: organizationId,
-          strategyId: strategyId,
-          trigger: AgentExecutionTrigger.MANUAL,
-          userId: userId,
-        });
+        const objective =
+          campaign.brief || `Execute campaign: ${campaign.label}`;
+        const creditBudget =
+          typeof strategy.dailyCreditBudget === 'number'
+            ? strategy.dailyCreditBudget
+            : undefined;
 
-        // Queue the run
-        await this.agentRunQueueService.queueRun({
+        await this.agentRuntimeService.startTurn({
+          agentType:
+            typeof strategy.agentType === 'string'
+              ? strategy.agentType
+              : undefined,
+          autonomyMode:
+            typeof strategy.autonomyMode === 'string'
+              ? strategy.autonomyMode
+              : undefined,
+          brandId: campaign.brandId ?? undefined,
           campaignId,
-          objective: campaign.brief || `Execute campaign: ${campaign.label}`,
+          creditBudget,
+          label: `Campaign run: ${campaign.label} - ${strategy.label}`,
+          model:
+            typeof strategy.model === 'string' ? strategy.model : undefined,
+          objective,
           organizationId,
-          runId: (run as Record<string, unknown>).id as string,
           strategyId,
+          threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategyId}`,
+          trigger: AgentExecutionTrigger.CRON,
           userId,
         });
 
         this.logger.log(
-          `${this.constructorName} queued run for strategy ${strategyId}`,
+          `${this.constructorName} started runtime turn for strategy ${strategyId}`,
           { campaignId, strategyId },
         );
       } catch (error: unknown) {
@@ -158,7 +174,6 @@ export class AgentCampaignExecutionService {
       throw new BadRequestException('Only active campaigns can be paused');
     }
 
-    // Set campaign to paused
     const updated = await this.agentCampaignsService.patch(campaignId, {
       nextOrchestratedAt: null,
       status: 'paused',
@@ -170,7 +185,6 @@ export class AgentCampaignExecutionService {
       });
     }
 
-    // Pause each agent strategy
     for (const agentId of campaign.agents) {
       try {
         const strategyId = agentId.toString();
@@ -191,19 +205,13 @@ export class AgentCampaignExecutionService {
   }
 
   /**
-   * Increment creditsUsed on the campaign
+   * Atomically increment creditsUsed on the campaign.
    */
   async updateCreditsUsed(campaignId: string, credits: number): Promise<void> {
-    const current = await this.agentCampaignsService.findOne({
-      id: campaignId,
+    await this.agentCampaignsService.prisma.agentCampaign.updateMany({
+      data: { creditsUsed: { increment: credits } },
+      where: { id: campaignId, isDeleted: false },
     });
-    if (current) {
-      const currentCredits =
-        ((current as Record<string, unknown>).creditsUsed as number) ?? 0;
-      await this.agentCampaignsService.patch(campaignId, {
-        creditsUsed: currentCredits + credits,
-      } as Record<string, unknown>);
-    }
 
     this.logger.log(
       `${this.constructorName} updated credits for campaign ${campaignId}`,
@@ -223,7 +231,6 @@ export class AgentCampaignExecutionService {
       return false;
     }
 
-    // Check credits budget
     if (
       campaign.creditsAllocated > 0 &&
       campaign.creditsUsed >= campaign.creditsAllocated
@@ -240,9 +247,6 @@ export class AgentCampaignExecutionService {
 
       return true;
     }
-
-    // Content quota checking is best-effort; actual counting would require
-    // querying runs/outputs. For now, we rely on creditsAllocated as the primary gate.
 
     return false;
   }
@@ -265,7 +269,6 @@ export class AgentCampaignExecutionService {
       });
     }
 
-    // Count running agents by checking which strategies are active
     let agentsRunning = 0;
     for (const agentId of campaign.agents) {
       const strategy = await this.agentStrategiesService.findOneById(
@@ -277,7 +280,6 @@ export class AgentCampaignExecutionService {
       }
     }
 
-    // Count completed content via runs associated with this campaign
     const runs = await this.agentRunsService.find(
       scopedWhere(organizationId, { campaignId }),
     );
@@ -297,9 +299,9 @@ export class AgentCampaignExecutionService {
       campaignId,
       contentProduced,
       contentQuota: campaign.contentQuota,
-      creditsAllocated: campaign.creditsAllocated,
-      creditsUsed: campaign.creditsUsed,
-      status: campaign.status,
+      creditsAllocated: campaign.creditsAllocated ?? 0,
+      creditsUsed: campaign.creditsUsed ?? 0,
+      status: campaign.status ?? 'draft',
     };
   }
 }

@@ -5417,22 +5417,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ad-optimization/cron.ad-optimization.service.spec.ts",
-      "fingerprint": "f2e03fc9007275f197d5",
-      "message": "Argument of type '(call: [string, Record<string, unknown>]) => unknown' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => unknown'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string, Record<string, unknown>]'.       Target requires 2 element(s) but source may have fewer.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "apps/server/workers/src/crons/ad-sync/cron.ad-sync-google.service.spec.ts",
-      "fingerprint": "6c54e22d0af0f2a86b33",
-      "message": "Type '{ organizationId: string; }' is missing the following properties from type 'GoogleAdSyncJobData': credentialId, brandId, accessToken, refreshToken, customerIds",
-      "workspace": "workers"
-    },
-    {
       "code": 2503,
       "count": 4,
       "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",

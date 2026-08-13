@@ -92,11 +92,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'totalViews',
     'viewsGrowth',
   ],
-  'agent-campaign:AgentCampaign': [
-    'endDate',
-    'orchestrationEnabled',
-    'startDate',
-  ],
+  'agent-campaign:AgentCampaign': [],
   'agent-strategy:AgentStrategy': [
     'autoPublishConfidenceThreshold',
     'creditsUsedToday',

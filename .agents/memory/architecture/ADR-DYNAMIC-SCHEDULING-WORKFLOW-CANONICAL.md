@@ -102,3 +102,12 @@ When adding recurring tenant-product behavior, create or update a scheduled
 workflow instead of adding a new static cron decorator. If a static cron is
 truly platform/maintenance work, add it to the reviewed platform allowlist in
 `scripts/architecture/check-platform-cron-boundary.ts` with a concrete reason.
+
+**Migration completion rule:** removing a `@Cron` decorator is not enough.
+Delete the service file and its module registration from the workers (or API)
+app. A half-finished migration that strips the decorator but leaves the
+provider wired still bootstraps dead Nest providers and is invisible to
+`check:cron-boundary` (the guard only detects `@Cron` AST nodes). Campaign
+orchestration completed this cut: the legacy
+`workers/src/crons/agent-campaign/` scanner is gone; only the workflow path
+remains.
