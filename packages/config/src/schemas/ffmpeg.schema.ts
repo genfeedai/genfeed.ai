@@ -27,7 +27,6 @@ export const ffmpegSchema = {
   FFMPEG_MAX_CONCURRENCY: positiveSafeIntegerString
     .empty('')
     .default(DEFAULT_FFMPEG_MAX_CONCURRENCY),
-  FFMPEG_MAX_PROCESSES: Joi.string().optional(),
   FFMPEG_PIXEL_FORMAT: Joi.string().optional(),
   FFMPEG_PRESET: Joi.string().optional(),
   FFMPEG_TEMP_DIR: Joi.string().optional(),
