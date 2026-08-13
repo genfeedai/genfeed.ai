@@ -1,7 +1,6 @@
 import type { BatchItemFull } from '@api/services/batch-generation/batch-generation.types';
 import { BatchItemStatus, toPersistedReviewDecision } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 
 export type BatchItemRowWriter = {
   batchItem: Pick<Prisma.TransactionClient['batchItem'], 'upsert'>;
@@ -63,6 +62,7 @@ export async function persistBatchItemRows(
         status,
       };
 
+      // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so unique upsert restores tombstones
       return prisma.batchItem.upsert({
         create: {
           ...row,
@@ -75,7 +75,11 @@ export async function persistBatchItemRows(
           reviewDecision,
           status,
         },
-        where: scopedWhere(input.organizationId, { id: item.id }),
+        // Unique selector must omit isDeleted so a tombstone can match and restore.
+        where: {
+          id: item.id,
+          organizationId: input.organizationId,
+        },
       });
     }),
   );

@@ -61,13 +61,13 @@ describe('AdPerformanceService', () => {
 
       const call = upsert.mock.calls[0][0];
       expect(call.where).toEqual({
-        isDeleted: false,
         organizationId: 'org-1',
         organizationId_identityKey: {
           identityKey: 'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||',
           organizationId: 'org-1',
         },
       });
+      expect(call.where).not.toHaveProperty('isDeleted');
       expect(call.create.organizationId).toBe('org-1');
       expect(call.create.brandId).toBe('brand-1');
       expect(call.create.credentialId).toBe('cred-1');
@@ -191,6 +191,89 @@ describe('AdPerformanceService', () => {
       const created = upsert.mock.calls[0][0].create;
       expect(created.brandId).toBeNull();
       expect(created.credentialId).toBeNull();
+    });
+
+    it('matches a soft-deleted identityKey and restores it instead of creating', async () => {
+      const identityKey = 'v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||';
+      const existing = makeRow(
+        {},
+        {
+          id: 'perf-tombstone',
+          identityKey,
+          isDeleted: true,
+          organizationId: 'org-1',
+        },
+      );
+      let created = false;
+      let updated = false;
+
+      upsert.mockImplementation(
+        async (args: {
+          create: { data: Record<string, unknown>; isDeleted: boolean };
+          update: { data: Record<string, unknown>; isDeleted: boolean };
+          where: {
+            isDeleted?: boolean;
+            organizationId?: string;
+            organizationId_identityKey?: {
+              identityKey: string;
+              organizationId: string;
+            };
+          };
+        }) => {
+          const unique = args.where.organizationId_identityKey;
+          const uniqueMatches =
+            unique?.identityKey === existing.identityKey &&
+            unique?.organizationId === existing.organizationId &&
+            (args.where.organizationId === undefined ||
+              args.where.organizationId === existing.organizationId);
+          const softDeleteFilterBlocks =
+            args.where.isDeleted !== undefined &&
+            args.where.isDeleted !== existing.isDeleted;
+
+          if (uniqueMatches && !softDeleteFilterBlocks) {
+            updated = true;
+            return makeRow(args.update.data, {
+              ...existing,
+              isDeleted: args.update.isDeleted,
+            });
+          }
+
+          if (uniqueMatches) {
+            throw new Error(
+              'Unique constraint failed on the fields: (`organizationId`,`identityKey`)',
+            );
+          }
+
+          created = true;
+          return makeRow(args.create.data, {
+            isDeleted: args.create.isDeleted,
+          });
+        },
+      );
+
+      const result = await service.upsert({
+        adPlatform: 'meta',
+        date: '2026-07-01T00:00:00.000Z',
+        externalAccountId: 'acct-1',
+        granularity: 'account',
+        organizationId: 'org-1',
+      });
+
+      const call = upsert.mock.calls[0][0];
+      expect(call.where).toEqual({
+        organizationId: 'org-1',
+        organizationId_identityKey: {
+          identityKey,
+          organizationId: 'org-1',
+        },
+      });
+      expect(call.where).not.toHaveProperty('isDeleted');
+      expect(call.update.isDeleted).toBe(false);
+      expect(call.create.isDeleted).toBe(false);
+      expect(updated).toBe(true);
+      expect(created).toBe(false);
+      expect(result.id).toBe('perf-tombstone');
+      expect(result.isDeleted).toBe(false);
     });
   });
 
