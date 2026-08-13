@@ -239,6 +239,9 @@ describe('DesktopLocalProviderSettings', () => {
 
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Use a local workspace' }),
+    ).toBeDisabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -267,5 +270,25 @@ describe('DesktopLocalProviderSettings', () => {
     });
 
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
+  });
+
+  it('shows a recoverable inactive state when bootstrap fails', async () => {
+    mocks.getBootstrap.mockRejectedValueOnce(
+      new Error('Bootstrap could not confirm Local mode'),
+    );
+    render(<DesktopLocalProviderSettings />);
+
+    expect(await screen.findByText('Local generation is off')).toBeVisible();
+    expect(
+      await screen.findByText('Bootstrap could not confirm Local mode'),
+    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Use a local workspace' }),
+    ).toBeEnabled();
+    expect(mocks.getProviderConfig).not.toHaveBeenCalled();
+    expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
+    expect(mocks.testProviderConfig).not.toHaveBeenCalled();
   });
 });

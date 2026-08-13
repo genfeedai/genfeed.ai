@@ -58,3 +58,55 @@ export async function switchDesktopToCloud({
   relaunch();
   exit();
 }
+
+export interface UnwoundLocalRuntimeState {
+  bootstrapCache: null;
+  draftsService: null;
+  filesService: null;
+  generationService: null;
+  isOfflineMode: false;
+  kvService: null;
+  localIdentityService: null;
+  localRuntimePromise: null;
+  localService: null;
+  pgliteService: null;
+  prismaService: null;
+  syncService: null;
+  terminalService: null;
+  workspaceService: null;
+}
+
+interface UnwindFailedLocalRuntimeAfterClose {
+  applyReset: (reset: UnwoundLocalRuntimeState) => void;
+  closeDatabase: () => Promise<void>;
+}
+
+export function createUnwoundLocalRuntimeState(): UnwoundLocalRuntimeState {
+  return {
+    bootstrapCache: null,
+    draftsService: null,
+    filesService: null,
+    generationService: null,
+    isOfflineMode: false,
+    kvService: null,
+    localIdentityService: null,
+    localRuntimePromise: null,
+    localService: null,
+    pgliteService: null,
+    prismaService: null,
+    syncService: null,
+    terminalService: null,
+    workspaceService: null,
+  };
+}
+
+export async function unwindFailedLocalRuntimeAfterClose({
+  applyReset,
+  closeDatabase,
+}: UnwindFailedLocalRuntimeAfterClose): Promise<void> {
+  try {
+    await closeDatabase();
+  } finally {
+    applyReset(createUnwoundLocalRuntimeState());
+  }
+}

@@ -125,6 +125,7 @@ describe('LocalDesktopContent', () => {
     expect(
       await screen.findByText('Legacy database could not be repaired'),
     ).toBeVisible();
+    expect(screen.queryByText('Local provider settings')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /retry local mode/i }));
 
     await waitFor(() => {

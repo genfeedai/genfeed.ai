@@ -61,8 +61,11 @@ import {
 } from './main/process-exceptions.util';
 import {
   activateDesktopLocalMode,
+  createUnwoundLocalRuntimeState,
   selectDesktopDataService,
   switchDesktopToCloud,
+  type UnwoundLocalRuntimeState,
+  unwindFailedLocalRuntimeAfterClose,
 } from './main/runtime-mode.util';
 import {
   DesktopSessionService,
@@ -101,23 +104,52 @@ let bootstrapCache: IDesktopBootstrap | null = null;
 let pgliteService: DesktopPgliteService | null = null;
 let prismaService: DesktopPrismaService | null = null;
 let desktopStore: DesktopStoreService;
-let kvService: DesktopKvService;
-let localIdentityService: LocalIdentityService;
+let kvService: DesktopKvService | null = null;
+let localIdentityService: LocalIdentityService | null = null;
 let sessionService: DesktopSessionService;
-let workspaceService: DesktopWorkspaceService;
-let filesService: DesktopFilesService;
-let syncService: DesktopSyncService;
+let workspaceService: DesktopWorkspaceService | null = null;
+let filesService: DesktopFilesService | null = null;
+let syncService: DesktopSyncService | null = null;
 let syncConsentService: DesktopSyncConsentService;
-let terminalService: DesktopTerminalService;
-let generationService: DesktopGenerationService;
+let terminalService: DesktopTerminalService | null = null;
+let generationService: DesktopGenerationService | null = null;
 let cloudService: DesktopCloudService;
 let localService: DesktopLocalService | null = null;
-let draftsService: DesktopDraftsService;
+let draftsService: DesktopDraftsService | null = null;
 let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
 let localRuntimePromise: Promise<void> | null = null;
 let assetProtocolRegistered = false;
 let logService: DesktopLogService | null = null;
+
+function applyUnwoundLocalRuntime(
+  reset: UnwoundLocalRuntimeState = createUnwoundLocalRuntimeState(),
+): void {
+  pgliteService = reset.pgliteService;
+  prismaService = reset.prismaService;
+  kvService = reset.kvService;
+  localIdentityService = reset.localIdentityService;
+  workspaceService = reset.workspaceService;
+  syncService = reset.syncService;
+  filesService = reset.filesService;
+  terminalService = reset.terminalService;
+  generationService = reset.generationService;
+  draftsService = reset.draftsService;
+  localService = reset.localService;
+  isOfflineMode = reset.isOfflineMode;
+  bootstrapCache = reset.bootstrapCache;
+  localRuntimePromise = reset.localRuntimePromise;
+}
+
+function requireLocalService<TService>(service: TService | null): TService {
+  if (!service) {
+    throw new Error(
+      'Local mode is not enabled. Select Local workspace before using this feature.',
+    );
+  }
+
+  return service;
+}
 
 const telemetryService = new DesktopTelemetryService(environment);
 
@@ -220,9 +252,7 @@ const getCloudIdentityStatus = (
 const persistDeviceIdentity = async (
   session: IDesktopBootstrap['session'],
   activePrismaService: DesktopPrismaService | null = prismaService,
-  activeLocalIdentityService:
-    | LocalIdentityService
-    | undefined = localIdentityService,
+  activeLocalIdentityService: LocalIdentityService | null = localIdentityService,
 ): Promise<void> => {
   const client = activePrismaService?.getClient();
 
@@ -287,8 +317,11 @@ const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
     throw new Error('Select local mode before choosing a workspace.');
   }
 
-  workspaceService.getWorkspace(workspaceId);
-  await kvService.setValue(ACTIVE_WORKSPACE_ID_KEY, workspaceId);
+  requireLocalService(workspaceService).getWorkspace(workspaceId);
+  await requireLocalService(kvService).setValue(
+    ACTIVE_WORKSPACE_ID_KEY,
+    workspaceId,
+  );
 };
 
 function getDataService(): IDesktopDataService {
@@ -392,18 +425,19 @@ const initializeLocalRuntime = async (): Promise<void> => {
     return localRuntimePromise;
   }
 
-  const previousOfflineMode = isOfflineMode;
   localRuntimePromise = (async () => {
-    const [{ DesktopPgliteService }, { DesktopPrismaService }] =
-      await Promise.all([
-        import('./main/pglite.service'),
-        import('./main/prisma.service'),
-      ]);
-    const nextPgliteService = new DesktopPgliteService(
-      path.join(app.getPath('userData'), 'pglite-db'),
-    );
+    let nextPgliteService: DesktopPgliteService | null = null;
 
     try {
+      const [{ DesktopPgliteService }, { DesktopPrismaService }] =
+        await Promise.all([
+          import('./main/pglite.service'),
+          import('./main/prisma.service'),
+        ]);
+      nextPgliteService = new DesktopPgliteService(
+        path.join(app.getPath('userData'), 'pglite-db'),
+      );
+
       const pglite = await nextPgliteService.init();
       if (nextPgliteService.didResetUnsupportedDatabase()) {
         logService?.info(
@@ -493,10 +527,12 @@ const initializeLocalRuntime = async (): Promise<void> => {
       isOfflineMode = true;
       bootstrapCache = null;
     } catch (error) {
-      await nextPgliteService.close();
-      isOfflineMode = previousOfflineMode;
-      bootstrapCache = null;
-      localRuntimePromise = null;
+      await unwindFailedLocalRuntimeAfterClose({
+        applyReset: applyUnwoundLocalRuntime,
+        closeDatabase: async () => {
+          await nextPgliteService?.close();
+        },
+      });
       throw error;
     }
   })();
@@ -834,7 +870,9 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    const initialUrl = isOfflineMode
+    const prefersLocalWorkspace =
+      desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
+    const initialUrl = prefersLocalWorkspace
       ? new URL('/desktop/local', appShellService.appOrigin).toString()
       : appShellService.buildInitialUrl(sessionService.getSession());
     await loadCanonicalApp(mainWindow, initialUrl);
@@ -953,10 +991,13 @@ const openAndActivateWorkspace = async () => {
     throw new Error('Local workspace services are unavailable.');
   }
 
-  const workspace = await workspaceService.openWorkspace();
+  const workspace = await requireLocalService(workspaceService).openWorkspace();
 
   if (workspace) {
-    await kvService.setValue(ACTIVE_WORKSPACE_ID_KEY, workspace.id);
+    await requireLocalService(kvService).setValue(
+      ACTIVE_WORKSPACE_ID_KEY,
+      workspace.id,
+    );
   }
 
   return workspace;
@@ -1334,17 +1375,17 @@ const registerIpcHandlers = (): void => {
     return workspace;
   });
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.workspaceRecent, async () =>
-    workspaceService.listRecentWorkspaces(),
+    requireLocalService(workspaceService).listRecentWorkspaces(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceRead,
     async (_event: unknown, workspaceId: string) =>
-      workspaceService.getWorkspace(workspaceId),
+      requireLocalService(workspaceService).getWorkspace(workspaceId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceLinkProject,
     async (_event: unknown, workspaceId: string, projectId: string) => {
-      const workspace = await workspaceService.linkProject(
+      const workspace = await requireLocalService(workspaceService).linkProject(
         workspaceId,
         projectId || null,
         getLocalCloudIdentityContext(),
@@ -1360,11 +1401,9 @@ const registerIpcHandlers = (): void => {
       workspaceId: string,
       input: IDesktopWorkspaceCloudLinkInput,
     ) => {
-      const workspace = await workspaceService.linkCloudContext(
-        workspaceId,
-        input,
-        getLocalCloudIdentityContext(),
-      );
+      const workspace = await requireLocalService(
+        workspaceService,
+      ).linkCloudContext(workspaceId, input, getLocalCloudIdentityContext());
       await emitBootstrap();
       return workspace;
     },
@@ -1372,7 +1411,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceReveal,
     async (_event: unknown, workspaceId: string) => {
-      await workspaceService.revealInFinder(workspaceId);
+      await requireLocalService(workspaceService).revealInFinder(workspaceId);
     },
   );
   registerPrivilegedIpcHandler(
@@ -1380,18 +1419,18 @@ const registerIpcHandlers = (): void => {
     async (_event: unknown, workspaceId: string) => {
       await setActiveWorkspaceId(workspaceId);
       await emitBootstrap();
-      return workspaceService.getWorkspace(workspaceId);
+      return requireLocalService(workspaceService).getWorkspace(workspaceId);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsList,
     async (_event: unknown, workspaceId: string) =>
-      draftsService.listDrafts(workspaceId),
+      requireLocalService(draftsService).listDrafts(workspaceId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsGet,
     async (_event: unknown, workspaceId: string, draftId: string) =>
-      draftsService.getDraft(workspaceId, draftId),
+      requireLocalService(draftsService).getDraft(workspaceId, draftId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsSave,
@@ -1399,19 +1438,22 @@ const registerIpcHandlers = (): void => {
       _event: unknown,
       workspaceId: string,
       draft: IDesktopContentRunDraft,
-    ) => draftsService.saveDraft(workspaceId, draft),
+    ) => requireLocalService(draftsService).saveDraft(workspaceId, draft),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsDelete,
     async (_event: unknown, workspaceId: string, draftId: string) => {
-      await draftsService.deleteDraft(workspaceId, draftId);
+      await requireLocalService(draftsService).deleteDraft(
+        workspaceId,
+        draftId,
+      );
       await emitBootstrap();
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesRead,
     async (_event: unknown, workspaceId: string, relativePath: string) =>
-      filesService.readFile(workspaceId, relativePath),
+      requireLocalService(filesService).readFile(workspaceId, relativePath),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesWrite,
@@ -1421,17 +1463,20 @@ const registerIpcHandlers = (): void => {
       relativePath: string,
       contents: string,
     ) => {
-      await filesService.writeFile(workspaceId, relativePath, contents);
+      await requireLocalService(filesService).writeFile(
+        workspaceId,
+        relativePath,
+        contents,
+      );
       await emitBootstrap();
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesImportAssets,
     async (_event: unknown, workspaceId: string, filePaths?: string[]) => {
-      const importedAssets = await filesService.importAssets(
-        workspaceId,
-        filePaths,
-      );
+      const importedAssets = await requireLocalService(
+        filesService,
+      ).importAssets(workspaceId, filePaths);
       await emitBootstrap();
       return importedAssets;
     },
@@ -1439,23 +1484,26 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesListAssets,
     async (_event: unknown, workspaceId?: string) =>
-      filesService.listAssets(workspaceId),
+      requireLocalService(filesService).listAssets(workspaceId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
     async (_event: unknown, assetId: string) =>
-      filesService.getAssetUrl(assetId),
+      requireLocalService(filesService).getAssetUrl(assetId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesRevealAsset,
     async (_event: unknown, assetId: string) => {
-      await filesService.revealAsset(assetId);
+      await requireLocalService(filesService).revealAsset(assetId);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
     async (_event: unknown, request: IDesktopAssetGenerationRequest) => {
-      const job = await generationService.enqueueAssetGeneration(request);
+      const job =
+        await requireLocalService(generationService).enqueueAssetGeneration(
+          request,
+        );
       await emitBootstrap();
       return job;
     },
@@ -1463,45 +1511,47 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
     async (_event: unknown, jobId: string) =>
-      generationService.getGenerationJob(jobId),
+      requireLocalService(generationService).getGenerationJob(jobId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
     async (_event: unknown, workspaceId?: string) =>
-      generationService.listGenerationJobs(workspaceId),
+      requireLocalService(generationService).listGenerationJobs(workspaceId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
     async (_event: unknown, jobId: string) => {
-      const job = await generationService.cancelGenerationJob(jobId);
+      const job =
+        await requireLocalService(generationService).cancelGenerationJob(jobId);
       await emitBootstrap();
       return job;
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationGetProviderConfig,
-    async () => generationService.getPublicProviderConfig(),
+    async () =>
+      requireLocalService(generationService).getPublicProviderConfig(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
     async (_event: unknown, params: IDesktopWorkflowGenerationOptions) =>
-      generationService.generateWorkflow(params),
+      requireLocalService(generationService).generateWorkflow(params),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
     async (_event: unknown, config: IDesktopGenerationProviderConfig) =>
-      generationService.saveProviderConfig(config),
+      requireLocalService(generationService).saveProviderConfig(config),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationClearProviderConfig,
     async () => {
-      await generationService.clearProviderConfig();
+      await requireLocalService(generationService).clearProviderConfig();
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
     async (_event: unknown, config?: IDesktopGenerationProviderConfig) =>
-      generationService.testProviderConfig(config),
+      requireLocalService(generationService).testProviderConfig(config),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.notify,
@@ -1541,7 +1591,7 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.syncAckOps,
     async (_event: unknown, cloudUserId: string, ops: IDesktopSyncOpAck[]) => {
       assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
-      await syncService.ackOps(ops);
+      await requireLocalService(syncService).ackOps(ops);
       await emitBootstrap();
     },
   );
@@ -1553,22 +1603,22 @@ const registerIpcHandlers = (): void => {
       manifest: IDesktopBrandManifest,
     ) => {
       assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
-      await syncService.applyBrandManifest(manifest);
+      await requireLocalService(syncService).applyBrandManifest(manifest);
       await emitBootstrap();
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncGetJobs,
     async (_event: unknown, workspaceId?: string) =>
-      syncService.listJobs(workspaceId),
+      requireLocalService(syncService).listJobs(workspaceId),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncGetOps,
     async (_event: unknown, workspaceId?: string) =>
-      syncService.listOps(workspaceId),
+      requireLocalService(syncService).listOps(workspaceId),
   );
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
-    syncService.getState(),
+    requireLocalService(syncService).getState(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncQueueOp,
@@ -1581,7 +1631,7 @@ const registerIpcHandlers = (): void => {
       workspaceId?: string,
       baseVersion?: string,
     ) => {
-      const op = await syncService.queueOp(
+      const op = await requireLocalService(syncService).queueOp(
         entityType,
         entityId,
         operation,
@@ -1601,7 +1651,7 @@ const registerIpcHandlers = (): void => {
       update: IDesktopAssetSyncUpdate,
     ) => {
       assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
-      await syncService.recordAssetSync(update);
+      await requireLocalService(syncService).recordAssetSync(update);
       await emitBootstrap();
     },
   );
@@ -1633,7 +1683,10 @@ const registerIpcHandlers = (): void => {
       _event: unknown,
       cloudUserId: string,
       scope?: DesktopSyncCursorScope,
-    ) => kvService.getValueSync(getSyncCursorKey(cloudUserId, scope)),
+    ) =>
+      requireLocalService(kvService).getValueSync(
+        getSyncCursorKey(cloudUserId, scope),
+      ),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
@@ -1643,7 +1696,10 @@ const registerIpcHandlers = (): void => {
       cursor: string,
       scope?: DesktopSyncCursorScope,
     ) => {
-      kvService.setValueSync(getSyncCursorKey(cloudUserId, scope), cursor);
+      requireLocalService(kvService).setValueSync(
+        getSyncCursorKey(cloudUserId, scope),
+        cursor,
+      );
     },
   );
 
@@ -1660,7 +1716,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalCreate,
     async (event, options?: IDesktopTerminalCreateOptions) =>
-      terminalService.createSession(
+      requireLocalService(terminalService).createSession(
         options,
         (payload) => {
           event.sender.send(DESKTOP_IPC_CHANNELS.terminalData, payload);
@@ -1673,19 +1729,19 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalWrite,
     async (_event: unknown, sessionId: string, data: string) => {
-      terminalService.writeSession(sessionId, data);
+      requireLocalService(terminalService).writeSession(sessionId, data);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalResize,
     async (_event: unknown, sessionId: string, cols: number, rows: number) => {
-      terminalService.resizeSession(sessionId, cols, rows);
+      requireLocalService(terminalService).resizeSession(sessionId, cols, rows);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalKill,
     async (_event: unknown, sessionId: string) => {
-      terminalService.killSession(sessionId);
+      requireLocalService(terminalService).killSession(sessionId);
     },
   );
 };
@@ -1789,6 +1845,7 @@ void app
           `local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}`,
         );
         telemetryService.captureException(error, { surface: 'local-runtime' });
+        applyUnwoundLocalRuntime();
       }
     }
     telemetryService.setUser(sessionService.getSession());
