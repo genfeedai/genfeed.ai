@@ -97,6 +97,7 @@ export function useGenerationActionCard({
   const [referenceIds, setReferenceIds] = useState<string[]>([]);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
+  const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
   const busyThreadIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -218,6 +219,9 @@ export function useGenerationActionCard({
 
     clearGenerationOutcome();
     setStatus('generating');
+    // Dismiss the sticky composer error stack so it cannot cover this card's
+    // Generate control while the user retries from the card itself.
+    setComposerError(null);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -312,6 +316,7 @@ export function useGenerationActionCard({
     prioritize,
     referenceIds,
     onUiAction,
+    setComposerError,
     setThreadUiBusy,
   ]);
 
