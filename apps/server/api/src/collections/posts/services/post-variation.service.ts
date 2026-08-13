@@ -12,9 +12,11 @@ import {
   filterSourcePostVariations,
 } from '@api/collections/posts/services/source-post-variation-output.util';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
 import { sourcePostVariationCredits } from '@genfeedai/constants';
 import { scopedWhere } from '@genfeedai/server';
@@ -41,6 +43,7 @@ export class PostVariationService {
     private readonly batchGenerationService: BatchGenerationService,
     private readonly postsService: PostsService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {}
 
   async generate(
@@ -150,18 +153,27 @@ export class PostVariationService {
       }),
     );
 
-    const posts = await Promise.all(
-      postIds.map(async (postId) => {
-        const post = await this.postsService.findOne({
-          brandId: params.brandId,
-          id: postId,
-          isDeleted: false,
-          organizationId: params.organizationId,
-        });
-        if (!post) throw new NotFoundException('Post', postId);
-        return post;
-      }),
+    // The direct prisma.post.updateMany writes bypass BaseService, so bust the
+    // post collection/query caches (plus the public `posts` tag) explicitly.
+    // Never invalidate GLOBAL_PAGINATED_QUERY_CACHE_TAG here.
+    await this.cacheInvalidationService.invalidateByTags([
+      'post',
+      'collection:post',
+      'query:post',
+      paginatedQueryCacheTag('post'),
+      'posts',
+    ]);
+
+    const foundPosts = await this.postsService.findAllByOrganization(
+      params.organizationId,
+      { brandId: params.brandId, id: postIds },
     );
+    const postsById = new Map(foundPosts.map((post) => [post.id, post]));
+    const posts = postIds.map((postId) => {
+      const post = postsById.get(postId);
+      if (!post) throw new NotFoundException('Post', postId);
+      return post;
+    });
     const partialReason = describeVariationRejections(
       params.count,
       actualCount,
@@ -246,7 +258,7 @@ export class PostVariationService {
         ? entry.length > 0
         : typeof entry === 'string'
           ? entry.trim().length > 0
-          : entry != null,
+          : false,
     );
   }
 }

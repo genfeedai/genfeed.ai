@@ -6,6 +6,7 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import type {
   TrendContentItem,
@@ -40,6 +41,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -108,6 +110,7 @@ export default function TrendContentCard({
 }) {
   const brandId = useBrandId();
   const router = useRouter();
+  const { href } = useOrgUrl();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -145,15 +148,17 @@ export default function TrendContentCard({
     router.push(buildTrendSourceAgentHref(trend, sourceItem));
   }, [router, sourceItem, trend]);
 
-  const handleRemix = useCallback(() => {
-    router.push(
-      buildSourcePostVariationsHref({
-        platform: item.platform,
-        sourceReferenceId: item.sourceReferenceId,
-        trendId: item.trendId,
-      }),
-    );
-  }, [item.platform, item.sourceReferenceId, item.trendId, router]);
+  const remixHref = useMemo(
+    () =>
+      href(
+        buildSourcePostVariationsHref({
+          platform: item.platform,
+          sourceReferenceId: item.sourceReferenceId,
+          trendId: item.trendId,
+        }),
+      ),
+    [href, item.platform, item.sourceReferenceId, item.trendId],
+  );
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
@@ -277,13 +282,17 @@ export default function TrendContentCard({
         <div className="flex items-center gap-2 pt-1">
           {isSourcePostVariationPlatform(item.platform) ? (
             <Button
+              asChild
               className="min-w-0 flex-1 sm:flex-none"
-              icon={<Sparkles className="size-3.5" />}
-              label="Remix"
-              onClick={handleRemix}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
-            />
+              withWrapper={false}
+            >
+              <Link href={remixHref}>
+                <Sparkles className="size-3.5" />
+                Remix
+              </Link>
+            </Button>
           ) : null}
           {finding && onSelect ? (
             <Button

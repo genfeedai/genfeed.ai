@@ -9,6 +9,8 @@ import { ContentGeneratorService } from '@api/collections/content-intelligence/s
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
@@ -16,8 +18,9 @@ import { ContentIntelligencePlatform } from '@genfeedai/enums';
 describe('PostVariationService', () => {
   const contentGeneratorService = { generateContent: vi.fn() };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
-  const postsService = { findOne: vi.fn() };
+  const postsService = { findAllByOrganization: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
+  const cacheInvalidationService = { invalidateByTags: vi.fn() };
   const prisma = {
     brand: { findFirst: vi.fn() },
     post: { updateMany: vi.fn() },
@@ -46,6 +49,7 @@ describe('PostVariationService', () => {
       batchGenerationService as unknown as BatchGenerationService,
       postsService as unknown as PostsService,
       trendReferenceCorpusService as unknown as TrendReferenceCorpusService,
+      cacheInvalidationService as unknown as CacheInvalidationService,
     );
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: { voice: { style: 'direct and practical' } },
@@ -68,13 +72,17 @@ describe('PostVariationService', () => {
         })),
       }),
     );
-    postsService.findOne.mockImplementation(async ({ id }: { id: string }) => ({
-      brandId: 'brand-1',
-      description: `Description for ${id}`,
-      id,
-      organizationId: 'org-1',
-      platform: 'linkedin',
-    }));
+    cacheInvalidationService.invalidateByTags.mockResolvedValue(0);
+    postsService.findAllByOrganization.mockImplementation(
+      async (_organizationId: string, filters: { id: string[] }) =>
+        filters.id.map((id) => ({
+          brandId: 'brand-1',
+          description: `Description for ${id}`,
+          id,
+          organizationId: 'org-1',
+          platform: 'linkedin',
+        })),
+    );
   });
 
   it('passes N plus bounded source and brand context into generation and groups review drafts', async () => {
@@ -164,6 +172,62 @@ describe('PostVariationService', () => {
     const batchInput = batchGenerationService.createManualReviewBatch.mock
       .calls[0]?.[0] as { items: unknown[] };
     expect(batchInput.items).toHaveLength(1);
+  });
+
+  it('reads the persisted variations with one scoped query and invalidates post caches after the update batch', async () => {
+    const result = await service.generate(baseParams);
+
+    expect(postsService.findAllByOrganization).toHaveBeenCalledTimes(1);
+    expect(postsService.findAllByOrganization).toHaveBeenCalledWith('org-1', {
+      brandId: 'brand-1',
+      id: ['post-1', 'post-2', 'post-3'],
+    });
+    expect(result.posts.map((post) => post.id)).toEqual([
+      'post-1',
+      'post-2',
+      'post-3',
+    ]);
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      'post',
+      'collection:post',
+      'query:post',
+      'query:paginated:post',
+      'posts',
+    ]);
+    expect(
+      cacheInvalidationService.invalidateByTags.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(
+      prisma.post.updateMany.mock.invocationCallOrder.at(-1) ?? 0,
+    );
+  });
+
+  it('still reports missing persisted variations as not-found errors', async () => {
+    postsService.findAllByOrganization.mockImplementation(
+      async (_organizationId: string, filters: { id: string[] }) =>
+        filters.id
+          .filter((id) => id !== 'post-2')
+          .map((id) => ({ description: `Description for ${id}`, id })),
+    );
+
+    await expect(service.generate(baseParams)).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(service.generate(baseParams)).rejects.toThrow(
+      "Post with identifier 'post-2' not found",
+    );
+  });
+
+  it('treats false and zero voice values as no configured brand voice', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { voice: { enabled: false, intensity: 0 } },
+    });
+
+    const result = await service.generate(baseParams);
+
+    expect(result.meta.voiceMode).toBe('organization-defaults');
+    expect(result.meta.voiceModeLabel).toBe(
+      'Organization defaults (no brand voice configured)',
+    );
   });
 
   it('records tenant-safe imported reference lineage for every persisted variation', async () => {

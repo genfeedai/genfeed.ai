@@ -106,10 +106,15 @@ export interface GenerateSourcePostVariationsInput {
 export interface IPostVariationMeta {
   actualCount: number;
   creditCost: number;
-  groupId: string;
+  /**
+   * Optional on the client: the response meta is cast from transport JSON
+   * without runtime validation, so consumers must guard before rendering.
+   */
+  groupId?: string;
   partialReason?: string;
   requestedCount: number;
-  reviewBatchId: string;
+  /** Optional on the client for the same unvalidated-transport reason. */
+  reviewBatchId?: string;
   sourceKind: PostVariationSourceKind;
   voiceMode: PostVariationVoiceMode;
   voiceModeLabel: string;

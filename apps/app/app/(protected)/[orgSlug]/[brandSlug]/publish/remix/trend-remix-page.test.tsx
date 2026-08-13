@@ -127,6 +127,96 @@ describe('TrendRemixPage', () => {
     );
   });
 
+  it('shows the localized failure message instead of raw transport error text', async () => {
+    const user = userEvent.setup();
+    mocks.generateSourceVariations.mockRejectedValue(
+      new Error('Request failed with status code 500'),
+    );
+    render(<TrendRemixPage />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Generate 3 variations' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Failed to generate post variations.',
+      );
+    });
+    expect(mocks.notifyError).toHaveBeenCalledWith(
+      'Failed to generate post variations.',
+    );
+    expect(
+      screen.queryByText(/Request failed with status code 500/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('surfaces a validated, user-actionable server error detail', async () => {
+    const user = userEvent.setup();
+    mocks.generateSourceVariations.mockRejectedValue({
+      errors: [
+        {
+          code: '400',
+          detail: 'Platform linkedin cannot receive generated post variations.',
+          title: 'Bad Request',
+        },
+      ],
+    });
+    render(<TrendRemixPage />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Generate 3 variations' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Platform linkedin cannot receive generated post variations.',
+      );
+    });
+  });
+
+  it('renders successful results without crashing when optional metadata is absent', async () => {
+    const user = userEvent.setup();
+    mocks.generateSourceVariations.mockResolvedValue({
+      meta: {
+        actualCount: 2,
+        creditCost: 2,
+        requestedCount: 2,
+        sourceKind: 'source-post',
+        voiceMode: 'brand-voice',
+        voiceModeLabel: 'Brand voice',
+      },
+      posts: [
+        {
+          description: 'First distinct variation',
+          id: 'post-1',
+          platform: 'linkedin',
+        },
+        {
+          description: 'Second distinct variation',
+          id: 'post-2',
+          platform: 'linkedin',
+        },
+      ],
+    });
+    render(<TrendRemixPage />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Generate 3 variations' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('2 of 2 variations ready')).toBeInTheDocument();
+    });
+    expect(screen.getByText('First distinct variation')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Review all/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Group /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/review batch/)).not.toBeInTheDocument();
+    expect(mocks.notifyError).not.toHaveBeenCalled();
+  });
+
   it('offers every count through ten and submits the selected boundary', async () => {
     const user = userEvent.setup();
     render(<TrendRemixPage />);

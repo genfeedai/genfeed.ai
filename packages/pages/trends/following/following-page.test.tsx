@@ -66,6 +66,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org-1/brand-1${path}` }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
     factory('token'),
@@ -420,7 +424,7 @@ describe('FollowingPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('routes followed posts to the shared variation flow on remix', async () => {
+  it('routes followed posts to the org- and brand-scoped variation flow on remix', async () => {
     const user = userEvent.setup();
     render(<FollowingPage />);
 
@@ -428,7 +432,7 @@ describe('FollowingPage', () => {
 
     expect(mocks.routerPush).toHaveBeenCalledTimes(1);
     expect(mocks.routerPush).toHaveBeenCalledWith(
-      '/publish/remix?platform=twitter&sourcePostId=post-1',
+      '/org-1/brand-1/publish/remix?platform=twitter&sourcePostId=post-1',
     );
   });
 
@@ -451,7 +455,7 @@ describe('FollowingPage', () => {
     await user.click(screen.getByRole('button', { name: 'Remix' }));
 
     expect(mocks.routerPush).toHaveBeenCalledWith(
-      '/publish/remix?platform=instagram&sourcePostId=post-2',
+      '/org-1/brand-1/publish/remix?platform=instagram&sourcePostId=post-2',
     );
   });
 

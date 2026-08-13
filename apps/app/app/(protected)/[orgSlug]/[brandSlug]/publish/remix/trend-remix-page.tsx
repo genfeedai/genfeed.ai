@@ -25,6 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import {
+  ErrorHandler,
+  getErrorStatus,
+  type IAxiosLikeError,
+} from '@utils/error/error-handler.util';
 import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util';
 import { ArrowRight, Layers3, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -33,6 +38,40 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useMemo, useState } from 'react';
 
 const COUNT_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1);
+
+/** Client errors whose server detail is user-actionable and safe to surface. */
+const USER_ACTIONABLE_ERROR_STATUSES = new Set([400, 402, 404, 409, 422]);
+const MAX_SERVER_ERROR_DETAIL_LENGTH = 200;
+
+/**
+ * Resolve the message shown after a failed generation. Transport and server
+ * exception text (e.g. "Request failed with status code 500") must never
+ * reach the user; only a validated, user-actionable JSON:API detail may
+ * replace the localized fallback.
+ */
+function resolveGenerationErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  const status = getErrorStatus(error);
+  if (status === undefined || !USER_ACTIONABLE_ERROR_STATUSES.has(status)) {
+    return fallback;
+  }
+
+  const document = ErrorHandler.isJsonApiError(error)
+    ? error
+    : (() => {
+        const data = (error as IAxiosLikeError)?.response?.data;
+        return ErrorHandler.isJsonApiError(data) ? data : null;
+      })();
+  const detail = document?.errors[0]?.detail;
+  return typeof detail === 'string' &&
+    detail.trim().length > 0 &&
+    detail.length < MAX_SERVER_ERROR_DETAIL_LENGTH &&
+    !detail.includes('\n')
+    ? detail
+    : fallback;
+}
 
 function resolvePlatform(
   value: string | null,
@@ -102,9 +141,10 @@ function TrendRemixPageContent() {
         'Failed to generate source post variations',
         generationError,
       );
-      const message =
-        (generationError as Error)?.message ||
-        translate('sourcePostVariations.errors.generationFailed');
+      const message = resolveGenerationErrorMessage(
+        generationError,
+        translate('sourcePostVariations.errors.generationFailed'),
+      );
       setError(message);
       notifications.error(message);
     } finally {
@@ -112,7 +152,7 @@ function TrendRemixPageContent() {
     }
   };
 
-  const reviewHref = result
+  const reviewHref = result?.meta.reviewBatchId
     ? href(
         `${APP_ROUTES.PUBLISH.REVIEW}?batch=${encodeURIComponent(result.meta.reviewBatchId)}`,
       )
@@ -232,12 +272,14 @@ function TrendRemixPageContent() {
                   )}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-foreground/55">
-                {translate('sourcePostVariations.results.summary', {
-                  credits: result.meta.creditCost,
-                  group: result.meta.groupId.slice(0, 8),
-                })}
-              </p>
+              {result.meta.groupId ? (
+                <p className="mt-1 text-sm text-foreground/55">
+                  {translate('sourcePostVariations.results.summary', {
+                    credits: result.meta.creditCost,
+                    group: result.meta.groupId.slice(0, 8),
+                  })}
+                </p>
+              ) : null}
             </div>
             {reviewHref ? (
               <Button
@@ -282,11 +324,13 @@ function TrendRemixPageContent() {
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-foreground/80">
                     {post.description}
                   </p>
-                  <p className="mt-2 text-xs text-foreground/45">
-                    {translate('sourcePostVariations.results.provenance', {
-                      batch: result.meta.reviewBatchId.slice(0, 8),
-                    })}
-                  </p>
+                  {result.meta.reviewBatchId ? (
+                    <p className="mt-2 text-xs text-foreground/45">
+                      {translate('sourcePostVariations.results.provenance', {
+                        batch: result.meta.reviewBatchId.slice(0, 8),
+                      })}
+                    </p>
+                  ) : null}
                 </Card>
               </article>
             ))}

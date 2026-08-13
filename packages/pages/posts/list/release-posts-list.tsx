@@ -39,7 +39,6 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   buildSourcePostVariationsHref,
@@ -444,23 +443,21 @@ export default function ReleasePostsList({
                         </Link>
                         {target.executionState === TargetState.PUBLISHED &&
                         isSourcePostVariationPlatform(target.platform) ? (
-                          <Button
-                            ariaLabel={`Generate variations from ${getPostsPlatformLabel(target.platform)} post`}
-                            icon={<Sparkles className="size-4" />}
-                            onClick={() =>
-                              router.push(
-                                href(
-                                  buildSourcePostVariationsHref({
-                                    platform: target.platform,
-                                    postId: target.id,
-                                  }),
-                                ),
-                              )
-                            }
-                            size={ButtonSize.ICON}
-                            variant={ButtonVariant.SECONDARY}
-                            withWrapper={false}
-                          />
+                          <Link
+                            aria-label={`Generate variations from ${getPostsPlatformLabel(target.platform)} post`}
+                            className={buttonVariants({
+                              size: ButtonSize.ICON,
+                              variant: ButtonVariant.SECONDARY,
+                            })}
+                            href={href(
+                              buildSourcePostVariationsHref({
+                                platform: target.platform,
+                                postId: target.id,
+                              }),
+                            )}
+                          >
+                            <Sparkles className="size-4" />
+                          </Link>
                         ) : null}
                       </div>
                     );
