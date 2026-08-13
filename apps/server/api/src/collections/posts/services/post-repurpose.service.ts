@@ -483,12 +483,12 @@ export class PostRepurposeService {
       return undefined;
     }
 
-    const rows = await this.prisma.ingredient.findMany({
-      select: { cdnUrl: true, id: true },
+    const row = await this.prisma.ingredient.findFirst({
+      select: { cdnUrl: true },
       where: scopedWhere(organizationId, { id: ingredientId }),
     });
 
-    return rows[0]?.cdnUrl ?? undefined;
+    return row?.cdnUrl ?? undefined;
   }
 
   private async resolveGroupOrder(

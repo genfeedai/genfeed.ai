@@ -243,10 +243,8 @@ export class AdPerformanceService {
       index += UPSERT_BATCH_CHUNK_SIZE
     ) {
       const chunk = records.slice(index, index + UPSERT_BATCH_CHUNK_SIZE);
-      for (const data of chunk) {
-        await this.upsert(data);
-        count++;
-      }
+      await Promise.all(chunk.map((data) => this.upsert(data)));
+      count += chunk.length;
     }
     return count;
   }

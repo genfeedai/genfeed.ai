@@ -2,7 +2,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { isFalDestination } from '@api/collections/models/utils/model-key.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -85,11 +84,16 @@ export class CronFalModelWatcherService {
     };
 
     try {
-      // Step 1: Fetch all known model keys from the registry
-      const allModels = await this.modelsService.find({ isDeleted: false });
+      // Step 1: Fetch all known model keys from the registry. The diff only
+      // needs keys, so read them straight off the delegate instead of pulling
+      // every row's JSONB config through `modelsService.find`.
+      const registryRows = await this.modelsService.prisma.model.findMany({
+        select: { key: true },
+        where: { isDeleted: false },
+      });
       const existingKeys = new Set(
-        allModels
-          .map((m: ServerModelRecord) => m.key)
+        registryRows
+          .map((row) => row.key)
           .filter((key): key is string => typeof key === 'string'),
       );
 

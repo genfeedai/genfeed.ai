@@ -251,7 +251,7 @@ describe('PostGroupPersistenceService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('lists active organization releases that intersect the window and hydrates targets in one query', async () => {
+  it('lists active organization releases that intersect the window and bounds both reads to it', async () => {
     const targetGroup = makeGroup({
       id: 'group-target',
       scheduledAt: null,
@@ -265,6 +265,10 @@ describe('PostGroupPersistenceService', () => {
     ]);
     prisma.postGroup.findMany.mockResolvedValue([targetGroup]);
 
+    const window = {
+      gte: new Date('2026-07-20T00:00:00.000Z'),
+      lte: new Date('2026-07-27T00:00:00.000Z'),
+    };
     const result = await service.listReleaseGroups({
       brandId: 'brand-1',
       endDate: new Date('2026-07-27T00:00:00.000Z'),
@@ -273,28 +277,61 @@ describe('PostGroupPersistenceService', () => {
       statuses: [ReleaseStatus.SCHEDULED, ReleaseStatus.FAILED],
     });
 
+    // Window prefilter: id-only reads bounded by the schedule window.
     expect(prisma.postGroup.findMany).toHaveBeenCalledWith({
-      orderBy: { id: 'asc' },
+      select: { id: true },
       where: {
         brandId: 'brand-1',
         isDeleted: false,
         organizationId: 'org-1',
+        scheduledAt: window,
       },
     });
     expect(prisma.post.findMany).toHaveBeenCalledWith({
-      orderBy: [
-        { groupId: 'asc' },
-        { order: 'asc' },
-        { createdAt: 'asc' },
-        { id: 'asc' },
-      ],
+      select: { groupId: true },
       where: {
         brandId: 'brand-1',
+        groupId: { not: null },
         isDeleted: false,
         organizationId: 'org-1',
         parentId: null,
+        scheduledDate: window,
       },
     });
+    // Hydration reads only touch releases that intersect the window.
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { id: 'asc' },
+        select: expect.objectContaining({ id: true, status: true }),
+        where: {
+          brandId: 'brand-1',
+          id: { in: ['group-target'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [
+          { groupId: 'asc' },
+          { order: 'asc' },
+          { createdAt: 'asc' },
+          { id: 'asc' },
+        ],
+        select: expect.objectContaining({ id: true, scheduledDate: true }),
+        where: {
+          brandId: 'brand-1',
+          isDeleted: false,
+          OR: [
+            { groupId: { in: ['group-target'] } },
+            { groupId: null, scheduledDate: window },
+          ],
+          organizationId: 'org-1',
+          parentId: null,
+        },
+      }),
+    );
     expect(result).toMatchObject({
       docs: [
         expect.objectContaining({
@@ -493,8 +530,34 @@ describe('PostGroupPersistenceService', () => {
     });
 
     expect(result.docs).toEqual([expect.objectContaining({ id: 'group-1' })]);
+    // One id-only window prefilter plus one hydration read per table.
+    expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.post.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips the window prefilter and reads each table once for unwindowed lists', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
+    prisma.post.findMany.mockResolvedValue([makeTarget()]);
+
+    const result = await service.listReleaseGroups({ organizationId: 'org-1' });
+
+    expect(result.docs).toEqual([expect.objectContaining({ id: 'group-1' })]);
     expect(prisma.postGroup.findMany).toHaveBeenCalledOnce();
     expect(prisma.post.findMany).toHaveBeenCalledOnce();
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isDeleted: false, organizationId: 'org-1' },
+      }),
+    );
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          parentId: null,
+        },
+      }),
+    );
   });
 
   it('copies independent lifecycle and visibility onto attachment posts', async () => {

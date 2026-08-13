@@ -52,8 +52,16 @@ describe('CronFalModelWatcherService', () => {
         {
           provide: ModelsService,
           useValue: {
-            find: vi.fn().mockResolvedValue(mockExistingModels),
             findAllActive: vi.fn().mockResolvedValue(mockExistingModels),
+            prisma: {
+              model: {
+                findMany: vi
+                  .fn()
+                  .mockResolvedValue(
+                    mockExistingModels.map((model) => ({ key: model.key })),
+                  ),
+              },
+            },
           },
         },
         {
