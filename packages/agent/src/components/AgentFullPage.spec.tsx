@@ -216,7 +216,7 @@ vi.mock('@genfeedai/agent/components/AgentSetupPanel', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/AgentThreadContextPanel', () => ({
-  AgentThreadContextPanel: () => <div>agent-thread-context-panel</div>,
+  default: () => <div>agent-thread-context-panel</div>,
 }));
 
 let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;

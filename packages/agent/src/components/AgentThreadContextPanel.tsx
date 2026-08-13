@@ -11,12 +11,17 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ComponentSize } from '@genfeedai/enums';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
+import type {
+  AgentThreadContextRowProps,
+  AgentThreadContextSectionLinkProps,
+  AgentThreadContextSectionProps,
+} from '@genfeedai/props/ui/agent/agent-thread-context-panel.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Link from 'next/link';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 
 interface AgentThreadContextPanelProps {
   brand: Brand | undefined;
@@ -39,11 +44,7 @@ function ContextSection({
   action,
   children,
   title,
-}: {
-  action?: ReactNode;
-  children: ReactNode;
-  title: string;
-}): ReactElement {
+}: AgentThreadContextSectionProps): ReactElement {
   return (
     <Card bodyClassName="gap-0 p-3 sm:p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -60,10 +61,7 @@ function ContextSection({
 function ContextRow({
   label,
   value,
-}: {
-  label: string;
-  value: string;
-}): ReactElement {
+}: AgentThreadContextRowProps): ReactElement {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1">
       <span className="shrink-0 text-[11px] text-foreground/45">{label}</span>
@@ -77,10 +75,7 @@ function ContextRow({
 function SectionLink({
   href,
   label,
-}: {
-  href: string;
-  label: string;
-}): ReactElement {
+}: AgentThreadContextSectionLinkProps): ReactElement {
   return (
     <Link
       href={href}
@@ -102,7 +97,7 @@ function SectionLink({
  * Every section links to the page that owns it, so the rail is navigable rather
  * than decorative.
  */
-export function AgentThreadContextPanel({
+export default function AgentThreadContextPanel({
   brand,
   className,
   completenessScore,

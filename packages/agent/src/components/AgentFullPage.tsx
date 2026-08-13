@@ -5,7 +5,7 @@ import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/Agent
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
-import { AgentThreadContextPanel } from '@genfeedai/agent/components/AgentThreadContextPanel';
+import AgentThreadContextPanel from '@genfeedai/agent/components/AgentThreadContextPanel';
 import { useConversationInspectorShell } from '@genfeedai/agent/components/ConversationInspectorShellContext';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';

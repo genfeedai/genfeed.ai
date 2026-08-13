@@ -67,7 +67,7 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => {
   return { useAgentChatStore };
 });
 
-import { AgentThreadContextPanel } from '@genfeedai/agent/components/AgentThreadContextPanel';
+import AgentThreadContextPanel from '@genfeedai/agent/components/AgentThreadContextPanel';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 

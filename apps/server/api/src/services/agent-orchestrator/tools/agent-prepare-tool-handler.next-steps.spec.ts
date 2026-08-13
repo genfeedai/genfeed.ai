@@ -74,7 +74,10 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
     ]);
   });
 
-  it('drops a step with no destination and no prompt — that is prose again', () => {
+  it('fails a mixed batch instead of silently dropping the non-actionable step', () => {
+    // A title-only step used to be filtered out while the rest succeeded, so
+    // the user never saw every choice the model selected. The whole call must
+    // fail loudly so the model can fix the step and retry.
     const result = createHandler().suggestNextSteps({
       steps: [
         { title: 'Think about it' },
@@ -82,16 +85,53 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
       ],
     });
 
-    expect(readSteps(result).map((step) => step.title)).toEqual(['Billing']);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('step 1');
+    expect(result.error).toContain('not actionable');
+    expect(result.nextActions).toBeUndefined();
   });
 
-  it('ignores an unknown destination key rather than inventing a URL', () => {
+  it('names every non-actionable step position in the error', () => {
+    const result = createHandler().suggestNextSteps({
+      steps: [
+        { title: 'Think about it' },
+        { destination: 'billing', title: 'Billing' },
+        { title: 'Sleep on it' },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('steps 1, 3');
+  });
+
+  it('rejects an unknown destination key rather than inventing a URL', () => {
     const result = createHandler().suggestNextSteps({
       steps: [{ destination: '/made/up/route', title: 'Somewhere' }],
     });
 
     expect(result.success).toBe(false);
     expect(result.nextActions).toBeUndefined();
+  });
+
+  it('keeps a step with an unknown destination when its prompt is still actionable', () => {
+    const result = createHandler().suggestNextSteps({
+      steps: [
+        {
+          destination: '/made/up/route',
+          prompt: 'Do it in the conversation.',
+          title: 'Somewhere',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(readSteps(result)[0]?.ctas).toEqual([
+      {
+        action: 'send_prompt',
+        label: 'Continue here',
+        payload: { prompt: 'Do it in the conversation.' },
+      },
+    ]);
   });
 
   it('fails when no step is actionable', () => {

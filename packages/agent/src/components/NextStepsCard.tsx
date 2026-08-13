@@ -9,6 +9,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactElement } from 'react';
 
 interface NextStepsCardProps {
@@ -25,8 +26,9 @@ function NextStepCtaButton({
   isPrimary: boolean;
   onUiAction?: AgentUiActionHandler;
 }): ReactElement {
-  // Anchors go through Button so global `a { color }` rules cannot paint
-  // unreadable text on card chrome.
+  // Navigation goes through Link inside Button so client-side routing is
+  // preserved and global `a { color }` rules cannot paint unreadable text on
+  // card chrome.
   const className = 'h-7 px-2.5 text-xs font-medium';
   const variant = isPrimary ? ButtonVariant.SECONDARY : ButtonVariant.GHOST;
 
@@ -41,10 +43,10 @@ function NextStepCtaButton({
         variant={variant}
         withWrapper={false}
       >
-        <a href={href}>
+        <Link href={href}>
           {cta.label}
           <ArrowUpRight className="ml-1 size-3.5" />
-        </a>
+        </Link>
       </Button>
     );
   }

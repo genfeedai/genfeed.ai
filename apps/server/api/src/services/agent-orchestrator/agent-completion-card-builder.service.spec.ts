@@ -432,6 +432,77 @@ describe('AgentCompletionCardBuilderService', () => {
       expect(connectCards[0]?.title).toBe('Connect an account');
     });
 
+    it('keeps only the first card when every card is the platform-less generic picker', () => {
+      const genericCard = (id: string): AgentUiAction => ({
+        ctas: [{ href: '/api/oauth/connect', label: 'Connect an account' }],
+        id,
+        title: 'Connect an account',
+        type: 'oauth_connect_card',
+      });
+
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: AgentToolName.GET_CONNECTION_STATUS,
+          },
+        ],
+        uiActions: [
+          genericCard('oauth-generic-1'),
+          genericCard('oauth-generic-2'),
+          genericCard('oauth-generic-3'),
+        ],
+      });
+
+      const connectCards = result.uiActions.filter(
+        (action) => action.type === 'oauth_connect_card',
+      );
+
+      // Persisted turns must match the client collapse: one generic picker,
+      // shape untouched, at the position of the first card.
+      expect(connectCards).toHaveLength(1);
+      expect(connectCards[0]).toEqual(genericCard('oauth-generic-1'));
+    });
+
+    it('keeps only the first generic picker while preserving surrounding cards', () => {
+      const otherCard: AgentUiAction = {
+        id: 'credits-1',
+        title: 'Credits',
+        type: 'credits_balance_card',
+      };
+
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: AgentToolName.GET_CONNECTION_STATUS,
+          },
+        ],
+        uiActions: [
+          {
+            id: 'oauth-generic-1',
+            title: 'Connect an account',
+            type: 'oauth_connect_card',
+          },
+          otherCard,
+          {
+            id: 'oauth-generic-2',
+            title: 'Connect an account',
+            type: 'oauth_connect_card',
+          },
+        ],
+      });
+
+      expect(
+        result.uiActions.map((action) => `${action.type}:${action.id}`),
+      ).toEqual([
+        'oauth_connect_card:oauth-generic-1',
+        'credits_balance_card:credits-1',
+      ]);
+    });
+
     it('leaves a single connect card untouched', () => {
       const result = service.buildAssistantUiActions({
         reviewRequired: false,

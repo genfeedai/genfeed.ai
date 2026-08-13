@@ -483,15 +483,38 @@ export class AgentPrepareToolHandler {
     const steps = Array.isArray(params.steps) ? params.steps : [];
     const prompt = readOptionalString(params.prompt);
 
-    const options = steps
-      .map((step, index) => this.buildNextStepOption(step, index))
-      .filter((option): option is AgentNextStepOption => option !== null);
-
-    if (options.length === 0) {
+    if (steps.length === 0) {
       return {
         creditsUsed: 0,
         error:
           'steps must contain at least one entry with a title and either a destination or a prompt',
+        success: false,
+      };
+    }
+
+    const options: AgentNextStepOption[] = [];
+    const rejectedPositions: number[] = [];
+
+    steps.forEach((step, index) => {
+      const option = this.buildNextStepOption(step, index);
+      if (option) {
+        options.push(option);
+      } else {
+        rejectedPositions.push(index + 1);
+      }
+    });
+
+    // A partially valid batch must not silently drop choices the model wanted
+    // to offer — fail the whole call loudly so the model can fix and retry.
+    if (rejectedPositions.length > 0) {
+      const label =
+        rejectedPositions.length === 1
+          ? `step ${rejectedPositions[0]} is`
+          : `steps ${rejectedPositions.join(', ')} are`;
+
+      return {
+        creditsUsed: 0,
+        error: `${label} not actionable: every step needs a title and a known destination key and/or a prompt`,
         success: false,
       };
     }

@@ -2,6 +2,20 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/link', () => ({
+  default: function MockLink(props: {
+    children?: ReactNode;
+    className?: string;
+    href: string;
+  }) {
+    return (
+      <a className={props.className} data-testid="app-link" href={props.href}>
+        {props.children}
+      </a>
+    );
+  },
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
     asChild?: boolean;
@@ -76,11 +90,14 @@ describe('NextStepsCard', () => {
     expect(screen.getByRole('link', { name: /Open settings/ })).toBeTruthy();
   });
 
-  it('points a navigation CTA at the owning page', () => {
+  it('points a navigation CTA at the owning page through the application Link', () => {
     render(<NextStepsCard action={buildAction()} />);
 
     const link = screen.getByRole('link', { name: /Open brand settings/ });
     expect(link.getAttribute('href')).toBe('/settings/brands');
+    // Raw anchors bypass client-side routing — navigation must render via the
+    // application Link component (next/link).
+    expect(link.getAttribute('data-testid')).toBe('app-link');
   });
 
   it('sends the follow-up prompt back into the conversation', () => {
