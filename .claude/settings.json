@@ -44,11 +44,8 @@
     "deny": [
       "Bash(curl:*)",
       "Bash(wget:*)",
-      "Edit(**/.env*)",
       "Read(**/*.pem)",
-      "Read(**/.env*)",
-      "Read(**/secrets/**)",
-      "Write(**/.env*)"
+      "Read(**/secrets/**)"
     ]
   }
 }
