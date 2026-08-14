@@ -1,7 +1,4 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
-import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import {
   createTestOrganization,
   createTestUser,
@@ -68,24 +65,19 @@ describe('Tasks E2E Tests', () => {
   let scopedTaskId: string;
 
   beforeAll(async () => {
-    const moduleConfig = await E2ETestModule.forRoot({
-      controllers: [TasksController],
+    const moduleConfig = await E2ETestModule.forTasks({
       providers: [
-        TasksService,
         {
           provide: APP_GUARD,
           useClass: TestCurrentUserGuard,
         },
         {
-          provide: TaskCountersService,
-          useValue: {
-            getNextNumber: vi.fn(),
-          },
-        },
-        {
           provide: OrganizationsService,
           useValue: {
-            findOne: vi.fn(),
+            findOne: vi.fn(async ({ id }: { id: string }) => ({
+              id,
+              isDeleted: false,
+            })),
           },
         },
       ],
@@ -149,7 +141,7 @@ describe('Tasks E2E Tests', () => {
         createdAt: new Date('2026-04-01T10:00:00.000Z'),
         identifier: 'GENA-20',
         isDeleted: false,
-        linkedEntities: [],
+        config: { linkedEntities: [] },
         organizationId: testOrganization.id,
         priority: 'high',
         status: 'todo',
@@ -162,7 +154,7 @@ describe('Tasks E2E Tests', () => {
         createdAt: new Date('2026-04-01T11:00:00.000Z'),
         identifier: 'GENA-99',
         isDeleted: false,
-        linkedEntities: [],
+        config: { linkedEntities: [] },
         organizationId: otherOrganization.id,
         priority: 'low',
         status: 'backlog',

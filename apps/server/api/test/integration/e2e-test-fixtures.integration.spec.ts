@@ -13,10 +13,29 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { createTestUser } from '@api-test/e2e/e2e-test.utils';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { LinksService } from '@api/collections/links/services/links.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
+import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
+import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
+  BRAND_CONTROLLER_E2E_MOCK_PROVIDERS,
   BRAND_SERVICE_E2E_MOCK_PROVIDERS,
   COLLECTION_E2E_MOCK_PROVIDERS,
   E2ETestModule,
+  TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
 import { describe, expect, it } from 'vitest';
 
@@ -79,5 +98,31 @@ describe('E2E fixture contracts', () => {
         ...expectedCollectionTokens,
       ]),
     );
+  });
+
+  it('provides BrandsController and Tasks collaborators for dedicated E2E factories', () => {
+    expect(
+      BRAND_CONTROLLER_E2E_MOCK_PROVIDERS.map(resolveProviderToken),
+    ).toEqual([
+      ActivitiesService,
+      VideosService,
+      ImagesService,
+      ArticlesService,
+      MusicsService,
+      CredentialsService,
+      LinksService,
+      PostsService,
+      AnalyticsAggregationService,
+      BrandSetupService,
+      BrandScraperService,
+    ]);
+    expect(TASK_E2E_MOCK_PROVIDERS.map(resolveProviderToken)).toEqual([
+      TaskCountersService,
+      AgentOrchestratorService,
+      TaskRoutingService,
+      TaskActionsService,
+      TaskPlanningService,
+      WorkspaceTaskQueueService,
+    ]);
   });
 });

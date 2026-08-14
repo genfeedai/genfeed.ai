@@ -5,28 +5,41 @@
  */
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LinksService } from '@api/collections/links/services/links.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 // Controller imports
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 // Service imports
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
+import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
+import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
+import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
+import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -37,9 +50,12 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // External service mock imports
 import {
@@ -160,6 +176,82 @@ export const GUARD_OVERRIDE_PROVIDERS = [
  * pulling provider-backed generation, crawling, file, or relocation paths into
  * the hermetic test boundary.
  */
+const inertCollectionService = {
+  find: () => Promise.resolve([]),
+  findAll: () => Promise.resolve({ docs: [] }),
+  findOne: () => Promise.resolve(null),
+};
+
+/**
+ * BrandsController constructor collaborators that are not the BrandsService
+ * itself. CRUD E2E only needs Nest to construct the controller.
+ */
+export const BRAND_CONTROLLER_E2E_MOCK_PROVIDERS = [
+  { provide: ActivitiesService, useValue: inertCollectionService },
+  { provide: VideosService, useValue: inertCollectionService },
+  { provide: ImagesService, useValue: inertCollectionService },
+  { provide: ArticlesService, useValue: inertCollectionService },
+  { provide: MusicsService, useValue: inertCollectionService },
+  { provide: CredentialsService, useValue: inertCollectionService },
+  { provide: LinksService, useValue: inertCollectionService },
+  { provide: PostsService, useValue: inertCollectionService },
+  { provide: AnalyticsAggregationService, useValue: inertCollectionService },
+  {
+    provide: BrandSetupService,
+    useValue: {
+      addReferenceImages: () => Promise.resolve(null),
+      setupBrand: () => Promise.resolve(null),
+      updateBrandNameById: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: BrandScraperService,
+    useValue: { scrapeWebsite: () => Promise.resolve(null) },
+  },
+];
+
+/**
+ * TasksController / TasksService constructor collaborators that are not the
+ * persistence layer. GET list/detail E2E does not exercise routing or planning.
+ */
+export const TASK_E2E_MOCK_PROVIDERS = [
+  {
+    provide: TaskCountersService,
+    useValue: { getNextNumber: () => Promise.resolve(1) },
+  },
+  {
+    provide: AgentOrchestratorService,
+    useValue: {
+      enqueue: () => Promise.resolve(null),
+      run: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: TaskRoutingService,
+    useValue: {
+      buildRoutingDecision: () => Promise.resolve({}),
+    },
+  },
+  {
+    provide: TaskActionsService,
+    useValue: {
+      broadcast: () => Promise.resolve(),
+    },
+  },
+  {
+    provide: TaskPlanningService,
+    useValue: {
+      plan: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: WorkspaceTaskQueueService,
+    useValue: {
+      enqueue: () => Promise.resolve(),
+    },
+  },
+];
+
 export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
   {
     provide: CacheInvalidationService,
@@ -536,7 +628,26 @@ export class E2ETestModule {
         UsersService,
         AssetsService,
         SettingsService,
+        ...BRAND_CONTROLLER_E2E_MOCK_PROVIDERS,
       ],
+    });
+  }
+
+  /**
+   * Create a test module for Tasks E2E tests.
+   * Callers may override `providers` (appended last) and `useMockGuards`.
+   */
+  static async forTasks(
+    options: Pick<E2ETestModuleOptions, 'providers' | 'useMockGuards'> = {},
+  ): Promise<DynamicModule> {
+    return E2ETestModule.forRoot({
+      controllers: [TasksController],
+      providers: [
+        TasksService,
+        ...TASK_E2E_MOCK_PROVIDERS,
+        ...(options.providers ?? []),
+      ],
+      useMockGuards: options.useMockGuards,
     });
   }
 
