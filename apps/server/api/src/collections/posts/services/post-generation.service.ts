@@ -189,11 +189,11 @@ export class PostGenerationService {
     }
 
     await this.trendReferenceCorpusService.recordPostRemixLineage({
-      brandId: params.brandId,
+      brandId: params.identity.brandId,
       draftType: params.draftType,
       generatedBy: 'posts-generation',
       metadata,
-      organizationId: params.organizationId,
+      organizationId: params.identity.organizationId,
       platforms: [params.platform],
       postId: params.postId,
       prompt: params.prompt,

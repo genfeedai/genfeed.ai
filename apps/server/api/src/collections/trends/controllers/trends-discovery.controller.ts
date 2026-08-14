@@ -56,8 +56,8 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
 
     if (refresh === 'true') {
       await this.trendsService.refreshTrends(organizationId, brandId);
@@ -91,8 +91,8 @@ export class TrendsDiscoveryController {
     @Query('limit') limitParam?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
     const parsedLimit = Number.parseInt(limitParam ?? '30', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 30
@@ -136,8 +136,8 @@ export class TrendsDiscoveryController {
     @Query('includePaidCreative') includePaidCreativeParam?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
     const parsedLimit = Number.parseInt(limitParam ?? '30', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 30
@@ -179,8 +179,8 @@ export class TrendsDiscoveryController {
     @Query('types') typesParam?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
     const parsedLimit = Number.parseInt(limitParam ?? '12', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 12
@@ -205,8 +205,8 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
     const parsedLimit = Number.parseInt(limitParam ?? '20', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 20
@@ -241,7 +241,7 @@ export class TrendsDiscoveryController {
   ) {
     return this.trendsService.getCorpusFreshnessHealth({
       isPlatformAdmin: user?.isSuperAdmin === true,
-      organizationId: user?.organization,
+      organizationId: user.organizationId,
       platform,
     });
   }

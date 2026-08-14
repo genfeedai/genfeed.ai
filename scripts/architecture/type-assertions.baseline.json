@@ -69,7 +69,6 @@
     "apps/server/api/src/services/agent-threading/services/thread-context-compressor.service.ts": 2,
     "apps/server/api/src/services/byok/byok.service.ts": 4,
     "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts": 1,
-    "apps/server/api/src/services/integrations/telegram/controllers/telegram.controller.ts": 1,
     "apps/server/api/src/services/integrations/unipile/services/unipile.service.ts": 2,
     "apps/server/api/src/services/integrations/youtube/services/modules/youtube-upload.service.ts": 2,
     "apps/server/api/src/services/task-orchestration/task-orchestrator.service.ts": 2,

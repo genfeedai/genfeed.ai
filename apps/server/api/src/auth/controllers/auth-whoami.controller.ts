@@ -7,7 +7,7 @@ import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 
-type AuthWhoamiUser = AuthenticatedUser & {
+type AuthWhoamiUser = Partial<AuthenticatedUser> & {
   email?: string;
 };
 

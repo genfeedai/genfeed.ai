@@ -18,10 +18,11 @@ type MockFn = ReturnType<typeof vi.fn>;
 const ORGANIZATION_ID = 'org_1';
 
 const mockUser = {
+  brandId: 'brand_1',
   id: 'user_1',
   organizationId: ORGANIZATION_ID,
-  identity: { organization: ORGANIZATION_ID, user: 'user_1' },
-} as unknown as User;
+  userId: 'user_1',
+} satisfies User;
 
 function contextRequest(organizationId?: string): RequestWithContext {
   return {
@@ -180,7 +181,10 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     });
 
     it('refuses a credits breakdown with no resolvable organization', async () => {
-      const anonymousUser = { identity: {} } as unknown as User;
+      const anonymousUser = {
+        ...mockUser,
+        organizationId: '',
+      };
 
       const error = await controller
         .getCreditsBreakdown(anonymousUser, contextRequest())

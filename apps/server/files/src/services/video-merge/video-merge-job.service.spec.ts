@@ -7,6 +7,13 @@ import type { Job } from 'bullmq';
 const createJobData = (
   overrides: Partial<VideoJobData> = {},
 ): VideoJobData => ({
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  id: 'merge-job-123',
+  ingredientId: 'ingredient-123',
+  metadata: { websocketUrl: '/ws/videos' },
+  organizationId: 'organization-123',
+  params: { sourceIds: ['source-1', 'source-2'] },
+  type: JOB_TYPES.MERGE_VIDEOS as JobType,
   userId: 'user-123',
   ...overrides,
 });

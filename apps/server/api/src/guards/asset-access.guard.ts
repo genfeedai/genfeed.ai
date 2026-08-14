@@ -68,7 +68,7 @@ export class AssetAccessGuard implements CanActivate {
         }
 
         const assetOrgId = asset.organizationId;
-        const userOrgId = user?.organization?.toString();
+        const userOrgId = user.organizationId;
 
         if (assetOrgId && userOrgId && assetOrgId === userOrgId) {
           return true;
@@ -85,7 +85,7 @@ export class AssetAccessGuard implements CanActivate {
         }
 
         const assetBrandId = asset.brandId;
-        const userBrandId = user?.brand?.toString();
+        const userBrandId = user.brandId;
 
         if (assetBrandId && userBrandId && assetBrandId === userBrandId) {
           return true;
@@ -146,5 +146,5 @@ function isAssetOwner(
     return false;
   }
 
-  return assetUserId === user?.user || assetUserId === user.id;
+  return assetUserId === user.userId || assetUserId === user.id;
 }

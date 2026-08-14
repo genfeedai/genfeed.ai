@@ -126,7 +126,7 @@ export class PostsController extends BaseCRUDController<
           postsService: this.postsService,
           quotaService: this.quotaService,
         },
-        user,
+        identity: user,
       });
 
       return serializeSingle(request, this.serializer, data);

@@ -562,7 +562,7 @@ export class ImageGenerationProviderDispatchService {
       this.imagesService,
       ingredientId,
       WebSocketPaths.image(ingredientId),
-      context,
+      context.user,
       getUserRoomName(context.user.id),
       errorMessage,
     );

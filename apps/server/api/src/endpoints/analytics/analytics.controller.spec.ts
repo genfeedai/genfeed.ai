@@ -47,7 +47,7 @@ describe('AnalyticsController', () => {
     user: {
       id: string;
       isSuperAdmin: boolean;
-        organizationId: string;;
+      organizationId: string;
     };
   };
 
@@ -73,7 +73,8 @@ describe('AnalyticsController', () => {
     query: {},
     user: {
       id: 'user_123',
-      isSuperAdmin: true, organizationId: 'org_123',
+      isSuperAdmin: true,
+      organizationId: 'org_123',
     },
   } as unknown as MockRequest;
 
@@ -289,7 +290,8 @@ describe('AnalyticsController', () => {
       analyticsExportService.exportData.mockResolvedValueOnce('csv-data');
 
       const mockUser = {
-        isSuperAdmin: true, organizationId: 'org-1',
+        isSuperAdmin: true,
+        organizationId: 'org-1',
       } as never;
       await controller.exportData(
         mockUser,
@@ -322,7 +324,8 @@ describe('AnalyticsController', () => {
       );
 
       const mockUser = {
-        isSuperAdmin: true, organizationId: 'org-1',
+        isSuperAdmin: true,
+        organizationId: 'org-1',
       } as never;
       await controller.exportData(
         mockUser,

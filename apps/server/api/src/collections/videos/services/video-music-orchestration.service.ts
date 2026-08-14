@@ -95,7 +95,7 @@ export class VideoMusicOrchestrationService {
     if (backgroundMusic.ingredientId) {
       const existingMusic = await this.musicsService.findOne({
         id: backgroundMusic.ingredientId,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
       });
 
       if (!existingMusic) {
@@ -158,37 +158,37 @@ export class VideoMusicOrchestrationService {
     // Create prompt record
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brandId: context.user.brandId,
+        brandId: context.brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         original: prompt,
-        userId: context.user.userId,
+        userId: context.userId,
       }),
     );
 
     // Create ingredient and metadata documents
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocumentsInternal({
-        brandId: context.user.brandId,
+        brandId: context.brandId,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         promptId: promptData.id,
         status: IngredientStatus.PROCESSING,
-        userId: context.user.userId,
+        userId: context.userId,
       });
 
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: context.user.brandId,
+        brandId: context.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         source: ActivitySource.MUSIC_GENERATION,
-        userId: context.user.userId,
+        userId: context.userId,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           label: 'Background music for video',
@@ -203,10 +203,10 @@ export class VideoMusicOrchestrationService {
       activityId: activity.id.toString(),
       label: 'Generating Background Music',
       progress: 0,
-      room: getUserRoomName(context.user.userId),
+      room: getUserRoomName(context.userId),
       status: 'processing',
       taskId: ingredientData.id.toString(),
-      userId: context.user.userId,
+      userId: context.userId,
     });
 
     // Build prompt params
@@ -280,13 +280,13 @@ export class VideoMusicOrchestrationService {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocumentsInternal({
-        brandId: context.user.brandId,
+        brandId: context.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         sourceIds: parentIds,
         status: IngredientStatus.PROCESSING,
-        userId: context.user.userId,
+        userId: context.userId,
       });
 
     const mergedIngredientId = ingredientData.id.toString();
@@ -295,13 +295,13 @@ export class VideoMusicOrchestrationService {
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: context.user.brandId,
+        brandId: context.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         source: ActivitySource.WEB,
-        userId: context.user.userId,
+        userId: context.userId,
         value: JSON.stringify({
           ingredientId: mergedIngredientId,
           label: 'Adding background music to video',
@@ -317,26 +317,26 @@ export class VideoMusicOrchestrationService {
       activityId,
       label: 'Adding Background Music',
       progress: 0,
-      room: getUserRoomName(context.user.userId),
+      room: getUserRoomName(context.userId),
       status: 'processing',
       taskId: mergedIngredientId,
-      userId: context.user.userId,
+      userId: context.userId,
     });
 
     // Queue merge operation
     try {
       const job = await this.fileQueueService.processVideo({
         ingredientId: mergedIngredientId,
-        organizationId: context.user.organizationId,
+        organizationId: context.organizationId,
         params: {
           isMuteVideoAudio: muteVideoAudio,
           music: musicIngredientId,
           musicVolume: musicVolume / 100, // Convert 0-100 to 0-1
           sourceIds: [videoIngredientId],
         },
-        room: getUserRoomName(context.user.userId),
+        room: getUserRoomName(context.userId),
         type: JOB_TYPES.MERGE_VIDEOS,
-        userId: context.user.userId,
+        userId: context.userId,
         websocketUrl,
       });
 
@@ -376,8 +376,8 @@ export class VideoMusicOrchestrationService {
           status: WebSocketEventStatus.COMPLETED,
           transformation: TransformationCategory.MERGED,
         },
-        context.user.userId,
-        getUserRoomName(context.user.userId),
+        context.userId,
+        getUserRoomName(context.userId),
       );
 
       // Update activity
@@ -399,10 +399,10 @@ export class VideoMusicOrchestrationService {
         progress: 100,
         resultId: mergedIngredientId,
         resultType: 'VIDEO',
-        room: getUserRoomName(context.user.userId),
+        room: getUserRoomName(context.userId),
         status: 'completed',
         taskId: mergedIngredientId,
-        userId: context.user.userId,
+        userId: context.userId,
       });
 
       this.loggerService.log('Video merged with background music', {
@@ -444,17 +444,17 @@ export class VideoMusicOrchestrationService {
         activityId,
         error: errorMessage,
         label: 'Failed to add background music',
-        room: getUserRoomName(context.user.userId),
+        room: getUserRoomName(context.userId),
         status: 'failed',
         taskId: mergedIngredientId,
-        userId: context.user.userId,
+        userId: context.userId,
       });
 
       await this.websocketService.publishMediaFailed(
         websocketUrl,
         `Failed to add background music: ${errorMessage}`,
-        context.user.userId,
-        getUserRoomName(context.user.userId),
+        context.userId,
+        getUserRoomName(context.userId),
       );
 
       throw new HttpException(

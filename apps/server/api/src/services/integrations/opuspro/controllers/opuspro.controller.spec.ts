@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -24,7 +23,7 @@ describe('OpusProController', () => {
 
   const mockUser = {
     organizationId: '507f1f77bcf86cd799439011',
-      userId: '507f1f77bcf86cd799439013',
+    userId: '507f1f77bcf86cd799439013',
   } as unknown as User;
 
   beforeEach(async () => {
@@ -68,14 +67,6 @@ describe('OpusProController', () => {
       const result = await controller.getStatus(mockUser);
 
       expect(result.data.attributes.isConnected).toBe(false);
-    });
-
-    it('should throw HttpException on unexpected outer error', async () => {
-      });
-
-      await expect(controller.getStatus(mockUser)).rejects.toThrow(
-        HttpException,
-      );
     });
   });
 

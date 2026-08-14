@@ -102,7 +102,7 @@ export class ElementsMoodsController extends BaseCRUDController<
     return buildElementFindAllQuery({
       adminFilter,
       metadata: {
-        organization: user.organizationId,
+        organizationId: user.organizationId,
       },
       query,
     });

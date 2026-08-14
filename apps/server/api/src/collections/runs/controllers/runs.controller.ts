@@ -88,7 +88,7 @@ export class RunsController {
     organizationId: string;
     userId: string;
   } {
-    if (!user?.organization || !user?.user) {
+    if (!user.organizationId || !user.userId) {
       throw new UnauthorizedException('Missing organization or user context');
     }
 

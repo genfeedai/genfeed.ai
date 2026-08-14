@@ -41,9 +41,7 @@ export class CreditsController {
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
-      const orgId =
-        (req.user as { user?: { organization?: string } })?.user
-          ?.organization ?? 'unknown';
+      const orgId = (req.user as User | undefined)?.organizationId ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_USAGE(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
@@ -103,9 +101,7 @@ export class CreditsController {
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
-      const orgId =
-        (req.user as { user?: { organization?: string } })?.user
-          ?.organization ?? 'unknown';
+      const orgId = (req.user as User | undefined)?.organizationId ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_BYOK(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
@@ -154,9 +150,7 @@ export class CreditsController {
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
-      const orgId =
-        (req.user as { user?: { organization?: string } })?.user
-          ?.organization ?? 'unknown';
+      const orgId = (req.user as User | undefined)?.organizationId ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_LAST_PURCHASE_BASELINE(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],

@@ -86,15 +86,16 @@ export class AuthBootstrapService {
   private getOverviewBootstrapRequestCacheKey(
     request: AuthBootstrapRequest,
   ): string | null {
+    const user = request.user;
     const organizationId =
-      request.context?.organizationId ?? user.organizationId ?? '';
+      request.context?.organizationId ?? user?.organizationId ?? '';
 
     if (!organizationId) {
       return null;
     }
 
-    const brandId = request.context?.brandId ?? user.brandId ?? '';
-    const userId = request.context?.userId ?? user.userId ?? user.id ?? '';
+    const brandId = request.context?.brandId ?? user?.brandId ?? '';
+    const userId = request.context?.userId ?? user?.userId ?? user?.id ?? '';
 
     return [organizationId, brandId || 'no-brand', userId || 'no-user'].join(
       ':',
@@ -174,10 +175,10 @@ export class AuthBootstrapService {
   ): Promise<BootstrapBaseData> {
     const user = request.user;
     const requestContext = request.context;
-    const userId = requestContext?.userId ?? user.userId ?? user.id ?? '';
+    const userId = requestContext?.userId ?? user?.userId ?? user?.id ?? '';
     const organizationId =
-      requestContext?.organizationId ?? user.organizationId ?? '';
-    const brandId = requestContext?.brandId ?? user.brandId ?? '';
+      requestContext?.organizationId ?? user?.organizationId ?? '';
+    const brandId = requestContext?.brandId ?? user?.brandId ?? '';
     const subscriptionStatus =
       requestContext?.stripeSubscriptionStatus ??
       (user ? getStripeSubscriptionStatus(user, request) : '');
@@ -268,10 +269,11 @@ export class AuthBootstrapService {
   ): Promise<AccessBootstrapCachePayload> {
     // Streak only needs ids already on the request — fetch it in parallel with
     // the base bootstrap resolve so a cold miss is one network hop, not two.
+    const user = request.user;
     const requestUserId =
-      request.context?.userId ?? user.userId ?? user.id ?? '';
+      request.context?.userId ?? user?.userId ?? user?.id ?? '';
     const requestOrganizationId =
-      request.context?.organizationId ?? user.organizationId ?? '';
+      request.context?.organizationId ?? user?.organizationId ?? '';
 
     const [base, streak] = await Promise.all([
       this.resolveBootstrapBase(request),

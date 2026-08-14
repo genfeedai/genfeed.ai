@@ -33,7 +33,8 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  */
 // Issue #2643 removed the orphaned ContentDraft serializer triplet.
 // Issue #2665 removes the unreachable ContentSchedule serializer triplet.
-const SERIALIZER_MATCH_FLOOR = 102;
+// The legacy cron hard cut removes the CronJob and CronRun serializer triplets.
+const SERIALIZER_MATCH_FLOOR = 100;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',

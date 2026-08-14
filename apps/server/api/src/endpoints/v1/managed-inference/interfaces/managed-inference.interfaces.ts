@@ -1,15 +1,12 @@
 import type { Request } from 'express';
 
-export interface ManagedInferenceAuthMetadata {
-  isApiKey?: boolean;
-  organization?: string;
-  scopes?: string[];
-  user?: string;
-}
-
 export interface ManagedInferenceRequestUser {
   id?: string;
-  identity?: ManagedInferenceAuthMetadata;
+  brandId?: string;
+  isApiKey?: boolean;
+  organizationId?: string;
+  scopes?: string[];
+  userId?: string;
 }
 
 export type ManagedInferenceAuthenticatedRequest = Omit<Request, 'user'> & {

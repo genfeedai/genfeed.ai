@@ -81,7 +81,7 @@ describe('BetterAuthStrategy', () => {
     expect(identityResolver.resolve).not.toHaveBeenCalled();
   });
 
-  it('passes a canonical cuid subject to identity resolution', async () => {
+  it('rejects a canonical subject with an incomplete account identity', async () => {
     const canonicalUserId = 'cm1234567890abcdefghijkl';
     betterAuthService.verifyToken.mockResolvedValue({
       sub: canonicalUserId,
@@ -93,7 +93,9 @@ describe('BetterAuthStrategy', () => {
       userId: canonicalUserId,
     });
 
-    await strategy.validate(requestWith('Bearer tok'));
+    await expect(strategy.validate(requestWith('Bearer tok'))).rejects.toThrow(
+      'Unable to resolve a complete account identity',
+    );
 
     expect(identityResolver.resolve).toHaveBeenCalledWith(canonicalUserId);
   });

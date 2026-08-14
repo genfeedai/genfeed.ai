@@ -161,8 +161,8 @@ export class AgentAuthService {
       throw new UnauthorizedException('Invalid claim code');
     }
 
-    const userId = authenticatedUser?.user;
-    const organizationId = authenticatedUser?.organization;
+    const userId = authenticatedUser.userId;
+    const organizationId = authenticatedUser.organizationId;
     const authenticatedEmailHashes =
       authenticatedUser.emailAddresses?.flatMap((entry) =>
         typeof entry.emailAddress === 'string'

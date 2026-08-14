@@ -54,8 +54,8 @@ export class PostVariationSourceGuard implements CanActivate {
 
     request.resolvedPostVariationSource = await this.resolveSource(
       body,
-      metadata.organization,
-      metadata.brand,
+      metadata.organizationId,
+      metadata.brandId,
     );
     request.creditsOutputCount = count;
     return true;

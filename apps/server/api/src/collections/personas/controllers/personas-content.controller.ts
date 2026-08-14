@@ -40,6 +40,7 @@ export class PersonasContentController {
 
   private resolvePersonaContext(user: User, personaId: string) {
     return {
+      brandId: EntityIdUtil.validate(user.brandId, 'brandId'),
       organizationId: EntityIdUtil.validate(
         user.organizationId,
         'organizationId',

@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
@@ -56,11 +53,11 @@ export class VoiceCloneService {
           request,
           user.organizationId,
         );
-        return await this.cloneWithElevenLabs(user, dto, file, user);
+        return await this.cloneWithElevenLabs(user, dto, file);
       }
 
       if (provider === VoiceProvider.GENFEED_AI) {
-        return await this.cloneWithGenfeedAi(user, dto, user);
+        return await this.cloneWithGenfeedAi(user, dto);
       }
 
       throw new HttpException(
@@ -162,7 +159,6 @@ export class VoiceCloneService {
     user: User,
     dto: CloneVoiceDto,
     file: Express.Multer.File | undefined,
-    user: AuthenticatedUser,
   ): Promise<IngredientDocument> {
     const byokKey = await this.byokService.resolveApiKey(
       user.organizationId,
@@ -228,7 +224,6 @@ export class VoiceCloneService {
   private async cloneWithGenfeedAi(
     user: User,
     dto: CloneVoiceDto,
-    user: AuthenticatedUser,
   ): Promise<IngredientDocument> {
     await this.assertGenfeedAiAvailable(dto);
     const { ingredientData } = await this.sharedService.createMediaDocuments(
@@ -303,7 +298,7 @@ export class VoiceCloneService {
   private async markGenfeedAiCloneStarted(
     ingredientId: string,
     dto: CloneVoiceDto,
-    user: AuthenticatedUser,
+    user: User,
   ): Promise<void> {
     await this.voicesService.patchAll(
       {
@@ -334,7 +329,7 @@ export class VoiceCloneService {
 
   private async markGenfeedAiCloneFailed(
     ingredientId: string,
-    user: AuthenticatedUser,
+    user: User,
   ): Promise<never> {
     await this.voicesService.patchAll(
       {

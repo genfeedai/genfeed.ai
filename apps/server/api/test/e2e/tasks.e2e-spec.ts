@@ -24,19 +24,21 @@ class TestCurrentUserGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
       user?: {
+        brandId: string;
         id: string;
         organizationId: string;
-          userId: string;;
+        userId: string;
       };
     }>();
 
     request.user = {
+      brandId: 'e2e-test-brand',
       id: getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
       organizationId:
-          getHeaderValue(request.headers['x-organization-id']) ??
-          generateIdString(),
-        userId:
-          getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
+        getHeaderValue(request.headers['x-organization-id']) ??
+        generateIdString(),
+      userId:
+        getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
     };
 
     return true;

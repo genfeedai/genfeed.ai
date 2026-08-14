@@ -48,9 +48,9 @@ export interface TrainingSourceImage {
 }
 
 interface TrainingOwnerMetadata {
-  brand?: string | null;
-  organization?: string;
-  user?: string;
+  brandId?: string | null;
+  organizationId?: string;
+  userId?: string;
 }
 
 @Injectable()

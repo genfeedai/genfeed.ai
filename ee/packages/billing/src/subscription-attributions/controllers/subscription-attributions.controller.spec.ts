@@ -16,11 +16,11 @@ describe('SubscriptionAttributionsController', () => {
   let service: SubscriptionAttributionsService;
 
   const mockUser: User = {
-    identity: {
-      organization: 'o07f1f77bcf86cd799439012',
-      user: 'u07f1f77bcf86cd799439011',
-    },
-  } as unknown as User;
+    brandId: 'b07f1f77bcf86cd799439013',
+    id: 'u07f1f77bcf86cd799439011',
+    organizationId: 'o07f1f77bcf86cd799439012',
+    userId: 'u07f1f77bcf86cd799439011',
+  };
 
   const mockReq = {} as Request;
 
@@ -84,7 +84,7 @@ describe('SubscriptionAttributionsController', () => {
 
       expect(service.trackSubscription).toHaveBeenCalledWith(
         dto,
-        mockUser.identity.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(tracked);
     });
@@ -114,7 +114,7 @@ describe('SubscriptionAttributionsController', () => {
 
       expect(service.getContentSubscriptionStats).toHaveBeenCalledWith(
         contentId,
-        mockUser.identity.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(stats);
     });
@@ -142,7 +142,7 @@ describe('SubscriptionAttributionsController', () => {
 
       expect(service.getTopContentBySubscriptions).toHaveBeenCalledWith({
         limit: 10,
-        organizationId: mockUser.identity.organization,
+        organizationId: mockUser.organizationId,
         period: '30d',
       });
       expect(result).toEqual(topContent);
@@ -158,7 +158,7 @@ describe('SubscriptionAttributionsController', () => {
 
       expect(service.getTopContentBySubscriptions).toHaveBeenCalledWith({
         limit: 20,
-        organizationId: mockUser.identity.organization,
+        organizationId: mockUser.organizationId,
         period: '7d',
       });
     });

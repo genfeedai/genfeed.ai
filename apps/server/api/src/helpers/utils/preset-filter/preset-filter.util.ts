@@ -44,8 +44,10 @@ export class PresetFilterUtil {
    * //   { userId: '456' }
    * // ]
    */
-  static buildScopeOrConditions(organization?: string;
-    user?: string;): Array<Record<string, unknown>> {
+  static buildScopeOrConditions(identity: {
+    organizationId?: string;
+    userId?: string;
+  }): Array<Record<string, unknown>> {
     const orConditions: Array<Record<string, unknown>> = [
       { organizationId: null },
     ];
@@ -97,14 +99,12 @@ export class PresetFilterUtil {
    */
   static canUserModifyPreset(
     user: {
-      identity?: {
-        isSuperAdmin?: boolean;
-        organization?: string;
-      };
+      isSuperAdmin?: boolean;
+      organizationId?: string;
     },
     preset: { organizationId?: string | null },
   ): boolean {
-    const { isSuperAdmin, organization } = user ?? {};
+    const { isSuperAdmin, organizationId } = user;
 
     // Superadmins can modify any preset
     if (isSuperAdmin) {
@@ -118,7 +118,7 @@ export class PresetFilterUtil {
 
     // Check organization ownership for non-default presets
     const presetOrgId = preset.organizationId;
-    return presetOrgId === organization;
+    return presetOrgId === organizationId;
   }
 
   /**
@@ -159,19 +159,17 @@ export class PresetFilterUtil {
   static enrichPresetDto(
     createDto: Record<string, unknown>,
     user: {
-      identity?: {
-        isSuperAdmin?: boolean;
-        organization?: string;
-        brand?: string;
-      };
+      brandId?: string;
+      isSuperAdmin?: boolean;
+      organizationId?: string;
     },
   ): Record<string, unknown> {
-    const { isSuperAdmin, organization } = user ?? {};
+    const { isSuperAdmin, organizationId } = user;
     const enriched: Record<string, unknown> = { ...createDto };
 
     // Non-root users always get their organization assigned
     if (!isSuperAdmin) {
-      enriched.organizationId = organization;
+      enriched.organizationId = organizationId;
     } else {
       // Superadmins can create:
       // 1. App-wide presets (no org, no brand)
@@ -209,7 +207,7 @@ export class PresetFilterUtil {
    * // }
    */
   static buildBaseMatch(
-    organization?: string; user?: string,
+    identity: { organizationId?: string; userId?: string },
     query: {
       category?: string;
       isActive?: boolean;

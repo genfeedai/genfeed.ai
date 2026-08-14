@@ -2,9 +2,12 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import type { ExecutionContext } from '@nestjs/common';
 
 interface MockUser {
+  brandId?: string;
   email?: string;
   id?: string;
-  identity?: Record<string, unknown>;
+  organizationId?: string;
+  role?: string;
+  userId?: string;
 }
 
 const createContext = (user: MockUser | null | undefined): ExecutionContext =>
@@ -62,7 +65,7 @@ describe('CurrentUser Decorator', () => {
     const request = context.switchToHttp().getRequest<{ user: MockUser }>();
     expect(request.user.id).toBe('user-456');
     expect(request.user?.role).toBe('admin');
-    expect(request.user?.brand).toBe('507f1f77bcf86cd799439015');
+    expect(request.user?.brandId).toBe('507f1f77bcf86cd799439015');
   });
 
   it('should be defined as a param decorator factory', () => {

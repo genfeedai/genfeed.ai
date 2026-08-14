@@ -25,9 +25,9 @@ describe('TrainingsService', () => {
   let configService: { get: ReturnType<typeof vi.fn> };
 
   const identity = {
-    brand: '507f191e810c19729de860ee',
-    organization: '507f191e810c19729de860ee',
-    user: '507f191e810c19729de860ee',
+    brandId: '507f191e810c19729de860ee',
+    organizationId: '507f191e810c19729de860ee',
+    userId: '507f191e810c19729de860ee',
   };
 
   beforeEach(() => {

@@ -61,8 +61,8 @@ export class TrendsController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
 
     // Check if user wants to force refresh
     if (refresh === 'true') {
@@ -92,8 +92,8 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Query() query: GenerateTrendIdeasDto,
   ) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
     await this.assertOrganizationCreditsAvailable(
       organizationId,
       await this.getDefaultTextMinimumCredits(),
@@ -203,8 +203,8 @@ export class TrendsController {
   @Post('refresh')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshTrends(@CurrentUser() user: User) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
 
     const refreshedTrends = await this.trendsService.refreshTrends(
       organizationId,
@@ -221,8 +221,8 @@ export class TrendsController {
   @Get('preferences')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPreferences(@CurrentUser() user: User) {
-    const organizationId = user?.organization;
-    const brandId = user?.brand;
+    const organizationId = user.organizationId;
+    const brandId = user.brandId;
 
     if (!organizationId) {
       return { preferences: null };
@@ -251,7 +251,7 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Body() dto: SaveTrendPreferencesDto,
   ) {
-    const organizationId = user?.organization;
+    const organizationId = user.organizationId;
 
     if (!organizationId) {
       throw new Error('Organization ID is required');
@@ -261,7 +261,7 @@ export class TrendsController {
       organizationId,
       {
         autoRequeueWinners: dto.autoRequeueWinners,
-        brandId: dto.brandId || user?.brand,
+        brandId: dto.brandId || user.brandId,
         categories: dto.categories,
         hashtags: dto.hashtags,
         keywords: dto.keywords,
@@ -316,7 +316,7 @@ export class TrendsController {
     @Param('id') id: string,
     @Query('limit') limitParam?: string,
   ) {
-    const organizationId = user?.organization;
+    const organizationId = user.organizationId;
     const parsedLimit = Number.parseInt(limitParam ?? '5', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 5
@@ -338,7 +338,7 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const organizationId = user?.organization;
+    const organizationId = user.organizationId;
 
     // Get the trend
     const trend = await this.trendsService.getTrendById(id, organizationId);

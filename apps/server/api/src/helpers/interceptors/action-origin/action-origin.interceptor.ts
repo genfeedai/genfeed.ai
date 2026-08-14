@@ -51,7 +51,7 @@ export class ActionOriginInterceptor implements NestInterceptor {
 
   private resolveOrigin(
     request: ActionOriginRequest,
-    metadata: AuthenticatedUser,
+    metadata: AuthenticatedUser | undefined,
   ): ActionOrigin {
     if (this.hasTrustedMcpOriginProof(request)) {
       return ActionOrigin.MCP;

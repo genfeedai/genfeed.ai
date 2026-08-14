@@ -34,9 +34,9 @@ describe('PostGenerationService', () => {
   const credentialId = '507f1f77bcf86cd799439016';
 
   const identity = {
-    brand: brandId,
-    organization: organizationId,
-    user: userId,
+    brandId,
+    organizationId,
+    userId,
   };
 
   // PostsService is fully mocked here, so this only ever stands in for a

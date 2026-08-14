@@ -58,6 +58,7 @@ export interface ClipGenerationInput {
   // Raw-cut-mode inputs (required only when mode === 'raw-cut').
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
+  transcriptSegments?: TranscriptSegment[];
   room?: string;
 }
 

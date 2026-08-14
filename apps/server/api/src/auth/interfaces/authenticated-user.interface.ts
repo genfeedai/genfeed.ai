@@ -12,9 +12,9 @@ export interface IAuthenticatedEmailAddress {
 export interface AuthenticatedUser {
   id: string;
   userId: string;
-  organizationId?: string;
-  brandId?: string;
-  isSuperAdmin: boolean;
+  organizationId: string;
+  brandId: string;
+  isSuperAdmin?: boolean;
   apiKeyId?: string;
   actionOrigin?: ActionOrigin;
   scopes?: string[];

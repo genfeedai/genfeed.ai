@@ -17,7 +17,7 @@ describe('CreditsInterceptor', () => {
     user?: {
       id: string;
       userId: string;
-        organizationId: string;;
+      organizationId: string;
     } | null;
   } = {
     creditsConfig: {
@@ -28,7 +28,7 @@ describe('CreditsInterceptor', () => {
     user: {
       id: 'user_123',
       organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+      userId: '507f1f77bcf86cd799439012',
     },
   };
 
@@ -128,7 +128,7 @@ describe('CreditsInterceptor', () => {
       mockRequest.user = {
         id: 'user_123',
         organizationId: '507f1f77bcf86cd799439013',
-          userId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -174,7 +174,7 @@ describe('CreditsInterceptor', () => {
       mockRequest.user = {
         id: 'user_123',
         organizationId: '507f1f77bcf86cd799439013',
-          userId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -211,7 +211,7 @@ describe('CreditsInterceptor', () => {
       mockRequest.user = {
         id: 'user_123',
         organizationId: '507f1f77bcf86cd799439013',
-          userId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const mockHandlerWithError = {
@@ -252,7 +252,7 @@ describe('CreditsInterceptor', () => {
       mockRequest.user = {
         id: 'user_123',
         organizationId: '507f1f77bcf86cd799439013',
-          userId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);

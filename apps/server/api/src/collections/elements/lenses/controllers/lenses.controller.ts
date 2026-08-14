@@ -107,7 +107,7 @@ export class ElementsLensesController extends BaseCRUDController<
       adminFilter,
       includeStateFilters: true,
       metadata: {
-        organization: user.organizationId,
+        organizationId: user.organizationId,
       },
       query,
       searchableFields: ['label', 'description', 'key'],

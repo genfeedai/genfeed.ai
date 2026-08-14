@@ -135,7 +135,7 @@ describe('ImageProcessor', () => {
     expect(webSocketService.emitSuccess).toHaveBeenCalledWith(
       '/ws/images',
       expect.objectContaining({ outputPath: '/tmp/image-video.mp4' }),
-      undefined,
+      'user-1',
       undefined,
     );
     expect(result).toEqual({
@@ -279,7 +279,7 @@ describe('ImageProcessor', () => {
     expect(webSocketService.emitError).toHaveBeenCalledWith(
       '/ws/images',
       'inputPath is required',
-      undefined,
+      'user-1',
       undefined,
     );
   });

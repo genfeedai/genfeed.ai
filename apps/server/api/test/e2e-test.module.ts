@@ -90,18 +90,20 @@ export class MockBetterAuthGuard {
     const request = context.switchToHttp().getRequest<{
       params?: Record<string, string | undefined>;
       user?: {
+        brandId: string;
         id: string;
-        userId?: string;
-        organizationId?: string;
+        userId: string;
+        organizationId: string;
         brandId?: string;
         isSuperAdmin?: boolean;
       };
     }>();
     const organizationId = request.params?.organizationId;
     request.user = {
+      brandId: 'e2e-test-brand',
       id: 'authProvider_e2e_test_user',
       isSuperAdmin: false,
-      organizationId,
+      organizationId: organizationId ?? 'e2e-test-organization',
       userId: 'e2e-test-user',
     };
     return true;

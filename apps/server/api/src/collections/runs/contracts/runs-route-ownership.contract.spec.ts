@@ -142,6 +142,7 @@ describe('Runs route ownership (registered route table)', () => {
     // normally populates it is not part of a routing contract.
     app.use((req: Request, _res: Response, next: NextFunction) => {
       (req as Request & { user: User }).user = {
+        brandId: 'brand-1',
         id: userId,
         organizationId: orgId,
         userId: userId,

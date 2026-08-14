@@ -76,7 +76,8 @@ export class UsersController {
 
   private canAccessUser(targetUserId: string, currentUser: User): boolean {
     return (
-      getIsSuperAdmin(currentUser) || (user.userId ?? user.id) === targetUserId
+      getIsSuperAdmin(currentUser) ||
+      (currentUser.userId || currentUser.id) === targetUserId
     );
   }
 

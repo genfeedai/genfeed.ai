@@ -43,7 +43,7 @@ type McpApprovalResponse = {
 export class McpApprovalsController {
   constructor(
     private readonly service: McpApprovalsService,
-    private readonly logger: LoggerService,
+    readonly _logger: LoggerService,
   ) {}
 
   private toResponse(approval: McpApprovalDocument): McpApprovalResponse {
@@ -125,7 +125,7 @@ export class McpApprovalsController {
     const metadata = user;
     const result = await this.service.resolve(
       id,
-      metadata.organization,
+      metadata.organizationId,
       dto.decision,
       dto.result,
       metadata,

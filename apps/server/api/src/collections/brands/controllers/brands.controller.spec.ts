@@ -442,7 +442,7 @@ describe('BrandsController', () => {
     });
 
     it('scopes members to owned brands or their session organization', () => {
-      const organizationId = (mockUser as AuthenticatedUser).organization;
+      const organizationId = (mockUser as AuthenticatedUser).organizationId;
       const query = {
         isDeleted: false,
         organizationId,

@@ -62,7 +62,7 @@ export class PostGroupsController {
   ) {
     const metadata = user;
     const data = await this.postGroupsService.create(
-      metadata.organization,
+      metadata.organizationId,
       user.id,
       body,
       idempotencyKey,
@@ -86,7 +86,7 @@ export class PostGroupsController {
         ? (body as Record<string, unknown>).postId
         : undefined;
     const data = await this.postGroupsService.ensureReleaseForPost(
-      metadata.organization,
+      metadata.organizationId,
       user.id,
       typeof postId === 'string' ? postId : '',
     );
@@ -127,7 +127,7 @@ export class PostGroupsController {
     @Body() body: unknown,
   ) {
     const metadata = user;
-    const organization = metadata.organization;
+    const organization = metadata.organizationId;
     const action =
       body && typeof body === 'object' && !Array.isArray(body)
         ? (body as Record<string, unknown>).action
@@ -217,7 +217,7 @@ export class PostGroupsController {
           ? (body as Record<string, unknown>).scheduledDate
           : undefined;
       const data = await this.postGroupsService.scheduleTarget(
-        metadata.organization,
+        metadata.organizationId,
         user.id,
         id,
         targetId,
@@ -228,7 +228,7 @@ export class PostGroupsController {
     }
     if (action === 'publish-now') {
       const data = await this.postGroupsService.publishTargetNow(
-        metadata.organization,
+        metadata.organizationId,
         user.id,
         id,
         targetId,
@@ -237,7 +237,7 @@ export class PostGroupsController {
       return serializeSingle(req, ReleaseGroupSerializer, data);
     }
     const data = await this.postGroupsService.updateTarget(
-      metadata.organization,
+      metadata.organizationId,
       user.id,
       id,
       targetId,

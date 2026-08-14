@@ -92,8 +92,11 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto,
     request: Request,
   ): Promise<JsonApiSingleResponse> {
-    const { brand, model, promptOriginalText, user } =
-      await this.resolveAndValidate(user, createImageDto, request);
+    const { brand, model, promptOriginalText } = await this.resolveAndValidate(
+      user,
+      createImageDto,
+      request,
+    );
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -273,7 +276,7 @@ export class ImageGenerationService {
       );
     }
 
-    return { brand, model, promptOriginalText, user };
+    return { brand, model, promptOriginalText };
   }
 
   /**

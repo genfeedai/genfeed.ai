@@ -13,8 +13,8 @@ describe('PresetFilterUtil', () => {
       const user = '507f191e810c19729de860ee';
 
       const conditions = PresetFilterUtil.buildScopeOrConditions({
-        organization,
-        user,
+        organizationId: organization,
+        userId: user,
       });
 
       expect(conditions).toHaveLength(2);
@@ -100,7 +100,7 @@ describe('PresetFilterUtil', () => {
       const organization = '507f191e810c19729de860ee';
       const user = '507f191e810c19729de860ee';
       const match = PresetFilterUtil.buildBaseMatch(
-        { organization, user },
+        { organizationId: organization, userId: user },
         { category: 'video', isActive: true, isFavorite: false },
       );
 

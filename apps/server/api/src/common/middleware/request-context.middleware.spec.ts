@@ -35,20 +35,23 @@ import type { NextFunction, Response } from 'express';
 
 function buildUser(
   overrides: Partial<{
+    brandId: string;
     id: string;
-    identity: Record<string, unknown>;
+    isSuperAdmin: boolean;
+    organizationId: string;
+    stripeSubscriptionStatus: string;
+    subscriptionTier: string;
+    userId: string;
   }> = {},
 ) {
   return {
     id: overrides.id ?? 'authProvider_abc123',
-    identity: overrides ?? {
-      brand: 'brand_1',
-      isSuperAdmin: false,
-      organization: 'org_1',
-      stripeSubscriptionStatus: 'active',
-      subscriptionTier: 'pro',
-      user: 'user_1',
-    },
+    brandId: overrides.brandId ?? 'brand_1',
+    isSuperAdmin: overrides.isSuperAdmin ?? false,
+    organizationId: overrides.organizationId ?? 'org_1',
+    stripeSubscriptionStatus: overrides.stripeSubscriptionStatus ?? 'active',
+    subscriptionTier: overrides.subscriptionTier ?? 'pro',
+    userId: overrides.userId ?? 'user_1',
   };
 }
 
