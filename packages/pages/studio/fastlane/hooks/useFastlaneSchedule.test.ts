@@ -1,4 +1,4 @@
-import { PostCategory, PostStatus } from '@genfeedai/enums';
+import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
 import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
@@ -156,10 +156,10 @@ describe('useFastlaneSchedule', () => {
     });
 
     const payload = mockPost.mock.calls[0][0] as {
-      status: string;
       scheduledDate?: string;
+      targetExecutionState: string;
     };
-    expect(payload.status).toBe(PostStatus.SCHEDULED);
+    expect(payload.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
     expect(payload.scheduledDate).toBe('2026-12-01T10:00:00Z');
   });
 
@@ -181,10 +181,10 @@ describe('useFastlaneSchedule', () => {
     // "Post now" must still be SCHEDULED (the publisher cron ignores PENDING for
     // Instagram/YouTube) with scheduledDate set to now so it publishes immediately.
     const payload = mockPost.mock.calls[0][0] as {
-      status: string;
       scheduledDate?: string;
+      targetExecutionState: string;
     };
-    expect(payload.status).toBe(PostStatus.SCHEDULED);
+    expect(payload.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
     expect(typeof payload.scheduledDate).toBe('string');
     expect((payload.scheduledDate ?? '').length).toBeGreaterThan(0);
   });

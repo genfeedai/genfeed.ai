@@ -3,7 +3,6 @@ import {
   PostCategory,
   PostFormat,
   PostFrequency,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -87,21 +86,8 @@ export class CreatePostDto {
   readonly category?: PostCategory;
 
   @ApiProperty({
-    default: PostStatus.SCHEDULED,
-    deprecated: true,
-    description:
-      'Legacy combined status. Use targetExecutionState and visibility.',
-    enum: PostStatus,
-    enumName: 'PostStatus',
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(PostStatus)
-  readonly status?: PostStatus;
-
-  @ApiProperty({
-    description:
-      'Canonical channel-target publish lifecycle. New clients should use this instead of status.',
+    default: TargetExecutionState.SCHEDULED,
+    description: 'Canonical channel-target publish lifecycle.',
     enum: TargetExecutionState,
     enumName: 'TargetExecutionState',
     required: false,

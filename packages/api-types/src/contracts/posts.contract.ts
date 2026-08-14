@@ -9,7 +9,6 @@ import {
   PostCategory,
   PostFormat,
   PostFrequency,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -33,7 +32,10 @@ import {
  * Request payload for creating a new post
  * Derived from OpenAPI CreatePostDto schema
  */
-export type CreatePostRequest = components['schemas']['CreatePostDto'] & {
+export type CreatePostRequest = Omit<
+  components['schemas']['CreatePostDto'],
+  'status'
+> & {
   format?: PostFormat;
 };
 
@@ -41,7 +43,10 @@ export type CreatePostRequest = components['schemas']['CreatePostDto'] & {
  * Request payload for updating an existing post
  * Derived from OpenAPI UpdatePostDto schema
  */
-export type UpdatePostRequest = components['schemas']['UpdatePostDto'] & {
+export type UpdatePostRequest = Omit<
+  components['schemas']['UpdatePostDto'],
+  'status'
+> & {
   format?: PostFormat;
 };
 
@@ -84,7 +89,6 @@ export const createPostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   source: optionalStringSchema,
-  status: z.nativeEnum(PostStatus).optional(),
   targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
@@ -125,7 +129,6 @@ export const updatePostSchema = z.object({
   repeatFrequency: z.nativeEnum(PostFrequency).optional(),
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
-  status: z.nativeEnum(PostStatus).optional(),
   targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),

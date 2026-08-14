@@ -1,5 +1,10 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { PageScope, type PostStatus } from '@genfeedai/enums';
+import {
+  PageScope,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type {
   IPaginatedResponse,
   IPost,
@@ -38,6 +43,42 @@ export interface PostsListResult {
   posts: IPost[];
 }
 
+export function mapPostsListStatusFilter(
+  status: string | PostStatus | undefined,
+): {
+  executionState?: TargetExecutionState;
+  visibility?: PostVisibility;
+} {
+  switch (status) {
+    case PostStatus.DRAFT:
+      return { executionState: TargetExecutionState.DRAFT };
+    case PostStatus.SCHEDULED:
+      return { executionState: TargetExecutionState.SCHEDULED };
+    case PostStatus.FAILED:
+      return { executionState: TargetExecutionState.FAILED };
+    case PostStatus.PENDING:
+    case PostStatus.PROCESSING:
+      return { executionState: TargetExecutionState.PUBLISHING };
+    case PostStatus.PUBLIC:
+      return {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
+      };
+    case PostStatus.PRIVATE:
+      return {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PRIVATE,
+      };
+    case PostStatus.UNLISTED:
+      return {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.UNLISTED,
+      };
+    default:
+      return {};
+  }
+}
+
 function toPostsListResult(result: IPaginatedResponse<IPost>): PostsListResult {
   return {
     pagination: {
@@ -70,11 +111,12 @@ export async function fetchPosts({
   let url = 'GET /posts';
 
   const query: IQueryParams & {
+    executionState?: TargetExecutionState;
     platform?: string;
-    status?: string;
+    publicationState?: string;
     search?: string;
     sort?: string;
-    publicationState?: string;
+    visibility?: PostVisibility;
   } = {
     limit: ITEMS_PER_PAGE,
     page: currentPage,
@@ -86,10 +128,8 @@ export async function fetchPosts({
 
   if (publicationState) {
     query.publicationState = publicationState;
-  } else if (filterStatus) {
-    query.status = filterStatus;
-  } else if (status) {
-    query.status = status;
+  } else {
+    Object.assign(query, mapPostsListStatusFilter(filterStatus || status));
   }
 
   // Add search filter

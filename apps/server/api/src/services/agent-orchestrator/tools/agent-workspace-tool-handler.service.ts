@@ -1,6 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import {
   serializeAgentBrand,
@@ -114,8 +116,17 @@ export class AgentWorkspaceToolHandler {
       organizationId: ctx.organizationId,
     };
 
-    if (params.status) {
-      matchStage.status = params.status;
+    const executionState = params.executionState;
+    if (
+      typeof executionState === 'string' &&
+      Object.values(TargetExecutionState).includes(
+        executionState as TargetExecutionState,
+      )
+    ) {
+      Object.assign(
+        matchStage,
+        postExecutionStateReadFilter(executionState as TargetExecutionState),
+      );
     }
 
     const posts = await this.postsService.findAll(

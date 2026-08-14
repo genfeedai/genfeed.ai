@@ -44,7 +44,6 @@ import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.con
 import {
   ApiKeyScope,
   IngredientCategory,
-  PostStatus,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -1852,7 +1851,7 @@ describe('AgentToolExecutorService', () => {
 
     const result = await service.executeTool(
       AgentToolName.LIST_POSTS,
-      { status: PostStatus.DRAFT },
+      { executionState: TargetExecutionState.DRAFT },
       {
         organizationId: 'c7a123456789012345678901',
         userId: 'c7a123456789012345678902',
@@ -1866,7 +1865,7 @@ describe('AgentToolExecutorService', () => {
         where: {
           isDeleted: false,
           organizationId: 'c7a123456789012345678901',
-          status: PostStatus.DRAFT,
+          targetExecutionState: TargetExecutionState.DRAFT,
         },
       },
       { limit: 10 },

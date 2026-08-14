@@ -27,8 +27,6 @@ import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cach
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
 import {
-  mapLegacyPostStatusToTargetExecutionState,
-  mapLegacyPostStatusToVisibility,
   projectLegacyPostStatus,
   resolvePostVisibility,
 } from '@api-types/contracts/scheduler.contract';
@@ -36,7 +34,6 @@ import {
   CredentialPlatform,
   type PersistedReviewDecision,
   PostFormat,
-  PostStatus,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
@@ -268,11 +265,8 @@ export class PostsService extends BaseService<
     };
 
     const executionState =
-      dto.targetExecutionState ??
-      mapLegacyPostStatusToTargetExecutionState(dto.status ?? PostStatus.DRAFT);
-    const visibility =
-      dto.visibility ??
-      mapLegacyPostStatusToVisibility(dto.status ?? PostStatus.DRAFT);
+      dto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+    const visibility = dto.visibility ?? PostVisibility.PUBLIC;
     prismaWriteData.targetExecutionState = executionState;
     prismaWriteData.visibility = visibility;
     this.assertPublishTarget(executionState, dto.credentialId, dto.platform);
@@ -410,21 +404,8 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const normalizedStatus =
-      typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
-    const requestedExecutionState =
-      dto.targetExecutionState ??
-      (normalizedStatus
-        ? mapLegacyPostStatusToTargetExecutionState(normalizedStatus)
-        : undefined);
-    const requestedVisibility =
-      dto.visibility ??
-      (normalizedStatus &&
-      [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED].includes(
-        normalizedStatus as PostStatus,
-      )
-        ? mapLegacyPostStatusToVisibility(normalizedStatus)
-        : undefined);
+    const requestedExecutionState = dto.targetExecutionState;
+    const requestedVisibility = dto.visibility;
     const isPublishingPost =
       requestedExecutionState === TargetExecutionState.PUBLISHED;
     const changesApprovalScope = Object.keys(dto).some((key) =>
@@ -621,14 +602,11 @@ export class PostsService extends BaseService<
       persistedState,
     )
       ? persistedState
-      : mapLegacyPostStatusToTargetExecutionState(post.status);
-    const visibility = resolvePostVisibility(post.visibility, post.status);
+      : TargetExecutionState.DRAFT;
+    const visibility = resolvePostVisibility(post.visibility);
     return {
       ...post,
-      status:
-        post.visibility === null || post.visibility === undefined
-          ? post.status
-          : projectLegacyPostStatus(targetExecutionState, visibility),
+      status: projectLegacyPostStatus(targetExecutionState, visibility),
       targetExecutionState,
       visibility,
     };
@@ -761,10 +739,7 @@ export class PostsService extends BaseService<
       return;
     }
 
-    const originalVisibility = resolvePostVisibility(
-      post.visibility,
-      post.status,
-    );
+    const originalVisibility = resolvePostVisibility(post.visibility);
     const postId: string = String(
       (post.id as string | undefined) ?? (post as unknown as { id: string }).id,
     );
@@ -1073,10 +1048,7 @@ export class PostsService extends BaseService<
       tags: tagIds,
       timezone: originalPost.timezone || 'UTC',
       userId: dto.userId,
-      visibility: resolvePostVisibility(
-        originalPost.visibility,
-        originalPost.status,
-      ),
+      visibility: resolvePostVisibility(originalPost.visibility),
     } satisfies PostCreateInput;
 
     return this.create(remixDto, populate);

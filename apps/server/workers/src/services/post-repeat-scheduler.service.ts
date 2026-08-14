@@ -115,7 +115,7 @@ export class PostRepeatSchedulerService {
         tags: post.tags,
         ...(timezone ? { timezone } : {}),
         userId: actorUserId,
-        visibility: resolvePostVisibility(post.visibility, post.status),
+        visibility: resolvePostVisibility(post.visibility),
       };
 
       const newPost = await this.postsService.create(postData);
@@ -237,10 +237,7 @@ export class PostRepeatSchedulerService {
           scheduledDate: newScheduledDate,
           targetExecutionState: TargetExecutionState.SCHEDULED,
           userId: originalParent.userId,
-          visibility: resolvePostVisibility(
-            originalParent.visibility,
-            originalParent.status,
-          ),
+          visibility: resolvePostVisibility(originalParent.visibility),
         });
       } catch (error: unknown) {
         this.logger.error(`${url} failed to clone child for repeat`, {
