@@ -15,13 +15,17 @@ import type {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';
 const FIRST_UPLOAD_KEY = 'first-upload-platform-signal';
+const FIRST_PUBLISH_KEY = 'first-publish-platform-signal';
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
+const INSTAGRAM_AUTHORIZED_STORAGE_KEY = 'instagramAuthorized';
 
 const TIKTOK_REQUIRED_WARMUP_SCOPES = [
   'user.info.basic',
   'user.info.profile',
   'video.list',
 ] as const;
+
+const INSTAGRAM_REQUIRED_WARMUP_SCOPES = ['instagram_basic'] as const;
 
 export const ENROLLMENT_UNIQUE_CONSTRAINT =
   'social_warmup_enrollments_org_credential_alive_key';
@@ -160,6 +164,13 @@ export function resolveSocialWarmupAccountAge(
     return ageFromSignal(firstUpload, now, FIRST_UPLOAD_KEY);
   }
 
+  const firstPublish = signals.find(
+    (signal) => signal.key === FIRST_PUBLISH_KEY,
+  );
+  if (firstPublish) {
+    return ageFromSignal(firstPublish, now, FIRST_PUBLISH_KEY);
+  }
+
   return {
     accountAgeDays: null,
     accountAgeStatus: SocialWarmupSignalStatus.MISSING,
@@ -168,7 +179,23 @@ export function resolveSocialWarmupAccountAge(
 
 export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
   const stored = readRecord(warmupSignals);
-  const snapshot = readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]);
+  return (
+    snapshotHasPartialScopes(
+      stored[TIKTOK_AUTHORIZED_STORAGE_KEY],
+      TIKTOK_REQUIRED_WARMUP_SCOPES,
+    ) ||
+    snapshotHasPartialScopes(
+      stored[INSTAGRAM_AUTHORIZED_STORAGE_KEY],
+      INSTAGRAM_REQUIRED_WARMUP_SCOPES,
+    )
+  );
+}
+
+function snapshotHasPartialScopes(
+  snapshotValue: unknown,
+  requiredScopes: readonly string[],
+): boolean {
+  const snapshot = readRecord(snapshotValue);
   if (snapshot.state === 'partial') {
     return true;
   }
@@ -178,9 +205,7 @@ export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
     : [];
   if (
     grantedScopes.length > 0 &&
-    TIKTOK_REQUIRED_WARMUP_SCOPES.some(
-      (scope) => !grantedScopes.includes(scope),
-    )
+    requiredScopes.some((scope) => !grantedScopes.includes(scope))
   ) {
     return true;
   }
@@ -347,9 +372,11 @@ function ageFromSignal(
 function daysFromEvidence(evidence: unknown, now: Date): number | null {
   const record = readRecord(evidence);
   const nestedVideo = readRecord(record.video);
+  const nestedMedia = readRecord(record.media);
   const createTime =
     readUnixSeconds(record.createTime) ??
     readUnixSeconds(nestedVideo.createTime) ??
+    readUnixSeconds(nestedMedia.createTime) ??
     readUnixSeconds(record.accountCreateTime);
   if (createTime !== undefined) {
     return Math.max(

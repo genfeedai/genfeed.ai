@@ -20,6 +20,7 @@ import {
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
 import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
@@ -28,6 +29,7 @@ import {
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import {
   CredentialPlatform,
+  fromPrismaCredentialPlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
@@ -54,6 +56,7 @@ const enrollmentInclude = {
 } as const;
 
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
+const INSTAGRAM_AUTHORIZED_STORAGE_KEY = 'instagramAuthorized';
 
 @Injectable()
 export class SocialWarmupEnrollmentsService {
@@ -256,6 +259,26 @@ export class SocialWarmupEnrollmentsService {
     credentialId: string;
     organizationId: string;
     snapshot: TikTokAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  async syncInstagramAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: InstagramAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  private async syncAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot:
+      | TikTokAuthorizedSignalsSnapshot
+      | InstagramAuthorizedSignalsSnapshot;
   }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,
@@ -460,6 +483,7 @@ export class SocialWarmupEnrollmentsService {
   }
 
   private signalCreatesFromCredential(credential: {
+    platform?: string;
     warmupSignals: unknown;
   }): Prisma.SocialWarmupSignalUncheckedCreateWithoutEnrollmentInput[] {
     const stored =
@@ -468,7 +492,12 @@ export class SocialWarmupEnrollmentsService {
       !Array.isArray(credential.warmupSignals)
         ? (credential.warmupSignals as Record<string, unknown>)
         : {};
-    const snapshot = stored[TIKTOK_AUTHORIZED_STORAGE_KEY];
+    const platform =
+      fromPrismaCredentialPlatform(credential.platform) ?? credential.platform;
+    const snapshot =
+      platform === CredentialPlatform.INSTAGRAM
+        ? stored[INSTAGRAM_AUTHORIZED_STORAGE_KEY]
+        : stored[TIKTOK_AUTHORIZED_STORAGE_KEY];
     if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
       return [];
     }
