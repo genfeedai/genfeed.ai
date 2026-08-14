@@ -64,6 +64,24 @@ const RESEND_RETRYABILITY_OVERRIDES: Partial<
 
 const RETRYABLE_RESEND_STATUS_CODES = new Set([408, 425, 429]);
 
+export const RESEND_DEFAULT_FROM = 'Genfeed <no-reply@genfeed.ai>';
+export const RESEND_DEVELOPMENT_FROM = 'Genfeed <beth.t@example.com>';
+
+export function resolveResendFromAddress(options: {
+  configuredFrom: string | undefined;
+  isDevelopment: boolean;
+  payloadFrom?: string;
+}): string {
+  const explicit =
+    options.payloadFrom?.trim() || options.configuredFrom?.trim();
+  if (options.isDevelopment) {
+    return explicit?.toLowerCase().includes('@resend.dev')
+      ? explicit
+      : RESEND_DEVELOPMENT_FROM;
+  }
+  return explicit || RESEND_DEFAULT_FROM;
+}
+
 function isRetryableResendFailure(error: ErrorResponse): boolean {
   const override = RESEND_RETRYABILITY_OVERRIDES[error.name];
   if (override !== undefined) {
@@ -97,19 +115,15 @@ export class ResendService {
       return null;
     }
 
-    if (this.configService.isDevelopment) {
-      this.loggerService.log(`${url} skipped`, payload);
-      return null;
-    }
-
     try {
       const resend = new Resend(this.configService.get('RESEND_API_KEY') || '');
       const response = await resend.emails.send(
         {
-          from:
-            payload.from ||
-            this.configService.get('RESEND_FROM_EMAIL') ||
-            'Genfeed <no-reply@genfeed.ai>',
+          from: resolveResendFromAddress({
+            configuredFrom: this.configService.get('RESEND_FROM_EMAIL'),
+            isDevelopment: this.configService.isDevelopment,
+            payloadFrom: payload.from,
+          }),
           html: payload.html,
           replyTo:
             payload.replyTo || this.configService.get('RESEND_REPLY_TO_EMAIL'),

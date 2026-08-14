@@ -2,8 +2,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
 import {
+  RESEND_DEFAULT_FROM,
+  RESEND_DEVELOPMENT_FROM,
   ResendEmailDeliveryError,
   ResendService,
+  resolveResendFromAddress,
 } from '@notifications/services/resend/resend.service';
 import { Resend } from 'resend';
 
@@ -74,8 +77,17 @@ describe('ResendService', () => {
     );
   });
 
-  it('logs and skips in development', async () => {
+  it('sends in development when Resend is configured', async () => {
     configMock.isDevelopment = true;
+    configMock.get.mockImplementation((key: string) => {
+      if (key === 'RESEND_API_KEY') return 're_test';
+      if (key === 'RESEND_FROM_EMAIL') return 'Genfeed <no-reply@genfeed.ai>';
+      return '';
+    });
+    mockSend.mockResolvedValue({
+      data: { id: 'email_dev' },
+      error: null,
+    });
 
     await expect(
       service.sendEmail({
@@ -83,14 +95,19 @@ describe('ResendService', () => {
         subject: 'Subject',
         to: 'test@example.com',
       }),
-    ).resolves.toBeNull();
+    ).resolves.toBe('email_dev');
 
-    expect(loggerMock.log).toHaveBeenCalledWith(
-      'ResendService sendEmail skipped',
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
+        from: RESEND_DEVELOPMENT_FROM,
         subject: 'Subject',
         to: 'test@example.com',
       }),
+      undefined,
+    );
+    expect(loggerMock.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('skipped'),
+      expect.anything(),
     );
   });
 
@@ -267,5 +284,43 @@ describe('ResendService', () => {
       retryable: true,
       statusCode: null,
     });
+  });
+});
+
+describe('resolveResendFromAddress', () => {
+  it('uses Resend onboarding sender in development so unverified product domains still deliver', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: 'Genfeed <no-reply@genfeed.ai>',
+        isDevelopment: true,
+      }),
+    ).toBe(RESEND_DEVELOPMENT_FROM);
+  });
+
+  it('keeps an explicit resend.dev sender in development', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: 'QA <qa@resend.dev>',
+        isDevelopment: true,
+      }),
+    ).toBe('QA <qa@resend.dev>');
+  });
+
+  it('uses the configured production sender outside development', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: 'Genfeed <updates@genfeed.ai>',
+        isDevelopment: false,
+      }),
+    ).toBe('Genfeed <updates@genfeed.ai>');
+  });
+
+  it('falls back to the product sender when production from is unset', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: undefined,
+        isDevelopment: false,
+      }),
+    ).toBe(RESEND_DEFAULT_FROM);
   });
 });
