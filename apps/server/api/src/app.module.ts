@@ -32,7 +32,6 @@ import { ContentPerformanceModule } from '@api/collections/content-performance/c
 import { ContentPlanItemsModule } from '@api/collections/content-plan-items/content-plan-items.module';
 import { ContentPlansModule } from '@api/collections/content-plans/content-plans.module';
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
-import { ContentSchedulesModule } from '@api/collections/content-schedules/content-schedules.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
@@ -281,7 +280,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContentPerformanceModule,
     LaunchCopyModule,
     ContentRunsModule,
-    ContentSchedulesModule,
     SkillsModule,
     ContextsModule,
     CreativePatternsModule,

@@ -481,22 +481,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-schedules/controllers/content-schedules.controller.spec.ts",
-      "fingerprint": "3763d633d21061a13e70",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'ContentSchedulesQueryDto'.   Type '{}' is missing the following properties from type 'ContentSchedulesQueryDto': page, limit, pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-schedules/controllers/content-schedules.controller.spec.ts",
-      "fingerprint": "a440d80c69140d6d56cd",
-      "message": "Argument of type '{ isEnabled: true; }' is not assignable to parameter of type 'ContentSchedulesQueryDto'.   Type '{ isEnabled: true; }' is missing the following properties from type 'ContentSchedulesQueryDto': page, limit, pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/collections/contexts/controllers/contexts.controller.spec.ts",
