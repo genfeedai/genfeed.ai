@@ -6,6 +6,7 @@ import {
 import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { TextSelection } from '@tiptap/pm/state';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -257,6 +258,139 @@ describe('useAgentChatInput references', () => {
         artifactReferences: workspaceReferences,
       }),
     );
+  });
+});
+
+describe('useAgentChatInput draft restore selection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('restores a draft with a collapsed caret so paste appends', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'k fldsjf slkdj slkdj f', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'k fldsjf slkdj slkdj f',
+    );
+
+    const { result } = renderHook(
+      () => useAgentChatInput({ onSend: vi.fn() }),
+      {
+        wrapper: Wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    const editor = result.current.editor;
+    expect(editor).not.toBeNull();
+    if (!editor) {
+      return;
+    }
+
+    expect(editor.state.selection.empty).toBe(true);
+    expect(editor.state.selection.from).toBe(
+      TextSelection.atEnd(editor.state.doc).to,
+    );
+
+    const preventDefault = vi.fn();
+    await act(async () => {
+      editor.view.someProp('handlePaste', (handler) =>
+        handler(
+          editor.view,
+          {
+            clipboardData: {
+              files: [],
+              getData: (type: string) =>
+                type === 'text/plain' ? 'and more' : '',
+              items: [],
+              types: ['text/plain'],
+            },
+            preventDefault,
+          } as unknown as ClipboardEvent,
+          null,
+        ),
+      );
+    });
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(editor.getText()).toBe('k fldsjf slkdj slkdj fand more');
+  });
+
+  it('grows the prompt when the same clipboard is pasted over a highlight', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'go', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'go',
+    );
+
+    const { result } = renderHook(
+      () => useAgentChatInput({ onSend: vi.fn() }),
+      {
+        wrapper: Wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    const editor = result.current.editor;
+    expect(editor).not.toBeNull();
+    if (!editor) {
+      return;
+    }
+
+    await act(async () => {
+      editor.commands.selectAll();
+    });
+
+    const pasteGo = () => {
+      editor.view.someProp('handlePaste', (handler) =>
+        handler(
+          editor.view,
+          {
+            clipboardData: {
+              files: [],
+              getData: (type: string) => (type === 'text/plain' ? 'go' : ''),
+              items: [],
+              types: ['text/plain'],
+            },
+            preventDefault: vi.fn(),
+          } as unknown as ClipboardEvent,
+          null,
+        ),
+      );
+    };
+
+    await act(async () => {
+      pasteGo();
+      pasteGo();
+      pasteGo();
+      pasteGo();
+      pasteGo();
+    });
+
+    expect(editor.getText()).toBe('gogogogogo');
   });
 });
 
