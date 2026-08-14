@@ -92,6 +92,30 @@ function compactStandaloneDependencies(root) {
   });
 }
 
+function copyNextRuntimeDependency(root, packageName) {
+  const nextPackageRoot = path.dirname(
+    require.resolve('next/package.json', { paths: [appRoot] }),
+  );
+  const sourceRoot = path.dirname(
+    require.resolve(`${packageName}/package.json`, {
+      paths: [nextPackageRoot],
+    }),
+  );
+  const destinationRoot = path.join(
+    root,
+    'node_modules',
+    ...packageName.split('/'),
+  );
+
+  fs.rmSync(destinationRoot, { force: true, recursive: true });
+  fs.mkdirSync(path.dirname(destinationRoot), { recursive: true });
+  fs.cpSync(sourceRoot, destinationRoot, {
+    dereference: true,
+    force: true,
+    recursive: true,
+  });
+}
+
 function pruneDisabledImageOptimizer(root) {
   const nodeModulesRoot = path.join(root, 'node_modules');
   const sharpPackagesRoot = path.join(nodeModulesRoot, '@img');
@@ -138,6 +162,10 @@ if (!fs.existsSync(standaloneRoot)) {
 fs.rmSync(outputRoot, { force: true, recursive: true });
 copyDirectory(standaloneRoot, outputRoot);
 compactStandaloneDependencies(outputRoot);
+// Next 16.3.1 ships a newer nested SWC helper than Bun's hoisted workspace
+// copy. Standalone tracing can retain the package link but lose its target
+// while the tree is compacted, so materialize Next's exact runtime dependency.
+copyNextRuntimeDependency(outputRoot, '@swc/helpers');
 pruneDisabledImageOptimizer(outputRoot);
 
 const serverDirectory = findServerDirectory(standaloneRoot);

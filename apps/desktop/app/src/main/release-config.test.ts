@@ -132,6 +132,8 @@ describe('desktop release config', () => {
     expect(copyShell).toContain(
       "path.join(root, 'apps', 'app', 'node_modules')",
     );
+    expect(copyShell).toContain('copyNextRuntimeDependency');
+    expect(copyShell).toContain("'@swc/helpers'");
     expect(copyShell).toContain('pruneDisabledImageOptimizer');
     expect(copyShell).toContain("path.join(nodeModulesRoot, 'sharp')");
     expect(copyShell).toContain("path.join(nodeModulesRoot, '@img')");
