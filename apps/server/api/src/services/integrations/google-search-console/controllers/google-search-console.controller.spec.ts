@@ -44,7 +44,12 @@ describe('GoogleSearchConsoleController', () => {
   };
 
   const request = {} as Request;
-  const user = { id: 'auth-user-id' } as never;
+  const user = {
+    brandId: 'brand-id',
+    id: 'auth-user-id',
+    organizationId: 'org-id',
+    userId: 'user-id',
+  } as never;
   const brand = {
     id: 'brand-id',
     organizationId: 'org-id',

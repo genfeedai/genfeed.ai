@@ -5,6 +5,14 @@ import '@testing-library/jest-dom/vitest';
 
 const findAllByOrganizationMock = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-123',

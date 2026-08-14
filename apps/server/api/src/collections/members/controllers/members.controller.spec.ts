@@ -124,7 +124,7 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     await expectNotFound(
       controller.findOne(
         makeRequest(),
-        makeUser({ organization: '' }),
+        makeUser({ organizationId: '' }),
         memberId,
       ),
     );

@@ -194,8 +194,8 @@ describe('McpApprovalsController', () => {
         'approve',
         { ok: true },
         expect.objectContaining({
-          organization: 'org-abc',
-          user: 'user-xyz',
+          organizationId: 'org-abc',
+          userId: 'user-xyz',
         }),
       );
       expect(result.data).toMatchObject({

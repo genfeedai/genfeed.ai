@@ -56,7 +56,7 @@ describe('YoutubeUploadService', () => {
   const videoId = 'test-object-id';
 
   function createPost(
-    overrides: Partial<PostEntity> & {
+    overrides: Omit<Partial<PostEntity>, 'status' | 'visibility'> & {
       status?: PostStatus | string;
       visibility?: PostVisibility | string;
     } = {},

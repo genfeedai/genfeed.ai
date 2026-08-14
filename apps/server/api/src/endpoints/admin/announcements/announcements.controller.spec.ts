@@ -45,6 +45,7 @@ const makeRequest = () => ({
 const makeUser = (orgId = 'org_test123') => ({
   id: 'user_authProvider_abc',
   organizationId: orgId,
+  userId: 'user_abc',
 });
 
 const makeAnnouncement = () => ({
@@ -119,8 +120,8 @@ describe('AnnouncementsController', () => {
       await controller.broadcast(dto, user as never, req as never);
 
       expect(mockAdminAnnouncementsService.broadcast).toHaveBeenCalledWith(
-        'user_authProvider_abc',
-        'org_test123',
+        'user_abc',
+        'org_123',
         dto,
       );
     });

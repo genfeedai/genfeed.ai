@@ -18,7 +18,12 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
 
 const ORG_ID = 'org-111';
 const USER_ID = 'user-222';
-const mockUser = {} as User;
+const mockUser = {
+  brandId: 'brand-333',
+  id: 'auth-provider-222',
+  organizationId: ORG_ID,
+  userId: USER_ID,
+} as User;
 const mockRequest = {} as Request;
 
 describe('AgentMemoriesController', () => {

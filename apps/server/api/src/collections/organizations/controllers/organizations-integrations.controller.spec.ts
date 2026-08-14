@@ -20,7 +20,12 @@ describe('OrganizationsIntegrationsController', () => {
 
   const organizationId = '507f1f77bcf86cd799439012';
   const integrationId = '507f1f77bcf86cd799439011';
-  const mockUser = { id: 'user_authProvider_123' } as unknown as User;
+  const mockUser = {
+    brandId: '507f1f77bcf86cd799439013',
+    id: 'user_authProvider_123',
+    organizationId,
+    userId: '507f1f77bcf86cd799439014',
+  } as unknown as User;
 
   const mockIntegration = {
     _id: integrationId,

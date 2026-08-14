@@ -21,6 +21,7 @@ describe('Threading AgentThreadRuntimeController', () => {
   const threadId = 'thread_current';
   const mockUser = {
     id: 'authProvider_123',
+    brandId: 'brand_current',
     organizationId: organizationId,
     userId: userId,
   } as unknown as User;
@@ -112,15 +113,15 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         action: 'confirm_install_official_workflow',
         payload: { sourceId: 'template-1' },
         threadId,
-      },
+      }),
       {
         apiKeyContext: expect.objectContaining({
-          organization: organizationId,
-          user: userId,
+          organizationId,
+          userId,
         }),
         organizationId,
         userId,

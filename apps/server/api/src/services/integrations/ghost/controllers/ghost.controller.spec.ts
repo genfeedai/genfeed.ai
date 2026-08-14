@@ -25,7 +25,12 @@ const mockUserId = 'clz1a2b3c4d5e6f7g8h9i0j1l';
 const mockBrandId = 'clz1a2b3c4d5e6f7g8h9i0j1m';
 const mockBrand = { id: mockBrandId, name: 'TestBrand' };
 
-const mockUser = {} as User;
+const mockUser = {
+  brandId: mockBrandId,
+  id: 'auth-provider-user',
+  organizationId: mockOrgId,
+  userId: mockUserId,
+} as User;
 const mockRequest = {} as Request;
 
 describe('GhostController', () => {

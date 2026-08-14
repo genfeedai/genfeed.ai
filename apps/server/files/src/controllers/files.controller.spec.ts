@@ -705,7 +705,7 @@ describe('FilesController', () => {
       const body = {
         ...baseBody,
         params: { duration: 5 },
-        type: 'image-to-video',
+        type: JOB_TYPES.IMAGE_TO_VIDEO,
       };
       const result = await controller.processImage(body);
 
@@ -715,7 +715,7 @@ describe('FilesController', () => {
     });
 
     it('should process ken-burns-effect job', async () => {
-      const body = { ...baseBody, type: 'ken-burns-effect' };
+      const body = { ...baseBody, type: JOB_TYPES.KEN_BURNS_EFFECT };
       const result = await controller.processImage(body);
 
       expect(imageQueueService.addKenBurnsJob).toHaveBeenCalled();
@@ -723,7 +723,7 @@ describe('FilesController', () => {
     });
 
     it('should process split-screen job', async () => {
-      const body = { ...baseBody, type: 'split-screen' };
+      const body = { ...baseBody, type: JOB_TYPES.SPLIT_SCREEN };
       const result = await controller.processImage(body);
 
       expect(imageQueueService.addSplitScreenJob).toHaveBeenCalled();
@@ -731,7 +731,7 @@ describe('FilesController', () => {
     });
 
     it('should process portrait-blur job', async () => {
-      const body = { ...baseBody, type: 'portrait-blur' };
+      const body = { ...baseBody, type: JOB_TYPES.PORTRAIT_BLUR };
       const result = await controller.processImage(body);
 
       expect(imageQueueService.addPortraitBlurJob).toHaveBeenCalled();
@@ -742,7 +742,7 @@ describe('FilesController', () => {
       const body = {
         ...baseBody,
         params: { height: 600, width: 800 },
-        type: 'resize-image',
+        type: JOB_TYPES.RESIZE_IMAGE,
       };
       const result = await controller.processImage(body);
 
@@ -753,10 +753,10 @@ describe('FilesController', () => {
     it('should throw error for unknown image type', async () => {
       const body = { ...baseBody, type: 'unknown-image-type' };
 
-      await expect(controller.processImage(body)).rejects.toThrow(
+      await expect(controller.processImage(body as never)).rejects.toThrow(
         HttpException,
       );
-      await expect(controller.processImage(body)).rejects.toThrow(
+      await expect(controller.processImage(body as never)).rejects.toThrow(
         'Unknown image processing type',
       );
     });
@@ -766,7 +766,7 @@ describe('FilesController', () => {
         new Error('Queue error'),
       );
 
-      const body = { ...baseBody, type: 'image-to-video' };
+      const body = { ...baseBody, type: JOB_TYPES.IMAGE_TO_VIDEO };
 
       await expect(controller.processImage(body)).rejects.toThrow(
         HttpException,
@@ -788,7 +788,7 @@ describe('FilesController', () => {
     it('should process download-file job', async () => {
       const body = {
         ...baseBody,
-        type: 'download-file',
+        type: JOB_TYPES.DOWNLOAD_FILE,
         url: 'https://example.com/file.mp4',
       };
       const result = await controller.processFile(body);
@@ -799,7 +799,7 @@ describe('FilesController', () => {
     });
 
     it('should process prepare-all-files job', async () => {
-      const body = { ...baseBody, type: 'prepare-all-files' };
+      const body = { ...baseBody, type: JOB_TYPES.PREPARE_ALL_FILES };
       const result = await controller.processFile(body);
 
       expect(fileQueueService.addPrepareFilesJob).toHaveBeenCalled();
@@ -807,7 +807,7 @@ describe('FilesController', () => {
     });
 
     it('should process cleanup-temp-files job', async () => {
-      const body = { ...baseBody, type: 'cleanup-temp-files' };
+      const body = { ...baseBody, type: JOB_TYPES.CLEANUP_TEMP_FILES };
       const result = await controller.processFile(body);
 
       expect(fileQueueService.addCleanupJob).toHaveBeenCalled();
@@ -818,7 +818,7 @@ describe('FilesController', () => {
       const body = {
         ...baseBody,
         filePath: '/path/to/file.mp4',
-        type: 'upload-to-s3',
+        type: JOB_TYPES.UPLOAD_TO_S3,
       };
       const result = await controller.processFile(body);
 
@@ -827,7 +827,7 @@ describe('FilesController', () => {
     });
 
     it('should process add-watermark job', async () => {
-      const body = { ...baseBody, type: 'add-watermark' };
+      const body = { ...baseBody, type: JOB_TYPES.ADD_WATERMARK };
       const result = await controller.processFile(body);
 
       expect(fileQueueService.addWatermarkJob).toHaveBeenCalled();
@@ -835,7 +835,7 @@ describe('FilesController', () => {
     });
 
     it('should process create-clips job', async () => {
-      const body = { ...baseBody, type: 'create-clips' };
+      const body = { ...baseBody, type: JOB_TYPES.CREATE_CLIPS };
       const result = await controller.processFile(body);
 
       expect(fileQueueService.addClipsJob).toHaveBeenCalled();
@@ -843,7 +843,7 @@ describe('FilesController', () => {
     });
 
     it('should process add-captions-overlay job', async () => {
-      const body = { ...baseBody, type: 'add-captions-overlay' };
+      const body = { ...baseBody, type: JOB_TYPES.ADD_CAPTIONS_OVERLAY };
       const result = await controller.processFile(body);
 
       expect(fileQueueService.addCaptionsOverlayJob).toHaveBeenCalled();
@@ -853,8 +853,10 @@ describe('FilesController', () => {
     it('should throw error for unknown file type', async () => {
       const body = { ...baseBody, type: 'unknown-file-type' };
 
-      await expect(controller.processFile(body)).rejects.toThrow(HttpException);
-      await expect(controller.processFile(body)).rejects.toThrow(
+      await expect(controller.processFile(body as never)).rejects.toThrow(
+        HttpException,
+      );
+      await expect(controller.processFile(body as never)).rejects.toThrow(
         'Unknown file processing type',
       );
     });
@@ -863,7 +865,7 @@ describe('FilesController', () => {
       const body = {
         ...baseBody,
         delay: 5000,
-        type: 'download-file',
+        type: JOB_TYPES.DOWNLOAD_FILE,
       };
       await controller.processFile(body);
 

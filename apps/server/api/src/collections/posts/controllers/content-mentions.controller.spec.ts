@@ -2,10 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
 
 describe('ContentMentionsController', () => {
-  const makeUser = (organization = 'org-1') =>
+  const makeUser = (organizationId = 'org-1') =>
     ({
       brandId: 'brand-1',
-      organization,
+      id: 'auth-provider-1',
+      organizationId,
       userId: 'user-1',
     }) as unknown as User;
 

@@ -16,7 +16,12 @@ describe('BotActivitiesController', () => {
   let botActivitiesService: BotActivitiesService;
 
   const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    brandId: 'brand-123',
+    id: 'auth-provider-user',
+    organizationId: 'org-123',
+    userId: 'user-123',
+  } as never;
   const mockFeatureFlagService = {
     isEnabled: vi.fn(() => true),
   };

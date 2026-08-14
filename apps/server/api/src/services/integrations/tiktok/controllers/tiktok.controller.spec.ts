@@ -39,10 +39,15 @@ describe('TiktokController', () => {
   let httpService: { post: ReturnType<typeof vi.fn> };
 
   const mockRequest = {} as unknown as Request;
-  const mockUser = { id: 'authProvider_user_1' } as never;
   const brandId = 'test-object-id';
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
+  const mockUser = {
+    brandId,
+    id: 'authProvider_user_1',
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439013',
+  } as never;
 
   // A real Prisma row carries the scalar FK, never the populated-only alias.
   const mockBrand = {

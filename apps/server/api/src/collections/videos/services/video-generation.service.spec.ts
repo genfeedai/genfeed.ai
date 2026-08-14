@@ -27,11 +27,11 @@ describe('VideoGenerationService', () => {
   const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5;
   const NON_BATCH_MODEL = MODEL_KEYS.KLINGAI_V2;
 
-  const buildUser = (organization: string = ORG): User =>
+  const buildUser = (organizationId: string = ORG): User =>
     ({
       id: 'auth-user-1',
       brandId: 'brand-from-token',
-      organization,
+      organizationId,
       userId: 'user-1',
     }) as unknown as User;
 

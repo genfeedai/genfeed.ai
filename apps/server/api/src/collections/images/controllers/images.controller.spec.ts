@@ -201,13 +201,13 @@ describe('ImagesController', () => {
       ) as {
         keyGenerator: (request: Record<string, unknown>) => string;
       };
-      const buildKey = (organization: string, brand: string) =>
+      const buildKey = (organizationId: string, brandId: string) =>
         cacheConfig.keyGenerator({
           query: { latest: 'true', limit: 10 },
           user: {
             id: mockUser.id,
-            brand,
-            organization,
+            brandId,
+            organizationId,
           },
         });
 

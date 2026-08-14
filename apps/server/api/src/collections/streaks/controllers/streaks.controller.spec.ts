@@ -7,7 +7,12 @@ import { StreaksController } from './streaks.controller';
 const ORG_ID = 'org-abc-123';
 const USER_ID = 'user-xyz-456';
 
-const mockUser = {} as User;
+const mockUser = {
+  brandId: 'brand-abc-789',
+  id: 'auth-provider-user',
+  organizationId: ORG_ID,
+  userId: USER_ID,
+} as User;
 const mockRequest = {} as const;
 const mockRequestWithContext = {
   context: {
@@ -51,7 +56,11 @@ describe('StreaksController', () => {
   describe('org access guard', () => {
     it('throws BadRequestException when organizationId does not match user metadata', async () => {
       await expect(
-        controller.getMyStreak(ORG_ID, mockUser, mockRequest),
+        controller.getMyStreak(
+          ORG_ID,
+          { ...mockUser, organizationId: 'other-org' },
+          mockRequest,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 

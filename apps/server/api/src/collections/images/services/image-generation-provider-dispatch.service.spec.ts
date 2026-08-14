@@ -126,7 +126,12 @@ describe('ImageGenerationProviderDispatchService', () => {
       referenceImageUrls: ['https://cdn.example.com/reference.png'],
       request: {},
       style: 'cinematic',
-      user: { id: 'user-1' },
+      user: {
+        brandId: 'brand-1',
+        id: 'auth-provider-user',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
       waitForCompletion: false,
       websocketUrl: '/images/ingredient-1',
       width: 1920,

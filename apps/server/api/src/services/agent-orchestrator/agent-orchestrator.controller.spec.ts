@@ -118,8 +118,9 @@ describe('AgentOrchestratorController', () => {
     it('uses the metadata organization and canonical database user for a scoped turn', async () => {
       const user = {
         id: 'authProvider_123',
-        organizationId: 'org',
-        userId: 'usr',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
       } as unknown as User;
       const reference = {
         brandId: 'brand-1',
@@ -220,8 +221,9 @@ describe('AgentOrchestratorController', () => {
     it('re-authorizes social selectors before passing page context to the agent', async () => {
       const user = {
         id: 'authProvider_social',
-        organizationId: 'org',
-        userId: 'usr',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -380,8 +382,9 @@ describe('AgentOrchestratorController', () => {
     it('accepts scoped Analytics and Research references after server authorization', async () => {
       const user = {
         id: 'authProvider_research',
-        organizationId: 'org',
-        userId: 'usr',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
       } as unknown as User;
       service.chat.mockResolvedValue({} as never);
       const analyticsQuery = {
@@ -654,7 +657,12 @@ describe('AgentOrchestratorController', () => {
 
   describe('goals', () => {
     it('should list goals for the current organization', async () => {
-      const user = { id: 'authProvider_123' } as unknown as User;
+      const user = {
+        id: 'authProvider_123',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
+      } as unknown as User;
       agentGoalsService.list.mockResolvedValue([{ _id: 'goal-1' }]);
 
       const result = await controller.listGoals(user, 'brand-1');
@@ -667,7 +675,12 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should create a goal for the current user and org', async () => {
-      const user = { id: 'authProvider_123' } as unknown as User;
+      const user = {
+        id: 'authProvider_123',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
+      } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
       });
@@ -695,7 +708,12 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should refresh a goal by id', async () => {
-      const user = { id: 'authProvider_123' } as unknown as User;
+      const user = {
+        id: 'authProvider_123',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
+      } as unknown as User;
       agentGoalsService.refreshProgress.mockResolvedValue({
         _id: 'goal-1',
         progressPercent: 25,
@@ -711,7 +729,12 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should update a goal by id', async () => {
-      const user = { id: 'authProvider_123' } as unknown as User;
+      const user = {
+        id: 'authProvider_123',
+        brandId: 'brand-1',
+        organizationId: identity.organizationId,
+        userId: identity.metadataUserId,
+      } as unknown as User;
       agentGoalsService.update.mockResolvedValue({
         _id: 'goal-1',
         targetValue: 2000,

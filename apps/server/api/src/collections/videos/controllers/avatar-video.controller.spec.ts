@@ -11,7 +11,12 @@ describe('AvatarVideoController', () => {
   let controller: AvatarVideoController;
 
   const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    brandId: 'c07f1f77bcf86cd799439012',
+    id: 'auth-provider-user',
+    organizationId: 'c07f1f77bcf86cd799439011',
+    userId: 'user-123',
+  } as never;
   const mockAvatarVideoGenerationService = {
     generateAvatarVideo: vi.fn(),
   };

@@ -225,9 +225,9 @@ describe('MusicsController', () => {
 
   describe('asset lifecycle contract', () => {
     const user = createMockUser({
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
+      brandId,
+      organizationId,
+      userId,
     }) as User;
 
     it('lists tenant-owned music and serializes the collection', async () => {

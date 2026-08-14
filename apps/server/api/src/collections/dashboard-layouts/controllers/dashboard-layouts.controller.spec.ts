@@ -122,7 +122,7 @@ describe('DashboardLayoutsController', () => {
 
       expect(service.findForPage).toHaveBeenCalledWith(
         'brand-1',
-        'org-2',
+        'org-1',
         'workspace-overview',
       );
     });

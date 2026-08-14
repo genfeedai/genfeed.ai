@@ -190,7 +190,12 @@ describe('BatchGenerationController', () => {
           action: 'approve',
           itemIds: ['item-1'],
         } as never,
-        {} as never,
+        {
+          brandId: 'test-object-id',
+          id: 'auth-provider-user',
+          organizationId: 'test-object-id',
+          userId: 'test-object-id',
+        } as never,
       );
 
       expect(service.approveItems).toHaveBeenCalledWith(
@@ -205,9 +210,10 @@ describe('BatchGenerationController', () => {
       service.requestChanges.mockResolvedValue({ id: 'batch-1' } as never);
 
       const user = {
-        id: 'user-123',
-        organizationId: 'org',
-        userId: 'usr',
+        brandId: 'test-object-id',
+        id: 'auth-provider-user',
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       } as never;
 
       await controller.itemAction(
@@ -241,7 +247,12 @@ describe('BatchGenerationController', () => {
           feedback: 'Not aligned with the brief.',
           itemIds: ['item-1'],
         } as never,
-        {} as never,
+        {
+          brandId: 'test-object-id',
+          id: 'auth-provider-user',
+          organizationId: 'test-object-id',
+          userId: 'test-object-id',
+        } as never,
       );
 
       expect(service.rejectItems).toHaveBeenCalledWith(

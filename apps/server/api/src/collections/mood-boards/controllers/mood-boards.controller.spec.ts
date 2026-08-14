@@ -102,7 +102,7 @@ describe('MoodBoardsController', () => {
 
       expect(service.findOrCreateByBrand).toHaveBeenCalledWith(
         'brand-1',
-        'org-2',
+        'org-1',
       );
     });
 

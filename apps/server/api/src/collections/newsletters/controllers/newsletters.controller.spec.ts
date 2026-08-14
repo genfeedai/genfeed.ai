@@ -37,6 +37,7 @@ describe('NewslettersController', () => {
   };
 
   const mockUser = {
+    brandId: '507f1f77bcf86cd799439013',
     id: 'user_123',
     organizationId: '507f1f77bcf86cd799439012',
     userId: '507f1f77bcf86cd799439011',
@@ -108,7 +109,7 @@ describe('NewslettersController', () => {
       expect(service.findAllScoped).toHaveBeenCalledWith(
         expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
         query,
-        expect.objectContaining({ limit: 10, page: 1, pagination: true }),
+        expect.objectContaining({ limit: 10, page: 1 }),
       );
     });
   });

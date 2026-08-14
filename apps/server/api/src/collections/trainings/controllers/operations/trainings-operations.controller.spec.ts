@@ -175,9 +175,9 @@ describe('TrainingsOperationsController', () => {
       ).toHaveBeenCalledWith(
         mockTraining,
         expect.objectContaining({
-          brand: mockUser.brandId,
-          organization: mockUser.organizationId,
-          user: mockUser.userId,
+          brandId: mockUser.brandId,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         }),
       );
     });

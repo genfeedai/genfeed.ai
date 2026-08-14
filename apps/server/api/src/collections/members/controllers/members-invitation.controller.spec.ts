@@ -87,7 +87,7 @@ describe('MembersController — invitation endpoints', () => {
         controller.listInvitations(
           {} as never,
           {},
-          makeUser({ organization: undefined }),
+          makeUser({ organizationId: undefined }),
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -144,7 +144,7 @@ describe('MembersController — invitation endpoints', () => {
         controller.revokeInvitation(
           {} as never,
           'inv_1',
-          makeUser({ organization: undefined }),
+          makeUser({ organizationId: undefined }),
         ),
       ).rejects.toThrow(HttpException);
     });

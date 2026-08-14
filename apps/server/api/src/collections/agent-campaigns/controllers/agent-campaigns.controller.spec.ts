@@ -96,16 +96,12 @@ describe('AgentCampaignsController', () => {
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
 
-    it('falls back to lookup by authenticated user id when metadata user id is unavailable', async () => {
+    it('falls back to the authenticated user id when metadata user id is unavailable', async () => {
       const userWithoutMetadataId = {
-        ...mockUser,
         ...mockUser,
         userId: undefined,
       };
 
-      mockUsersService.findOne.mockResolvedValueOnce({
-        id: '507f1f77bcf86cd799439099',
-      });
       mockExecutionService.execute.mockResolvedValue({
         id: 'campaign-2',
       });
@@ -120,12 +116,9 @@ describe('AgentCampaignsController', () => {
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-2',
         '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439099',
+        'user_123',
       );
-      expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        { id: 'user_123' },
-        [],
-      );
+      expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
 
     it('routes status=paused through executionService.pause', async () => {

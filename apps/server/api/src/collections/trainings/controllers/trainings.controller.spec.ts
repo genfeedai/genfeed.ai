@@ -222,9 +222,9 @@ describe('TrainingsController', () => {
       expect(trainingsService.createTrainingWithSources).toHaveBeenCalledWith(
         createDto,
         expect.objectContaining({
-          brand: mockUser.brandId,
-          organization: mockUser.organizationId,
-          user: mockUser.userId,
+          brandId: mockUser.brandId,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         }),
       );
       expect(result).toBeDefined();
