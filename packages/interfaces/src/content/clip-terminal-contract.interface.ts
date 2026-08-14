@@ -88,3 +88,44 @@ export interface ClipResultTerminalContract {
   isSelected: boolean;
   terminalAt?: Date | string | null;
 }
+
+/**
+ * Library-link readiness is independent of clip render readiness.
+ * A clip can be terminal/ready while its canonical Ingredient is still
+ * pending, linked, degraded, or failed to persist.
+ */
+export const CLIP_LIBRARY_LINK_STATUSES = [
+  'pending',
+  'linked',
+  'degraded',
+  'failed',
+] as const;
+
+export type ClipLibraryLinkStatus = (typeof CLIP_LIBRARY_LINK_STATUSES)[number];
+
+export function isClipLibraryLinkStatus(
+  value: unknown,
+): value is ClipLibraryLinkStatus {
+  return CLIP_LIBRARY_LINK_STATUSES.some((status) => status === value);
+}
+
+export const CLIP_RESULT_GENERATION_SOURCE_PREFIX = 'clip-result:';
+
+export function clipResultGenerationSource(clipResultId: string): string {
+  return `${CLIP_RESULT_GENERATION_SOURCE_PREFIX}${clipResultId}`;
+}
+
+export function parseClipResultIdFromGenerationSource(
+  value: unknown,
+): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  if (!value.startsWith(CLIP_RESULT_GENERATION_SOURCE_PREFIX)) {
+    return undefined;
+  }
+
+  const clipResultId = value.slice(CLIP_RESULT_GENERATION_SOURCE_PREFIX.length);
+  return clipResultId.length > 0 ? clipResultId : undefined;
+}

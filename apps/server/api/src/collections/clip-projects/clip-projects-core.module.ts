@@ -8,15 +8,19 @@
  * ClipProjectsModule re-exports everything from here and adds the queue modules.
  */
 
+import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -28,13 +32,17 @@ import { forwardRef, Module } from '@nestjs/common';
     ClipGenerationService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,
+    ClipLibraryLinkService,
     HighlightRewriteService,
     RawCutClipCompletionService,
     RawCutClipService,
   ],
   imports: [
+    forwardRef(() => CaptionsModule),
     forwardRef(() => ClipResultsModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
     forwardRef(() => AvatarVideoModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => FileQueueModule),
@@ -44,6 +52,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ClipGenerationService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,
+    ClipLibraryLinkService,
     HighlightRewriteService,
     RawCutClipCompletionService,
     RawCutClipService,

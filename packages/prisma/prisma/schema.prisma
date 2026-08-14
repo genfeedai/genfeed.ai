@@ -1677,6 +1677,7 @@ model Ingredient {
   trackedLinkContent       TrackedLink[]
   taskLinkedOutputs        Task[]          @relation("task_linked_outputs")
   taskApprovedOutputs      Task[]          @relation("task_approved_outputs")
+  clipResults              ClipResult[]    @relation("clip_result_ingredient")
 
   @@index([groupId])
   @@index([scope])
@@ -4786,6 +4787,8 @@ model ClipResult {
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   projectId      String?
   project        ClipProject? @relation(fields: [projectId, organizationId], references: [id, organizationId])
+  ingredientId   String?
+  ingredient     Ingredient?  @relation("clip_result_ingredient", fields: [ingredientId], references: [id], onDelete: SetNull)
   providerJobId  String?
   viralityScore  Float?
   status         String       @default("pending")
@@ -4798,10 +4801,12 @@ model ClipResult {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@unique([ingredientId])
   @@index([organizationId, projectId])
   @@index([organizationId, projectId, status, isDeleted])
   @@index([organizationId, mode, isDeleted])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, ingredientId])
   @@index([userId])
   @@index([providerJobId])
   @@map("clip_results")
