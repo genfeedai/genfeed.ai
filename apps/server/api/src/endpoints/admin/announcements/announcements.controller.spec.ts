@@ -43,7 +43,7 @@ const makeRequest = () => ({
 });
 
 const makeUser = (orgId = 'org_test123') => ({
-  id: 'user_authProvider_abc',
+  id: 'user_abc',
   organizationId: orgId,
   userId: 'user_abc',
 });

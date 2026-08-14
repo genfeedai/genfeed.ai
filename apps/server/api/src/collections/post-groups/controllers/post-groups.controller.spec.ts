@@ -39,7 +39,7 @@ describe('PostGroupsController', () => {
 
   const user = {
     brandId: 'brand-1',
-    id: 'auth-provider-1',
+    id: 'user-1',
     organizationId: 'org-1',
     userId: 'user-1',
   } as User;
