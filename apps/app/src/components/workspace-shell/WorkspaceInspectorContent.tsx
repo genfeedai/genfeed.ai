@@ -3,8 +3,26 @@
 import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
-import { Eye, LayoutGrid, Maximize2, MessageSquare, Zap } from 'lucide-react';
+import {
+  Check,
+  Eye,
+  File,
+  Globe,
+  LayoutGrid,
+  Maximize2,
+  MessageSquare,
+  Plus,
+  X,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';
@@ -13,8 +31,15 @@ import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics
 import type { ResearchWorkspaceSurfaceAdapterRegistration } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
+import {
+  canCloseInspectorKind,
+  type WorkspaceInspectorAssetKind,
+  type WorkspaceInspectorTabLayout,
+} from '@/lib/workspace-shell/workspace-inspector-tabs.util';
 import type { WorkspaceShellPendingTransition } from '@/lib/workspace-shell/workspace-shell-transition.util';
 
+import WorkspaceInspectorBrowserPane from './WorkspaceInspectorBrowserPane';
+import WorkspaceInspectorFilesPane from './WorkspaceInspectorFilesPane';
 import type {
   ActiveWorkspaceSurfaceAdapter,
   ProductWorkspaceSurfaceAdapter,
@@ -25,7 +50,6 @@ import {
   inspectorTabFromValue,
   isAgentOwnedInspector,
   isInspectorComposerOwner,
-  resolveActiveInspectorTab,
   resolveWorkspaceInspectorBodyKind,
   resolveWorkspaceInspectorPaneKind,
   shouldShowInspectorOverlayPreview,
@@ -43,19 +67,24 @@ type WorkspaceInspectorAdapters = {
 };
 
 type WorkspaceInspectorActions = {
+  readonly onCloseInspectorKind: (kind: WorkspaceInspectorTab) => void;
   readonly onOpenOverlay: () => void;
   readonly onOpenWorkflowPicker: () => boolean;
   readonly onReturnToConversation: () => void;
   readonly onSelectInspectorTab: (tab: WorkspaceInspectorTab) => void;
   readonly onSetComposerPortalTarget: (element: HTMLElement | null) => void;
+  readonly onToggleInspectorKind: (kind: WorkspaceInspectorTab) => void;
   readonly pendingTransitionRef: MutableRefObject<WorkspaceShellPendingTransition | null>;
 };
 
 type WorkspaceInspectorChromeModel = {
+  readonly availableInspectorKinds: readonly WorkspaceInspectorTab[];
   readonly hasAgentInspectorPanel: boolean;
   readonly inspectorBreadcrumbLabel: string;
   readonly inspectorScope: ReactNode;
   readonly inspectorTab: WorkspaceInspectorTab;
+  readonly inspectorTabLayout: WorkspaceInspectorTabLayout;
+  readonly isComposerOwner: boolean;
 };
 
 type WorkspaceInspectorRoute = {
@@ -78,11 +107,29 @@ type WorkspaceInspectorContentProps = {
   readonly route: WorkspaceInspectorRoute;
 };
 
-type WorkspaceInspectorChromeProps = {
+type WorkspaceInspectorExpandControlProps = {
   readonly conversationSlot?: ReactNode;
   readonly fullConversationHref: string;
   readonly isAgentRoute: boolean;
   readonly pendingTransitionRef: MutableRefObject<WorkspaceShellPendingTransition | null>;
+};
+
+type WorkspaceInspectorChromeProps = WorkspaceInspectorExpandControlProps & {
+  readonly availableInspectorKinds: readonly WorkspaceInspectorTab[];
+  readonly isComposerOwner: boolean;
+  readonly layout: WorkspaceInspectorTabLayout;
+  readonly onCloseInspectorKind: (kind: WorkspaceInspectorTab) => void;
+  readonly onToggleInspectorKind: (kind: WorkspaceInspectorTab) => void;
+};
+
+const INSPECTOR_TAB_ICONS: Record<
+  WorkspaceInspectorAssetKind,
+  typeof LayoutGrid
+> = {
+  browser: Globe,
+  context: LayoutGrid,
+  conversation: MessageSquare,
+  files: File,
 };
 
 type WorkspaceInspectorContextPaneProps = {
@@ -113,7 +160,7 @@ function WorkspaceInspectorExpandControl({
   fullConversationHref,
   isAgentRoute,
   pendingTransitionRef,
-}: WorkspaceInspectorChromeProps) {
+}: WorkspaceInspectorExpandControlProps) {
   if (!conversationSlot) {
     return null;
   }
@@ -146,28 +193,120 @@ function WorkspaceInspectorExpandControl({
   );
 }
 
+function WorkspaceInspectorPanelMenu({
+  availableInspectorKinds,
+  isComposerOwner,
+  layout,
+  onToggleInspectorKind,
+}: {
+  readonly availableInspectorKinds: readonly WorkspaceInspectorTab[];
+  readonly isComposerOwner: boolean;
+  readonly layout: WorkspaceInspectorTabLayout;
+  readonly onToggleInspectorKind: (kind: WorkspaceInspectorTab) => void;
+}) {
+  const translate = useTranslations('common.workspaceInspector.tabs');
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          aria-haspopup="menu"
+          ariaLabel={translate('add')}
+          className="size-8 shrink-0"
+          data-testid="workspace-inspector-add-panel"
+          icon={<Plus className="size-3.5" />}
+          size={ButtonSize.ICON}
+          tooltip={translate('add')}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56" side="bottom">
+        <DropdownMenuLabel>{translate('configure')}</DropdownMenuLabel>
+        {availableInspectorKinds.map((kind) => {
+          const isKindOpen = layout.openKinds.includes(kind);
+          const isDisabled =
+            isKindOpen &&
+            !canCloseInspectorKind({
+              isComposerOwner,
+              kind,
+              openKinds: layout.openKinds,
+            });
+          const Icon = INSPECTOR_TAB_ICONS[kind];
+
+          return (
+            <DropdownMenuItem
+              key={kind}
+              disabled={isDisabled}
+              onSelect={(event) => {
+                if (isKindOpen) {
+                  event.preventDefault();
+                }
+                onToggleInspectorKind(kind);
+              }}
+            >
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">{translate(kind)}</span>
+              {isKindOpen ? (
+                <Check className="size-3.5 shrink-0" aria-hidden="true" />
+              ) : null}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function WorkspaceInspectorChrome({
+  availableInspectorKinds,
   conversationSlot,
   fullConversationHref,
   isAgentRoute,
+  isComposerOwner,
+  layout,
+  onCloseInspectorKind,
+  onToggleInspectorKind,
   pendingTransitionRef,
 }: WorkspaceInspectorChromeProps) {
+  const translate = useTranslations('common.workspaceInspector.tabs');
+  const canCloseActive = canCloseInspectorKind({
+    isComposerOwner,
+    kind: layout.activeKind,
+    openKinds: layout.openKinds,
+  });
+
   return (
     <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
-      {conversationSlot ? (
-        <TabsList className="h-8">
-          <TabsTrigger value="context">
-            {WORKSPACE_INSPECTOR_CHROME.contextTab}
-          </TabsTrigger>
-          <TabsTrigger value="conversation">
-            {WORKSPACE_INSPECTOR_CHROME.conversationTab}
-          </TabsTrigger>
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <TabsList className="h-8 min-w-0 overflow-x-auto">
+          {layout.openKinds.map((kind) => (
+            <TabsTrigger key={kind} value={kind}>
+              {translate(kind)}
+            </TabsTrigger>
+          ))}
         </TabsList>
-      ) : (
-        <p className="truncate text-sm font-medium text-foreground">
-          {WORKSPACE_INSPECTOR_CHROME.title}
-        </p>
-      )}
+        {canCloseActive ? (
+          <Button
+            ariaLabel={translate('close', {
+              tab: translate(layout.activeKind),
+            })}
+            className="size-8 shrink-0"
+            icon={<X className="size-3.5" />}
+            onClick={() => onCloseInspectorKind(layout.activeKind)}
+            size={ButtonSize.ICON}
+            tooltip={translate('close', { tab: translate(layout.activeKind) })}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : null}
+        <WorkspaceInspectorPanelMenu
+          availableInspectorKinds={availableInspectorKinds}
+          isComposerOwner={isComposerOwner}
+          layout={layout}
+          onToggleInspectorKind={onToggleInspectorKind}
+        />
+      </div>
       <WorkspaceInspectorExpandControl
         conversationSlot={conversationSlot}
         fullConversationHref={fullConversationHref}
@@ -564,47 +703,71 @@ function WorkspaceInspectorContent({
       onValueChange={(value) =>
         actions.onSelectInspectorTab(inspectorTabFromValue(value))
       }
-      value={resolveActiveInspectorTab(
-        Boolean(conversationSlot),
-        chrome.inspectorTab,
-      )}
+      value={chrome.inspectorTabLayout.activeKind}
     >
       <WorkspaceInspectorChrome
+        availableInspectorKinds={chrome.availableInspectorKinds}
         conversationSlot={conversationSlot}
         fullConversationHref={route.fullConversationHref}
         isAgentRoute={route.isAgentRoute}
+        isComposerOwner={chrome.isComposerOwner}
+        layout={chrome.inspectorTabLayout}
+        onCloseInspectorKind={actions.onCloseInspectorKind}
+        onToggleInspectorKind={actions.onToggleInspectorKind}
         pendingTransitionRef={actions.pendingTransitionRef}
       />
-      <WorkspaceInspectorContextPane
-        agentPanelSlot={agentPanelSlot}
-        bodyKind={bodyKind}
-        effectiveSurfaceAdapter={adapters.effectiveSurfaceAdapter}
-        effectiveThreadId={route.effectiveThreadId}
-        inspectorBreadcrumbLabel={chrome.inspectorBreadcrumbLabel}
-        inspectorScope={chrome.inspectorScope}
-        isAgentOwned={isAgentOwned}
-        isAgentRoute={route.isAgentRoute}
-        onOpenOverlay={actions.onOpenOverlay}
-        onOpenWorkflowPicker={actions.onOpenWorkflowPicker}
-        onReturnToConversation={actions.onReturnToConversation}
-        paneKind={paneKind}
-        productSurfaceAdapter={adapters.productSurfaceAdapter}
-        rawPathname={route.rawPathname}
-        researchSurfaceAdapter={adapters.researchSurfaceAdapter}
-        searchParamsString={route.searchParamsString}
-        showOverlayPreview={showOverlayPreview}
-        surfacePresentationAdapter={adapters.surfacePresentationAdapter}
-        threadContextVersion={route.activeThreadContextVersion}
-        workspaceSurfaceAdapter={adapters.workspaceSurfaceAdapter}
-      />
-      <WorkspaceInspectorConversationPane
-        conversationSlot={conversationSlot}
-        isComposerOwner={isInspectorComposerOwner(
-          conversationSlot !== null,
-          route.isOverlayState,
-        )}
-        onSetComposerPortalTarget={actions.onSetComposerPortalTarget}
-      />
+      {chrome.inspectorTabLayout.openKinds.includes('context') ? (
+        <WorkspaceInspectorContextPane
+          agentPanelSlot={agentPanelSlot}
+          bodyKind={bodyKind}
+          effectiveSurfaceAdapter={adapters.effectiveSurfaceAdapter}
+          effectiveThreadId={route.effectiveThreadId}
+          inspectorBreadcrumbLabel={chrome.inspectorBreadcrumbLabel}
+          inspectorScope={chrome.inspectorScope}
+          isAgentOwned={isAgentOwned}
+          isAgentRoute={route.isAgentRoute}
+          onOpenOverlay={actions.onOpenOverlay}
+          onOpenWorkflowPicker={actions.onOpenWorkflowPicker}
+          onReturnToConversation={actions.onReturnToConversation}
+          paneKind={paneKind}
+          productSurfaceAdapter={adapters.productSurfaceAdapter}
+          rawPathname={route.rawPathname}
+          researchSurfaceAdapter={adapters.researchSurfaceAdapter}
+          searchParamsString={route.searchParamsString}
+          showOverlayPreview={showOverlayPreview}
+          surfacePresentationAdapter={adapters.surfacePresentationAdapter}
+          threadContextVersion={route.activeThreadContextVersion}
+          workspaceSurfaceAdapter={adapters.workspaceSurfaceAdapter}
+        />
+      ) : null}
+      {chrome.inspectorTabLayout.openKinds.includes('conversation') ? (
+        <WorkspaceInspectorConversationPane
+          conversationSlot={conversationSlot}
+          isComposerOwner={isInspectorComposerOwner(
+            conversationSlot !== null,
+            route.isOverlayState,
+          )}
+          onSetComposerPortalTarget={actions.onSetComposerPortalTarget}
+        />
+      ) : null}
+      {chrome.inspectorTabLayout.openKinds.includes('files') ? (
+        <TabsContent
+          className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+          forceMount
+          value="files"
+        >
+          <WorkspaceInspectorFilesPane />
+        </TabsContent>
+      ) : null}
+      {chrome.inspectorTabLayout.openKinds.includes('browser') ? (
+        <TabsContent
+          className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+          forceMount
+          value="browser"
+        >
+          <WorkspaceInspectorBrowserPane />
+        </TabsContent>
+      ) : null}
     </Tabs>
   );
 }

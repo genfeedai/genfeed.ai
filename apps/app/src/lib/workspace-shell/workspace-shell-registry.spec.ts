@@ -431,6 +431,31 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
+  it('registers first-login onboarding as a conversation, not a canvas inspector host', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/agent/onboarding'),
+    ).toMatchObject({
+      mode: 'conversation',
+      productClass: 'contextual-action',
+      surfaceKey: 'agent-onboarding',
+      telemetryClass: 'agent',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/agent/onboarding/thread-1'),
+    ).toMatchObject({
+      mode: 'conversation',
+      productClass: 'contextual-action',
+      surfaceKey: 'agent-onboarding',
+      telemetryClass: 'agent',
+    });
+    expect(resolveWorkspaceShellRoute('/acme/~/agent/journey')).toMatchObject({
+      mode: 'canvas',
+      productClass: 'control-plane',
+      surfaceKey: 'agent-onboarding',
+      telemetryClass: 'management',
+    });
+  });
+
   it('registers organization-scoped Discover as an embedded surface', () => {
     const route = resolveWorkspaceShellRoute('/acme/~/discover/overview');
 

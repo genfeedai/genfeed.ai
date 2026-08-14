@@ -312,6 +312,61 @@ vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
   ),
 }));
 
+const libraryPickerState = vi.hoisted(() => ({
+  items: [] as Array<{ id: string; metadataLabel?: string }>,
+  status: 'empty' as 'empty' | 'ready',
+}));
+
+vi.mock('@/features/library-remix/LibrarySourcePreview', () => ({
+  default: ({ record }: { record: { id: string } }) => (
+    <div data-testid={`source-preview-${record.id}`} />
+  ),
+  getLibrarySourceLabel: (record: { id: string; metadataLabel?: string }) =>
+    record.metadataLabel || record.id,
+}));
+
+vi.mock('@/features/library-remix/use-library-picker', () => ({
+  LIBRARY_PICKER_CATEGORIES: [
+    { category: 'IMAGE', key: 'images', label: 'Images' },
+    { category: 'VIDEO', key: 'videos', label: 'Videos' },
+    { category: 'GIF', key: 'gifs', label: 'GIFs' },
+  ],
+  useLibraryPicker: ({
+    onSelect,
+  }: {
+    onSelect: (
+      reference: unknown,
+      record: { id: string; metadataLabel?: string },
+    ) => void;
+  }) => ({
+    category: 'images',
+    isLoadingMore: false,
+    isValidatingId: null,
+    loadMore: vi.fn(),
+    retry: vi.fn(),
+    select: async (ingredient: { id: string; metadataLabel?: string }) => {
+      onSelect(
+        {
+          brandId: 'brand-1',
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: ingredient.id,
+          serializer: 'ingredient',
+        },
+        ingredient,
+      );
+    },
+    selectionFailure: null,
+    setCategory: vi.fn(),
+    state: {
+      hasMore: false,
+      items: libraryPickerState.items,
+      status: libraryPickerState.status,
+      total: libraryPickerState.items.length,
+    },
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => router,
@@ -343,22 +398,32 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    ariaLabel,
-    children,
-    onClick,
-    ...props
-  }: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    onClick?: () => void;
-  } & ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button type="button" aria-label={ariaLabel} onClick={onClick} {...props}>
-      {children}
-    </button>
-  ),
-}));
+vi.mock('@ui/primitives/button', async () => {
+  const { forwardRef } = await import('react');
+
+  return {
+    Button: forwardRef<
+      HTMLButtonElement,
+      {
+        ariaLabel?: string;
+        children?: ReactNode;
+        onClick?: () => void;
+      } & ButtonHTMLAttributes<HTMLButtonElement>
+    >(function MockButton({ ariaLabel, children, onClick, ...props }, ref) {
+      return (
+        <button
+          ref={ref}
+          type="button"
+          aria-label={ariaLabel}
+          onClick={onClick}
+          {...props}
+        >
+          {children}
+        </button>
+      );
+    }),
+  };
+});
 
 vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
   default: ({
@@ -524,6 +589,9 @@ describe('UniversalWorkspaceShell', () => {
     router.push.mockClear();
     router.replace.mockClear();
     vi.mocked(captureWorkspaceShellTransition).mockClear();
+    window.localStorage?.removeItem('genfeed:workspace-inspector:tabs');
+    libraryPickerState.items = [];
+    libraryPickerState.status = 'empty';
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
@@ -649,6 +717,38 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.replace).not.toHaveBeenCalledWith(
       expect.stringContaining('thread='),
     );
+  });
+
+  it('hides inspector chrome on focused onboarding so the canvas is the conversation', () => {
+    navigation.pathname = '/acme/~/agent/onboarding';
+    agentState.activeThreadId = null;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div data-testid="canonical-canvas">Onboarding conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
+      'data-workspace-surface',
+      'agent-onboarding',
+    );
+    expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Workspace inspector'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Inspector' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Conversation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Context and conversation for the active workspace surface.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('carries one conversation from the agent surface into the canvas inspector', () => {
@@ -860,6 +960,57 @@ describe('UniversalWorkspaceShell', () => {
       .map((tab) => tab.textContent);
 
     expect(labels).toEqual(['Context', 'Conversation']);
+  });
+
+  it('lets the operator add a Files pane and preview a library source in Browser', async () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+    libraryPickerState.status = 'ready';
+    libraryPickerState.items = [
+      { id: 'image-1', metadataLabel: 'Source image-1' },
+    ];
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    const addPanel = screen.getByRole('button', {
+      name: 'Add inspector panel',
+    });
+    fireEvent.pointerDown(addPanel, { button: 0 });
+
+    const menu = await screen.findByRole('menu');
+    const rail = screen.getByLabelText('Workspace inspector');
+    expect(rail).toHaveClass('overflow-hidden');
+    expect(rail.contains(menu)).toBe(false);
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Files' }));
+
+    await waitFor(() => {
+      const [tabList] = screen.getAllByRole('tablist');
+      expect(
+        within(tabList).getByRole('tab', { name: 'Files' }),
+      ).toHaveAttribute('aria-selected', 'true');
+    });
+
+    expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select Source image-1' }),
+    );
+
+    await waitFor(() => {
+      const [tabList] = screen.getAllByRole('tablist');
+      expect(
+        within(tabList).getByRole('tab', { name: 'Browser' }),
+      ).toHaveAttribute('aria-selected', 'true');
+    });
+
+    expect(
+      screen.getAllByTestId('source-preview-image-1').length,
+    ).toBeGreaterThan(1);
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {

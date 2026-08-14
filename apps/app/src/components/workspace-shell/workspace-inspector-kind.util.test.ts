@@ -121,6 +121,7 @@ describe('inspector chrome helpers', () => {
 
   it('locks the tab to context when the conversation slot is absent', () => {
     expect(resolveActiveInspectorTab(false, 'conversation')).toBe('context');
+    expect(resolveActiveInspectorTab(false, 'files')).toBe('files');
     expect(resolveActiveInspectorTab(true, 'conversation')).toBe(
       'conversation',
     );
@@ -135,6 +136,8 @@ describe('inspector chrome helpers', () => {
   it('maps tab values and pads the generic context pane', () => {
     expect(inspectorTabFromValue('conversation')).toBe('conversation');
     expect(inspectorTabFromValue('context')).toBe('context');
+    expect(inspectorTabFromValue('files')).toBe('files');
+    expect(inspectorTabFromValue('browser')).toBe('browser');
     expect(inspectorTabFromValue('other')).toBe('context');
     expect(inspectorContextPaneClassName(true, false)).not.toContain(
       'gap-3 p-3',
