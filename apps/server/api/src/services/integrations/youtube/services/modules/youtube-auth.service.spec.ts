@@ -75,6 +75,7 @@ describe('YoutubeAuthService', () => {
     mockOAuthClient.credentials = {
       access_token: 'new-access-token',
       expiry_date: Date.now() + 3600000,
+      scope: 'https://www.googleapis.com/auth/youtube.upload',
     };
     mockOAuthClient.getAccessToken.mockResolvedValue({
       res: { status: 200 },
@@ -165,6 +166,8 @@ describe('YoutubeAuthService', () => {
         accessToken: 'new-access-token',
         isConnected: true,
         isDeleted: false,
+        grantedScopes: ['https://www.googleapis.com/auth/youtube.upload'],
+        grantedScopesCapturedAt: expect.any(Date),
       }),
     );
   });

@@ -26,6 +26,31 @@ const socialSourcesServiceMock = {
   validateSource: validateSourceMock,
 };
 
+vi.mock('next-intl', () => ({
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const messages: Record<string, string> = {
+        byAuthor: 'by @{author}',
+        description:
+          'Search a handle to follow accounts on X, Instagram, and TikTok — or paste a post link to import that exact post.',
+        emptyHint:
+          'Try a public handle to follow accounts, or paste a post link (X, Instagram, or TikTok) to import that exact post.',
+        following: 'Following',
+        lookingUp: 'Looking up accounts across platforms…',
+        noAccounts: 'No accounts found for that handle.',
+        notFound: 'Not found',
+        postChoice:
+          'This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.',
+        postLabel: '{platform} post',
+        title: 'Follow sources',
+      };
+      return (messages[key] ?? key).replace(
+        /\{(\w+)\}/g,
+        (_match, name: string) => String(values?.[name] ?? ''),
+      );
+    },
+}));
+
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <img {...props} alt={props.alt || ''} />

@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { CalendarClock, Copy, EllipsisVertical, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 type WorkflowCardDropdownProps = {
@@ -19,6 +20,7 @@ export default function WorkflowCardDropdown({
   onDelete,
   onSchedule,
 }: WorkflowCardDropdownProps) {
+  const translate = useTranslations('common.automation.workflows.actions');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +41,7 @@ export default function WorkflowCardDropdown({
   return (
     <div ref={dropdownRef} className="relative">
       <Button
-        aria-label="Workflow actions"
+        aria-label={translate('menu')}
         type="button"
         variant={ButtonVariant.UNSTYLED}
         onClick={(e) => {
@@ -67,7 +69,7 @@ export default function WorkflowCardDropdown({
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
             >
               <CalendarClock className="size-4" />
-              Schedule
+              {translate('schedule')}
             </Button>
           ) : null}
           <Button
@@ -82,7 +84,7 @@ export default function WorkflowCardDropdown({
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <Copy className="size-4" />
-            Duplicate
+            {translate('duplicate')}
           </Button>
           {canDelete ? (
             <Button
@@ -97,7 +99,7 @@ export default function WorkflowCardDropdown({
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-muted"
             >
               <Trash2 className="size-4" />
-              Delete
+              {translate('delete')}
             </Button>
           ) : null}
         </div>

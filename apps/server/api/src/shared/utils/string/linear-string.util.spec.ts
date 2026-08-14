@@ -35,4 +35,12 @@ describe('linear string utilities', () => {
       'value',
     );
   });
+  it('trims only leading or only trailing matches', () => {
+    expect(trimCharacter('---hello', '-')).toBe('hello');
+    expect(trimCharacter('hello---', '-')).toBe('hello');
+  });
+
+  it('returns an empty string when every character matches', () => {
+    expect(trimCharacter('-----', '-')).toBe('');
+  });
 });

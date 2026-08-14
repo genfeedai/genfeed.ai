@@ -418,6 +418,13 @@ describe('TiktokService', () => {
       // The scope observation merges its own key in the database; rewriting
       // the whole warmupSignals object from the pre-refresh read would drop
       // evidence persisted concurrently by other warmup writers.
+      expect(credentialsMock.patch).toHaveBeenCalledWith(
+        'credential-id',
+        expect.objectContaining({
+          grantedScopes: ['user.info.basic', 'video.list'],
+          grantedScopesCapturedAt: expect.any(Date),
+        }),
+      );
       expect(credentialsMock.mergeWarmupSignals).toHaveBeenCalledWith(
         'credential-id',
         'org-id',

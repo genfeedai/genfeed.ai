@@ -4,6 +4,7 @@ import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 type ComposerFollowUpQueueProps = {
@@ -19,6 +20,7 @@ export function ComposerFollowUpQueue({
   onSendNow,
   queue,
 }: ComposerFollowUpQueueProps): ReactElement | null {
+  const translate = useTranslations('common.agent.composerFollowUpQueue');
   if (queue.length === 0) {
     return null;
   }
@@ -29,7 +31,7 @@ export function ComposerFollowUpQueue({
       data-testid="composer-follow-up-queue"
     >
       <p className="px-1.5 pb-0.5 pt-1 text-[10px] font-medium uppercase tracking-wide text-foreground/45">
-        Queued
+        {translate('queued')}
       </p>
       <ul className="flex flex-col gap-px">
         {queue.map((item, index) => (

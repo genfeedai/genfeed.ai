@@ -183,6 +183,27 @@ export interface IBetterAuthUserCreatedEvent {
   email: string | null;
 }
 
+/**
+ * Env values Better Auth reads through ConfigService. Cookie domain is env-only
+ * — callers must not derive it from `BETTER_AUTH_URL` or the request hostname.
+ */
+export interface IBetterAuthEnvValues {
+  BETTER_AUTH_API_KEY?: string;
+  BETTER_AUTH_COOKIE_DOMAIN?: string;
+  BETTER_AUTH_EXPERIMENTAL_JOINS?: string;
+  BETTER_AUTH_IP_HEADERS?: string;
+  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: string;
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
+  BETTER_AUTH_URL?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  NODE_ENV?: string;
+  PORT?: number | string;
+}
+
 /** Options for {@link createBetterAuthInstance}. */
 export interface ICreateBetterAuthOptions {
   prisma: PrismaClient;
@@ -230,3 +251,18 @@ export interface ICreateBetterAuthOptions {
    */
   onUserCreated?: (event: IBetterAuthUserCreatedEvent) => Promise<void>;
 }
+
+/** Config-derived Better Auth instance options (secrets, origins, providers). */
+export type IBetterAuthRuntimeConfig = Pick<
+  ICreateBetterAuthOptions,
+  | 'apiKey'
+  | 'baseURL'
+  | 'cookieDomain'
+  | 'experimentalJoins'
+  | 'github'
+  | 'google'
+  | 'ipAddressHeaders'
+  | 'requireEmailVerification'
+  | 'secret'
+  | 'trustedOrigins'
+>;

@@ -1,15 +1,17 @@
+const METRIC_SUFFIX_CHARACTERS = new Set([
+  '%',
+  'K',
+  'M',
+  'B',
+  'T',
+  'k',
+  'm',
+  'b',
+  't',
+]);
+
 function isMetricSuffixCharacter(character: string): boolean {
-  return (
-    character === '%' ||
-    character === 'K' ||
-    character === 'M' ||
-    character === 'B' ||
-    character === 'T' ||
-    character === 'k' ||
-    character === 'm' ||
-    character === 'b' ||
-    character === 't'
-  );
+  return METRIC_SUFFIX_CHARACTERS.has(character);
 }
 
 export function extractMetricSuffix(template: string): string {

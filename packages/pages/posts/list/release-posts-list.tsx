@@ -47,6 +47,7 @@ import {
 import { ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostsListToolbar from './components/PostsListToolbar';
 import type { PublisherPostsView } from './posts-list-query';
@@ -103,40 +104,19 @@ function releaseInstant(release: IReleaseGroup): string | null {
   return instants[0] ?? null;
 }
 
-function viewCopy(view?: PublisherPostsView): {
-  description: string;
-  title: string;
-} {
+function viewMessageKey(
+  view?: PublisherPostsView,
+): 'all' | 'failed' | 'notPosted' | 'posted' {
   if (view === 'posted') {
-    return {
-      description: 'Posts already live on at least one destination platform.',
-      title: 'Posted',
-    };
+    return 'posted';
   }
   if (view === 'failed') {
-    return {
-      description: 'Posts with at least one failed channel target.',
-      title: 'Failed',
-    };
+    return 'failed';
   }
   if (view === 'not-posted') {
-    return {
-      description: 'Drafts, scheduled posts, and publishing work in progress.',
-      title: 'Not posted',
-    };
+    return 'notPosted';
   }
-  return {
-    description: 'Posts across every publishing state and channel target.',
-    title: 'All posts',
-  };
-}
-
-// Copy lives here rather than inline: this package ships without the app's
-// i18n provider, so hoisting keeps it in one place for a later extraction.
-const POSTS_LOAD_ERROR = 'Posts could not be loaded. Refresh to try again.';
-
-function channelCountLabel(count: number): string {
-  return `${count} channel${count === 1 ? '' : 's'}`;
+  return 'all';
 }
 
 export default function ReleasePostsList({
@@ -150,6 +130,7 @@ export default function ReleasePostsList({
   search,
   sort,
 }: ReleasePostsListProps): React.JSX.Element {
+  const translate = useTranslations('pages.posts.list');
   const { brandId, isReady, organizationId } = useBrand();
   const { href } = useOrgUrl();
   const pathname = usePathname();
@@ -225,7 +206,7 @@ export default function ReleasePostsList({
     executionStates?.includes(TargetState.FAILED)
       ? PostStatus.FAILED
       : publicationState;
-  const copy = viewCopy(publisherView);
+  const viewKey = viewMessageKey(publisherView);
   const returnUrl = searchParamsString
     ? `${pathname}?${searchParamsString}`
     : pathname;
@@ -353,13 +334,14 @@ export default function ReleasePostsList({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">
-            {copy.title}
+            {translate(`views.${viewKey}.title`)}
           </h2>
-          <p className="mt-1 text-sm text-foreground/55">{copy.description}</p>
+          <p className="mt-1 text-sm text-foreground/55">
+            {translate(`views.${viewKey}.description`)}
+          </p>
         </div>
         <p className="text-sm tabular-nums text-foreground/55">
-          {data.pagination.total.toLocaleString()}{' '}
-          {data.pagination.total === 1 ? 'post' : 'posts'}
+          {translate('postCount', { count: data.pagination.total })}
         </p>
       </div>
 
@@ -368,7 +350,7 @@ export default function ReleasePostsList({
           className="mb-4 border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           role="alert"
         >
-          {POSTS_LOAD_ERROR}
+          {translate('loadError')}
         </p>
       ) : null}
 
@@ -376,8 +358,8 @@ export default function ReleasePostsList({
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
         <CardEmpty
-          description="Create and schedule posts to see them here."
-          label="No posts found"
+          description={translate('empty.description')}
+          label={translate('empty.label')}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -391,10 +373,10 @@ export default function ReleasePostsList({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
-                      {release.title || 'Untitled post'}
+                      {release.title || translate('untitled')}
                     </h3>
                     <p className="mt-2 line-clamp-3 text-sm text-foreground/60">
-                      {release.baseContent || 'No post copy yet.'}
+                      {release.baseContent || translate('noCopy')}
                     </p>
                   </div>
                   <Badge variant={statusVariant(release.status)}>
@@ -444,7 +426,9 @@ export default function ReleasePostsList({
                         {target.executionState === TargetState.PUBLISHED &&
                         isSourcePostVariationPlatform(target.platform) ? (
                           <Link
-                            aria-label={`Generate variations from ${getPostsPlatformLabel(target.platform)} post`}
+                            aria-label={translate('generateVariationsAria', {
+                              platform: getPostsPlatformLabel(target.platform),
+                            })}
                             className={buttonVariants({
                               size: ButtonSize.ICON,
                               variant: ButtonVariant.SECONDARY,
@@ -466,7 +450,9 @@ export default function ReleasePostsList({
 
                 <div className="mt-4 flex items-center justify-between text-xs text-foreground/45">
                   <span>
-                    {channelCountLabel((release.targets ?? []).length)}
+                    {translate('channelCount', {
+                      count: (release.targets ?? []).length,
+                    })}
                   </span>
                   <span>
                     {scheduledAt
@@ -475,7 +461,7 @@ export default function ReleasePostsList({
                           browserTimezone,
                           'short',
                         )
-                      : 'Unscheduled'}
+                      : translate('unscheduled')}
                   </span>
                 </div>
               </article>

@@ -57,5 +57,3 @@ export const CONTENT_PRODUCTION_WORKFLOW_TEMPLATES = [
     schedule: '*/30 * * * *',
   }),
 ] satisfies ContentProductionWorkflowTemplate[];
-
-export const CONTENT_SCHEDULE_WORKFLOW_TEMPLATE_ID = 'content-schedule';

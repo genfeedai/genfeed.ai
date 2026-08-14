@@ -192,6 +192,7 @@ describe('TwitterService (coverage)', () => {
         accessToken: 'new-access',
         expiresIn: 7200,
         refreshToken: 'new-refresh',
+        scope: 'tweet.read users.read',
       });
       const updated = makeCredential({ accessToken: 'new-access' });
       credentialsService.patch.mockResolvedValue(updated);
@@ -204,6 +205,8 @@ describe('TwitterService (coverage)', () => {
         expect.objectContaining({
           accessToken: 'new-access',
           isConnected: true,
+          grantedScopes: ['tweet.read', 'users.read'],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
       expect(result).toEqual(updated);

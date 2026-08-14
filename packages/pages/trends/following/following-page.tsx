@@ -570,6 +570,7 @@ function SourceRow({
   onSync: (id: string) => Promise<void>;
   source: ISocialSource;
 }) {
+  const translate = useTranslations('common.following');
   const isImportContainer = source.sourceType === SocialSourceType.POST;
   const syncStatus = source.lastSyncStatus ?? null;
   const statusLabel =
@@ -595,7 +596,9 @@ function SourceRow({
           <span className="truncate">
             @{source.handle || source.displayName || 'source'}
           </span>
-          {isImportContainer ? <Badge variant="ghost">Imported</Badge> : null}
+          {isImportContainer ? (
+            <Badge variant="ghost">{translate('manage.imported')}</Badge>
+          ) : null}
           {statusLabel ? (
             <Badge
               variant={

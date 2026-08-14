@@ -5,6 +5,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      'actions.copyPrompt': 'Copy prompt',
+      'actions.openSource': 'Open source',
+      'actions.remix': 'Remix',
+      'actions.sendToAgent': 'Send to agent',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));

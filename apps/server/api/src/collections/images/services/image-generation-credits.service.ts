@@ -4,9 +4,19 @@ import { ImageGenerationProviderRegistryService } from '@api/collections/images/
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  calculateDynamicImageCost,
+  commitDeferredCredits,
+  doesImageProviderFanOutPerOutput,
+  isDeferredCreditsRequest,
+  requestedOutputCount,
+  resolveGenerationDimensions,
+  resolveModelCreditCost,
+  scaleCreditsForFanOut,
+} from '@api/helpers/utils/credits/generation-credit-cost.util';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { PricingType } from '@genfeedai/enums';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ImageGenerationCreditsService {
@@ -24,36 +34,19 @@ export class ImageGenerationCreditsService {
   ): Promise<void> {
     const reqWithCredits = request as unknown as {
       creditsConfig?: {
-        deferred?: boolean;
         amount?: number;
+        deferred?: boolean;
         modelKey?: string;
       };
     };
-    if (!reqWithCredits.creditsConfig?.deferred) {
+    if (!isDeferredCreditsRequest(reqWithCredits)) {
       return;
     }
 
-    const resolvedModelDoc = await this.modelsService.findOne({
-      key: baseModelKey(model),
-    });
-    let requiredCredits = resolvedModelDoc
-      ? this.calculateDynamicImageCost(
-          resolvedModelDoc,
-          createImageDto.width || 1920,
-          createImageDto.height || 1080,
-        )
-      : 5;
-
-    const requestedOutputs = Number(createImageDto.outputs) || 1;
-    const provider = this.providerRegistry.providerFor(model);
-    const isBatchSupported =
-      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
-    const fansOutPerOutput =
-      provider === 'fal' || (provider === 'replicate' && !isBatchSupported);
-    if (requestedOutputs > 1 && fansOutPerOutput) {
-      requiredCredits *= requestedOutputs;
-    }
-
+    const requiredCredits = await this.resolveRequiredCredits(
+      createImageDto,
+      model,
+    );
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
@@ -64,45 +57,35 @@ export class ImageGenerationCreditsService {
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organization,
         );
-      throw new HttpException(
-        {
-          detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-          title: 'Insufficient credits',
-        },
-        HttpStatus.PAYMENT_REQUIRED,
-      );
+      throw createInsufficientCreditsException(requiredCredits, balance);
     }
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount: requiredCredits,
-      deferred: false,
-      modelKey: model,
-    };
+    commitDeferredCredits(reqWithCredits, requiredCredits, model);
   }
 
-  private calculateDynamicImageCost(
-    model: {
-      cost?: number | null;
-      pricingType?: string | null;
-      costPerUnit?: number | null;
-      minCost?: number | null;
-    },
-    width: number,
-    height: number,
-  ): number {
-    const pricingType = model.pricingType || PricingType.FLAT;
-    let baseCost = model.cost || 0;
+  private async resolveRequiredCredits(
+    createImageDto: CreateImageDto,
+    model: string,
+  ): Promise<number> {
+    const resolvedModelDoc = await this.modelsService.findOne({
+      key: baseModelKey(model),
+    });
+    const { height, width } = resolveGenerationDimensions(
+      createImageDto.width,
+      createImageDto.height,
+    );
+    const baseCost = resolveModelCreditCost(resolvedModelDoc, (modelDoc) =>
+      calculateDynamicImageCost(modelDoc, width, height),
+    );
+    const isBatchSupported =
+      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
 
-    if (
-      pricingType === PricingType.PER_MEGAPIXEL &&
-      width &&
-      height &&
-      model.costPerUnit
-    ) {
-      baseCost = Math.ceil(((width * height) / 1_000_000) * model.costPerUnit);
-    }
-
-    const minCost = model.minCost || 0;
-    return minCost > 0 && baseCost < minCost ? minCost : baseCost;
+    return scaleCreditsForFanOut(
+      baseCost,
+      requestedOutputCount(createImageDto.outputs),
+      doesImageProviderFanOutPerOutput(
+        this.providerRegistry.providerFor(model),
+        isBatchSupported,
+      ),
+    );
   }
 }

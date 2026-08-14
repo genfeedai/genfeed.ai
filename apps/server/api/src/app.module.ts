@@ -32,7 +32,6 @@ import { ContentPerformanceModule } from '@api/collections/content-performance/c
 import { ContentPlanItemsModule } from '@api/collections/content-plan-items/content-plan-items.module';
 import { ContentPlansModule } from '@api/collections/content-plans/content-plans.module';
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
-import { ContentSchedulesModule } from '@api/collections/content-schedules/content-schedules.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
@@ -137,6 +136,7 @@ import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { OAuthModule } from '@api/oauth/oauth.module';
@@ -282,7 +282,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContentPerformanceModule,
     LaunchCopyModule,
     ContentRunsModule,
-    ContentSchedulesModule,
     SkillsModule,
     ContextsModule,
     CreativePatternsModule,
@@ -512,6 +511,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: ActionOriginInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
     },
   ],
 })

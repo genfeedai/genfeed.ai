@@ -19,7 +19,7 @@ describe('InstagramService', () => {
   const credentialsMock = {
     findOne: vi.fn(),
     patch: vi.fn(),
-  } as CredentialsService;
+  } as unknown as CredentialsService;
 
   const httpServiceMock = {
     get: vi.fn(),

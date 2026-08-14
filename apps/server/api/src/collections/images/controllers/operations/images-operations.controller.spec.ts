@@ -751,6 +751,7 @@ describe('ImagesOperationsController', () => {
         180000,
         2000,
         expect.any(Array),
+        expect.any(AbortSignal),
       );
       expect(result).toBeDefined();
     });

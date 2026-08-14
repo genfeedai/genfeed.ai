@@ -12,9 +12,14 @@ import type {
   TrendSourceKind,
   TrendSourceReferenceRecord,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import {
+  getTrendFreshnessStatus,
+  optionalSourceFields,
+  resolveFreshnessWindowDays,
+} from '@api/collections/trends/utils/trend-freshness.util';
+import { isTrendPromptReady } from '@api/collections/trends/utils/trend-prompt-ready.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 
-const DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS = 7;
 const PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] = [
   'hooks',
   'formats',
@@ -47,13 +52,10 @@ export class TrendPromptReferencePackBuilder {
     reference: TrendSourceReferenceRecord,
     contentIntent: TrendSourceClassification['intendedUse'],
   ): boolean {
-    return (
-      reference.sourceClassification?.intendedUse === contentIntent &&
-      reference.canonicalUrl.length > 0 &&
-      reference.platform.length > 0 &&
-      reference.contentType.length > 0 &&
-      Number.isFinite(reference.currentEngagementTotal) &&
-      this.getReferenceLabel(reference).length > 0
+    return isTrendPromptReady(
+      reference,
+      contentIntent,
+      this.getReferenceLabel(reference),
     );
   }
 
@@ -246,10 +248,10 @@ export class TrendPromptReferencePackBuilder {
       status: this.getFreshnessStatus(reference, generatedAt),
     }));
     const freshnessWindowDays = Math.max(
-      ...references.map(
-        (reference) =>
-          reference.sourceClassification?.freshnessWindowDays ??
-          DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS,
+      ...references.map((reference) =>
+        resolveFreshnessWindowDays(
+          reference.sourceClassification?.freshnessWindowDays,
+        ),
       ),
     );
     const lastSourceSeenAt = references
@@ -286,22 +288,13 @@ export class TrendPromptReferencePackBuilder {
     reference: TrendSourceReferenceRecord,
     generatedAt: Date,
   ): TrendPromptReferenceFreshnessStatus {
-    const freshnessWindowDays =
-      reference.sourceClassification?.freshnessWindowDays ??
-      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
-    const lastSeenAt = new Date(reference.lastSeenAt).getTime();
-    if (!Number.isFinite(lastSeenAt)) {
-      return 'expired';
-    }
-
-    const ageMs = generatedAt.getTime() - lastSeenAt;
-    const freshnessWindowMs = freshnessWindowDays * 24 * 60 * 60 * 1000;
-
-    if (ageMs <= freshnessWindowMs) {
-      return 'fresh';
-    }
-
-    return ageMs <= freshnessWindowMs * 2 ? 'stale' : 'expired';
+    return getTrendFreshnessStatus(
+      reference.lastSeenAt,
+      generatedAt,
+      resolveFreshnessWindowDays(
+        reference.sourceClassification?.freshnessWindowDays,
+      ),
+    );
   }
 
   private getRegenerateAfter(
@@ -312,9 +305,9 @@ export class TrendPromptReferencePackBuilder {
       return undefined;
     }
 
-    const freshnessWindowDays =
-      reference.sourceClassification?.freshnessWindowDays ??
-      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
+    const freshnessWindowDays = resolveFreshnessWindowDays(
+      reference.sourceClassification?.freshnessWindowDays,
+    );
     return new Date(
       lastSeenAt + freshnessWindowDays * 24 * 60 * 60 * 1000,
     ).toISOString();
@@ -348,14 +341,7 @@ export class TrendPromptReferencePackBuilder {
       sourceClassification: reference.sourceClassification,
     };
 
-    if (reference.text) {
-      source.text = reference.text;
-    }
-    if (reference.title) {
-      source.title = reference.title;
-    }
-
-    return source;
+    return optionalSourceFields(source, reference.text, reference.title);
   }
 
   private buildSourceFingerprint(

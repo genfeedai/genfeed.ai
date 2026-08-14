@@ -20,6 +20,10 @@ const sendStreaming = vi.fn();
 let isStreamingHookActive = false;
 const scrollIntoViewMock = vi.fn();
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => null,
 }));

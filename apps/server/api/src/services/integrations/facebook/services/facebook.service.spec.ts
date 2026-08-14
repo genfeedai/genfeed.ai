@@ -119,6 +119,23 @@ describe('FacebookService', () => {
       const result = await service.exchangeAuthCodeForAccessToken('auth-code');
       expect(result.accessToken).toBe('fb-token-123');
       expect(result.expiresIn).toBe(5183944);
+      expect(result.scope).toBeUndefined();
+    });
+
+    it('forwards granted scopes when Facebook returns them', async () => {
+      const { of } = await import('rxjs');
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            access_token: 'fb-token-123',
+            expires_in: 5183944,
+            scope: 'pages_manage_posts,pages_show_list',
+          },
+        }),
+      );
+
+      const result = await service.exchangeAuthCodeForAccessToken('auth-code');
+      expect(result.scope).toBe('pages_manage_posts,pages_show_list');
     });
 
     it('should throw when exchange fails', async () => {

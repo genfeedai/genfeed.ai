@@ -4,6 +4,7 @@ import {
   buildUntranslatedStringBaseline,
   diffUntranslatedStringBaseline,
   findUntranslatedStrings,
+  UNTRANSLATED_STRING_FIX_HELP,
   type UntranslatedStringBaseline,
 } from './check-untranslated-strings';
 
@@ -63,6 +64,18 @@ describe('findUntranslatedStrings', () => {
     `);
 
     expect(occurrences).toEqual([]);
+  });
+});
+
+describe('untranslated-string fix guidance', () => {
+  it('points the correct fix at the host catalog instead of COPY consts', () => {
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/apps\/app\/messages\/en/u);
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/useTranslations/u);
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/getTranslations/u);
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/COPY const/u);
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(
+      /namespaces ui, pages, agent, contexts/u,
+    );
   });
 });
 

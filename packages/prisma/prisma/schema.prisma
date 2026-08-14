@@ -691,7 +691,6 @@ model Organization {
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
-  contentSchedules              ContentSchedule[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -732,6 +731,7 @@ model Organization {
   subscriptions                 Subscription[]
   creditBalances                CreditBalance[]
   creditTransactions            CreditTransaction[]
+  llmVendorCosts                LlmVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
   leads                         Lead[]                         @relation("lead_org")
@@ -854,7 +854,6 @@ model Brand {
   agentStrategyReports       AgentStrategyReport[]
   workflows                  Workflow[]
   contentRuns                ContentRun[]
-  contentSchedules           ContentSchedule[]
   distributions              Distribution[]
   watchlists                 Watchlist[]
   presets                    Preset[]
@@ -1319,6 +1318,8 @@ model Credential {
   accessTokenExpiry               DateTime?
   refreshToken                    String?
   refreshTokenExpiry              DateTime?
+  grantedScopes                   String[]           @default([])
+  grantedScopesCapturedAt         DateTime?
   label                           String?
   description                     String?
   warmupState                     String             @default("not_started")
@@ -1348,8 +1349,8 @@ model Credential {
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
   personas            Persona[]            @relation("persona_credentials")
-  outreachCampaigns         OutreachCampaign[]
-  socialWarmupEnrollments   SocialWarmupEnrollment[]
+  outreachCampaigns       OutreachCampaign[]
+  socialWarmupEnrollments SocialWarmupEnrollment[]
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
@@ -2345,33 +2346,6 @@ model Schedule {
   @@map("schedules")
 }
 
-model ContentSchedule {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  config         Json         @default("{}")
-  // Schedule columns — service (createForBrand / markScheduleRan) and the
-  // workflow-backed scheduler read & write these as top-level fields; without
-  // them the scheduler crashed at runtime (Prisma rejects unknown args).
-  name           String?
-  cronExpression String?
-  timezone       String       @default("UTC")
-  isEnabled      Boolean      @default(true)
-  nextRunAt      DateTime?
-  lastRunAt      DateTime?
-  skillSlugs     String[]     @default([])
-  skillParams    Json         @default("{}")
-  isActive       Boolean      @default(true)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([isEnabled, nextRunAt])
-  @@index([organizationId, brandId])
-  @@map("content_schedules")
-}
 
 model Distribution {
   id             String       @id @default(cuid())
@@ -2542,6 +2516,31 @@ model CreditTransaction {
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@map("credit_transactions")
+}
+
+/// Per-completion LLM vendor cost (#2361). Micro-USD integers; BYOK rows
+/// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
+/// completion content.
+model LlmVendorCost {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  provider         String
+  model            String
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+  latencyMs        Int          @default(0)
+  vendorCostMicros Int          @default(0)
+  isByok           Boolean      @default(false)
+  threadId         String?
+  runId            String?
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
+  @@map("llm_vendor_costs")
 }
 
 model CustomerInstance {
@@ -4950,6 +4949,8 @@ model ContextEntry {
   organization   Organization @relation(fields: [organizationId], references: [id])
   data           Json         @default("{}")
   embedding      Unsupported("vector(1024)")?
+  embeddingClaimedAt DateTime?
+  embeddingFailedAt  DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -4958,6 +4959,7 @@ model ContextEntry {
   // prefix remains the selective hot-path key; organizationId is applied in
   // the same query as a tenant-isolation guard.
   @@index([contextBaseId, isDeleted], map: "context_entries_context_base_deleted_idx")
+  @@index([organizationId, contextBaseId, isDeleted], map: "context_entries_org_base_deleted_idx")
   @@map("context_entries")
 }
 

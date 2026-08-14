@@ -84,6 +84,14 @@ fine-grained token whose repository access is limited to
 workflow and read its exact correlated run. Do not grant contents, secrets,
 administration, or organization-wide access, and never print the token.
 
+The genfeedai org rejects fine-grained PATs whose lifetime is greater than
+366 days. Recreate `CONSOLE_DEPLOY_TOKEN` with expiration ≤ 366 days if a
+release preflight fails with that diagnosis. Authorize org SSO on the token
+when GitHub prompts. The Release workflow preflights this capability before
+dispatching and fails closed with a missing-capability message — it never
+prints the token. After rotating the secret, rerun the same release tag; do
+not burn a new version.
+
 ## Desktop Release
 
 Desktop releases are shipped separately from the main production release.

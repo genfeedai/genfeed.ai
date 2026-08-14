@@ -8,7 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mock, Mocked } from 'vitest';
 
@@ -307,7 +306,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('downloaded-content'),
           headers: { 'content-type': 'image/jpeg' },
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -376,7 +375,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('video-content'),
           headers: {},
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
 
       // Need to setup tmp dir mock
@@ -396,7 +395,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('gif-content'),
           headers: { 'content-type': 'image/gif' },
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -419,7 +418,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('webm-content'),
           headers: { 'content-type': 'video/webm' },
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
 
       const result = await service.uploadToS3('test-key', 'videos', {
@@ -442,7 +441,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('video-content'),
           headers: { 'content-type': 'video/mp4' },
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
       mockFfmpegService.getVideoMetadata.mockRejectedValue(
         new Error('ffprobe failed'),
@@ -466,7 +465,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('zip-content'),
           headers: {},
-        } as unknown as AxiosResponse<ArrayBuffer>),
+        }),
       );
 
       const result = await service.uploadToS3('test-key', 'archives', {

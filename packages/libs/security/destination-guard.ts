@@ -1,3 +1,4 @@
+import type { LookupAddress } from 'node:dns';
 import { lookup } from 'node:dns/promises';
 import { Agent as HttpAgent, request as httpRequest } from 'node:http';
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
@@ -79,28 +80,48 @@ export class DestinationGuardError extends Error {
   }
 }
 
-function parseHttpUrl(input: string | URL): URL {
-  let url: URL;
+type SerializedRequestBody = {
+  contentType?: string;
+  value?: string | Buffer;
+};
 
+function parseAbsoluteUrl(input: string | URL): URL {
   try {
-    url = input instanceof URL ? new URL(input.href) : new URL(input);
+    return input instanceof URL ? new URL(input.href) : new URL(input);
   } catch {
     throw new DestinationGuardError('Destination must be a valid URL');
   }
+}
 
+function assertHttpScheme(url: URL): void {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new DestinationGuardError(
       'Destination must use the http or https scheme',
     );
   }
+}
 
+function assertNoEmbeddedCredentials(url: URL): void {
   if (url.username || url.password) {
     throw new DestinationGuardError(
       'Destination URLs must not contain credentials',
     );
   }
+}
 
+function parseHttpUrl(input: string | URL): URL {
+  const url = parseAbsoluteUrl(input);
+  assertHttpScheme(url);
+  assertNoEmbeddedCredentials(url);
   return url;
+}
+
+function assertBareOrigin(parsed: URL, origin: string): void {
+  if (parsed.pathname !== '/' || parsed.search !== '' || parsed.hash !== '') {
+    throw new DestinationGuardError(
+      `Allowed destination must be an origin: ${origin}`,
+    );
+  }
 }
 
 function normalizeAllowedOrigins(
@@ -113,19 +134,14 @@ function normalizeAllowedOrigins(
   const normalized = new Set<string>();
   for (const origin of allowedOrigins) {
     const parsed = parseHttpUrl(origin);
-    if (parsed.pathname !== '/' || parsed.search !== '' || parsed.hash !== '') {
-      throw new DestinationGuardError(
-        `Allowed destination must be an origin: ${origin}`,
-      );
-    }
+    assertBareOrigin(parsed, origin);
     normalized.add(parsed.origin);
   }
 
   return normalized;
 }
 
-function assertPolicy(
-  url: URL,
+function assertPrivateNetworkAllowlist(
   allowedOrigins: ReadonlySet<string> | undefined,
   allowPrivateNetwork: boolean,
 ): void {
@@ -134,12 +150,26 @@ function assertPolicy(
       'Private-network destinations require an explicit origin allowlist',
     );
   }
+}
 
+function assertAllowedOrigin(
+  url: URL,
+  allowedOrigins: ReadonlySet<string> | undefined,
+): void {
   if (allowedOrigins && !allowedOrigins.has(url.origin)) {
     throw new DestinationGuardError(
       `Destination origin is not allowed: ${url.origin}`,
     );
   }
+}
+
+function assertPolicy(
+  url: URL,
+  allowedOrigins: ReadonlySet<string> | undefined,
+  allowPrivateNetwork: boolean,
+): void {
+  assertPrivateNetworkAllowlist(allowedOrigins, allowPrivateNetwork);
+  assertAllowedOrigin(url, allowedOrigins);
 }
 
 export function isBlockedDestinationAddress(address: string): boolean {
@@ -151,6 +181,67 @@ export function isBlockedDestinationAddress(address: string): boolean {
     return BLOCKED_IPV6_DESTINATIONS.check(address, 'ipv6');
   }
   return true;
+}
+
+function unwrapHostname(hostname: string): string {
+  return hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+}
+
+async function lookupDestinationAddresses(
+  hostname: string,
+): Promise<readonly LookupAddress[]> {
+  const literalFamily = isIP(hostname);
+  if (literalFamily === 0) {
+    return lookup(hostname, { all: true, verbatim: true });
+  }
+
+  return [{ address: hostname, family: literalFamily }];
+}
+
+function assertPublicAddresses(
+  addresses: readonly LookupAddress[],
+  allowPrivateNetwork: boolean,
+): void {
+  if (allowPrivateNetwork) {
+    return;
+  }
+
+  for (const record of addresses) {
+    if (isBlockedDestinationAddress(record.address)) {
+      throw new DestinationGuardError(
+        `Destination resolves to a private or reserved address: ${record.address}`,
+      );
+    }
+  }
+}
+
+function selectResolvedAddress(
+  addresses: readonly LookupAddress[],
+  hostname: string,
+): LookupAddress {
+  const selected = addresses[0];
+  if (!selected || (selected.family !== 4 && selected.family !== 6)) {
+    throw new DestinationGuardError(
+      `Destination hostname returned an unsupported address: ${hostname}`,
+    );
+  }
+
+  return selected;
+}
+
+function assertResolvedAddresses(
+  addresses: readonly LookupAddress[],
+  hostname: string,
+  allowPrivateNetwork: boolean,
+): LookupAddress {
+  if (addresses.length === 0) {
+    throw new DestinationGuardError(
+      `Destination hostname did not resolve: ${hostname}`,
+    );
+  }
+
+  assertPublicAddresses(addresses, allowPrivateNetwork);
+  return selectResolvedAddress(addresses, hostname);
 }
 
 /**
@@ -166,35 +257,13 @@ export async function resolveSafeDestination(
   const allowPrivateNetwork = options.allowPrivateNetwork ?? false;
   assertPolicy(url, allowedOrigins, allowPrivateNetwork);
 
-  const hostname = url.hostname.startsWith('[')
-    ? url.hostname.slice(1, -1)
-    : url.hostname;
-  const literalFamily = isIP(hostname);
-  const addresses =
-    literalFamily === 0
-      ? await lookup(hostname, { all: true, verbatim: true })
-      : [{ address: hostname, family: literalFamily }];
-
-  if (addresses.length === 0) {
-    throw new DestinationGuardError(
-      `Destination hostname did not resolve: ${hostname}`,
-    );
-  }
-
-  for (const record of addresses) {
-    if (!allowPrivateNetwork && isBlockedDestinationAddress(record.address)) {
-      throw new DestinationGuardError(
-        `Destination resolves to a private or reserved address: ${record.address}`,
-      );
-    }
-  }
-
-  const selected = addresses[0];
-  if (!selected || (selected.family !== 4 && selected.family !== 6)) {
-    throw new DestinationGuardError(
-      `Destination hostname returned an unsupported address: ${hostname}`,
-    );
-  }
+  const hostname = unwrapHostname(url.hostname);
+  const addresses = await lookupDestinationAddresses(hostname);
+  const selected = assertResolvedAddresses(
+    addresses,
+    hostname,
+    allowPrivateNetwork,
+  );
 
   return {
     address: selected.address,
@@ -203,8 +272,8 @@ export async function resolveSafeDestination(
   };
 }
 
-function createPinnedAgent(destination: ResolvedDestination) {
-  const lookupPinnedAddress: LookupFunction = (hostname, options, callback) => {
+function createPinnedLookup(destination: ResolvedDestination): LookupFunction {
+  return (hostname, options, callback) => {
     if (hostname !== destination.url.hostname) {
       callback(
         new DestinationGuardError(
@@ -228,6 +297,10 @@ function createPinnedAgent(destination: ResolvedDestination) {
 
     callback(null, destination.address, destination.family);
   };
+}
+
+function createPinnedAgent(destination: ResolvedDestination) {
+  const lookupPinnedAddress = createPinnedLookup(destination);
 
   return destination.url.protocol === 'https:'
     ? new HttpsAgent({ keepAlive: false, lookup: lookupPinnedAddress })
@@ -246,18 +319,9 @@ function createResponseHeaders(rawHeaders: readonly string[]): Headers {
   return headers;
 }
 
-interface SerializedRequestBody {
-  contentType?: string;
-  value?: string | Buffer;
-}
-
-async function serializeRequestBody(
-  body: BodyInit | null | undefined,
-): Promise<SerializedRequestBody> {
-  if (body === undefined || body === null) {
-    return {};
-  }
-
+function serializeTextRequestBody(
+  body: BodyInit,
+): SerializedRequestBody | undefined {
   if (typeof body === 'string') {
     return { value: body };
   }
@@ -269,6 +333,12 @@ async function serializeRequestBody(
     };
   }
 
+  return undefined;
+}
+
+function serializeBufferLikeBody(
+  body: BodyInit,
+): SerializedRequestBody | undefined {
   if (body instanceof ArrayBuffer) {
     return { value: Buffer.from(body) };
   }
@@ -279,16 +349,85 @@ async function serializeRequestBody(
     };
   }
 
+  return undefined;
+}
+
+async function serializeBlobBody(body: Blob): Promise<SerializedRequestBody> {
+  return {
+    contentType: body.type || undefined,
+    value: Buffer.from(await body.arrayBuffer()),
+  };
+}
+
+async function serializeRequestBody(
+  body: BodyInit | null | undefined,
+): Promise<SerializedRequestBody> {
+  if (body === undefined || body === null) {
+    return {};
+  }
+
+  const serialized =
+    serializeTextRequestBody(body) ?? serializeBufferLikeBody(body);
+  if (serialized) {
+    return serialized;
+  }
+
   if (body instanceof Blob) {
-    return {
-      contentType: body.type || undefined,
-      value: Buffer.from(await body.arrayBuffer()),
-    };
+    return serializeBlobBody(body);
   }
 
   throw new DestinationGuardError(
     'Unsupported request body for guarded outbound request',
   );
+}
+
+function applySerializedBodyHeaders(
+  headers: Headers,
+  serializedBody: SerializedRequestBody,
+): void {
+  if (serializedBody.contentType && !headers.has('content-type')) {
+    headers.set('content-type', serializedBody.contentType);
+  }
+
+  if (serializedBody.value !== undefined && !headers.has('content-length')) {
+    headers.set(
+      'content-length',
+      String(Buffer.byteLength(serializedBody.value)),
+    );
+  }
+}
+
+function hasResponseBody(method: string, status: number): boolean {
+  return method !== 'HEAD' && !RESPONSE_WITHOUT_BODY_STATUSES.has(status);
+}
+
+function createPinnedResponse(
+  incoming: {
+    rawHeaders: readonly string[];
+    statusCode?: number;
+    statusMessage?: string;
+  },
+  init: RequestInit,
+  destination: ResolvedDestination,
+): Response {
+  const status = incoming.statusCode ?? 500;
+  const method = (init.method ?? 'GET').toUpperCase();
+  const body = hasResponseBody(method, status)
+    ? (Readable.toWeb(
+        incoming as unknown as Readable,
+      ) as ReadableStream<Uint8Array>)
+    : null;
+
+  const response = new Response(body, {
+    headers: createResponseHeaders(incoming.rawHeaders),
+    status,
+    statusText: incoming.statusMessage,
+  });
+  Object.defineProperty(response, 'url', {
+    configurable: true,
+    value: destination.url.href,
+  });
+  return response;
 }
 
 async function requestPinnedDestination(
@@ -299,18 +438,7 @@ async function requestPinnedDestination(
   const serializedBody = await serializeRequestBody(init.body);
   const requestHeaders = new Headers(init.headers);
   requestHeaders.set('accept-encoding', 'identity');
-  if (serializedBody.contentType && !requestHeaders.has('content-type')) {
-    requestHeaders.set('content-type', serializedBody.contentType);
-  }
-  if (
-    serializedBody.value !== undefined &&
-    !requestHeaders.has('content-length')
-  ) {
-    requestHeaders.set(
-      'content-length',
-      String(Buffer.byteLength(serializedBody.value)),
-    );
-  }
+  applySerializedBodyHeaders(requestHeaders, serializedBody);
   const headers = Object.fromEntries(requestHeaders.entries());
   const requestFunction =
     destination.url.protocol === 'https:' ? httpsRequest : httpRequest;
@@ -328,30 +456,29 @@ async function requestPinnedDestination(
           signal: init.signal ?? undefined,
         },
         (incoming) => {
-          const status = incoming.statusCode ?? 500;
-          const hasBody =
-            (init.method ?? 'GET').toUpperCase() !== 'HEAD' &&
-            !RESPONSE_WITHOUT_BODY_STATUSES.has(status);
-          const body = hasBody
-            ? (Readable.toWeb(incoming) as ReadableStream<Uint8Array>)
-            : null;
-
-          const response = new Response(body, {
-            headers: createResponseHeaders(incoming.rawHeaders),
-            status,
-            statusText: incoming.statusMessage,
-          });
-          Object.defineProperty(response, 'url', {
-            configurable: true,
-            value: destination.url.href,
-          });
-          resolve(response);
+          resolve(createPinnedResponse(incoming, init, destination));
         },
       );
 
     request.once('error', reject);
     request.end(serializedBody.value);
   });
+}
+
+function stripCrossOriginHeaders(headers: Headers, from: URL, to: URL): void {
+  if (from.origin === to.origin) {
+    return;
+  }
+
+  headers.delete('authorization');
+  headers.delete('cookie');
+  headers.delete('proxy-authorization');
+}
+
+function shouldSwitchRedirectToGet(status: number, method: string): boolean {
+  return (
+    status === 303 || ((status === 301 || status === 302) && method === 'POST')
+  );
 }
 
 function redirectedRequestInit(
@@ -361,15 +488,10 @@ function redirectedRequestInit(
   to: URL,
 ): RequestInit {
   const headers = new Headers(init.headers);
-  if (from.origin !== to.origin) {
-    headers.delete('authorization');
-    headers.delete('cookie');
-    headers.delete('proxy-authorization');
-  }
+  stripCrossOriginHeaders(headers, from, to);
 
   const method = (init.method ?? 'GET').toUpperCase();
-  const switchToGet =
-    status === 303 || ((status === 301 || status === 302) && method === 'POST');
+  const switchToGet = shouldSwitchRedirectToGet(status, method);
 
   return {
     ...init,
@@ -377,6 +499,72 @@ function redirectedRequestInit(
     headers,
     method: switchToGet ? 'GET' : method,
   };
+}
+
+function assertMaxRedirects(maxRedirects: number): void {
+  if (!Number.isInteger(maxRedirects) || maxRedirects < 0) {
+    throw new DestinationGuardError(
+      'maxRedirects must be a non-negative integer',
+    );
+  }
+}
+
+function isRedirectResponse(
+  response: Response,
+  location: string | null,
+): location is string {
+  return Boolean(location) && REDIRECT_STATUSES.has(response.status);
+}
+
+function shouldReturnCurrentResponse(
+  init: RequestInit,
+  isRedirect: boolean,
+): boolean {
+  return !isRedirect || init.redirect === 'manual';
+}
+
+function markRedirected(response: Response, redirectCount: number): Response {
+  if (redirectCount > 0) {
+    Object.defineProperty(response, 'redirected', { value: true });
+  }
+  return response;
+}
+
+async function assertRedirectAllowed(
+  init: RequestInit,
+  redirectCount: number,
+  maxRedirects: number,
+  currentUrl: URL,
+  response: Response,
+): Promise<void> {
+  if (init.redirect === 'error') {
+    await response.body?.cancel();
+    throw new DestinationGuardError(
+      `Redirects are disabled for destination: ${currentUrl.href}`,
+    );
+  }
+
+  if (redirectCount >= maxRedirects) {
+    await response.body?.cancel();
+    throw new DestinationGuardError(
+      `Destination exceeded ${maxRedirects} redirects`,
+    );
+  }
+}
+
+async function parseRedirectLocation(
+  location: string,
+  currentUrl: URL,
+  response: Response,
+): Promise<URL> {
+  try {
+    return new URL(location, currentUrl);
+  } catch {
+    await response.body?.cancel();
+    throw new DestinationGuardError(
+      `Destination returned an invalid redirect: ${location}`,
+    );
+  }
 }
 
 /**
@@ -392,11 +580,7 @@ export async function safeFetch(
   options: DestinationGuardOptions = {},
 ): Promise<Response> {
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
-  if (!Number.isInteger(maxRedirects) || maxRedirects < 0) {
-    throw new DestinationGuardError(
-      'maxRedirects must be a non-negative integer',
-    );
-  }
+  assertMaxRedirects(maxRedirects);
 
   let currentUrl = parseHttpUrl(input);
   let currentInit = { ...init };
@@ -405,39 +589,20 @@ export async function safeFetch(
     const destination = await resolveSafeDestination(currentUrl, options);
     const response = await requestPinnedDestination(destination, currentInit);
     const location = response.headers.get('location');
-    const isRedirect = REDIRECT_STATUSES.has(response.status) && location;
+    const isRedirect = isRedirectResponse(response, location);
 
-    if (!isRedirect || currentInit.redirect === 'manual') {
-      if (redirectCount > 0) {
-        Object.defineProperty(response, 'redirected', { value: true });
-      }
-      return response;
+    if (shouldReturnCurrentResponse(currentInit, isRedirect)) {
+      return markRedirected(response, redirectCount);
     }
 
-    if (currentInit.redirect === 'error') {
-      await response.body?.cancel();
-      throw new DestinationGuardError(
-        `Redirects are disabled for destination: ${currentUrl.href}`,
-      );
-    }
-
-    if (redirectCount >= maxRedirects) {
-      await response.body?.cancel();
-      throw new DestinationGuardError(
-        `Destination exceeded ${maxRedirects} redirects`,
-      );
-    }
-
-    let nextUrl: URL;
-    try {
-      nextUrl = new URL(location, currentUrl);
-    } catch {
-      await response.body?.cancel();
-      throw new DestinationGuardError(
-        `Destination returned an invalid redirect: ${location}`,
-      );
-    }
-
+    await assertRedirectAllowed(
+      currentInit,
+      redirectCount,
+      maxRedirects,
+      currentUrl,
+      response,
+    );
+    const nextUrl = await parseRedirectLocation(location, currentUrl, response);
     await response.body?.cancel();
     currentInit = redirectedRequestInit(
       currentInit,
