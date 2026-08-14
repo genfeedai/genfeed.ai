@@ -88,14 +88,14 @@ export default function ButtonDropdown({
       <DropdownMenuContent
         align="end"
         side={direction === DropdownDirection.UP ? 'top' : 'bottom'}
-        className="min-w-40 max-w-48 max-h-64 overflow-y-auto"
+        className="min-w-32 max-w-40 max-h-64 overflow-y-auto p-0.5"
       >
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}
             onSelect={() => handleSelect(option.value)}
             className={cn(
-              'cursor-pointer text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+              'cursor-pointer px-2 py-1 text-xs text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
               option.value === value &&
                 'bg-background-tertiary font-medium text-foreground',
             )}

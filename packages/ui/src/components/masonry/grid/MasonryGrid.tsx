@@ -30,12 +30,12 @@ function getColumnsConfig(format?: IngredientFormat): {
   desktop: number;
 } {
   if (format === IngredientFormat.LANDSCAPE) {
-    return { desktop: 2, mobile: 1, tablet: 2 };
+    return { desktop: 3, mobile: 2, tablet: 2 };
   }
   if (format === IngredientFormat.PORTRAIT) {
-    return { desktop: 4, mobile: 2, tablet: 3 };
+    return { desktop: 6, mobile: 3, tablet: 5 };
   }
-  return { desktop: 3, mobile: 2, tablet: 3 };
+  return { desktop: 5, mobile: 3, tablet: 4 };
 }
 
 function getMediaType(ingredient: IIngredient): MediaType {

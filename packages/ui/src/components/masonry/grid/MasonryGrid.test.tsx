@@ -79,4 +79,22 @@ describe('MasonryGrid', () => {
     expect(masonry).toHaveStyle({ columnGap: '4px' });
     expect(container.querySelector('.masonry-item')).toHaveClass('mb-1');
   });
+
+  it('uses a denser default column count so library tiles stay compact', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+
+    const { container } = render(
+      <MasonryGrid
+        ingredients={[{ id: 'img-1' } as IIngredient]}
+        selectedIngredientId={[]}
+      />,
+    );
+
+    expect(container.querySelector('.masonry-container')).toHaveStyle({
+      columnCount: 5,
+    });
+  });
 });
