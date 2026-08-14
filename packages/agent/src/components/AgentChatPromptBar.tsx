@@ -164,7 +164,7 @@ export function AgentChatPromptBar({
           key={activeGenerationAction.id}
           action={activeGenerationAction}
           apiService={apiService}
-          className="mt-0 rounded-t-xl rounded-b-none border-b-0 shadow-sm"
+          className="mx-auto mt-0 w-[95%] rounded-t-xl rounded-b-none border-b-0 shadow-sm"
           onUiAction={onUiAction}
         />
       ) : null}
