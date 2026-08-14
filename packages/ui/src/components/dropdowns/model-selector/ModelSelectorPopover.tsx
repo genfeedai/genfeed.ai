@@ -16,6 +16,8 @@ import {
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   collectBrandsFromOptions,
+  isModelFamilyExpanded,
+  shouldRenderModelFamilyHeader,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { Button } from '@ui/primitives/button';
@@ -27,6 +29,7 @@ import {
   CommandItem,
   CommandList,
 } from '@ui/primitives/command';
+import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
 import {
   Popover,
   PopoverContent,
@@ -80,8 +83,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSourceGroup, setActiveSourceGroup] = useState('all');
-  // Multi-select families start collapsed; single-select families start open.
-  // This records user toggles away from the mode-specific default.
+  // Families and multi-brand catalogs start collapsed. These arrays record
+  // explicit user opens away from that default.
   const [toggledFamilyKeys, setToggledFamilyKeys] = useState<string[]>([]);
 
   useEffect(() => {
@@ -93,6 +96,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     setSearchTerm('');
     setActiveSourceGroup('all');
     setActiveBrand(null);
+    setToggledFamilyKeys([]);
   }, [isDisabled]);
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
@@ -150,7 +154,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const hasLegacy = allOptions.some((option) => option.isDeprecated);
   const shouldShowSourceTabs = sourceGroups.length > 1;
 
-  const visibleOptions = useMemo(() => {
+  const catalogOptions = useMemo(() => {
     let filtered = allOptions;
 
     if (activeSourceGroup !== 'all') {
@@ -167,28 +171,47 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       filtered = filtered.filter((option) => option.brandSlug === activeBrand);
     }
 
-    // Default catalog (All / provider): hide legacy rows unless searching so
-    // the main list stays current — Legacy rail is the subcategory entry.
-    if (
-      activeBrand !== 'legacy' &&
-      activeBrand !== 'favorites' &&
-      !normalizedSearchTerm
-    ) {
+    // Default catalog (All / provider): hide legacy rows so the main list
+    // stays current — Legacy rail is the subcategory entry.
+    if (activeBrand !== 'legacy' && activeBrand !== 'favorites') {
       filtered = filtered.filter((option) => !option.isDeprecated);
     }
 
+    return filtered;
+  }, [activeBrand, activeSourceGroup, allOptions]);
+
+  const visibleOptions = useMemo(() => {
     if (!normalizedSearchTerm) {
-      return filtered;
+      return catalogOptions;
     }
 
-    const optionsByFamily = new Map<string, typeof filtered>();
-    for (const option of filtered) {
+    // Search can surface legacy rows that the default catalog hides.
+    let searchPool = catalogOptions;
+    if (activeBrand !== 'legacy' && activeBrand !== 'favorites') {
+      searchPool = allOptions.filter((option) => {
+        if (
+          activeSourceGroup !== 'all' &&
+          option.sourceGroup !== activeSourceGroup
+        ) {
+          return false;
+        }
+
+        if (activeBrand) {
+          return option.brandSlug === activeBrand;
+        }
+
+        return true;
+      });
+    }
+
+    const optionsByFamily = new Map<string, typeof searchPool>();
+    for (const option of searchPool) {
       const familyOptions = optionsByFamily.get(option.familyKey) ?? [];
       familyOptions.push(option);
       optionsByFamily.set(option.familyKey, familyOptions);
     }
 
-    const searched: typeof filtered = [];
+    const searched: typeof searchPool = [];
 
     for (const familyOptions of optionsByFamily.values()) {
       const representative = familyOptions[0];
@@ -222,7 +245,21 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return searched;
-  }, [activeBrand, activeSourceGroup, allOptions, normalizedSearchTerm]);
+  }, [
+    activeBrand,
+    activeSourceGroup,
+    allOptions,
+    catalogOptions,
+    normalizedSearchTerm,
+  ]);
+
+  const catalogFamilyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const option of catalogOptions) {
+      counts.set(option.familyKey, (counts.get(option.familyKey) ?? 0) + 1);
+    }
+    return counts;
+  }, [catalogOptions]);
 
   const groupedOptions = useMemo((): GroupedFamilies => {
     const groupedByBrand = new Map<
@@ -488,16 +525,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           }
         }}
         className={cn(
-          // Solid card surface — never washed gray secondary against the agent canvas.
-          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border p-0',
-          'bg-card text-card-foreground shadow-dropdown',
+          overlayMenuSurfaceClassName,
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg p-0',
           'sm:w-[340px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className="flex max-h-[inherit] min-h-0 w-full bg-card">
+        <div className="flex max-h-[inherit] min-h-0 w-full bg-secondary">
           {shouldShowProviderRail ? (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -508,10 +544,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           ) : null}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-secondary">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
-                {/* Track sits one step off its bg-card parent so the segmented
+              <div className="shrink-0 overflow-x-auto overflow-y-hidden border-b border-border bg-secondary px-1.5 py-1">
+                {/* Track sits one step off its elevated parent so the segmented
                     affordance reads in both themes; active tabs stay bg-accent. */}
                 <div className="inline-flex min-w-max rounded border border-border bg-muted p-0.5">
                   <SourceTabButton
@@ -533,7 +569,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-card text-card-foreground"
+              className="flex min-h-0 flex-col bg-secondary text-primary"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -544,9 +580,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'h-8 border-0 border-b border-border bg-card px-2 text-card-foreground',
+                    'h-8 border-0 border-b border-border bg-secondary px-2 text-primary',
                     'placeholder:text-muted-foreground',
-                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-card-foreground',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-primary',
                     '[&_input]:placeholder:!text-muted-foreground',
                   )}
                 />
@@ -578,7 +614,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           handleAutoSelect(priorityOption);
                         }}
                         className={cn(
-                          'flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+                          'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                           isAutoSelected &&
                             priorityOption === prioritize &&
                             'bg-background-tertiary',
@@ -607,12 +643,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                     <CommandGroup key={section.key} heading={section.heading}>
                       {section.groups.map(({ brandSlug, families }) => {
                         const brandConfig = getBrandConfig(brandSlug);
+
                         return (
                           <CommandGroup
                             key={`${section.key}-${brandSlug}`}
                             heading={
-                              activeBrand === null ||
-                              activeBrand === 'favorites'
+                              section.groups.length > 1
                                 ? brandConfig.label
                                 : undefined
                             }
@@ -631,33 +667,36 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                     .includes(normalizedSearchTerm)
                                 : false;
 
-                              const isExpanded =
-                                familySearchMatch ||
-                                (isSingleSelect
-                                  ? !toggledFamilyKeys.includes(
-                                      family.familyKey,
-                                    )
-                                  : toggledFamilyKeys.includes(
-                                      family.familyKey,
-                                    ));
+                              const isExpanded = isModelFamilyExpanded({
+                                familyKey: family.familyKey,
+                                hasSearchMatch: familySearchMatch,
+                                toggledFamilyKeys,
+                              });
+                              const isStandalone =
+                                !shouldRenderModelFamilyHeader(
+                                  catalogFamilyCounts.get(family.familyKey) ??
+                                    family.options.length,
+                                );
 
                               return (
                                 <div key={family.familyKey}>
-                                  <ModelSelectorFamilyItem
-                                    brandColor={brandConfig.color}
-                                    brandIcon={getModelBrandIcon(
-                                      brandConfig.iconKey,
-                                    )}
-                                    brandLabel={brandConfig.label}
-                                    count={family.options.length}
-                                    familyLabel={family.familyLabel}
-                                    isExpanded={isExpanded}
-                                    onToggle={() =>
-                                      handleFamilyToggle(family.familyKey)
-                                    }
-                                  />
+                                  {isStandalone ? null : (
+                                    <ModelSelectorFamilyItem
+                                      brandColor={brandConfig.color}
+                                      brandIcon={getModelBrandIcon(
+                                        brandConfig.iconKey,
+                                      )}
+                                      brandLabel={brandConfig.label}
+                                      count={family.options.length}
+                                      familyLabel={family.familyLabel}
+                                      isExpanded={isExpanded}
+                                      onToggle={() =>
+                                        handleFamilyToggle(family.familyKey)
+                                      }
+                                    />
+                                  )}
 
-                                  {isExpanded && (
+                                  {(isStandalone || isExpanded) && (
                                     <div>
                                       {family.options.map((option) => (
                                         <ModelSelectorModelItem
@@ -677,6 +716,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                           onToggle={handleToggle}
                                           onFavoriteToggle={onFavoriteToggle}
                                           selectionMode={selectionMode}
+                                          isStandalone={isStandalone}
                                         />
                                       ))}
                                     </div>

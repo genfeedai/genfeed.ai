@@ -98,6 +98,18 @@ export class SocialInboxSyncProcessor extends WorkerHost {
         : this.socialInboxService.ingestInstagramComments(scope, options);
     }
 
+    if (platform === Platform.TWITTER) {
+      return conversationType === SocialConversationType.DM
+        ? this.socialInboxService.ingestXDms(scope, options)
+        : this.socialInboxService.ingestXComments(scope, options);
+    }
+
+    if (platform === Platform.LINKEDIN) {
+      return conversationType === SocialConversationType.DM
+        ? this.socialInboxService.ingestLinkedInDms(scope, options)
+        : this.socialInboxService.ingestLinkedInComments(scope, options);
+    }
+
     return this.socialInboxService.ingestYoutubeComments(scope, options);
   }
 }

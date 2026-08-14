@@ -66,6 +66,8 @@ const mockCompletedClipResult = {
   clipType: 'hook',
   duration: 30,
   endTime: 30,
+  ingredientId: 'ingredient-h1',
+  libraryLinkStatus: 'linked',
   startTime: 0,
   status: 'completed',
   summary: 'Edited hook summary for generation.',
@@ -373,6 +375,9 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: /^edit$/i }),
     ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('In Library', { exact: true }),
+    ).toBeVisible();
   });
 
   test('should rewrite the selected highlight script in place', async ({
@@ -520,6 +525,9 @@ test.describe('Clip Factory', () => {
     expect(createRequestBody).not.toHaveProperty('voiceId');
     await expect(
       authenticatedPage.getByText('Raw cut', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('In Library', { exact: true }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByLabel('Preview Edited Hook Title'),

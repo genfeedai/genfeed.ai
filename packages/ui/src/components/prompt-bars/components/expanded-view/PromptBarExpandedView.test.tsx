@@ -93,6 +93,7 @@ function createMockContext(
     refocusTextarea: vi.fn(),
     requiresReferences: false,
     selectedModelCost: 0,
+    generationMeter: null,
     selectedModels: [],
     selectedPreset: '',
     selectedProfile: '',

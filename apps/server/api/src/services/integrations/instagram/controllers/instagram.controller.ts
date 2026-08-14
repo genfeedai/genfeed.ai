@@ -14,6 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
@@ -24,7 +25,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
@@ -72,6 +73,7 @@ export class InstagramController {
     private readonly credentialsService: CredentialsService,
     private readonly httpService: HttpService,
     private readonly instagramService: InstagramService,
+    private readonly instagramAuthorizedSignalsService: InstagramAuthorizedSignalsService,
     private readonly loggerService: LoggerService,
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
@@ -359,7 +361,7 @@ export class InstagramController {
 
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
-      const credential = await this.credentialsService.patch(
+      let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken: access_token,
@@ -374,6 +376,27 @@ export class InstagramController {
           ...buildGrantedScopesCredentialPatch(scope),
         },
       );
+
+      try {
+        await this.instagramAuthorizedSignalsService.refresh({
+          accessToken: access_token,
+          credentialId: credential.id.toString(),
+          force: true,
+          grantedScopes: scope,
+          organizationId: existingCredential.organizationId,
+        });
+        credential =
+          (await this.credentialsService.findOne({
+            id: credential.id.toString(),
+            organizationId: existingCredential.organizationId,
+            platform: CredentialPlatform.INSTAGRAM,
+          })) ?? credential;
+      } catch (signalError: unknown) {
+        this.loggerService.warn(
+          `${url} authorized signal refresh failed after connection`,
+          signalError,
+        );
+      }
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -413,6 +436,30 @@ export class InstagramController {
 
       return returnInternalServerError('Failed to verify Instagram OAuth');
     }
+  }
+
+  @Post(':credentialId/authorized-signals/refresh')
+  async refreshAuthorizedSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    await this.instagramAuthorizedSignalsService.refresh({
+      credentialId,
+      organizationId: user.organizationId,
+    });
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
+
+    if (!credential) {
+      return returnNotFound('Instagram credential', credentialId);
+    }
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   @Get('trends')

@@ -242,7 +242,7 @@ describe('TimelineWorkGroup', () => {
     const group = screen.getByTestId('timeline-work-group');
     expect(group.className).not.toMatch(/destructive/);
     expect(screen.getByText('Worked for 547ms').className).toMatch(
-      /text-foreground\/70/,
+      /text-secondary/,
     );
     expect(screen.getByText('Failed').className).toMatch(/text-destructive/);
   });

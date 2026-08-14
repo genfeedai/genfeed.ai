@@ -45,11 +45,13 @@ describe('S3StorageProvider', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.stubEnv('GENFEEDAI_CDN_URL', '');
     clientConfigs.length = 0;
     scratchDir = await fs.mkdtemp(path.join(tmpdir(), 'genfeed-s3-test-'));
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await fs.rm(scratchDir, { force: true, recursive: true });
   });
 
@@ -69,6 +71,32 @@ describe('S3StorageProvider', () => {
         credentials: { accessKeyId: 'ak', secretAccessKey: 'sk' },
         region: 'eu-west-3',
       });
+    });
+
+    it('publishes through GENFEEDAI_CDN_URL instead of the raw S3 host', () => {
+      vi.stubEnv('GENFEEDAI_CDN_URL', 'https://staging-cdn.genfeed.ai');
+      const provider = new S3StorageProvider({
+        bucket: 'staging-cdn.genfeed.ai',
+        region: 'us-east-1',
+      });
+
+      expect(
+        provider.getUrl('ingredients/images/cmsmc6doc004vloxn054gn7te'),
+      ).toBe(
+        'https://staging-cdn.genfeed.ai/ingredients/images/cmsmc6doc004vloxn054gn7te',
+      );
+    });
+
+    it('uses an explicit cdnUrl option over the files microservice origin', () => {
+      vi.stubEnv('GENFEEDAI_CDN_URL', 'https://files.genfeed.localhost');
+      const provider = new S3StorageProvider({
+        bucket: 'staging-cdn.genfeed.ai',
+        cdnUrl: 'https://staging-cdn.genfeed.ai',
+      });
+
+      expect(provider.getUrl('ingredients/images/x')).toBe(
+        'https://staging-cdn.genfeed.ai/ingredients/images/x',
+      );
     });
   });
 

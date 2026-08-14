@@ -96,6 +96,12 @@ export interface BrandDetailLinksSummaryCardProps {
   manageHref: string;
 }
 
+export interface BrandDetailConnectedAccountProps {
+  connection: BrandDetailSocialConnection;
+  isSelected?: boolean;
+  onSelect?: (credentialId: string) => void;
+}
+
 export interface BrandDetailSocialMediaCardProps {
   brandId: string;
   connections: BrandDetailSocialConnection[];

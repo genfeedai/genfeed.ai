@@ -20,8 +20,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -36,9 +38,13 @@ describe('InstagramController', () => {
   let credentialsPatchMock: ReturnType<typeof vi.fn>;
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
+  let credentialsFindOneMock: ReturnType<typeof vi.fn>;
   let instagramServiceMock: {
     getAvailableHandles: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
+  };
+  let instagramAuthorizedSignalsServiceMock: {
+    refresh: ReturnType<typeof vi.fn>;
   };
 
   const configMock = {
@@ -57,6 +63,7 @@ describe('InstagramController', () => {
   const loggerMock = {
     error: vi.fn(),
     log: vi.fn(),
+    warn: vi.fn(),
   } as unknown as LoggerService;
 
   beforeEach(() => {
@@ -73,12 +80,16 @@ describe('InstagramController', () => {
       organizationId: '507f191e810c19729de860eb',
       userId: '507f191e810c19729de860ec',
     });
+    credentialsFindOneMock = vi.fn();
     credentialsPatchMock = vi.fn();
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
     instagramServiceMock = {
       getAvailableHandles: vi.fn(),
       getTrends: vi.fn(),
+    };
+    instagramAuthorizedSignalsServiceMock = {
+      refresh: vi.fn().mockResolvedValue({ state: 'full' }),
     };
 
     const accountsMock = {
@@ -87,6 +98,7 @@ describe('InstagramController', () => {
 
     const credentialsMock = {
       beginOAuthForBrand: credentialsBeginOAuthForBrandMock,
+      findOne: credentialsFindOneMock,
       findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
     } as unknown as CredentialsService;
@@ -102,6 +114,7 @@ describe('InstagramController', () => {
       credentialsMock,
       httpServiceMock,
       instagramServiceMock as unknown as InstagramService,
+      instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
       loggerMock,
     );
   });
@@ -233,6 +246,15 @@ describe('InstagramController', () => {
           oauthState: null,
         }),
       );
+      expect(
+        instagramAuthorizedSignalsServiceMock.refresh,
+      ).toHaveBeenCalledWith({
+        accessToken: 'long-lived-token',
+        credentialId: credId,
+        force: true,
+        grantedScopes: undefined,
+        organizationId: orgId,
+      });
     });
 
     it('should return bad request when code or state is missing', async () => {
@@ -255,10 +277,12 @@ describe('InstagramController', () => {
             organizationId: orgId,
             userId: 'user-id',
           }),
+          findOne: vi.fn(),
           patch: vi.fn(),
         } as unknown as CredentialsService,
         { get: vi.fn(), post: vi.fn() } as unknown as HttpService,
         instagramServiceMock as unknown as InstagramService,
+        instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
         loggerMock,
       );
 
@@ -310,6 +334,62 @@ describe('InstagramController', () => {
       });
 
       expect(result).toHaveProperty('errors');
+    });
+  });
+
+  describe('refreshAuthorizedSignals', () => {
+    const orgId = '507f191e810c19729de860eb';
+    const credentialId = 'test-object-id';
+    const mockUser = {
+      organizationId: orgId,
+      userId: '507f191e810c19729de860ec',
+    } as unknown as User;
+    const mockRequest = {} as unknown as Request;
+
+    it('returns not found when the credential is missing or cross-org', async () => {
+      instagramAuthorizedSignalsServiceMock.refresh.mockRejectedValueOnce(
+        new NotFoundException('Instagram credential'),
+      );
+
+      await expect(
+        controller.refreshAuthorizedSignals(
+          mockRequest,
+          mockUser,
+          'missing-credential',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(credentialsFindOneMock).not.toHaveBeenCalled();
+    });
+
+    it('refreshes and returns only the caller organization credential', async () => {
+      credentialsFindOneMock.mockResolvedValueOnce({
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'instagram',
+      });
+
+      const result = await controller.refreshAuthorizedSignals(
+        mockRequest,
+        mockUser,
+        credentialId,
+      );
+
+      expect(
+        instagramAuthorizedSignalsServiceMock.refresh,
+      ).toHaveBeenCalledWith({
+        credentialId,
+        organizationId: orgId,
+      });
+      expect(credentialsFindOneMock).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'instagram',
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({ id: credentialId }),
+        }),
+      );
     });
   });
 

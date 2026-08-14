@@ -84,7 +84,10 @@ function getCategoryConfig(category: LibraryPickerCategory) {
 }
 
 export function useLibraryPicker(params: {
-  readonly onSelect: (reference: LibraryArtifactReference) => void;
+  readonly onSelect: (
+    reference: LibraryArtifactReference,
+    record: IIngredient,
+  ) => void;
 }): UseLibraryPickerResult {
   const { onSelect } = params;
   const { brandId, isReady, organizationId } = useBrand();
@@ -239,7 +242,7 @@ export function useLibraryPicker(params: {
           return;
         }
 
-        onSelect(reference);
+        onSelect(reference, confirmed);
       } catch (error) {
         const status = getErrorStatus(error);
         setSelectionFailure(

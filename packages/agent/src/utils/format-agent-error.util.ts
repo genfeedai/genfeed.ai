@@ -91,11 +91,22 @@ const CONFIG_PATTERNS: Array<{
       'Confirm the API is up (https://api.genfeed.localhost/v1/health), then retry the message.',
   },
   {
+    // Must run before the UI-action-500 "local reload" rule. A cancelled
+    // Replicate job is wrapped as 500 ("Cancelled by user") — that is not
+    // a dropped connection.
+    match: /Cancelled by user/i,
+    title: 'Generate was cancelled',
+    summary: 'The generate job was stopped before the image finished.',
+    recovery: 'Retry Generate on the card. You do not need to switch models.',
+    includeRawDetail: true,
+    isConfigurationError: false,
+  },
+  {
     // Tool wrappers often surface bare "Generation failed: 500" when the local
     // API dies mid-request (nest-fast-dev rebuild). Prefer connection copy over
     // a vague "provider unavailable" reading.
     match:
-      /generation failed:\s*5\d{2}\b|failed with status\s*5\d{2}\b|:\s*5\d{2}\s*$/i,
+      /generation failed:\s*5\d{2}\b|failed with status(?: code)?\s*500\b|Failed to respond to UI action:\s*500\b|:\s*500\s*$/i,
     title: 'Connection interrupted',
     summary:
       'The API returned a server error mid-request — often a local reload.',
@@ -112,6 +123,29 @@ const CONFIG_PATTERNS: Array<{
     title: 'Provider authentication failed',
     summary: 'The model provider rejected the credentials for this request.',
     recovery: 'Verify the provider API key, then retry.',
+  },
+  {
+    // ModelsGuard 403 when the request has no usable workspace id. That is
+    // not "pick another model" — Auto only skips the allowlist check.
+    match: /Organization context is required/i,
+    title: 'Workspace missing on this request',
+    summary: 'Generate could not see which workspace this request belongs to.',
+    recovery:
+      'Refresh the page and retry. If it happens again, sign out and sign back in.',
+    includeRawDetail: true,
+    isConfigurationError: false,
+  },
+  {
+    // Our confirm-generate hop returns JSON:API 403 (allowlist, brand, org).
+    // That is not Replicate/fal rejecting the account — keep it off the
+    // generic provider-403 rule below.
+    match: /Failed to respond to UI action:\s*403\b/i,
+    title: 'Action not allowed',
+    summary: 'The API refused this generate request.',
+    recovery:
+      'Switch to Auto or a model enabled for this workspace, then retry.',
+    includeRawDetail: true,
+    isConfigurationError: false,
   },
   {
     match: /403|forbidden/i,

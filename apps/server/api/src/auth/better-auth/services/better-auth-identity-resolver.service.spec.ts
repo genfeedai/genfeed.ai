@@ -1,6 +1,7 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { UnauthorizedException } from '@nestjs/common';
@@ -18,6 +19,9 @@ describe('BetterAuthIdentityResolverService', () => {
     set: ReturnType<typeof vi.fn>;
     invalidateForUser: ReturnType<typeof vi.fn>;
   };
+  let userSetupService: {
+    initializeUserResources: ReturnType<typeof vi.fn>;
+  };
   let resolver: BetterAuthIdentityResolverService;
 
   beforeEach(() => {
@@ -30,6 +34,9 @@ describe('BetterAuthIdentityResolverService', () => {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
       set: vi.fn().mockResolvedValue(undefined),
     };
+    userSetupService = {
+      initializeUserResources: vi.fn(),
+    };
 
     resolver = new BetterAuthIdentityResolverService(
       usersService as unknown as UsersService,
@@ -37,6 +44,7 @@ describe('BetterAuthIdentityResolverService', () => {
       brandsService as unknown as BrandsService,
       membersService as unknown as MembersService,
       identityCache as unknown as BetterAuthIdentityCacheService,
+      userSetupService as unknown as UserSetupService,
     );
   });
 
@@ -177,10 +185,41 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(brandsService.findOne).not.toHaveBeenCalled();
   });
 
-  it('does not throw when a user genuinely has no memberships at all (new/unassigned account)', async () => {
+  it('provisions a workspace when a signed-in user has no membership and no owned org', async () => {
+    usersService.findOne.mockResolvedValue({
+      email: 'vincent@shipshit.dev',
+      id: 'user_no_memberships',
+      name: 'Vincent',
+    });
+    membersService.find.mockResolvedValue([]);
+    organizationsService.findOne.mockResolvedValue(null);
+    userSetupService.initializeUserResources.mockResolvedValue({
+      brand: { id: 'brand_new' },
+      organization: { id: 'org_new' },
+    });
+
+    const identity = await resolver.resolve('user_no_memberships');
+
+    expect(userSetupService.initializeUserResources).toHaveBeenCalledWith(
+      'user_no_memberships',
+      undefined,
+      { email: 'vincent@shipshit.dev', name: 'Vincent' },
+    );
+    expect(identity).toEqual({
+      brandId: 'brand_new',
+      isSuperAdmin: false,
+      organizationId: 'org_new',
+      userId: 'user_no_memberships',
+    });
+  });
+
+  it('keeps the session usable when workspace provisioning fails', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_no_memberships' });
     membersService.find.mockResolvedValue([]);
     organizationsService.findOne.mockResolvedValue(null);
+    userSetupService.initializeUserResources.mockRejectedValue(
+      new Error('db down'),
+    );
 
     const identity = await resolver.resolve('user_no_memberships');
 

@@ -138,3 +138,49 @@ export function resolveSignupBrandDomain(
     websiteUrl: `https://${emailDomain}`,
   };
 }
+
+export interface ResolveSignupWorkspaceLabelInput {
+  email?: string | null;
+  name?: string | null;
+}
+
+function titleCaseWorkspaceLabel(value: string): string {
+  return value
+    .split(/[._\-\s]+/)
+    .reduce<string[]>((segments, segment) => {
+      if (segment) {
+        segments.push(
+          segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase(),
+        );
+      }
+      return segments;
+    }, [])
+    .join(' ')
+    .trim();
+}
+
+/**
+ * Name the first org/brand from the signed-in user. Corporate mail uses the
+ * company domain; personal mail uses display name or the email local-part.
+ * Never returns the leftover "Default Organization" stub.
+ */
+export function resolveSignupWorkspaceLabel(
+  input: ResolveSignupWorkspaceLabelInput,
+): string {
+  const fromDomain = resolveSignupBrandDomain({ email: input.email });
+  if (fromDomain.brandName) {
+    return fromDomain.brandName;
+  }
+
+  const name = input.name?.trim();
+  if (name) {
+    return name;
+  }
+
+  const localPart = input.email?.split('@')[0]?.trim();
+  if (localPart) {
+    return titleCaseWorkspaceLabel(localPart) || 'Workspace';
+  }
+
+  return 'Workspace';
+}

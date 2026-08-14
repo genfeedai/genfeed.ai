@@ -106,7 +106,7 @@ export default function MasonryImageMediaArea({
         {imageError && (
           <div
             aria-live="polite"
-            className="absolute inset-x-3 bottom-3 rounded-md bg-black/70 px-3 py-2 text-center text-xs font-medium text-white shadow-dropdown backdrop-blur-sm"
+            className="absolute inset-x-3 bottom-3 rounded-lg bg-secondary/90 px-3 py-2 text-center text-xs font-medium text-foreground/70 shadow-dropdown"
             data-testid={`asset-media-fallback-${image.id}`}
             role="status"
           >

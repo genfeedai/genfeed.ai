@@ -6,6 +6,7 @@ import {
   extractEmailDomain,
   isPersonalEmailDomain,
   resolveSignupBrandDomain,
+  resolveSignupWorkspaceLabel,
 } from './signup-brand-domain.helper';
 
 describe('extractBrandDomain', () => {
@@ -106,5 +107,35 @@ describe('resolveSignupBrandDomain', () => {
       source: 'none',
       websiteUrl: null,
     });
+  });
+});
+
+describe('resolveSignupWorkspaceLabel', () => {
+  it('uses the corporate email domain as the workspace name', () => {
+    expect(resolveSignupWorkspaceLabel({ email: 'vincent@shipshit.dev' })).toBe(
+      'Shipshit',
+    );
+  });
+
+  it('uses the signed-in name when the mailbox is personal', () => {
+    expect(
+      resolveSignupWorkspaceLabel({
+        email: 'vincent@gmail.com',
+        name: 'Vincent D',
+      }),
+    ).toBe('Vincent D');
+  });
+
+  it('falls back to the email local-part when there is no name', () => {
+    expect(resolveSignupWorkspaceLabel({ email: 'vincent.d@gmail.com' })).toBe(
+      'Vincent D',
+    );
+  });
+
+  it('never returns Default Organization', () => {
+    expect(resolveSignupWorkspaceLabel({})).toBe('Workspace');
+    expect(resolveSignupWorkspaceLabel({ email: null, name: '  ' })).toBe(
+      'Workspace',
+    );
   });
 });

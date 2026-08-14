@@ -90,4 +90,25 @@ export type OutboundReservation = {
   message: SocialMessageDocument;
 };
 
+export class SocialInboxProviderError extends Error {
+  readonly cursor?: string;
+  readonly isRateLimited: boolean;
+  readonly platform: string;
+
+  constructor(
+    message: string,
+    options: {
+      cursor?: string;
+      isRateLimited?: boolean;
+      platform: string;
+    },
+  ) {
+    super(message);
+    this.name = 'SocialInboxProviderError';
+    this.cursor = options.cursor;
+    this.isRateLimited = options.isRateLimited === true;
+    this.platform = options.platform;
+  }
+}
+
 import type { SocialMessageDocument } from '@api/collections/social-inbox/schemas/social-inbox.schema';

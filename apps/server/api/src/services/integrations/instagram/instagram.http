@@ -36,6 +36,12 @@ Content-Type: application/json
 # Instagram Data
 ########################################
 
+### Refresh Instagram authorized warm-up signals
+# Merges platform-verified profile/media/publish evidence into the credential
+POST {{baseUrl}}/services/instagram/{{testCredentialId}}/authorized-signals/refresh
+Authorization: Bearer {{bearerToken}}
+
+
 ### Get Instagram Trends
 # Fetches current Instagram trends
 GET {{baseUrl}}/services/instagram/trends

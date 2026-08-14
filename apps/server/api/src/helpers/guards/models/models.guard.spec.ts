@@ -137,6 +137,20 @@ describe('ModelsGuard', () => {
     expect(result).toBe(true);
   });
 
+  it('accepts a cuid organization id for catalog models', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue({
+      category: ModelCategory.IMAGE,
+    });
+    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const ctx = createContext({ model: 'genfeed-ai/flux-dev' }, orgId);
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+      'genfeed-ai/flux-dev',
+      orgId,
+    );
+  });
+
   it('throws ForbiddenException when organizationId is missing', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
@@ -152,6 +166,54 @@ describe('ModelsGuard', () => {
       switchToHttp: () => ({ getRequest: () => req }),
     } as unknown as ExecutionContext;
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+  });
+
+  it('uses the session organization when request.context was not hydrated', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue({
+      category: ModelCategory.IMAGE,
+    });
+    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const req: Record<string, unknown> = {
+      body: { model: 'stable-diffusion' },
+      context: {},
+      selectedModel: undefined,
+      user: { publicMetadata: { organization: orgId } },
+    };
+    const ctx = {
+      getClass: vi.fn(),
+      getHandler: vi.fn(),
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+      'stable-diffusion',
+      orgId,
+    );
+  });
+
+  it('skips a slug in request.context and uses the session cuid', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue({
+      category: ModelCategory.IMAGE,
+    });
+    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const req: Record<string, unknown> = {
+      body: { model: 'stable-diffusion' },
+      context: { organizationId: 'default' },
+      selectedModel: undefined,
+      user: { publicMetadata: { organization: orgId } },
+    };
+    const ctx = {
+      getClass: vi.fn(),
+      getHandler: vi.fn(),
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+      'stable-diffusion',
+      orgId,
+    );
   });
 
   it('allows Replicate destination models to bypass validation', async () => {

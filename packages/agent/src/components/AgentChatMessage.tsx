@@ -3,7 +3,11 @@ import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGenerat
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS } from '@genfeedai/agent/constants/agent-message-collapse.constant';
-import { AGENT_CONVERSATION_STICKY_TOP_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import {
+  AGENT_ASSISTANT_PROSE_CLASS,
+  AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
+  AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
@@ -240,37 +244,25 @@ function AgentChatMessageInner({
       id={messageAnchorId}
       className={cn(
         'mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
-        // The user prompt pins to the top of the scroll viewport for the
-        // duration of its turn (Cursor-style); the turn wrapper in
-        // AgentChatTimeline is the sticky containing block.
-        isUser
-          ? `sticky ${AGENT_CONVERSATION_STICKY_TOP_CLASS} z-10 justify-end`
-          : 'justify-start',
+        isUser ? AGENT_CONVERSATION_STICKY_USER_TURN_CLASS : 'justify-start',
       )}
       style={entranceAnimationStyle}
     >
       <div
         data-message-role={message.role}
-        data-message-surface={isUser ? 'bubble' : 'inline'}
+        data-message-surface={isUser ? 'prompt' : 'inline'}
         className={cn(
           'group relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[min(82%,36rem)] overflow-hidden rounded-lg border border-border/60 bg-background-secondary/95 px-3.5 py-2.5 text-[13px] leading-5 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)] backdrop-blur-md'
+            ? AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS
             : // Free-text assistant: no card chrome — document flow like T3/chat
               'w-full max-w-full border-0 bg-transparent px-0.5 py-1 text-[15px] leading-7 text-foreground shadow-none',
         )}
       >
-        {isUser ? (
-          <h3
-            aria-label="Your message"
-            className="mb-1.5 flex items-center gap-2 text-[11px] font-medium text-foreground/45"
-          >
-            <span>You</span>
-          </h3>
-        ) : (
-          <h3 className="sr-only">Assistant message</h3>
-        )}
+        <h3 className="sr-only">
+          {isUser ? 'Your message' : 'Assistant message'}
+        </h3>
 
         {shouldRenderMessageContent && (
           <div
@@ -289,15 +281,15 @@ function AgentChatMessageInner({
                 // the track instead of expanding the conversation column.
                 'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
                 isUser
-                  ? 'text-[13px] leading-5 [&_p]:my-1'
-                  : 'text-[15px] leading-6 text-foreground/92',
+                  ? 'text-[15px] leading-6 text-foreground [&_p]:my-1'
+                  : AGENT_ASSISTANT_PROSE_CLASS,
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (
               <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
             ) : null}
             {!isExpanded && shouldTruncateContent && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background-secondary to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background-tertiary to-transparent" />
             )}
           </div>
         )}

@@ -21,10 +21,27 @@ function fakeRequest(
 }
 
 describe('createRequestAbortSignal', () => {
-  it('starts aborted when the request is already destroyed', () => {
+  it('does not start aborted after the request body stream is consumed', () => {
+    // Node auto-destroys IncomingMessage once Express finishes the JSON
+    // body. That is the start of waitForCompletion, not a hangup.
     const signal = createRequestAbortSignal(fakeRequest({ destroyed: true }));
 
+    expect(signal.aborted).toBe(false);
+  });
+
+  it('starts aborted when the client aborted and the response is still open', () => {
+    const signal = createRequestAbortSignal(fakeRequest({ aborted: true }));
+
     expect(signal.aborted).toBe(true);
+  });
+
+  it('does not abort when the incoming request finishes (body received)', () => {
+    const request = fakeRequest();
+    const signal = createRequestAbortSignal(request);
+
+    request.emit('close');
+
+    expect(signal.aborted).toBe(false);
   });
 
   it('aborts when the client disconnects before the response ends', () => {
@@ -32,7 +49,7 @@ describe('createRequestAbortSignal', () => {
     const signal = createRequestAbortSignal(request);
 
     expect(signal.aborted).toBe(false);
-    request.emit('close');
+    request.res?.emit('close');
 
     expect(signal.aborted).toBe(true);
   });
@@ -41,7 +58,7 @@ describe('createRequestAbortSignal', () => {
     const request = fakeRequest({ writableEnded: true });
     const signal = createRequestAbortSignal(request);
 
-    request.emit('close');
+    request.res?.emit('close');
 
     expect(signal.aborted).toBe(false);
   });

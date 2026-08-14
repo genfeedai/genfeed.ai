@@ -470,6 +470,7 @@ type SlugResolution = {
 
 type WorkspaceSlugResolutionOptions = {
   preferAvailableBrand?: boolean;
+  skipSlugCookie?: boolean;
 };
 
 async function resolveActiveWorkspaceSlugs(
@@ -479,12 +480,13 @@ async function resolveActiveWorkspaceSlugs(
   options?: WorkspaceSlugResolutionOptions,
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
-  const cached = readWorkspaceSlugCache(cacheKey);
+  const skipSlugCookie = options?.skipSlugCookie === true;
+  const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
   if (cached && (!preferAvailableBrand || cached.brandSlug)) {
     return { cookieValue: null, slugs: cached };
   }
 
-  if (req) {
+  if (req && !skipSlugCookie) {
     const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
@@ -638,8 +640,14 @@ async function resolveAgentOnboardingRedirect(
   token: string,
   cacheKey?: string | null,
   req?: NextRequest,
-): Promise<{ cookieValue: string | null; path: string } | null> {
-  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
+): Promise<{
+  cookieValue: string | null;
+  orgSlug: string;
+  path: string;
+} | null> {
+  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req, {
+    skipSlugCookie: true,
+  });
   if (!resolution) {
     return null;
   }
@@ -647,8 +655,14 @@ async function resolveAgentOnboardingRedirect(
   const { cookieValue, slugs } = resolution;
   return {
     cookieValue,
+    orgSlug: slugs.orgSlug,
     path: `/${slugs.orgSlug}/~/agent/onboarding`,
   };
+}
+
+function getAgentOnboardingOrgSlug(pathname: string): string | null {
+  const match = pathname.match(/^\/([^/]+)\/~\/agent\/onboarding(?:\/|$)/);
+  return match?.[1] ?? null;
 }
 
 // Wizard routes that stay reachable in every mode. `post-signup` owns the
@@ -1075,9 +1089,32 @@ async function routeBetterAuthRequest(
       return redirectPreservingSearch(req, ONBOARDING_PATH);
     }
 
-    // The agent onboarding surface is itself a protected route — let it
-    // render instead of bouncing the user back to the wizard (redirect loop).
+    // The agent onboarding surface is itself a protected route — stay there
+    // instead of bouncing back to the wizard. If the URL org is a leftover
+    // stub (or a stale slug cookie), move the user onto their membership org.
     if (isAgentOnboardingPath(pathname)) {
+      const agentOnboarding = await resolveAgentOnboardingRedirect(
+        token,
+        sessionCookie,
+        req,
+      );
+      const pathOrgSlug = getAgentOnboardingOrgSlug(pathname);
+      if (
+        agentOnboarding &&
+        pathOrgSlug &&
+        pathOrgSlug !== agentOnboarding.orgSlug
+      ) {
+        const rest = pathname.replace(/^\/[^/]+/, '');
+        const response = redirectPreservingSearch(
+          req,
+          `/${agentOnboarding.orgSlug}${rest}`,
+        );
+        if (agentOnboarding.cookieValue) {
+          setSlugCookie(response, agentOnboarding.cookieValue);
+        }
+        return response;
+      }
+
       return NextResponse.next();
     }
 

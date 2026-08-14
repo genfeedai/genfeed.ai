@@ -1,11 +1,17 @@
 'use client';
 
+import { getCurrentSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
-import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
+import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
+import type {
+  BrandDetailConnectedAccountProps,
+  BrandDetailSocialMediaCardProps,
+} from '@props/pages/brand-detail.props';
+import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
@@ -60,7 +66,15 @@ function getConnectionInitials(connection: SocialConnection): string {
   return initials || connection.platform.slice(0, 2).toUpperCase();
 }
 
-function ConnectedAccount({ connection }: { connection: SocialConnection }) {
+function hasWarmupBlueprint(platform: SocialConnection['platform']): boolean {
+  return Boolean(getCurrentSocialWarmupBlueprint(platform));
+}
+
+function ConnectedAccount({
+  connection,
+  isSelected = false,
+  onSelect,
+}: BrandDetailConnectedAccountProps) {
   const label = getConnectionLabel(connection);
   const content = (
     <>
@@ -96,8 +110,40 @@ function ConnectedAccount({ connection }: { connection: SocialConnection }) {
       </span>
     </>
   );
-  const className =
-    'flex min-w-0 items-center gap-3 rounded-md bg-background-secondary px-3 py-2 shadow-border transition-colors hover:bg-background';
+  const className = `flex min-w-0 items-center gap-3 rounded-md px-3 py-2 shadow-border transition-colors ${
+    isSelected
+      ? 'bg-background ring-1 ring-primary/40'
+      : 'bg-background-secondary hover:bg-background'
+  }`;
+
+  const profileLink = connection.url ? (
+    <Link
+      href={connection.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${label} on ${connection.platform}`}
+      className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+    >
+      {`Open ${label}`}
+    </Link>
+  ) : null;
+
+  if (onSelect) {
+    return (
+      <div className={`${className} justify-between`}>
+        <Button
+          aria-pressed={isSelected}
+          className="min-w-0 flex-1 justify-start gap-3 p-0"
+          onClick={() => onSelect(connection.credentialId)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          {content}
+        </Button>
+        {profileLink}
+      </div>
+    );
+  }
 
   if (!connection.url) {
     return <div className={className}>{content}</div>;
@@ -171,6 +217,12 @@ export default function BrandDetailSocialMediaCard({
   const [overrideCredentialId, setOverrideCredentialId] = useState<
     string | null
   >(null);
+  const [overrideUnresolvedChecks, setOverrideUnresolvedChecks] = useState<
+    SocialWarmupOverrideRequest['unresolvedChecks']
+  >([]);
+  const [selectedCredentialId, setSelectedCredentialId] = useState<
+    string | null
+  >(null);
   const [isOverrideSubmitting, setIsOverrideSubmitting] = useState(false);
 
   const connectedConnections = connections;
@@ -213,6 +265,39 @@ export default function BrandDetailSocialMediaCard({
       ) ?? null,
     [healthRows, overrideCredentialId],
   );
+  const supportedConnections = useMemo(
+    () =>
+      connectedConnections.filter((connection) =>
+        hasWarmupBlueprint(connection.platform),
+      ),
+    [connectedConnections],
+  );
+  const selectedConnection = useMemo(() => {
+    const explicit =
+      connectedConnections.find(
+        (connection) => connection.credentialId === selectedCredentialId,
+      ) ?? null;
+    if (explicit) {
+      return explicit;
+    }
+
+    return supportedConnections[0] ?? connectedConnections[0] ?? null;
+  }, [connectedConnections, selectedCredentialId, supportedConnections]);
+  const selectedHealth = useMemo(
+    () =>
+      healthRows.find(
+        (summary) => summary.credentialId === selectedConnection?.credentialId,
+      ),
+    [healthRows, selectedConnection?.credentialId],
+  );
+  const selectedHasWarmup = selectedConnection
+    ? hasWarmupBlueprint(selectedConnection.platform)
+    : false;
+
+  function handleOverrideRequest(request: SocialWarmupOverrideRequest) {
+    setOverrideCredentialId(request.credentialId);
+    setOverrideUnresolvedChecks(request.unresolvedChecks);
+  }
 
   const loadAccountHealth = useCallback(
     async (signal?: AbortSignal) => {
@@ -393,6 +478,14 @@ export default function BrandDetailSocialMediaCard({
               <ConnectedAccount
                 key={connection.credentialId}
                 connection={connection}
+                isSelected={
+                  selectedConnection?.credentialId === connection.credentialId
+                }
+                onSelect={
+                  hasWarmupBlueprint(connection.platform)
+                    ? setSelectedCredentialId
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -422,9 +515,15 @@ export default function BrandDetailSocialMediaCard({
     );
   };
 
+  const compactUnsupportedHealth = healthRows.filter(
+    (summary) =>
+      !hasWarmupBlueprint(summary.platform) ||
+      summary.credentialId !== selectedConnection?.credentialId,
+  );
+
   const accountHealthSection =
-    healthRows.length > 0 ? (
-      <div className="space-y-2">
+    healthRows.length > 0 || selectedHasWarmup ? (
+      <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Account health
@@ -433,43 +532,64 @@ export default function BrandDetailSocialMediaCard({
             <span className="text-xs text-muted-foreground">Checking</span>
           ) : null}
         </div>
-        <div className="space-y-2">
-          {healthRows.map((summary) => (
-            <div
-              className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
-              key={summary.credentialId}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {summary.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {summary.platform} · score {summary.score}
-                  </p>
+        {selectedConnection && selectedHasWarmup ? (
+          <SocialWarmupProgram
+            connection={selectedConnection}
+            health={selectedHealth}
+            onOverrideRequest={handleOverrideRequest}
+            onReconnect={(platform) => {
+              const item = OAUTH_CONNECT_PLATFORMS.find(
+                (entry) => entry.platform === platform,
+              );
+              if (item) {
+                void handleConnectPlatform(item);
+              }
+            }}
+            variant={isPageVariant ? 'page' : 'compact'}
+          />
+        ) : null}
+        {compactUnsupportedHealth.length > 0 ? (
+          <div className="space-y-2">
+            {compactUnsupportedHealth.map((summary) => (
+              <div
+                className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
+                key={summary.credentialId}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {summary.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {summary.platform} · score {summary.score}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
+                  >
+                    {STATE_LABELS[summary.state]}
+                  </span>
                 </div>
-                <span
-                  className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
-                >
-                  {STATE_LABELS[summary.state]}
-                </span>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {formatHealthDetail(summary)}
+                </p>
+                {summary.holdPublishing ? (
+                  <Button
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setOverrideUnresolvedChecks([]);
+                      setOverrideCredentialId(summary.credentialId);
+                    }}
+                  >
+                    Override 24h
+                  </Button>
+                ) : null}
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {formatHealthDetail(summary)}
-              </p>
-              {summary.holdPublishing ? (
-                <Button
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  className="h-8 text-xs"
-                  onClick={() => setOverrideCredentialId(summary.credentialId)}
-                >
-                  Override 24h
-                </Button>
-              ) : null}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     ) : null;
 
@@ -484,6 +604,7 @@ export default function BrandDetailSocialMediaCard({
       onOpenChange={(open) => {
         if (!open) {
           setOverrideCredentialId(null);
+          setOverrideUnresolvedChecks([]);
         }
       }}
     >
@@ -502,6 +623,22 @@ export default function BrandDetailSocialMediaCard({
               {selectedOverrideHealth.holdReason ??
                 'This account is currently held by warmup state.'}
             </div>
+            {selectedOverrideHealth.override.reason ||
+            selectedOverrideHealth.override.expiresAt ? (
+              <p className="text-xs text-muted-foreground">
+                {selectedOverrideHealth.override.reason}
+                {selectedOverrideHealth.override.expiresAt
+                  ? ` · expires ${selectedOverrideHealth.override.expiresAt}`
+                  : ''}
+              </p>
+            ) : null}
+            {overrideUnresolvedChecks.length > 0 ? (
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {overrideUnresolvedChecks.map((check) => (
+                  <li key={check.id}>{check.title}</li>
+                ))}
+              </ul>
+            ) : null}
             <div className="flex justify-end gap-2">
               <Button
                 size={ButtonSize.SM}
@@ -573,6 +710,14 @@ export default function BrandDetailSocialMediaCard({
               <ConnectedAccount
                 key={connection.credentialId}
                 connection={connection}
+                isSelected={
+                  selectedConnection?.credentialId === connection.credentialId
+                }
+                onSelect={
+                  hasWarmupBlueprint(connection.platform)
+                    ? setSelectedCredentialId
+                    : undefined
+                }
               />
             ))}
           </div>

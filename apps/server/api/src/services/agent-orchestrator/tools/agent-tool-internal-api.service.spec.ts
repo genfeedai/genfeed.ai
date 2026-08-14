@@ -93,6 +93,40 @@ describe('AgentToolInternalApiService', () => {
     );
   });
 
+  it('rethrows JSON:API 403 details instead of a bare axios status', async () => {
+    const { httpService, service } = createService(
+      'https://api.genfeed.localhost',
+    );
+    vi.mocked(httpService.post).mockReturnValue(
+      throwError(() => ({
+        isAxiosError: true,
+        message: 'Request failed with status code 403',
+        response: {
+          data: {
+            errors: [
+              {
+                detail: 'Model not enabled for this organization',
+                title: 'Forbidden',
+              },
+            ],
+          },
+          status: 403,
+        },
+      })),
+    );
+
+    await expect(
+      service.callInternalApi(
+        'POST',
+        '/v1/images',
+        { model: 'genfeed-ai/flux-dev' },
+        context,
+      ),
+    ).rejects.toThrow(
+      'Request failed with status code 403: Model not enabled for this organization',
+    );
+  });
+
   it('returns null when an internal collection lookup fails', async () => {
     const { httpService, service } = createService(
       'https://api.genfeed.localhost',

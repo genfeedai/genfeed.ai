@@ -8,8 +8,8 @@ import type { ReactElement } from 'react';
 
 export interface AgentCardCollapseToggleProps {
   /**
-   * When true the card body is hidden (chevron points to open).
-   * Matches GenerationActionCardHeader: collapsed = -rotate-90.
+   * When true the card body is hidden (chevron points down to open).
+   * Expanded points up. Vertical only — never left/right.
    */
   isCollapsed: boolean;
   labelCollapse?: string;
@@ -50,7 +50,7 @@ export function AgentCardCollapseToggle({
         aria-hidden
         className={cn(
           'size-3.5 shrink-0 transition-transform duration-150',
-          isCollapsed ? '-rotate-90' : 'rotate-0',
+          isCollapsed ? 'rotate-0' : 'rotate-180',
         )}
       />
     </Button>

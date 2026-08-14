@@ -41,9 +41,10 @@ const ModelSelectorProviderSidebar = memo(
         <nav
           aria-label="Filter by model provider"
           className={cn(
-            'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
-            // Same surface as the picker body — never a gray secondary strip.
-            'border-r border-border bg-card py-1',
+            'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-x-hidden overflow-y-auto',
+            '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            // Same overlay surface as the picker body.
+            'border-r border-border bg-secondary py-1',
           )}
         >
           {hasFavorites ? (
@@ -81,7 +82,10 @@ const ModelSelectorProviderSidebar = memo(
                 accentColor={brand.color}
               >
                 {BrandIcon ? (
-                  <BrandIcon className="size-3.5" />
+                  <BrandIcon
+                    className="size-3.5"
+                    data-testid="model-provider-rail-icon"
+                  />
                 ) : (
                   <span className="text-[10px] font-semibold leading-none">
                     {brand.label.charAt(0)}

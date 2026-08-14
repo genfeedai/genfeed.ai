@@ -59,6 +59,35 @@ describe('OnboardingGuard', () => {
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
+  it('renders the agent onboarding surface when access state never hydrates', async () => {
+    pathnameMock.mockReturnValue('/default-organization/~/agent/onboarding');
+    useCurrentUserMock.mockReturnValue({
+      currentUser: {
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      },
+      isLoading: false,
+    });
+    useAccessStateMock.mockReturnValue({
+      accessState: null,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: true,
+    });
+
+    render(
+      <OnboardingGuard>
+        <div>Agent Onboarding</div>
+      </OnboardingGuard>,
+    );
+
+    expect(await screen.findByText('Agent Onboarding')).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
   it('leaves incomplete users to the agent workspace instead of the classic wizard', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {

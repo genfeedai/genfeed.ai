@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { copyToClipboard } = vi.hoisted(() => ({
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard }),
+  },
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
     ariaLabel?: string;
@@ -33,8 +43,7 @@ describe('AgentRunFailureCard', () => {
   });
 
   it('copies a full diagnostic payload including the raw error', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    copyToClipboard.mockClear();
 
     const raw =
       'Invalid `prisma.post.create()` invocation:\nUnknown argument `visibility`.';
@@ -44,9 +53,9 @@ describe('AgentRunFailureCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalled();
+      expect(copyToClipboard).toHaveBeenCalled();
     });
-    const copied = writeText.mock.calls[0]?.[0] as string;
+    const copied = copyToClipboard.mock.calls[0]?.[0] as string;
     expect(copied).toContain('## Agent run failure');
     expect(copied).toContain('Data save failed');
     expect(copied).toContain('Unknown argument `visibility`');

@@ -141,15 +141,15 @@ export function useWorkspaceInspector(): WorkspaceInspectorContextValue | null {
 }
 
 /** Marks an inspector rail as mounted so the topbar knows to show its toggle. */
-export function useRegisterWorkspaceInspector(): void {
+export function useRegisterWorkspaceInspector(isEnabled = true): void {
   const inspector = useWorkspaceInspector();
   const registerInspector = inspector?.registerInspector;
 
   useEffect(() => {
-    if (!registerInspector) {
+    if (!isEnabled || !registerInspector) {
       return;
     }
 
     return registerInspector();
-  }, [registerInspector]);
+  }, [isEnabled, registerInspector]);
 }

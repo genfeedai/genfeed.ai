@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -14,6 +15,7 @@ export class HeygenWebhookService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly clipLibraryLinkService: ClipLibraryLinkService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly ingredientsService: IngredientsService,
@@ -179,6 +181,12 @@ export class HeygenWebhookService {
         status: 'completed',
         videoUrl,
       });
+      if (organizationId) {
+        await this.clipLibraryLinkService.linkReadyClip({
+          clipResultId,
+          organizationId,
+        });
+      }
     } else if (this.isFailureEvent(body.event_type)) {
       await this.clipResultsService.patch(clipResultId, {
         providerJobId,

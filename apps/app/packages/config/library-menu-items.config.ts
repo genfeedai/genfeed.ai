@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { Clock, FolderOpen, Image, LayoutGrid } from 'lucide-react';
+import { FolderOpen, Image, LayoutGrid } from 'lucide-react';
 
 export const LIBRARY_ASSET_ROUTES = [
   APP_ROUTES.LIBRARY.VIDEOS,
@@ -37,14 +37,6 @@ export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.LIBRARY.MOODBOARD],
     outline: FolderOpen,
     solid: FolderOpen,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.WORKSPACE.ACTIVITY,
-    label: 'Activity',
-    matchPaths: [APP_ROUTES.WORKSPACE.ACTIVITY],
-    outline: Clock,
-    solid: Clock,
   },
 ];
 

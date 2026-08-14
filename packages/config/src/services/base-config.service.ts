@@ -80,14 +80,17 @@ export abstract class BaseConfigService<
     const isProduction = env === 'production';
     const isStaging = env === 'staging';
     const isTest = env === 'test';
+    const isDeployed = isProduction || isStaging || isTest;
     const { appName, workingDir } = options;
+    const fromServer = workingDir === 'apps/server';
+    const rootLocalFile = fromServer ? '../../.env.local' : '.env.local';
+    const serviceLocalFile = fromServer
+      ? `${appName}/.env.local`
+      : `apps/server/${appName}/.env.local`;
 
     let envFiles: string[];
 
-    if (workingDir === 'apps/server') {
-      // Running from apps/server/ directory
-      // Load order: root first (base), then service-specific (overrides)
-      // Later files override earlier ones via spread operator
+    if (fromServer) {
       envFiles = isProduction
         ? ['../../.env.production', `${appName}/.env.production`]
         : isStaging
@@ -96,13 +99,11 @@ export abstract class BaseConfigService<
             ? ['../../.env.test', `${appName}/.env.test`]
             : [
                 '../../.env',
-                '../../.env.local',
                 `${appName}/.env`,
-                `${appName}/.env.local`,
+                serviceLocalFile,
+                rootLocalFile,
               ];
     } else {
-      // Running from monorepo root
-      // Load order: root first (base), then service-specific (overrides)
       envFiles = isProduction
         ? ['.env.production', `apps/server/${appName}/.env.production`]
         : isStaging
@@ -111,21 +112,40 @@ export abstract class BaseConfigService<
             ? ['.env.test', `apps/server/${appName}/.env.test`]
             : [
                 '.env',
-                '.env.local',
                 `apps/server/${appName}/.env`,
-                `apps/server/${appName}/.env.local`,
+                serviceLocalFile,
+                rootLocalFile,
               ];
     }
 
-    // Load each env file in order (later files override earlier ones)
+    let serviceLocal: Record<string, string> = {};
     for (const envFile of envFiles) {
-      if (fs.existsSync(envFile)) {
-        const envConfig = dotenv.parse(fs.readFileSync(envFile));
-        config = { ...config, ...envConfig };
+      if (!fs.existsSync(envFile)) {
+        continue;
       }
+      const envConfig = dotenv.parse(fs.readFileSync(envFile));
+      if (envFile === serviceLocalFile) {
+        serviceLocal = envConfig;
+      }
+      config = { ...config, ...envConfig };
     }
 
-    return { ...config, ...process.env };
+    if (isDeployed) {
+      return { ...config, ...process.env };
+    }
+
+    // Bun `--cwd apps/server/api` auto-loads the generated service file into
+    // process.env. Those echoes are not operator overrides — root `.env.local`
+    // stays the only local secret source.
+    const processOverlay: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value === undefined || serviceLocal[key] === value) {
+        continue;
+      }
+      processOverlay[key] = value;
+    }
+
+    return { ...config, ...processOverlay };
   }
 
   /**

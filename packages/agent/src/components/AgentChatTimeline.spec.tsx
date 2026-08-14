@@ -191,6 +191,24 @@ describe('AgentChatTimeline failure card', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('hides the timeline failure card when a generation card already owns the error', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        hasDockedGenerationCard
+        timeline={[
+          buildFailedWorkGroup(
+            'wg-fail',
+            'Failed to respond to UI action: 403 - Organization context is required',
+          ),
+        ]}
+        onRetryLastFailedRun={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('hides the failure card while generating or streaming', () => {
     const { rerender } = render(
       <AgentChatTimeline

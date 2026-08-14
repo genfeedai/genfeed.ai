@@ -48,4 +48,18 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
           new Credential(this.extractResource<Partial<ICredential>>(res)),
       );
   }
+
+  public async refreshAuthorizedSignals(
+    credentialId: string,
+  ): Promise<ICredential> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(
+        `${credentialId}/authorized-signals/refresh`,
+      )
+      .then((res) => res.data)
+      .then(
+        (res) =>
+          new Credential(this.extractResource<Partial<ICredential>>(res)),
+      );
+  }
 }

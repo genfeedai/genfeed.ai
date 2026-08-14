@@ -70,8 +70,62 @@ describe('PromptBarContainer', () => {
 
     expect(getByText('banner')).toBeInTheDocument();
     expect(getByText('content')).toBeInTheDocument();
-    const inner = container.querySelector('[data-layout-mode] > div');
+    const inner = container.querySelector('[data-composer-stack]');
     expect(inner?.firstElementChild).toHaveTextContent('banner');
+  });
+
+  it('docks top cards flush against the prompt bar at full width', () => {
+    const { container } = render(
+      <PromptBarContainer topContent={<div>banner</div>}>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const inner = container.querySelector('[data-composer-stack]');
+    expect(inner?.className).toContain('gap-0');
+    expect(inner?.className).not.toContain('gap-2');
+
+    const topStack = container.querySelector('[data-composer-top-stack]');
+    expect(topStack).toHaveClass('w-full');
+    expect(topStack).not.toHaveClass('w-[90%]');
+    expect(topStack).toHaveTextContent('banner');
+  });
+
+  it('paints an opaque background block so transcript text cannot pass under the dock', () => {
+    const { container } = render(
+      <PromptBarContainer>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const block = container.querySelector('[data-composer-bg-block]');
+    expect(block).toBeInTheDocument();
+    expect(block).toHaveAttribute('aria-hidden', 'true');
+    expect(block).toHaveClass('bg-background');
+    expect(block).toHaveClass('absolute');
+    expect(block).toHaveClass('inset-0');
+  });
+
+  it('keeps the opaque block on the prompt bar only so top cards are not cut', () => {
+    const { container } = render(
+      <PromptBarContainer topContent={<div>banner</div>}>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    expect(
+      container.querySelector('[data-layout-mode] > [data-composer-bg-block]'),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-composer-prompt-slot] > [data-composer-bg-block]',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-composer-top-stack] [data-composer-bg-block]',
+      ),
+    ).toBeNull();
   });
 
   it('should render an optional top fade scrim when requested', () => {
@@ -81,9 +135,26 @@ describe('PromptBarContainer', () => {
       </PromptBarContainer>,
     );
 
-    const fade = container.querySelector('[aria-hidden="true"]');
+    const fade = container.querySelector('[data-composer-top-fade]');
     expect(fade).toBeInTheDocument();
     expect(fade?.className).toContain('bottom-full');
     expect(fade?.className).toContain('bg-gradient-to-t');
+    expect(fade?.className).toContain('from-background');
+    expect(fade?.className).toContain('to-transparent');
+    expect(fade?.className).not.toContain('h-28');
+    expect(fade?.className).not.toContain('via-background/55');
+  });
+
+  it('paints a solid bottom scrim so wallpaper cannot leak under the prompt', () => {
+    const { container } = render(
+      <PromptBarContainer showTopFade>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const scrim = container.querySelector('[data-composer-bottom-scrim]');
+    expect(scrim).toBeInTheDocument();
+    expect(scrim).toHaveClass('bg-background');
+    expect(scrim).toHaveClass('top-full');
   });
 });

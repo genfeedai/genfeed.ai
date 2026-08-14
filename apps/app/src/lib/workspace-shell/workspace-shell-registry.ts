@@ -503,20 +503,25 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(
-    [
-      '/:orgSlug/~/agent/journey',
-      '/:orgSlug/~/agent/onboarding',
-      '/:orgSlug/~/agent/onboarding/:threadId',
-    ],
+    ['/:orgSlug/~/agent/onboarding', '/:orgSlug/~/agent/onboarding/:threadId'],
     {
       fallback: '/:orgSlug/~/agent',
-      mode: 'canvas',
-      productClass: 'control-plane',
+      mode: 'conversation',
+      productClass: 'contextual-action',
       scope: 'organization',
       surfaceKey: 'agent-onboarding',
-      telemetryClass: 'management',
+      switcherItems: ['agent'],
+      telemetryClass: 'agent',
     },
   ),
+  ...registerRoutes(['/:orgSlug/~/agent/journey'], {
+    fallback: '/:orgSlug/~/agent',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'organization',
+    surfaceKey: 'agent-onboarding',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/~/settings',
@@ -647,19 +652,27 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/agent/journey',
       '/:orgSlug/:brandSlug/agent/onboarding',
       '/:orgSlug/:brandSlug/agent/onboarding/:threadId',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/agent',
-      mode: 'canvas',
-      productClass: 'control-plane',
+      mode: 'conversation',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'agent-onboarding',
-      telemetryClass: 'management',
+      switcherItems: ['agent'],
+      telemetryClass: 'agent',
     },
   ),
+  ...registerRoutes(['/:orgSlug/:brandSlug/agent/journey'], {
+    fallback: '/:orgSlug/:brandSlug/agent',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'brand',
+    surfaceKey: 'agent-onboarding',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discover/overview',

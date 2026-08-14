@@ -5,6 +5,7 @@ export { DevIcon } from './dev-icon';
 export { DiscordIcon } from './discord-icon';
 export { FacebookIcon } from './facebook-icon';
 export { FluxIcon } from './flux-icon';
+export { GenfeedIcon } from './genfeed-icon';
 export { GhostIcon } from './ghost-icon';
 export { GithubIcon } from './github-icon';
 export { GoogleColorIcon } from './google-color-icon';
@@ -15,6 +16,21 @@ export { LinkedinIcon } from './linkedin-icon';
 export { MastodonIcon } from './mastodon-icon';
 export { MediumIcon } from './medium-icon';
 export { MetaIcon } from './meta-icon';
+export {
+  ArgilIcon,
+  FalIcon,
+  HeygenIcon,
+  IdeogramIcon,
+  KlingIcon,
+  LumaIcon,
+  MoonshotIcon,
+  PrunaIcon,
+  QwenIcon,
+  ReplicateIcon,
+  RunwayIcon,
+  TopazIcon,
+  WanIcon,
+} from './model-provider-icons';
 export { OpenAiIcon } from './openai-icon';
 export { PinterestIcon } from './pinterest-icon';
 export { ProductHuntIcon } from './product-hunt-icon';

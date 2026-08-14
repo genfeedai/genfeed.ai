@@ -19,6 +19,18 @@
     "slugField": "Brand slug",
     "slugPlaceholder": "brand-slug"
   },
+  "generationActionCard": {
+    "generateAria": "Generate image",
+    "generateTooltip": "Generate",
+    "generateVideoAria": "Generate video",
+    "previewDescription": "Read and edit the full generation prompt",
+    "previewEditorAria": "Full prompt",
+    "previewTitle": "Prompt",
+    "readFull": "Read & edit",
+    "readFullAria": "Read and edit the full prompt",
+    "stop": "Stop",
+    "stopAria": "Stop generation"
+  },
   "publishPostCard": {
     "caption": "Caption",
     "captionPlaceholder": "Optional caption override",

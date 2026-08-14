@@ -168,6 +168,35 @@ describe('UserSetupService', () => {
       expect(mockOrganizationsService.create).toHaveBeenCalledTimes(1);
     });
 
+    it('names the new org and brand from the signed-in user, not Default Organization', async () => {
+      mockOrganizationsService.generateUniqueSlug.mockResolvedValue('shipshit');
+      mockBrandsService.generateUniqueSlug.mockResolvedValue('shipshit');
+
+      await service.initializeUserResources(userId, undefined, {
+        email: 'vincent@shipshit.dev',
+      });
+
+      expect(mockOrganizationsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'Shipshit',
+      );
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Shipshit',
+          slug: 'shipshit',
+          userId,
+        }),
+      );
+      expect(mockBrandsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'Shipshit',
+      );
+      expect(mockBrandsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Shipshit',
+          slug: 'shipshit',
+        }),
+      );
+    });
+
     it('should call organizationsService.create with PERSONAL category when provided', async () => {
       // The service uses OrganizationCategory.BUSINESS as default; we verify the
       // create call happens (category is passed through even if entity constructor
@@ -427,7 +456,7 @@ describe('UserSetupService', () => {
         await service.initializeUserResources(userId);
 
         expect(mockBrandsService.generateUniqueSlug).toHaveBeenCalledWith(
-          'Default Organization',
+          'Workspace',
         );
         expect(mockBrandsService.create).toHaveBeenCalledTimes(1);
         expect(mockBrandsService.create).toHaveBeenCalledWith(

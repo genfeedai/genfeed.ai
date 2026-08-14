@@ -12,6 +12,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
+import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import { ArrowUp, ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
 import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback, useMemo } from 'react';
@@ -35,6 +36,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   isGenerateBlocked,
   isGenerateDisabled,
   isGenerating,
+  generationMeter,
   onSubmit,
   onCancel,
   generateLabel,
@@ -284,6 +286,10 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             Voice
           </Button>
         )}
+
+        {generationMeter ? (
+          <PromptBarGenerationMeter meter={generationMeter} />
+        ) : null}
 
         <PromptBarDivider className="h-5 bg-white/10" />
 

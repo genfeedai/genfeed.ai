@@ -14,6 +14,7 @@ import {
 import { Check, Minus } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
+import { overlayMenuSurfaceClassName } from './field-control';
 
 const DropdownMenu: typeof ShipDropdownMenu = ShipDropdownMenu;
 
@@ -61,7 +62,11 @@ function DropdownMenuSubContent({
   return (
     <ShipDropdownMenuSubContent
       ref={ref}
-      className={cn('ship-ui z-[10001] text-primary', className)}
+      className={cn(
+        'ship-ui z-[10001]',
+        overlayMenuSurfaceClassName,
+        className,
+      )}
       {...props}
     />
   );
@@ -79,7 +84,11 @@ function DropdownMenuContent({
     <ShipDropdownMenuContent
       ref={ref}
       sideOffset={sideOffset}
-      className={cn('ship-ui z-[10001] text-primary', className)}
+      className={cn(
+        'ship-ui z-[10001]',
+        overlayMenuSurfaceClassName,
+        className,
+      )}
       {...props}
     />
   );

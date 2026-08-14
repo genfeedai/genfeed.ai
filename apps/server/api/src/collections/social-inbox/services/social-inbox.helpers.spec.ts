@@ -86,6 +86,39 @@ describe('getAvailability', () => {
     });
   });
 
+  it('allows an X comment reply and DM when the tweet and participant ids exist', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        externalParentId: 'tweet-1',
+        participantExternalId: 'x-user-1',
+        platform: Platform.TWITTER,
+      }),
+    ).toEqual({
+      canPostReply: true,
+      canSendDm: true,
+      postReplyReason: undefined,
+      sendDmReason: undefined,
+    });
+  });
+
+  it('never offers a LinkedIn DM on the connected-account path', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        externalParentId: 'li-comment-1',
+        participantExternalId: 'li-person-1',
+        platform: Platform.LINKEDIN,
+      }),
+    ).toEqual({
+      canPostReply: true,
+      canSendDm: false,
+      postReplyReason: undefined,
+      sendDmReason:
+        'LinkedIn messaging is not available on the connected account',
+    });
+  });
+
   it('never offers a DM on YouTube, whatever the conversation type', () => {
     expect(
       getAvailability({

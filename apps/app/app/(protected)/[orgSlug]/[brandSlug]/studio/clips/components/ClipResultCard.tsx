@@ -6,6 +6,7 @@ import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.u
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
+  ClipLibraryLinkStatus,
   ClipReadyAction,
   ClipResult,
   ClipResultMode,
@@ -17,9 +18,10 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Download, Rocket, SquarePen } from 'lucide-react';
+import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useState } from 'react';
 
 import type { ClipsApiService } from '../services/clips-api.service';
 
@@ -78,10 +80,27 @@ export default function ClipResultCard({
   mode,
   projectId,
 }: ClipResultCardProps) {
+  const t = useTranslations('pages.studioClips');
   const { push } = useRouter();
   const { href } = useOrgUrl();
+  const [retryLink, setRetryLink] = useState<{
+    error?: string;
+    ingredientId?: string;
+    status?: ClipLibraryLinkStatus;
+  } | null>(null);
+  const libraryLink = {
+    error: retryLink?.error ?? clip.libraryLinkError,
+    ingredientId: retryLink?.ingredientId ?? clip.ingredientId,
+    status: retryLink?.status ?? clip.libraryLinkStatus,
+  };
   const statusConfig = STATUS_CONFIG[clip.status] || STATUS_CONFIG.pending;
   const videoUrl = clip.captionedVideoUrl || clip.videoUrl;
+  const isInLibrary =
+    libraryLink.status === 'linked' && Boolean(libraryLink.ingredientId);
+  const canRetryLibraryLink =
+    clip.status === 'completed' &&
+    Boolean(videoUrl) &&
+    libraryLink.status === 'failed';
   const canUseAction = useCallback(
     (action: ClipReadyAction) => {
       const readyActions = clip.readiness?.readyActions;
@@ -124,7 +143,10 @@ export default function ClipResultCard({
       href(
         buildClipDraftAgentHref({
           description,
-          ingredientId: handoff.payload.metadata?.clipResultId ?? clip.id,
+          ingredientId:
+            handoff.payload.metadata?.ingredientId ??
+            libraryLink.ingredientId ??
+            undefined,
           mediaUrl: asset?.mediaUrl ?? videoUrl ?? undefined,
           title,
         }),
@@ -134,12 +156,22 @@ export default function ClipResultCard({
     clip.id,
     clip.summary,
     clip.title,
+    libraryLink.ingredientId,
     projectId,
     videoUrl,
     clipsService,
     href,
     push,
   ]);
+
+  const handleRetryLibraryLink = useCallback(async () => {
+    const result = await clipsService.retryLibraryLink(projectId, clip.id);
+    setRetryLink({
+      error: result.error,
+      ingredientId: result.ingredientId,
+      status: result.status,
+    });
+  }, [clip.id, clipsService, projectId]);
 
   const handleDownload = useCallback(async () => {
     if (!videoUrl) return;
@@ -180,6 +212,14 @@ export default function ClipResultCard({
               ? 'Raw cut'
               : 'AI avatar'}
           </Badge>
+          {isInLibrary && (
+            <Badge
+              variant="secondary"
+              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {t('inLibrary')}
+            </Badge>
+          )}
         </div>
         <ViralityBadge score={clip.viralityScore} />
       </div>
@@ -249,7 +289,7 @@ export default function ClipResultCard({
               title="Edit in Studio"
             >
               <SquarePen className="size-3.5" />
-              <span>Edit</span>
+              <span>{t('edit')}</span>
             </Button>
           )}
           {canPublish && (
@@ -260,7 +300,7 @@ export default function ClipResultCard({
               title="Publish to social platforms"
             >
               <Rocket className="size-3.5" />
-              <span>Publish</span>
+              <span>{t('publish')}</span>
             </Button>
           )}
           {canDownload && (
@@ -284,12 +324,29 @@ export default function ClipResultCard({
         </div>
       )}
 
+      {canRetryLibraryLink && (
+        <div className="mt-2">
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8"
+            onClick={handleRetryLibraryLink}
+            title="Retry saving this clip to Library"
+          >
+            <Library className="size-3.5" />
+            <span>{t('retryLibraryLink')}</span>
+          </Button>
+          {libraryLink.error && (
+            <p className="mt-1 text-xs text-destructive/70">
+              {libraryLink.error}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Failed state */}
       {clip.status === 'failed' && (
         <div className="mt-auto pt-2">
-          <p className="text-xs text-destructive/70">
-            Generation failed. The clip will be retried automatically.
-          </p>
+          <p className="text-xs text-destructive/70">{t('generationFailed')}</p>
         </div>
       )}
     </Card>

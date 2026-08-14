@@ -4,6 +4,9 @@
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
+import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
+import { KnowledgeSourceIngestQueueModule } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { RouterModule } from '@api/services/router/router.module';
@@ -12,13 +15,22 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContextsController],
-  exports: [ContextsService],
+  exports: [
+    ContextsService,
+    KnowledgeSourceIngestService,
+    KnowledgeSourceService,
+  ],
   imports: [
     forwardRef(() => ByokModule),
     forwardRef(() => ConfigModule),
+    forwardRef(() => KnowledgeSourceIngestQueueModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
   ],
-  providers: [ContextsService],
+  providers: [
+    ContextsService,
+    KnowledgeSourceIngestService,
+    KnowledgeSourceService,
+  ],
 })
 export class ContextsModule {}

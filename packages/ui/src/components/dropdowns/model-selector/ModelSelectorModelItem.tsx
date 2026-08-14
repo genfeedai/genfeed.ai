@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -18,8 +19,10 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   selectionMode = 'multi',
   isLocked = false,
   lockReason,
+  isStandalone = false,
 }: ModelSelectorModelItemProps) {
   const { model, brandLabel, costTier, isFavorite, variantLabel } = option;
+  const displayLabel = isStandalone ? model.label : variantLabel;
   const isSingleSelect = selectionMode === 'single';
 
   const handleSelect = useCallback(() => {
@@ -45,12 +48,21 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       aria-disabled={isLocked || undefined}
       title={isLocked ? lockReason : undefined}
       className={cn(
-        'flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+        'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
         isSelected && 'bg-background-tertiary',
         isLocked && 'cursor-not-allowed opacity-50',
       )}
     >
-      <span className="size-3.5 shrink-0" aria-hidden="true" />
+      {isStandalone ? (
+        <ModelSelectorBrandMark
+          brandColor={option.brandColor}
+          brandIcon={option.brandIcon}
+          brandLabel={brandLabel}
+          testId="model-standalone-provider-icon"
+        />
+      ) : (
+        <span className="size-3.5 shrink-0" aria-hidden="true" />
+      )}
 
       <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
         {isSingleSelect ? (
@@ -71,7 +83,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
 
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="truncate font-medium">{variantLabel}</span>
+          <span className="truncate font-medium">{displayLabel}</span>
           <ModelSelectorCostBadge costTier={costTier} />
           {isLocked ? (
             <span className="rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-destructive">
@@ -88,7 +100,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           <span className="text-xs text-foreground/50 truncate">
             {model.description}
           </span>
-        ) : model.label !== variantLabel ? (
+        ) : !isStandalone && model.label !== variantLabel ? (
           <span className="text-xs text-foreground/50 truncate">
             {model.label}
           </span>

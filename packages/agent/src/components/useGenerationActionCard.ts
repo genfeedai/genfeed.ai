@@ -8,13 +8,26 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  readPreferredGenerationModel,
+  readPreferredGenerationOutputs,
+  readPreferredGenerationPriority,
+  writePreferredGenerationModel,
+  writePreferredGenerationOutputs,
+  writePreferredGenerationPriority,
+} from '@genfeedai/agent/stores/agent-preferred-model.store';
+import { isAutoAgentModel } from '@genfeedai/agent/utils/agent-auto-model.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
   buildAgentGenerationRequestBody,
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  type RouterPriority,
+  toRouterPriority,
+} from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,
@@ -72,22 +85,39 @@ export function useGenerationActionCard({
 }: UseGenerationActionCardParams) {
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
+  const preferredModel = readPreferredGenerationModel();
+  const preferredPriority = readPreferredGenerationPriority();
+  const preferredOutputs = readPreferredGenerationOutputs();
+  const actionPriority = toRouterPriority(initParams?.prioritize);
+  const shouldStartInAutoMode = preferredModel
+    ? isAutoAgentModel(preferredModel)
+    : !initParams?.model;
 
   const [prompt, setPrompt] = useState(() =>
     formatStructuredPrompt(initParams?.prompt ?? ''),
   );
-  const [modelKey, setModelKey] = useState(initParams?.model ?? '');
-  const [isAutoMode, setIsAutoMode] = useState(() => !initParams?.model);
+  const [modelKey, setModelKey] = useState(() =>
+    shouldStartInAutoMode ? '' : (preferredModel ?? initParams?.model ?? ''),
+  );
+  const [isAutoMode, setIsAutoMode] = useState(shouldStartInAutoMode);
   const [aspectRatio, setAspectRatio] = useState(
     initParams?.aspectRatio ?? '1:1',
   );
   const [duration, setDuration] = useState(initParams?.duration ?? 5);
+  const [outputs, setOutputs] = useState(() => {
+    const requested = preferredOutputs ?? initParams?.outputs;
+    return typeof requested === 'number' &&
+      Number.isFinite(requested) &&
+      requested >= 1
+      ? Math.min(8, Math.round(requested))
+      : 1;
+  });
   const [status, setStatus] = useState<CardStatus>('idle');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prioritize, setPrioritize] = useState<RouterPriority>(
-    DEFAULT_AGENT_GENERATION_PRIORITY,
+    preferredPriority ?? actionPriority ?? DEFAULT_AGENT_GENERATION_PRIORITY,
   );
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -180,6 +210,12 @@ export function useGenerationActionCard({
     durationOptions,
     showDuration,
   } = modelControls;
+  const maxOutputs =
+    typeof selectedModel?.maxOutputs === 'number' &&
+    Number.isFinite(selectedModel.maxOutputs) &&
+    selectedModel.maxOutputs >= 1
+      ? Math.min(8, Math.round(selectedModel.maxOutputs))
+      : 4;
 
   // Reset invalid values when model changes
   useEffect(() => {
@@ -196,6 +232,12 @@ export function useGenerationActionCard({
       setDuration(defaultDuration ?? durationOptions[0] ?? duration);
     }
   }, [defaultDuration, duration, durationOptions, showDuration]);
+
+  useEffect(() => {
+    if (outputs > maxOutputs) {
+      setOutputs(maxOutputs);
+    }
+  }, [maxOutputs, outputs]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -233,16 +275,26 @@ export function useGenerationActionCard({
 
     try {
       if (onUiAction) {
-        await onUiAction('confirm_generate_media', {
+        const outcome = await onUiAction('confirm_generate_media', {
           aspectRatio,
           duration: generationType === 'video' ? duration : undefined,
           generationType,
           model: !isAutoMode && modelKey ? modelKey : undefined,
+          outputs: generationType === 'image' ? outputs : undefined,
           prioritize,
           prompt,
           references: referenceIds.length > 0 ? referenceIds : undefined,
           sourceActionId: action.id,
         });
+        // handleAgentUiAction returns false and writes the composer error
+        // instead of throwing. Treating that as success marked the card Done
+        // and hid Generate after a 401.
+        if (outcome === false) {
+          const composerError = useAgentChatStore.getState().error;
+          throw new Error(
+            composerError?.trim() ? composerError : 'Generation failed',
+          );
+        }
         setStatus('done');
         return;
       }
@@ -265,6 +317,7 @@ export function useGenerationActionCard({
         aspectRatio,
         duration: generationType === 'video' ? duration : undefined,
         modelKey: !isAutoMode && modelKey ? modelKey : undefined,
+        outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
         promptId: promptDoc.id,
         promptText: prompt,
@@ -293,6 +346,9 @@ export function useGenerationActionCard({
         err instanceof Error ? err.message : 'Generation failed';
       setError(formatGenerationError(rawMessage, { isAutoMode }));
       setStatus('error');
+      // Keep Generate reachable — the sticky composer stack covers the card
+      // when this error also lives there.
+      setComposerError(null);
     } finally {
       abortRef.current = null;
       if (requestThreadId) {
@@ -311,6 +367,7 @@ export function useGenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
+    outputs,
     generationType,
     apiService,
     clearGenerationOutcome,
@@ -358,6 +415,14 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [resultId]);
 
+  const handlePrioritizeChange = useCallback((next: RouterPriority) => {
+    setPrioritize(next);
+    writePreferredGenerationPriority(next);
+    setIsAutoMode(true);
+    setModelKey('');
+    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
+  }, []);
+
   const handleModelChange = useCallback((_name: string, values: string[]) => {
     const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
     const manualValues = values.filter(
@@ -368,11 +433,15 @@ export function useGenerationActionCard({
     if (hasAutoOption && manualValues.length === 0) {
       setIsAutoMode(true);
       setModelKey('');
+      writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
       return;
     }
 
     setIsAutoMode(false);
     setModelKey(nextModelKey);
+    if (nextModelKey) {
+      writePreferredGenerationModel(nextModelKey);
+    }
   }, []);
 
   const handleAspectRatioChange = useCallback(
@@ -385,6 +454,11 @@ export function useGenerationActionCard({
     [],
   );
 
+  const handleOutputsChange = useCallback((value: number) => {
+    setOutputs(value);
+    writePreferredGenerationOutputs(value);
+  }, []);
+
   return {
     generationType,
     prompt,
@@ -393,12 +467,14 @@ export function useGenerationActionCard({
     isAutoMode,
     aspectRatio,
     duration,
+    outputs,
+    maxOutputs,
     status,
     resultUrl,
     resultId,
     error,
     prioritize,
-    setPrioritize,
+    setPrioritize: handlePrioritizeChange,
     models,
     modelsLoading,
     modelsError,
@@ -419,5 +495,6 @@ export function useGenerationActionCard({
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    handleOutputsChange,
   };
 }

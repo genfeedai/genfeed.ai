@@ -7,10 +7,15 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { instagramAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/instagram-authorized-signals.contract';
 import {
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
@@ -223,6 +228,17 @@ describe('SocialWarmupEnrollmentsService', () => {
       }),
     );
 
+    expect(socialWarmupEnrollment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          id: 'enrollment-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+
     await service.reopenItemScoped(
       'enrollment-1',
       'watch-niche-content',
@@ -279,10 +295,321 @@ describe('SocialWarmupEnrollmentsService', () => {
       isAvailable: true,
       reason: 'disconnected',
     });
+    expect(socialWarmupEnrollment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { state: SocialWarmupEnrollmentState.DISCONNECTED },
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          id: 'enrollment-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
     expect(socialWarmupSignal.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: SocialWarmupSignalStatus.STALE,
+        }),
+      }),
+    );
+  });
+
+  it.each([
+    {
+      platform: CredentialPlatform.FACEBOOK,
+      reason: /readiness-only/i,
+    },
+    {
+      platform: CredentialPlatform.THREADS,
+      reason: /readiness-only/i,
+    },
+    {
+      platform: CredentialPlatform.SNAPCHAT,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.WORDPRESS,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.SHOPIFY,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.GOOGLE_ADS,
+      reason: /not supported/i,
+    },
+  ])(
+    'refuses to enroll $platform instead of inheriting a TikTok blueprint',
+    async ({ platform, reason }) => {
+      credential.findFirst.mockResolvedValue(makeCredential({ platform }));
+
+      await expect(
+        service.enrollScoped({ credentialId: 'credential-1' }, context),
+      ).rejects.toThrow(reason);
+
+      expect(socialWarmupEnrollment.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still enrolls Instagram and X on their own published blueprints', async () => {
+    credential.findFirst.mockResolvedValue(
+      makeCredential({ platform: CredentialPlatform.INSTAGRAM }),
+    );
+
+    await service.enrollScoped({ credentialId: 'credential-1' }, context);
+
+    expect(socialWarmupEnrollment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blueprintId: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
+        }),
+      }),
+    );
+  });
+
+  it('seeds enrollment signals from a stored X authorized snapshot', async () => {
+    credential.findFirst.mockResolvedValue(
+      makeCredential({
+        platform: CredentialPlatform.TWITTER,
+        warmupSignals: {
+          twitterAuthorized: {
+            evidence: [
+              {
+                fieldAvailability: { createdAt: 'available' },
+                key: 'native-account-age',
+                observedAt: '2026-08-14T08:00:00.000Z',
+                provenance: 'platform_verified',
+                status: 'available',
+                value: { createdAt: '2018-01-01T00:00:00.000Z' },
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    await service.enrollScoped({ credentialId: 'credential-1' }, context);
+
+    expect(socialWarmupEnrollment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blueprintId: TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+          blueprintVersion: TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+          signals: {
+            create: [
+              expect.objectContaining({
+                key: 'native-account-age',
+                source: SocialWarmupSignalSource.PLATFORM,
+                status: SocialWarmupSignalStatus.AVAILABLE,
+              }),
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('upserts enrollment signals from a refreshed X authorized snapshot', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      id: 'enrollment-1',
+      organizationId: 'org-1',
+    });
+    socialWarmupSignal.findFirst.mockResolvedValue(null);
+
+    await service.syncTwitterAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot: {
+        credentialId: 'credential-1',
+        evidence: [
+          {
+            fieldAvailability: { createdAt: 'available' },
+            key: 'native-account-age',
+            observedAt: '2026-08-14T08:00:00.000Z',
+            provenance: 'platform_verified',
+            scope: {
+              granted: ['users.read'],
+              missing: [],
+              required: ['users.read'],
+            },
+            staleAt: null,
+            status: 'available',
+            value: { createdAt: '2018-01-01T00:00:00.000Z' },
+          },
+        ],
+        grantedScopes: ['users.read'],
+        platform: CredentialPlatform.TWITTER,
+        refreshAttemptedAt: '2026-08-14T08:00:00.000Z',
+        state: 'partial',
+      } as TwitterAuthorizedSignalsSnapshot,
+    });
+
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'native-account-age',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+  });
+
+  it('does not write enrollment signals when no X enrollment exists', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue(null);
+
+    await service.syncTwitterAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot: {
+        credentialId: 'credential-1',
+        evidence: [],
+        grantedScopes: [],
+        platform: CredentialPlatform.TWITTER,
+        refreshAttemptedAt: '2026-08-14T08:00:00.000Z',
+        state: 'partial',
+      } as unknown as TwitterAuthorizedSignalsSnapshot,
+    });
+
+    expect(socialWarmupSignal.create).not.toHaveBeenCalled();
+    expect(socialWarmupSignal.update).not.toHaveBeenCalled();
+  });
+
+  it('upserts Instagram authorized snapshot evidence onto an existing enrollment', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'enrollment-1',
+      organizationId: 'org-1',
+    });
+    socialWarmupSignal.findFirst.mockResolvedValue(null);
+
+    const snapshot = instagramAuthorizedSignalsSnapshotSchema.parse({
+      credentialId: 'credential-1',
+      evidence: [
+        {
+          fieldAvailability: { username: 'available' },
+          key: 'profile-fields-platform-signal',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['instagram_basic'],
+            missing: [],
+            required: ['instagram_basic'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: { username: 'creator' },
+        },
+        {
+          fieldAvailability: { id: 'available' },
+          key: 'owned-media-snapshot',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['instagram_basic'],
+            missing: [],
+            required: ['instagram_basic'],
+          },
+          staleAt: null,
+          status: 'empty',
+          value: { hasMore: false, media: [] },
+        },
+        {
+          fieldAvailability: { canPublish: 'permission_limited' },
+          key: 'publishing-capability-snapshot',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'platform_verified',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['instagram_content_publish'],
+            required: ['instagram_content_publish'],
+          },
+          staleAt: null,
+          status: 'permission_limited',
+        },
+        {
+          fieldAvailability: { likeCount: 'permission_limited' },
+          key: 'media-performance-snapshot',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'platform_verified',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['instagram_manage_insights'],
+            required: ['instagram_manage_insights'],
+          },
+          staleAt: null,
+          status: 'permission_limited',
+        },
+        {
+          fieldAvailability: { id: 'available' },
+          key: 'first-publish-platform-signal',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['instagram_basic'],
+            missing: [],
+            required: ['instagram_basic'],
+          },
+          staleAt: null,
+          status: 'empty',
+          value: {},
+        },
+        {
+          fieldAvailability: { outcome: 'available' },
+          key: 'genfeed-publish-outcomes-observed',
+          observedAt: '2026-08-12T08:00:00.000Z',
+          provenance: 'genfeed_observed',
+          scope: { granted: [], missing: [], required: [] },
+          staleAt: null,
+          status: 'empty',
+          value: { attempts: [] },
+        },
+      ],
+      grantedScopes: ['instagram_basic'],
+      platform: CredentialPlatform.INSTAGRAM,
+      refreshAttemptedAt: '2026-08-12T08:00:00.000Z',
+      state: 'partial',
+    });
+
+    await service.syncInstagramAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot,
+    });
+
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'profile-fields-platform-signal',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'publishing-capability-snapshot',
+          status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'genfeed-publish-outcomes-observed',
+          source: SocialWarmupSignalSource.GENFEED,
         }),
       }),
     );

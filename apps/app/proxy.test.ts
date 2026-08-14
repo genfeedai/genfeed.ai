@@ -512,6 +512,22 @@ describe('proxy', () => {
       expect(response.headers.get('location')).toBeNull();
     });
 
+    it('moves an incomplete user off a leftover org onboarding URL onto their membership org', async () => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mockIncompleteUser([{ isActive: true, slug: 'acme' }]);
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/default-organization/~/agent/onboarding'),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/acme/~/agent/onboarding',
+      );
+    });
+
     it('redirects an incomplete Community user on a protected route to the agent onboarding surface', async () => {
       mockIncompleteUser();
 
