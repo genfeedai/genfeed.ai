@@ -35,9 +35,10 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
       variant: ButtonVariant.GHOST,
     }),
     SHELL_CONTROL_HEIGHT_CLASS,
-    'gap-1.5 px-2.5 font-medium',
+    'min-w-0 max-w-full flex-nowrap gap-1.5 overflow-hidden px-2.5 font-medium',
     className,
   );
+  const labelClassName = 'min-w-0 flex-1 truncate text-xs font-medium';
 
   // Auto wins over any residual concrete model list — otherwise a stale
   // values[] entry keeps the last model label after the user picks Auto.
@@ -48,12 +49,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         className={cn(triggerClassName, 'text-foreground')}
+        textTransform="none"
         {...buttonProps}
       >
         <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
-        <span className="text-xs font-medium truncate max-w-[148px]">
-          {autoLabel ?? 'Auto'}
-        </span>
+        <span className={labelClassName}>{autoLabel ?? 'Auto'}</span>
         <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
       </Button>
     );
@@ -70,10 +70,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
           'text-foreground/70',
           shouldFlash && 'animate-pulse !border !border-white/50 !bg-white/10',
         )}
+        textTransform="none"
         {...buttonProps}
       >
         <Cpu className={SHELL_ICON_CLASS} />
-        <span className="text-xs font-medium">Select models…</span>
+        <span className={labelClassName}>Select models…</span>
         <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
       </Button>
     );
@@ -91,6 +92,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         className={cn(triggerClassName, 'text-foreground')}
+        textTransform="none"
         {...buttonProps}
       >
         <div
@@ -107,9 +109,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
             brandConfig.label.charAt(0)
           )}
         </div>
-        <span className="text-xs font-medium truncate max-w-[148px]">
-          {model.label}
-        </span>
+        <span className={labelClassName}>{model.label}</span>
         <ModelSelectorCostBadge costTier={model.costTier} />
         <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
       </Button>
@@ -122,12 +122,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       className={cn(triggerClassName, 'text-foreground')}
+      textTransform="none"
       {...buttonProps}
     >
       <Cpu className={SHELL_ICON_CLASS} />
-      <span className="text-xs font-medium">
-        {selectedModels.length} models
-      </span>
+      <span className={labelClassName}>{selectedModels.length} models</span>
       <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
     </Button>
   );

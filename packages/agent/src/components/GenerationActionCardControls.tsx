@@ -154,7 +154,7 @@ export function GenerationActionCardControls({
             <div className={isDisabled ? 'pointer-events-none opacity-50' : ''}>
               <ModelSelectorPopover
                 name="models"
-                className="border border-border bg-background hover:bg-accent/50"
+                className="w-44 min-w-0 border border-border bg-background hover:bg-accent/50"
                 models={filteredModels}
                 values={
                   isAutoMode

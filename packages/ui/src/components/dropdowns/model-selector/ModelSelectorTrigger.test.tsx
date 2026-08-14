@@ -43,4 +43,21 @@ describe('ModelSelectorTrigger', () => {
       within(button).getByTestId('model-trigger-provider-icon'),
     ).toBeInTheDocument();
   });
+
+  it('keeps a loaded auto label on one truncated line', () => {
+    render(
+      <ModelSelectorTrigger
+        autoLabel="Auto · Lowest Cost"
+        isAutoSelected
+        isOpen={false}
+        selectedModels={[]}
+      />,
+    );
+
+    const button = screen.getByRole('button');
+    const label = within(button).getByText('Auto · Lowest Cost');
+
+    expect(button).toHaveClass('flex-nowrap', 'overflow-hidden');
+    expect(label).toHaveClass('truncate', 'min-w-0');
+  });
 });
