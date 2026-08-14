@@ -25,6 +25,7 @@ export * from './onboarding-journey.constant';
 export * from './onboarding-journey.types';
 export * from './pagination.constant';
 export * from './platform-colors';
+export * from './platform-publish-scopes.constant';
 export * from './platform-settings.constant';
 export * from './platforms.constant';
 export * from './post-quick-actions.constant';

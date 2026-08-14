@@ -13,7 +13,10 @@ import {
   ActivitySource,
   CredentialPlatform,
 } from '@genfeedai/enums';
-import { SocialUrlHelper } from '@genfeedai/helpers';
+import {
+  buildGrantedScopesCredentialPatch,
+  SocialUrlHelper,
+} from '@genfeedai/helpers';
 import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -156,6 +159,7 @@ export class TwitterService {
           accessToken,
           refreshToken: newRefreshToken,
           expiresIn,
+          scope,
         } = await client.refreshOAuth2Token(decryptedRefreshToken);
 
         return await this.credentialsService.patch(credentials.id, {
@@ -166,6 +170,7 @@ export class TwitterService {
           isConnected: true,
           isDeleted: false,
           refreshToken: newRefreshToken,
+          ...buildGrantedScopesCredentialPatch(scope),
         });
       } else {
         // OAuth 1.0a credential — requires reconnection via OAuth 2.0

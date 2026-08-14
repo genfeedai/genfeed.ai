@@ -1,5 +1,9 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
 import type {
   FacebookInsight,
   FacebookPage,
@@ -85,6 +89,7 @@ export class FacebookService {
   public async exchangeAuthCodeForAccessToken(code: string): Promise<{
     accessToken: string;
     expiresIn: number;
+    scope?: unknown;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -103,9 +108,12 @@ export class FacebookService {
         ),
       );
 
+      const scope = readOAuthTokenScopeField(response.data);
+
       return {
         accessToken: response.data.access_token,
         expiresIn: response.data.expires_in,
+        ...(scope === undefined ? {} : { scope }),
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -187,6 +195,9 @@ export class FacebookService {
             : undefined,
           isConnected: true,
           isDeleted: false,
+          ...buildGrantedScopesCredentialPatch(
+            readOAuthTokenScopeField(response.data),
+          ),
         });
       }
 

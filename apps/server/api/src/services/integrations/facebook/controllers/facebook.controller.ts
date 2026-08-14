@@ -11,6 +11,7 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -122,7 +123,7 @@ export class FacebookController {
 
       const { organizationId } = credential;
 
-      const { accessToken, expiresIn } =
+      const { accessToken, expiresIn, scope } =
         await this.facebookService.exchangeAuthCodeForAccessToken(body.code);
 
       if (!accessToken) {
@@ -147,6 +148,7 @@ export class FacebookController {
           isConnected: true,
           isDeleted: false,
           oauthState: null,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

@@ -12,6 +12,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -210,6 +211,7 @@ export class TiktokController {
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

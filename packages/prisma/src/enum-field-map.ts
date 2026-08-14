@@ -1557,6 +1557,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'externalHandle',
       'externalId',
       'externalName',
+      'grantedScopesCapturedAt',
       'id',
       'isConnected',
       'isDeleted',
@@ -1590,6 +1591,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [
       'adBulkUploadJobs',
       'adPerformances',
+      'grantedScopes',
       'monitoredAccounts',
       'outreachCampaigns',
       'personas',
