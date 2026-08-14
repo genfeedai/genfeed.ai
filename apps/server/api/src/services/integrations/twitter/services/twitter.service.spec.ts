@@ -29,6 +29,20 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 
+function makeTwitterCredential(
+  overrides: Partial<CredentialDocument> = {},
+): CredentialDocument {
+  return {
+    accessToken: 'access-token',
+    id: 'cred-id',
+    isConnected: true,
+    isDeleted: false,
+    refreshToken: 'refresh-token',
+    userId: 'user-id',
+    ...overrides,
+  } as CredentialDocument;
+}
+
 describe('TwitterService', () => {
   let service: TwitterService;
 
@@ -120,7 +134,7 @@ describe('TwitterService', () => {
   describe('getTrends', () => {
     it('fetches trending topics', async () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        {} as unknown as CredentialDocument,
+        makeTwitterCredential(),
       );
 
       const trendsMock = vi
@@ -144,10 +158,12 @@ describe('TwitterService', () => {
 
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue({
-        accessToken: 'a',
-        refreshToken: 'r',
-      } as unknown as CredentialDocument);
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeTwitterCredential({
+          accessToken: 'a',
+          refreshToken: 'r',
+        }),
+      );
 
       mockSendDm.mockResolvedValue({});
 

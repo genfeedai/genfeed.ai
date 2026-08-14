@@ -470,6 +470,8 @@ describe('GenerationActionCard', () => {
     expect(
       await screen.findByText(/provider authentication failed/i),
     ).toBeInTheDocument();
+    expect(storeState.setError).toHaveBeenCalledWith(null);
+    storeState.setError.mockClear();
 
     const generateAgain = screen.getByRole('button', {
       name: /generate image/i,
@@ -479,6 +481,7 @@ describe('GenerationActionCard', () => {
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
     });
+    expect(storeState.setError).toHaveBeenCalledTimes(1);
     expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
       await screen.findByRole('link', { name: 'Library' }),

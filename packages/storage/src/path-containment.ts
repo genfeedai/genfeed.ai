@@ -172,23 +172,25 @@ function hasInvalidObjectKeySegment(segment: string): boolean {
 
 function normalizeObjectKey(
   value: string,
-  allowTrailingSlash: boolean,
+  isTrailingSlashAllowed: boolean,
 ): string {
-  return allowTrailingSlash && value.endsWith('/') ? value.slice(0, -1) : value;
+  return isTrailingSlashAllowed && value.endsWith('/')
+    ? value.slice(0, -1)
+    : value;
 }
 
 function assertObjectKeySegments(
   value: string,
   normalized: string,
   name: string,
-  allowTrailingSlash: boolean,
+  isTrailingSlashAllowed: boolean,
   createError: SecurityErrorFactory,
 ): void {
   if (!normalized) {
     throw createError(`${name} contains an invalid path segment`);
   }
 
-  if (!allowTrailingSlash && value.endsWith('/')) {
+  if (!isTrailingSlashAllowed && value.endsWith('/')) {
     throw createError(`${name} contains an invalid path segment`);
   }
 
@@ -201,16 +203,16 @@ function validateObjectKey(
   value: string,
   name: string,
   createError: SecurityErrorFactory,
-  allowTrailingSlash: boolean,
+  isTrailingSlashAllowed: boolean,
 ): string {
   assertNonEmptyString(value, name, createError);
   assertRelativePosixKey(value, name, createError);
-  const normalized = normalizeObjectKey(value, allowTrailingSlash);
+  const normalized = normalizeObjectKey(value, isTrailingSlashAllowed);
   assertObjectKeySegments(
     value,
     normalized,
     name,
-    allowTrailingSlash,
+    isTrailingSlashAllowed,
     createError,
   );
   return normalized;
