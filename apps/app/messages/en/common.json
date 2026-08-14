@@ -7,6 +7,8 @@
     "save": "Save"
   },
   "activity": {
+    "label": "Activity",
+    "open": "Open activity",
     "credits": {
       "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
       "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} · {amount} credits used}}}}",
@@ -437,6 +439,13 @@
     "sessionStatus": "Session status",
     "transcriptChunk": "Transcript Chunk",
     "transcriptIngestion": "Transcript Ingestion"
+  },
+  "moodboard": {
+    "close": "Close",
+    "closeMoodboard": "Close moodboard",
+    "first": "First {count}",
+    "fit": "Fit",
+    "fitBoard": "Fit board"
   },
   "newsletterEditor": {
     "content": "Newsletter content"

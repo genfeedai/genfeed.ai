@@ -380,9 +380,7 @@ describe('PromptBarEssentials', () => {
   });
 
   it('hides the generation meter when the resolver returns nothing', () => {
-    render(
-      <PromptBarEssentials {...defaultProps} generationMeter={null} />,
-    );
+    render(<PromptBarEssentials {...defaultProps} generationMeter={null} />);
 
     expect(
       screen.queryByTestId('studio-generation-meter'),

@@ -218,7 +218,7 @@ export class AgentThreadRuntimeController {
           threadId,
         },
         {
-          apiKeyContext: getPublicMetadata(user),
+          apiKeyContext: user,
           authToken,
           organizationId,
           userId,

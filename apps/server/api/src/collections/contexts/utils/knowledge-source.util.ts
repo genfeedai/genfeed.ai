@@ -105,11 +105,13 @@ export function writeKnowledgeSources(
   data: unknown,
   sources: PersistedKnowledgeSource[],
 ): Prisma.InputJsonValue {
-  return {
-    ...getContextDataRecord(data),
-    purpose: KNOWLEDGE_BASE_PURPOSE,
-    sources,
-  } as Prisma.InputJsonValue;
+  return JSON.parse(
+    JSON.stringify({
+      ...getContextDataRecord(data),
+      purpose: KNOWLEDGE_BASE_PURPOSE,
+      sources,
+    }),
+  ) as Prisma.InputJsonValue;
 }
 
 export function findKnowledgeSource(

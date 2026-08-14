@@ -12,8 +12,10 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function TopbarActivityMenu() {
+  const translate = useTranslations('common.activity');
   const { href } = useOrgUrl();
   const activityHref = href(APP_ROUTES.WORKSPACE.ACTIVITY);
 
@@ -25,7 +27,7 @@ export default function TopbarActivityMenu() {
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           className="size-8"
-          ariaLabel="Open activity"
+          ariaLabel={translate('open')}
           data-testid="topbar-activity-menu"
         >
           <Clock className="size-4" />
@@ -33,7 +35,7 @@ export default function TopbarActivityMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40">
         <DropdownMenuItem asChild>
-          <Link href={activityHref}>Activity</Link>
+          <Link href={activityHref}>{translate('label')}</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

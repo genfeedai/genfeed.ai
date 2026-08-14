@@ -41,10 +41,7 @@ describe('resolveStudioGenerationCostModels', () => {
   });
 
   it('falls back to the catalog default flag when the key is missing', () => {
-    const catalog = [
-      model({ key: 'a' }),
-      model({ isDefault: true, key: 'b' }),
-    ];
+    const catalog = [model({ key: 'a' }), model({ isDefault: true, key: 'b' })];
 
     expect(
       resolveStudioGenerationCostModels({

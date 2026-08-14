@@ -1,8 +1,20 @@
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { describe, expect, it } from 'vitest';
 import {
   isUsableOrganizationId,
   readRequestOrganizationId,
 } from './read-request-organization-id.util';
+
+function makeRequestContext(organizationId: string): IRequestContext {
+  return {
+    hydratedAt: Date.now(),
+    isSuperAdmin: false,
+    organizationId,
+    stripeSubscriptionStatus: 'active',
+    subscriptionTier: 'pro',
+    userId: 'user_1',
+  };
+}
 
 describe('isUsableOrganizationId', () => {
   it('accepts cuid and legacy 24-hex ids', () => {
@@ -18,43 +30,22 @@ describe('isUsableOrganizationId', () => {
 });
 
 describe('readRequestOrganizationId', () => {
-  it('prefers a usable request.context organization id', () => {
+  it('reads a usable organization id from request.context', () => {
     expect(
       readRequestOrganizationId({
-        context: { organizationId: 'cmptu23g70001zixnzwbzwp2e' },
-        user: {
-          publicMetadata: { organization: '507f191e810c19729de860ee' },
-        },
+        context: makeRequestContext('cmptu23g70001zixnzwbzwp2e'),
       }),
     ).toBe('cmptu23g70001zixnzwbzwp2e');
   });
 
-  it('falls back to the session organization when context is missing', () => {
-    expect(
-      readRequestOrganizationId({
-        user: {
-          publicMetadata: { organization: 'cmptu23g70001zixnzwbzwp2e' },
-        },
-      }),
-    ).toBe('cmptu23g70001zixnzwbzwp2e');
+  it('returns undefined when request.context is missing', () => {
+    expect(readRequestOrganizationId({})).toBeUndefined();
   });
 
-  it('skips a URL slug in context and uses the session cuid', () => {
+  it('rejects a URL slug in request.context', () => {
     expect(
       readRequestOrganizationId({
-        context: { organizationId: 'default' },
-        user: {
-          publicMetadata: { organization: 'cmptu23g70001zixnzwbzwp2e' },
-        },
-      }),
-    ).toBe('cmptu23g70001zixnzwbzwp2e');
-  });
-
-  it('returns undefined when neither source is a usable organization id', () => {
-    expect(
-      readRequestOrganizationId({
-        context: { organizationId: 'default' },
-        user: { publicMetadata: { organization: 'default' } },
+        context: makeRequestContext('default'),
       }),
     ).toBeUndefined();
   });

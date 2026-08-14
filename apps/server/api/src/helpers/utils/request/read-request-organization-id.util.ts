@@ -15,17 +15,11 @@ export function isUsableOrganizationId(value: unknown): value is string {
 }
 
 export function readRequestOrganizationId(
-  request: Pick<AuthenticatedRequest, 'context' | 'user'>,
+  request: Pick<AuthenticatedRequest, 'context'>,
 ): string | undefined {
-  const candidates = [
-    request.context?.organizationId,
-    request.user?.publicMetadata?.organization,
-  ];
-
-  for (const candidate of candidates) {
-    if (isUsableOrganizationId(candidate)) {
-      return candidate.trim();
-    }
+  const organizationId = request.context?.organizationId;
+  if (isUsableOrganizationId(organizationId)) {
+    return organizationId.trim();
   }
 
   return undefined;
