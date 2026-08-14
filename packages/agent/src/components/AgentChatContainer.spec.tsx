@@ -597,7 +597,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
+      'true',
     );
   });
 
@@ -654,7 +654,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
+      'true',
     );
   });
 
@@ -682,7 +682,7 @@ describe('AgentChatContainer', () => {
       '[data-layout-mode="inflow"][data-max-width="full"]',
     );
     expect(portaled).not.toBeNull();
-    expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
+    expect(portaled?.getAttribute('data-show-top-fade')).toBe('true');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
       'inspector',
@@ -715,7 +715,7 @@ describe('AgentChatContainer', () => {
     ).not.toBeNull();
     expect(
       portalTarget.querySelector(
-        '[data-layout-mode="inflow"][data-show-top-fade="false"]',
+        '[data-layout-mode="inflow"][data-show-top-fade="true"]',
       ),
     ).not.toBeNull();
 
@@ -773,7 +773,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
+      'true',
     );
   });
 
@@ -796,7 +796,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
+      'true',
     );
   });
 
@@ -854,7 +854,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'false',
+      'true',
     );
   });
 

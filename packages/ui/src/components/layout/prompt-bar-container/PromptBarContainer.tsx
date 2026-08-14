@@ -106,15 +106,23 @@ export default function PromptBarContainer({
       {showTopFade ? (
         <div
           aria-hidden="true"
+          data-composer-top-fade=""
           className={cn(
-            // Soft short scrim only — elevation lives on chips/composer, not a
-            // tall opaque slab that paints half the transcript black.
-            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/90 via-background/35 to-transparent transition-opacity duration-300',
-            topContent ? 'h-16' : 'h-12',
-            layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
-            layoutMode === 'inflow' && 'h-10',
+            // Transcript stays readable at the top of the fade; the prompt
+            // edge is solid background so wallpaper cannot cut the last line.
+            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background via-background/55 to-transparent transition-opacity duration-300',
+            topContent ? 'h-28' : 'h-20',
+            layoutMode === 'surface-fixed' && (topContent ? 'h-24' : 'h-16'),
+            layoutMode === 'inflow' && (topContent ? 'h-24' : 'h-16'),
             topFadeClassName,
           )}
+        />
+      ) : null}
+      {showTopFade ? (
+        <div
+          aria-hidden="true"
+          data-composer-bottom-scrim=""
+          className="pointer-events-none absolute inset-x-0 top-full h-5 bg-background"
         />
       ) : null}
       <div

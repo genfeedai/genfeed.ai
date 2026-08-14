@@ -792,6 +792,13 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByTestId('workspace-composer-dock')).not.toHaveClass(
       'bg-background',
     );
+    const dockFade = screen
+      .getByTestId('workspace-composer-dock')
+      .querySelector('[data-composer-dock-fade]');
+    expect(dockFade).toBeInTheDocument();
+    expect(dockFade).toHaveClass('bg-gradient-to-t');
+    expect(dockFade).toHaveClass('from-background');
+    expect(dockFade).toHaveClass('to-transparent');
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
       'overflow-hidden',
     );

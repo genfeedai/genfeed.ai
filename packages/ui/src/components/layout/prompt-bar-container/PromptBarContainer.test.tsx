@@ -135,11 +135,24 @@ describe('PromptBarContainer', () => {
       </PromptBarContainer>,
     );
 
-    const fade = container.querySelector(
-      '[aria-hidden="true"]:not([data-composer-bg-block])',
-    );
+    const fade = container.querySelector('[data-composer-top-fade]');
     expect(fade).toBeInTheDocument();
     expect(fade?.className).toContain('bottom-full');
     expect(fade?.className).toContain('bg-gradient-to-t');
+    expect(fade?.className).toContain('from-background');
+    expect(fade?.className).toContain('to-transparent');
+  });
+
+  it('paints a solid bottom scrim so wallpaper cannot leak under the prompt', () => {
+    const { container } = render(
+      <PromptBarContainer showTopFade>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const scrim = container.querySelector('[data-composer-bottom-scrim]');
+    expect(scrim).toBeInTheDocument();
+    expect(scrim).toHaveClass('bg-background');
+    expect(scrim).toHaveClass('top-full');
   });
 });
