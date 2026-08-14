@@ -17,7 +17,7 @@ last_verified: 2026-08-14
 
 ## In this train
 
-- Test-collection guard: every first-party `*.test` / `*.spec` must match a Vitest include, Playwright tree, Bun-runner script, or `node:test` glob
+- Test-collection script exists as `bun run check:test-collection` for local use. **Not** wired as a CI `guards` step — Vincent rejected that; #2946 owns YAML-ratchet cleanup.
 - Folded the uncollected `packages/pages` research URL `.spec.ts` into the collected `.test.ts` (pages include is `*.test.ts(x)` only)
 - Workers cron sources no longer dilute default coverage; `vitest.cron.config.ts` now has its own coverage gate (`test:cron:cov`)
 - Replaced seven `TODO: Add interaction tests` skeletons in `@genfeedai/ui` with behavior tests
@@ -35,7 +35,7 @@ last_verified: 2026-08-14
 Ran 2026-08-14 in this environment (Node 22; Bun not installed):
 
 - `node --test scripts/architecture/check-test-collection.test.mjs` — 9/9 pass
-- `node --test scripts/ci/pr-validation-workflows.test.mjs` — includes the new CI pin; 24/24 pass with the collection tests
+- `node --test scripts/ci/pr-validation-workflows.test.mjs` — no collection-guard pin (removed)
 - `node scripts/architecture/check-test-collection.mjs` — `Test collection guard passed.`
 - `node scripts/e2e-route-coverage.mjs` — dedicated 95.8% / effective 100% (threshold 80%)
 

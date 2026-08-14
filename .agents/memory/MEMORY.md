@@ -21,6 +21,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
 - [claim_work_before_starting](claim_work_before_starting.md) — search open PRs before branching or spawning a fix; push early to claim
+- [feedback_no_new_ci_guard_steps](feedback_no_new_ci_guard_steps.md) — no new named CI guard steps; #2946 owns YAML-ratchet cleanup
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
