@@ -21,6 +21,15 @@ import { Prompt } from '@models/content/prompt.model';
 import { Asset } from '@models/ingredients/asset.model';
 import { Brand } from '@models/organization/brand.model';
 
+function isFilesServiceHostname(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  return (
+    host === 'files.genfeed.ai' ||
+    host === 'files.genfeed.localhost' ||
+    host.endsWith('.files.genfeed.localhost')
+  );
+}
+
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
 
@@ -254,7 +263,7 @@ export class Ingredient extends BaseIngredient {
 
     const normalizedS3Key = this.normalizeStoragePath(s3Key);
     if (normalizedS3Key) {
-      return `${EnvironmentService.cdnUrl}/${normalizedS3Key}`;
+      return `${this.publicCdnOrigin()}/${normalizedS3Key}`;
     }
 
     return undefined;
@@ -267,17 +276,47 @@ export class Ingredient extends BaseIngredient {
     }
 
     if (/^https?:\/\//.test(trimmed)) {
-      return trimmed;
+      return this.rewriteFilesServiceUrl(trimmed) ?? trimmed;
     }
 
     const normalizedPath = this.normalizeStoragePath(trimmed);
     return normalizedPath
-      ? `${EnvironmentService.cdnUrl}/${normalizedPath}`
+      ? `${this.publicCdnOrigin()}/${normalizedPath}`
       : undefined;
   }
 
+  private rewriteFilesServiceUrl(url: string): string | undefined {
+    try {
+      const parsed = new URL(url);
+      const isLocalDiskPath = parsed.pathname.startsWith('/local/');
+      if (!isFilesServiceHostname(parsed.hostname) && !isLocalDiskPath) {
+        return undefined;
+      }
+
+      const key = this.normalizeStoragePath(parsed.pathname);
+      return key ? `${this.publicCdnOrigin()}/${key}` : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private publicCdnOrigin(): string {
+    const cdn = EnvironmentService.cdnUrl.replace(/\/+$/, '');
+    try {
+      if (isFilesServiceHostname(new URL(cdn).hostname)) {
+        return 'https://staging-cdn.genfeed.ai';
+      }
+    } catch {
+      return cdn;
+    }
+    return cdn;
+  }
+
   private normalizeStoragePath(value?: string | null): string | undefined {
-    const trimmed = value?.trim().replace(/^\/+/, '');
+    const trimmed = value
+      ?.trim()
+      .replace(/^\/+/, '')
+      .replace(/^local\//, '');
     return trimmed || undefined;
   }
 
