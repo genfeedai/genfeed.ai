@@ -253,6 +253,8 @@ describe('AgentChatMessage', () => {
     );
 
     expect(surface).toBeTruthy();
+    expect(surface).toHaveClass('text-foreground');
+    expect(surface?.className).not.toMatch(/text-foreground\//);
   });
 
   it('exposes heading semantics for assistant messages', () => {

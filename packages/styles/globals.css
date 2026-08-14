@@ -99,9 +99,9 @@
   --ship-bg-hover: #20232a;
   --ship-border: rgba(255, 255, 255, 0.1);
   --ship-border-strong: rgba(255, 255, 255, 0.18);
-  --ship-text-primary: #f4f4f5;
-  --ship-text-secondary: #b4b4bc;
-  --ship-text-muted: #6b6b78;
+  --ship-text-primary: #ffffff;
+  --ship-text-secondary: #c8c8d0;
+  --ship-text-muted: #8a8a8a;
   --ship-accent: #fafafa;
   --ship-accent-foreground: #050607;
   --ship-accent-hover: #e4e4e7;
@@ -173,15 +173,15 @@ body.gf-studio-app {
   --background: 210 17% 2%; /* #050607 bg-primary */
   --background-secondary: 225 14% 5%; /* #0c0d10 bg-secondary (sidebar plane) */
   --background-tertiary: 216 12% 8%; /* #131518 bg-tertiary */
-  --foreground: 240 6% 96%; /* #f4f4f5 text-primary */
+  --foreground: 0 0% 100%; /* #ffffff text-primary */
   --card: 0 0% 3%; /* #080808 card / pricing-card black surface */
-  --card-foreground: 240 6% 96%;
+  --card-foreground: 0 0% 100%;
   --popover: 225 14% 5%; /* #0c0d10 bg-secondary — elevated is too light */
-  --popover-foreground: 240 6% 96%;
+  --popover-foreground: 0 0% 100%;
   --secondary: 216 12% 8%; /* #131518 */
-  --secondary-foreground: 240 6% 96%;
+  --secondary-foreground: 0 0% 100%;
   --muted: 216 12% 8%; /* #131518 */
-  --muted-foreground: 240 6% 45%; /* #6b6b78 text-muted */
+  --muted-foreground: 0 0% 54%; /* #8a8a8a — AA on void */
   --accent: 222 14% 15%; /* #20232a bg-hover (shadcn hover/selected surface) */
   --accent-foreground: 240 6% 96%;
   --border: 210 3% 12%; /* #1e1f20 ≈ rgba(255,255,255,0.1) on #050607 */

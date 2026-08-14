@@ -4,6 +4,7 @@ import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS } from '@genfeedai/agent/constants/agent-message-collapse.constant';
 import {
+  AGENT_ASSISTANT_PROSE_CLASS,
   AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
   AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
@@ -281,7 +282,7 @@ function AgentChatMessageInner({
                 'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
                 isUser
                   ? 'text-[15px] leading-6 text-foreground [&_p]:my-1'
-                  : 'text-[15px] leading-6 text-foreground/92',
+                  : AGENT_ASSISTANT_PROSE_CLASS,
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (

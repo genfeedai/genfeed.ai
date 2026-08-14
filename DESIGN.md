@@ -20,10 +20,11 @@ colors:
   border: "#1e2022"
   border-strong: "#333538"
 
-  # Text — three-tier hierarchy
-  text-primary: "#f4f4f5"
-  text-secondary: "#b4b4bc"
-  text-muted: "#6b6b78"
+  # Text — three-tier hierarchy. Muted must stay AA on the void canvas.
+  # Chroma lives in gallery / video / image artefacts, not in chrome.
+  text-primary: "#ffffff"
+  text-secondary: "#c8c8d0"
+  text-muted: "#8a8a8a"
 
   # Accent — inverted for dark mode (white CTA on dark bg)
   primary: "#fafafa"
