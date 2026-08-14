@@ -8,6 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
@@ -283,6 +284,60 @@ describe('SocialWarmupEnrollmentsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           status: SocialWarmupSignalStatus.STALE,
+        }),
+      }),
+    );
+  });
+
+  it.each([
+    {
+      platform: CredentialPlatform.FACEBOOK,
+      reason: /readiness-only/i,
+    },
+    {
+      platform: CredentialPlatform.THREADS,
+      reason: /readiness-only/i,
+    },
+    {
+      platform: CredentialPlatform.SNAPCHAT,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.WORDPRESS,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.SHOPIFY,
+      reason: /not supported/i,
+    },
+    {
+      platform: CredentialPlatform.GOOGLE_ADS,
+      reason: /not supported/i,
+    },
+  ])(
+    'refuses to enroll $platform instead of inheriting a TikTok blueprint',
+    async ({ platform, reason }) => {
+      credential.findFirst.mockResolvedValue(makeCredential({ platform }));
+
+      await expect(
+        service.enrollScoped({ credentialId: 'credential-1' }, context),
+      ).rejects.toThrow(reason);
+
+      expect(socialWarmupEnrollment.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still enrolls Instagram and X on their own published blueprints', async () => {
+    credential.findFirst.mockResolvedValue(
+      makeCredential({ platform: CredentialPlatform.INSTAGRAM }),
+    );
+
+    await service.enrollScoped({ credentialId: 'credential-1' }, context);
+
+    expect(socialWarmupEnrollment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blueprintId: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
         }),
       }),
     );

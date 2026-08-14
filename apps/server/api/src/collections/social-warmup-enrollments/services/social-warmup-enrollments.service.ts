@@ -25,9 +25,10 @@ import {
   resolveSocialWarmupBlueprint,
   type SocialWarmupBlueprint,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
+import { getSocialWarmupEnrollmentRefusal } from '@api-types/contracts/social-warmup-capability.contract';
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import {
-  CredentialPlatform,
+  parsePlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
@@ -75,11 +76,18 @@ export class SocialWarmupEnrollmentsService {
       return this.hydrateEnrollment(existing, credential);
     }
 
-    const platform = credential.platform as CredentialPlatform;
-    const blueprint = getCurrentSocialWarmupBlueprint(platform);
-    if (!blueprint) {
+    const refusal = getSocialWarmupEnrollmentRefusal(credential.platform);
+    if (refusal) {
+      throw new BadRequestException(refusal.message);
+    }
+
+    const platform = parsePlatform(credential.platform);
+    const blueprint = platform
+      ? getCurrentSocialWarmupBlueprint(platform)
+      : undefined;
+    if (!platform || !blueprint) {
       throw new BadRequestException(
-        `No social warm-up blueprint is published for ${platform}.`,
+        `No social warm-up blueprint is published for ${credential.platform}.`,
       );
     }
 
