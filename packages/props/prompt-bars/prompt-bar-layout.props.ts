@@ -5,6 +5,7 @@ import type {
   ModelCategory,
 } from '@genfeedai/enums';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
+import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
 import type { FormEvent, MutableRefObject, ReactNode, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
@@ -17,6 +18,7 @@ export interface PromptBarCollapsedViewProps {
   isGenerateDisabled: boolean;
   isGenerating: boolean;
   selectedModelCost?: number;
+  generationMeter?: StudioGenerationMeter | null;
   onSubmit: (event?: FormEvent) => void;
   onCancel?: () => void;
   generateLabel: string;

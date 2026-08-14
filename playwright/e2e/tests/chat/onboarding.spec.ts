@@ -175,6 +175,14 @@ test.describe('Agent Onboarding', () => {
       }),
     ).toBeVisible();
     await expect(
+      authenticatedPage.getByTestId('onboarding-composer-card'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: /start with my first image/i,
+      }),
+    ).toHaveCount(0);
+    await expect(
       authenticatedPage.getByText(/Start with 100 welcome credits/i),
     ).toBeVisible();
     await expect(
@@ -358,14 +366,16 @@ test.describe('Agent Onboarding', () => {
 
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
-    await authenticatedPage
-      .getByLabel('What do you create?')
-      .fill(
-        'We help startup operators build AI workflows without noisy guru language.',
-      );
-    await authenticatedPage
-      .getByRole('button', { name: 'Start with my first image' })
-      .click();
+    const composer = authenticatedPage
+      .locator(
+        '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
+      )
+      .first();
+    await composer.click();
+    await composer.pressSequentially(
+      'We help startup operators build AI workflows without noisy guru language.',
+    );
+    await composer.press('Enter');
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`/agent/onboarding/${threadId}$`),

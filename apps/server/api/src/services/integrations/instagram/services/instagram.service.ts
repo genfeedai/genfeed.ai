@@ -1,6 +1,10 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
+  getInstagramErrorCode,
+  isInstagramAuthorizationError,
+} from '@api/services/integrations/instagram/utils/instagram-error.util';
+import {
   CredentialPlatform,
   InstagramMediaType,
   OAuthGrantType,
@@ -190,15 +194,34 @@ export class InstagramService {
     return expiresAtMs <= Date.now() + INSTAGRAM_TOKEN_REFRESH_BUFFER_MS;
   }
 
+  private async findCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument | null> {
+    return credentialId
+      ? this.credentialsService.findOne({
+          id: credentialId,
+          organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        })
+      : this.credentialsService.findOne({
+          brandId,
+          organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        });
+  }
+
   public async getValidCredential(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<InstagramCredentialResponse> {
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
+    const credential = await this.findCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     if (!credential) {
       throw new Error('Instagram credential not found');
@@ -214,7 +237,7 @@ export class InstagramService {
     }
 
     if (this.shouldRefreshAccessToken(credential.accessTokenExpiry)) {
-      return this.refreshToken(organizationId, brandId);
+      return this.refreshToken(organizationId, brandId, credentialId);
     }
 
     return toInstagramCredentialResponse(credential);
@@ -349,17 +372,53 @@ export class InstagramService {
     }
   }
 
+  /**
+   * Reuse the integration's reconnect lifecycle from auxiliary Instagram reads.
+   * Returns false for permission, professional-account, and provider errors so
+   * callers can preserve those states without disconnecting a valid credential.
+   */
+  public async handleAuthorizationError(
+    credentialId: string,
+    error: unknown,
+    context: string,
+  ): Promise<boolean> {
+    if (!isInstagramAuthorizationError(error)) {
+      return false;
+    }
+
+    try {
+      await this.credentialsService.patch(credentialId, {
+        isConnected: false,
+      });
+      this.loggerService.warn(
+        `${context} - credential marked as disconnected due to auth error`,
+        {
+          credentialId,
+          errorCode: getInstagramErrorCode(error),
+        },
+      );
+    } catch (patchError: unknown) {
+      this.loggerService.error(
+        `${context} - failed to mark credential as disconnected`,
+        patchError,
+      );
+    }
+
+    return true;
+  }
+
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<InstagramCredentialResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
+    const credential = await this.findCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     if (!credential) {
       throw new Error('Instagram credential not found');

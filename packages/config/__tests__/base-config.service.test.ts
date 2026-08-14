@@ -159,6 +159,41 @@ describe('BaseConfigService', () => {
     expect(s.get('CUSTOM')).toBe('override');
   });
 
+  it('prefers root .env.local over a stale generated service copy', () => {
+    process.env.PORT = '3000';
+    delete process.env.NODE_ENV;
+    mockFiles({
+      '.env.local': 'CUSTOM=root-canonical',
+      'apps/server/api/.env.local': 'CUSTOM=stale-generated',
+    });
+    const s = new TestConfigService({ appName: 'api', workingDir: 'root' });
+    expect(s.get('CUSTOM')).toBe('root-canonical');
+  });
+
+  it('ignores process.env values that only echo the generated service file', () => {
+    process.env.PORT = '3000';
+    process.env.CUSTOM = 'stale-generated';
+    delete process.env.NODE_ENV;
+    mockFiles({
+      '.env.local': 'CUSTOM=root-canonical',
+      'apps/server/api/.env.local': 'CUSTOM=stale-generated',
+    });
+    const s = new TestConfigService({ appName: 'api', workingDir: 'root' });
+    expect(s.get('CUSTOM')).toBe('root-canonical');
+  });
+
+  it('still honours an explicit process.env override that is not a bun echo', () => {
+    process.env.PORT = '3000';
+    process.env.CUSTOM = 'shell-override';
+    delete process.env.NODE_ENV;
+    mockFiles({
+      '.env.local': 'CUSTOM=root-canonical',
+      'apps/server/api/.env.local': 'CUSTOM=stale-generated',
+    });
+    const s = new TestConfigService({ appName: 'api', workingDir: 'root' });
+    expect(s.get('CUSTOM')).toBe('shell-override');
+  });
+
   it('app-specific test env files (root)', () => {
     process.env.PORT = '3000';
     process.env.NODE_ENV = 'test';

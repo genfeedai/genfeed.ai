@@ -253,6 +253,8 @@ describe('AgentChatMessage', () => {
     );
 
     expect(surface).toBeTruthy();
+    expect(surface).toHaveClass('text-foreground');
+    expect(surface?.className).not.toMatch(/text-foreground\//);
   });
 
   it('exposes heading semantics for assistant messages', () => {
@@ -271,23 +273,33 @@ describe('AgentChatMessage', () => {
   });
 
   it('exposes heading semantics for user messages', () => {
-    render(<AgentChatMessage message={buildMessage('user', 'User bubble')} />);
+    render(<AgentChatMessage message={buildMessage('user', 'User prompt')} />);
 
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Your message' }),
-    ).toBeTruthy();
+    const heading = screen.getByRole('heading', {
+      level: 3,
+      name: 'Your message',
+    });
+    expect(heading).toBeTruthy();
+    expect(heading.className).toMatch(/sr-only/);
+    expect(screen.queryByText('You')).not.toBeInTheDocument();
   });
 
-  it('keeps user messages in bubbles', () => {
+  it('renders user messages as a sticky highlighted card, not a You label or bubble', () => {
     const { container } = render(
-      <AgentChatMessage message={buildMessage('user', 'User bubble')} />,
+      <AgentChatMessage message={buildMessage('user', 'User prompt')} />,
     );
 
     const surface = container.querySelector(
-      '[data-message-role="user"][data-message-surface="bubble"]',
+      '[data-message-role="user"][data-message-surface="prompt"]',
     );
 
     expect(surface).toBeTruthy();
+    expect(surface).toHaveClass('bg-tertiary');
+    expect(surface).toHaveClass('rounded-xl');
+    expect(surface?.parentElement).toHaveClass('sticky');
+    expect(surface?.parentElement).toHaveClass('bg-background');
+    expect(surface?.parentElement).not.toHaveClass('justify-end');
+    expect(surface?.parentElement).toHaveClass('justify-start');
   });
 
   it('renders publish success CTA links from content preview cards', () => {

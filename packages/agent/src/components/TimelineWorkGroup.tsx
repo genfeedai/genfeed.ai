@@ -162,10 +162,10 @@ export function TimelineWorkGroup({
         showSteps && 'mt-0.5 border-t border-border/40 pt-1.5',
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
-        <Clock className="size-3.5 shrink-0 text-foreground/40" />
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-secondary">
+        <Clock className="size-3.5 shrink-0 text-muted" />
         {/* Duration is neutral runtime — only status / failure use semantic color */}
-        <span className="font-medium text-foreground/70">{durationPhrase}</span>
+        <span className="font-medium text-secondary">{durationPhrase}</span>
         {isTerminal ? (
           <>
             <span aria-hidden="true" className="text-foreground/25">
@@ -176,7 +176,7 @@ export function TimelineWorkGroup({
                 'inline-flex items-center gap-1 text-[11px]',
                 terminalStatus === 'failed'
                   ? 'font-medium text-destructive'
-                  : 'text-foreground/45',
+                  : 'text-muted',
               )}
             >
               {terminalStatus === 'failed' ? (
@@ -191,7 +191,7 @@ export function TimelineWorkGroup({
                 <span aria-hidden="true" className="text-foreground/25">
                   ·
                 </span>
-                <span className="text-[11px] text-foreground/40">
+                <span className="text-[11px] text-muted">
                   {stepCount} step{stepCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -202,7 +202,7 @@ export function TimelineWorkGroup({
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="text-[11px] text-foreground/40">
+            <span className="text-[11px] text-muted">
               {stepCount} step{stepCount !== 1 ? 's' : ''}
             </span>
           </>
@@ -212,7 +212,7 @@ export function TimelineWorkGroup({
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="truncate text-[11px] text-foreground/45">
+            <span className="truncate text-[11px] text-muted">
               {failureDetail}
             </span>
           </>
@@ -221,7 +221,7 @@ export function TimelineWorkGroup({
       {isCollapsible && stepCount > 0 ? (
         <ChevronDown
           className={cn(
-            'size-3.5 shrink-0 text-foreground/40 transition-transform',
+            'size-3.5 shrink-0 text-muted transition-transform',
             isExpanded ? 'rotate-180' : '',
           )}
         />

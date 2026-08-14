@@ -29,8 +29,8 @@ export function AgentConversationSkeleton({
           </div>
 
           <div className="flex flex-1 flex-col gap-12 pt-1">
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-md bg-white/[0.05]" />
+            <div className="flex justify-start">
+              <Skeleton className="h-16 w-full rounded-xl bg-white/[0.05]" />
             </div>
 
             <div className="max-w-[40rem] space-y-3 pt-2">

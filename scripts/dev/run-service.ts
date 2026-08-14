@@ -1,9 +1,9 @@
-import { spawn } from 'node:child_process';
 import {
   buildDirectEnvironment,
   isPortlessService,
   type PortlessService,
 } from './portless-env';
+import { runDetachedCommand } from './terminate-child-tree';
 
 const ARGUMENT_SEPARATOR = '--';
 
@@ -36,40 +36,6 @@ function parseArguments(): ParsedArguments {
   return { command: args, currentService };
 }
 
-function run(
-  command: string[],
-  environment: NodeJS.ProcessEnv,
-): Promise<number> {
-  const executable = command[0];
-  if (!executable) {
-    return Promise.reject(new Error('Cannot run an empty command.'));
-  }
-
-  const child = spawn(executable, command.slice(1), {
-    env: environment,
-    stdio: 'inherit',
-  });
-
-  const forwardInterrupt = (): void => {
-    child.kill('SIGINT');
-  };
-  const forwardTermination = (): void => {
-    child.kill('SIGTERM');
-  };
-
-  process.once('SIGINT', forwardInterrupt);
-  process.once('SIGTERM', forwardTermination);
-
-  return new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code, signal) => {
-      process.off('SIGINT', forwardInterrupt);
-      process.off('SIGTERM', forwardTermination);
-      resolve(code ?? (signal ? 1 : 0));
-    });
-  });
-}
-
 async function main(): Promise<void> {
   const { command, currentService } = parseArguments();
   const environment = process.env.PORTLESS_URL
@@ -82,7 +48,7 @@ async function main(): Promise<void> {
         }),
       };
 
-  process.exit(await run(command, environment));
+  process.exit(await runDetachedCommand(command, environment));
 }
 
 await main();

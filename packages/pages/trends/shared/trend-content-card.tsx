@@ -310,7 +310,7 @@ export default function TrendContentCard({
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
-              <Link href={remixHref}>
+              <Link aria-label={translate('actions.remix')} href={remixHref}>
                 <Sparkles className="size-3.5" />
                 {translate('actions.remix')}
               </Link>

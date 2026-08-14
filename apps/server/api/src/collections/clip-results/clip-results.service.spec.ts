@@ -36,6 +36,7 @@ function createPrisma() {
             { name: 'id' },
             { name: 'organizationId' },
             { name: 'projectId' },
+            { name: 'ingredientId' },
             { name: 'userId' },
             { name: 'providerJobId' },
             { name: 'viralityScore' },
@@ -372,6 +373,37 @@ describe('ClipResultsService', () => {
     ).resolves.toBe(false);
 
     expect(prisma.clipResult.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('claims a Library ingredient only when the clip is still unlinked or already owned', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue({
+      data: { title: 'Existing' },
+    });
+    prisma.clipResult.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.claimLibraryIngredient({
+        clipResultId: 'clip-1',
+        ingredientId: 'ingredient-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(true);
+
+    expect(prisma.clipResult.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        data: expect.objectContaining({
+          libraryLinkError: null,
+          libraryLinkStatus: 'linked',
+        }),
+        ingredientId: 'ingredient-1',
+      }),
+      where: {
+        id: 'clip-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        OR: [{ ingredientId: null }, { ingredientId: 'ingredient-1' }],
+      },
+    });
   });
 
   it('scopes project lookup by organization when provided', async () => {

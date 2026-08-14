@@ -6,6 +6,8 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
+
 import type { LibraryArtifactReference } from './library-remix-reference';
 
 type LibrarySourcePreviewProps = {
@@ -71,7 +73,10 @@ export default function LibrarySourcePreview({
           loading="lazy"
           sizes="(max-width: 768px) 45vw, 12rem"
           src={sourceUrl}
-          unoptimized={ingredient?.category === IngredientCategory.GIF}
+          unoptimized={
+            ingredient?.category === IngredientCategory.GIF ||
+            !canOptimizeImageSource(sourceUrl)
+          }
         />
       ) : (
         <div className="flex size-full items-center justify-center text-muted-foreground">

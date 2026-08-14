@@ -62,6 +62,7 @@ describe('LibraryOverviewPage', () => {
     expect(imagesTile.tagName).toBe('A');
     expect(voicesTile.tagName).toBe('A');
     expect(videosTile).toHaveClass('rounded-card');
+    expect(videosTile.className).not.toContain('translate-y');
     expect(screen.getAllByRole('link')).toHaveLength(7);
   });
 });

@@ -280,6 +280,34 @@ describe('SocialMessagesService', () => {
     expect(result).toEqual(payload);
   });
 
+  it('syncX enqueues the X mention and reply sweep', async () => {
+    const payload = { jobId: 'job-4', status: 'queued' };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.syncX(20);
+
+    expect(http.post).toHaveBeenCalledWith('/x/sync', { limit: 20 });
+    expect(result).toEqual(payload);
+  });
+
+  it('syncXDms and LinkedIn routes enqueue on their own paths', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse({ jobId: 'job-5', status: 'queued' }),
+    );
+
+    await service.syncXDms();
+    await service.syncLinkedIn(15);
+    await service.syncLinkedInDms(10);
+
+    expect(http.post).toHaveBeenNthCalledWith(1, '/x/dms/sync', { limit: 25 });
+    expect(http.post).toHaveBeenNthCalledWith(2, '/linkedin/sync', {
+      limit: 15,
+    });
+    expect(http.post).toHaveBeenNthCalledWith(3, '/linkedin/dms/sync', {
+      limit: 10,
+    });
+  });
+
   it('wraps transport failures in a structured error', async () => {
     http.post.mockRejectedValue({
       response: { data: { message: 'rate limited' }, status: 429 },

@@ -1,4 +1,5 @@
 import type {
+  ClipLibraryLinkStatus,
   ClipReadinessContract,
   ClipReadyAction,
   ClipReferenceFrameSet,
@@ -14,7 +15,7 @@ export type ClipStatus = ClipResultStatus;
 
 export type ClipReadiness = ClipReadinessContract;
 
-export type { ClipReadyAction, ClipResultMode };
+export type { ClipLibraryLinkStatus, ClipReadyAction, ClipResultMode };
 
 export type ClipsStep = 'input' | 'review' | 'progress';
 
@@ -50,6 +51,9 @@ export interface ClipResult {
   videoUrl?: string;
   captionedVideoUrl?: string;
   clipType?: string;
+  ingredientId?: string | null;
+  libraryLinkStatus?: ClipLibraryLinkStatus;
+  libraryLinkError?: string | null;
   mode?: ClipResultMode;
   duration: number;
   startTime: number;

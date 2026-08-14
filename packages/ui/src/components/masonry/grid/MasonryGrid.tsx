@@ -30,12 +30,12 @@ function getColumnsConfig(format?: IngredientFormat): {
   desktop: number;
 } {
   if (format === IngredientFormat.LANDSCAPE) {
-    return { desktop: 2, mobile: 1, tablet: 2 };
+    return { desktop: 3, mobile: 2, tablet: 2 };
   }
   if (format === IngredientFormat.PORTRAIT) {
-    return { desktop: 4, mobile: 2, tablet: 3 };
+    return { desktop: 6, mobile: 3, tablet: 5 };
   }
-  return { desktop: 3, mobile: 2, tablet: 3 };
+  return { desktop: 5, mobile: 3, tablet: 4 };
 }
 
 function getMediaType(ingredient: IIngredient): MediaType {
@@ -263,7 +263,7 @@ export default function MasonryGrid({
       className={cn('masonry-container transition-all duration-300')}
       style={{
         columnCount,
-        columnGap: '8px',
+        columnGap: '4px',
       }}
     >
       {displayedIngredients.map((ingredient: IIngredient) => {
@@ -281,7 +281,7 @@ export default function MasonryGrid({
           <div
             key={ingredient.id}
             ref={registerItem(ingredient.id)}
-            className="masonry-item mb-2 break-inside-avoid transition-all duration-300 ease-out data-[dimmed=true]:opacity-35"
+            className="masonry-item mb-1 break-inside-avoid transition-all duration-300 ease-out data-[dimmed=true]:opacity-35"
             data-ingredient-id={ingredient.id}
             data-hovered="false"
             data-dimmed="false"

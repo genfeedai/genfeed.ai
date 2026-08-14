@@ -6,7 +6,6 @@ import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollo
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -33,12 +32,12 @@ type AgentChatEmptyStateProps = {
   isAttachmentUploading: boolean;
   isBusy: boolean;
   isComposerVisible: boolean;
+  composerBanner?: ReactNode;
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
   /** Compact rail layout for the workspace inspector drawer. */
   variant?: 'default' | 'inspector';
-  contextUsage?: ConversationContextUsage | null;
   onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
   onRemoveFollowUp?: (id: string) => void;
   onSend: (
@@ -76,11 +75,11 @@ export function AgentChatEmptyState({
   isAttachmentUploading,
   isBusy,
   isComposerVisible,
+  composerBanner,
   isReadOnly,
   isRunActive,
   isWideLayout,
   variant = 'default',
-  contextUsage = null,
   onMoveFollowUp,
   onSend,
   onSendFollowUpNow,
@@ -109,6 +108,13 @@ export function AgentChatEmptyState({
         onSendNow={onSendFollowUpNow}
         queue={followUps}
       />
+    ) : null;
+  const composerTopContent =
+    composerBanner || followUpQueue ? (
+      <>
+        {composerBanner}
+        {followUpQueue}
+      </>
     ) : null;
 
   if (isInspector) {
@@ -159,7 +165,8 @@ export function AgentChatEmptyState({
               className="w-full"
               layoutMode="inflow"
               maxWidth="full"
-              topContent={followUpQueue}
+              showTopFade
+              topContent={composerTopContent}
               zIndex={60}
             >
               <AgentChatInput
@@ -167,7 +174,6 @@ export function AgentChatEmptyState({
                 apiService={apiService}
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
-                contextUsage={contextUsage}
                 disabled={isReadOnly}
                 dragHandlers={dragHandlers}
                 dragState={dragState}

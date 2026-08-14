@@ -1,1 +1,4 @@
-export * from './use-social-warmup-enrollment';
+export {
+  SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY,
+  useSocialWarmupEnrollment,
+} from './use-social-warmup-enrollment';

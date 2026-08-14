@@ -1,5 +1,4 @@
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
-import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
@@ -202,50 +201,5 @@ describe('IngredientPickerCard', () => {
     render(<IngredientPickerCard action={makeAction({ ingredients: [] })} />);
 
     expect(screen.getByText('No ingredients available')).toBeInTheDocument();
-  });
-});
-
-describe('OnboardingConversationCard', () => {
-  it('disables start until context or URL is provided', () => {
-    render(<OnboardingConversationCard onStart={vi.fn()} />);
-
-    expect(
-      screen.getByRole('button', { name: /start with my first image/i }),
-    ).toBeDisabled();
-  });
-
-  it('builds the onboarding message from the selections', () => {
-    const onStart = vi.fn();
-    render(<OnboardingConversationCard onStart={onStart} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /brand/i }));
-    fireEvent.change(screen.getByLabelText(/website, x, or linkedin/i), {
-      target: { value: 'https://acme.test' },
-    });
-    fireEvent.change(screen.getByLabelText(/what do you create\?/i), {
-      target: { value: 'Product renders' },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: /start with my first image/i }),
-    );
-
-    expect(onStart).toHaveBeenCalledTimes(1);
-    const message = onStart.mock.calls[0]?.[0] as string;
-    expect(message).toContain("I'm signing up as a brand.");
-    expect(message).toContain('https://acme.test');
-    expect(message).toContain('Extra context: Product renders.');
-  });
-
-  it('never calls onStart while disabled', () => {
-    const onStart = vi.fn();
-    render(<OnboardingConversationCard isDisabled onStart={onStart} />);
-
-    fireEvent.change(screen.getByLabelText(/what do you create\?/i), {
-      target: { value: 'Something' },
-    });
-    expect(
-      screen.getByRole('button', { name: /start with my first image/i }),
-    ).toBeDisabled();
-    expect(onStart).not.toHaveBeenCalled();
   });
 });

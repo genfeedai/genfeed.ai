@@ -4,6 +4,7 @@ import type { SocialWarmupEnrollmentsQueryDto } from '@api/collections/social-wa
 import type { UpsertSocialWarmupSignalDto } from '@api/collections/social-warmup-enrollments/dto/upsert-social-warmup-signal.dto';
 import type { SocialWarmupEnrollmentDocument } from '@api/collections/social-warmup-enrollments/schemas/social-warmup-enrollment.schema';
 import {
+  authorizedEvidenceFromWarmupSignals,
   completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   isEnrollmentUniqueViolation,
@@ -20,6 +21,7 @@ import {
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
 import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
@@ -27,6 +29,7 @@ import {
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import { getSocialWarmupEnrollmentRefusal } from '@api-types/contracts/social-warmup-capability.contract';
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
   parsePlatform,
   SocialWarmupEnrollmentState,
@@ -53,8 +56,6 @@ const enrollmentInclude = {
     where: { isDeleted: false },
   },
 } as const;
-
-const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
 
 @Injectable()
 export class SocialWarmupEnrollmentsService {
@@ -265,6 +266,36 @@ export class SocialWarmupEnrollmentsService {
     organizationId: string;
     snapshot: TikTokAuthorizedSignalsSnapshot;
   }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  async syncInstagramAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: InstagramAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  async syncTwitterAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: TwitterAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  private async syncAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot:
+      | TikTokAuthorizedSignalsSnapshot
+      | InstagramAuthorizedSignalsSnapshot
+      | TwitterAuthorizedSignalsSnapshot;
+  }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,
       credentialId: params.credentialId,
@@ -468,62 +499,36 @@ export class SocialWarmupEnrollmentsService {
   }
 
   private signalCreatesFromCredential(credential: {
+    platform?: string;
     warmupSignals: unknown;
   }): Prisma.SocialWarmupSignalUncheckedCreateWithoutEnrollmentInput[] {
-    const stored =
-      credential.warmupSignals &&
-      typeof credential.warmupSignals === 'object' &&
-      !Array.isArray(credential.warmupSignals)
-        ? (credential.warmupSignals as Record<string, unknown>)
-        : {};
-    const snapshot = stored[TIKTOK_AUTHORIZED_STORAGE_KEY];
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return [];
-    }
-    const evidence = (snapshot as { evidence?: unknown }).evidence;
-    if (!Array.isArray(evidence)) {
-      return [];
-    }
-
-    return evidence.flatMap((item) => {
-      const record =
-        item && typeof item === 'object' && !Array.isArray(item)
-          ? (item as Record<string, unknown>)
-          : {};
-      const key = typeof record.key === 'string' ? record.key : undefined;
-      if (!key) {
-        return [];
-      }
-      return [
-        {
-          evidence: toPrismaJson(
-            safeSignalEvidence({
-              fieldAvailability: record.fieldAvailability,
-              reason: record.reason,
-              scope: record.scope,
-              value: record.value,
-            }),
-          ),
-          key,
-          observedAt:
-            typeof record.observedAt === 'string'
-              ? new Date(record.observedAt)
-              : undefined,
-          source: mapTikTokSource(
-            typeof record.provenance === 'string'
-              ? record.provenance
-              : undefined,
-          ),
-          staleAt:
-            typeof record.staleAt === 'string'
-              ? new Date(record.staleAt)
-              : undefined,
-          status: mapTikTokStatus(
-            typeof record.status === 'string' ? record.status : undefined,
-          ),
-        },
-      ];
-    });
+    return authorizedEvidenceFromWarmupSignals(credential.warmupSignals).map(
+      (record) => ({
+        evidence: toPrismaJson(
+          safeSignalEvidence({
+            fieldAvailability: record.fieldAvailability,
+            reason: record.reason,
+            scope: record.scope,
+            value: record.value,
+          }),
+        ),
+        key: String(record.key),
+        observedAt:
+          typeof record.observedAt === 'string'
+            ? new Date(record.observedAt)
+            : undefined,
+        source: mapTikTokSource(
+          typeof record.provenance === 'string' ? record.provenance : undefined,
+        ),
+        staleAt:
+          typeof record.staleAt === 'string'
+            ? new Date(record.staleAt)
+            : undefined,
+        status: mapTikTokStatus(
+          typeof record.status === 'string' ? record.status : undefined,
+        ),
+      }),
+    );
   }
 
   private async upsertSignalRow(params: {

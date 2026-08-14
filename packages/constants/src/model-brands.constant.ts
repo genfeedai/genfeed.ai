@@ -1,15 +1,32 @@
+export type ModelBrandIconKey =
+  | 'anthropic'
+  | 'argil'
+  | 'bytedance'
+  | 'deepseek'
+  | 'fal'
+  | 'flux'
+  | 'genfeed'
+  | 'google'
+  | 'heygen'
+  | 'ideogram'
+  | 'kling'
+  | 'local'
+  | 'luma'
+  | 'meta'
+  | 'moonshot'
+  | 'openai'
+  | 'pruna'
+  | 'qwen'
+  | 'replicate'
+  | 'runway'
+  | 'topaz'
+  | 'wan'
+  | 'xai';
+
 export interface ModelBrandConfig {
   label: string;
   color: string;
-  iconKey?:
-    | 'anthropic'
-    | 'bytedance'
-    | 'deepseek'
-    | 'flux'
-    | 'google'
-    | 'meta'
-    | 'openai'
-    | 'xai';
+  iconKey?: ModelBrandIconKey;
 }
 
 /**
@@ -20,28 +37,28 @@ export interface ModelBrandConfig {
  */
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   anthropic: { color: '#D97757', iconKey: 'anthropic', label: 'Anthropic' },
-  argil: { color: '#7C3AED', label: 'Argil' },
+  argil: { color: '#7C3AED', iconKey: 'argil', label: 'Argil' },
   'black-forest-labs': { color: '#8B5CF6', iconKey: 'flux', label: 'BFL' },
   bytedance: { color: '#00F0FF', iconKey: 'bytedance', label: 'ByteDance' },
   deepseek: { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
   'deepseek-ai': { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
-  'fal-ai': { color: '#06B6D4', label: 'Fal' },
-  'genfeed-ai': { color: '#3B82F6', label: 'GenFeed' },
+  'fal-ai': { color: '#06B6D4', iconKey: 'fal', label: 'Fal' },
+  'genfeed-ai': { color: '#3B82F6', iconKey: 'genfeed', label: 'GenFeed' },
   google: { color: '#4285F4', iconKey: 'google', label: 'Google' },
-  heygen: { color: '#00C2FF', label: 'HeyGen' },
-  'ideogram-ai': { color: '#FF6B35', label: 'Ideogram' },
-  kwaivgi: { color: '#FF2D55', label: 'Kling' },
-  local: { color: '#64748B', label: 'Self-hosted' },
-  luma: { color: '#7C3AED', label: 'Luma' },
+  heygen: { color: '#00C2FF', iconKey: 'heygen', label: 'HeyGen' },
+  'ideogram-ai': { color: '#FF6B35', iconKey: 'ideogram', label: 'Ideogram' },
+  kwaivgi: { color: '#FF2D55', iconKey: 'kling', label: 'Kling' },
+  local: { color: '#64748B', iconKey: 'local', label: 'Self-hosted' },
+  luma: { color: '#7C3AED', iconKey: 'luma', label: 'Luma' },
   meta: { color: '#0668E1', iconKey: 'meta', label: 'Meta' },
-  moonshotai: { color: '#16A34A', label: 'Moonshot' },
+  moonshotai: { color: '#16A34A', iconKey: 'moonshot', label: 'Moonshot' },
   openai: { color: '#10A37F', iconKey: 'openai', label: 'OpenAI' },
-  prunaai: { color: '#10B981', label: 'Pruna' },
-  qwen: { color: '#6366F1', label: 'Qwen' },
-  replicate: { color: '#D97706', label: 'Replicate' },
-  runwayml: { color: '#00D4FF', label: 'Runway' },
-  topazlabs: { color: '#F59E0B', label: 'Topaz' },
-  'wan-video': { color: '#EC4899', label: 'Wan' },
+  prunaai: { color: '#10B981', iconKey: 'pruna', label: 'Pruna' },
+  qwen: { color: '#6366F1', iconKey: 'qwen', label: 'Qwen' },
+  replicate: { color: '#D97706', iconKey: 'replicate', label: 'Replicate' },
+  runwayml: { color: '#00D4FF', iconKey: 'runway', label: 'Runway' },
+  topazlabs: { color: '#F59E0B', iconKey: 'topaz', label: 'Topaz' },
+  'wan-video': { color: '#EC4899', iconKey: 'wan', label: 'Wan' },
   'x-ai': { color: '#FFFFFF', iconKey: 'xai', label: 'xAI' },
 };
 
@@ -54,20 +71,44 @@ export const COST_TIER_DISPLAY: Record<
   medium: { colorClass: 'text-yellow-400 bg-yellow-400/10', symbol: '$$' },
 };
 
+/**
+ * Catalog keys that have no `provider/` prefix. Map them to a real brand
+ * instead of dumping every leftover into an "Unknown" bucket.
+ */
+const MODEL_KEY_BRAND_ALIASES: Record<string, string> = {
+  'klingai-v2': 'kwaivgi',
+};
+
+const FALLBACK_BRAND_LABELS: Record<string, string> = {
+  leonardoai: 'Leonardo',
+  sdxl: 'SDXL',
+};
+
 export function extractBrandFromKey(modelKey: string): string {
+  if (MODEL_BRANDS[modelKey]) {
+    return modelKey;
+  }
+
+  const aliasedBrand = MODEL_KEY_BRAND_ALIASES[modelKey];
+  if (aliasedBrand) {
+    return aliasedBrand;
+  }
+
   const slashIndex = modelKey.indexOf('/');
   if (slashIndex > 0) {
     return modelKey.substring(0, slashIndex);
   }
 
-  return 'unknown';
+  return modelKey;
 }
 
 export function getBrandConfig(brandSlug: string): ModelBrandConfig {
   return (
     MODEL_BRANDS[brandSlug] ?? {
       color: '#6B7280',
-      label: brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1),
+      label:
+        FALLBACK_BRAND_LABELS[brandSlug] ??
+        brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1),
     }
   );
 }

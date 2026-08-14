@@ -50,7 +50,15 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
       return '/login';
     }
 
-    if (isUserLoading || isAccessStateLoading || !currentUser || !accessState) {
+    if (isUserLoading || isAccessStateLoading || !currentUser) {
+      return null;
+    }
+
+    // Agent-first onboarding is the /agent/onboarding conversation. Waiting on
+    // accessState here deadlocks first-login users whose brand context has not
+    // resolved an organizationId yet — the access query never enables, this
+    // guard spins forever, and the agent surface never mounts.
+    if (!accessState) {
       return null;
     }
 
@@ -120,13 +128,15 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
     }
   }, [redirectTarget, replace]);
 
+  const canRenderWithoutAccessState = hasAgentFirstOnboarding();
+
   if (
     !effectiveIsAuthLoaded ||
     isUserLoading ||
     isAccessStateLoading ||
     !currentUser ||
-    !accessState ||
-    redirectTarget
+    redirectTarget ||
+    (!accessState && !canRenderWithoutAccessState)
   ) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">

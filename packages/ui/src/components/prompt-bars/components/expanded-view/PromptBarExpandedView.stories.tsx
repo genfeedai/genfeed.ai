@@ -80,6 +80,7 @@ function createMockContext(
     refocusTextarea: () => {},
     requiresReferences: false,
     selectedModelCost: 0,
+    generationMeter: null,
     selectedModels: [],
     selectedPreset: '',
     selectedProfile: '',

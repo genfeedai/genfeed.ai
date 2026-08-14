@@ -13,6 +13,7 @@ import {
 } from '@api/shared/services/base/base.service';
 import {
   CLIP_TERMINAL_STATUSES,
+  type ClipLibraryLinkStatus,
   type ClipReferenceProvenance,
   type ClipTerminalStatus,
 } from '@genfeedai/interfaces';
@@ -35,6 +36,7 @@ export type ProviderTerminalTransitionInput = {
 
 const RESULT_SCALAR_KEYS = new Set([
   'data',
+  'ingredientId',
   'isDeleted',
   'isSelected',
   'mode',
@@ -305,6 +307,75 @@ export class ClipResultsService extends BaseService<
     return this.normalizeDocuments(results);
   }
 
+  async claimLibraryIngredient(input: {
+    clipResultId: string;
+    ingredientId: string;
+    organizationId: string;
+  }): Promise<boolean> {
+    const where: Prisma.ClipResultWhereInput = scopedWhere(
+      input.organizationId,
+      {
+        id: input.clipResultId,
+        OR: [{ ingredientId: null }, { ingredientId: input.ingredientId }],
+      },
+    );
+    const existing = await this.delegate.findFirst({
+      select: { data: true },
+      where,
+    });
+    if (!existing) {
+      return false;
+    }
+
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Compare-and-swap for one clip result; `where` is scopedWhere(organizationId, { id, isDeleted }).
+    const result = await this.delegate.updateMany({
+      data: this.toPrismaWriteData(
+        {
+          ingredientId: input.ingredientId,
+          libraryLinkError: null,
+          libraryLinkStatus: 'linked',
+        },
+        'update',
+        this.readRecord(existing.data),
+      ),
+      where,
+    });
+
+    return result.count === 1;
+  }
+
+  async markLibraryLinkState(input: {
+    clipResultId: string;
+    error?: string | null;
+    organizationId: string;
+    status: ClipLibraryLinkStatus;
+  }): Promise<void> {
+    const where: Prisma.ClipResultWhereInput = scopedWhere(
+      input.organizationId,
+      { id: input.clipResultId },
+    );
+    const existing = await this.delegate.findFirst({
+      select: { data: true },
+      where,
+    });
+    if (!existing) {
+      return;
+    }
+
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Single clip result status write; `where` is scopedWhere(organizationId, { id, isDeleted }).
+    await this.delegate.updateMany({
+      data: this.toPrismaWriteData(
+        {
+          libraryLinkError: input.error ?? null,
+          libraryLinkStatus: input.status,
+        },
+        'update',
+        this.readRecord(existing.data),
+      ),
+      where,
+    });
+  }
+
   async findProjectResultForHandoff(input: {
     clipResultId: string;
     organizationId: string;
@@ -348,6 +419,7 @@ export class ClipResultsService extends BaseService<
     this.assignIfOwn(data, dto, 'readiness');
     this.assignIfOwn(data, dto, 'terminalAt');
     this.assignIfOwn(data, dto, 'isDeleted');
+    this.assignIfOwn(data, dto, 'ingredientId');
 
     for (const [key, value] of Object.entries(dto)) {
       if (RESULT_SCALAR_KEYS.has(key) || value === undefined) {

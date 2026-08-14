@@ -6,7 +6,7 @@ import {
   MOOD_BOARD_TILE_WIDTH,
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
 import Image from 'next/image';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
@@ -54,13 +54,15 @@ function MediaAssetNodeComponent({
   const src = isVideo
     ? ingredient.thumbnailUrl || ingredient.ingredientUrl
     : ingredient.ingredientUrl || ingredient.thumbnailUrl;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showPreview = Boolean(src) && failedSrc !== src;
 
   return (
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/[0.08] bg-card shadow-sm transition-colors hover:border-white/[0.18] gen-contact-sheet"
+      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/[0.08] bg-secondary shadow-sm transition-colors hover:border-white/[0.18] gen-contact-sheet"
       style={{ width: MOOD_BOARD_TILE_WIDTH, aspectRatio }}
     >
-      {src ? (
+      {showPreview && src ? (
         <Image
           src={src}
           alt={ingredient.metadataLabel || ingredient.promptText || 'asset'}
@@ -69,6 +71,7 @@ function MediaAssetNodeComponent({
           sizes={`${MOOD_BOARD_TILE_WIDTH}px`}
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           draggable={false}
+          onError={() => setFailedSrc(src)}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-xs text-foreground/40">

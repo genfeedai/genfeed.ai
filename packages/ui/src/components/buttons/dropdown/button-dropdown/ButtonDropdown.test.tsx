@@ -79,7 +79,9 @@ describe('ButtonDropdown', () => {
       button: 0,
       ctrlKey: false,
     });
-    fireEvent.click(await screen.findByText('Option C'));
+    const option = await screen.findByText('Option C');
+    expect(option).toHaveClass('px-2', 'py-1', 'text-xs');
+    fireEvent.click(option);
 
     expect(updateButtonDropdown).toHaveBeenCalledWith('test', 'c');
   });

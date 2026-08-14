@@ -1,11 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
+import { AddSourceDto } from '@api/collections/contexts/dto/add-source.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
+import { UpdateSourceDto } from '@api/collections/contexts/dto/update-source.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -37,7 +40,10 @@ import type { Request } from 'express';
 @ApiTags('Contexts')
 @Controller('contexts')
 export class ContextsController {
-  constructor(private readonly contextsService: ContextsService) {}
+  constructor(
+    private readonly contextsService: ContextsService,
+    private readonly knowledgeSourceService: KnowledgeSourceService,
+  ) {}
 
   /**
    * Create a new context base
@@ -159,6 +165,83 @@ export class ContextsController {
     const organization = user.organizationId;
     await this.contextsService.removeEntry(contextId, entryId, organization);
     return { message: 'Entry removed successfully' };
+  }
+
+  /**
+   * Add a URL or document source and enqueue chunk/embed ingest.
+   */
+  @Post(':contextId/sources')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async addSource(
+    @Req() req: Request,
+    @Param('contextId') contextId: string,
+    @Body() dto: AddSourceDto,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    const result = await this.knowledgeSourceService.addSource(
+      contextId,
+      dto,
+      organization,
+    );
+    return {
+      ...serializeSingle(req, ContextBaseSerializer, result.contextBase),
+      jobId: result.jobId,
+      source: result.source,
+    };
+  }
+
+  /**
+   * Update a source. Changing URL or category re-ingests chunks.
+   */
+  @Patch(':contextId/sources/:sourceId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async updateSource(
+    @Req() req: Request,
+    @Param('contextId') contextId: string,
+    @Param('sourceId') sourceId: string,
+    @Body() dto: UpdateSourceDto,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    const result = await this.knowledgeSourceService.updateSource(
+      contextId,
+      sourceId,
+      dto,
+      organization,
+    );
+    return {
+      ...serializeSingle(req, ContextBaseSerializer, result.contextBase),
+      jobId: result.jobId,
+      source: result.source,
+    };
+  }
+
+  /**
+   * Soft-delete a source and its embedded chunks.
+   */
+  @Delete(':contextId/sources/:sourceId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async removeSource(
+    @Param('contextId') contextId: string,
+    @Param('sourceId') sourceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    return this.knowledgeSourceService.removeSource(
+      contextId,
+      sourceId,
+      organization,
+    );
+  }
+
+  /**
+   * Queue a tenant-scoped backfill of KnowledgeBase sources.
+   */
+  @Post('backfill')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async backfillSources(@CurrentUser() user: User) {
+    return this.knowledgeSourceService.backfill(user.organizationId);
   }
 
   /**

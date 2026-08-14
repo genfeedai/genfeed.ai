@@ -3,6 +3,11 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  isTwitterAuthorizationError,
+  isTwitterRateLimitError,
+  isTwitterScopeOrTierError,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
@@ -12,6 +17,7 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
@@ -48,6 +54,152 @@ interface TwitterApiErrorShape {
   rateLimitWaitMs?: number;
 }
 
+export type TwitterInboxTweet = {
+  tweetId: string;
+  conversationId: string;
+  text: string;
+  createdAt: Date;
+  authorId?: string;
+  authorUsername?: string;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  inReplyToId: string | null;
+};
+
+export type TwitterInboxDmMessage = {
+  messageId: string;
+  text: string;
+  createdAt: Date;
+  senderId?: string;
+  senderUsername?: string;
+  senderName?: string;
+};
+
+export type TwitterInboxDmThread = {
+  conversationId: string;
+  participantExternalId?: string;
+  participantUsername?: string;
+  participantName?: string;
+  messages: TwitterInboxDmMessage[];
+};
+
+type TwitterUserInclude = {
+  id: string;
+  username?: string;
+  name?: string;
+  profile_image_url?: string;
+};
+
+type TwitterMentionsResponse = {
+  data?: Array<{
+    id: string;
+    text?: string;
+    created_at?: string;
+    author_id?: string;
+    conversation_id?: string;
+    referenced_tweets?: Array<{ type: string; id: string }>;
+  }>;
+  includes?: { users?: TwitterUserInclude[] };
+};
+
+type TwitterDmEventsResponse = {
+  data?: Array<{
+    id?: string;
+    text?: string;
+    created_at?: string;
+    sender_id?: string;
+    event_type?: string;
+    dm_conversation_id?: string;
+  }>;
+  includes?: { users?: TwitterUserInclude[] };
+};
+
+function toGraphDate(value?: string): Date {
+  const parsed = value ? new Date(value) : new Date();
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function toInboxTweets(
+  result: TwitterMentionsResponse,
+  accountId: string,
+): TwitterInboxTweet[] {
+  const usersById = new Map(
+    (result.includes?.users ?? []).map((user) => [user.id, user]),
+  );
+
+  return (result.data ?? []).flatMap((tweet) => {
+    if (!tweet.id || !tweet.text || tweet.author_id === accountId) {
+      return [];
+    }
+
+    const author = usersById.get(tweet.author_id ?? '');
+    const repliedTo = tweet.referenced_tweets?.find(
+      (ref) => ref.type === 'replied_to',
+    );
+
+    return [
+      {
+        authorAvatarUrl: author?.profile_image_url,
+        authorId: tweet.author_id,
+        authorName: author?.name,
+        authorUsername: author?.username,
+        conversationId: tweet.conversation_id ?? tweet.id,
+        createdAt: toGraphDate(tweet.created_at),
+        inReplyToId: repliedTo?.id ?? null,
+        text: tweet.text ?? '',
+        tweetId: tweet.id,
+      },
+    ];
+  });
+}
+
+function toInboxDmThreads(
+  result: TwitterDmEventsResponse,
+  accountId: string,
+): TwitterInboxDmThread[] {
+  const usersById = new Map(
+    (result.includes?.users ?? []).map((user) => [user.id, user]),
+  );
+  const threads = new Map<string, TwitterInboxDmThread>();
+
+  for (const event of result.data ?? []) {
+    if (
+      !event.id ||
+      !event.dm_conversation_id ||
+      !event.text ||
+      event.sender_id === accountId
+    ) {
+      continue;
+    }
+
+    const sender = usersById.get(event.sender_id ?? '');
+    const existing = threads.get(event.dm_conversation_id);
+    const message: TwitterInboxDmMessage = {
+      createdAt: toGraphDate(event.created_at),
+      messageId: event.id,
+      senderId: event.sender_id,
+      senderName: sender?.name,
+      senderUsername: sender?.username,
+      text: event.text,
+    };
+
+    if (existing) {
+      existing.messages.push(message);
+      continue;
+    }
+
+    threads.set(event.dm_conversation_id, {
+      conversationId: event.dm_conversation_id,
+      messages: [message],
+      participantExternalId: event.sender_id,
+      participantName: sender?.name,
+      participantUsername: sender?.username,
+    });
+  }
+
+  return [...threads.values()];
+}
+
 interface TweetMediaOptions {
   media: {
     media_ids:
@@ -65,6 +217,8 @@ interface TweetMediaOptions {
  * vocabulary. `everyone` is absent on purpose: the API expresses it by omitting
  * the field, and sending an unknown value rejects the whole tweet.
  */
+const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
+
 const TWITTER_REPLY_SETTINGS_BY_POLICY: Record<string, string> = {
   following: 'following',
   mentioned: 'mentionedUsers',
@@ -126,18 +280,117 @@ export class TwitterService {
     return SocialUrlHelper.buildTwitterUrl(tweetId, username);
   }
 
+  private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
+    if (!expiresAt) {
+      return true;
+    }
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) {
+      return true;
+    }
+
+    return expiresAtMs <= Date.now() + TWITTER_TOKEN_REFRESH_BUFFER_MS;
+  }
+
+  public async getValidCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument> {
+    const credential = await this.findTwitterCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+
+    if (!credential) {
+      throw new Error('Twitter credential not found');
+    }
+
+    if (
+      !credential.accessToken ||
+      this.shouldRefreshAccessToken(credential.accessTokenExpiry)
+    ) {
+      return this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId ?? credential.id,
+      );
+    }
+
+    return credential;
+  }
+
+  /**
+   * Reuse the integration's reconnect lifecycle from auxiliary X reads.
+   * Returns false for permission, rate-limit, and provider errors so callers
+   * can preserve those states without disconnecting a valid credential.
+   */
+  public async handleAuthorizationError(
+    credentialId: string,
+    error: unknown,
+    context: string,
+  ): Promise<boolean> {
+    if (
+      isTwitterScopeOrTierError(error) ||
+      isTwitterRateLimitError(error) ||
+      !isTwitterAuthorizationError(error)
+    ) {
+      return false;
+    }
+
+    try {
+      await this.credentialsService.patch(credentialId, {
+        isConnected: false,
+      });
+      this.loggerService.warn(
+        `${context} - credential marked as disconnected due to auth error`,
+        { credentialId },
+      );
+    } catch (patchError: unknown) {
+      this.loggerService.error(
+        `${context} - failed to mark credential as disconnected`,
+        patchError,
+      );
+    }
+
+    return true;
+  }
+
+  private async findTwitterCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument | null> {
+    const platform =
+      toPrismaCredentialPlatform(CredentialPlatform.TWITTER) ??
+      CredentialPlatform.TWITTER;
+
+    return credentialId
+      ? this.credentialsService.findOne({
+          id: credentialId,
+          organizationId,
+          platform,
+        })
+      : this.credentialsService.findOne({
+          brandId,
+          isDeleted: false,
+          organizationId,
+          platform,
+        });
+  }
+
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<CredentialDocument> {
-    const queryCredentials = {
-      brandId,
-      isDeleted: false,
+    const credentials = await this.findTwitterCredential(
       organizationId,
-      platform: CredentialPlatform.TWITTER,
-    };
-
-    const credentials = await this.credentialsService.findOne(queryCredentials);
+      brandId,
+      credentialId,
+    );
 
     if (!credentials) {
       throw new Error('Twitter credential not found');
@@ -438,6 +691,7 @@ export class TwitterService {
     tweetId: string,
     options: {
       maxResults?: number;
+      sinceId?: string;
       /** Decrypted OAuth2 user access token (brand credential). */
       accessToken?: string;
     } = {},
@@ -472,14 +726,22 @@ export class TwitterService {
 
     try {
       // conversation_id matches the root tweet id for the whole thread.
-      const result = (await client.v2.get('tweets/search/recent', {
+      const searchParams: Record<string, string | number> = {
         expansions: 'author_id',
         max_results: maxResults,
         query: `conversation_id:${cleanId}`,
         'tweet.fields':
           'author_id,created_at,public_metrics,referenced_tweets,conversation_id,in_reply_to_user_id',
         'user.fields': 'username,name,public_metrics',
-      })) as {
+      };
+      if (options.sinceId) {
+        searchParams.since_id = options.sinceId;
+      }
+
+      const result = (await client.v2.get(
+        'tweets/search/recent',
+        searchParams,
+      )) as {
         data?: Array<{
           id: string;
           text?: string;
@@ -698,6 +960,132 @@ export class TwitterService {
 
       // Return empty array - no fake data
       return [];
+    }
+  }
+
+  /**
+   * Mentions of the connected account via official X API v2.
+   * `sinceId` is the last ingested tweet id and must survive a rate-limit.
+   */
+  public async listMentions(
+    organizationId: string,
+    brandId: string,
+    options: { limit?: number; sinceId?: string } = {},
+  ): Promise<TwitterInboxTweet[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const credential = await this.refreshToken(organizationId, brandId);
+    const accessToken = EncryptionUtil.decrypt(
+      requireString(credential.accessToken, 'accessToken'),
+    );
+    const userId = requireString(credential.externalId, 'externalId');
+    const maxResults = Math.min(Math.max(options.limit ?? 25, 5), 100);
+    const client = new TwitterApi(accessToken);
+
+    try {
+      const params: Record<string, string | number> = {
+        expansions: 'author_id',
+        max_results: maxResults,
+        'tweet.fields':
+          'author_id,created_at,conversation_id,referenced_tweets,in_reply_to_user_id',
+        'user.fields': 'username,name,profile_image_url',
+      };
+      if (options.sinceId) {
+        params.since_id = options.sinceId;
+      }
+
+      const result = (await client.v2.get(
+        `users/${userId}/mentions`,
+        params,
+      )) as TwitterMentionsResponse;
+
+      const tweets = toInboxTweets(result, userId);
+      this.loggerService.log(`${caller} found ${tweets.length} mentions`, {
+        sinceId: options.sinceId,
+        userId,
+      });
+      return tweets;
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replies on one of the brand's tweets, using the connected account token.
+   */
+  public async listPostReplies(
+    organizationId: string,
+    brandId: string,
+    tweetId: string,
+    options: { limit?: number; sinceId?: string } = {},
+  ): Promise<TwitterInboxTweet[]> {
+    const credential = await this.refreshToken(organizationId, brandId);
+    const accessToken = EncryptionUtil.decrypt(
+      requireString(credential.accessToken, 'accessToken'),
+    );
+    const replies = await this.getTweetReplies(tweetId, {
+      accessToken,
+      maxResults: options.limit,
+      sinceId: options.sinceId,
+    });
+
+    return replies.map((reply) => ({
+      authorId: reply.authorId,
+      authorName: reply.authorName,
+      authorUsername: reply.authorUsername,
+      conversationId: tweetId,
+      createdAt: reply.createdAt ?? new Date(),
+      inReplyToId: reply.inReplyToId,
+      text: reply.text,
+      tweetId: reply.id,
+    }));
+  }
+
+  /**
+   * Direct-message events for the connected account. Own sends are dropped so
+   * the inbox only records inbound messages.
+   */
+  public async listDirectMessages(
+    organizationId: string,
+    brandId: string,
+    options: { limit?: number; paginationToken?: string } = {},
+  ): Promise<TwitterInboxDmThread[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const credential = await this.refreshToken(organizationId, brandId);
+    const accessToken = EncryptionUtil.decrypt(
+      requireString(credential.accessToken, 'accessToken'),
+    );
+    const accountId = requireString(credential.externalId, 'externalId');
+    const maxResults = Math.min(Math.max(options.limit ?? 25, 1), 100);
+    const client = new TwitterApi(accessToken);
+
+    try {
+      const params: Record<string, string | number> = {
+        'dm_event.fields':
+          'id,text,event_type,dm_conversation_id,sender_id,created_at',
+        event_types: 'MessageCreate',
+        expansions: 'sender_id',
+        max_results: maxResults,
+        'user.fields': 'username,name',
+      };
+      if (options.paginationToken) {
+        params.pagination_token = options.paginationToken;
+      }
+
+      const result = (await client.v2.get(
+        'dm_events',
+        params,
+      )) as TwitterDmEventsResponse;
+      const threads = toInboxDmThreads(result, accountId);
+
+      this.loggerService.log(`${caller} found ${threads.length} DM threads`, {
+        accountId,
+        paginationToken: options.paginationToken,
+      });
+      return threads;
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
     }
   }
 

@@ -1,7 +1,9 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import {
+  isModelFamilyExpanded,
   parseModelFamilyAndVariant,
+  shouldRenderModelFamilyHeader,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { describe, expect, it } from 'vitest';
@@ -115,6 +117,75 @@ describe('parseModelFamilyAndVariant', () => {
       variantLabel: 'Base',
     });
   });
+
+  it('nests GenFeed Flux2 compound variants under one family', () => {
+    expect(
+      parseModelFamilyAndVariant(
+        createModel({
+          key: 'genfeed-ai/flux2-dev',
+          label: 'Flux2 Dev',
+        }),
+      ),
+    ).toMatchObject({
+      familyKey: 'genfeed-ai:flux2',
+      familyLabel: 'Flux2',
+      variantLabel: 'Dev',
+    });
+
+    expect(
+      parseModelFamilyAndVariant(
+        createModel({
+          key: 'genfeed-ai/flux2-dev-pulid-upscale',
+          label: 'Flux2 Dev Pulid Upscale',
+        }),
+      ),
+    ).toMatchObject({
+      familyKey: 'genfeed-ai:flux2',
+      familyLabel: 'Flux2',
+      variantLabel: 'Dev Pulid Upscale',
+    });
+
+    expect(
+      parseModelFamilyAndVariant(
+        createModel({
+          key: 'genfeed-ai/flux2-klein',
+          label: 'Flux2 Klein',
+        }),
+      ),
+    ).toMatchObject({
+      familyKey: 'genfeed-ai:flux2',
+      familyLabel: 'Flux2',
+      variantLabel: 'Klein',
+    });
+  });
+
+  it('nests Z Image Turbo LoRA under the Z Image family', () => {
+    expect(
+      parseModelFamilyAndVariant(
+        createModel({
+          key: 'genfeed-ai/z-image-turbo',
+          label: 'Z Image Turbo',
+        }),
+      ),
+    ).toMatchObject({
+      familyKey: 'genfeed-ai:z-image',
+      familyLabel: 'Z Image',
+      variantLabel: 'Turbo',
+    });
+
+    expect(
+      parseModelFamilyAndVariant(
+        createModel({
+          key: 'genfeed-ai/z-image-turbo-lora',
+          label: 'Z Image Turbo Lora',
+        }),
+      ),
+    ).toMatchObject({
+      familyKey: 'genfeed-ai:z-image',
+      familyLabel: 'Z Image',
+      variantLabel: 'Turbo Lora',
+    });
+  });
 });
 
 describe('transformModelsToOptions', () => {
@@ -136,5 +207,45 @@ describe('transformModelsToOptions', () => {
       sourceGroup: 'trainings',
       variantLabel: 'Pro',
     });
+  });
+});
+
+describe('shouldRenderModelFamilyHeader', () => {
+  it('hides nest chrome for a single variant', () => {
+    expect(shouldRenderModelFamilyHeader(1)).toBe(false);
+  });
+
+  it('keeps a collapsible header when a family has variants', () => {
+    expect(shouldRenderModelFamilyHeader(2)).toBe(true);
+  });
+});
+
+describe('isModelFamilyExpanded', () => {
+  it('stays collapsed until the user opens it', () => {
+    expect(
+      isModelFamilyExpanded({
+        familyKey: 'genfeed-ai:flux2',
+        hasSearchMatch: false,
+        toggledFamilyKeys: [],
+      }),
+    ).toBe(false);
+  });
+
+  it('expands on search or an explicit toggle', () => {
+    expect(
+      isModelFamilyExpanded({
+        familyKey: 'genfeed-ai:flux2',
+        hasSearchMatch: true,
+        toggledFamilyKeys: [],
+      }),
+    ).toBe(true);
+
+    expect(
+      isModelFamilyExpanded({
+        familyKey: 'genfeed-ai:flux2',
+        hasSearchMatch: false,
+        toggledFamilyKeys: ['genfeed-ai:flux2'],
+      }),
+    ).toBe(true);
   });
 });

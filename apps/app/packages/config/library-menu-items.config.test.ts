@@ -10,7 +10,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/overview',
       '/library/videos',
       '/library/moodboard',
-      '/workspace/activity',
     ]);
   });
 
@@ -32,5 +31,14 @@ describe('LIBRARY_MENU_ITEMS', () => {
 
   it('points the library logo at the canonical overview', () => {
     expect(LIBRARY_LOGO_HREF).toBe('/library/overview');
+  });
+
+  it('does not keep Activity under Library', () => {
+    expect(
+      LIBRARY_MENU_ITEMS.some((item) => item.href === '/workspace/activity'),
+    ).toBe(false);
+    expect(LIBRARY_MENU_ITEMS.some((item) => item.label === 'Activity')).toBe(
+      false,
+    );
   });
 });

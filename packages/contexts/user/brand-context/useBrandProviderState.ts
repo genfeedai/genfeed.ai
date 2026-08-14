@@ -291,8 +291,14 @@ export function useBrandProviderState({
       return getBrandOrganizationId(effectiveSelectedBrand) || organizationId;
     }
 
-    return organizationId;
+    if (organizationId) {
+      return organizationId;
+    }
+
+    const fallbackBrand = brands[0];
+    return fallbackBrand ? getBrandOrganizationId(fallbackBrand) : '';
   }, [
+    brands,
     effectiveSelectedBrand,
     organizationId,
     routeBrand,

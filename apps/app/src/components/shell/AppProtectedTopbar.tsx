@@ -28,6 +28,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import TopbarActivityMenu from '@/components/shell/TopbarActivityMenu';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
@@ -318,6 +319,8 @@ function AppProtectedTopbarContent({
           ) : null}
 
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
+
+          {!isAdminChrome ? <TopbarActivityMenu /> : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 

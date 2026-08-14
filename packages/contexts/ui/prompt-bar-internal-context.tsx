@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+import type { StudioGenerationMeter } from '@genfeedai/props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {
   GalleryModalOptions,
@@ -162,6 +163,7 @@ export interface PromptBarInternalContextValue {
   isGenerateDisabled: boolean;
   previousPrompt: string | null;
   selectedModelCost: number;
+  generationMeter: StudioGenerationMeter | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;
 

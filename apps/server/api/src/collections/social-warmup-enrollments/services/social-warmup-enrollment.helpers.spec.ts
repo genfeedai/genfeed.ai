@@ -1,4 +1,5 @@
 import {
+  authorizedEvidenceFromWarmupSignals,
   completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   mapTikTokSource,
@@ -102,6 +103,19 @@ describe('social-warmup-enrollment helpers', () => {
     );
     expect(firstUpload.accountAgeSource).toBe('first-upload-platform-signal');
 
+    const firstPublish = resolveSocialWarmupAccountAge(
+      [
+        {
+          evidence: { media: { createTime: 1_754_000_000 } },
+          key: 'first-publish-platform-signal',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        },
+      ],
+      now,
+    );
+    expect(firstPublish.accountAgeSource).toBe('first-publish-platform-signal');
+
     expect(resolveSocialWarmupAccountAge([])).toEqual({
       accountAgeDays: null,
       accountAgeStatus: SocialWarmupSignalStatus.MISSING,
@@ -156,6 +170,50 @@ describe('social-warmup-enrollment helpers', () => {
         },
       }),
     ).toBe(false);
+
+    expect(
+      hasPartialSocialWarmupScopes({
+        instagramAuthorized: {
+          evidence: [{ status: 'permission_limited' }],
+          grantedScopes: [],
+          state: 'partial',
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('detects partial X scopes without treating a full snapshot as limited', () => {
+    expect(
+      hasPartialSocialWarmupScopes({
+        twitterAuthorized: {
+          evidence: [{ status: 'permission_limited' }],
+          grantedScopes: ['users.read'],
+          state: 'partial',
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      hasPartialSocialWarmupScopes({
+        twitterAuthorized: {
+          evidence: [{ status: 'available' }],
+          grantedScopes: ['users.read', 'tweet.read'],
+          state: 'full',
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('reads authorized evidence from TikTok or X warmup snapshots', () => {
+    expect(
+      authorizedEvidenceFromWarmupSignals({
+        twitterAuthorized: {
+          evidence: [
+            { key: 'native-account-age', provenance: 'platform_verified' },
+          ],
+        },
+      }),
+    ).toEqual([{ key: 'native-account-age', provenance: 'platform_verified' }]);
   });
 
   it('maps TikTok snapshot labels and strips secret evidence keys', () => {

@@ -25,9 +25,15 @@ import { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { OrganizationCategory } from '@genfeedai/enums';
+import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+export interface UserSetupProfile {
+  email?: string | null;
+  name?: string | null;
+}
 
 export interface UserSetupResult {
   organization: OrganizationDocument;
@@ -65,6 +71,7 @@ export class UserSetupService {
   async initializeUserResources(
     userId: string,
     category?: OrganizationCategory,
+    profile?: UserSetupProfile,
   ): Promise<UserSetupResult> {
     let organization: OrganizationDocument | null = null;
     let organizationSettings: OrganizationSettingDocument | null = null;
@@ -73,9 +80,14 @@ export class UserSetupService {
     let member: MemberDocument | null = null;
     try {
       // Step 1: Create organization (REQUIRED - cascading failure)
+      const workspaceLabel = resolveSignupWorkspaceLabel({
+        email: profile?.email,
+        name: profile?.name,
+      });
       const organizationResult = await this.getOrCreateOrganization(
         userId,
         category,
+        workspaceLabel,
       );
       organization = organizationResult.organization;
 
@@ -88,7 +100,11 @@ export class UserSetupService {
       userSettings = await this.getOrCreateUserSettings(userId);
 
       // Step 4: Create brand (REQUIRED - cascading failure)
-      brand = await this.getOrCreateBrand(organization.id, userId);
+      brand = await this.getOrCreateBrand(
+        organization.id,
+        userId,
+        workspaceLabel,
+      );
 
       // Step 5: Create default recurring workflows for the default brand.
       if (organizationResult.wasCreated) {
@@ -174,6 +190,7 @@ export class UserSetupService {
   private async getOrCreateOrganization(
     userId: string,
     category?: OrganizationCategory,
+    workspaceLabel?: string,
   ): Promise<{ organization: OrganizationDocument; wasCreated: boolean }> {
     // Membership is the source of truth for org access — findMine and
     // switchOrganization both resolve a user's orgs via the `members`
@@ -206,7 +223,7 @@ export class UserSetupService {
 
     this.logger.log(`Creating organization for user ${userId}`, this.context);
 
-    const label = 'Default Organization';
+    const label = workspaceLabel || resolveSignupWorkspaceLabel({});
     const slug = await this.organizationsService.generateUniqueSlug(label);
 
     const organization = await this.organizationsService.create({
@@ -365,6 +382,7 @@ export class UserSetupService {
   private async getOrCreateBrand(
     organizationId: string,
     userId: string,
+    workspaceLabel?: string,
   ): Promise<BrandDocument> {
     const existing = await this.brandsService.findOne({
       organizationId: organizationId,
@@ -378,7 +396,7 @@ export class UserSetupService {
       return existing;
     }
 
-    const label = 'Default Organization';
+    const label = workspaceLabel || resolveSignupWorkspaceLabel({});
     const slug = await this.brandsService.generateUniqueSlug(label);
     const brand = await this.brandsService.create({
       backgroundColor: '#000000',

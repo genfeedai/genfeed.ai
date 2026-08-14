@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { attachConsoleOutputErrorHandlers } from '@libs/logger/console-output-error-handler';
 import { LoggerService } from '@libs/logger/logger.service';
+import { shouldDropLoggerInfo } from '@libs/logger/logger-filters';
 import { Global, Module } from '@nestjs/common';
 import {
   utilities as nestWinstonModuleUtilities,
@@ -32,6 +33,7 @@ function shouldFilterMessage(message: unknown): boolean {
         const consoleTransport = new transports.Console({
           format: combine(
             timestamp(),
+            format((info) => (shouldDropLoggerInfo(info) ? false : info))(),
             nestWinstonModuleUtilities.format.nestLike(),
           ),
           level: 'debug',

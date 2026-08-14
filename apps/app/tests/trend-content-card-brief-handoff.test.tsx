@@ -49,6 +49,12 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/org-1/brand-1${path}`,
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
   useRouter: () => ({

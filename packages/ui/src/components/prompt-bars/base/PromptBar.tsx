@@ -68,6 +68,7 @@ function PromptBar({
     isDisabledState,
     isGenerateBlocked,
     selectedModelCost,
+    generationMeter,
     handleSubmitForm,
     activeGenerations,
     handleTextChange,
@@ -153,6 +154,7 @@ function PromptBar({
                   isGenerateDisabled={isGenerateDisabled}
                   isGenerating={isGenerating}
                   selectedModelCost={selectedModelCost}
+                  generationMeter={generationMeter}
                   onSubmit={handleSubmitForm}
                   onCancel={onCancel}
                   generateLabel={generateLabel}

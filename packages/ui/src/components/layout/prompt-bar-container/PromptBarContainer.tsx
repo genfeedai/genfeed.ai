@@ -57,6 +57,7 @@ export default function PromptBarContainer({
   zIndex = 10,
   maxWidth = '4xl',
   layoutMode = 'fixed',
+  containerRef,
 }: PromptBarContainerProps) {
   // Don't render if not visible
   if (!isVisible) {
@@ -88,6 +89,7 @@ export default function PromptBarContainer({
 
   return (
     <div
+      ref={containerRef}
       className={rootClassName}
       data-layout-mode={layoutMode}
       data-max-width={maxWidth}
@@ -104,22 +106,42 @@ export default function PromptBarContainer({
       {showTopFade ? (
         <div
           aria-hidden="true"
+          data-composer-top-fade=""
           className={cn(
-            // Soft short scrim only — elevation lives on chips/composer, not a
-            // tall opaque slab that paints half the transcript black.
-            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/90 via-background/35 to-transparent transition-opacity duration-300',
+            // Soft scrim only — last transcript lines stay readable. A tall
+            // from-background slab paints the conversation black.
+            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/80 via-background/30 to-transparent transition-opacity duration-300',
             topContent ? 'h-16' : 'h-12',
             layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
-            layoutMode === 'inflow' && 'h-10',
+            layoutMode === 'inflow' && (topContent ? 'h-12' : 'h-10'),
             topFadeClassName,
           )}
         />
       ) : null}
-      <div className={cn(innerClassName, topContent && 'flex flex-col gap-2')}>
+      {showTopFade ? (
+        <div
+          aria-hidden="true"
+          data-composer-bottom-scrim=""
+          className="pointer-events-none absolute inset-x-0 top-full h-5 bg-background"
+        />
+      ) : null}
+      <div
+        className={cn(innerClassName, topContent && 'flex flex-col gap-0')}
+        data-composer-stack=""
+      >
         {topContent ? (
-          <div className="relative z-10 w-full">{topContent}</div>
+          <div className="relative z-10 w-full" data-composer-top-stack="">
+            {topContent}
+          </div>
         ) : null}
-        <div className="relative z-10 w-full">{children}</div>
+        <div className="relative z-10 w-full" data-composer-prompt-slot="">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-background"
+            data-composer-bg-block=""
+          />
+          <div className="relative z-10 w-full">{children}</div>
+        </div>
       </div>
     </div>
   );

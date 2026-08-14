@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -5,11 +7,29 @@ import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { copyToClipboard } = vi.hoisted(() => ({
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard }),
+  },
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     ({
+      previewDescription: 'Read and edit the full generation prompt',
+      previewEditorAria: 'Full prompt',
+      previewTitle: 'Prompt',
+      readFull: 'Read & edit',
+      readFullAria: 'Read and edit the full prompt',
       stop: 'Stop',
       stopAria: 'Stop generation',
+      generateAria: 'Generate image',
+      generateVideoAria: 'Generate video',
+      generateTooltip: 'Generate',
     })[key] ?? key,
 }));
 
@@ -68,6 +88,7 @@ const capturedModelSelectorPopoverProps: {
   onChange?: (_name: string, values: string[]) => void;
   onPrioritizeChange?: (prioritize: RouterPriority) => void;
   prioritize?: RouterPriority;
+  selectionMode?: 'multi' | 'single';
   values?: string[];
 } = {};
 
@@ -78,6 +99,7 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
     onChange?: (_name: string, values: string[]) => void;
     onPrioritizeChange?: (prioritize: RouterPriority) => void;
     prioritize?: RouterPriority;
+    selectionMode?: 'multi' | 'single';
     values: string[];
   }) => {
     capturedModelSelectorPopoverProps.autoLabel = props.autoLabel;
@@ -86,6 +108,7 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
     capturedModelSelectorPopoverProps.onPrioritizeChange =
       props.onPrioritizeChange;
     capturedModelSelectorPopoverProps.prioritize = props.prioritize;
+    capturedModelSelectorPopoverProps.selectionMode = props.selectionMode;
     capturedModelSelectorPopoverProps.values = props.values;
 
     return <div data-testid="model-selector-popover">{props.autoLabel}</div>;
@@ -98,34 +121,110 @@ vi.mock('@ui/dropdowns/aspect-ratio/AspectRatioDropdown', () => ({
   ),
 }));
 
+vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
+  default: ({
+    onChange,
+    options,
+    tooltip,
+    value,
+  }: {
+    onChange: (name: string, value: string) => void;
+    options: Array<{ label: string; value: string }>;
+    tooltip?: string;
+    value?: string;
+  }) => (
+    <div data-testid="outputs-button-dropdown">
+      <button type="button" aria-label={tooltip ?? 'Number of outputs'}>
+        {value}x
+      </button>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onChange('outputs', option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+const { selectHarness } = vi.hoisted(() => ({
+  selectHarness: {
+    onValueChange: undefined as ((value: string) => void) | undefined,
+    value: undefined as string | undefined,
+  },
+}));
+
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Select: ({
+    children,
+    onValueChange,
+    value,
+  }: {
+    children: ReactNode;
+    onValueChange?: (value: string) => void;
+    value?: string;
+  }) => {
+    selectHarness.onValueChange = onValueChange;
+    selectHarness.value = value;
+    return (
+      <div data-testid="select" data-value={value}>
+        {children}
+      </div>
+    );
+  },
   SelectContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
   SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <div data-value={value}>{children}</div>
+    <button onClick={() => selectHarness.onValueChange?.(value)} type="button">
+      {children}
+    </button>
   ),
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <button type="button">{children}</button>
+  SelectTrigger: ({ children, id }: { children: ReactNode; id?: string }) => (
+    <button
+      aria-label={id === 'gen-action-outputs' ? 'Number of outputs' : undefined}
+      id={id}
+      type="button"
+    >
+      {id === 'gen-action-outputs' && selectHarness.value
+        ? `${selectHarness.value}x`
+        : children}
+    </button>
   ),
   SelectValue: ({ placeholder }: { placeholder?: string }) => (
     <span>{placeholder}</span>
   ),
 }));
 
-const storeState = {
-  activeThreadId: 'thread-1',
-  setError: vi.fn(),
-  setThreadUiBusy: vi.fn(),
-};
-
-vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
-  useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
-    selector(storeState),
+const { storeState } = vi.hoisted(() => ({
+  storeState: {
+    activeThreadId: 'thread-1',
+    error: null as string | null,
+    setError: vi.fn(),
+    setThreadUiBusy: vi.fn(),
+  },
 }));
 
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
+  useAgentChatStore: Object.assign(
+    (selector: (state: typeof storeState) => unknown) => selector(storeState),
+    { getState: () => storeState },
+  ),
+}));
+
+import {
+  clearPreferredAgentChatModel,
+  clearPreferredGenerationPrefs,
+  readPreferredAgentChatModel,
+  writePreferredGenerationModel,
+  writePreferredGenerationOutputs,
+  writePreferredGenerationPriority,
+} from '@genfeedai/agent/stores/agent-preferred-model.store';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { GenerationActionCard } from './GenerationActionCard';
 
 function createModel(
@@ -175,8 +274,48 @@ function createApiServiceMock(options?: {
 }
 
 describe('GenerationActionCard', () => {
+  it('resolves prompt editor copy through the host agent catalog', () => {
+    const source = readFileSync(
+      join(__dirname, 'GenerationActionCardControls.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("useTranslations('agent.generationActionCard')");
+    expect(source).not.toContain('const COPY =');
+    expect(source).toContain('ButtonDropdown');
+    expect(source).toContain('name="outputs"');
+    expect(source).not.toContain('id="gen-action-outputs"');
+    expect(source).toContain('ArrowUp');
+    expect(source).not.toContain('Play');
+    expect(source).not.toContain('Generate {isImage');
+  });
+
+  it('uses the prompt-bar send control and a single unlabeled toolbar row', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-prompt-bar-send',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    const send = await screen.findByRole('button', { name: 'Generate image' });
+    expect(send).toHaveAttribute('aria-label', 'Generate image');
+    expect(send).not.toHaveTextContent(/generate image/i);
+    expect(screen.queryByText('Model')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aspect Ratio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     storeState.activeThreadId = 'thread-1';
+    storeState.error = null;
     storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();
     capturedModelSelectorPopoverProps.autoLabel = undefined;
@@ -184,7 +323,98 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.onChange = undefined;
     capturedModelSelectorPopoverProps.onPrioritizeChange = undefined;
     capturedModelSelectorPopoverProps.prioritize = undefined;
+    capturedModelSelectorPopoverProps.selectionMode = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
+    clearPreferredAgentChatModel();
+    clearPreferredGenerationPrefs();
+  });
+
+  it('keeps the prompt field compact and opens an editable full prompt', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'SCENE: Professional boxing ring. SUBJECT: Athletic boxer in black gear. BACKGROUND: Blurred arena crowd. LIGHTING: Dramatic overhead spotlights. STYLE: Photorealistic sports photography. NEGATIVE: No text or watermarks.',
+          },
+          generationType: 'image',
+          id: 'action-preview',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    const compactPrompt = await screen.findByRole('textbox', {
+      name: 'Prompt',
+    });
+    expect(compactPrompt).toHaveAttribute('rows', '1');
+
+    const readEdit = screen.getByRole('button', {
+      name: 'Read and edit the full prompt',
+    });
+    expect(compactPrompt.parentElement).toContainElement(readEdit);
+
+    fireEvent.click(readEdit);
+
+    const fullPrompt = await screen.findByRole('textbox', {
+      name: 'Full prompt',
+    });
+    expect(fullPrompt).not.toBeDisabled();
+    expect(fullPrompt).toHaveValue(
+      [
+        'SCENE: Professional boxing ring.',
+        '',
+        'SUBJECT: Athletic boxer in black gear.',
+        '',
+        'BACKGROUND: Blurred arena crowd.',
+        '',
+        'LIGHTING: Dramatic overhead spotlights.',
+        '',
+        'STYLE: Photorealistic sports photography.',
+        '',
+        'NEGATIVE: No text or watermarks.',
+      ].join('\n'),
+    );
+    expect(screen.getByRole('heading', { name: 'Prompt' })).toBeTruthy();
+
+    fireEvent.change(fullPrompt, {
+      target: { value: 'SCENE: A quieter ring.\n\nSUBJECT: One boxer.' },
+    });
+    expect(fullPrompt).toHaveValue(
+      'SCENE: A quieter ring.\n\nSUBJECT: One boxer.',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Prompt' })).toHaveValue(
+        'SCENE: A quieter ring.\n\nSUBJECT: One boxer.',
+      );
+    });
+  });
+
+  it('hides the prompt preview when the copy already fits two rows', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'A short boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-short',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(
+      screen.queryByRole('button', { name: 'Read and edit the full prompt' }),
+    ).toBeNull();
   });
 
   it('formats structured prompts with readable section breaks', async () => {
@@ -288,6 +518,60 @@ describe('GenerationActionCard', () => {
     expect(capturedModelSelectorPopoverProps.prioritize).toBe(
       RouterPriority.QUALITY,
     );
+    expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
+  });
+
+  it('uses the outputs dropdown for multiple images, not multi-model checkboxes', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            aspectRatio: '9:16',
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-outputs',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
+    });
+
+    const outputsTrigger = await screen.findByRole('button', {
+      name: /number of outputs/i,
+    });
+    expect(outputsTrigger).toHaveTextContent('1x');
+    fireEvent.click(screen.getByRole('button', { name: '2x' }));
+    expect(outputsTrigger).toHaveTextContent('2x');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({
+          outputs: 2,
+          sourceActionId: 'action-outputs',
+        }),
+      );
+    });
   });
 
   it('maps auto priority state into the shared selector label', async () => {
@@ -328,6 +612,188 @@ describe('GenerationActionCard', () => {
     });
   });
 
+  it('restores Auto · Lowest Cost after a remount from the preferred store', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+    const action = {
+      generationParams: {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        prompt: 'SCENE: Professional boxing ring.',
+      },
+      generationType: 'image' as const,
+      id: 'action-priority-persist',
+      title: 'Generate Image',
+      type: 'generation_action_card' as const,
+    };
+    const apiService = createApiServiceMock({ models: [imageModel] });
+
+    const first = render(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.onPrioritizeChange).toBeTypeOf(
+        'function',
+      );
+    });
+
+    capturedModelSelectorPopoverProps.onPrioritizeChange?.(RouterPriority.COST);
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+
+    first.unmount();
+
+    render(<GenerationActionCard action={action} apiService={apiService} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+    expect(capturedModelSelectorPopoverProps.values).toEqual([
+      AUTO_MODEL_OPTION_VALUE,
+    ]);
+    expect(capturedModelSelectorPopoverProps.prioritize).toBe(
+      RouterPriority.COST,
+    );
+  });
+
+  it('hydrates Auto priority from the preferred store even when the action pinned a model', async () => {
+    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
+    writePreferredGenerationPriority(RouterPriority.COST);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-priority-hydrate',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+    expect(capturedModelSelectorPopoverProps.values).toEqual([
+      AUTO_MODEL_OPTION_VALUE,
+    ]);
+  });
+
+  it('restores a concrete generation model and 3x outputs after remount', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      label: 'Flux 2 Dev',
+    });
+    const action = {
+      generationParams: {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        prompt: 'SCENE: Professional boxing ring.',
+      },
+      generationType: 'image' as const,
+      id: 'action-model-persist',
+      title: 'Generate Image',
+      type: 'generation_action_card' as const,
+    };
+    const apiService = createApiServiceMock({ models: [imageModel] });
+
+    const first = render(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.onChange).toBeTypeOf('function');
+    });
+
+    capturedModelSelectorPopoverProps.onChange?.('models', [
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: '3x' }));
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
+    expect(readPreferredAgentChatModel()).toBeNull();
+
+    first.unmount();
+
+    render(<GenerationActionCard action={action} apiService={apiService} />);
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
+    expect(readPreferredAgentChatModel()).toBeNull();
+  });
+
+  it('hydrates a stored generation model over the action pin', async () => {
+    writePreferredGenerationModel(
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+    );
+    writePreferredGenerationOutputs(3);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-model-hydrate',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+              label: 'Flux 2 Dev',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
+  });
+
   it('allows leaving auto mode without forcing auto back on', async () => {
     const imageModel = createModel({
       key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
@@ -360,6 +826,45 @@ describe('GenerationActionCard', () => {
     await waitFor(() => {
       expect(capturedModelSelectorPopoverProps.values).toEqual([]);
     });
+  });
+
+  it('keeps the generate form open while a run is in flight', async () => {
+    const generateIngredient = vi.fn(() => new Promise(() => undefined));
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-keep-open',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByRole('textbox', { name: 'Prompt' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Stop generation' }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('retries generation with current state and marks the active thread as locally busy', async () => {
@@ -413,21 +918,24 @@ describe('GenerationActionCard', () => {
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', true);
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', false);
 
-    // Primary Generate control must stay available after failure — the sticky
-    // composer error stack often covers the bottom Try Again row.
+    // Primary Generate control must stay available after failure. The card
+    // owns the error — do not add a second Try Again under it.
     expect(
       screen.getByRole('button', { name: /generate image/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /try again/i }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+    fireEvent.click(screen.getByRole('button', { name: /generate image/i }));
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
     });
 
     expect(
-      await screen.findByRole('link', { name: 'Library' }),
-    ).toBeInTheDocument();
+      (await screen.findAllByRole('link', { name: 'Library' })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps Generate clickable after failure and clears the composer error', async () => {
@@ -484,7 +992,105 @@ describe('GenerationActionCard', () => {
     expect(storeState.setError).toHaveBeenCalledTimes(1);
     expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
-      await screen.findByRole('link', { name: 'Library' }),
+      (await screen.findAllByRole('link', { name: 'Library' })).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps Generate clickable when the composer UI action reports failure', async () => {
+    storeState.error =
+      'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
+    const onUiAction = vi.fn().mockResolvedValue(false);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'Cinematic vertical portrait of Elon Musk heading into space.',
+          },
+          generationType: 'image',
+          id: 'action-ui-action-401',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByText(/provider authentication failed/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /generate image/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /try again/i }),
+    ).not.toBeInTheDocument();
+    expect(storeState.setError).toHaveBeenCalledWith(null);
+
+    copyToClipboard.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
+    await waitFor(() => {
+      expect(copyToClipboard).toHaveBeenCalled();
+    });
+    expect(String(copyToClipboard.mock.calls[0]?.[0])).toContain(
+      '## Agent run failure',
+    );
+    expect(String(copyToClipboard.mock.calls[0]?.[0])).toContain(
+      'Failed to respond to UI action: 401',
+    );
+  });
+
+  it('lets the operator collapse a failed generation card by hand', async () => {
+    storeState.error =
+      'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
+    const onUiAction = vi.fn().mockResolvedValue(false);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Cinematic launch-day moment at a coastal spaceport.',
+          },
+          generationType: 'image',
+          id: 'action-collapse-after-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+    expect(
+      await screen.findByText(/provider authentication failed/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Collapse generation card' }),
+    );
+
+    expect(
+      screen.queryByText(/provider authentication failed/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Prompt' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /generate image/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand generation card' }),
     ).toBeInTheDocument();
   });
 
@@ -559,7 +1165,7 @@ describe('GenerationActionCard', () => {
     );
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /stop generation/i }),
+      (await screen.findAllByRole('button', { name: /stop generation/i }))[0],
     );
 
     await waitFor(() => {

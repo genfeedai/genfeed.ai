@@ -36,6 +36,8 @@ import {
   writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
+import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
+import { applyComposerPasteText } from '@genfeedai/agent/utils/apply-composer-paste.util';
 import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
@@ -47,9 +49,9 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import type { Editor, JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Fragment, Slice } from '@tiptap/pm/model';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useTranslations } from 'next-intl';
 import {
   type ClipboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -188,6 +190,7 @@ export function useAgentChatInput({
   clearAllAttachments,
 }: UseAgentChatInputParams) {
   const composerShell = useConversationComposerShell();
+  const translate = useTranslations('common.agent.composer');
   // Org "Voice Control" (admin setting, default false). Matches studio PromptBar
   // gating so in-app STT is opt-in; Wispr / OS dictation still types into the field.
   const { settings: organizationSettings } = useBrand();
@@ -202,14 +205,12 @@ export function useAgentChatInput({
   );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
-  const placeholder =
-    placeholderOverride ?? 'Ask for help with content, review, or planning…';
+  const isDragActive = dragState?.isActive ?? false;
+  const placeholder = isDragActive
+    ? translate('dropPlaceholder')
+    : (placeholderOverride ??
+      'Ask for help with content, review, or planning…');
   const placeholderRef = useRef(placeholder);
-  // TipTap reads this on each placeholder paint — sync after commit only.
-  useLayoutEffect(() => {
-    placeholderRef.current = placeholder;
-  }, [placeholder]);
-
   const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
 
   const { mentions: credentialMentions } = useCredentialMentions(
@@ -324,23 +325,7 @@ export function useAgentChatInput({
         }
 
         const { state, dispatch } = view;
-        const { from, to } = state.selection;
-        const parts = normalized.split('\n\n');
-        const paragraphType = state.schema.nodes.paragraph;
-
-        if (!paragraphType || parts.length === 1) {
-          dispatch(state.tr.insertText(normalized, from, to));
-          return true;
-        }
-
-        const nodes = parts.map((part) =>
-          paragraphType.create(
-            null,
-            part.length > 0 ? state.schema.text(part) : undefined,
-          ),
-        );
-        const slice = new Slice(Fragment.fromArray(nodes), 0, 0);
-        dispatch(state.tr.replaceRange(from, to, slice));
+        dispatch(applyComposerPasteText(state, normalized));
         return true;
       },
     },
@@ -472,7 +457,7 @@ export function useAgentChatInput({
     const cleanedDocument = draft.document
       ? stripContentMentionNodes(draft.document)
       : '';
-    editor.commands.setContent(cleanedDocument);
+    applyComposerDocument(editor, cleanedDocument);
     setIsEmpty(!draft.plainText.trim());
     setContentReferences(migratedContentReferences);
     writeConversationComposerContentReferences(
@@ -532,13 +517,14 @@ export function useAgentChatInput({
     }
   }, [editor, disabled]);
 
-  // Refresh the empty-state placeholder after editor state changes.
-  useEffect(() => {
+  // Refresh the empty-state placeholder after editor or copy changes.
+  useLayoutEffect(() => {
+    placeholderRef.current = placeholder;
     if (!editor?.isEmpty) {
       return;
     }
     editor.view.dispatch(editor.state.tr);
-  }, [editor]);
+  }, [editor, placeholder]);
 
   const handleSend = useCallback(async () => {
     if (!editor || disabled) {
@@ -794,7 +780,6 @@ export function useAgentChatInput({
     return [...referencesById.values()];
   }, [references, surfaceArtifactReferences]);
 
-  const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
   // Empty composer = no text and no ready attachments.
@@ -805,10 +790,9 @@ export function useAgentChatInput({
   const canUseVoiceInput =
     isVoiceControlEnabled && isSupported && !isTranscribing;
 
-  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer;
-
-  // Send stays available during a run so Enter queues a follow-up. Stop and
-  // send sit side by side; mic still replaces send only when the field is empty.
+  // Stop occupies the mic slot while a run is in flight. Send still appears
+  // beside Stop when the field has text so Enter can queue a follow-up.
+  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer && !showStop;
   const shouldShowSendButton =
     !isTranscribing && !shouldShowVoiceInput && (!showStop || canSendMessage);
 

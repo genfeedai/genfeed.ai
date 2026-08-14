@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { attachBetterAuthRequestLog } from '@api/auth/better-auth/better-auth-request-log.util';
 import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
@@ -186,6 +187,9 @@ async function main() {
             return next();
           }
 
+          if (logger) {
+            attachBetterAuthRequestLog(req, res, logger);
+          }
           return betterAuthService.nodeHandler(req, res, next);
         },
       );

@@ -76,6 +76,112 @@ export const X_RATE_LIMIT_ERROR = 'X is busy. Wait a moment and try again.';
 export const X_CREDENTIAL_ERROR =
   'X is not connected for this brand. Connect X and try again.';
 
+function readAxiosStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) {
+    return undefined;
+  }
+  const response = isRecord(error.response) ? error.response : undefined;
+  return readFiniteNumber(response?.status);
+}
+
+export function isTwitterAuthorizationError(error: unknown): boolean {
+  if (isTwitterScopeOrTierError(error) || isTwitterRateLimitError(error)) {
+    return false;
+  }
+
+  const status = readStatus(error) ?? readAxiosStatus(error);
+  const message = readMessage(error).toLowerCase();
+  return (
+    status === 401 ||
+    message.includes('401') ||
+    message.includes('unauthorized') ||
+    message.includes('invalid token') ||
+    message.includes('token expired') ||
+    message.includes('could not authenticate')
+  );
+}
+
+export function isTwitterScopeOrTierError(error: unknown): boolean {
+  const status = readStatus(error) ?? readAxiosStatus(error);
+  const message = readMessage(error).toLowerCase();
+  const title = isRecord(error)
+    ? String(
+        (isRecord(error.response) && isRecord(error.response.data)
+          ? error.response.data.title
+          : undefined) ??
+          (isRecord(error.data) ? error.data.title : undefined) ??
+          '',
+      ).toLowerCase()
+    : '';
+
+  return (
+    status === 403 ||
+    status === 453 ||
+    message.includes('403') ||
+    message.includes('453') ||
+    message.includes('not authorized') ||
+    message.includes('client-not-enrolled') ||
+    message.includes('oauth1apppermissions') ||
+    message.includes('access level') ||
+    message.includes('elevated') ||
+    message.includes('forbidden') ||
+    title.includes('client-not-enrolled')
+  );
+}
+
+export function isTwitterRateLimitError(error: unknown): boolean {
+  const status = readStatus(error) ?? readAxiosStatus(error);
+  const message = readMessage(error).toLowerCase();
+  return (
+    status === 429 ||
+    message.includes('429') ||
+    message.includes('rate limit') ||
+    message.includes('too many requests') ||
+    (isRecord(error) && isRecord(error.rateLimit))
+  );
+}
+
+export function getTwitterRetryAfterMs(
+  error: unknown,
+  fallbackMs: number,
+  maximumMs: number,
+): number {
+  if (!isRecord(error)) {
+    return fallbackMs;
+  }
+
+  const response = isRecord(error.response) ? error.response : undefined;
+  const headers = isRecord(response?.headers)
+    ? response.headers
+    : isRecord(error.headers)
+      ? error.headers
+      : undefined;
+  const retryAfter = readFiniteNumber(headers?.['retry-after']);
+  if (retryAfter !== undefined && retryAfter >= 0) {
+    return Math.min(retryAfter * 1_000, maximumMs);
+  }
+
+  const headerReset = readFiniteNumber(headers?.['x-rate-limit-reset']);
+  if (headerReset !== undefined) {
+    const millis =
+      headerReset < 1_000_000_000_000 ? headerReset * 1000 : headerReset;
+    const waitMs = millis - Date.now();
+    if (Number.isFinite(waitMs) && waitMs > 0) {
+      return Math.min(waitMs, maximumMs);
+    }
+  }
+
+  const resetIso = readRateLimitResetIso(error);
+  if (resetIso) {
+    const waitMs = new Date(resetIso).getTime() - Date.now();
+    if (Number.isFinite(waitMs) && waitMs > 0) {
+      return Math.min(waitMs, maximumMs);
+    }
+  }
+
+  return fallbackMs;
+}
+
 /**
  * Map X/Twitter API failures to distinct, actionable agent-facing classes.
  * Never collapse tier, rate-limit, or credential errors into an empty success.

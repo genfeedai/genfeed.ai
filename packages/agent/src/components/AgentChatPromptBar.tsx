@@ -17,7 +17,6 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -35,7 +34,6 @@ type AgentChatPromptBarProps = {
   activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
-  contextUsage?: ConversationContextUsage | null;
   followUps?: readonly ComposerFollowUp[];
   isBusy: boolean;
   isComposerUnavailable?: boolean;
@@ -79,13 +77,13 @@ type AgentChatPromptBarProps = {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
+  onOverlayElement?: (node: HTMLElement | null) => void;
 };
 
 export function AgentChatPromptBar({
   activeGenerationAction,
   apiService,
   layoutMode,
-  contextUsage = null,
   followUps = [],
   isBusy,
   isComposerUnavailable = false,
@@ -123,6 +121,7 @@ export function AgentChatPromptBar({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
+  onOverlayElement,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isInspectorComposer = composerShell?.placement === 'inspector';
@@ -154,24 +153,22 @@ export function AgentChatPromptBar({
         />
       ) : null}
       {!isReadOnly && activeGenerationAction ? (
-        <div className="pb-2">
-          <GenerationActionCard
-            // Card state (prompt edits, chosen model, aspect ratio) is
-            // initialized once from the action. Keying on the action id makes a
-            // genuinely new request start clean while re-renders of the same
-            // request preserve everything the user has changed.
-            key={activeGenerationAction.id}
-            action={activeGenerationAction}
-            apiService={apiService}
-            className="mt-0 rounded-lg shadow-sm"
-            onUiAction={onUiAction}
-          />
-        </div>
+        <GenerationActionCard
+          // Card state (prompt edits, chosen model, aspect ratio) is
+          // initialized once from the action. Keying on the action id makes a
+          // genuinely new request start clean while re-renders of the same
+          // request preserve everything the user has changed.
+          key={activeGenerationAction.id}
+          action={activeGenerationAction}
+          apiService={apiService}
+          className="mx-auto mt-0 w-[95%] rounded-t-xl rounded-b-none border-b-0 shadow-sm"
+          onUiAction={onUiAction}
+        />
       ) : null}
       {statusStack}
       {hasFollowUpChips ? (
         // Chips carry their own solid fill + shadow — no full-width black strip.
-        <div className="relative z-10 pb-0.5">{promptBarSuggestions}</div>
+        <div className="relative z-10">{promptBarSuggestions}</div>
       ) : null}
     </>
   );
@@ -183,9 +180,10 @@ export function AgentChatPromptBar({
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
-      showTopFade={false}
+      showTopFade
       topContent={topContent}
       zIndex={40}
+      containerRef={onOverlayElement}
       className={cn(
         'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
@@ -195,7 +193,6 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        contextUsage={contextUsage}
         disabled={
           isReadOnly ||
           isComposerUnavailable ||

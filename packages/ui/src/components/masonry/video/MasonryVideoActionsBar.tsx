@@ -94,7 +94,7 @@ export default function MasonryVideoActionsBar({
   return (
     <div
       className={cn(
-        'absolute inset-x-0 bottom-0 z-50 w-full overflow-visible border-t border-white/[0.08] bg-black/72 p-2 backdrop-blur-sm transition-opacity duration-200',
+        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200',
         isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
         'group-hover:opacity-100',
       )}

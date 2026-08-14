@@ -491,6 +491,50 @@ describe('BrandProvider', () => {
     });
   });
 
+  it('resolves organizationId from a brand when the org slug is not nested on the brand', async () => {
+    useParamsMock.mockReturnValue({
+      orgSlug: 'default-organization',
+    });
+
+    const bootstrapWithoutNestedSlug = {
+      ...initialBootstrap,
+      brandId: '',
+      brands: [
+        {
+          id: 'brand_seed',
+          label: 'Seed',
+          organizationId: 'org_owned',
+          slug: 'seed',
+        },
+      ],
+      organizationId: '',
+    };
+
+    function Consumer() {
+      const { organizationId } = useBrand();
+
+      return (
+        <span data-testid="organization-id">{organizationId || 'none'}</span>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={bootstrapWithoutNestedSlug as never}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('organization-id')).toHaveTextContent(
+        'org_owned',
+      );
+    });
+  });
+
   it('loads self-hosted brands through local bootstrap without a signed-in session', async () => {
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
     useAuthMock.mockReturnValue({

@@ -26,6 +26,30 @@ describe('SocialInboxController RBAC', () => {
     ).toEqual(['owner', 'admin', 'creator']);
   });
 
+  it('should require owner, admin, or creator role for the X and LinkedIn sync routes', () => {
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.syncXComments,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata('roles', SocialInboxController.prototype.syncXDms),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.syncLinkedInComments,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.syncLinkedInDms,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+  });
+
   it('should require owner, admin, or creator role for createDraft', () => {
     const metadata = Reflect.getMetadata(
       'roles',

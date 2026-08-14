@@ -6,6 +6,7 @@ import {
   getBrandSwitchHref,
   getCurrentBrandScopedPath,
   isAssetGateSectionPath,
+  isFocusedOnboardingPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
   resolveOrganizationScopePath,
@@ -26,6 +27,19 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/agent/thread-1')).toBe(
       '/agent/thread-1',
     );
+  });
+
+  it('identifies focused onboarding from a normalized agent path', () => {
+    expect(isFocusedOnboardingPath('/agent/onboarding')).toBe(true);
+    expect(isFocusedOnboardingPath('/agent/onboarding/thread-1')).toBe(true);
+    expect(isFocusedOnboardingPath('/agent/new')).toBe(false);
+    expect(isFocusedOnboardingPath('/agent/thread-1')).toBe(false);
+    expect(isFocusedOnboardingPath('/agent/journey')).toBe(false);
+    expect(
+      isFocusedOnboardingPath(
+        normalizeProtectedPathname('/acme/~/agent/onboarding'),
+      ),
+    ).toBe(true);
   });
 
   it('never rewrites global admin / product roots as org/brand modules', () => {

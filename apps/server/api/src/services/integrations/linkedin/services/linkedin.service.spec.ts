@@ -468,4 +468,87 @@ describe('LinkedInService', () => {
       expect(mockLoggerService.warn).toHaveBeenCalled();
     });
   });
+
+  describe('listPostComments', () => {
+    it('maps a recorded socialActions comments payload and keeps the start cursor', async () => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+        accessToken: 'linkedin-access-token',
+        id: 'cred-1',
+      });
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            elements: [
+              {
+                $URN: 'urn:li:comment:(urn:li:activity:123,456)',
+                actor: 'urn:li:person:abc',
+                created: { time: Date.parse('2026-08-01T10:00:00.000Z') },
+                id: 'urn:li:comment:(urn:li:activity:123,456)',
+                message: { text: 'Congrats on the launch' },
+              },
+              {
+                actor: 'urn:li:person:def',
+                created: { time: Date.parse('2026-08-01T10:01:00.000Z') },
+                id: 'urn:li:comment:(urn:li:activity:123,789)',
+                message: { text: 'When is the waitlist open?' },
+                parentComment: 'urn:li:comment:(urn:li:activity:123,456)',
+              },
+              {
+                id: 'urn:li:comment:(urn:li:activity:123,000)',
+                message: {},
+              },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.listPostComments(
+        'org-123',
+        'brand-456',
+        'urn:li:share:123',
+        { limit: 50, start: 0 },
+      );
+
+      expect(mockHttpService.get).toHaveBeenCalledWith(
+        'https://api.linkedin.com/v2/socialActions/urn%3Ali%3Ashare%3A123/comments',
+        expect.objectContaining({
+          params: { count: 50, start: 0 },
+        }),
+      );
+      expect(result).toEqual([
+        {
+          authorExternalId: 'urn:li:person:abc',
+          commentId: 'urn:li:comment:(urn:li:activity:123,456)',
+          createdAt: new Date('2026-08-01T10:00:00.000Z'),
+          text: 'Congrats on the launch',
+          threadId: 'urn:li:comment:(urn:li:activity:123,456)',
+        },
+        {
+          authorExternalId: 'urn:li:person:def',
+          commentId: 'urn:li:comment:(urn:li:activity:123,789)',
+          createdAt: new Date('2026-08-01T10:01:00.000Z'),
+          text: 'When is the waitlist open?',
+          threadId: 'urn:li:comment:(urn:li:activity:123,456)',
+        },
+      ]);
+    });
+  });
+
+  describe('listDirectMessages', () => {
+    it('does not call LinkedIn when the connected grant has no mailbox scope', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        grantedScopes: ['openid', 'profile', 'email', 'w_member_social'],
+        id: 'cred-1',
+      });
+
+      const result = await service.listDirectMessages('org-123', 'brand-456');
+
+      expect(result).toEqual({
+        isPermitted: false,
+        reason: 'LinkedIn messaging is not available on the connected account',
+        threads: [],
+      });
+      expect(mockHttpService.get).not.toHaveBeenCalled();
+    });
+  });
 });
