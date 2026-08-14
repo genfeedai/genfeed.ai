@@ -19,4 +19,5 @@ type: project
 - Browser shows the selected library media, else a sandboxed http(s) page URL, else an empty state that opens Files.
 - `OPEN_FILES_TAB_EVENT` / `OPEN_BROWSER_TAB_EVENT` mirror the Context/Conversation tab events.
 - Copy goes through `common.workspaceInspector` (next-intl). No module-level COPY strings for tab chrome.
+- Tab chrome is a flush editor strip (`data-variant="underline"`) — no pill-in-a-box `TabsList` track.
 ---

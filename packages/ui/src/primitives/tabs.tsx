@@ -7,11 +7,11 @@ import { getTabsListClassName, getTabsTriggerClassName } from './tabs.styles';
 
 const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;
 
-function TabsList({
-  ref,
-  className,
-  ...props
-}: ComponentPropsWithRef<typeof TabsPrimitive.List>) {
+type TabsListProps = ComponentPropsWithRef<typeof TabsPrimitive.List> & {
+  'data-variant'?: 'default' | 'pills' | 'segmented' | 'underline';
+};
+
+function TabsList({ ref, className, ...props }: TabsListProps) {
   return (
     <TabsPrimitive.List
       ref={ref}

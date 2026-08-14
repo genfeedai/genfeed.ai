@@ -980,6 +980,26 @@ describe('UniversalWorkspaceShell', () => {
     expect(tabList.className).not.toMatch(/(?:^|\s)overflow-y-auto(?:\s|$)/);
   });
 
+  it('renders inspector tabs flush like an editor strip, not a pill in a box', () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    const [tabList] = screen.getAllByRole('tablist');
+    expect(tabList).toHaveAttribute('data-variant', 'underline');
+
+    const contextTab = screen.getByRole('tab', { name: 'Context' });
+    expect(contextTab).toHaveAttribute('data-variant', 'underline');
+    expect(contextTab.className).not.toContain(
+      'data-[state=active]:bg-secondary',
+    );
+  });
+
   it('lets the operator add a Files pane and preview a library source in Browser', async () => {
     navigation.pathname = '/acme/moonrise/publish/overview';
     navigation.searchParams = new URLSearchParams();
