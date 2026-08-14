@@ -568,32 +568,24 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(
-      screen.getByRole('button', { name: 'Google, collapsed' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'OpenAI, collapsed' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
-    expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
+    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Current Beta')).toBeInTheDocument();
     expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Google, collapsed' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'OpenAI, collapsed' }),
+    ).not.toBeInTheDocument();
     expect(visibleExpandedModelFamilies()).toEqual([]);
 
-    await user.click(screen.getByRole('button', { name: 'Google, collapsed' }));
-    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
-    expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-    expect(
-      screen.getByRole('button', { name: 'Google, collapsed' }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Google, collapsed' }));
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
     expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
     expect(visibleExpandedModelFamilies()).toEqual([]);
   });
 
-  it('keeps provider catalogs collapsed in the All view', async () => {
+  it('lists collapsed families in All view without a provider accordion', async () => {
     const user = userEvent.setup();
 
     render(
@@ -611,6 +603,14 @@ describe('ModelSelectorPopover', () => {
             key: 'fal-ai/flux-schnell',
             label: 'Flux Schnell',
           }),
+          createModel({
+            key: 'sdxl',
+            label: 'SDXL (image)',
+          }),
+          createModel({
+            key: 'leonardoai',
+            label: 'Leonardoai (image)',
+          }),
         ]}
         values={[]}
         onChange={vi.fn()}
@@ -623,23 +623,28 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByRole('button', { name: /select models/i }));
 
     expect(
-      screen.getByRole('button', { name: 'GenFeed, collapsed' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Fal, collapsed' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+      screen.queryByRole('button', { name: 'GenFeed, collapsed' }),
     ).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: 'GenFeed, collapsed' }),
-    );
-
+    expect(
+      screen.queryByRole('button', { name: 'Fal, collapsed' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Unknown, collapsed' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Flux Schnell')).toBeInTheDocument();
+    expect(screen.getByText('SDXL')).toBeInTheDocument();
+    expect(screen.getByText('Leonardo')).toBeInTheDocument();
     expect(screen.queryByText('Klein')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+    );
+
+    expect(screen.getByText('Klein')).toBeInTheDocument();
   });
 
   it('blocks selecting models that cost more credits than available', async () => {

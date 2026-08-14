@@ -71,20 +71,44 @@ export const COST_TIER_DISPLAY: Record<
   medium: { colorClass: 'text-yellow-400 bg-yellow-400/10', symbol: '$$' },
 };
 
+/**
+ * Catalog keys that have no `provider/` prefix. Map them to a real brand
+ * instead of dumping every leftover into an "Unknown" bucket.
+ */
+const MODEL_KEY_BRAND_ALIASES: Record<string, string> = {
+  'klingai-v2': 'kwaivgi',
+};
+
+const FALLBACK_BRAND_LABELS: Record<string, string> = {
+  leonardoai: 'Leonardo',
+  sdxl: 'SDXL',
+};
+
 export function extractBrandFromKey(modelKey: string): string {
+  if (MODEL_BRANDS[modelKey]) {
+    return modelKey;
+  }
+
+  const aliasedBrand = MODEL_KEY_BRAND_ALIASES[modelKey];
+  if (aliasedBrand) {
+    return aliasedBrand;
+  }
+
   const slashIndex = modelKey.indexOf('/');
   if (slashIndex > 0) {
     return modelKey.substring(0, slashIndex);
   }
 
-  return 'unknown';
+  return modelKey;
 }
 
 export function getBrandConfig(brandSlug: string): ModelBrandConfig {
   return (
     MODEL_BRANDS[brandSlug] ?? {
       color: '#6B7280',
-      label: brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1),
+      label:
+        FALLBACK_BRAND_LABELS[brandSlug] ??
+        brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1),
     }
   );
 }

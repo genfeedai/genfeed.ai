@@ -16,7 +16,6 @@ import {
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   collectBrandsFromOptions,
-  isModelBrandGroupExpanded,
   isModelFamilyExpanded,
   shouldRenderModelFamilyHeader,
   transformModelsToOptions,
@@ -87,7 +86,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // Families and multi-brand catalogs start collapsed. These arrays record
   // explicit user opens away from that default.
   const [toggledFamilyKeys, setToggledFamilyKeys] = useState<string[]>([]);
-  const [toggledBrandKeys, setToggledBrandKeys] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isDisabled) {
@@ -98,13 +96,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     setSearchTerm('');
     setActiveSourceGroup('all');
     setActiveBrand(null);
-    setToggledBrandKeys([]);
     setToggledFamilyKeys([]);
   }, [isDisabled]);
-
-  useEffect(() => {
-    setToggledBrandKeys([]);
-  }, [activeBrand]);
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -476,14 +469,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     );
   }, []);
 
-  const handleBrandToggle = useCallback((brandSlug: string) => {
-    setToggledBrandKeys((currentKeys) =>
-      currentKeys.includes(brandSlug)
-        ? currentKeys.filter((key) => key !== brandSlug)
-        : [...currentKeys, brandSlug],
-    );
-  }, []);
-
   const hasVisibleFamilies = groupedOptions.some(
     (group) => group.families.length > 0,
   );
@@ -658,132 +643,87 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                     <CommandGroup key={section.key} heading={section.heading}>
                       {section.groups.map(({ brandSlug, families }) => {
                         const brandConfig = getBrandConfig(brandSlug);
-                        const brandOptionCount = families.reduce(
-                          (count, family) => count + family.options.length,
-                          0,
-                        );
-                        const brandSearchMatch = normalizedSearchTerm
-                          ? families.some((family) =>
-                              [
-                                brandConfig.label,
-                                family.familyLabel,
-                                ...family.options.map(
-                                  (option) => option.variantLabel,
-                                ),
-                              ]
-                                .join(' ')
-                                .toLowerCase()
-                                .includes(normalizedSearchTerm),
-                            )
-                          : false;
-                        const isBrandExpanded = isModelBrandGroupExpanded({
-                          activeBrand,
-                          brandSlug,
-                          hasSearchMatch: brandSearchMatch,
-                          toggledBrandKeys,
-                          visibleBrandCount: section.groups.length,
-                        });
-                        const showBrandToggle = section.groups.length > 1;
 
                         return (
                           <CommandGroup
                             key={`${section.key}-${brandSlug}`}
                             heading={
-                              showBrandToggle ? undefined : brandConfig.label
+                              section.groups.length > 1
+                                ? brandConfig.label
+                                : undefined
                             }
                           >
-                            {showBrandToggle ? (
-                              <ModelSelectorFamilyItem
-                                accessibleName={`${brandConfig.label}, ${isBrandExpanded ? 'expanded' : 'collapsed'}`}
-                                brandColor={brandConfig.color}
-                                brandIcon={getModelBrandIcon(
-                                  brandConfig.iconKey,
-                                )}
-                                brandLabel={brandConfig.label}
-                                count={brandOptionCount}
-                                familyLabel={brandConfig.label}
-                                isExpanded={isBrandExpanded}
-                                onToggle={() => handleBrandToggle(brandSlug)}
-                              />
-                            ) : null}
-                            {isBrandExpanded
-                              ? families.map((family) => {
-                                  const familySearchMatch = normalizedSearchTerm
-                                    ? [
-                                        brandConfig.label,
-                                        family.familyLabel,
-                                        ...family.options.map(
-                                          (option) => option.variantLabel,
-                                        ),
-                                      ]
-                                        .join(' ')
-                                        .toLowerCase()
-                                        .includes(normalizedSearchTerm)
-                                    : false;
+                            {families.map((family) => {
+                              const familySearchMatch = normalizedSearchTerm
+                                ? [
+                                    brandConfig.label,
+                                    family.familyLabel,
+                                    ...family.options.map(
+                                      (option) => option.variantLabel,
+                                    ),
+                                  ]
+                                    .join(' ')
+                                    .toLowerCase()
+                                    .includes(normalizedSearchTerm)
+                                : false;
 
-                                  const isExpanded = isModelFamilyExpanded({
-                                    familyKey: family.familyKey,
-                                    hasSearchMatch: familySearchMatch,
-                                    toggledFamilyKeys,
-                                  });
-                                  const isStandalone =
-                                    !shouldRenderModelFamilyHeader(
-                                      catalogFamilyCounts.get(
-                                        family.familyKey,
-                                      ) ?? family.options.length,
-                                    );
+                              const isExpanded = isModelFamilyExpanded({
+                                familyKey: family.familyKey,
+                                hasSearchMatch: familySearchMatch,
+                                toggledFamilyKeys,
+                              });
+                              const isStandalone =
+                                !shouldRenderModelFamilyHeader(
+                                  catalogFamilyCounts.get(family.familyKey) ??
+                                    family.options.length,
+                                );
 
-                                  return (
-                                    <div key={family.familyKey}>
-                                      {isStandalone ? null : (
-                                        <ModelSelectorFamilyItem
-                                          brandColor={brandConfig.color}
-                                          brandIcon={getModelBrandIcon(
-                                            brandConfig.iconKey,
+                              return (
+                                <div key={family.familyKey}>
+                                  {isStandalone ? null : (
+                                    <ModelSelectorFamilyItem
+                                      brandColor={brandConfig.color}
+                                      brandIcon={getModelBrandIcon(
+                                        brandConfig.iconKey,
+                                      )}
+                                      brandLabel={brandConfig.label}
+                                      count={family.options.length}
+                                      familyLabel={family.familyLabel}
+                                      isExpanded={isExpanded}
+                                      onToggle={() =>
+                                        handleFamilyToggle(family.familyKey)
+                                      }
+                                    />
+                                  )}
+
+                                  {(isStandalone || isExpanded) && (
+                                    <div>
+                                      {family.options.map((option) => (
+                                        <ModelSelectorModelItem
+                                          key={option.model.key}
+                                          option={option}
+                                          isSelected={values.includes(
+                                            option.model.key,
                                           )}
-                                          brandLabel={brandConfig.label}
-                                          count={family.options.length}
-                                          familyLabel={family.familyLabel}
-                                          isExpanded={isExpanded}
-                                          onToggle={() =>
-                                            handleFamilyToggle(family.familyKey)
+                                          isLocked={isModelCreditLocked(
+                                            option.model,
+                                          )}
+                                          lockReason={
+                                            isModelCreditLocked(option.model)
+                                              ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
+                                              : undefined
                                           }
+                                          onToggle={handleToggle}
+                                          onFavoriteToggle={onFavoriteToggle}
+                                          selectionMode={selectionMode}
+                                          isStandalone={isStandalone}
                                         />
-                                      )}
-
-                                      {(isStandalone || isExpanded) && (
-                                        <div>
-                                          {family.options.map((option) => (
-                                            <ModelSelectorModelItem
-                                              key={option.model.key}
-                                              option={option}
-                                              isSelected={values.includes(
-                                                option.model.key,
-                                              )}
-                                              isLocked={isModelCreditLocked(
-                                                option.model,
-                                              )}
-                                              lockReason={
-                                                isModelCreditLocked(
-                                                  option.model,
-                                                )
-                                                  ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
-                                                  : undefined
-                                              }
-                                              onToggle={handleToggle}
-                                              onFavoriteToggle={
-                                                onFavoriteToggle
-                                              }
-                                              selectionMode={selectionMode}
-                                              isStandalone={isStandalone}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
+                                      ))}
                                     </div>
-                                  );
-                                })
-                              : null}
+                                  )}
+                                </div>
+                              );
+                            })}
                           </CommandGroup>
                         );
                       })}
