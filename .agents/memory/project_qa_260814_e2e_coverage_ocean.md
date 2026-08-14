@@ -40,6 +40,8 @@ last_verified: 2026-08-14
   pick-defined-fields, integration retry-policy, website FAQ catalog,
   constants inventory, app desktop/analytics/colors, mobile network +
   offline queue + ideas/approvals/analytics, extension logger
+- Third wave: helpers `sanitizeHtml` allowlist, embedding/API-key-scope
+  constant contracts
 
 ## After merge
 
