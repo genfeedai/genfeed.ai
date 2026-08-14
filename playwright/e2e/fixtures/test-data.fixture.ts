@@ -140,7 +140,7 @@ export function createTestOrganization(
 
 export const testVideos: TestVideo[] = [
   {
-    duration: 30,
+    duration: 5,
     format: 'mp4',
     height: 1080,
     id: 'video-001',
@@ -152,7 +152,7 @@ export const testVideos: TestVideo[] = [
     width: 1920,
   },
   {
-    duration: 15,
+    duration: 5,
     format: 'mp4',
     height: 1920,
     id: 'video-002',
@@ -180,7 +180,7 @@ export const testVideos: TestVideo[] = [
 export function createTestVideo(overrides: Partial<TestVideo> = {}): TestVideo {
   const id = overrides.id || `video-${Date.now()}`;
   return {
-    duration: 30,
+    duration: 5,
     format: 'mp4',
     height: 1080,
     id,

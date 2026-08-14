@@ -70,6 +70,31 @@ const BRAND_IDENTITY_MESSAGE_MAX_PAGES = 50;
 const PROVIDER_AUTHENTICATION_DETAIL =
   'The model provider rejected the credentials for this request.';
 
+function isCancelledGeneration(error: string | undefined): boolean {
+  return /Cancelled by user/i.test(error ?? '');
+}
+
+function readForbiddenDetail(error: string | undefined): string {
+  const trimmed = error?.trim() ?? '';
+  if (!trimmed) {
+    return 'Insufficient permissions';
+  }
+
+  const withoutStatus = trimmed
+    .replace(/^Request failed with status code 403:?\s*/i, '')
+    .replace(/^Failed to respond to UI action:\s*403\s*-\s*/i, '')
+    .trim();
+
+  if (
+    !withoutStatus ||
+    /^Request failed with status code 403$/i.test(trimmed)
+  ) {
+    return 'Insufficient permissions';
+  }
+
+  return withoutStatus;
+}
+
 /**
  * Host callbacks into the orchestrator for plan-follow-up turns that still
  * live on the main chat loops (phase 2 keeps those on the orchestrator).
@@ -994,7 +1019,10 @@ export class AgentOrchestratorUiActionService {
       ErrorResponse.unauthorized(PROVIDER_AUTHENTICATION_DETAIL);
     }
     if (status === HttpStatus.FORBIDDEN) {
-      ErrorResponse.forbidden();
+      ErrorResponse.forbidden(readForbiddenDetail(error));
+    }
+    if (isCancelledGeneration(error)) {
+      ErrorResponse.conflict('generation', 'Cancelled by user');
     }
     throw new InternalServerErrorException(error?.trim() || fallback);
   }
@@ -1016,7 +1044,8 @@ export class AgentOrchestratorUiActionService {
       ErrorResponse.unauthorized(PROVIDER_AUTHENTICATION_DETAIL);
     }
     if (upstreamStatus === HttpStatus.FORBIDDEN) {
-      ErrorResponse.forbidden();
+      const message = error instanceof Error ? error.message : undefined;
+      ErrorResponse.forbidden(readForbiddenDetail(message));
     }
 
     const message = error instanceof Error ? error.message : undefined;
@@ -1315,12 +1344,26 @@ export class AgentOrchestratorUiActionService {
           ? params.payload.prioritize
           : undefined,
       ) ?? params.context.generationPriority;
+    const requestedOutputs = params.payload?.outputs;
+    if (
+      requestedOutputs !== undefined &&
+      (typeof requestedOutputs !== 'number' ||
+        !Number.isInteger(requestedOutputs) ||
+        requestedOutputs < 1 ||
+        requestedOutputs > 8)
+    ) {
+      throw new BadRequestException(
+        'Outputs must be an integer between 1 and 8.',
+      );
+    }
+
     const toolPayload = {
       aspectRatio:
         typeof params.payload?.aspectRatio === 'string'
           ? params.payload.aspectRatio
           : undefined,
       duration: requestedDuration,
+      outputs: requestedOutputs,
       prompt,
     };
     const idempotencyKey = [
@@ -1330,6 +1373,7 @@ export class AgentOrchestratorUiActionService {
       params.threadId,
       sourceActionId,
       generationType,
+      requestedOutputs ?? 1,
     ].join(':');
 
     return runIdempotent(this.cacheService, idempotencyKey, async () => {

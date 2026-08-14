@@ -13,7 +13,7 @@
  * 1. Add its patterns here
  * 2. Add its tag constant
  * 3. Inject CacheInvalidationService and call invalidate() on writes
- * 4. See CLAUDE.md → Cache Invalidation Pattern
+ * 4. See `.agents/memory/context/api-cache-invalidation.md`
  */
 export const CACHE_PATTERNS = {
   API_KEYS_LIST: (orgId: string) => `apiKeys:list:${orgId}`,
@@ -34,6 +34,8 @@ export const CACHE_PATTERNS = {
   INGREDIENTS_SINGLE: (id: string) => `ingredients:single:${id}`,
   LISTENING_TOPICS_LIST: (orgId: string) => `listeningTopics:list:${orgId}`,
   LISTENING_TOPICS_SINGLE: (id: string) => `listeningTopics:single:${id}`,
+  INSTAGRAM_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
+    `instagramAuthorizedSignals:single:${id}`,
   TIKTOK_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
     `tiktokAuthorizedSignals:single:${id}`,
   TWITTER_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
@@ -53,6 +55,7 @@ export const CACHE_TAGS = {
   EDITOR_PROJECTS: 'editorProjects',
   INGREDIENTS: 'ingredients',
   LISTENING_TOPICS: 'listeningTopics',
+  INSTAGRAM_AUTHORIZED_SIGNALS: 'instagramAuthorizedSignals',
   TIKTOK_AUTHORIZED_SIGNALS: 'tiktokAuthorizedSignals',
   TWITTER_AUTHORIZED_SIGNALS: 'twitterAuthorizedSignals',
 } as const;
@@ -65,6 +68,7 @@ export const CACHE_TAGS = {
  */
 export const SCOPED_CACHE_TAGS = {
   BRAND_CONTEXT: (orgId: string) => `brand-ctx:${orgId}`,
+  INSTAGRAM_AUTHORIZED_SIGNALS: (orgId: string) => `instagram-authz:${orgId}`,
   TIKTOK_AUTHORIZED_SIGNALS: (orgId: string) => `tiktok-authz:${orgId}`,
   TWITTER_AUTHORIZED_SIGNALS: (orgId: string) => `twitter-authz:${orgId}`,
 } as const;

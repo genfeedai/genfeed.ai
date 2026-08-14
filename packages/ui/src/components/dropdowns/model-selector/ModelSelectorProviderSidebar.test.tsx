@@ -75,10 +75,38 @@ describe('ModelSelectorProviderSidebar', () => {
     );
   });
 
+  it('does not paint a vertical scrollbar in the provider rail', () => {
+    renderSidebar();
+
+    const rail = screen.getByRole('navigation', {
+      name: 'Filter by model provider',
+    });
+
+    expect(rail.className).toContain('overflow-x-hidden');
+    expect(rail.className).toContain('overflow-y-auto');
+    expect(rail.className).toMatch(/scrollbar-width:none|scrollbar-none/);
+  });
+
   it('mounts a single tooltip provider for the whole rail', () => {
     renderSidebar();
 
     expect(screen.getAllByRole('button').length).toBeGreaterThan(1);
     expect(mocks.renderTooltipProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the local GenFeed mark instead of a letter tile', () => {
+    render(
+      <ModelSelectorProviderSidebar
+        brands={[
+          { color: '#3B82F6', count: 8, label: 'GenFeed', slug: 'genfeed-ai' },
+        ]}
+        activeBrand={null}
+        onBrandSelect={vi.fn()}
+        hasFavorites={false}
+      />,
+    );
+
+    expect(screen.getByTestId('model-provider-rail-icon')).toBeInTheDocument();
+    expect(screen.queryByText('G')).not.toBeInTheDocument();
   });
 });

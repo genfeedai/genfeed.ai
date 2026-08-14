@@ -122,6 +122,8 @@ describe('PromptBarEssentials', () => {
       }),
     },
     formatIcon: null,
+    generationMeter: null,
+    selectedModelCost: 0,
     getDefaultVideoResolution: vi.fn(),
     getMinFromAllModels: vi.fn(),
     getModelDefaultDuration: vi.fn(),
@@ -353,6 +355,37 @@ describe('PromptBarEssentials', () => {
     expect(screen.getByTestId('generate-button')).toBeInTheDocument();
     expect(
       screen.queryByTestId('stop-generation-button'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the generation meter in Simple Mode', () => {
+    render(
+      <PromptBarEssentials
+        {...defaultProps}
+        generationMeter={{
+          ariaLabel: 'About 15 credits',
+          credits: 15,
+          isEstimate: true,
+          label: '~15 cr',
+          queuedCount: 0,
+        }}
+        isAdvancedMode={false}
+      />,
+    );
+
+    expect(screen.getByTestId('studio-generation-meter')).toHaveTextContent(
+      '~15 cr',
+    );
+    expect(screen.queryByTestId('model-controls')).not.toBeInTheDocument();
+  });
+
+  it('hides the generation meter when the resolver returns nothing', () => {
+    render(
+      <PromptBarEssentials {...defaultProps} generationMeter={null} />,
+    );
+
+    expect(
+      screen.queryByTestId('studio-generation-meter'),
     ).not.toBeInTheDocument();
   });
 });

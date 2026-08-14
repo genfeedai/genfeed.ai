@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import {
   getRawCutCaptionJobId,
   RawCutClipService,
@@ -32,6 +33,7 @@ export class RawCutClipCompletionService {
   private readonly logContext = 'RawCutClipCompletionService';
 
   constructor(
+    private readonly clipLibraryLinkService: ClipLibraryLinkService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly fileQueueService: FileQueueService,
@@ -66,6 +68,9 @@ export class RawCutClipCompletionService {
 
     if (status && isTerminalClipStatus(status)) {
       await this.reconcileProjectIfPending(clipResult);
+      if (status === 'completed') {
+        await this.linkLibraryAsset(clipResultId, organizationId);
+      }
       this.logger.log(`${this.logContext} ignored terminal completion replay`, {
         clipResultId,
         eventJobId,
@@ -288,7 +293,25 @@ export class RawCutClipCompletionService {
       isProjectReconciliationPending: true,
       status: 'completed',
     });
+    await this.linkLibraryAsset(clipResultId, event.organizationId);
     await this.reconcileProject(clipResultId, projectId, event.organizationId);
+  }
+
+  private async linkLibraryAsset(
+    clipResultId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const result = await this.clipLibraryLinkService.linkReadyClip({
+      clipResultId,
+      organizationId,
+    });
+    if (result.status !== 'linked') {
+      this.logger.warn(`${this.logContext} Library link did not complete`, {
+        clipResultId,
+        error: result.error,
+        status: result.status,
+      });
+    }
   }
 
   private async failClip(

@@ -20,6 +20,13 @@ vi.mock('@hooks/data/trends/use-trend-content/use-trend-content', () => ({
   useTrendContent: (...args: unknown[]) => mockUseTrendContent(...args),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/org-1/brand-1${path}`,
+    orgHref: (path: string) => path,
+  }),
+}));
+
 vi.mock('@services/social/trends.service', () => ({
   TrendsService: {
     getInstance: vi.fn(),
@@ -27,6 +34,7 @@ vi.mock('@services/social/trends.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
   usePathname: (...args: unknown[]) => mockUsePathname(...args),
   useRouter: vi.fn(() => ({
     push: vi.fn(),

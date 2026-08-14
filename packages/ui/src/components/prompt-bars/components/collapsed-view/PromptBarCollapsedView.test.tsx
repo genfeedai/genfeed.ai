@@ -69,6 +69,7 @@ describe('PromptBarCollapsedView', () => {
     placeholder: 'Enter text…',
     referenceSource: null,
     references: [],
+    generationMeter: null,
     selectedModelCost: 1,
     toggleVoice: vi.fn(),
     watchedFormat: 'portrait',
@@ -96,5 +97,24 @@ describe('PromptBarCollapsedView', () => {
       <PromptBarCollapsedView {...defaultProps} isGenerating={true} />,
     );
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('shows the generation meter when a priced run is ready', () => {
+    const { getByTestId } = render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        generationMeter={{
+          ariaLabel: '10 credits. 2 generations queued',
+          credits: 10,
+          isEstimate: false,
+          label: '10 cr · 2 queued',
+          queuedCount: 2,
+        }}
+      />,
+    );
+
+    expect(getByTestId('studio-generation-meter')).toHaveTextContent(
+      '10 cr · 2 queued',
+    );
   });
 });

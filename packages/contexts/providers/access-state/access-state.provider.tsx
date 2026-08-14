@@ -78,10 +78,7 @@ export function AccessStateProvider({
   const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const shouldFetch =
-    effectiveIsAuthLoaded &&
-    effectiveIsSignedIn &&
-    !!effectiveUserId &&
-    !!organizationId;
+    effectiveIsAuthLoaded && effectiveIsSignedIn && !!effectiveUserId;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? organizationId;
   const clientBootstrapCacheKey =
     shouldFetch && effectiveUserId

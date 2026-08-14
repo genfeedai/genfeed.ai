@@ -184,6 +184,13 @@ describe('raw-cut clip pipeline integration', () => {
       logger,
     );
     completionService = new RawCutClipCompletionService(
+      {
+        linkReadyClip: vi.fn().mockResolvedValue({
+          clipResultId: 'clip-result-1',
+          ingredientId: 'ingredient-1',
+          status: 'linked',
+        }),
+      } as never,
       clipProjectsService as unknown as ClipProjectsService,
       clipResultsService as unknown as ClipResultsService,
       fileQueueService as unknown as FileQueueService,

@@ -28,6 +28,10 @@ import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-
 import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
 import { usePromptBarModels } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
+import {
+  resolveStudioGenerationCostModels,
+  resolveStudioGenerationMeter,
+} from '@genfeedai/hooks/prompt-bar/resolve-studio-generation-meter/resolve-studio-generation-meter';
 import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
@@ -294,13 +298,33 @@ export function usePromptBarState({
     }
   }, [categoryType, models, normalizedWatchedModels]);
 
+  const pricedModels = useMemo(
+    () =>
+      resolveStudioGenerationCostModels({
+        catalog: models,
+        defaultModelKey: currentConfig.defaultModel,
+        selectedModels,
+      }),
+    [currentConfig.defaultModel, models, selectedModels],
+  );
+
   const { selectedModelCost } = usePromptBarPricing({
-    selectedModels,
+    selectedModels: pricedModels.models,
     watchedDuration,
     watchedHeight,
     watchedOutputs,
     watchedWidth,
   });
+
+  const generationMeter = useMemo(
+    () =>
+      resolveStudioGenerationMeter({
+        credits: selectedModelCost,
+        isEstimate: pricedModels.isEstimate,
+        queuedCount: activeGenerations.length,
+      }),
+    [activeGenerations.length, pricedModels.isEstimate, selectedModelCost],
+  );
 
   const {
     filteredStyles,
@@ -761,6 +785,7 @@ export function usePromptBarState({
     references,
     requiresReferences,
     selectedModelCost,
+    generationMeter,
     selectedModels,
     selectedPreset,
     selectedProfile,
@@ -815,6 +840,7 @@ export function usePromptBarState({
     isDisabledState,
     isGenerateBlocked,
     selectedModelCost,
+    generationMeter,
     handleSubmitForm,
     generateLabel,
     activeGenerations,

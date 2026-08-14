@@ -13,6 +13,7 @@ export * from './channel-repurpose.contract';
 export * from './generation-brief.contract';
 export * from './generation-webhook-events.contract';
 export * from './ingredients.contract';
+export * from './instagram-authorized-signals.contract';
 export * from './posting-sets.contract';
 export * from './posts.contract';
 export * from './publish-approval.contract';

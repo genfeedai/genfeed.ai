@@ -5,6 +5,7 @@ import {
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
+  buildBetterAuthMagicLinkOptions,
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
@@ -588,6 +589,27 @@ describe('buildRateLimitStorage', () => {
   });
 });
 
+describe('buildBetterAuthMagicLinkOptions', () => {
+  it('hashes stored tokens by default so a database dump cannot replay them', () => {
+    const options = buildBetterAuthMagicLinkOptions({
+      prisma: createPrismaMock() as unknown as PrismaForBetterAuth,
+      sendMagicLink: vi.fn(),
+    });
+
+    expect(options.storeToken).toBe('hashed');
+  });
+
+  it('accepts plaintext storage for local development sign-in', () => {
+    const options = buildBetterAuthMagicLinkOptions({
+      prisma: createPrismaMock() as unknown as PrismaForBetterAuth,
+      sendMagicLink: vi.fn(),
+      storeToken: 'plain',
+    });
+
+    expect(options.storeToken).toBe('plain');
+  });
+});
+
 describe('createBetterAuthInstance source', () => {
   it('wires social provider and email-verification options into Better Auth', () => {
     const source = createBetterAuthInstance.toString();
@@ -626,6 +648,14 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain(
       'databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated)',
     );
+  });
+
+  it('stores plaintext magic-link tokens only in development', () => {
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toMatch(/process\.env\.NODE_ENV === ['"]development['"]/);
+    expect(source).toMatch(/['"]plain['"]/);
+    expect(source).toMatch(/['"]hashed['"]/);
   });
 });
 

@@ -37,7 +37,7 @@ interface SessionBody {
   };
 }
 
-function createMagicLinkContractHarness() {
+function createMagicLinkContractHarness(storeToken?: 'hashed' | 'plain') {
   const database: MemoryDB = {
     account: [],
     session: [],
@@ -58,6 +58,7 @@ function createMagicLinkContractHarness() {
   const magicLinkOptions = buildBetterAuthMagicLinkOptions({
     prisma,
     sendMagicLink,
+    storeToken,
   });
   const auth = betterAuth({
     baseURL: AUTH_BASE_URL,
@@ -207,5 +208,23 @@ describe('Better Auth magic-link lifecycle contract', () => {
       delivered.token,
     );
     expect(harness.database.session ?? []).toHaveLength(1);
+  });
+
+  it('stores the plaintext token as identifier when storeToken is plain', async () => {
+    const harness = createMagicLinkContractHarness('plain');
+    await requestMagicLink(harness);
+    const delivered = harness.getDeliveredMagicLink();
+    const stored = harness.database.verification ?? [];
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.identifier).toBe(delivered.token);
+    expect(JSON.stringify(harness.database)).toContain(delivered.token);
+
+    const verificationResponse = await verifyMagicLink(
+      harness,
+      delivered.token,
+    );
+
+    expect(verificationResponse.status).toBe(200);
   });
 });

@@ -6,9 +6,19 @@ import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
-  default: ({ alt, loading, src }: ImgHTMLAttributes<HTMLImageElement>) => (
+  default: ({
+    alt,
+    loading,
+    src,
+    unoptimized,
+  }: ImgHTMLAttributes<HTMLImageElement> & { unoptimized?: boolean }) => (
     // biome-ignore lint/performance/noImgElement: test stub for next/image
-    <img alt={alt} data-loading={loading} src={src} />
+    <img
+      alt={alt}
+      data-loading={loading}
+      data-unoptimized={unoptimized ? 'true' : 'false'}
+      src={src}
+    />
   ),
 }));
 
@@ -80,6 +90,22 @@ describe('LibrarySourcePreview', () => {
     expect(screen.getByTestId('video-preview')).toHaveAttribute(
       'data-preload',
       'metadata',
+    );
+  });
+
+  it('bypasses the Next optimizer for leftover files-host URLs', () => {
+    render(
+      <LibrarySourcePreview
+        record={ingredient(
+          IngredientCategory.IMAGE,
+          'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        )}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'image source' })).toHaveAttribute(
+      'data-unoptimized',
+      'true',
     );
   });
 

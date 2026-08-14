@@ -83,7 +83,49 @@
     "chooseWorkflow": "Choose workflow",
     "fullManagement": "Full management remains available on this canonical route.",
     "openOverlayPreview": "Open overlay preview",
-    "returnToConversation": "Return to conversation"
+    "returnToConversation": "Return to conversation",
+    "tabs": {
+      "add": "Add inspector panel",
+      "browser": "Browser",
+      "browserEmptyDescription": "Page and generation previews appear here when you open them.",
+      "browserEmptyTitle": "Open a preview to get started",
+      "close": "Close {tab}",
+      "configure": "Inspector panels",
+      "context": "Context",
+      "conversation": "Conversation",
+      "files": "Files",
+      "filesEmptyDescription": "Library assets for this brand appear here when you inspect them.",
+      "filesEmptyTitle": "Open a file to get started"
+    },
+    "filesPane": {
+      "categoryAria": "Library media type",
+      "empty": "No {category} available",
+      "emptyHint": "Add media in Library, then return here.",
+      "error": "Library sources could not be loaded.",
+      "gifs": "GIFs",
+      "images": "Images",
+      "loadMore": "Load more",
+      "loading": "Loading Library sources",
+      "loadingMore": "Loading more…",
+      "manage": "Manage Library",
+      "permissionDenied": "Library sources are unavailable for the effective brand.",
+      "retry": "Retry",
+      "select": "Select {label}",
+      "sourcesAvailable": "{count} Library sources available",
+      "stale": "That source is no longer available. Your conversation and picker state were preserved.",
+      "unauthorized": "That source is not available to the effective brand. Choose another source or open Library management.",
+      "verifyError": "The source could not be verified. Retry without losing your current context.",
+      "verifying": "Verifying source…",
+      "videos": "Videos"
+    },
+    "browserPane": {
+      "emptyDescription": "Select a library file to preview it here, or open a published page.",
+      "emptyTitle": "Open a preview to get started",
+      "openFiles": "Open Files",
+      "openLibrary": "Open in Library",
+      "openPage": "Open page",
+      "pagePreview": "Preview of {host}"
+    }
   },
   "desktop": {
     "local": {
@@ -178,12 +220,15 @@
     }
   },
   "agent": {
+    "composer": {
+      "dropPlaceholder": "drop it here?"
+    },
     "composerFollowUpQueue": {
       "queued": "Queued"
     },
-    "generationActionCard": {
-      "stop": "Stop",
-      "stopAria": "Stop generation"
+    "onboardingComposerCard": {
+      "description": "Paste a site or handle in the prompt, or type what you make. The first reply should be an image.",
+      "title": "Tell the agent what you create"
     }
   },
   "automation": {

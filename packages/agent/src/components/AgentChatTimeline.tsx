@@ -45,6 +45,11 @@ type AgentChatTimelineProps = {
   onUiAction: AgentUiActionHandler;
   isReadOnly?: boolean;
   /**
+   * When the composer is showing a generation card, that card owns the
+   * generate failure. Do not also pin AgentRunFailureCard in the timeline.
+   */
+  hasDockedGenerationCard?: boolean;
+  /**
    * When true, pure "Thinking" placeholders are suppressed — composer status
    * (or a live streaming row) already owns busy chrome (T3 density).
    */
@@ -70,6 +75,7 @@ export function AgentChatTimeline({
   onSelectIngredient,
   onUiAction,
   isReadOnly = false,
+  hasDockedGenerationCard = false,
   suppressThinkingPlaceholder = true,
 }: AgentChatTimelineProps): ReactElement {
   // Only the terminal timeline entry may own the failure card / retry context.
@@ -155,7 +161,7 @@ export function AgentChatTimeline({
         </div>
       ))}
 
-      {isTerminalFailedRunWithoutAssistant ? (
+      {isTerminalFailedRunWithoutAssistant && !hasDockedGenerationCard ? (
         <AgentRunFailureCard
           error={lastFailedDetail}
           isRetrying={isBusy}

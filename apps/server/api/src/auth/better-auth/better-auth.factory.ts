@@ -44,7 +44,9 @@ type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
 type BetterAuthMagicLinkDependencies = Pick<
   ICreateBetterAuthOptions,
   'prisma' | 'sendMagicLink'
->;
+> & {
+  storeToken?: MagicLinkOptions['storeToken'];
+};
 type BetterAuthUserBeforePayload = {
   email?: string | null;
   handle?: string;
@@ -214,12 +216,14 @@ export async function assertSignupMagicLinkCanCreateUser({
 export function buildBetterAuthMagicLinkOptions({
   prisma,
   sendMagicLink,
+  storeToken = 'hashed',
 }: BetterAuthMagicLinkDependencies): MagicLinkOptions {
   return {
     expiresIn: BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS,
-    // Persist only the hash of magic-link tokens so a DB read cannot replay
-    // them. Lookup re-hashes the incoming token during verification.
-    storeToken: 'hashed',
+    // Production persists only the hash so a DB read cannot replay the token.
+    // Local development stores plaintext in `auth_tokens.identifier` so operators
+    // can complete sign-in without a working mailer.
+    storeToken,
     sendMagicLink: async ({ email, metadata, url, token }) => {
       await assertSignupMagicLinkCanCreateUser({
         email,
@@ -754,7 +758,14 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
       ...(apiKey ? [dash({ apiKey })] : []),
-      magicLink(buildBetterAuthMagicLinkOptions({ prisma, sendMagicLink })),
+      magicLink(
+        buildBetterAuthMagicLinkOptions({
+          prisma,
+          sendMagicLink,
+          storeToken:
+            process.env.NODE_ENV === 'development' ? 'plain' : 'hashed',
+        }),
+      ),
       organization(buildBetterAuthOrganizationOptions(prisma)),
       jwt({
         jwt: {

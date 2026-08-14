@@ -836,6 +836,34 @@ describe('Ingredient', () => {
       );
     });
 
+    it('rewrites leftover files-host /local/ cdnUrls onto the public CDN', () => {
+      const ingredient = createIngredient({
+        category: IngredientCategory.IMAGE,
+        cdnUrl:
+          'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        id: 'cmsmc6doc004vloxn054gn7te',
+        s3Key: 'local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        status: IngredientStatus.GENERATED,
+      });
+
+      expect(ingredient.ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/ingredients/images/cmsmc6doc004vloxn054gn7te',
+      );
+    });
+
+    it('strips a local/ s3Key prefix when building the public CDN URL', () => {
+      const ingredient = createIngredient({
+        category: IngredientCategory.IMAGE,
+        id: 'ing_local',
+        s3Key: 'local/ingredients/images/ing_local',
+        status: IngredientStatus.GENERATED,
+      });
+
+      expect(ingredient.ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/ingredients/images/ing_local',
+      );
+    });
+
     it('should cache ingredient URL', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.IMAGE,

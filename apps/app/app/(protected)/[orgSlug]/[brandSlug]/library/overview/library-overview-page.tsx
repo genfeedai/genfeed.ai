@@ -119,8 +119,8 @@ function LibraryCategoryTile({
       aria-describedby={descriptionId}
       data-testid={testId}
       className={cn(
-        'group block h-full rounded-card bg-card text-card-foreground shadow-border transition-[background-color,box-shadow,transform] duration-200 ease-out',
-        'hover:-translate-y-0.5 hover:bg-white/[0.02] hover:shadow-border-strong',
+        'group block h-full rounded-card bg-card text-card-foreground shadow-border transition-[background-color,box-shadow] duration-200 ease-out',
+        'hover:bg-white/[0.02] hover:shadow-border-strong',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
       )}
     >

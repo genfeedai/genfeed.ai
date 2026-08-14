@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -45,6 +46,7 @@ export class BetterAuthIdentityResolverService {
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly identityCache: BetterAuthIdentityCacheService,
+    private readonly userSetupService: UserSetupService,
   ) {}
 
   async resolve(userId: string): Promise<IBetterAuthResolvedIdentity> {
@@ -85,6 +87,21 @@ export class BetterAuthIdentityResolverService {
       members,
       lastUsedOrganizationId,
     );
+
+    if (!organizationId && members.length === 0) {
+      const provisioned = await this.provisionMissingWorkspace(
+        resolvedUserId,
+        userRecord,
+      );
+      if (provisioned) {
+        return {
+          brandId: provisioned.brandId,
+          isSuperAdmin,
+          organizationId: provisioned.organizationId,
+          userId: resolvedUserId,
+        };
+      }
+    }
 
     // A user with active membership rows must resolve to SOME organization.
     // Silently returning `organizationId: undefined` here let every
@@ -216,5 +233,41 @@ export class BetterAuthIdentityResolverService {
       getEntityId(firstBrand as Record<string, unknown> | null | undefined) ||
       undefined
     );
+  }
+
+  /**
+   * Signup can persist a session even when UserSetupService throws. The next
+   * authenticated request must finish provisioning so /agent/onboarding sits
+   * on a real membership org instead of spinning with no access state.
+   */
+  private async provisionMissingWorkspace(
+    userId: string,
+    userRecord: Record<string, unknown> | null | undefined,
+  ): Promise<{ brandId?: string; organizationId: string } | null> {
+    try {
+      const setup = await this.userSetupService.initializeUserResources(
+        userId,
+        undefined,
+        {
+          email: getRecordId(userRecord, 'email') || null,
+          name: getRecordId(userRecord, 'name') || null,
+        },
+      );
+      const organizationId = getEntityId(
+        setup.organization as unknown as Record<string, unknown>,
+      );
+      if (!organizationId) {
+        return null;
+      }
+
+      return {
+        brandId:
+          getEntityId(setup.brand as unknown as Record<string, unknown>) ||
+          undefined,
+        organizationId,
+      };
+    } catch {
+      return null;
+    }
   }
 }

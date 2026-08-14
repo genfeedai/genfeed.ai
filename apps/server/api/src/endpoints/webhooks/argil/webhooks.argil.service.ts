@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import {
   ClipResultsService,
   type ProviderTerminalTransitionInput,
@@ -12,6 +13,7 @@ type JsonRecord = Record<string, unknown>;
 @Injectable()
 export class ArgilWebhookService {
   constructor(
+    private readonly clipLibraryLinkService: ClipLibraryLinkService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly loggerService: LoggerService,
@@ -83,6 +85,12 @@ export class ArgilWebhookService {
         providerName: 'argil',
         ...transition,
       });
+    if (transition.status === 'completed' && organizationId) {
+      await this.clipLibraryLinkService.linkReadyClip({
+        clipResultId: callbackId,
+        organizationId,
+      });
+    }
     if (!transitioned) {
       this.loggerService.log('ArgilWebhookService terminal callback replay', {
         callbackId,

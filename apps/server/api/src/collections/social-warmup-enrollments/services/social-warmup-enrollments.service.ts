@@ -21,6 +21,7 @@ import {
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
 import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
@@ -260,6 +261,15 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
+  async syncInstagramAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: InstagramAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
   async syncTwitterAuthorizedSnapshot(params: {
     brandId: string;
     credentialId: string;
@@ -275,6 +285,7 @@ export class SocialWarmupEnrollmentsService {
     organizationId: string;
     snapshot:
       | TikTokAuthorizedSignalsSnapshot
+      | InstagramAuthorizedSignalsSnapshot
       | TwitterAuthorizedSignalsSnapshot;
   }): Promise<void> {
     await this.syncPlatformSnapshot({
@@ -480,6 +491,7 @@ export class SocialWarmupEnrollmentsService {
   }
 
   private signalCreatesFromCredential(credential: {
+    platform?: string;
     warmupSignals: unknown;
   }): Prisma.SocialWarmupSignalUncheckedCreateWithoutEnrollmentInput[] {
     return authorizedEvidenceFromWarmupSignals(credential.warmupSignals).map(

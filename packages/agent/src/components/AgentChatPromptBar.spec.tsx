@@ -21,7 +21,9 @@ vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: () => <div data-testid="generation-action-card" />,
+  GenerationActionCard: ({ className }: { className?: string }) => (
+    <div className={className} data-testid="generation-action-card" />
+  ),
 }));
 
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
@@ -115,6 +117,21 @@ describe('AgentChatPromptBar', () => {
     renderPromptBar(false);
 
     expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
+  });
+
+  it('docks the generation card flush on the prompt bar without a transcript gap', () => {
+    renderPromptBar(false);
+
+    const card = screen.getByTestId('generation-action-card');
+    expect(card.parentElement).not.toHaveClass('pb-2');
+  });
+
+  it('keeps the generation card 5% narrower than the prompt bar', () => {
+    renderPromptBar(false);
+
+    const card = screen.getByTestId('generation-action-card');
+    expect(card).toHaveClass('w-[95%]');
+    expect(card).toHaveClass('mx-auto');
   });
 
   it('renders queued follow-ups above the composer', () => {

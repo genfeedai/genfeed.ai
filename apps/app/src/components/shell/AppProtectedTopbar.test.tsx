@@ -43,6 +43,7 @@ vi.mock('@genfeedai/constants', () => ({
     },
     SIGN_UP: '/signup',
     WORKSPACE: {
+      ACTIVITY: '/workspace/activity',
       OVERVIEW: '/workspace/overview',
     },
   },
@@ -177,6 +178,10 @@ vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
   default: () => <div data-testid="cloud-sync-indicator" />,
 }));
 
+vi.mock('@/components/shell/TopbarActivityMenu', () => ({
+  default: () => <div data-testid="topbar-activity-menu" />,
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -234,6 +239,7 @@ describe('AppProtectedTopbar', () => {
       name: 'Breadcrumb',
     });
     const switcher = screen.getByTestId('app-switcher');
+    const activityMenu = screen.getByTestId('topbar-activity-menu');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
@@ -253,7 +259,11 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
     // Credits are the first visible control in the right-side cluster.
     expect(
-      credits.compareDocumentPosition(cloudSyncIndicator) &
+      credits.compareDocumentPosition(activityMenu) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // Cloud-sync sits before the grouped app-switcher/settings cluster.
@@ -339,6 +349,9 @@ describe('AppProtectedTopbar', () => {
     );
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
     expect(
+      screen.queryByTestId('topbar-activity-menu'),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
@@ -403,12 +416,17 @@ describe('AppProtectedTopbar', () => {
   it('places credits first in the right-side control cluster', () => {
     render(<AppProtectedTopbar />);
 
+    const activityMenu = screen.getByTestId('topbar-activity-menu');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
     const credits = screen.getByTestId('topbar-credits-bar');
 
     expect(
-      credits.compareDocumentPosition(cloudSyncIndicator) &
+      credits.compareDocumentPosition(activityMenu) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(

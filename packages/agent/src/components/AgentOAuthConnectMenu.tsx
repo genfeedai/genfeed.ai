@@ -15,14 +15,19 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { ChevronDown, Link } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface AgentOAuthConnectMenuProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
+  /** Hide platforms that are already connected on this brand. */
+  excludePlatforms?: ReadonlySet<string>;
+  /** Popover alignment. Toolbar uses `end`; setup cards use `start`. */
+  contentAlign?: 'end' | 'start';
   /** Trigger label. Defaults to the compact agent "Connect" control. */
   triggerLabel?: string;
+  triggerClassName?: string;
   triggerVariant?: ButtonVariant;
   triggerSize?: ButtonSize;
   /** Hide the leading link icon (e.g. full empty-state CTA). */
@@ -34,7 +39,10 @@ const CONNECT_ERROR_MESSAGE =
 
 export function AgentOAuthConnectMenu({
   onOAuthConnect,
+  excludePlatforms,
+  contentAlign = 'end',
   triggerLabel = 'Connect',
+  triggerClassName,
   triggerVariant = ButtonVariant.UNSTYLED,
   triggerSize,
   hideIcon = false,
@@ -44,6 +52,17 @@ export function AgentOAuthConnectMenu({
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const platforms = useMemo(
+    () =>
+      OAUTH_CONNECT_PLATFORMS.filter(
+        (item) => !excludePlatforms?.has(item.platform),
+      ),
+    [excludePlatforms],
+  );
+  const groups = useMemo(
+    () => groupOAuthConnectPlatforms(platforms),
+    [platforms],
+  );
 
   const handleConnect = useCallback(
     async (item: OAuthConnectPlatform) => {
@@ -72,7 +91,7 @@ export function AgentOAuthConnectMenu({
     [connectingPlatform, onOAuthConnect],
   );
 
-  if (!onOAuthConnect) {
+  if (!onOAuthConnect || platforms.length === 0) {
     return null;
   }
 
@@ -85,11 +104,12 @@ export function AgentOAuthConnectMenu({
           variant={triggerVariant}
           size={triggerSize}
           withWrapper={false}
-          className={
+          className={cn(
             isShellControl
               ? 'gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left'
-              : undefined
-          }
+              : undefined,
+            triggerClassName,
+          )}
           data-active={open ? 'true' : 'false'}
           ariaLabel="Connect a social channel"
         >
@@ -113,10 +133,10 @@ export function AgentOAuthConnectMenu({
       </PopoverTrigger>
 
       <PopoverContent
-        align="end"
+        align={contentAlign}
         side="bottom"
         sideOffset={10}
-        className="gen-shell-panel w-[20rem] rounded-[1.25rem] p-2 text-foreground shadow-[0_28px_70px_-48px_rgba(0,0,0,0.9)]"
+        className="w-[20rem] rounded-md p-2"
       >
         <div className="px-2.5 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/42">
@@ -135,7 +155,7 @@ export function AgentOAuthConnectMenu({
         ) : null}
 
         <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">
-          {groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS).map((group) => (
+          {groups.map((group) => (
             <div key={group.id} className="space-y-1">
               <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/42">
                 {group.label}

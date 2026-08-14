@@ -187,22 +187,22 @@ const SAFE_MARKDOWN_COMPONENTS: Components = {
     );
   },
   p: ({ children }): ReactElement => (
-    <p className="my-1.5 first:mt-0 last:mb-0 leading-6 text-foreground/92">
+    <p className="my-1.5 first:mt-0 last:mb-0 leading-6 text-foreground">
       {children}
     </p>
   ),
   ul: ({ children }): ReactElement => (
-    <ul className="my-2 list-disc space-y-1 pl-5 marker:text-foreground/35">
+    <ul className="my-2 list-disc space-y-1 pl-5 marker:text-muted">
       {children}
     </ul>
   ),
   ol: ({ children }): ReactElement => (
-    <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-foreground/45">
+    <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-muted">
       {children}
     </ol>
   ),
   li: ({ children }): ReactElement => (
-    <li className="leading-6 text-foreground/90 pl-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
+    <li className="leading-6 text-foreground pl-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
       {children}
     </li>
   ),

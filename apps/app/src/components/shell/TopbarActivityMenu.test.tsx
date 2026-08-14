@@ -1,0 +1,37 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/brand${path}`,
+  }),
+}));
+
+vi.mock('@genfeedai/constants', () => ({
+  APP_ROUTES: {
+    WORKSPACE: {
+      ACTIVITY: '/workspace/activity',
+    },
+  },
+}));
+
+import TopbarActivityMenu from './TopbarActivityMenu';
+
+describe('TopbarActivityMenu', () => {
+  it('opens a dropdown that links to workspace activity', async () => {
+    const user = userEvent.setup();
+
+    render(<TopbarActivityMenu />);
+
+    await user.click(screen.getByRole('button', { name: 'Open activity' }));
+
+    const activityLink = await screen.findByRole('menuitem', {
+      name: 'Activity',
+    });
+    expect(activityLink).toHaveAttribute(
+      'href',
+      '/acme/brand/workspace/activity',
+    );
+  });
+});

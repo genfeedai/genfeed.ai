@@ -103,6 +103,19 @@ describe('social-warmup-enrollment helpers', () => {
     );
     expect(firstUpload.accountAgeSource).toBe('first-upload-platform-signal');
 
+    const firstPublish = resolveSocialWarmupAccountAge(
+      [
+        {
+          evidence: { media: { createTime: 1_754_000_000 } },
+          key: 'first-publish-platform-signal',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        },
+      ],
+      now,
+    );
+    expect(firstPublish.accountAgeSource).toBe('first-publish-platform-signal');
+
     expect(resolveSocialWarmupAccountAge([])).toEqual({
       accountAgeDays: null,
       accountAgeStatus: SocialWarmupSignalStatus.MISSING,
@@ -157,6 +170,16 @@ describe('social-warmup-enrollment helpers', () => {
         },
       }),
     ).toBe(false);
+
+    expect(
+      hasPartialSocialWarmupScopes({
+        instagramAuthorized: {
+          evidence: [{ status: 'permission_limited' }],
+          grantedScopes: [],
+          state: 'partial',
+        },
+      }),
+    ).toBe(true);
   });
 
   it('detects partial X scopes without treating a full snapshot as limited', () => {

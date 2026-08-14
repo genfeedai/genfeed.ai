@@ -137,6 +137,28 @@ describe('PerformanceInterceptor', () => {
       expect(Sentry.metrics.distribution).not.toHaveBeenCalled();
     });
 
+    it('should warn when a request finishes as 401 without throwing', async () => {
+      mockExecutionContext.getResponse.mockReturnValue({ statusCode: 401 });
+      mockCallHandler.handle.mockReturnValue(of('unauthorized'));
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'Request unauthorized',
+        expect.objectContaining({
+          method: 'GET',
+          statusCode: 401,
+          url: '/api/test',
+        }),
+      );
+      expect(loggerService.debug).not.toHaveBeenCalledWith(
+        'Request completed',
+        expect.anything(),
+      );
+    });
+
     it('should attach database metrics when Prisma query metrics are enabled', async () => {
       configValues.API_QUERY_METRICS = 'true';
       mockCallHandler.handle.mockReturnValue(

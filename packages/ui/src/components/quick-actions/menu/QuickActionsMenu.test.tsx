@@ -50,6 +50,15 @@ describe('QuickActionsMenu', () => {
       expect(screen.getByText('Trim Video')).toBeInTheDocument();
       expect(screen.getByText('Delete')).toBeInTheDocument();
     });
+
+    const menu = screen.getByTestId('quick-actions-menu');
+    expect(menu).toHaveClass('min-w-40', 'bg-secondary', 'shadow-dropdown');
+    expect(screen.getByRole('button', { name: 'Trim Video' })).toHaveClass(
+      'gap-2',
+      'px-2.5',
+      'py-1.5',
+      'text-xs',
+    );
   });
 
   it('forwards clicks from a menu action', async () => {

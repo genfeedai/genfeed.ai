@@ -110,14 +110,17 @@ describe('useLibraryPicker', () => {
     await act(async () => result.current.select(source));
 
     expect(mocks.findOne).toHaveBeenCalledWith('image-1');
-    expect(onSelect).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      kind: 'ingredient',
-      organizationId: 'org-1',
-      recordId: 'image-1',
-      recordVersion: '7',
-      serializer: 'ingredient',
-    });
+    expect(onSelect).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        kind: 'ingredient',
+        organizationId: 'org-1',
+        recordId: 'image-1',
+        recordVersion: '7',
+        serializer: 'ingredient',
+      },
+      source,
+    );
   });
 
   it('fails closed when a selected source becomes stale or changes brand', async () => {

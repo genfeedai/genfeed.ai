@@ -18,8 +18,8 @@ const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -44,9 +44,13 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
   },
 }));
 
+const loadClientProtectedBootstrapMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(null),
+);
+
 vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
   clearClientProtectedBootstrapCache: vi.fn(),
-  loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
+  loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
 }));
 
 function createWrapper() {
@@ -80,6 +84,7 @@ describe('AccessStateProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    loadClientProtectedBootstrapMock.mockResolvedValue(null);
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
@@ -187,6 +192,48 @@ describe('AccessStateProvider', () => {
 
     expect(screen.getByTestId('access-state')).toHaveTextContent('none');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('loads access state from bootstrap even before brand context has an organizationId', async () => {
+    useBrandMock.mockReturnValue({
+      brandId: '',
+      organizationId: '',
+    });
+    loadClientProtectedBootstrapMock.mockResolvedValue({
+      accessState: {
+        ...initialAccessState,
+        brandId: '',
+      },
+    });
+    useAuthedServiceMock.mockResolvedValue({});
+
+    function Consumer() {
+      const { accessState, isLoading } = useAccessState();
+
+      return (
+        <div>
+          <span data-testid="access-org">
+            {accessState?.organizationId ?? 'none'}
+          </span>
+          <span data-testid="access-loading">{String(isLoading)}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <AccessStateProvider>
+          <Consumer />
+        </AccessStateProvider>
+      </Wrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('access-org')).toHaveTextContent('org_123');
+    });
+    expect(loadClientProtectedBootstrapMock).toHaveBeenCalled();
   });
 
   describe('isAssetGateLocked', () => {

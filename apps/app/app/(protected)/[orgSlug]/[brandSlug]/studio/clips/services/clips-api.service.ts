@@ -1,5 +1,6 @@
 import type {
   AgentClipRunIdentity,
+  ClipLibraryLinkStatus,
   ClipProjectReadResponse,
   ClipReferenceFrameSet,
 } from '@genfeedai/interfaces';
@@ -79,10 +80,18 @@ interface PublishHandoffResponse {
     }>;
     metadata?: {
       clipResultId?: string;
+      ingredientId?: string;
       summary?: string | null;
       title?: string | null;
     };
   };
+}
+
+interface LibraryLinkResponse {
+  clipResultId: string;
+  error?: string;
+  ingredientId?: string;
+  status: ClipLibraryLinkStatus;
 }
 
 interface RewriteHighlightPayload {
@@ -339,6 +348,16 @@ export class ClipsApiService {
   ): Promise<PublishHandoffResponse> {
     return this.fetchJson<PublishHandoffResponse>(
       `${this.apiEndpoint}/clip-projects/${projectId}/results/${clipResultId}/publish-handoff`,
+      { method: 'POST' },
+    );
+  }
+
+  async retryLibraryLink(
+    projectId: string,
+    clipResultId: string,
+  ): Promise<LibraryLinkResponse> {
+    return this.fetchJson<LibraryLinkResponse>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/results/${clipResultId}/library-link`,
       { method: 'POST' },
     );
   }

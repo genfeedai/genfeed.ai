@@ -120,6 +120,7 @@ export {
   fieldControlInputClassName,
   fieldControlPopoverClassName,
   fieldControlTriggerClassName,
+  overlayMenuSurfaceClassName,
 } from './field-control';
 export { Input, type InputProps } from './input';
 export { Kbd, type KbdProps } from './kbd';

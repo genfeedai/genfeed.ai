@@ -100,7 +100,7 @@ export function AgentRuntimeSelector({
         align="end"
         side="bottom"
         sideOffset={10}
-        className="gen-shell-panel w-[22rem] rounded-[1.25rem] p-2 text-foreground shadow-[0_28px_70px_-48px_rgba(0,0,0,0.9)]"
+        className="w-[22rem] rounded-md p-2"
       >
         <div className="mb-2 flex items-start justify-between gap-3 px-2.5 py-2">
           <div>

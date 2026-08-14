@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
@@ -52,5 +52,19 @@ describe('MediaAssetNode', () => {
       'src',
       'https://cdn/vid-1.jpg',
     );
+  });
+
+  it('swaps a broken preview for a quiet empty tile', () => {
+    renderNode({
+      id: 'img-2',
+      category: IngredientCategory.IMAGE,
+      ingredientUrl: 'https://cdn/missing.png',
+      metadataLabel: 'Broken still',
+    } as IIngredient);
+
+    fireEvent.error(screen.getByAltText('Broken still'));
+
+    expect(screen.queryByAltText('Broken still')).not.toBeInTheDocument();
+    expect(screen.getByText('No preview')).toBeInTheDocument();
   });
 });

@@ -5,7 +5,6 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -66,7 +65,6 @@ interface AgentChatInputProps {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  contextUsage?: ConversationContextUsage | null;
   willQueueFollowUp?: boolean;
 }
 
@@ -106,7 +104,6 @@ export function AgentChatInput({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
-  contextUsage = null,
   willQueueFollowUp = false,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
@@ -176,12 +173,6 @@ export function AgentChatInput({
     >
       <AgentChatInputStyles />
 
-      {isDragActive && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-primary/5">
-          <p className="text-sm font-medium text-primary/70">Drop files here</p>
-        </div>
-      )}
-
       {actionFeedback ? (
         <div
           aria-live="polite"
@@ -219,7 +210,6 @@ export function AgentChatInput({
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
             creditsAvailable={creditsAvailable}
-            contextUsage={contextUsage}
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}

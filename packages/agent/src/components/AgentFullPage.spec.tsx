@@ -1173,6 +1173,16 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
+  it('uses a paste-or-type placeholder on onboarding', () => {
+    render(
+      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
+    );
+
+    expect(
+      screen.getByText('Paste a site or handle, or type what you make...'),
+    ).toBeInTheDocument();
+  });
+
   it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {
     const apiService = createApiService();
 

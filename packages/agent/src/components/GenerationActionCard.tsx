@@ -57,6 +57,8 @@ export function GenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
+    outputs,
+    maxOutputs,
     status,
     resultUrl,
     resultId,
@@ -81,6 +83,7 @@ export function GenerationActionCard({
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    handleOutputsChange,
     referenceIds,
   } = useGenerationActionCard({
     action,
@@ -89,18 +92,12 @@ export function GenerationActionCard({
     onUiAction,
   });
 
-  // Large prompt cards own the chat column — collapse frees the thread.
-  // Auto-collapse once generation starts so progress stays visible without
-  // burying prior messages. Idle and error expand so Generate stays
-  // reachable above the sticky composer.
+  // The card sits on the composer. Keep the generate form open so the dock
+  // is not a header sliver. A new error or idle state expands once so the
+  // operator sees it; they can still collapse the card by hand after that.
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isEffectivelyCollapsed = isCollapsed && status !== 'error';
 
   useEffect(() => {
-    if (status === 'generating') {
-      setIsCollapsed(true);
-      return;
-    }
     if (status === 'error' || status === 'idle') {
       setIsCollapsed(false);
     }
@@ -131,13 +128,13 @@ export function GenerationActionCard({
       <GenerationActionCardHeader
         Icon={Icon}
         title={action.title}
-        isCollapsed={isEffectivelyCollapsed}
+        isCollapsed={isCollapsed}
         statusLabel={statusLabelFor(status)}
         onStop={status === 'generating' ? handleStop : undefined}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
-      {isEffectivelyCollapsed ? (
+      {isCollapsed ? (
         status === 'done' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
@@ -156,7 +153,7 @@ export function GenerationActionCard({
           </div>
         ) : null
       ) : (
-        <div className="space-y-3 p-3">
+        <div className="space-y-2 p-3">
           <GenerationActionCardControls
             prompt={prompt}
             onPromptChange={setPrompt}
@@ -172,6 +169,9 @@ export function GenerationActionCard({
             prioritize={prioritize}
             onPrioritizeChange={setPrioritize}
             onModelChange={handleModelChange}
+            outputs={outputs}
+            maxOutputs={maxOutputs}
+            onOutputsChange={handleOutputsChange}
             aspectRatio={aspectRatio}
             availableAspectRatios={availableAspectRatios}
             onAspectRatioChange={handleAspectRatioChange}

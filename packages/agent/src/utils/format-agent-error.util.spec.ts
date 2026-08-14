@@ -56,6 +56,72 @@ describe('formatAgentError', () => {
     );
   });
 
+  it('maps thread UI-action 403s to our API refusal, not a provider block', () => {
+    // Confirm-generate hops through POST /v1/images. A 403 there is our
+    // allowlist / brand / org check — ErrorResponse.forbidden() — not Replicate
+    // rejecting the account. The generic /403|forbidden/ rule used to say
+    // "Provider access denied".
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Insufficient permissions',
+    );
+
+    expect(formatted.title).toBe('Action not allowed');
+    expect(formatted.summary).toMatch(/API refused/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+    expect(formatted.detail).toMatch(/Insufficient permissions/i);
+  });
+
+  it('keeps a specific UI-action 403 detail when the hop named the real reason', () => {
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Model not enabled for this organization',
+    );
+
+    expect(formatted.title).toBe('Action not allowed');
+    expect(formatted.detail).toMatch(/Model not enabled/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+  });
+
+  it('does not tell the operator to switch models when the workspace id is missing', () => {
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Organization context is required',
+    );
+
+    expect(formatted.title).toBe('Workspace missing on this request');
+    expect(formatted.summary).toMatch(/workspace/i);
+    expect(formatted.recovery).toMatch(/refresh/i);
+    expect(formatted.recovery).not.toMatch(/switch to auto/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+  });
+
+  it('does not call a cancelled generate a connection interrupt', () => {
+    // The abort hook used to cancel Replicate when the POST body finished,
+    // then Nest turned GenerationCancelledError into 500. The generic
+    // UI-action-500 rule said "local reload". Vincent did not reload.
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 500 - Request failed with status code 500: Cancelled by user',
+    );
+
+    expect(formatted.title).toBe('Generate was cancelled');
+    expect(formatted.summary).toMatch(/stopped before the image finished/i);
+    expect(formatted.title).not.toBe('Connection interrupted');
+    expect(formatted.recovery).toMatch(/retry/i);
+    expect(formatted.isConfigurationError).toBe(false);
+  });
+
+  it('maps thread UI-action axios 500s to connection-interrupted, not provider outage', () => {
+    // Confirm-generate waits on POST /v1/images through the same API. When that
+    // hop 500s (proxy timeout, hung Replicate call, local reload) axios says
+    // "Request failed with status code 500" and the UI-action wrapper repeats
+    // the 500. That must not read as "the model provider is down".
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 500 - Request failed with status code 500',
+    );
+
+    expect(formatted.title).toBe('Connection interrupted');
+    expect(formatted.summary).toMatch(/server error mid-request/i);
+    expect(formatted.title).not.toBe('Provider temporarily unavailable');
+  });
+
   it('classifies local API / proxy connection failures', () => {
     expect(formatAgentError('connect ECONNREFUSED 127.0.0.1:4635').title).toBe(
       'Connection interrupted',
