@@ -11,6 +11,7 @@ import FormDropdown from '@ui/primitives/dropdown-field';
 import { Textarea } from '@ui/primitives/textarea';
 import { PROMPT_BAR_TEXTAREA_MAX_HEIGHT } from '@ui/prompt-bars/base/prompt-bar.helpers';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
+import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
@@ -144,6 +145,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   isEnhancing,
   isGenerateDisabled,
   previousPrompt,
+  generationMeter,
   activeGenerations,
   generateLabel,
   avatars = [],
@@ -453,6 +455,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
+            {generationMeter ? (
+              <PromptBarGenerationMeter meter={generationMeter} />
+            ) : null}
+
             {!isMinimalBar && !isCollapsible && (
               <PromptOutputsButton
                 form={form}

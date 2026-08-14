@@ -279,6 +279,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
       isGenerateDisabled={ctx.isGenerateDisabled}
       previousPrompt={ctx.previousPrompt}
       selectedModelCost={ctx.selectedModelCost}
+      generationMeter={ctx.generationMeter}
       activeGenerations={ctx.activeGenerations}
       generateLabel={ctx.generateLabel}
       avatars={ctx.avatars}

@@ -130,6 +130,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 - [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
 - [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
+- [spec-studio-generation-meter](spec-studio-generation-meter.md) · [decisions](decisions-studio-generation-meter.md) — honest Studio credit + queue meter
 
 ## Context (auto-loaded via CLAUDE.md @import)
 
