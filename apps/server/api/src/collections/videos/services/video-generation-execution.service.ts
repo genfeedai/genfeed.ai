@@ -7,6 +7,11 @@ import type {
   VideoGenerationContext,
   VideoGenerationSaveDocumentsResult,
 } from '@api/collections/videos/services/video-generation.types';
+import { emptyStyleToNull } from '@api/collections/videos/services/video-generation-model.util';
+import {
+  resolveVideoOutputPlacement,
+  videoGenerationStartDetail,
+} from '@api/collections/videos/services/video-generation-output.util';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
@@ -64,9 +69,10 @@ export class VideoGenerationExecutionService {
 
       const isBatchSupported =
         MODEL_OUTPUT_CAPABILITIES[context.model]?.isBatchSupported ?? false;
-      if (isBatchSupported && outputs > 1) {
+      const placement = resolveVideoOutputPlacement(isBatchSupported, outputs);
+      if (placement === 'batch') {
         await this.createBatchOutputs(context, generationId, outputs);
-      } else if (outputs > 1) {
+      } else if (placement === 'sequential') {
         await this.createSequentialOutputs(context, generationId, outputs);
       } else {
         await this.metadataService.patch(
@@ -201,10 +207,7 @@ export class VideoGenerationExecutionService {
       scope: context.createVideoDto.scope,
       sourceIds: context.referenceIds,
       status: IngredientStatus.PROCESSING,
-      style:
-        context.createVideoDto.style === ''
-          ? null
-          : context.createVideoDto.style,
+      style: emptyStyleToNull(context.createVideoDto.style),
       tagIds: context.createVideoDto.tags,
       width: context.width,
     });
@@ -228,9 +231,7 @@ export class VideoGenerationExecutionService {
   private generationStartError(output?: number): HttpException {
     return new HttpException(
       {
-        detail: output
-          ? `Video generation failed to start for output ${output}`
-          : 'Video generation failed to start',
+        detail: videoGenerationStartDetail(output),
         title: 'Generation failed',
       },
       HttpStatus.BAD_GATEWAY,

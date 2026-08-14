@@ -5,6 +5,11 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import {
+  buildMeBrandsWhere,
+  getCanonicalId,
+  nestedSettingsRecord,
+} from '@api/collections/users/controllers/users-relationships.helpers';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -96,24 +101,16 @@ export class UsersRelationshipsController {
       member = null;
     }
 
-    const brandFilter: Record<string, unknown> = {
-      isDeleted,
-      organizationId: publicMetadata.organization,
-    };
-
-    if (
-      member?.brands &&
-      member.brands.length > 0 &&
-      !getIsSuperAdmin(user, request)
-    ) {
-      brandFilter.id = { in: member.brands };
-    }
-
     const data = await this.brandsService.findAll(
       {
         include: { credentials: true },
         orderBy: handleQuerySort(query.sort),
-        where: brandFilter,
+        where: buildMeBrandsWhere({
+          isDeleted,
+          isSuperAdmin: getIsSuperAdmin(user, request),
+          memberBrandIds: member?.brands,
+          organizationId: publicMetadata.organization,
+        }),
       },
       options,
     );
@@ -161,7 +158,7 @@ export class UsersRelationshipsController {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
-    const settingsId = this.getCanonicalId(settings);
+    const settingsId = getCanonicalId(settings);
     if (!settingsId) {
       return returnNotFound('Settings', publicMetadata.user);
     }
@@ -296,7 +293,7 @@ export class UsersRelationshipsController {
       return returnNotFound(this.constructorName, userId);
     }
 
-    const settingsId = this.getCanonicalId(settings);
+    const settingsId = getCanonicalId(settings);
     if (!settingsId) {
       return returnNotFound(this.constructorName, userId);
     }
@@ -311,25 +308,13 @@ export class UsersRelationshipsController {
       : returnNotFound(this.constructorName, userId);
   }
 
-  private readObjectRecord(value: unknown): Record<string, unknown> {
-    return typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private getCanonicalId(value: unknown): string | undefined {
-    const id = this.readObjectRecord(value).id;
-    return typeof id === 'string' && id.length > 0 ? id : undefined;
-  }
-
   private async findUserSettings(userData: unknown): Promise<unknown | null> {
-    const record = this.readObjectRecord(userData);
-
-    if (this.getCanonicalId(record.settings)) {
-      return record.settings;
+    const nestedSettings = nestedSettingsRecord(userData);
+    if (getCanonicalId(nestedSettings)) {
+      return nestedSettings;
     }
 
-    const userId = this.getCanonicalId(userData);
+    const userId = getCanonicalId(userData);
     if (!userId) {
       return null;
     }
