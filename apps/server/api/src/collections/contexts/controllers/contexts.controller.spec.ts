@@ -1,14 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
+import { AddSourceDto } from '@api/collections/contexts/dto/add-source.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { KnowledgeBaseCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -49,6 +52,13 @@ describe('ContextsController', () => {
     update: vi.fn(),
   };
 
+  const mockKnowledgeSourceService = {
+    addSource: vi.fn(),
+    backfill: vi.fn(),
+    removeSource: vi.fn(),
+    updateSource: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContextsController],
@@ -65,6 +75,10 @@ describe('ContextsController', () => {
         {
           provide: ContextsService,
           useValue: mockContextsService,
+        },
+        {
+          provide: KnowledgeSourceService,
+          useValue: mockKnowledgeSourceService,
         },
       ],
     })
@@ -289,6 +303,55 @@ describe('ContextsController', () => {
         mockUser.organizationId,
       );
       expect(result).toEqual(queryResult);
+    });
+  });
+
+  describe('addSource', () => {
+    it('adds a knowledge source to the context base', async () => {
+      const dto: AddSourceDto = {
+        category: KnowledgeBaseCategory.URL,
+        label: 'Docs',
+        referenceUrl: 'https://docs.example.com',
+      };
+      mockKnowledgeSourceService.addSource.mockResolvedValue({
+        contextBase: mockContext,
+        jobId: 'kb-ingest:1',
+        source: { id: 'src_1', ...dto },
+      });
+
+      const result = await controller.addSource(
+        mockReq,
+        '507f1f77bcf86cd799439014',
+        dto,
+        mockUser,
+      );
+
+      expect(mockKnowledgeSourceService.addSource).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        dto,
+        mockUser.organizationId,
+      );
+      expect(result).toMatchObject({
+        jobId: 'kb-ingest:1',
+        source: expect.objectContaining({ id: 'src_1' }),
+      });
+    });
+  });
+
+  describe('backfillSources', () => {
+    it('queues a tenant-scoped backfill', async () => {
+      mockKnowledgeSourceService.backfill.mockResolvedValue({
+        jobId: 'kb-backfill:org',
+        queued: 1,
+      });
+
+      await expect(controller.backfillSources(mockUser)).resolves.toEqual({
+        jobId: 'kb-backfill:org',
+        queued: 1,
+      });
+      expect(mockKnowledgeSourceService.backfill).toHaveBeenCalledWith(
+        mockUser.organizationId,
+      );
     });
   });
 

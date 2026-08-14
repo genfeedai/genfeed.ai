@@ -106,22 +106,36 @@ describe('ContextsService', () => {
     expect(init.method).toBe('DELETE');
   });
 
-  it('query POSTs to the RAG query endpoint', async () => {
-    const ragResult = { results: [], totalResults: 0 };
-    fetchMock.mockResolvedValue(fetchResponse(ragResult));
+  it('query POSTs to the contexts query endpoint', async () => {
+    fetchMock.mockResolvedValue(
+      fetchResponse([{ content: 'voice', relevance: 0.9 }]),
+    );
 
     const service = ContextsService.getInstance(token);
-    const result = await service.query({ query: 'brand voice' });
+    const result = await service.query({
+      contextBaseId: 'ctx_1',
+      query: 'brand voice',
+    });
 
     const [url, init] = lastCall();
-    expect(url).toContain('/rag/query');
-    expect(JSON.parse(init.body as string)).toEqual({ query: 'brand voice' });
-    expect(result).toEqual(ragResult);
+    expect(url).toContain('/contexts/query');
+    expect(JSON.parse(init.body as string)).toEqual({
+      contextBaseId: 'ctx_1',
+      query: 'brand voice',
+    });
+    expect(result.totalResults).toBe(1);
+    expect(result.chunks[0]?.content).toBe('voice');
   });
 
-  it('enhancePrompt POSTs to the RAG enhance endpoint', async () => {
-    const enhanced = { estimatedQualityBoost: 0.2, prompt: 'better' };
-    fetchMock.mockResolvedValue(fetchResponse(enhanced));
+  it('enhancePrompt POSTs to the contexts enhance endpoint', async () => {
+    fetchMock.mockResolvedValue(
+      fetchResponse({
+        context: [{ content: 'fact', relevance: 0.8, source: 'Docs' }],
+        enhancedPrompt: 'raw',
+        estimatedQualityBoost: 40,
+        originalPrompt: 'raw',
+      }),
+    );
 
     const service = ContextsService.getInstance(token);
     const result = await service.enhancePrompt({
@@ -130,13 +144,17 @@ describe('ContextsService', () => {
     });
 
     const [url] = lastCall();
-    expect(url).toContain('/rag/enhance');
-    expect(result).toEqual(enhanced);
+    expect(url).toContain('/contexts/enhance');
+    expect(result.enhancedPrompt).toBe('raw');
+    expect(result.context).toEqual(['fact']);
   });
 
-  it('getRelevantContext POSTs prompt with options spread', async () => {
-    const payload = { context: ['a'], relevanceScores: [1], sources: ['s'] };
-    fetchMock.mockResolvedValue(fetchResponse(payload));
+  it('getRelevantContext POSTs prompt to enhance', async () => {
+    fetchMock.mockResolvedValue(
+      fetchResponse({
+        context: [{ content: 'a', relevance: 1, source: 's' }],
+      }),
+    );
 
     const service = ContextsService.getInstance(token);
     const result = await service.getRelevantContext('prompt', 'caption', {
@@ -145,14 +163,17 @@ describe('ContextsService', () => {
     });
 
     const [url, init] = lastCall();
-    expect(url).toContain('/rag/context');
+    expect(url).toContain('/contexts/enhance');
     expect(JSON.parse(init.body as string)).toEqual({
-      brandId: 'brand_1',
       contentType: 'caption',
-      maxChunks: 3,
+      maxResults: 3,
       prompt: 'prompt',
     });
-    expect(result).toEqual(payload);
+    expect(result).toEqual({
+      context: ['a'],
+      relevanceScores: [1],
+      sources: ['s'],
+    });
   });
 
   it('throws the endpoint error message on failure', async () => {

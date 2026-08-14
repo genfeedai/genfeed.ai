@@ -15,6 +15,10 @@ import {
   HEYGEN_POLL_MAX_ATTEMPTS,
 } from './heygen-poll-job.interface';
 import { INSIGHT_GENERATION_JOB_NAME } from './insight-generation-job.interface';
+import {
+  KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME,
+  KNOWLEDGE_SOURCE_INGEST_JOB_NAME,
+} from './knowledge-source-ingest-job.interface';
 import { POST_PUBLISH_JOB_NAME } from './post-publish-job.interface';
 
 describe('job-data constants', () => {
@@ -40,6 +44,13 @@ describe('job-data constants', () => {
 
   it('preserves the insight-generation job name', () => {
     expect(INSIGHT_GENERATION_JOB_NAME).toBe('generate-insights');
+  });
+
+  it('preserves the knowledge-source ingest job names', () => {
+    expect(KNOWLEDGE_SOURCE_INGEST_JOB_NAME).toBe('ingest-knowledge-source');
+    expect(KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME).toBe(
+      'backfill-knowledge-sources',
+    );
   });
 
   describe('avatar video providers', () => {
