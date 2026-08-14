@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo } from 'react';
 
 const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
+  accessibleName,
   brandColor,
   brandIcon,
   brandLabel,
@@ -26,9 +27,12 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
     <CommandItem
       value={`${familyLabel} ${brandLabel}`}
       onSelect={onToggle}
-      aria-label={`${familyLabel}, ${brandLabel}, ${isExpanded ? 'expanded' : 'collapsed'}`}
+      aria-label={
+        accessibleName ??
+        `${familyLabel}, ${brandLabel}, ${isExpanded ? 'expanded' : 'collapsed'}`
+      }
       className={cn(
-        'group flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-left transition-colors',
+        'group flex min-h-7 w-full cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-left transition-colors',
         'hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >

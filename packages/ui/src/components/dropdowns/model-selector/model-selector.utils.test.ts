@@ -1,6 +1,7 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import {
+  isModelBrandGroupExpanded,
   isModelFamilyExpanded,
   parseModelFamilyAndVariant,
   shouldRenderModelFamilyHeader,
@@ -245,6 +246,64 @@ describe('isModelFamilyExpanded', () => {
         familyKey: 'genfeed-ai:flux2',
         hasSearchMatch: false,
         toggledFamilyKeys: ['genfeed-ai:flux2'],
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('isModelBrandGroupExpanded', () => {
+  it('keeps multi-brand All view collapsed until opened', () => {
+    expect(
+      isModelBrandGroupExpanded({
+        activeBrand: null,
+        brandSlug: 'genfeed-ai',
+        hasSearchMatch: false,
+        toggledBrandKeys: [],
+        visibleBrandCount: 3,
+      }),
+    ).toBe(false);
+  });
+
+  it('opens a brand that is filtered, searched, or toggled', () => {
+    expect(
+      isModelBrandGroupExpanded({
+        activeBrand: 'genfeed-ai',
+        brandSlug: 'genfeed-ai',
+        hasSearchMatch: false,
+        toggledBrandKeys: [],
+        visibleBrandCount: 3,
+      }),
+    ).toBe(true);
+
+    expect(
+      isModelBrandGroupExpanded({
+        activeBrand: null,
+        brandSlug: 'genfeed-ai',
+        hasSearchMatch: true,
+        toggledBrandKeys: [],
+        visibleBrandCount: 3,
+      }),
+    ).toBe(true);
+
+    expect(
+      isModelBrandGroupExpanded({
+        activeBrand: null,
+        brandSlug: 'genfeed-ai',
+        hasSearchMatch: false,
+        toggledBrandKeys: ['genfeed-ai'],
+        visibleBrandCount: 3,
+      }),
+    ).toBe(true);
+  });
+
+  it('opens the only visible brand so a single-provider list is usable', () => {
+    expect(
+      isModelBrandGroupExpanded({
+        activeBrand: null,
+        brandSlug: 'genfeed-ai',
+        hasSearchMatch: false,
+        toggledBrandKeys: [],
+        visibleBrandCount: 1,
       }),
     ).toBe(true);
   });

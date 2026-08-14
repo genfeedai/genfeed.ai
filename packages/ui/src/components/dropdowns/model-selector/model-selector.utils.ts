@@ -165,6 +165,34 @@ export function isModelFamilyExpanded({
   return hasSearchMatch || toggledFamilyKeys.includes(familyKey);
 }
 
+export function isModelBrandGroupExpanded({
+  brandSlug,
+  visibleBrandCount,
+  hasSearchMatch,
+  activeBrand,
+  toggledBrandKeys,
+}: {
+  brandSlug: string;
+  visibleBrandCount: number;
+  hasSearchMatch: boolean;
+  activeBrand: string | null;
+  toggledBrandKeys: readonly string[];
+}): boolean {
+  if (hasSearchMatch) {
+    return true;
+  }
+  if (activeBrand === brandSlug) {
+    return true;
+  }
+  if (activeBrand && activeBrand !== 'favorites' && activeBrand !== 'legacy') {
+    return false;
+  }
+  if (visibleBrandCount <= 1) {
+    return true;
+  }
+  return toggledBrandKeys.includes(brandSlug);
+}
+
 export function transformModelsToOptions(
   models: IModel[],
   favoriteModelKeys: string[],

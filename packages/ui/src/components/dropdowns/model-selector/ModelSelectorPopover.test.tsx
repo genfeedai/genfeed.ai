@@ -568,16 +568,78 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
-    expect(screen.getByText('Current Beta')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Google, collapsed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'OpenAI, collapsed' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
+    expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
     expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
     expect(visibleExpandedModelFamilies()).toEqual([]);
 
+    await user.click(screen.getByRole('button', { name: 'Google, collapsed' }));
+    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
+    expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
+    expect(
+      screen.getByRole('button', { name: 'Google, collapsed' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Google, collapsed' }));
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
-    expect(screen.getByText('Legacy Beta')).toBeInTheDocument();
     expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
     expect(visibleExpandedModelFamilies()).toEqual([]);
+  });
+
+  it('keeps provider catalogs collapsed in the All view', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'genfeed-ai/flux2-dev',
+            label: 'Flux2 Dev',
+          }),
+          createModel({
+            key: 'genfeed-ai/flux2-klein',
+            label: 'Flux2 Klein',
+          }),
+          createModel({
+            key: 'fal-ai/flux-schnell',
+            label: 'Flux Schnell',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+
+    expect(
+      screen.getByRole('button', { name: 'GenFeed, collapsed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Fal, collapsed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'GenFeed, collapsed' }),
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Klein')).not.toBeInTheDocument();
   });
 
   it('blocks selecting models that cost more credits than available', async () => {

@@ -85,6 +85,7 @@ export interface ModelSelectorBrandMarkProps {
 }
 
 export interface ModelSelectorFamilyItemProps {
+  accessibleName?: string;
   brandColor: string;
   brandIcon?: IconType;
   brandLabel: string;
