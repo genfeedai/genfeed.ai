@@ -57,6 +57,8 @@ export function GenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
+    outputs,
+    maxOutputs,
     status,
     resultUrl,
     resultId,
@@ -81,6 +83,7 @@ export function GenerationActionCard({
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    handleOutputsChange,
     referenceIds,
   } = useGenerationActionCard({
     action,
@@ -167,6 +170,9 @@ export function GenerationActionCard({
             prioritize={prioritize}
             onPrioritizeChange={setPrioritize}
             onModelChange={handleModelChange}
+            outputs={outputs}
+            maxOutputs={maxOutputs}
+            onOutputsChange={handleOutputsChange}
             aspectRatio={aspectRatio}
             availableAspectRatios={availableAspectRatios}
             onAspectRatioChange={handleAspectRatioChange}

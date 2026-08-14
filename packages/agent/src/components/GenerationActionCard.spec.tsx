@@ -75,6 +75,7 @@ const capturedModelSelectorPopoverProps: {
   onChange?: (_name: string, values: string[]) => void;
   onPrioritizeChange?: (prioritize: RouterPriority) => void;
   prioritize?: RouterPriority;
+  selectionMode?: 'multi' | 'single';
   values?: string[];
 } = {};
 
@@ -85,6 +86,7 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
     onChange?: (_name: string, values: string[]) => void;
     onPrioritizeChange?: (prioritize: RouterPriority) => void;
     prioritize?: RouterPriority;
+    selectionMode?: 'multi' | 'single';
     values: string[];
   }) => {
     capturedModelSelectorPopoverProps.autoLabel = props.autoLabel;
@@ -93,6 +95,7 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
     capturedModelSelectorPopoverProps.onPrioritizeChange =
       props.onPrioritizeChange;
     capturedModelSelectorPopoverProps.prioritize = props.prioritize;
+    capturedModelSelectorPopoverProps.selectionMode = props.selectionMode;
     capturedModelSelectorPopoverProps.values = props.values;
 
     return <div data-testid="model-selector-popover">{props.autoLabel}</div>;
@@ -212,6 +215,7 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.onChange = undefined;
     capturedModelSelectorPopoverProps.onPrioritizeChange = undefined;
     capturedModelSelectorPopoverProps.prioritize = undefined;
+    capturedModelSelectorPopoverProps.selectionMode = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
     clearPreferredAgentChatModel();
   });
@@ -402,6 +406,60 @@ describe('GenerationActionCard', () => {
     expect(capturedModelSelectorPopoverProps.prioritize).toBe(
       RouterPriority.QUALITY,
     );
+    expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
+  });
+
+  it('uses the outputs stepper for multiple images, not multi-model checkboxes', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            aspectRatio: '9:16',
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-outputs',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
+    });
+
+    const outputsButton = await screen.findByRole('button', {
+      name: /number of outputs/i,
+    });
+    expect(outputsButton).toHaveTextContent('1x');
+    fireEvent.click(outputsButton);
+    expect(outputsButton).toHaveTextContent('2x');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({
+          outputs: 2,
+          sourceActionId: 'action-outputs',
+        }),
+      );
+    });
   });
 
   it('maps auto priority state into the shared selector label', async () => {

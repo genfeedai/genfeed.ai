@@ -53,6 +53,9 @@ type GenerationActionCardControlsProps = {
   prioritize: RouterPriority;
   onPrioritizeChange: (value: RouterPriority) => void;
   onModelChange: (name: string, values: string[]) => void;
+  outputs: number;
+  maxOutputs: number;
+  onOutputsChange: (value: number) => void;
   aspectRatio: string;
   availableAspectRatios: string[];
   onAspectRatioChange: (name: string, value: string) => void;
@@ -83,6 +86,9 @@ export function GenerationActionCardControls({
   prioritize,
   onPrioritizeChange,
   onModelChange,
+  outputs,
+  maxOutputs,
+  onOutputsChange,
   aspectRatio,
   availableAspectRatios,
   onAspectRatioChange,
@@ -222,6 +228,7 @@ export function GenerationActionCardControls({
                 favoriteModelKeys={favoriteModelKeys}
                 onFavoriteToggle={onFavoriteToggle}
                 onChange={onModelChange}
+                selectionMode="single"
               />
             </div>
           )}
@@ -241,6 +248,28 @@ export function GenerationActionCardControls({
             placeholder="Aspect ratio"
           />
         </div>
+        {isImage ? (
+          <div className="shrink-0">
+            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Outputs
+            </span>
+            <Button
+              ariaLabel="Number of outputs"
+              className={cn(
+                'min-w-14 border border-border bg-background px-2.5 text-xs hover:bg-accent/50',
+                SHELL_CONTROL_HEIGHT_CLASS,
+              )}
+              isDisabled={isDisabled}
+              label={`${outputs}x`}
+              onClick={() =>
+                onOutputsChange(outputs >= maxOutputs ? 1 : outputs + 1)
+              }
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </div>
+        ) : null}
         {/* Duration (video only, if model supports it) */}
         {showDuration ? (
           <div className="shrink-0">

@@ -1315,12 +1315,26 @@ export class AgentOrchestratorUiActionService {
           ? params.payload.prioritize
           : undefined,
       ) ?? params.context.generationPriority;
+    const requestedOutputs = params.payload?.outputs;
+    if (
+      requestedOutputs !== undefined &&
+      (typeof requestedOutputs !== 'number' ||
+        !Number.isInteger(requestedOutputs) ||
+        requestedOutputs < 1 ||
+        requestedOutputs > 8)
+    ) {
+      throw new BadRequestException(
+        'Outputs must be an integer between 1 and 8.',
+      );
+    }
+
     const toolPayload = {
       aspectRatio:
         typeof params.payload?.aspectRatio === 'string'
           ? params.payload.aspectRatio
           : undefined,
       duration: requestedDuration,
+      outputs: requestedOutputs,
       prompt,
     };
     const idempotencyKey = [
@@ -1330,6 +1344,7 @@ export class AgentOrchestratorUiActionService {
       params.threadId,
       sourceActionId,
       generationType,
+      requestedOutputs ?? 1,
     ].join(':');
 
     return runIdempotent(this.cacheService, idempotencyKey, async () => {

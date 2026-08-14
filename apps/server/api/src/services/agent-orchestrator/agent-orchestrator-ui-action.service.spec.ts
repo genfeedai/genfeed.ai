@@ -162,6 +162,33 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(result.message.content).toBe('Image generated.');
   });
 
+  it('forwards the outputs count on confirmed generate-media', async () => {
+    const { executeTool, service } = createService();
+
+    await service.handleThreadUiAction(
+      {
+        ...GENERATE_MEDIA_REQUEST,
+        payload: {
+          ...GENERATE_MEDIA_REQUEST.payload,
+          outputs: 3,
+        },
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+      host,
+    );
+
+    expect(executeTool).toHaveBeenCalledWith(
+      AgentToolName.GENERATE_IMAGE,
+      expect.objectContaining({
+        outputs: 3,
+        prompt: 'Editorial product photo on a dark neutral set',
+      }),
+      expect.objectContaining({
+        organizationId: ORG_ID,
+      }),
+    );
+  });
+
   it('maps a swallowed upstream 401 from generate-media to 401, not 500', async () => {
     const { service, threadEventRecorder } = createService({
       executeTool: vi.fn().mockResolvedValue({

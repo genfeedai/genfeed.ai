@@ -100,6 +100,14 @@ export function useGenerationActionCard({
     initParams?.aspectRatio ?? '1:1',
   );
   const [duration, setDuration] = useState(initParams?.duration ?? 5);
+  const [outputs, setOutputs] = useState(() => {
+    const requested = initParams?.outputs;
+    return typeof requested === 'number' &&
+      Number.isFinite(requested) &&
+      requested >= 1
+      ? Math.min(8, Math.round(requested))
+      : 1;
+  });
   const [status, setStatus] = useState<CardStatus>('idle');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
@@ -198,6 +206,12 @@ export function useGenerationActionCard({
     durationOptions,
     showDuration,
   } = modelControls;
+  const maxOutputs =
+    typeof selectedModel?.maxOutputs === 'number' &&
+    Number.isFinite(selectedModel.maxOutputs) &&
+    selectedModel.maxOutputs >= 1
+      ? Math.min(8, Math.round(selectedModel.maxOutputs))
+      : 4;
 
   // Reset invalid values when model changes
   useEffect(() => {
@@ -214,6 +228,12 @@ export function useGenerationActionCard({
       setDuration(defaultDuration ?? durationOptions[0] ?? duration);
     }
   }, [defaultDuration, duration, durationOptions, showDuration]);
+
+  useEffect(() => {
+    if (outputs > maxOutputs) {
+      setOutputs(maxOutputs);
+    }
+  }, [maxOutputs, outputs]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -256,6 +276,7 @@ export function useGenerationActionCard({
           duration: generationType === 'video' ? duration : undefined,
           generationType,
           model: !isAutoMode && modelKey ? modelKey : undefined,
+          outputs: generationType === 'image' ? outputs : undefined,
           prioritize,
           prompt,
           references: referenceIds.length > 0 ? referenceIds : undefined,
@@ -292,6 +313,7 @@ export function useGenerationActionCard({
         aspectRatio,
         duration: generationType === 'video' ? duration : undefined,
         modelKey: !isAutoMode && modelKey ? modelKey : undefined,
+        outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
         promptId: promptDoc.id,
         promptText: prompt,
@@ -341,6 +363,7 @@ export function useGenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
+    outputs,
     generationType,
     apiService,
     clearGenerationOutcome,
@@ -427,6 +450,10 @@ export function useGenerationActionCard({
     [],
   );
 
+  const handleOutputsChange = useCallback((value: number) => {
+    setOutputs(value);
+  }, []);
+
   return {
     generationType,
     prompt,
@@ -435,6 +462,8 @@ export function useGenerationActionCard({
     isAutoMode,
     aspectRatio,
     duration,
+    outputs,
+    maxOutputs,
     status,
     resultUrl,
     resultId,
@@ -461,5 +490,6 @@ export function useGenerationActionCard({
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    handleOutputsChange,
   };
 }

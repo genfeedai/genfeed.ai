@@ -224,6 +224,7 @@ export interface AgentUiAction {
     model?: string;
     aspectRatio?: string;
     duration?: number;
+    outputs?: number;
     prioritize?: string;
   };
   ingredients?: AgentIngredientItem[];
