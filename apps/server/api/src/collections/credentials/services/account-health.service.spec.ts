@@ -47,6 +47,9 @@ describe('AccountHealthService', () => {
     post: {
       count: ReturnType<typeof vi.fn>;
     };
+    socialWarmupEnrollment: {
+      findFirst: ReturnType<typeof vi.fn>;
+    };
   };
 
   beforeEach(() => {
@@ -62,6 +65,9 @@ describe('AccountHealthService', () => {
       },
       post: {
         count: vi.fn().mockResolvedValue(0),
+      },
+      socialWarmupEnrollment: {
+        findFirst: vi.fn().mockResolvedValue(null),
       },
     };
 
@@ -218,11 +224,95 @@ describe('AccountHealthService', () => {
       (value) => typeof value === 'string' && value.includes('connectedDays'),
     ) as string;
     expect(JSON.parse(signalsJson)).toEqual({
+      accountAgeDays: null,
+      accountAgeStatus: 'MISSING',
       connectedDays: expect.any(Number),
       profileSignals: expect.any(Number),
       publishedPosts: expect.any(Number),
       recentFailures: expect.any(Number),
     });
     expect(signalsJson).not.toContain('tiktokAuthorized');
+  });
+
+  it('does not treat credential createdAt as native social-account age', async () => {
+    prisma.credential.findFirst.mockResolvedValueOnce(
+      makeCredential({
+        createdAt: new Date('2020-01-01T00:00:00.000Z'),
+      }),
+    );
+
+    const summary = await service.assessCredentialHealth({
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+
+    expect(summary.signals.connectedDays).toBe(0);
+    expect(summary.signals.accountAgeDays).toBeNull();
+    expect(summary.signals.accountAgeStatus).toBe('MISSING');
+  });
+
+  it('scores connected days from first-upload platform evidence', async () => {
+    prisma.socialWarmupEnrollment.findFirst.mockResolvedValueOnce({
+      signals: [
+        {
+          evidence: {
+            video: {
+              createTime: Math.floor(now.getTime() / 1000) - 10 * 24 * 60 * 60,
+            },
+          },
+          key: 'first-upload-platform-signal',
+          source: 'PLATFORM',
+          status: 'AVAILABLE',
+        },
+      ],
+    });
+
+    const summary = await service.assessCredentialHealth({
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+
+    expect(summary.signals.accountAgeStatus).toBe('AVAILABLE');
+    expect(summary.signals.accountAgeDays).toBe(10);
+    expect(summary.signals.connectedDays).toBe(10);
+    expect(summary.signals.accountAgeSource).toBe(
+      'first-upload-platform-signal',
+    );
+  });
+
+  it('keeps stale account-age evidence distinct from failed and missing', async () => {
+    prisma.socialWarmupEnrollment.findFirst.mockResolvedValueOnce({
+      signals: [
+        {
+          evidence: { video: { createTime: 1_700_000_000 } },
+          key: 'first-upload-platform-signal',
+          source: 'PLATFORM',
+          status: 'STALE',
+        },
+      ],
+    });
+
+    const stale = await service.assessCredentialHealth({
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+    expect(stale.signals.accountAgeStatus).toBe('STALE');
+
+    prisma.socialWarmupEnrollment.findFirst.mockResolvedValueOnce({
+      signals: [
+        {
+          evidence: {},
+          key: 'first-upload-platform-signal',
+          source: 'PLATFORM',
+          status: 'FAILED',
+        },
+      ],
+    });
+    const failed = await service.assessCredentialHealth({
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+    expect(failed.signals.accountAgeStatus).toBe('FAILED');
+    expect(failed.signals.accountAgeDays).toBeNull();
   });
 });

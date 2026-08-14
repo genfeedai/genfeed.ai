@@ -4,4 +4,5 @@ export * from './social-message.config';
 export * from './social-reply-campaign.config';
 export * from './social-reply-campaign-recipient.config';
 export * from './social-source.config';
+export * from './social-warmup-enrollment.config';
 export * from './source-post.config';
