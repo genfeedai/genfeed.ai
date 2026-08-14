@@ -523,14 +523,11 @@ export class AdminFleetTrainingService {
    * credentials at an arbitrary one.
    */
   async syncDataset(slug: string, s3Keys: string[]): Promise<void> {
-    await this.requestImagesApi<void>(
-      `datasets/${encodeURIComponent(slug)}/sync`,
-      {
-        body: { s3Keys },
-        method: 'POST',
-        timeoutMs: 120_000,
-      },
-    );
+    await this.requestImagesApi(`datasets/${encodeURIComponent(slug)}/sync`, {
+      body: { s3Keys },
+      method: 'POST',
+      timeoutMs: 120_000,
+    });
   }
 
   async updatePersonaLoraState(
