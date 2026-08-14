@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { BrandIdentityConfirmationCard } from '@genfeedai/agent/components/BrandIdentityConfirmationCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -67,6 +69,17 @@ function makeRenameAction(): AgentUiAction {
 }
 
 describe('BrandIdentityConfirmationCard', () => {
+  it('resolves field labels through the host agent catalog', () => {
+    const source = readFileSync(
+      join(__dirname, 'BrandIdentityConfirmationCard.tsx'),
+      'utf8',
+    );
+    expect(source).toContain(
+      "useTranslations('agent.brandIdentityConfirmation')",
+    );
+    expect(source).not.toContain('const COPY =');
+  });
+
   it('dispatches edited create fields while preserving the server source action', async () => {
     const onUiAction = vi.fn().mockResolvedValue(true);
     const action = makeCreateAction();

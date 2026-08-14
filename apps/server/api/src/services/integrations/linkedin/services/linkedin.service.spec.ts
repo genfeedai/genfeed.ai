@@ -170,6 +170,18 @@ describe('LinkedInService', () => {
       });
     });
 
+    it('forwards granted scopes from the token response', async () => {
+      mockAuthClientInstance.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        access_token: 'linkedin-access-token',
+        expires_in: 5184000,
+        scope: 'openid profile w_member_social',
+      });
+
+      const result = await service.exchangeAuthCodeForAccessToken('auth-code');
+
+      expect(result.scope).toBe('openid profile w_member_social');
+    });
+
     it('should throw when auth code exchange fails', async () => {
       mockAuthClientInstance.exchangeAuthCodeForAccessToken.mockRejectedValue(
         new Error('Invalid authorization code'),

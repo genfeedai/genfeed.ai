@@ -17,16 +17,22 @@ interface MockSql {
 }
 
 /**
- * Retrieval hot-path bounds. The lazy embedding backfill inside
- * findSimilarEntries used to load every pending row (no LIMIT) and retry
- * permanently failing rows on each request; JSONB usage counters were
- * read-modify-write per base. These lock in the LIMIT, the per-process
- * failed-id exclusion, and the single atomic counter statement.
+ * Retrieval hot-path bounds (#2457). Empty content is failed in SQL; pending
+ * rows are claimed with FOR UPDATE SKIP LOCKED; similarity runs inside a
+ * transaction that enables hnsw.iterative_scan for small-tenant recall.
  */
 describe('ContextsService retrieval hot path', () => {
   function buildService() {
     const queryRaw = vi.fn().mockResolvedValue([]);
     const executeRaw = vi.fn().mockResolvedValue(1);
+    const transaction = vi.fn(
+      async (
+        callback: (tx: {
+          $executeRaw: typeof executeRaw;
+          $queryRaw: typeof queryRaw;
+        }) => Promise<unknown>,
+      ) => callback({ $executeRaw: executeRaw, $queryRaw: queryRaw }),
+    );
     const contextBase = {
       findFirst: vi.fn().mockResolvedValue({
         data: { isActive: true, label: 'Voice' },
@@ -37,7 +43,6 @@ describe('ContextsService retrieval hot path', () => {
       findMany: vi.fn().mockResolvedValue([]),
     };
 
-    // buildContextSimilarityQuery validates the pgvector dimension.
     const embeddingVector = new Array(1024).fill(0.1);
     const generateEmbedding = vi.fn().mockResolvedValue(embeddingVector);
     const logger = {
@@ -51,6 +56,7 @@ describe('ContextsService retrieval hot path', () => {
       {
         $executeRaw: executeRaw,
         $queryRaw: queryRaw,
+        $transaction: transaction,
         contextBase,
       } as unknown as PrismaService,
       logger,
@@ -60,7 +66,14 @@ describe('ContextsService retrieval hot path', () => {
       } as unknown as RouterService,
     );
 
-    return { contextBase, executeRaw, generateEmbedding, service, queryRaw };
+    return {
+      contextBase,
+      executeRaw,
+      generateEmbedding,
+      service,
+      queryRaw,
+      transaction,
+    };
   }
 
   function queryContext(service: ContextsService) {
@@ -74,43 +87,59 @@ describe('ContextsService retrieval hot path', () => {
     vi.clearAllMocks();
   });
 
-  it('bounds the lazy re-embedding sweep to 50 rows per request', async () => {
-    const { service, queryRaw } = buildService();
+  it('fails empty-content rows then claims a SKIP LOCKED batch', async () => {
+    const { service, queryRaw, executeRaw } = buildService();
 
     await queryContext(service);
 
-    // First raw query is the pending-embeddings sweep; the similarity query
-    // follows. The LIMIT is a bound parameter.
-    const pendingSweep = queryRaw.mock.calls[0][0] as MockSql;
-    expect(pendingSweep.sql).toContain('LIMIT');
-    expect(pendingSweep.sql).toContain('ORDER BY "createdAt" ASC');
-    expect(pendingSweep.values).toContain(50);
-  });
-
-  it('stops retrying an entry that failed to embed in this process run', async () => {
-    const { service, generateEmbedding, queryRaw } = buildService();
-    queryRaw
-      // Request 1: sweep returns one pending row, similarity returns nothing.
-      .mockResolvedValueOnce([{ content: 'bad content', id: 'entry-broken' }])
-      .mockResolvedValueOnce([])
-      // Request 2: sweep + similarity.
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
-    generateEmbedding.mockImplementation((_model: string, text: string) =>
-      text === 'bad content'
-        ? Promise.reject(new Error('provider rejected'))
-        : Promise.resolve(new Array(1024).fill(0.1)),
+    const emptyFail = executeRaw.mock.calls[0][0] as MockSql;
+    expect(emptyFail.sql).toContain('SET "embeddingFailedAt" = NOW()');
+    expect(emptyFail.sql).toContain(
+      "NULLIF(BTRIM(\"data\"->>'content'), '') IS NULL",
     );
 
+    const claim = queryRaw.mock.calls[0][0] as MockSql;
+    expect(claim.sql).toContain('FOR UPDATE SKIP LOCKED');
+    expect(claim.sql).toContain('LIMIT ?');
+    expect(claim.values).toContain(50);
+  });
+
+  it('persists embeddingFailedAt when the provider rejects a row', async () => {
+    const { service, generateEmbedding, queryRaw, executeRaw } = buildService();
+    queryRaw.mockResolvedValueOnce([
+      { content: 'bad content', id: 'entry-broken' },
+    ]);
+    generateEmbedding
+      .mockResolvedValueOnce(new Array(1024).fill(0.1))
+      .mockRejectedValueOnce(new Error('provider rejected'));
+
     await queryContext(service);
+
     expect(generateEmbedding).toHaveBeenCalledWith('bge', 'bad content');
+    const failWrite = executeRaw.mock.calls.find((call) => {
+      const sql = (call[0] as MockSql).sql;
+      return (
+        sql.includes('"embeddingFailedAt" = NOW()') &&
+        sql.includes('"embeddingClaimedAt" = NULL')
+      );
+    });
+    expect(failWrite).toBeDefined();
+    if (!failWrite) {
+      throw new Error('expected embeddingFailedAt write');
+    }
+    expect((failWrite[0] as MockSql).values).toContain('entry-broken');
+  });
+
+  it('runs similarity inside a transaction that enables iterative_scan', async () => {
+    const { service, executeRaw, transaction } = buildService();
 
     await queryContext(service);
 
-    // The second sweep excludes the failed id at the SQL level.
-    const secondSweep = queryRaw.mock.calls[2][0] as MockSql;
-    expect(secondSweep.sql).toContain('NOT IN');
-    expect(secondSweep.values).toContain('entry-broken');
+    expect(transaction).toHaveBeenCalledTimes(1);
+    const iterativeScan = executeRaw.mock.calls.find((call) =>
+      (call[0] as MockSql).sql.includes('hnsw.iterative_scan'),
+    );
+    expect(iterativeScan).toBeDefined();
   });
 
   it('increments usage counters with one atomic jsonb_set statement', async () => {
@@ -128,7 +157,6 @@ describe('ContextsService retrieval hot path', () => {
       },
     ]);
     queryRaw
-      // Pending-embeddings sweep, then similarity rows.
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { content: 'match', contextBaseId: 'ctx-1', similarity: 0.9 },
@@ -136,9 +164,11 @@ describe('ContextsService retrieval hot path', () => {
 
     await service.enhancePrompt({ prompt: 'write a post' } as never, 'org-1');
 
-    expect(executeRaw).toHaveBeenCalledTimes(1);
-    const statement = executeRaw.mock.calls[0][0] as MockSql;
-    expect(statement.sql).toContain('jsonb_set');
+    const jsonbSet = executeRaw.mock.calls.find((call) =>
+      (call[0] as MockSql).sql.includes('jsonb_set'),
+    );
+    expect(jsonbSet).toBeDefined();
+    const statement = jsonbSet?.[0] as MockSql;
     expect(statement.sql).toContain('GREATEST');
     expect(statement.values).toEqual(
       expect.arrayContaining(['usageCount', 'org-1', 1, 'ctx-1', 'ctx-2']),

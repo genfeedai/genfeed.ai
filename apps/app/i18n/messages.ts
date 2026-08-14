@@ -1,5 +1,7 @@
 import { type AppLocale, PSEUDO_LOCALE } from '@genfeedai/constants';
+import agent from '../messages/en/agent.json';
 import common from '../messages/en/common.json';
+import pages from '../messages/en/pages.json';
 import { pseudoLocalizeMessages } from './pseudo';
 
 /**
@@ -10,12 +12,17 @@ import { pseudoLocalizeMessages } from './pseudo';
  * Namespaces are imported statically rather than fetched so the desktop
  * standalone bundle carries its own copy with no runtime network dependency.
  *
- * Splitting the catalog per route group — so a page pulls only the namespaces
- * it renders — lands with the migration slices, once there is enough copy for
- * the payload to matter. One namespace does not justify the indirection yet.
+ * Shared packages consume this host catalog: `agent`, `pages`, and (when they
+ * first catalog copy) `ui` / `contexts`. `common` is the app-owned namespace.
+ * See `.agents/memory/project_shared_package_message_catalogs.md`.
+ *
+ * Splitting a namespace file further — so a page pulls only the keys it
+ * renders — lands once a file is large enough for the payload to matter.
  */
 const EN_MESSAGES = {
+  agent,
   common,
+  pages,
 } as const;
 
 export type AppMessages = typeof EN_MESSAGES;

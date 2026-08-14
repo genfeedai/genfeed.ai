@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthAdminOptions,
+  buildBetterAuthAdvancedOptions,
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
@@ -625,5 +626,19 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain(
       'databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated)',
     );
+  });
+});
+
+describe('buildBetterAuthAdvancedOptions', () => {
+  it('keeps host-scoped cookies when cookieDomain env is unset', () => {
+    expect(buildBetterAuthAdvancedOptions({})).toEqual({});
+  });
+
+  it('shares the cookie only when cookieDomain is provided', () => {
+    expect(
+      buildBetterAuthAdvancedOptions({ cookieDomain: '.genfeed.ai' }),
+    ).toEqual({
+      crossSubDomainCookies: { domain: '.genfeed.ai', enabled: true },
+    });
   });
 });

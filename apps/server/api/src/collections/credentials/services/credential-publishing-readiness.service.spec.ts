@@ -35,6 +35,8 @@ function buildRow(
     accessTokenSecret: 'encrypted-secret',
     id: 'cred-1',
     isConnected: true,
+    grantedScopes: [],
+    grantedScopesCapturedAt: null,
     oauthToken: null,
     oauthTokenSecret: null,
     platform: CredentialPlatform.TWITTER,
@@ -340,5 +342,84 @@ describe('CredentialPublishingReadinessService', () => {
     expect(readiness.requiredAction).toBe(
       'Reconnect the provider account before publishing.',
     );
+  });
+
+  describe('permissionScopeStatus', () => {
+    it('stays unknown when granted scopes were never captured', async () => {
+      const readiness = await resolveWithQuota(null);
+
+      expect(readiness.permissionScopeStatus).toBe('unknown');
+      expect(
+        readiness.diagnostics.some((entry) => entry.scope === 'permission'),
+      ).toBe(false);
+    });
+
+    it('passes when the persisted grant includes the required publish scope', async () => {
+      const readiness = await build().resolve({
+        credential: {
+          ...buildCredential(),
+          grantedScopes: ['tweet.read', 'tweet.write', 'users.read'],
+          grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
+        } as unknown as CredentialDocument,
+        organizationId: ORGANIZATION_ID,
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      expect(readiness.permissionScopeStatus).toBe('pass');
+      expect(readiness.state).toBe('publish_capable');
+    });
+
+    it('fails with a reconnect diagnostic when a required scope is missing', async () => {
+      findMany.mockResolvedValue([
+        buildRow({
+          grantedScopes: ['tweet.read', 'users.read'],
+          grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
+        }),
+      ]);
+
+      const readiness = await build().resolveForCredentials(
+        { credential: { findMany } } as never,
+        ORGANIZATION_ID,
+        ['cred-1'],
+      );
+
+      expect(readiness.get('cred-1')).toMatchObject({
+        canSchedule: false,
+        permissionScopeStatus: 'fail',
+        state: 'blocked',
+      });
+      expect(
+        readiness
+          .get('cred-1')
+          ?.diagnostics.find((entry) => entry.scope === 'permission'),
+      ).toMatchObject({
+        classification: 'missing_permission_scope',
+        code: 'credential_missing_permission_scope',
+        details: {
+          grantedScopes: ['tweet.read', 'users.read'],
+          missingScopes: ['tweet.write'],
+          requiredScopes: ['tweet.write'],
+        },
+      });
+    });
+
+    it('flips to fail when a refresh persisted a narrower grant', async () => {
+      findMany.mockResolvedValue([
+        buildRow({
+          grantedScopes: ['tweet.read'],
+          grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
+        }),
+      ]);
+
+      const readiness = await build().resolveForBrand(
+        ORGANIZATION_ID,
+        'brand-1',
+      );
+
+      expect(readiness[0]).toMatchObject({
+        permissionScopeStatus: 'fail',
+        state: 'blocked',
+      });
+    });
   });
 });

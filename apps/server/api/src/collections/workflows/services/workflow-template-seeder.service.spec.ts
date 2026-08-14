@@ -24,9 +24,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   };
   const prisma = {
     $transaction: vi.fn(),
-    contentSchedule: {
-      findFirst: vi.fn(),
-    },
     workflow: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -48,7 +45,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
   beforeEach(() => {
     vi.clearAllMocks();
-    prisma.contentSchedule.findFirst.mockResolvedValue(null);
     prisma.workflow.findFirst.mockResolvedValue(null);
     prisma.workflow.findMany.mockResolvedValue([]);
     prisma.workflow.update.mockResolvedValue({});
@@ -518,127 +514,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       expect.objectContaining({
         id: 'wf-system',
         metadata: { systemWorkflow },
-      }),
-    );
-  });
-
-  it('resyncs the BullMQ scheduler after updating an existing content schedule workflow', async () => {
-    prisma.contentSchedule.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      cronExpression: '0 9 * * *',
-      id: 'cs-1',
-      isEnabled: true,
-      name: 'Morning posts',
-      timezone: 'Europe/Malta',
-    });
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-existing' });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-existing',
-      isDeleted: false,
-      isScheduleEnabled: true,
-      metadata: { contentScheduleId: 'cs-1' },
-      schedule: '0 9 * * *',
-      status: WorkflowStatus.ACTIVE,
-      timezone: 'Europe/Malta',
-    });
-
-    await service.ensureContentScheduleWorkflow('user-1', 'org-1', 'cs-1');
-
-    expect(prisma.workflow.update).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        isScheduleEnabled: true,
-        schedule: '0 9 * * *',
-        timezone: 'Europe/Malta',
-      }),
-      select: expect.objectContaining({
-        id: true,
-        isDeleted: true,
-        isScheduleEnabled: true,
-        metadata: true,
-        schedule: true,
-        status: true,
-        timezone: true,
-      }),
-      where: { id: 'wf-existing' },
-    });
-    expect(
-      workflowExecutionQueueService.syncWorkflowScheduler,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'wf-existing',
-        isScheduleEnabled: true,
-        schedule: '0 9 * * *',
-      }),
-    );
-  });
-
-  it('passes disabled post-write content schedule rows to scheduler sync for removal', async () => {
-    prisma.contentSchedule.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      cronExpression: '0 9 * * *',
-      id: 'cs-1',
-      isEnabled: false,
-      name: 'Morning posts',
-      timezone: 'Europe/Malta',
-    });
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-existing' });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-existing',
-      isDeleted: false,
-      isScheduleEnabled: false,
-      metadata: { contentScheduleId: 'cs-1' },
-      schedule: '0 9 * * *',
-      status: WorkflowStatus.ACTIVE,
-      timezone: 'Europe/Malta',
-    });
-
-    await service.ensureContentScheduleWorkflow('user-1', 'org-1', 'cs-1');
-
-    expect(
-      workflowExecutionQueueService.syncWorkflowScheduler,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'wf-existing',
-        isScheduleEnabled: false,
-      }),
-    );
-  });
-
-  it('syncs from the winning row after a serializable content schedule upsert conflict', async () => {
-    prisma.contentSchedule.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      cronExpression: '0 9 * * *',
-      id: 'cs-1',
-      isEnabled: true,
-      name: 'Morning posts',
-      timezone: 'Europe/Malta',
-    });
-    prisma.workflow.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'wf-concurrent',
-        isDeleted: false,
-        isScheduleEnabled: true,
-        metadata: { contentScheduleId: 'cs-1' },
-        schedule: '0 9 * * *',
-        status: WorkflowStatus.ACTIVE,
-        timezone: 'Europe/Malta',
-      });
-    prisma.$transaction.mockRejectedValue({ code: 'P2034' });
-
-    await service.ensureContentScheduleWorkflow('user-1', 'org-1', 'cs-1');
-
-    expect(logger.debug).toHaveBeenCalledWith(
-      'ensureContentScheduleWorkflow: serialization conflict - workflow already synced by concurrent request',
-      { contentScheduleId: 'cs-1', organizationId: 'org-1' },
-    );
-    expect(
-      workflowExecutionQueueService.syncWorkflowScheduler,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'wf-concurrent',
-        isScheduleEnabled: true,
-        schedule: '0 9 * * *',
       }),
     );
   });

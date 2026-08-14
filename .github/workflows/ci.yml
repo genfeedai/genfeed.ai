@@ -199,6 +199,107 @@ jobs:
           cache-turbo: 'false'
       - name: Run executable contracts
         run: bun run test:executable-contracts
+      # The executable form of "new hard-coded content automation is blocked in
+      # CI" (#1011 FR8/FR9, success criterion 6). These three shipped in #1034
+      # but ran nowhere: the check:architecture aggregate that carried them was
+      # dropped from this job by #2127, leaving them as package.json scripts
+      # that enforced nothing. Restoring the whole aggregate is blocked on
+      # unrelated debt (deterministic-locale and agent-decomposition
+      # violations), so the automation-boundary guards are wired directly.
+      - name: Platform Cron Boundary
+        run: bun run check:cron-boundary
+      - name: Legacy Cron Jobs Surface
+        run: bun run check:legacy-cron-surface
+      - name: Product Workflow Boundary
+        run: bun run check:product-workflow-boundary
+      - name: Bull Board Queue Parity
+        run: bun run check:bull-board-parity
+      - name: Bull Board Queue Parity Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-bull-board-queue-parity.test.ts
+      - name: DI Value Imports
+        run: bun run check:di-value-imports
+      # `@billing-providers` must resolve to the flavor on disk. The tsconfig
+      # paths mapping points at the OSS stub and used to beat resolve.alias,
+      # which shipped OSS billing stubs inside the SaaS image (#2751).
+      - name: Billing Flavor Resolution
+        run: bun run check:billing-flavor
+      - name: Untranslated String Ratchet
+        run: bun run check:untranslated-strings
+      - name: Untranslated String Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-untranslated-strings.test.ts
+      - name: Type Assertion Ratchet
+        run: bun run check:type-assertions
+      - name: Relation Alias Reads
+        run: bun run check:relation-alias-reads
+      - name: Relation Alias Read Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-relation-alias-reads.test.ts
+      - name: Relation Alias Writes
+        run: bun run check:relation-alias-writes
+      - name: Controller Route Shadowing
+        run: bun run check:route-shadowing
+      - name: Product Route Inventory
+        run: bun run check:route-inventory
+      - name: Tenant Scope (API + shared server)
+        run: bun run check:tenant-scope
+      # The agent half of the curated action catalog contract. MCP crashes on
+      # boot when its surface and dispatch disagree; the agent had no such
+      # check, and five live credit-costed tools drifted outside the catalog.
+      - name: Agent Tool Dispatch Coverage
+        run: bun run check:agent-tool-dispatch
+      - name: Agent Tool Dispatch Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-agent-tool-dispatch.test.ts
+      # `uses:` refs cannot read a version from anywhere — GitHub resolves them
+      # before expressions exist — so an action version is duplicated across
+      # every workflow and composite action by force, and `deps:update` never
+      # sees any of it. This holds the only property that can be held: one tag
+      # version per action, repository-wide. Wired directly rather than through
+      # check:architecture, which does not run in this job.
+      - name: GitHub Action Version Consistency
+        run: bun run check:action-versions
+      - name: GitHub Action Version Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-github-action-versions.test.ts
+      # Turbo derives build order from package.json, `tsc --build` follows
+      # tsconfig `references`. Where the two disagree, two compilers write one
+      # package's dist concurrently and fail with errors that contradict the
+      # source. Invisible behind a cache hit, so it lands on an unrelated PR.
+      - name: Project Reference Dependency Parity
+        run: bun run check:project-references
+      - name: Project Reference Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-project-reference-deps.test.ts
+      # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
+      # while neither ran in any workflow: the repo-wide half of the raw-control
+      # and design-token contracts was dark, leaving only a pre-commit hook that
+      # `--no-verify` or an unstaged file walks straight past.
+      - name: UI Guards (raw controls, primitives, nav sinks)
+        run: bun run check:ui-guards
+      - name: Design System Contracts
+        run: bun run design:check
+      # Temporarily disabled while desktop is not an active delivery surface.
+      # Re-enable these two lines when desktop work resumes.
+      # - name: Desktop Schema Drift
+      #   run: bun run check:desktop-schema-drift
+      - name: Serializer Drift Regression Tests
+        run: bunx vitest run --config scripts/serializer-drift/vitest.config.ts
+      - name: Serializer Drift
+        run: bun run check:serializer-drift
+      - name: SQL Risk Audit
+        run: bun run audit:api:sql:ci
+      - name: Public Package Manifests
+        run: bun run check:public-packages
+      - name: npm Release Enrollment
+        run: bun run check:npm-release
+      - name: Package Release Scripts
+        run: bunx vitest run --config scripts/package-release/vitest.config.ts
+      - name: CI Workflow Contracts
+        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/dispatch-hosted-saas.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs scripts/ci/vercel-bun.test.mjs
+      - name: Coverage Workspace Contract
+        run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
+      # Fail the build if the committed Prisma model metadata (enum-field-map)
+      # has drifted from schema.prisma — soft-delete filtering + enum
+      # normalization under the Prisma 7 driver adapter depend on it, and it
+      # previously had zero CI enforcement (silent-regression risk).
+      - name: Prisma model metadata drift
+        run: bun run --filter=@genfeedai/prisma check:model-metadata
 
   format:
     name: Format

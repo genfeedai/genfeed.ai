@@ -18,6 +18,7 @@ import {
   OAuthGrantType,
   TikTokPublishStatus,
 } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import type {
   ISocialTrend,
   ITikTokCreatorInfo,
@@ -443,6 +444,7 @@ export class TiktokService {
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

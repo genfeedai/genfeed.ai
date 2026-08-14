@@ -2,12 +2,15 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { getRequiredPublishScopes } from '@genfeedai/constants';
 import type { CredentialPlatform } from '@genfeedai/enums';
+import { resolvePermissionScopeReadiness } from '@genfeedai/helpers';
 import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type {
   IPublishingDiagnostic,
   IPublishingProviderReadiness,
   IPublishingProviderSetupSignals,
+  PermissionScopeReadinessResult,
   PublishingSetupCheckStatus,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -45,6 +48,8 @@ const READINESS_CREDENTIAL_SELECT = {
   accessToken: true,
   accessTokenExpiry: true,
   accessTokenSecret: true,
+  grantedScopes: true,
+  grantedScopesCapturedAt: true,
   id: true,
   isConnected: true,
   oauthToken: true,
@@ -58,6 +63,8 @@ type ReadinessCredentialRow = {
   accessToken: string | null;
   accessTokenExpiry: Date | null;
   accessTokenSecret: string | null;
+  grantedScopes: string[];
+  grantedScopesCapturedAt: Date | null;
   id: string;
   isConnected: boolean;
   oauthToken: string | null;
@@ -79,8 +86,9 @@ const QUOTA_WARN_RATIO = 0.8;
  * deployment configuration and organization quota — and feeds them in, so a
  * caller sees one honest verdict instead of a token check wearing four blanks.
  *
- * `permissionScopeStatus` stays `unknown` on purpose: granted OAuth scopes are
- * requested at connect time and never persisted, so there is nothing to read.
+ * `permissionScopeStatus` is derived from persisted `grantedScopes` against
+ * the platform's required publish scopes. Credentials connected before capture
+ * shipped, and platforms that never return a scope field, stay `unknown`.
  */
 @Injectable()
 export class CredentialPublishingReadinessService {
@@ -128,6 +136,13 @@ export class CredentialPublishingReadinessService {
       checkedAt,
     );
 
+    const permissionSignals = this.resolvePermissionSignals(
+      platform,
+      credential.grantedScopes,
+      credential.grantedScopesCapturedAt,
+      checkedAt,
+    );
+
     return buildCredentialTokenPublishingReadiness({
       accessToken: credential.accessToken,
       accessTokenExpiresAt: credential.accessTokenExpiry,
@@ -138,6 +153,7 @@ export class CredentialPublishingReadinessService {
       isConnected: credential.isConnected,
       oauthToken: credential.oauthToken,
       oauthTokenSecret: credential.oauthTokenSecret,
+      permissionScopeStatus: permissionSignals.status,
       providerKey: platform,
       quotaStatus: quotaSignals.status,
       refreshToken: credential.refreshToken,
@@ -145,6 +161,7 @@ export class CredentialPublishingReadinessService {
       setupDiagnostics: [
         ...setupSignals.diagnostics,
         ...quotaSignals.diagnostics,
+        ...permissionSignals.diagnostics,
       ],
     });
   }
@@ -227,6 +244,13 @@ export class CredentialPublishingReadinessService {
       (row) => {
         const signals = resolveSignals(row.platform);
 
+        const permissionSignals = this.resolvePermissionSignals(
+          row.platform,
+          row.grantedScopes,
+          row.grantedScopesCapturedAt,
+          checkedAt,
+        );
+
         return [
           row.id,
           buildCredentialTokenPublishingReadiness({
@@ -239,16 +263,34 @@ export class CredentialPublishingReadinessService {
             isConnected: row.isConnected,
             oauthToken: row.oauthToken,
             oauthTokenSecret: row.oauthTokenSecret,
+            permissionScopeStatus: permissionSignals.status,
             providerKey: row.platform,
             refreshToken: row.refreshToken,
             refreshTokenExpiresAt: row.refreshTokenExpiry,
-            setupDiagnostics: signals.diagnostics,
+            setupDiagnostics: [
+              ...signals.diagnostics,
+              ...permissionSignals.diagnostics,
+            ],
           }),
         ];
       },
     );
 
     return new Map(entries);
+  }
+
+  private resolvePermissionSignals(
+    platform: string,
+    grantedScopes: readonly string[] | null | undefined,
+    grantedScopesCapturedAt: Date | string | null | undefined,
+    checkedAt: string,
+  ): PermissionScopeReadinessResult {
+    return resolvePermissionScopeReadiness({
+      checkedAt,
+      grantedScopes: grantedScopes ?? [],
+      hasCapturedGrantedScopes: grantedScopesCapturedAt != null,
+      requiredScopes: getRequiredPublishScopes(platform),
+    });
   }
 
   /**

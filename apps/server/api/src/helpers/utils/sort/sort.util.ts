@@ -1,22 +1,12 @@
+import { isAsciiWordCharacter } from '@api/shared/utils/string/linear-string.util';
 import type { SortObject } from '@genfeedai/interfaces';
 
 function getDefaultSort(): SortObject {
   return { createdAt: -1 };
 }
 
-function isSortFieldCharacter(character: string): boolean {
-  const code = character.charCodeAt(0);
-
-  return (
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    code === 95 ||
-    (code >= 97 && code <= 122)
-  );
-}
-
 function isValidSortField(field: string): boolean {
-  return field.length > 0 && [...field].every(isSortFieldCharacter);
+  return field.length > 0 && [...field].every(isAsciiWordCharacter);
 }
 
 /**

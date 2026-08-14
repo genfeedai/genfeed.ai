@@ -149,6 +149,24 @@ describe('loadMessages', () => {
     );
   });
 
+  it('serves shared-package namespaces from the host catalog', () => {
+    const english = loadMessages(DEFAULT_LOCALE);
+
+    expect(english.agent.publishPostCard.caption).toBe('Caption');
+    expect(english.agent.publishPostCard.scheduleForLater).toBe(
+      'Schedule for later',
+    );
+    expect(english.agent.brandIdentityConfirmation.labelField).toBe(
+      'Brand label',
+    );
+    expect(english.agent.settings.autoLabel).toBe('Auto');
+    expect(english.pages.posts.list.loadError).toBe(
+      'Posts could not be loaded. Refresh to try again.',
+    );
+    expect(english.pages.posts.list.toolbar.notPosted).toBe('Not posted');
+    expect(english.pages.posts.list.views.posted.title).toBe('Posted');
+  });
+
   it('serves the source-post variation copy used by the remix surface', () => {
     const english = loadMessages(DEFAULT_LOCALE).common as Record<
       string,

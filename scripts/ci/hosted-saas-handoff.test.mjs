@@ -28,9 +28,12 @@ test('dispatches the exact stable-release SHA to private operations', () => {
     deploy,
     /RELEASE_SHA: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
   );
-  assert.match(deploy, /inputs\[release_sha\]=\$\{RELEASE_SHA\}/);
-  assert.match(deploy, /inputs\[source_sha\]=\$\{RELEASE_SHA\}/);
-  assert.match(deploy, /inputs\[correlation_id\]=\$\{correlation_id\}/);
+  assert.match(
+    deploy,
+    /ref: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
+  );
+  assert.match(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
+  assert.doesNotMatch(deploy, /inputs\[release_sha\]=/);
   assert.doesNotMatch(
     deploy,
     /id-token: write|secrets: inherit|_deploy-ecs-core/,

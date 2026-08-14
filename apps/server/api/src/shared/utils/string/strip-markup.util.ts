@@ -60,41 +60,70 @@ function findBlockedElementEnd(
   return -1;
 }
 
+function findNextCompleteTag(
+  value: string,
+  cursor: number,
+): { tagEnd: number; tagStart: number } | undefined {
+  const tagStart = value.indexOf('<', cursor);
+  if (tagStart < 0) {
+    return undefined;
+  }
+
+  const tagEnd = findTagEnd(value, tagStart);
+  if (tagEnd < 0) {
+    return undefined;
+  }
+
+  return { tagEnd, tagStart };
+}
+
 function stripBlockedElements(value: string): string {
   const output: string[] = [];
   let copyStart = 0;
   let cursor = 0;
 
   while (cursor < value.length) {
-    const tagStart = value.indexOf('<', cursor);
-    if (tagStart < 0) {
+    const tag = findNextCompleteTag(value, cursor);
+    if (!tag) {
       break;
     }
 
-    const tagEnd = findTagEnd(value, tagStart);
-    if (tagEnd < 0) {
-      break;
-    }
-
-    const tagContent = value.slice(tagStart + 1, tagEnd);
-    const blockName = getBlockElementName(tagContent);
+    const blockName = getBlockElementName(
+      value.slice(tag.tagStart + 1, tag.tagEnd),
+    );
     if (!blockName) {
-      cursor = tagEnd + 1;
+      cursor = tag.tagEnd + 1;
       continue;
     }
 
-    const blockEnd = findBlockedElementEnd(value, blockName, tagEnd + 1);
+    const blockEnd = findBlockedElementEnd(value, blockName, tag.tagEnd + 1);
     if (blockEnd < 0) {
       break;
     }
 
-    output.push(value.slice(copyStart, tagStart));
+    output.push(value.slice(copyStart, tag.tagStart));
     copyStart = blockEnd;
     cursor = blockEnd;
   }
 
   output.push(value.slice(copyStart));
   return output.join('');
+}
+
+function replaceCompleteTag(
+  input: string,
+  replacement: string,
+  output: string[],
+  copyStart: number,
+  tagStart: number,
+  tagEnd: number,
+): number {
+  if (tagEnd <= tagStart + 1) {
+    return copyStart;
+  }
+
+  output.push(input.slice(copyStart, tagStart), replacement);
+  return tagEnd + 1;
 }
 
 export function replaceMarkup(
@@ -108,22 +137,20 @@ export function replaceMarkup(
   let cursor = 0;
 
   while (cursor < input.length) {
-    const tagStart = input.indexOf('<', cursor);
-    if (tagStart < 0) {
+    const tag = findNextCompleteTag(input, cursor);
+    if (!tag) {
       break;
     }
 
-    const tagEnd = findTagEnd(input, tagStart);
-    if (tagEnd < 0) {
-      break;
-    }
-
-    if (tagEnd > tagStart + 1) {
-      output.push(input.slice(copyStart, tagStart), replacement);
-      copyStart = tagEnd + 1;
-    }
-
-    cursor = tagEnd + 1;
+    copyStart = replaceCompleteTag(
+      input,
+      replacement,
+      output,
+      copyStart,
+      tag.tagStart,
+      tag.tagEnd,
+    );
+    cursor = tag.tagEnd + 1;
   }
 
   output.push(input.slice(copyStart));

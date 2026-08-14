@@ -1,8 +1,15 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+  WorkflowStatus,
+} from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
+import { LoggerService } from '@libs/logger/logger.service';
 
 type CompletedExecution = Awaited<
   ReturnType<WorkflowExecutionsService['completeExecution']>
@@ -13,6 +20,8 @@ export class WorkflowExecutionFinalizerService {
     private readonly prisma: PrismaService,
     private readonly executionsService: WorkflowExecutionsService,
     private readonly graphService: WorkflowExecutionGraphService,
+    private readonly notificationsPublisher?: NotificationsPublisherService,
+    private readonly logger?: LoggerService,
   ) {}
 
   mapRunResultToExecutionStatus(
@@ -61,6 +70,79 @@ export class WorkflowExecutionFinalizerService {
       where: { id: input.workflowId },
     });
 
+    await this.notifyScheduledFailure(input, completedExecution);
+
     return completedExecution;
+  }
+
+  private async notifyScheduledFailure(
+    input: {
+      executionId: string;
+      workflowId: string;
+      finalStatus: WorkflowExecutionStatus;
+      result: ExecutionRunResult;
+    },
+    completedExecution: CompletedExecution,
+  ): Promise<void> {
+    if (
+      input.finalStatus !== WorkflowExecutionStatus.FAILED ||
+      !completedExecution ||
+      completedExecution.trigger !== WorkflowExecutionTrigger.SCHEDULED
+    ) {
+      return;
+    }
+
+    const userId = completedExecution.userId;
+    const organizationId = completedExecution.organizationId;
+    if (!userId || !organizationId || !this.notificationsPublisher) {
+      return;
+    }
+
+    const workflow = await this.prisma.workflow.findFirst({
+      select: { label: true },
+      where: scopedWhere(organizationId, { id: input.workflowId }),
+    });
+    const workflowLabel =
+      typeof workflow?.label === 'string' && workflow.label.trim().length > 0
+        ? workflow.label
+        : input.workflowId;
+    const error =
+      typeof input.result.error === 'string' && input.result.error.trim()
+        ? input.result.error
+        : 'Unknown error';
+
+    try {
+      await this.notificationsPublisher.publishNotification({
+        organizationId,
+        userId,
+        notification: {
+          link: `/automate/workflows/executions/${completedExecution.id}`,
+          message: `${workflowLabel} failed during a scheduled run: ${error}`,
+          metadata: {
+            executionId: completedExecution.id,
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            workflowId: input.workflowId,
+          },
+          title: 'Scheduled workflow failed',
+          type: 'workflow_scheduled_failed',
+        },
+      });
+
+      await this.notificationsPublisher.publishWorkflowStatus(
+        input.workflowId,
+        'failed',
+        userId,
+        {
+          error: input.result.error,
+          workflowLabel,
+        },
+      );
+    } catch (error_: unknown) {
+      this.logger?.error(
+        'Failed to publish scheduled workflow failure notice',
+        error_,
+        'WorkflowExecutionFinalizerService',
+      );
+    }
   }
 }
