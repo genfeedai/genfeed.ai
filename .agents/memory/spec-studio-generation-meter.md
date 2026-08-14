@@ -11,7 +11,7 @@ topics: [studio, credits, prompt-bar, trust]
 
 GitHub issue: #2975
 
-**Why:** Competitive audit #2967 — Higgsfield/Kling/Runway users cannot predict cost or wait. Genfeed already computes `selectedModelCost` and never shows it. Simple Mode hides the model picker, so the estimate is also 0 because `selectedModels` is empty under auto-select.
+**Why:** Operators cannot predict credit cost or queue depth before Generate. Studio already computes `selectedModelCost` and never shows it. Simple Mode hides the model picker, so the estimate is also 0 because `selectedModels` is empty under auto-select.
 **How to apply:** Show a compact meter next to Generate in both Simple and Advanced Mode. Credits come from the existing pricing hook. Wait is only live queue depth (`activeGenerations.length`). Never invent minutes. Never say unlimited.
 
 ## Purpose
@@ -20,7 +20,7 @@ Before a Studio generate, the operator sees how many credits this run will use a
 
 ## Non-Goals
 
-- Typical or advertised wait minutes, provider SLAs, or Higgsfield-style queue ETAs.
+- Typical or advertised wait minutes, provider SLAs, or invented queue ETAs.
 - Changing credit reservation, settlement, or refunds (batch/eval refunds already exist).
 - Trial-vs-paid queue priority (we do not have a trial-faster-than-paid queue).
 - Marketing copy, plan pages, or "unlimited" language anywhere.
