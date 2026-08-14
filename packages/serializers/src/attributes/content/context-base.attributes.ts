@@ -10,6 +10,8 @@ export const contextBaseAttributes = createEntityAttributes([
   'sourceUrl',
   'sourceBrand',
   'lastAnalyzed',
+  'purpose',
+  'sources',
   'entryCount',
   'usageCount',
   'isActive',

@@ -15,6 +15,7 @@ import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-s
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
+import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -31,6 +32,7 @@ import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.mo
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
+import { KnowledgeSourceIngestQueueModule } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -100,6 +102,7 @@ import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-
 import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { InsightGenerationProcessor } from '@workers/processors/api/queues/insight-generation/insight-generation.processor';
+import { KnowledgeSourceIngestProcessor } from '@workers/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor';
 import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
@@ -142,6 +145,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => ArticlesModule),
     forwardRef(() => ClipProjectsCoreModule),
     forwardRef(() => ContentPerformanceModule),
+    forwardRef(() => ContextsModule),
     forwardRef(() => CreativePatternsModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => CreditsModule),
@@ -174,6 +178,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => SkillExecutorModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
+    forwardRef(() => KnowledgeSourceIngestQueueModule),
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => ThreadsModule),
     forwardRef(() => TiktokModule),
@@ -263,6 +268,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     EmailDigestProcessor,
     HeygenPollProcessor,
     InsightGenerationProcessor,
+    KnowledgeSourceIngestProcessor,
     LifecycleEmailProcessor,
     PatternExtractionProcessor,
     PostPublishProcessor,

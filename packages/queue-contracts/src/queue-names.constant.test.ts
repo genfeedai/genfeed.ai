@@ -14,6 +14,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  KNOWLEDGE_SOURCE_INGEST_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
@@ -44,6 +45,7 @@ describe('queue-names.constant', () => {
     expect(CLIP_FACTORY_QUEUE).toBe('clip-factory');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(TRIGGER_EVALUATION_QUEUE).toBe('triggers.evaluate');
+    expect(KNOWLEDGE_SOURCE_INGEST_QUEUE).toBe('knowledge-source-ingest');
   });
 
   it('lists every queue exactly once', () => {

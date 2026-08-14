@@ -34,7 +34,7 @@ export const API_ENDPOINTS = {
   IMAGES: '/images',
   INGREDIENTS: '/ingredients',
   INSIGHTS: '/insights',
-  KNOWLEDGE_BASES: '/knowledge-bases',
+  KNOWLEDGE_BASES: '/contexts',
   LENSES: '/elements/lenses',
   LIGHTINGS: '/elements/lightings',
   LINKS: '/links',
