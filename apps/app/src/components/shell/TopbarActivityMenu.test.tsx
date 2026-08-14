@@ -16,13 +16,20 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
-  APP_ROUTES: {
-    WORKSPACE: {
-      ACTIVITY: '/workspace/activity',
+vi.mock('@genfeedai/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
+
+  return {
+    ...actual,
+    APP_ROUTES: {
+      ...actual.APP_ROUTES,
+      WORKSPACE: {
+        ...actual.APP_ROUTES.WORKSPACE,
+        ACTIVITY: '/workspace/activity',
+      },
     },
-  },
-}));
+  };
+});
 
 import TopbarActivityMenu from './TopbarActivityMenu';
 
