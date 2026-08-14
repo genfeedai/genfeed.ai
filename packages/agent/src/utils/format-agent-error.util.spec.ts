@@ -81,6 +81,18 @@ describe('formatAgentError', () => {
     expect(formatted.title).not.toBe('Provider access denied');
   });
 
+  it('does not tell the operator to switch models when the workspace id is missing', () => {
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Organization context is required',
+    );
+
+    expect(formatted.title).toBe('Workspace missing on this request');
+    expect(formatted.summary).toMatch(/workspace/i);
+    expect(formatted.recovery).toMatch(/refresh/i);
+    expect(formatted.recovery).not.toMatch(/switch to auto/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+  });
+
   it('maps thread UI-action axios 500s to connection-interrupted, not provider outage', () => {
     // Confirm-generate waits on POST /v1/images through the same API. When that
     // hop 500s (proxy timeout, hung Replicate call, local reload) axios says

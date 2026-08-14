@@ -114,6 +114,17 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Verify the provider API key, then retry.',
   },
   {
+    // ModelsGuard 403 when the request has no usable workspace id. That is
+    // not "pick another model" — Auto only skips the allowlist check.
+    match: /Organization context is required/i,
+    title: 'Workspace missing on this request',
+    summary: 'Generate could not see which workspace this request belongs to.',
+    recovery:
+      'Refresh the page and retry. If it happens again, sign out and sign back in.',
+    includeRawDetail: true,
+    isConfigurationError: false,
+  },
+  {
     // Our confirm-generate hop returns JSON:API 403 (allowlist, brand, org).
     // That is not Replicate/fal rejecting the account — keep it off the
     // generic provider-403 rule below.
