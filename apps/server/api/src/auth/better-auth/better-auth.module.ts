@@ -17,15 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
 
-import {
-  parseCommaSeparated,
-  resolveBetterAuthBaseUrl,
-  resolveBooleanFlag,
-  resolveCookieDomain,
-  resolveExperimentalJoins,
-  resolveSocialProviderConfig,
-  resolveTrustedOrigins,
-} from './better-auth.config';
+import { resolveBetterAuthRuntimeConfig } from './better-auth.config';
 import {
   BETTER_AUTH_INSTANCE,
   BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
@@ -97,14 +89,28 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           return null;
         }
 
-        const secret = config.get('BETTER_AUTH_SECRET');
-        if (!secret) {
-          // Fail fast at boot (surfaced by the deploy boot-smoke gate) rather
-          // than at first sign-in: a missing secret would silently break auth.
-          throw new Error(
-            'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true',
-          );
-        }
+        const runtime = resolveBetterAuthRuntimeConfig({
+          BETTER_AUTH_API_KEY: config.get('BETTER_AUTH_API_KEY'),
+          BETTER_AUTH_COOKIE_DOMAIN: config.get('BETTER_AUTH_COOKIE_DOMAIN'),
+          BETTER_AUTH_EXPERIMENTAL_JOINS: config.get(
+            'BETTER_AUTH_EXPERIMENTAL_JOINS',
+          ),
+          BETTER_AUTH_IP_HEADERS: config.get('BETTER_AUTH_IP_HEADERS'),
+          BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION: config.get(
+            'BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION',
+          ),
+          BETTER_AUTH_SECRET: config.get('BETTER_AUTH_SECRET'),
+          BETTER_AUTH_TRUSTED_ORIGINS: config.get(
+            'BETTER_AUTH_TRUSTED_ORIGINS',
+          ),
+          BETTER_AUTH_URL: config.get('BETTER_AUTH_URL'),
+          GITHUB_CLIENT_ID: config.get('GITHUB_CLIENT_ID'),
+          GITHUB_CLIENT_SECRET: config.get('GITHUB_CLIENT_SECRET'),
+          GOOGLE_CLIENT_ID: config.get('GOOGLE_CLIENT_ID'),
+          GOOGLE_CLIENT_SECRET: config.get('GOOGLE_CLIENT_SECRET'),
+          NODE_ENV: config.get('NODE_ENV'),
+          PORT: config.get('PORT'),
+        });
 
         // Isolated Redis KV for rate-limit counters (#1186) — its own logical DB
         // (or dedicated instance) so a queue backlog or cache-invalidation storm
@@ -143,48 +149,18 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         });
 
         return createBetterAuthInstance({
-          apiKey: config.get('BETTER_AUTH_API_KEY'),
-          baseURL: resolveBetterAuthBaseUrl(
-            config.get('BETTER_AUTH_URL'),
-            config.get('PORT'),
-          ),
-          cookieDomain: resolveCookieDomain(
-            config.get('BETTER_AUTH_COOKIE_DOMAIN'),
-          ),
-          experimentalJoins: resolveExperimentalJoins(
-            config.get('BETTER_AUTH_EXPERIMENTAL_JOINS'),
-          ),
-          github: resolveSocialProviderConfig(
-            config.get('GITHUB_CLIENT_ID'),
-            config.get('GITHUB_CLIENT_SECRET'),
-          ),
-          google: resolveSocialProviderConfig(
-            config.get('GOOGLE_CLIENT_ID'),
-            config.get('GOOGLE_CLIENT_SECRET'),
-          ),
-          ipAddressHeaders: parseCommaSeparated(
-            config.get('BETTER_AUTH_IP_HEADERS'),
-          ),
-          rateLimitStore,
-          requireEmailVerification: resolveBooleanFlag(
-            config.get('BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION'),
-            false,
-          ),
+          ...runtime,
           // Awaited so provisioning completes before the create resolves; the
           // UserProvisioningListener (@OnEvent) runs under Nest DI.
           onUserCreated: async (event) => {
             await eventEmitter.emitAsync(BETTER_AUTH_USER_CREATED_EVENT, event);
           },
           prisma,
-          secret,
+          rateLimitStore,
           sendMagicLink: (params) => mailer.sendMagicLink(params),
           sendResetPassword: (params) => mailer.sendResetPassword(params),
           sendVerificationEmail: (params) =>
             mailer.sendVerificationEmail(params),
-          trustedOrigins: resolveTrustedOrigins(
-            config.get('BETTER_AUTH_TRUSTED_ORIGINS'),
-            config.get('NODE_ENV'),
-          ),
         });
       },
     },

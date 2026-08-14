@@ -1,4 +1,12 @@
-import type { IBetterAuthSocialProviderConfig } from './better-auth.types';
+import type {
+  IBetterAuthEnvValues,
+  IBetterAuthRuntimeConfig,
+  IBetterAuthSocialProviderConfig,
+} from './better-auth.types';
+
+/** Boot error when Better Auth is enabled but the signing secret is absent. */
+export const BETTER_AUTH_SECRET_REQUIRED_MESSAGE =
+  'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true';
 
 /**
  * Pure config helpers shared by the Better Auth module (instance construction)
@@ -127,4 +135,45 @@ export function resolveSocialProviderConfig(
     return { clientId: clientId.trim(), clientSecret: clientSecret.trim() };
   }
   return undefined;
+}
+
+/**
+ * Resolve Better Auth boot options from ConfigService-backed env values.
+ * Fails closed when the signing secret is missing so an enabled deployment
+ * cannot boot into a silently broken auth path.
+ */
+export function resolveBetterAuthRuntimeConfig(
+  env: IBetterAuthEnvValues,
+): IBetterAuthRuntimeConfig {
+  const secret = env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+  }
+
+  return {
+    apiKey: env.BETTER_AUTH_API_KEY,
+    baseURL: resolveBetterAuthBaseUrl(env.BETTER_AUTH_URL, env.PORT),
+    cookieDomain: resolveCookieDomain(env.BETTER_AUTH_COOKIE_DOMAIN),
+    experimentalJoins: resolveExperimentalJoins(
+      env.BETTER_AUTH_EXPERIMENTAL_JOINS,
+    ),
+    github: resolveSocialProviderConfig(
+      env.GITHUB_CLIENT_ID,
+      env.GITHUB_CLIENT_SECRET,
+    ),
+    google: resolveSocialProviderConfig(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+    ),
+    ipAddressHeaders: parseCommaSeparated(env.BETTER_AUTH_IP_HEADERS),
+    requireEmailVerification: resolveBooleanFlag(
+      env.BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION,
+      false,
+    ),
+    secret,
+    trustedOrigins: resolveTrustedOrigins(
+      env.BETTER_AUTH_TRUSTED_ORIGINS,
+      env.NODE_ENV,
+    ),
+  };
 }
