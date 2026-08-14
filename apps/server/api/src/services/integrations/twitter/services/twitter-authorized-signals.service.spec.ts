@@ -586,7 +586,7 @@ describe('TwitterAuthorizedSignalsService', () => {
     await vi.runAllTimersAsync();
     const snapshot = await refreshPromise;
 
-    expect(snapshot.state).toBe('stale');
+    expect(snapshot.state).toBe('partial');
     expect(httpService.get).toHaveBeenCalledTimes(4);
     expect(evidenceOf(snapshot, 'owned-posts-snapshot')).toMatchObject({
       reason: 'rate_limited',

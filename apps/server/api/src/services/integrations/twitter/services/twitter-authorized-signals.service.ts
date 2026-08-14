@@ -21,6 +21,7 @@ import {
   type TwitterAuthorizedSignalReason,
   type TwitterAuthorizedSignalsSnapshot,
   type TwitterOwnedPostSignal,
+  twitterAuthorizedSignalStatusValues,
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
@@ -45,6 +46,15 @@ const TWITTER_SIGNAL_RETRY_FALLBACK_MS = 1_000;
 const TWITTER_SIGNAL_RETRY_MAX_MS = 5_000;
 const TWITTER_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const TWITTER_POST_LIMIT = 20;
+
+type TwitterSignalFieldStatus =
+  (typeof twitterAuthorizedSignalStatusValues)[number];
+
+function toFieldAvailability(
+  entries: ReadonlyArray<readonly [string, TwitterSignalFieldStatus]>,
+): Record<string, TwitterSignalFieldStatus> {
+  return Object.fromEntries(entries);
+}
 
 const USERS_READ_SCOPE = 'users.read';
 const TWEET_READ_SCOPE = 'tweet.read';
@@ -828,7 +838,7 @@ export class TwitterAuthorizedSignalsService {
         ? readBoolean(result.value.protected)
         : undefined,
     };
-    const fieldAvailability = Object.fromEntries(
+    const fieldAvailability = toFieldAvailability(
       PUBLISHING_FIELDS.map((field) => [
         field,
         field === 'isProtected' && value.isProtected === undefined
