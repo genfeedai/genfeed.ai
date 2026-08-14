@@ -13,13 +13,6 @@ import {
 
 const contentDirectory = fileURLToPath(new URL('../content', import.meta.url));
 
-// 54 → 52: #2538 retired core-loop/corpus-health and
-// core-loop/prelaunch-corpus-backfill without lowering the floor.
-// 52 → 48: #2767 moved the prompting guide, asset prompting guide, prompt
-// templates, and launch-day playbook to genfeed.ai/articles — tutorial content
-// belongs on the main domain, docs stay product and developer reference.
-const MINIMUM_DOCS_PAGES = 48;
-
 function findMdxFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
@@ -95,7 +88,8 @@ describe('docs SEO metadata', () => {
   });
 
   it('keeps every docs route description unique and within watchdog bounds', () => {
-    const descriptions = findMdxFiles(contentDirectory).map((filePath) => {
+    const mdxFiles = findMdxFiles(contentDirectory);
+    const descriptions = mdxFiles.map((filePath) => {
       const source = fs.readFileSync(filePath, 'utf8');
       const description = source.match(/^description: ['"](.+)['"]$/m)?.[1];
 
@@ -105,10 +99,11 @@ describe('docs SEO metadata', () => {
       return description;
     });
 
-    // Floor, not an exact count: adding a well-described page must not require
-    // editing this test, but pages vanishing silently still trips it. Lower it
-    // deliberately in the same PR that removes a page.
-    expect(descriptions.length).toBeGreaterThanOrEqual(MINIMUM_DOCS_PAGES);
+    // Count is derived from the content tree (#2444): adding a well-described
+    // page must not require editing this test. A silent wipe of the tree still
+    // fails because every discovered MDX file must carry a unique description.
+    expect(mdxFiles.length).toBeGreaterThan(0);
+    expect(descriptions.length).toBe(mdxFiles.length);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 });

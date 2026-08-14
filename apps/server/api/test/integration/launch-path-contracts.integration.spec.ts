@@ -439,4 +439,21 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(authorLoop).toContain(': clampReplyMaxAgeHours(params.hours)');
     expect(authorLoop).toContain('resolveReplyIntent');
   });
+
+  it('keeps repaired API E2E specs in the full tier and drops the dead health harness', () => {
+    const manifest = readRepo(
+      'apps/server/api/scripts/api-e2e-tiers.manifest.ts',
+    );
+    expect(manifest).not.toContain('test/integration/health.e2e-spec.ts');
+    expect(manifest).not.toContain('test/e2e/tasks.e2e-spec.ts');
+    expect(manifest).not.toContain(
+      'test/integration/publish-flow.integration.spec.ts',
+    );
+    expect(manifest).toContain('test/integration/health.e2e-spec.spec.ts');
+
+    const routeCoverage = readRepo('scripts/e2e-route-coverage.mjs');
+    expect(routeCoverage).toContain(
+      "process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '90'",
+    );
+  });
 });

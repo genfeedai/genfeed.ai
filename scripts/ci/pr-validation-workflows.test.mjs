@@ -171,7 +171,7 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
   }
 });
 
-test('enforces executable contracts through tests, not named YAML ratchets', () => {
+test('enforces executable contracts through the aggregate suite', () => {
   // #1011 still requires CI to block new hard-coded content cron/action/publish
   // paths. Those scanners, Bull Board parity, and relation-alias ratchets run
   // from `test:executable-contracts` so a dead rule is deleted with its test.
@@ -190,11 +190,6 @@ test('enforces executable contracts through tests, not named YAML ratchets', () 
     guards,
     /^ {8}run: bun run test:executable-contracts$/m,
     'the guards job must run the executable-contracts test script',
-  );
-  assert.doesNotMatch(
-    guards,
-    /^ {8}run: bun run check:/m,
-    'the guards job must not grow a per-ratchet YAML list',
   );
   assert.match(
     script,

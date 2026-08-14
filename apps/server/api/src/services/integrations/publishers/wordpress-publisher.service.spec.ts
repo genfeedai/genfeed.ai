@@ -96,7 +96,7 @@ describe('WordpressPublisherService', () => {
       };
 
       vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as CredentialDocument,
+        mockCredential as unknown as CredentialDocument,
       );
       vi.mocked(wordpressService.createPost).mockResolvedValue('wp-post-123');
 
@@ -159,7 +159,7 @@ describe('WordpressPublisherService', () => {
       };
 
       vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as CredentialDocument,
+        mockCredential as unknown as CredentialDocument,
       );
 
       const result = await service.publish(context);
@@ -196,7 +196,7 @@ describe('WordpressPublisherService', () => {
       };
 
       vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as CredentialDocument,
+        mockCredential as unknown as CredentialDocument,
       );
       vi.mocked(wordpressService.createPost).mockRejectedValue(
         new Error('WordPress API error'),

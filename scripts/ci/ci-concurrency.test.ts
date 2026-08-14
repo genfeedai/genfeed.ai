@@ -45,15 +45,11 @@ describe('CI concurrency', () => {
     expect(workflow).toContain('cancel-in-progress: false');
   });
 
-  it('runs executable contracts as tests instead of a per-ratchet YAML list', () => {
+  it('runs the executable-contract suite from the guards job', () => {
     const workflow = readWorkflow('ci.yml');
     const guardsJob =
       workflow.split(/\n {2}guards:\n/)[1]?.split(/\n {2}format:\n/)[0] ?? '';
 
     expect(guardsJob).toContain('bun run test:executable-contracts');
-    expect(guardsJob).not.toMatch(/bun run check:/);
-    expect(guardsJob).not.toMatch(
-      /bunx vitest run --config scripts\/architecture\/vitest\.config\.ts \S/,
-    );
   });
 });

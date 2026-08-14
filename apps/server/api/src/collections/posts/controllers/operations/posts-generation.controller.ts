@@ -368,6 +368,9 @@ export class PostsGenerationController {
         enhanceAccess.status,
       );
     }
+    if (!post) {
+      throw new NotFoundException('Post', postId);
+    }
 
     try {
       const enhancedDescription =

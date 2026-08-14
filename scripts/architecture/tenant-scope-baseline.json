@@ -2794,38 +2794,6 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-template-seeder.service.ts",
-      "fingerprint": "d1b10d8b235860581564",
-      "method": "findFirst",
-      "model": "Workflow",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-template-seeder.service.ts",
-      "fingerprint": "d22b9328c87cbcb09736",
-      "method": "findFirst",
-      "model": "Workflow",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-template-seeder.service.ts",
-      "fingerprint": "bbd90cb06d00bd1af4e9",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-template-seeder.service.ts",
-      "fingerprint": "322288703835f8490a08",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/services/workflow-trend-publish-executor-registrar.service.ts",
       "fingerprint": "5f840ffaea574ac3a05c",
       "method": "findFirst",

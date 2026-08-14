@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -28,7 +29,7 @@ describe('SnapchatService', () => {
     id: 'test-object-id',
     accessToken: 'encrypted-access',
     refreshToken: 'encrypted-refresh',
-  };
+  } as unknown as CredentialDocument;
 
   beforeEach(async () => {
     configService = {
@@ -177,7 +178,7 @@ describe('SnapchatService', () => {
       credentialsService.findOne.mockResolvedValue({
         ...mockCredential,
         refreshToken: undefined,
-      });
+      } as unknown as CredentialDocument);
 
       await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
         'Snapchat credential not found or missing refresh token',

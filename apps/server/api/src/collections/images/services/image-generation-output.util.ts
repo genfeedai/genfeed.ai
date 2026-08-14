@@ -1,9 +1,14 @@
 import { IngredientStatus } from '@genfeedai/enums';
 
+type ExternalImageOutputResult = {
+  kind: 'external-id';
+  outputUrls: string[];
+};
+
 export function shouldFinalizeExternalOutput(result: {
   kind: string;
   outputUrls?: string[];
-}): boolean {
+}): result is ExternalImageOutputResult {
   return result.kind === 'external-id' && Boolean(result.outputUrls);
 }
 

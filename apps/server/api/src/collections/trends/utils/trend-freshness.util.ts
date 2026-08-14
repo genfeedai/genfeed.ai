@@ -28,14 +28,14 @@ export function getTrendFreshnessStatus(
   return ageMs <= freshnessWindowMs * 2 ? 'stale' : 'expired';
 }
 
-export function optionalSourceFields<
-  T extends { text?: string; title?: string },
->(source: T, text?: string, title?: string): T {
-  if (text) {
-    source.text = text;
-  }
-  if (title) {
-    source.title = title;
-  }
-  return source;
+export function optionalSourceFields<T extends object>(
+  source: T,
+  text?: string,
+  title?: string,
+): T & { text?: string; title?: string } {
+  return {
+    ...source,
+    ...(text ? { text } : {}),
+    ...(title ? { title } : {}),
+  };
 }

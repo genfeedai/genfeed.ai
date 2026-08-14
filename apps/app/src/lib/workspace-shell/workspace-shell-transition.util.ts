@@ -1,4 +1,8 @@
+import type { WorkspaceShellOverlayRegistration } from '@genfeedai/interfaces';
 import type { WorkspaceShellState } from '@/lib/workspace-shell/workspace-shell-location';
+
+type WorkspaceShellOverlayTelemetryClass =
+  WorkspaceShellOverlayRegistration['telemetryClass'];
 
 export type WorkspaceShellPendingTransition =
   | 'canvas_launch'
@@ -37,15 +41,15 @@ export function resolveWorkspaceShellTransition(input: {
 }
 
 export type OverlayTelemetryUpdate = {
-  readonly abandonedTelemetryClass: string | null;
+  readonly abandonedTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   readonly nextCompleted: boolean;
-  readonly nextTelemetryClass: string | null;
+  readonly nextTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
 };
 
 export function resolveOverlayTelemetryUpdate(input: {
-  currentTelemetryClass: string | null;
+  currentTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   isOverlayCompleted: boolean;
-  overlayTelemetryClass: string | null;
+  overlayTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   previousState: WorkspaceShellState | null;
   state: WorkspaceShellState;
 }): OverlayTelemetryUpdate {
@@ -69,9 +73,9 @@ export function resolveOverlayTelemetryUpdate(input: {
 }
 
 function resolveOpenOverlayTelemetry(input: {
-  currentTelemetryClass: string | null;
+  currentTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   isOverlayCompleted: boolean;
-  overlayTelemetryClass: string | null;
+  overlayTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   previousState: WorkspaceShellState | null;
 }): OverlayTelemetryUpdate {
   if (!input.overlayTelemetryClass) {
@@ -91,9 +95,9 @@ function resolveOpenOverlayTelemetry(input: {
 }
 
 function abandonedOverlayTelemetryClass(input: {
-  currentTelemetryClass: string | null;
+  currentTelemetryClass: WorkspaceShellOverlayTelemetryClass | null;
   isOverlayCompleted: boolean;
-}): string | null {
+}): WorkspaceShellOverlayTelemetryClass | null {
   if (input.isOverlayCompleted) {
     return null;
   }
