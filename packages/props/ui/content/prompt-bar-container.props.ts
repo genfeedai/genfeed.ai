@@ -73,4 +73,10 @@ export interface PromptBarContainerProps {
    * @default "fixed"
    */
   layoutMode?: 'fixed' | 'inflow' | 'inflow-desktop' | 'surface-fixed';
+
+  /**
+   * Root overlay node. Used to pad the transcript by the live stack height
+   * (prompt bar + generation card + chips).
+   */
+  containerRef?: (node: HTMLElement | null) => void;
 }

@@ -176,12 +176,6 @@ export function AgentChatInput({
     >
       <AgentChatInputStyles />
 
-      {isDragActive && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-primary/5">
-          <p className="text-sm font-medium text-primary/70">Drop files here</p>
-        </div>
-      )}
-
       {actionFeedback ? (
         <div
           aria-live="polite"

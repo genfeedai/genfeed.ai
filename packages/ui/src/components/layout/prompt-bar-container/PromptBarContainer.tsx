@@ -57,6 +57,7 @@ export default function PromptBarContainer({
   zIndex = 10,
   maxWidth = '4xl',
   layoutMode = 'fixed',
+  containerRef,
 }: PromptBarContainerProps) {
   // Don't render if not visible
   if (!isVisible) {
@@ -88,6 +89,7 @@ export default function PromptBarContainer({
 
   return (
     <div
+      ref={containerRef}
       className={rootClassName}
       data-layout-mode={layoutMode}
       data-max-width={maxWidth}
