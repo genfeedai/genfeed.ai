@@ -436,7 +436,7 @@ export function useModalBrand(
         new Prompt({
           category: PromptCategory.BRAND_DESCRIPTION,
           isSkipEnhancement: false,
-          organization: organizationId,
+          organizationId,
           original: form.getValues('text'),
           systemPromptKey: SystemPromptKey.BRAND,
           useRAG: true,
