@@ -42,6 +42,7 @@ Project-level rules and facts that apply to this repo regardless of which agent 
 - User-level preferences that apply across all of decod3rs's projects (those live in a separate user-level memory location, not git-tracked here)
 - Session-ephemeral state (goes in `.agents/sessions/YYYY-MM-DD.md` instead)
 - Secrets, credentials, API keys, tokens (obviously)
+- Competitive strategy, competitor teardowns, and win-plans (those live in private `genfeedai/vault`, not this public repo or board)
 - **Personal multi-host fleet process** (Claude/Codex/Grok routing, “don’t restate for Vincent”) — use **gitignored** `.agents/memory/local/` for project-scoped personal notes, and global user memory for cross-repo host routing
 
 ## Local-only memory (gitignored)
