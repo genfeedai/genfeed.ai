@@ -799,6 +799,8 @@ describe('UniversalWorkspaceShell', () => {
     expect(dockFade).toHaveClass('bg-gradient-to-t');
     expect(dockFade).toHaveClass('from-background');
     expect(dockFade).toHaveClass('to-transparent');
+    expect(dockFade).toHaveClass('h-8');
+    expect(dockFade).not.toHaveClass('h-28');
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
       'overflow-hidden',
     );

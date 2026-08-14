@@ -29,7 +29,8 @@ gradient: text visible at the top, black at the bottom.
 `showTopFade` on for the agent prompt bar and the empty-state composer.
 Top cards use their own `bg-background`. The canvas
 `workspace-composer-dock` stays free of solid `bg-background`. A
-full-width `[data-composer-dock-fade]` (transparent at the top, black at
-the bottom) covers wallpaper in the dock padding and keeps the last
-transcript line readable. Do not put `bg-background` on the full-width
+full-width `[data-composer-dock-fade]` is **padding-height only** (`h-8`):
+black at the dock bottom so wallpaper cannot leak, transparent above.
+A tall dock fade (`h-28`) sits at `z-20` over the transcript and paints
+the last message black. Do not put `bg-background` on the full-width
 dock.

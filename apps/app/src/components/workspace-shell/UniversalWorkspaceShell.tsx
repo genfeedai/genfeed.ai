@@ -1165,7 +1165,7 @@ function UniversalWorkspaceShellContent({
                 >
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/70 to-transparent opacity-0 group-has-[:not(:empty)]/composer-dock:opacity-100"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent opacity-0 group-has-[:not(:empty)]/composer-dock:opacity-100"
                     data-composer-dock-fade=""
                   />
                   <div

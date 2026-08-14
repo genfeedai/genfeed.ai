@@ -108,12 +108,12 @@ export default function PromptBarContainer({
           aria-hidden="true"
           data-composer-top-fade=""
           className={cn(
-            // Transcript stays readable at the top of the fade; the prompt
-            // edge is solid background so wallpaper cannot cut the last line.
-            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background via-background/55 to-transparent transition-opacity duration-300',
-            topContent ? 'h-28' : 'h-20',
-            layoutMode === 'surface-fixed' && (topContent ? 'h-24' : 'h-16'),
-            layoutMode === 'inflow' && (topContent ? 'h-24' : 'h-16'),
+            // Soft scrim only — last transcript lines stay readable. A tall
+            // from-background slab paints the conversation black.
+            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/80 via-background/30 to-transparent transition-opacity duration-300',
+            topContent ? 'h-16' : 'h-12',
+            layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
+            layoutMode === 'inflow' && (topContent ? 'h-12' : 'h-10'),
             topFadeClassName,
           )}
         />

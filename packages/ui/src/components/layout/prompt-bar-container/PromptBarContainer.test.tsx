@@ -141,6 +141,8 @@ describe('PromptBarContainer', () => {
     expect(fade?.className).toContain('bg-gradient-to-t');
     expect(fade?.className).toContain('from-background');
     expect(fade?.className).toContain('to-transparent');
+    expect(fade?.className).not.toContain('h-28');
+    expect(fade?.className).not.toContain('via-background/55');
   });
 
   it('paints a solid bottom scrim so wallpaper cannot leak under the prompt', () => {
