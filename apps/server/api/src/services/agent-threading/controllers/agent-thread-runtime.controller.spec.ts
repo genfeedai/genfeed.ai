@@ -124,11 +124,45 @@ describe('Threading AgentThreadRuntimeController', () => {
           organization: organizationId,
           user: userId,
         }),
+        authToken: undefined,
         organizationId,
         userId,
       },
     );
     expect(usersService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('forwards the Bearer token so generate media can call POST /v1/images', async () => {
+    agentOrchestratorService.handleThreadUiAction.mockResolvedValue({
+      creditsRemaining: 50,
+      creditsUsed: 0,
+      message: {
+        content: 'Confirmed image generation.',
+        metadata: {},
+        role: 'assistant',
+      },
+      threadId,
+      toolCalls: [],
+    });
+
+    await controller.respondToUiAction(
+      threadId,
+      {
+        action: 'confirm_generate_media',
+        payload: { generationType: 'image', prompt: 'a rocket' },
+      },
+      mockUser,
+      'Bearer session-jwt',
+    );
+
+    expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'confirm_generate_media' }),
+      expect.objectContaining({
+        authToken: 'session-jwt',
+        organizationId,
+        userId,
+      }),
+    );
   });
 
   it('rejects unsupported thread UI actions', async () => {
