@@ -38,6 +38,11 @@ export interface StorageProviderOptions {
   secretAccessKey?: string;
   /** Local provider base directory. Defaults to GENFEED_STORAGE_PATH. */
   baseDir?: string;
+  /**
+   * Public CDN origin for cloud object URLs. Defaults to GENFEEDAI_CDN_URL.
+   * The files microservice host is an API origin, not a media CDN.
+   */
+  cdnUrl?: string;
 }
 
 export interface StorageProvider {

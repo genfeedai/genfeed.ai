@@ -20,6 +20,7 @@ import { Module } from '@nestjs/common';
       useFactory: (configService: ConfigService) =>
         createStorageProvider({
           baseDir: configService.get('GENFEED_STORAGE_PATH') || undefined,
+          cdnUrl: configService.get('GENFEEDAI_CDN_URL') || undefined,
         }),
     },
   ],
