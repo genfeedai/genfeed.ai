@@ -1,5 +1,38 @@
-import { Platform } from '@genfeedai/enums';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/enums', () => ({
+  Platform: {
+    FACEBOOK: 'facebook',
+    REDDIT: 'reddit',
+    TIKTOK: 'tiktok',
+    TWITTER: 'twitter',
+    YOUTUBE: 'youtube',
+  },
+}));
+
+vi.mock('@genfeedai/helpers', () => ({
+  SocialUrlHelper: {
+    buildTikTokUrl: (postId: string, username?: string) =>
+      username
+        ? `https://www.tiktok.com/@${username}/video/${postId}`
+        : `https://www.tiktok.com/video/${postId}`,
+    buildTwitterUrl: (postId: string, username?: string) =>
+      username
+        ? `https://x.com/${username}/status/${postId}`
+        : `https://x.com/i/status/${postId}`,
+    buildYoutubeUrl: (postId: string) =>
+      `https://www.youtube.com/watch?v=${postId}`,
+    parseTwitterUrl: (href: string) => {
+      const match = href.match(/status\/(\d+)/);
+      if (!match) {
+        return null;
+      }
+      const username = href.match(/x\.com\/([^/]+)\//)?.[1];
+      return { tweetId: match[1], username };
+    },
+  },
+}));
+
 import {
   getCurrentPlatform,
   getPlatformName,
@@ -27,8 +60,8 @@ describe('extension platform config', () => {
   it('detects Twitter/X from hostname and extracts a status id', () => {
     stubLocation('https://x.com/acme/status/1234567890');
 
-    expect(getCurrentPlatform()?.platform).toBe(Platform.TWITTER);
-    expect(getPlatformName()).toBe(Platform.TWITTER);
+    expect(getCurrentPlatform()?.platform).toBe('twitter');
+    expect(getPlatformName()).toBe('twitter');
     expect(platforms.twitter.extractPostId()).toBe('1234567890');
     expect(platforms.twitter.constructPostUrl('1234567890')).toContain(
       '1234567890',
@@ -37,7 +70,7 @@ describe('extension platform config', () => {
 
   it('detects YouTube and Facebook post ids from the URL', () => {
     stubLocation('https://www.youtube.com/watch?v=abcdefghijk');
-    expect(getCurrentPlatform()?.platform).toBe(Platform.YOUTUBE);
+    expect(getCurrentPlatform()?.platform).toBe('youtube');
 
     stubLocation('https://www.facebook.com/posts/post-99');
     expect(platforms.facebook.extractPostId()).toBe('post-99');
@@ -49,7 +82,7 @@ describe('extension platform config', () => {
   it('detects TikTok video ids from the pathname', () => {
     stubLocation('https://www.tiktok.com/@acme/video/9876543210');
 
-    expect(getCurrentPlatform()?.platform).toBe(Platform.TIKTOK);
+    expect(getCurrentPlatform()?.platform).toBe('tiktok');
     expect(platforms.tiktok.extractPostId()).toBe('9876543210');
   });
 

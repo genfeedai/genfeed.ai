@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  getAllCompetitorSlugs,
-  getCompetitorBySlug,
-} from './competitors.data';
+import { getAllCompetitorSlugs, getCompetitorBySlug } from './competitors.data';
 import {
   getAllIntegrationSlugs,
   getIntegrationBySlug,

@@ -2,7 +2,15 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MetaAdsService } from './meta-ads.service';
+
+vi.mock('@genfeedai/integrations', () => ({
+  IntegrationHttpClient: class IntegrationHttpClient {},
+  getIntegrationProviderDefinition: () => ({
+    endpoints: { apiBaseUrl: 'https://graph.facebook.com' },
+  }),
+}));
+
+const { MetaAdsService } = await import('./meta-ads.service');
 
 type MetaAdsHttpParams = {
   toHttpServiceParams: (
@@ -24,7 +32,11 @@ function createService(): {
   service: MetaAdsService;
 } {
   const get = vi.fn().mockReturnValue(of({ data: {}, status: 200 }));
-  const httpService = { delete: vi.fn(), get, post: vi.fn() } as unknown as HttpService;
+  const httpService = {
+    delete: vi.fn(),
+    get,
+    post: vi.fn(),
+  } as unknown as HttpService;
   const loggerService = {
     error: vi.fn(),
     log: vi.fn(),
