@@ -14,6 +14,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LlmCompletionTelemetryService } from './llm-completion-telemetry.service';
 import { LlmDispatcherService } from './llm-dispatcher.service';
 
 describe('LlmDispatcherService', () => {
@@ -39,6 +40,9 @@ describe('LlmDispatcherService', () => {
     updateOAuthTokens: ReturnType<typeof vi.fn>;
   };
   let llmInstanceService: { ensureRunning: ReturnType<typeof vi.fn> };
+  let llmCompletionTelemetryService: {
+    recordCompletion: ReturnType<typeof vi.fn>;
+  };
   let configService: { get: ReturnType<typeof vi.fn> };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -92,6 +96,9 @@ describe('LlmDispatcherService', () => {
     llmInstanceService = {
       ensureRunning: vi.fn().mockResolvedValue(undefined),
     };
+    llmCompletionTelemetryService = {
+      recordCompletion: vi.fn().mockResolvedValue(undefined),
+    };
     // Platform keys present by default so openai/* and anthropic/* prefer
     // native clients. Tests that assert OpenRouter fallback clear these.
     configService = {
@@ -124,6 +131,10 @@ describe('LlmDispatcherService', () => {
         { provide: OpenRouterService, useValue: openRouterService },
         { provide: ByokService, useValue: byokService },
         { provide: LlmInstanceService, useValue: llmInstanceService },
+        {
+          provide: LlmCompletionTelemetryService,
+          useValue: llmCompletionTelemetryService,
+        },
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
       ],
@@ -532,6 +543,86 @@ describe('LlmDispatcherService', () => {
       expect(
         anthropicService.streamChatCompletionAggregated,
       ).toHaveBeenCalledWith(expect.any(Object), 'byok-key', undefined);
+    });
+  });
+
+  describe('completion telemetry wrapper', () => {
+    it('emits one telemetry event per chatCompletion without prompt content', async () => {
+      await service.chatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+        orgId,
+        { runId: 'run-1', threadId: 'thread-1' },
+      );
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledOnce();
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          completionTokens: 5,
+          isByok: false,
+          model: 'test-model',
+          organizationId: orgId,
+          promptTokens: 10,
+          provider: 'openrouter',
+          runId: 'run-1',
+          threadId: 'thread-1',
+        }),
+      );
+
+      const payload = JSON.stringify(
+        llmCompletionTelemetryService.recordCompletion.mock.calls,
+      );
+      expect(payload).not.toContain('Hello');
+      expect(payload).not.toContain('Hello!');
+      expect(payload).not.toContain('"messages"');
+      expect(payload).not.toContain('"content"');
+    });
+
+    it('marks BYOK completions with isByok and still records tokens', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      await service.chatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isByok: true,
+          promptTokens: 10,
+          completionTokens: 5,
+          provider: 'anthropic',
+        }),
+      );
+    });
+
+    it('emits one telemetry event per aggregated stream completion', async () => {
+      await service.streamChatCompletionAggregated(
+        makeParams('openai/gpt-5.6-terra'),
+        orgId,
+        undefined,
+        { runId: 'run-2', threadId: 'thread-2' },
+      );
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledOnce();
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isByok: false,
+          organizationId: orgId,
+          provider: 'openai',
+          runId: 'run-2',
+          threadId: 'thread-2',
+        }),
+      );
     });
   });
 });

@@ -56,6 +56,7 @@ export * from './batch/batch.interface';
 export * from './batch/batch-workflow-status.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
+export * from './billing/llm-vendor-cost.interface';
 export * from './billing/managed-credits.interface';
 export * from './billing/pricing.interface';
 export * from './billing/subscription.interface';

@@ -2616,6 +2616,30 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  LlmVendorCost: {
+    allFields: [
+      'completionTokens',
+      'createdAt',
+      'id',
+      'isByok',
+      'isDeleted',
+      'latencyMs',
+      'model',
+      'organization',
+      'organizationId',
+      'promptTokens',
+      'provider',
+      'runId',
+      'threadId',
+      'updatedAt',
+      'vendorCostMicros',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
+  },
   McpApproval: {
     allFields: [
       'arguments',
@@ -3060,6 +3084,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'listeningTopicSources',
       'listeningTopics',
       'livestreamBotSessions',
+      'llmVendorCosts',
       'mcpApprovals',
       'members',
       'models',

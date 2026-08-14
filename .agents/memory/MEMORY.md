@@ -95,6 +95,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [messages-engagement-surfaces](spec-messages-engagement-surfaces.md) · [decisions](decisions-messages-engagement-surfaces.md) — #2742
 - [publish-content-campaigns](spec-publish-content-campaigns.md) · [decisions](decisions-publish-content-campaigns.md) — Publish Campaign desk + `Post.campaignId`
 - [source-post-variations](spec-source-post-variations.md) · [decisions](decisions-source-post-variations.md) — #2662
+- [llm-vendor-cost-ledger](spec-llm-vendor-cost-ledger.md) · [decisions](decisions-llm-vendor-cost-ledger.md) — #2361
 
 ## Project state
 
