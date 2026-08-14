@@ -276,7 +276,7 @@ describe('AdminFleetTrainingService', () => {
       );
     });
 
-    it('returns undefined for an empty 204 response', async () => {
+    it('rejects an empty 204 response on a payload endpoint', async () => {
       safeFetchMock.mockResolvedValue({
         ok: true,
         status: 204,
@@ -284,13 +284,17 @@ describe('AdminFleetTrainingService', () => {
         text: async () => 'ignored',
       } as unknown as Response);
 
-      await expect(service.getDatasetInfo('alice')).resolves.toBeUndefined();
+      await expect(service.getDatasetInfo('alice')).rejects.toThrow(
+        'Images service returned an empty payload for datasets/alice',
+      );
     });
 
-    it('returns undefined for a 200 response with an empty body', async () => {
+    it('rejects a 200 response with an empty body on a payload endpoint', async () => {
       safeFetchMock.mockResolvedValue(successResponse(undefined));
 
-      await expect(service.getDatasetInfo('alice')).resolves.toBeUndefined();
+      await expect(service.getDatasetInfo('alice')).rejects.toThrow(
+        'Images service returned an empty payload for datasets/alice',
+      );
     });
   });
 
@@ -319,6 +323,13 @@ describe('AdminFleetTrainingService', () => {
 
     it('rejects an invalid GPU_IMAGES_URL', async () => {
       const isolated = await compileWithImagesUrl('not a url');
+      await expect(isolated.getDatasetInfo('alice')).rejects.toThrow(
+        'GPU_IMAGES_URL must be a valid http(s) URL',
+      );
+    });
+
+    it('rejects a syntactically valid non-HTTP GPU_IMAGES_URL', async () => {
+      const isolated = await compileWithImagesUrl('ftp://gpu-images:3000');
       await expect(isolated.getDatasetInfo('alice')).rejects.toThrow(
         'GPU_IMAGES_URL must be a valid http(s) URL',
       );

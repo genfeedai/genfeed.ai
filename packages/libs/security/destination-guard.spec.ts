@@ -647,6 +647,15 @@ describe('destination guard', () => {
     expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
       method: 'GET',
     });
+    expect(httpRequestMock.mock.calls[1]?.[1]).not.toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': expect.anything(),
+      }),
+    });
+    const followOnRequest = httpRequestMock.mock.results[1]?.value as
+      | { end?: ReturnType<typeof vi.fn> }
+      | undefined;
+    expect(followOnRequest?.end).toHaveBeenCalledWith(undefined);
   });
 
   it('preserves method and body across a 307 redirect', async () => {
@@ -699,8 +708,15 @@ describe('destination guard', () => {
     });
 
     expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': '7',
+      }),
       method: 'POST',
     });
+    const followOnRequest = httpRequestMock.mock.results[1]?.value as
+      | { end?: ReturnType<typeof vi.fn> }
+      | undefined;
+    expect(followOnRequest?.end).toHaveBeenCalledWith('payload');
   });
 
   it('returns a bodyless response for HEAD requests', async () => {

@@ -281,6 +281,10 @@
         "local": "local",
         "newWorkflow": "New Workflow",
         "nextRun": "Next run",
+        "emptyActionCreate": "Create Workflow",
+        "emptyActionTemplates": "Browse Templates",
+        "emptyDescription": "Create your first workflow for a fixed, repeatable automation pipeline.",
+        "emptyTitle": "No workflows yet",
         "noMatching": "No workflows matching “{search}”",
         "searchPlaceholder": "Search workflows...",
         "synced": "synced",
@@ -303,6 +307,7 @@
         },
         "custom": {
           "description": "Advanced cron format. Prefer a preset unless you need something specific.",
+          "placeholder": "e.g. weekdays at 9am → 0 9 * * 1-5",
           "title": "Custom schedule"
         },
         "description": "Run this workflow automatically on a recurring cadence.",
@@ -455,6 +460,7 @@
       "provenance": "Source retained · review batch {batch}",
       "ready": "{actual} of {requested} variations ready",
       "reviewAll": "Review all",
+      "creditsCharged": "{credits} credits charged",
       "summary": "Group {group} · {credits} credits charged"
     },
     "title": "Generate brand-voice variations"

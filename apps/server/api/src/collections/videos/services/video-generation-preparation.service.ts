@@ -49,6 +49,19 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+export const MISSING_PROMPT_ID_DETAIL =
+  'Prompt resolution requires a prompt ID';
+
+export function createMissingPromptIdException(): HttpException {
+  return new HttpException(
+    {
+      detail: MISSING_PROMPT_ID_DETAIL,
+      title: 'Prompt validation failed',
+    },
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
 @Injectable()
 export class VideoGenerationPreparationService {
   constructor(
@@ -287,7 +300,7 @@ export class VideoGenerationPreparationService {
       return inlineText;
     }
     if (!promptId) {
-      throw new Error('Prompt resolution requires a prompt ID');
+      throw createMissingPromptIdException();
     }
     const validationOrgId =
       resolved.user.organizationId || resolved.request.context?.organizationId;

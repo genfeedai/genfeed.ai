@@ -240,9 +240,9 @@ describe('object-key containment', () => {
     expect(() =>
       assertSafeObjectKey('nested\\escaped.png', createError),
     ).toThrow(/relative POSIX object key/);
-    expect(() => assertSafeObjectKey('nested\\0file.png', createError)).toThrow(
-      /relative POSIX object key/,
-    );
+    expect(() =>
+      assertSafeObjectKey(`nested${'\0'}file.png`, createError),
+    ).toThrow(/relative POSIX object key/);
   });
 
   it('rejects a trailing slash on a concrete object key', () => {

@@ -79,6 +79,10 @@ function resolveImagesApiDestination(
     throw new Error('GPU_IMAGES_URL must be a valid http(s) URL');
   }
 
+  if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+    throw new Error('GPU_IMAGES_URL must be a valid http(s) URL');
+  }
+
   const baseHref = baseUrl.href.endsWith('/')
     ? baseUrl.href
     : `${baseUrl.href}/`;
@@ -93,7 +97,7 @@ function isEmptySuccessStatus(status: number): boolean {
   return status === 204 || status === 205;
 }
 
-async function parseImagesApiResponse<T>(response: Response): Promise<T> {
+async function parseImagesApiResponse(response: Response): Promise<unknown> {
   if (!response.ok) {
     throw new Error(
       `Images service returned ${response.status} ${response.statusText}`,
@@ -101,15 +105,23 @@ async function parseImagesApiResponse<T>(response: Response): Promise<T> {
   }
 
   if (isEmptySuccessStatus(response.status)) {
-    return undefined as T;
+    return undefined;
   }
 
   const responseBody = await response.text();
   if (responseBody.trim() === '') {
-    return undefined as T;
+    return undefined;
   }
 
-  return JSON.parse(responseBody) as T;
+  return JSON.parse(responseBody);
+}
+
+function requireImagesApiPayload<T>(payload: unknown, pathname: string): T {
+  if (payload === undefined) {
+    throw new Error(`Images service returned an empty payload for ${pathname}`);
+  }
+
+  return payload as T;
 }
 
 const GPU_JOB_STAGE_MAP: Record<string, TrainingStage> = {
@@ -168,10 +180,10 @@ export class AdminFleetTrainingService {
     };
   }
 
-  private async requestImagesApi<T>(
+  private async requestImagesApi(
     pathname: string,
     options: ImagesApiRequestOptions,
-  ): Promise<T> {
+  ): Promise<unknown> {
     const destination = resolveImagesApiDestination(
       this.imagesApiUrl,
       pathname,
@@ -190,7 +202,17 @@ export class AdminFleetTrainingService {
       },
     );
 
-    return parseImagesApiResponse<T>(response);
+    return parseImagesApiResponse(response);
+  }
+
+  private async requestImagesApiPayload<T>(
+    pathname: string,
+    options: ImagesApiRequestOptions,
+  ): Promise<T> {
+    return requireImagesApiPayload<T>(
+      await this.requestImagesApi(pathname, options),
+      pathname,
+    );
   }
 
   /**
@@ -286,7 +308,7 @@ export class AdminFleetTrainingService {
       // Stage: PENDING — verify dataset on GPU via HTTP (queued/preprocess)
       await this.updateStage(params.trainingId, TrainingStage.PENDING, 10);
 
-      const dataset = await this.requestImagesApi<ImagesDatasetResponse>(
+      const dataset = await this.requestImagesApiPayload<ImagesDatasetResponse>(
         `datasets/${encodeURIComponent(params.personaSlug)}`,
         { timeoutMs: 15_000 },
       );
@@ -307,9 +329,8 @@ export class AdminFleetTrainingService {
       // Stage: TRAINING — start training via NestJS images service
       await this.updateStage(params.trainingId, TrainingStage.TRAINING, 30);
 
-      const trainResult = await this.requestImagesApi<ImagesTrainResponse>(
-        'train',
-        {
+      const trainResult =
+        await this.requestImagesApiPayload<ImagesTrainResponse>('train', {
           body: {
             learningRate: params.learningRate,
             loraName: params.loraName,
@@ -320,8 +341,7 @@ export class AdminFleetTrainingService {
           },
           method: 'POST',
           timeoutMs: 30_000,
-        },
-      );
+        });
 
       this.loggerService.log(caller, {
         jobId: trainResult.jobId,
@@ -420,7 +440,7 @@ export class AdminFleetTrainingService {
     for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 
-      const job = await this.requestImagesApi<ImagesJobStatus>(
+      const job = await this.requestImagesApiPayload<ImagesJobStatus>(
         `train/${encodeURIComponent(gpuJobId)}`,
         { timeoutMs: 15_000 },
       );
@@ -471,17 +491,15 @@ export class AdminFleetTrainingService {
     // `POST /loras` — the images LoRA controller is `@Controller('loras')` with
     // a bare `@Post()`. The previous `/loras/upload` spelling 404'd, failing
     // every training run at the upload stage.
-    const uploadResult = await this.requestImagesApi<ImagesLoraUploadResponse>(
-      'loras',
-      {
+    const uploadResult =
+      await this.requestImagesApiPayload<ImagesLoraUploadResponse>('loras', {
         body: {
           localPath: `/comfyui/models/loras/${loraName}.safetensors`,
           loraName,
         },
         method: 'POST',
         timeoutMs: 120_000,
-      },
-    );
+      });
 
     this.loggerService.log(caller, {
       loraName,
@@ -493,7 +511,7 @@ export class AdminFleetTrainingService {
   }
 
   async getDatasetInfo(slug: string): Promise<ImagesDatasetResponse> {
-    return this.requestImagesApi<ImagesDatasetResponse>(
+    return this.requestImagesApiPayload<ImagesDatasetResponse>(
       `datasets/${encodeURIComponent(slug)}`,
       { timeoutMs: 15_000 },
     );
@@ -505,14 +523,11 @@ export class AdminFleetTrainingService {
    * credentials at an arbitrary one.
    */
   async syncDataset(slug: string, s3Keys: string[]): Promise<void> {
-    await this.requestImagesApi<void>(
-      `datasets/${encodeURIComponent(slug)}/sync`,
-      {
-        body: { s3Keys },
-        method: 'POST',
-        timeoutMs: 120_000,
-      },
-    );
+    await this.requestImagesApi(`datasets/${encodeURIComponent(slug)}/sync`, {
+      body: { s3Keys },
+      method: 'POST',
+      timeoutMs: 120_000,
+    });
   }
 
   async updatePersonaLoraState(
