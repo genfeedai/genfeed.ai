@@ -1,0 +1,44 @@
+{
+  "posts": {
+    "list": {
+      "channelCount": "{count, plural, one {# channel} other {# channels}}",
+      "empty": {
+        "description": "Create and schedule posts to see them here.",
+        "label": "No posts found"
+      },
+      "generateVariationsAria": "Generate variations from {platform} post",
+      "loadError": "Posts could not be loaded. Refresh to try again.",
+      "noCopy": "No post copy yet.",
+      "postCount": "{count, plural, one {# post} other {# posts}}",
+      "toolbar": {
+        "failed": "Failed",
+        "notPosted": "Not posted",
+        "pending": "Pending",
+        "posted": "Posted",
+        "publishing": "Publishing",
+        "publishingStateAria": "Publishing state",
+        "searchPlaceholder": "Search posts"
+      },
+      "unscheduled": "Unscheduled",
+      "untitled": "Untitled post",
+      "views": {
+        "all": {
+          "description": "Posts across every publishing state and channel target.",
+          "title": "All posts"
+        },
+        "failed": {
+          "description": "Posts with at least one failed channel target.",
+          "title": "Failed"
+        },
+        "notPosted": {
+          "description": "Drafts, scheduled posts, and publishing work in progress.",
+          "title": "Not posted"
+        },
+        "posted": {
+          "description": "Posts already live on at least one destination platform.",
+          "title": "Posted"
+        }
+      }
+    }
+  }
+}

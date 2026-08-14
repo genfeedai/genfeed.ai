@@ -252,5 +252,14 @@ vi.mock('*.gif', () => 'test-image.gif');
 vi.mock('*.svg', () => 'test-image.svg');
 vi.mock('*.webp', () => 'test-image.webp');
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../apps/app/tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace = 'common') => translateFromCatalog(namespace),
+  };
+});
+
 // Import our global mocks to set up automatic module mocking
 import '@agent-tests/global-mocks';

@@ -4,6 +4,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Building2, CircleCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -29,18 +30,6 @@ interface BrandIdentityValue {
   slug: string;
 }
 
-/**
- * Held as data rather than inline JSX so the card's copy stays one translatable
- * unit once shared packages gain a message catalog.
- */
-const COPY = {
-  awaitingConfirmation: 'Awaiting confirmation',
-  currentBrand: 'Current brand:',
-  descriptionField: 'Description',
-  labelField: 'Brand label',
-  slugField: 'Brand slug',
-} as const;
-
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -55,6 +44,7 @@ export function BrandIdentityConfirmationCard({
   action,
   onUiAction,
 }: BrandIdentityConfirmationCardProps): ReactElement {
+  const translate = useTranslations('agent.brandIdentityConfirmation');
   const labelInputId = useId();
   const slugInputId = useId();
   const descriptionInputId = useId();
@@ -141,8 +131,8 @@ export function BrandIdentityConfirmationCard({
     } catch {
       setError(
         operation === 'create'
-          ? 'Could not create the brand. Your edits are still here; try again.'
-          : 'Could not rename the brand. Your edits are still here; try again.',
+          ? translate('createError')
+          : translate('renameError'),
       );
     } finally {
       setIsPending(false);
@@ -158,6 +148,7 @@ export function BrandIdentityConfirmationCard({
     operation,
     slug,
     sourceActionId,
+    translate,
   ]);
 
   if (isConfirmed) {
@@ -170,15 +161,18 @@ export function BrandIdentityConfirmationCard({
           <CircleCheck className="size-5" aria-hidden />
           <span className="text-sm font-medium">
             {operation === 'create'
-              ? `Brand "${label.trim()}" created.`
-              : `Brand renamed to "${label.trim()}".`}
+              ? translate('created', { label: label.trim() })
+              : translate('renamed', { label: label.trim() })}
           </span>
         </div>
       </div>
     );
   }
 
-  const actionLabel = operation === 'create' ? 'Create brand' : 'Rename brand';
+  const actionLabel =
+    operation === 'create'
+      ? translate('createBrand')
+      : translate('renameBrand');
 
   return (
     <div className="my-2 bg-background-secondary p-4 shadow-border">
@@ -189,10 +183,13 @@ export function BrandIdentityConfirmationCard({
         />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">
-            {action.title || `Confirm ${actionLabel.toLowerCase()}`}
+            {action.title ||
+              (operation === 'create'
+                ? translate('confirmCreateTitle')
+                : translate('confirmRenameTitle'))}
           </h3>
           <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-warning">
-            {COPY.awaitingConfirmation}
+            {translate('awaitingConfirmation')}
           </p>
         </div>
       </div>
@@ -205,7 +202,7 @@ export function BrandIdentityConfirmationCard({
 
       {operation === 'rename' && readString(currentIdentity.label) ? (
         <p className="mb-3 bg-background-tertiary px-3 py-2 text-xs text-muted-foreground">
-          {COPY.currentBrand}{' '}
+          {translate('currentBrand')}{' '}
           <span className="font-medium text-foreground">
             {readString(currentIdentity.label)}
           </span>
@@ -221,14 +218,14 @@ export function BrandIdentityConfirmationCard({
             className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
             htmlFor={labelInputId}
           >
-            {COPY.labelField}
+            {translate('labelField')}
           </label>
           <Input
             id={labelInputId}
             value={label}
             onChange={handleLabelChange}
             isDisabled={!isInteractive || isPending}
-            placeholder="Brand label"
+            placeholder={translate('labelPlaceholder')}
           />
         </div>
 
@@ -237,14 +234,14 @@ export function BrandIdentityConfirmationCard({
             className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
             htmlFor={slugInputId}
           >
-            {COPY.slugField}
+            {translate('slugField')}
           </label>
           <Input
             id={slugInputId}
             value={slug}
             onChange={handleSlugChange}
             isDisabled={!isInteractive || isPending}
-            placeholder="brand-slug"
+            placeholder={translate('slugPlaceholder')}
           />
         </div>
 
@@ -254,7 +251,7 @@ export function BrandIdentityConfirmationCard({
               className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
               htmlFor={descriptionInputId}
             >
-              {COPY.descriptionField}
+              {translate('descriptionField')}
             </label>
             <Textarea
               id={descriptionInputId}
@@ -262,7 +259,7 @@ export function BrandIdentityConfirmationCard({
               onChange={handleDescriptionChange}
               isDisabled={!isInteractive || isPending}
               rows={3}
-              placeholder="Describe the brand"
+              placeholder={translate('descriptionPlaceholder')}
             />
           </div>
         ) : null}
@@ -290,8 +287,8 @@ export function BrandIdentityConfirmationCard({
         >
           {isPending
             ? operation === 'create'
-              ? 'Creating...'
-              : 'Renaming...'
+              ? translate('creating')
+              : translate('renaming')
             : (confirmationCta.label ?? actionLabel)}
         </Button>
       ) : null}

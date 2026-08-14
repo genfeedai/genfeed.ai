@@ -322,7 +322,6 @@
     "packages/agent/src/components/AgentPlanReviewCard.tsx": 3,
     "packages/agent/src/components/AgentRunFailureCard.tsx": 1,
     "packages/agent/src/components/AgentRuntimeSelector.tsx": 2,
-    "packages/agent/src/components/AgentSettings.tsx": 11,
     "packages/agent/src/components/AgentSetupPanel.tsx": 6,
     "packages/agent/src/components/AgentSidebar.tsx": 1,
     "packages/agent/src/components/AgentSidebarContent.tsx": 1,
