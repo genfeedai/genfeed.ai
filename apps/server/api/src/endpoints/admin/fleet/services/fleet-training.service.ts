@@ -57,6 +57,87 @@ interface ImagesLoraUploadResponse {
   uploaded: boolean;
 }
 
+type ImagesApiDestination = {
+  origin: string;
+  url: URL;
+};
+
+type ImagesApiRequestOptions = {
+  body?: Record<string, unknown>;
+  method?: 'GET' | 'POST';
+  timeoutMs: number;
+};
+
+function resolveImagesApiDestination(
+  imagesApiUrl: string,
+  pathname: string,
+): ImagesApiDestination {
+  let baseUrl: URL;
+  try {
+    baseUrl = new URL(imagesApiUrl);
+  } catch {
+    throw new Error('GPU_IMAGES_URL must be a valid http(s) URL');
+  }
+
+  const baseHref = baseUrl.href.endsWith('/')
+    ? baseUrl.href
+    : `${baseUrl.href}/`;
+
+  return {
+    origin: baseUrl.origin,
+    url: new URL(pathname.replace(/^\/+/, ''), baseHref),
+  };
+}
+
+function isEmptySuccessStatus(status: number): boolean {
+  return status === 204 || status === 205;
+}
+
+async function parseImagesApiResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    throw new Error(
+      `Images service returned ${response.status} ${response.statusText}`,
+    );
+  }
+
+  if (isEmptySuccessStatus(response.status)) {
+    return undefined as T;
+  }
+
+  const responseBody = await response.text();
+  if (responseBody.trim() === '') {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseBody) as T;
+}
+
+const GPU_JOB_STAGE_MAP: Record<string, TrainingStage> = {
+  completed: TrainingStage.READY,
+  failed: TrainingStage.FAILED,
+  postprocessing: TrainingStage.UPLOADING,
+  preprocessing: TrainingStage.PENDING,
+  queued: TrainingStage.PENDING,
+  training: TrainingStage.TRAINING,
+  uploading: TrainingStage.UPLOADING,
+};
+
+function mapGpuJobStage(stage: string): TrainingStage {
+  return GPU_JOB_STAGE_MAP[stage] ?? TrainingStage.TRAINING;
+}
+
+function formatUnknownError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function assertJobNotFailed(job: ImagesJobStatus, gpuJobId: string): void {
+  if (job.status === 'failed') {
+    throw new Error(
+      `GPU training job ${gpuJobId} failed: ${job.error ?? 'unknown error'}`,
+    );
+  }
+}
+
 @Injectable()
 export class AdminFleetTrainingService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -89,25 +170,14 @@ export class AdminFleetTrainingService {
 
   private async requestImagesApi<T>(
     pathname: string,
-    options: {
-      body?: Record<string, unknown>;
-      method?: 'GET' | 'POST';
-      timeoutMs: number;
-    },
+    options: ImagesApiRequestOptions,
   ): Promise<T> {
-    let baseUrl: URL;
-    try {
-      baseUrl = new URL(this.imagesApiUrl);
-    } catch {
-      throw new Error('GPU_IMAGES_URL must be a valid http(s) URL');
-    }
-
-    const baseWithTrailingSlash = baseUrl.href.endsWith('/')
-      ? baseUrl.href
-      : `${baseUrl.href}/`;
-    const url = new URL(pathname.replace(/^\/+/, ''), baseWithTrailingSlash);
+    const destination = resolveImagesApiDestination(
+      this.imagesApiUrl,
+      pathname,
+    );
     const response = await safeFetch(
-      url,
+      destination.url,
       {
         body: options.body ? JSON.stringify(options.body) : undefined,
         headers: this.requestHeaders,
@@ -115,27 +185,12 @@ export class AdminFleetTrainingService {
         signal: AbortSignal.timeout(options.timeoutMs),
       },
       {
-        allowedOrigins: [baseUrl.origin],
+        allowedOrigins: [destination.origin],
         allowPrivateNetwork: true,
       },
     );
 
-    if (!response.ok) {
-      throw new Error(
-        `Images service returned ${response.status} ${response.statusText}`,
-      );
-    }
-
-    if (response.status === 204 || response.status === 205) {
-      return undefined as T;
-    }
-
-    const responseBody = await response.text();
-    if (responseBody.trim() === '') {
-      return undefined as T;
-    }
-
-    return JSON.parse(responseBody) as T;
+    return parseImagesApiResponse<T>(response);
   }
 
   /**
@@ -288,12 +343,12 @@ export class AdminFleetTrainingService {
         LoraStatus.FAILED,
       );
       this.loggerService.error(caller, {
-        error: error instanceof Error ? error.message : String(error),
+        error: formatUnknownError(error),
         trainingId: params.trainingId,
       });
 
       await this.updateStage(params.trainingId, TrainingStage.FAILED, 0, {
-        error: error instanceof Error ? error.message : String(error),
+        error: formatUnknownError(error),
       });
     }
   }
@@ -301,7 +356,29 @@ export class AdminFleetTrainingService {
   /**
    * Poll NestJS images service for training job status, updating DB progress.
    */
-  private async pollTrainingJob(
+  private async registerCompletedTraining(trainingId: string): Promise<void> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const completedTraining = await this.trainingsService.findOne({
+        id: trainingId,
+      });
+      if (!completedTraining) {
+        return;
+      }
+
+      await this.modelRegistrationService.createFromTraining(completedTraining);
+    } catch (err) {
+      // Non-fatal: reconciliation job will retry
+      this.loggerService.error(caller, {
+        error: formatUnknownError(err),
+        message: `Failed to register fleet model from training ${trainingId}`,
+        trainingId,
+      });
+    }
+  }
+
+  private async finishCompletedTrainingJob(
     trainingId: string,
     gpuJobId: string,
     loraName: string,
@@ -309,6 +386,34 @@ export class AdminFleetTrainingService {
     organizationId: string,
   ): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    await this.uploadLoraToS3(trainingId, loraName);
+    await this.updatePersonaLoraState(
+      personaSlug,
+      organizationId,
+      LoraStatus.READY,
+      `${loraName}.safetensors`,
+    );
+    await this.updateStage(trainingId, TrainingStage.READY, 100, {
+      loraName,
+    });
+    await this.registerCompletedTraining(trainingId);
+
+    this.loggerService.log(caller, {
+      gpuJobId,
+      loraName,
+      message: 'Training pipeline completed',
+      trainingId,
+    });
+  }
+
+  private async pollTrainingJob(
+    trainingId: string,
+    gpuJobId: string,
+    loraName: string,
+    personaSlug: string,
+    organizationId: string,
+  ): Promise<void> {
     const pollIntervalMs = 15000;
     const maxPollAttempts = 720; // 3 hours max (720 * 15s)
 
@@ -320,66 +425,24 @@ export class AdminFleetTrainingService {
         { timeoutMs: 15_000 },
       );
 
-      // Map GPU job stages into the Prisma TrainingStage set.
-      const stageMap: Record<string, TrainingStage> = {
-        completed: TrainingStage.READY,
-        failed: TrainingStage.FAILED,
-        postprocessing: TrainingStage.UPLOADING,
-        preprocessing: TrainingStage.PENDING,
-        queued: TrainingStage.PENDING,
-        training: TrainingStage.TRAINING,
-        uploading: TrainingStage.UPLOADING,
-      };
-
-      const stage = stageMap[job.stage] ?? TrainingStage.TRAINING;
-      await this.updateStage(trainingId, stage, job.progress);
+      await this.updateStage(
+        trainingId,
+        mapGpuJobStage(job.stage),
+        job.progress,
+      );
 
       if (job.status === 'completed') {
-        // Upload trained LoRA to S3 via images service
-        await this.uploadLoraToS3(trainingId, loraName);
-        await this.updatePersonaLoraState(
-          personaSlug,
-          organizationId,
-          LoraStatus.READY,
-          `${loraName}.safetensors`,
-        );
-        await this.updateStage(trainingId, TrainingStage.READY, 100, {
-          loraName,
-        });
-
-        // Register trained model in the model registry
-        try {
-          const completedTraining = await this.trainingsService.findOne({
-            id: trainingId,
-          });
-          if (completedTraining) {
-            await this.modelRegistrationService.createFromTraining(
-              completedTraining,
-            );
-          }
-        } catch (err) {
-          // Non-fatal: reconciliation job will retry
-          this.loggerService.error(caller, {
-            error: err instanceof Error ? err.message : String(err),
-            message: `Failed to register fleet model from training ${trainingId}`,
-            trainingId,
-          });
-        }
-
-        this.loggerService.log(caller, {
+        await this.finishCompletedTrainingJob(
+          trainingId,
           gpuJobId,
           loraName,
-          message: 'Training pipeline completed',
-          trainingId,
-        });
+          personaSlug,
+          organizationId,
+        );
         return;
       }
 
-      if (job.status === 'failed') {
-        throw new Error(
-          `GPU training job ${gpuJobId} failed: ${job.error ?? 'unknown error'}`,
-        );
-      }
+      assertJobNotFailed(job, gpuJobId);
     }
 
     throw new Error(
