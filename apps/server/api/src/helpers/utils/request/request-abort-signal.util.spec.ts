@@ -27,12 +27,21 @@ describe('createRequestAbortSignal', () => {
     expect(signal.aborted).toBe(true);
   });
 
+  it('does not abort when the incoming request finishes (body received)', () => {
+    const request = fakeRequest();
+    const signal = createRequestAbortSignal(request);
+
+    request.emit('close');
+
+    expect(signal.aborted).toBe(false);
+  });
+
   it('aborts when the client disconnects before the response ends', () => {
     const request = fakeRequest();
     const signal = createRequestAbortSignal(request);
 
     expect(signal.aborted).toBe(false);
-    request.emit('close');
+    request.res?.emit('close');
 
     expect(signal.aborted).toBe(true);
   });
@@ -41,7 +50,7 @@ describe('createRequestAbortSignal', () => {
     const request = fakeRequest({ writableEnded: true });
     const signal = createRequestAbortSignal(request);
 
-    request.emit('close');
+    request.res?.emit('close');
 
     expect(signal.aborted).toBe(false);
   });
