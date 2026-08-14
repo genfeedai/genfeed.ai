@@ -6,6 +6,7 @@ import { Button } from '@ui/primitives/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { Eye, LayoutGrid, Maximize2, MessageSquare, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';
 
 import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
@@ -296,6 +297,8 @@ function WorkspaceInspectorWorkspaceAdapterCard({
 }: {
   readonly workspaceSurfaceAdapter: ActiveWorkspaceSurfaceAdapter | null;
 }) {
+  const translate = useTranslations('common.workspaceInspector');
+
   if (!workspaceSurfaceAdapter) {
     return null;
   }
@@ -312,7 +315,7 @@ function WorkspaceInspectorWorkspaceAdapterCard({
         {workspaceSurfaceAdapter.registration.description}
       </p>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        Full management remains available on this canonical route.
+        {translate('fullManagement')}
       </p>
     </div>
   );
@@ -361,6 +364,8 @@ function WorkspaceInspectorWorkspaceActions({
   readonly onReturnToConversation: () => void;
   readonly showOverlayPreview: boolean;
 }) {
+  const translate = useTranslations('common.workspaceInspector');
+
   return (
     <>
       <Button
@@ -369,7 +374,7 @@ function WorkspaceInspectorWorkspaceActions({
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       >
-        Choose workflow
+        {translate('chooseWorkflow')}
       </Button>
       {showOverlayPreview ? (
         <Button
@@ -378,7 +383,7 @@ function WorkspaceInspectorWorkspaceActions({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          Open overlay preview
+          {translate('openOverlayPreview')}
         </Button>
       ) : null}
       <Button
@@ -387,7 +392,7 @@ function WorkspaceInspectorWorkspaceActions({
         variant={ButtonVariant.GHOST}
         withWrapper={false}
       >
-        Return to conversation
+        {translate('returnToConversation')}
       </Button>
     </>
   );

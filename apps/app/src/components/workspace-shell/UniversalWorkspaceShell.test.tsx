@@ -24,6 +24,13 @@ import {
 } from './WorkspaceInspectorContext';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
   searchParams: new URLSearchParams(),
