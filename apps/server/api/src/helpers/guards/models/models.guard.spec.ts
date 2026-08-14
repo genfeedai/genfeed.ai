@@ -168,7 +168,7 @@ describe('ModelsGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
-  it('uses the session organization when request.context was not hydrated', async () => {
+  it('rejects session organization metadata when request.context was not hydrated', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
@@ -185,14 +185,13 @@ describe('ModelsGuard', () => {
       switchToHttp: () => ({ getRequest: () => req }),
     } as unknown as ExecutionContext;
 
-    await expect(guard.canActivate(ctx)).resolves.toBe(true);
-    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
-      'stable-diffusion',
-      orgId,
+    await expect(guard.canActivate(ctx)).rejects.toThrow(
+      'Organization context is required',
     );
+    expect(modelRegistrationService.validateModelForOrg).not.toHaveBeenCalled();
   });
 
-  it('skips a slug in request.context and uses the session cuid', async () => {
+  it('rejects a slug in request.context without using session metadata', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
@@ -209,11 +208,10 @@ describe('ModelsGuard', () => {
       switchToHttp: () => ({ getRequest: () => req }),
     } as unknown as ExecutionContext;
 
-    await expect(guard.canActivate(ctx)).resolves.toBe(true);
-    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
-      'stable-diffusion',
-      orgId,
+    await expect(guard.canActivate(ctx)).rejects.toThrow(
+      'Organization context is required',
     );
+    expect(modelRegistrationService.validateModelForOrg).not.toHaveBeenCalled();
   });
 
   it('allows Replicate destination models to bypass validation', async () => {
