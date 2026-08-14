@@ -71,8 +71,8 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 - Reports two numbers:
   - **Dedicated** — routes reached by an explicit nav in a spec/page object (the metric grown on purpose).
   - **Effective** — dedicated + every route swept by the generated `all-app-pages` smoke test.
-- Gates on **dedicated** coverage, default **80%**. Overrides:
-  - `E2E_ROUTE_COVERAGE_THRESHOLD=80`
+- Gates on **dedicated** coverage, default **90%**. Overrides:
+  - `E2E_ROUTE_COVERAGE_THRESHOLD=90`
   - `E2E_ROUTE_COVERAGE_MODE=dedicated|effective`
 - Exit 1 below threshold. Local: `bun run test:e2e:routes`.
 
@@ -227,9 +227,9 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 - The release/deploy core tier remains intentionally small; broad API E2E coverage belongs to the
   manual/nightly full tier until its reliability supports promotion.
-- **`health.e2e-spec.ts`** (HTTP version) imports `@test/app.module` which does not exist — would fail if added.
-- **`tasks.e2e-spec.ts`** passes a `schemas` option that `E2ETestModule.forRoot` silently ignores
-  (data-layer porting artifact).
+- **`health.e2e-spec.ts`** (HTTP version) was deleted; the core-tier replacement is
+  `health.e2e-spec.spec.ts`.
+- **`tasks.e2e-spec.ts`** is back in the full API E2E tier via `E2ETestModule.forTasks()`.
 - **`workers: 1` + `fullyParallel: true`** is contradictory; masks races that surface if workers increase.
 - **Playwright browser cache** has no restore-key fallback — any `bun.lock` change forces full Chromium re-download.
 - **Visual baselines** (`__screenshots__/`) are OS/font-sensitive — diffs across environments.

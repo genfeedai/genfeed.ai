@@ -1,7 +1,7 @@
 /**
  * Contexts Service
  * Retrieval and memory access for prompt grounding and saved brand content.
- * Backend: /contexts and /rag APIs
+ * Backend: /contexts
  */
 
 import type {
@@ -131,13 +131,43 @@ class ContextsServiceClass {
   }
 
   async query(query: IRAGQuery): Promise<IRAGResult> {
-    const result = await this.request<IRAGResult>(
-      '/rag/query',
+    const contextBaseId =
+      query.contextBaseId ??
+      query.contextBaseIds?.[0] ??
+      query.knowledgeBaseIds?.[0];
+    const rows = await this.request<
+      Array<{
+        content: string;
+        metadata?: Record<string, unknown>;
+        relevance: number;
+      }>
+    >(
+      '/contexts/query',
       'POST',
-      query,
+      {
+        contextBaseId,
+        limit: query.maxResults,
+        minRelevance: query.minRelevanceScore,
+        query: query.query,
+      },
       'Failed to query context memory',
     );
-    logger.info('RAG query executed', {
+    const chunks = rows.map((row) => ({
+      content: row.content,
+      metadata: row.metadata,
+      relevanceScore: row.relevance,
+    }));
+    const result: IRAGResult = {
+      avgRelevanceScore:
+        chunks.length === 0
+          ? 0
+          : chunks.reduce((sum, chunk) => sum + chunk.relevanceScore, 0) /
+            chunks.length,
+      chunks,
+      queryTime: 0,
+      totalResults: chunks.length,
+    };
+    logger.info('Context query executed', {
       query: query.query,
       results: result.totalResults,
     });
@@ -145,13 +175,38 @@ class ContextsServiceClass {
   }
 
   async enhancePrompt(request: IRAGEnhanceRequest): Promise<IEnhancedPrompt> {
-    const result = await this.request<IEnhancedPrompt>(
-      '/rag/enhance',
+    const payload = await this.request<{
+      context: Array<{ content: string; relevance: number; source: string }>;
+      enhancedPrompt: string;
+      estimatedQualityBoost: number;
+      originalPrompt: string;
+    }>(
+      '/contexts/enhance',
       'POST',
-      request,
+      {
+        contentType: request.contentType,
+        contextBaseIds: request.contextBaseIds ?? request.knowledgeBaseIds,
+        maxResults: 5,
+        prompt: request.prompt,
+        useAudience: request.useContext?.audienceData,
+        useBrandVoice: request.useContext?.brandVoice,
+        useContentLibrary: request.useContext?.pastContent,
+      },
       'Failed to enhance prompt',
     );
-    logger.info('Prompt enhanced with RAG', {
+    const result: IEnhancedPrompt = {
+      context: payload.context.map((entry) => entry.content),
+      enhancedPrompt: payload.enhancedPrompt,
+      estimatedQualityBoost: payload.estimatedQualityBoost,
+      improvements: [],
+      originalPrompt: payload.originalPrompt,
+      relevantKnowledge: payload.context.map((entry) => ({
+        content: entry.content,
+        relevanceScore: entry.relevance,
+        source: { name: entry.source },
+      })),
+    };
+    logger.info('Prompt enhanced with retrieved context', {
       contentType: request.contentType,
       qualityBoost: result.estimatedQualityBoost,
     });
@@ -167,16 +222,23 @@ class ContextsServiceClass {
     sources: string[];
     relevanceScores: number[];
   }> {
-    const result = await this.request<{
-      context: string[];
-      sources: string[];
-      relevanceScores: number[];
+    const payload = await this.request<{
+      context: Array<{ content: string; relevance: number; source: string }>;
     }>(
-      '/rag/context',
+      '/contexts/enhance',
       'POST',
-      { contentType, prompt, ...options },
+      {
+        contentType,
+        maxResults: options?.maxChunks,
+        prompt,
+      },
       'Failed to get relevant context',
     );
+    const result = {
+      context: payload.context.map((entry) => entry.content),
+      relevanceScores: payload.context.map((entry) => entry.relevance),
+      sources: payload.context.map((entry) => entry.source),
+    };
     logger.info('Relevant context retrieved', {
       contextCount: result.context.length,
     });

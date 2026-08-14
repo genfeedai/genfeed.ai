@@ -19,7 +19,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
@@ -68,7 +67,7 @@ export class TemplatesController {
     @Body() dto: CreateTemplateDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const template = await this.templatesService.create(
       dto,
       organization,
@@ -88,7 +87,7 @@ export class TemplatesController {
     @CurrentUser() user: User,
     @Query() query: TemplatesQueryDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     // Use TemplateFilterUtil to build filters
     const filters = TemplateFilterUtil.buildTemplateFilters(query);
@@ -113,7 +112,7 @@ export class TemplatesController {
     @Param('templateId') templateId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const template = await this.templatesService.findOne(
       templateId,
       organization,
@@ -132,7 +131,7 @@ export class TemplatesController {
     @Body() dto: UpdateTemplateDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const template = await this.templatesService.update(
       templateId,
       dto,
@@ -150,7 +149,7 @@ export class TemplatesController {
     @Param('templateId') templateId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.templatesService.remove(templateId, organization);
     return { message: 'Template deleted successfully' };
   }
@@ -171,7 +170,7 @@ export class TemplatesController {
     @Body() dto: UseTemplateDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (dto.additionalInstructions?.trim()) {
       await this.assertOrganizationCreditsAvailable(
         organization,
@@ -207,7 +206,7 @@ export class TemplatesController {
     @Body() dto: SuggestTemplatesDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),

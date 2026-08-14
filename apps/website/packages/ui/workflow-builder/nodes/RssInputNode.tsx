@@ -6,9 +6,9 @@ import type {
   RssInputNodeData,
   RssInputNodeProps,
 } from '@props/workflow/nodes.props';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   ChevronLeft,
   ChevronRight,

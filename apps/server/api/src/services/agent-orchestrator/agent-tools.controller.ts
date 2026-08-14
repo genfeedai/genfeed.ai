@@ -3,10 +3,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   AgentToolExecutorService,
@@ -59,11 +56,7 @@ export class AgentToolsController {
     @Req() request: Request,
     @Headers('authorization') authorization?: string,
   ) {
-    assertApiKeyAgentPublishingScope(
-      getPublicMetadata(user),
-      name,
-      body.parameters ?? {},
-    );
+    assertApiKeyAgentPublishingScope(user, name, body.parameters ?? {});
 
     try {
       const tool = getToolByName(name);
@@ -98,7 +91,7 @@ export class AgentToolsController {
 
       const context: ToolExecutionContext = {
         ...clientContext,
-        apiKeyContext: getPublicMetadata(user),
+        apiKeyContext: user,
         authToken,
         organizationId,
         userId,
@@ -125,7 +118,7 @@ export class AgentToolsController {
   }
 
   private resolveOrganizationId(user: User): string {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -135,7 +128,7 @@ export class AgentToolsController {
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {
-    const { user: metadataUserId } = getPublicMetadata(user);
+    const metadataUserId = user.userId ?? user.id;
     if (metadataUserId) {
       return metadataUserId;
     }

@@ -74,7 +74,7 @@ export default function ModalPostSetupTab({
       };
 
       if (brandId) {
-        promptData.brand = brandId;
+        promptData.brandId = brandId;
       }
 
       const prompt = await service.post(new Prompt(promptData));

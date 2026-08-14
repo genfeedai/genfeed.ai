@@ -13,17 +13,6 @@ import {
 } from 'class-validator';
 
 export class CreateOrganizationDto {
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'legacy auth provider organization ID used to synchronize organization state',
-    nullable: true,
-    required: false,
-    type: String,
-  })
-  readonly authProviderOrganizationId?: string | null;
-
   @IsEntityId()
   @ApiProperty({
     description: 'The user ID who owns this organization',

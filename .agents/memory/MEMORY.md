@@ -21,6 +21,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
 - [claim_work_before_starting](claim_work_before_starting.md) — search open PRs before branching or spawning a fix; push early to claim
+- [feedback_no_new_ci_guard_steps](feedback_no_new_ci_guard_steps.md) — no new named CI guard steps; #2946 owns YAML-ratchet cleanup
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
@@ -62,6 +63,9 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
+- [project_qa_260814_coverage_train](project_qa_260814_coverage_train.md) — uncollected-test guard, workers cron coverage, UI skeleton specs (#2687)
+- [project_qa_260814_e2e_coverage_ocean](project_qa_260814_e2e_coverage_ocean.md) — complementary E2E/coverage train; merged as #2952
+- [project_qa_260814_coverage_ratchet](project_qa_260814_coverage_ratchet.md) — post-#2952 #2687 remainder; do not collide with #2947
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
@@ -144,11 +148,13 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_repo_audit_2026-07-28](project_repo_audit_2026-07-28.md) — full-repo audit map; remaining P1–P3 linked to existing GH issues (no new epic)
 - [project_platform_enum_usage](project_platform_enum_usage.md) — Platform/CredentialPlatform for ids; formatPlatformLabel/parsePlatform for display/aliases
+- [project_legacy_hard_cut](project_legacy_hard_cut.md) — leftover Clerk/Mongo/cron compat; hard-cut target state
 
 ## References
 
 - [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
 - [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
+- [reference_gen_ai_studio_competitive_audit](reference_gen_ai_studio_competitive_audit.md) — Reddit/public audit of Argil, Google AI Studio, Higgsfield, and adjacent studios; how Genfeed wins
 
 ## Context (auto-loaded via CLAUDE.md @import)
 

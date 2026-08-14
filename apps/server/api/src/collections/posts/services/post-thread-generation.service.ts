@@ -1,4 +1,4 @@
-import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
@@ -31,8 +31,8 @@ import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type ThreadGenerationMetadata = Pick<
-  IAuthPublicMetadata,
-  'brand' | 'organization' | 'user'
+  AuthenticatedUser,
+  'brandId' | 'organizationId' | 'userId'
 >;
 
 const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
@@ -61,18 +61,18 @@ export class PostThreadGenerationService {
     originalPost: PostDocument,
     childPosts: PostDocument[],
     dto: ExpandToThreadDto,
-    publicMetadata: ThreadGenerationMetadata,
+    identity: ThreadGenerationMetadata,
   ): Promise<void> {
     let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
     try {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brandId: publicMetadata.brand,
+          brandId: identity.brandId,
           key: ActivityKey.POST_PROCESSING,
-          organizationId: publicMetadata.organization,
+          organizationId: identity.organizationId,
           source: ActivitySource.POST_GENERATION,
-          userId: publicMetadata.user,
+          userId: identity.userId,
           value: JSON.stringify({
             count: dto.count,
             originalPostId: String(originalPost.id),
@@ -92,7 +92,7 @@ export class PostThreadGenerationService {
           originalContent,
           tone: dto.tone || TweetTone.PROFESSIONAL,
         },
-        publicMetadata.organization,
+        identity.organizationId,
       );
       const { input } = await this.promptBuilderService.buildPrompt(
         DEFAULT_MINI_TEXT_MODEL,
@@ -104,7 +104,7 @@ export class PostThreadGenerationService {
           temperature: 0.8,
           useTemplate: false,
         },
-        publicMetadata.organization,
+        identity.organizationId,
       );
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
@@ -119,11 +119,7 @@ export class PostThreadGenerationService {
         constraints: TWITTER_THREAD_CONSTRAINTS,
       });
 
-      await this.completeGeneratedChildren(
-        childPosts,
-        tweetLines,
-        publicMetadata,
-      );
+      await this.completeGeneratedChildren(childPosts, tweetLines, identity);
     } catch (error) {
       this.logger.error('Failed to expand thread asynchronously', error);
       await this.markActivityFailed(activity, error);
@@ -137,7 +133,7 @@ export class PostThreadGenerationService {
   private async completeGeneratedChildren(
     childPosts: PostDocument[],
     tweetLines: Array<string | null>,
-    publicMetadata: ThreadGenerationMetadata,
+    identity: ThreadGenerationMetadata,
   ): Promise<void> {
     for (let index = 0; index < childPosts.length; index++) {
       const child = childPosts[index];
@@ -177,13 +173,13 @@ export class PostThreadGenerationService {
         });
         await this.activitiesService.create(
           new ActivityEntity({
-            brandId: publicMetadata.brand,
+            brandId: identity.brandId,
             entityId: childId,
             entityModel: ActivityEntityModel.POST,
             key: ActivityKey.POST_GENERATED,
-            organizationId: publicMetadata.organization,
+            organizationId: identity.organizationId,
             source: ActivitySource.POST_GENERATION,
-            userId: publicMetadata.user,
+            userId: identity.userId,
             value: childId,
           }),
         );

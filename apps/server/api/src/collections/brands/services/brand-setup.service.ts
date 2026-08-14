@@ -9,7 +9,6 @@ import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dt
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import type { BrandSetupResponse } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type {
@@ -243,7 +242,7 @@ export class BrandSetupService {
           brandLabel,
           organizationId,
         } = await this.resolveBrandScope(brandId);
-        const userId = getPublicMetadata(user).user?.toString() ?? '';
+        const userId = (user.userId ?? user.id)?.toString() ?? '';
 
         // 3. Scrape brand sources (auto-detected from the URL)
         const scrapedData = await this.scrapeBrandData(

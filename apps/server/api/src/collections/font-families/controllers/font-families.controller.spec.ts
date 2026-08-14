@@ -18,11 +18,9 @@ describe('FontFamiliesController', () => {
   let controller: FontFamiliesController;
 
   const mockUser: User = {
-    publicMetadata: {
-      isSuperAdmin: true,
-      organization: 'o07f1f77bcf86cd799439012',
-      user: 'u07f1f77bcf86cd799439011',
-    },
+    isSuperAdmin: true,
+    organizationId: 'o07f1f77bcf86cd799439012',
+    userId: 'u07f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockFontFamily = {
@@ -163,9 +161,7 @@ describe('FontFamiliesController', () => {
     });
 
     it('should return only global items when no organization', () => {
-      const userWithoutOrg: User = {
-        publicMetadata: {},
-      } as unknown as User;
+      const userWithoutOrg: User = {} as unknown as User;
 
       const inputQuery = {};
       const query = controller.buildFindAllQuery(

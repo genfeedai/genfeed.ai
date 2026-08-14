@@ -6,7 +6,6 @@ import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { GoalsService } from '@api/collections/goals/services/goals.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -39,8 +38,7 @@ export class GoalsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateGoalDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const doc = await this.goalsService.create({
       ...createDto,
@@ -51,10 +49,9 @@ export class GoalsController extends BaseCRUDController<
   }
 
   public override buildFindAllQuery(user: User, query: GoalQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     };
 
     if (query.status) {
@@ -78,7 +75,7 @@ export class GoalsController extends BaseCRUDController<
     entity: GoalDocument,
   ): boolean {
     // Both ids must exist: `undefined === undefined` granted write access.
-    const { organization: userOrgId } = getPublicMetadata(user);
+    const userOrgId = user.organizationId;
     return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 

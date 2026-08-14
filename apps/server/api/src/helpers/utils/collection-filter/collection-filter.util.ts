@@ -10,7 +10,7 @@ import { ForbiddenException } from '@nestjs/common';
  *
  * @example
  * // Build brand ID filter with fallback
- * const brandId = CollectionFilterUtil.buildBrandFilter(query.brandId, publicMetadata);
+ * const brandId = CollectionFilterUtil.buildBrandFilter(query.brandId, user);
  *
  * // Build scope filter
  * const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
@@ -38,12 +38,12 @@ export class CollectionFilterUtil {
    */
   static resolveAuthorizedTenantQuery(
     query: { organizationId?: string; brandId?: string },
-    publicMetadata: {
-      organization?: string;
-      brand?: string;
+    user: {
+      organizationId?: string;
+      brandId?: string;
       isSuperAdmin?: boolean;
     },
-    isSuperAdmin = publicMetadata.isSuperAdmin === true,
+    isSuperAdmin = user.isSuperAdmin === true,
   ): { organizationId?: string; brandId?: string } {
     if (isSuperAdmin) {
       return {
@@ -56,8 +56,8 @@ export class CollectionFilterUtil {
 
     if (
       query.organizationId &&
-      publicMetadata.organization &&
-      String(query.organizationId) !== String(publicMetadata.organization)
+      user.organizationId &&
+      String(query.organizationId) !== String(user.organizationId)
     ) {
       throw new ForbiddenException({
         detail: 'Access denied to this organization',
@@ -65,14 +65,12 @@ export class CollectionFilterUtil {
       });
     }
 
-    const organization =
+    const organizationId =
       (query.organizationId && String(query.organizationId)) ||
-      (publicMetadata.organization
-        ? String(publicMetadata.organization)
-        : undefined);
+      (user.organizationId ? String(user.organizationId) : undefined);
 
     return {
-      ...(organization ? { organizationId: organization } : {}),
+      ...(organizationId ? { organizationId } : {}),
       ...(query.brandId ? { brandId: String(query.brandId) } : {}),
     };
   }
@@ -85,24 +83,24 @@ export class CollectionFilterUtil {
    * the user is not a superadmin or no org/brand params are provided,
    * signaling the caller should use the normal ownership filter.
    *
-   * @param publicMetadata - User metadata (must include isSuperAdmin)
+   * @param user - Authenticated user (must include isSuperAdmin)
    * @param query - Query params with optional organizationId/brandId
    * @returns Filter object or null if not applicable
    *
    * @example
-   * const adminFilter = CollectionFilterUtil.buildAdminFilter(publicMetadata, query);
+   * const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
    * if (adminFilter) {
    *   // Use adminFilter instead of normal ownership filter
    * }
    */
   static buildAdminFilter(
-    publicMetadata: { isSuperAdmin?: boolean },
+    user: { isSuperAdmin?: boolean },
     query: {
       organizationId?: string;
       brandId?: string;
     },
   ): Record<string, unknown> | null {
-    if (!publicMetadata.isSuperAdmin) {
+    if (!user.isSuperAdmin) {
       return null;
     }
 
@@ -131,32 +129,32 @@ export class CollectionFilterUtil {
    *
    * Handles filtering by brand ID with fallback to user's brand:
    * - valid entity ID → specific brand
-   * - undefined with publicMetadata → user's brand
-   * - undefined without publicMetadata → any brand exists
+   * - undefined with user.brandId → user's brand
+   * - undefined without user.brandId → any brand exists
    *
    * @param brand - Brand ID from query params
-   * @param publicMetadata - User metadata containing brand fallback
+   * @param user - Authenticated user containing brand fallback
    * @param defaultTo - Default behavior: 'user' | 'exists' | 'none'
    * @returns Filter value for brand field
    *
    * @example
    * // Specific brand
-   * CollectionFilterUtil.buildBrandFilter('507f1f77bcf86cd799439011', publicMetadata)
+   * CollectionFilterUtil.buildBrandFilter('507f1f77bcf86cd799439011', user)
    * // Returns: '507f1f77bcf86cd799439011'
    *
    * @example
    * // Fallback to user's brand
-   * CollectionFilterUtil.buildBrandFilter(undefined, publicMetadata, 'user')
-   * // Returns: publicMetadata.brand
+   * CollectionFilterUtil.buildBrandFilter(undefined, user, 'user')
+   * // Returns: user.brandId
    *
    * @example
    * // Any brand exists
-   * CollectionFilterUtil.buildBrandFilter(undefined, publicMetadata, 'exists')
+   * CollectionFilterUtil.buildBrandFilter(undefined, user, 'exists')
    * // Returns: { not: null }
    */
   static buildBrandFilter(
     brand: unknown,
-    publicMetadata?: { brand?: string },
+    user?: { brandId?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
     if (isEntityId(brand)) {
@@ -166,7 +164,7 @@ export class CollectionFilterUtil {
     // Handle default behavior based on defaultTo parameter
     switch (defaultTo) {
       case 'user':
-        return publicMetadata?.brand ? publicMetadata.brand : { not: null };
+        return user?.brandId ? user.brandId : { not: null };
 
       case 'exists':
         return { not: null };
@@ -253,47 +251,47 @@ export class CollectionFilterUtil {
    * Creates filter to match documents owned by user or organization.
    * Useful for multi-tenant collections.
    *
-   * @param publicMetadata - User metadata with user/organization IDs
+   * @param user - Authenticated user with userId/organizationId
    * @param options - Configuration for ownership filter
    * @returns Filter object with ownership conditions
    *
    * @example
    * // User or organization ownership
-   * CollectionFilterUtil.buildOwnershipFilter(publicMetadata)
+   * CollectionFilterUtil.buildOwnershipFilter(user)
    * // Returns: { OR: [{ userId: '...' }, { organizationId: '...' }] }
    *
    * @example
    * // User only
-   * CollectionFilterUtil.buildOwnershipFilter(publicMetadata, { includeOrganization: false })
+   * CollectionFilterUtil.buildOwnershipFilter(user, { includeOrganization: false })
    * // Returns: { userId: '...' }
    */
   static buildOwnershipFilter(
-    publicMetadata: { user?: string; organization?: string },
+    user: { userId?: string; organizationId?: string },
     options: {
       includeOrganization?: boolean;
       includeUser?: boolean;
-      fieldNames?: { user?: string; organization?: string };
+      fieldNames?: { userId?: string; organizationId?: string };
     } = {},
   ): Record<string, unknown> {
     const {
       includeOrganization = true,
       includeUser = true,
-      fieldNames = { organization: 'organizationId', user: 'userId' },
+      fieldNames = { organizationId: 'organizationId', userId: 'userId' },
     } = options;
 
     const conditions: Record<string, unknown>[] = [];
-    const userField = fieldNames.user ?? 'userId';
-    const organizationField = fieldNames.organization ?? 'organizationId';
+    const userField = fieldNames.userId ?? 'userId';
+    const organizationField = fieldNames.organizationId ?? 'organizationId';
 
-    if (includeUser && publicMetadata.user) {
+    if (includeUser && user.userId) {
       conditions.push({
-        [userField]: publicMetadata.user,
+        [userField]: user.userId,
       });
     }
 
-    if (includeOrganization && publicMetadata.organization) {
+    if (includeOrganization && user.organizationId) {
       conditions.push({
-        [organizationField]: publicMetadata.organization,
+        [organizationField]: user.organizationId,
       });
     }
 

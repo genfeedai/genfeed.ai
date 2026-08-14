@@ -13,10 +13,7 @@ import {
   toBase64Url,
 } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -89,9 +86,8 @@ export class AuthDesktopService {
     request: Request,
     dto: CreateDesktopAuthCodeDto,
   ): Promise<{ code: string; expiresAt: string; state: string }> {
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user;
-    const organizationId = publicMetadata.organization;
+    const userId = user.userId ?? user.id;
+    const organizationId = user.organizationId;
 
     if (!userId || !organizationId) {
       throw new UnauthorizedException('User identity is incomplete');

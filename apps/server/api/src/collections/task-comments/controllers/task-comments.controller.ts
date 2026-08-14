@@ -3,7 +3,6 @@ import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -33,7 +32,7 @@ export class TaskCommentsController {
     @Param('taskId') taskId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const docs = await this.taskCommentsService.findByTask(
       taskId,
       organization,
@@ -50,11 +49,10 @@ export class TaskCommentsController {
     @CurrentUser() user: User,
     @Body() createDto: CreateTaskCommentDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const doc = await this.taskCommentsService.create({
       ...createDto,
-      authorUserId: publicMetadata.user,
-      organizationId: publicMetadata.organization,
+      authorUserId: user.userId ?? user.id,
+      organizationId: user.organizationId,
       taskId: taskId,
     } as CreateTaskCommentDto & {
       authorUserId: string;
@@ -70,7 +68,7 @@ export class TaskCommentsController {
     @Param('commentId') commentId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const comment = await this.taskCommentsService.findOne({
       id: commentId,
       organizationId: organization,

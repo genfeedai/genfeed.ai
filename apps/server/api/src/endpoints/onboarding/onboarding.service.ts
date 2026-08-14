@@ -10,7 +10,6 @@ import type {
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type { OrganizationCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -58,8 +57,7 @@ export class OnboardingService {
     user: User,
     category?: OrganizationCategory,
   ): Promise<OnboardingWorkspaceContext> {
-    const publicMetadata = getPublicMetadata(user);
-    let userId = publicMetadata.user?.toString() ?? '';
+    let userId = (user.userId ?? user.id)?.toString() ?? '';
 
     let dbUser = userId
       ? await this.usersService.findOne({ id: userId }, [])
@@ -80,11 +78,11 @@ export class OnboardingService {
       );
     }
 
-    let organizationId = publicMetadata.organization?.toString() ?? '';
-    let brandId: string | null = publicMetadata.brand?.toString() ?? null;
+    let organizationId = user.organizationId?.toString() ?? '';
+    let brandId: string | null = user.brandId?.toString() ?? null;
 
     // Resolve the active org DB-first before provisioning (epic #735, Phase C):
-    // post-legacy auth provider, publicMetadata.organization is no longer written, so fall back
+    // post-legacy auth provider, user.organizationId is no longer written, so fall back
     // to User.lastUsedOrganizationId and then the user's owned org. Without this,
     // every onboarding step would re-run initializeUserResources for a user who
     // already has a workspace.
@@ -226,8 +224,7 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { prefix });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     return withOnboardingErrorHandling(
       this.loggerService,

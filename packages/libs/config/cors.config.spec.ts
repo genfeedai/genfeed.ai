@@ -48,13 +48,12 @@ describe('CORS Configuration', () => {
         expect(localPattern.test('http://app.genfeed.localhost:3000')).toBe(
           true,
         ); // subdomain
-        // Temporary backwards-compatible host.
-        expect(localPattern.test('http://local.genfeed.ai:3015')).toBe(true);
         // Upper boundary
         expect(localPattern.test('http://localhost:3999')).toBe(true);
         // Out of range
         expect(localPattern.test('http://localhost:4000')).toBe(false);
         expect(localPattern.test('http://localhost:2999')).toBe(false);
+        expect(localPattern.test('http://local.genfeed.ai:3015')).toBe(false);
       });
 
       it('should allow canonical HTTPS Portless hosts without an explicit port', () => {

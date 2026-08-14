@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
@@ -71,6 +72,43 @@ describe('coverage workspaces', () => {
     ).toEqual([
       'packages/enums/package.json must declare a non-empty scripts.test command that does not suppress failures.',
     ]);
+  });
+
+  it('accepts an Istanbul coverage-final.json when lcov.info is missing', () => {
+    const rootDir = createFixture();
+    const coverageDir = path.join(rootDir, 'coverage');
+    mkdirSync(coverageDir, { recursive: true });
+    writeFileSync(path.join(coverageDir, 'coverage-final.json'), '{}\n');
+
+    const script = path.join(
+      fileURLToPath(new URL('../..', import.meta.url)),
+      'scripts/ci/assert-coverage-report.sh',
+    );
+    const result = spawnSync('bash', [script, coverageDir], {
+      encoding: 'utf8',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('coverage-final.json');
+  });
+
+  it('fails when neither lcov.info nor coverage-final.json exists', () => {
+    const rootDir = createFixture();
+    const coverageDir = path.join(rootDir, 'coverage');
+    mkdirSync(coverageDir, { recursive: true });
+
+    const script = path.join(
+      fileURLToPath(new URL('../..', import.meta.url)),
+      'scripts/ci/assert-coverage-report.sh',
+    );
+    const result = spawnSync('bash', [script, coverageDir], {
+      encoding: 'utf8',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr + result.stdout).toMatch(
+      /lcov\.info or coverage-final\.json/u,
+    );
   });
 
   it('requires explicit exclusions to be reasoned and issue-tracked', () => {

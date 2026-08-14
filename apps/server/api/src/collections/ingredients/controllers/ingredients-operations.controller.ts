@@ -10,7 +10,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -107,8 +106,7 @@ export class IngredientsOperationsController {
     @CurrentUser() user: User,
     @Query('category') category?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization.toString();
+    const organizationId = user.organizationId.toString();
 
     return this.ingredientsService.getKPIMetrics(organizationId, category);
   }
@@ -121,8 +119,7 @@ export class IngredientsOperationsController {
     @Param('ingredientId') ingredientId: string,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
-    const callerOrganizationId = publicMetadata.organization.toString();
+    const callerOrganizationId = user.organizationId.toString();
 
     const ingredient = await this.ingredientsService.findOne(
       {
@@ -141,7 +138,7 @@ export class IngredientsOperationsController {
     // Create ingredient with PROCESSING status under the caller's organization
     const { metadataData, ingredientData } =
       await this.getSharedService().createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: ingredient.category,
         duration: metadata.duration,
         extension: metadata.extension,
@@ -163,7 +160,7 @@ export class IngredientsOperationsController {
       metadataData.id.toString(),
       ingredient.category,
       ingredientId,
-      publicMetadata.user,
+      user.userId ?? user.id,
     ).catch((error) => {
       this.loggerService.error(`${url} async processing failed`, {
         error,
@@ -266,15 +263,13 @@ export class IngredientsOperationsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const publicMetadata = getPublicMetadata(user);
-
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
       {
         id: ingredientId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       },
       [PopulatePatterns.metadataFull],
@@ -368,15 +363,13 @@ export class IngredientsOperationsController {
     @CurrentUser() user: User,
     @Body() metadataDto: UpdateMetadataDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
       {
         id: ingredientId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       },
       [PopulatePatterns.metadataFull],
@@ -418,14 +411,12 @@ export class IngredientsOperationsController {
     @CurrentUser() user: User,
     @Body() updateTagsDto: UpdateTagsDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -454,7 +445,6 @@ export class IngredientsOperationsController {
     @Body() bulkDeleteDto: BulkDeleteIngredientsDto,
   ): Promise<{ deleted: string[]; failed: string[]; message: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     // One scoped partition query + one soft-delete write, regardless of how
     // many ids the caller supplies. Permission semantics are unchanged: an id
@@ -463,15 +453,15 @@ export class IngredientsOperationsController {
     const { deleted, failed } =
       await this.ingredientsService.bulkSoftDeleteScoped({
         ids: bulkDeleteDto.ids,
-        organizationId: publicMetadata.organization.toString(),
-        userId: publicMetadata.user.toString(),
+        organizationId: user.organizationId.toString(),
+        userId: (user.userId ?? user.id).toString(),
       });
 
     if (failed.length > 0) {
       this.loggerService.warn(`${url} skipped inaccessible ingredients`, {
         count: failed.length,
-        orgId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        orgId: user.organizationId,
+        userId: user.userId ?? user.id,
       });
     }
 

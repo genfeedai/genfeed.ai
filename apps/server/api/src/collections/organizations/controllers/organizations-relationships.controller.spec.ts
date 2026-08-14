@@ -35,11 +35,9 @@ describe('OrganizationsRelationshipsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: 'clbrandorgrel0000000000001',
-      organization: 'clorganizationrel0000000001',
-      user: 'cluserorgrel00000000000001',
-    },
+    brandId: 'clbrandorgrel0000000000001',
+    organizationId: 'clorganizationrel0000000001',
+    userId: 'cluserorgrel00000000000001',
   } as unknown as User;
 
   const mockServices = {

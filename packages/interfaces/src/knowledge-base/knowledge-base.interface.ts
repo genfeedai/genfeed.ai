@@ -2,237 +2,131 @@ import type {
   KnowledgeBaseCategory,
   KnowledgeBaseScope,
   KnowledgeBaseStatus,
-  Platform,
 } from '@genfeedai/enums';
 
-// --- Entity interfaces ---
-
-export interface KnowledgeBranding {
-  tone?: string;
-  voice?: string;
-  audience?: string;
-  values?: string[];
-  taglines?: string[];
-  hashtags?: string[];
-}
-
+/**
+ * KnowledgeBase is ContextBase + source records. There is no separate
+ * Prisma KnowledgeBase model and no second vector product — chunks are
+ * ContextEntry rows under a per-brand ContextBase.
+ */
 export interface KnowledgeSource {
   category: KnowledgeBaseCategory;
+  chunkCount?: number;
+  error?: string;
+  id: string;
+  isDeleted?: boolean;
   label: string;
-  referenceUrl: string;
+  lastIngestedAt?: string;
+  referenceUrl?: string;
+  status: KnowledgeBaseStatus;
   summary?: string;
   tags?: string[];
-  externalId?: string;
+}
+
+export interface KnowledgeBranding {
+  audience?: string;
+  hashtags?: string[];
+  taglines?: string[];
+  tone?: string;
+  values?: string[];
+  voice?: string;
 }
 
 export interface KnowledgeBase {
-  id: string;
-  label: string;
-  description?: string;
-  status: KnowledgeBaseStatus;
-  scope: KnowledgeBaseScope;
-  organizationId?: string;
   brandId?: string;
-  userId?: string;
   branding?: KnowledgeBranding;
-  sources?: KnowledgeSource[];
-  fontFamily?: string;
-  defaultVideoModel?: string;
+  createdAt: string;
   defaultImageModel?: string;
   defaultImageToVideoModel?: string;
   defaultMusicModel?: string;
-  lastAnalyzedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-}
-
-export interface KnowledgeBaseDisplay {
-  id: string;
-  name: string;
+  defaultVideoModel?: string;
   description?: string;
-  type?: string;
-  status?: string;
-  documentsCount?: number;
-  size?: number;
-  lastAnalyzedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// --- Content/UI interfaces ---
-
-export interface IContentKnowledgeBase {
+  fontFamily?: string;
   id: string;
-  createdAt: string;
-  updatedAt: string;
-
+  isActive: boolean;
   label: string;
-  description: string;
-  status: KnowledgeBaseStatus;
-}
-
-export interface ISocialAccount {
-  id: string;
-  platform:
-    | Platform.INSTAGRAM
-    | Platform.TWITTER
-    | Platform.FACEBOOK
-    | Platform.LINKEDIN
-    | Platform.TIKTOK
-    | Platform.YOUTUBE;
-  handle: string;
-  url: string;
-  verified: boolean;
-  followersCount?: number;
-  lastScraped?: string;
-}
-
-export interface IBrandAnalysis {
-  id: string;
-  brandTone: string;
-  brandVoice: string;
-  targetAudience: string;
-  keyThemes: string[];
-  colorPalette: string[];
-  contentStyle: string;
-  uniqueSellingPoints: string[];
-  competitorInsights?: string[];
-  recommendations: string[];
-  analyzedAt: string;
+  lastAnalyzedAt?: string;
+  organizationId?: string;
+  scope?: KnowledgeBaseScope;
+  sources?: KnowledgeSource[];
+  status?: KnowledgeBaseStatus;
+  updatedAt: string;
+  userId?: string;
 }
 
 export interface IMasterPrompt {
-  id: string;
   category: KnowledgeBaseCategory;
-  title: string;
-  prompt: string;
-  description: string;
-  tags: string[];
-  examples?: string[];
-  performance?: IPromptPerformance;
-  isActive: boolean;
   createdAt: string;
+  description: string;
+  examples?: string[];
+  id: string;
+  isActive: boolean;
+  performance?: IPromptPerformance;
+  prompt: string;
+  tags: string[];
+  title: string;
   updatedAt: string;
 }
 
 export interface IPromptPerformance {
-  usageCount: number;
   averageRating: number;
-  successRate: number;
   lastUsed?: string;
-}
-
-export type KnowledgeScope = KnowledgeBaseScope;
-
-export interface IKnowledgeStats {
-  totalSources: number;
-  readyCount: number;
-  backlogCount: number;
-  processingCount: number;
-  totalTokens: number;
-  averageCoverage: number;
-}
-
-export interface IContentKnowledgeSource {
-  id: string;
-  label: string;
-  category: KnowledgeBaseCategory;
-  url?: string;
-  status: KnowledgeBaseStatus;
-  lastSyncedAt?: string;
-  tokens?: number;
-  coverage?: number;
-  instructions?: string;
-  assignedBrandIds?: string[];
-  createdAt?: string;
-}
-
-export interface IKnowledgeBaseCollection {
-  id: string;
-  label: string;
-  scope: KnowledgeScope;
-  ownerId: string;
-  ownerLabel: string;
-  description: string;
-  lastUpdatedAt: string;
-  promptExcerpt: string;
-  totalTokens?: number;
-  totalSources: number;
-  sources: IContentKnowledgeSource[];
-}
-
-export interface IKnowledgeSourceFormValues {
-  label: string;
-  category: KnowledgeBaseCategory;
-  url: string;
-  instructions: string;
-  scope: KnowledgeBaseScope;
-  collectionId: string;
-  shareWithAllBrands: boolean;
-  attachToBrands: string[];
-}
-
-// --- RAG/AI interfaces ---
-
-export type SourceType =
-  | 'document'
-  | 'website'
-  | 'social-account'
-  | 'analytics-data'
-  | 'manual-entry'
-  | 'api';
-
-export interface IRAGQuery {
-  query: string;
-  knowledgeBaseIds?: string[];
-  filters?: Record<string, unknown>;
-  maxResults?: number;
-  minRelevanceScore?: number;
-  includeMetadata?: boolean;
-}
-
-export interface IRAGResult {
-  chunks: IRetrievedChunk[];
-  totalResults: number;
-  avgRelevanceScore: number;
-  queryTime: number;
+  successRate: number;
+  usageCount: number;
 }
 
 export interface IRetrievedChunk {
-  id: string;
   content: string;
+  id?: string;
+  metadata?: Record<string, unknown>;
   relevanceScore: number;
-  source: {
+  source?: {
     name: string;
-    type: SourceType;
+    type?: string;
     url?: string;
   };
-  metadata: Record<string, unknown>;
-  highlight?: string;
+}
+
+export interface IRAGQuery {
+  contextBaseId?: string;
+  contextBaseIds?: string[];
+  /** @deprecated Use contextBaseIds. */
+  knowledgeBaseIds?: string[];
+  maxResults?: number;
+  minRelevanceScore?: number;
+  query: string;
+}
+
+export interface IRAGResult {
+  avgRelevanceScore: number;
+  chunks: IRetrievedChunk[];
+  queryTime: number;
+  totalResults: number;
 }
 
 export interface IEnhancedPrompt {
-  originalPrompt: string;
-  enhancedPrompt: string;
   context: string[];
-  relevantKnowledge: IRetrievedChunk[];
-  improvements: string[];
+  enhancedPrompt: string;
   estimatedQualityBoost: number;
+  improvements: string[];
+  originalPrompt: string;
+  relevantKnowledge: IRetrievedChunk[];
 }
 
 export interface IRAGEnhanceRequest {
-  prompt: string;
-  contentType: 'video' | 'image' | 'caption' | 'article' | 'voice';
-  knowledgeBaseIds?: string[];
   brand?: {
     id: string;
     platform: string;
   };
+  contentType: 'video' | 'image' | 'caption' | 'article' | 'voice';
+  contextBaseIds?: string[];
+  /** @deprecated Use contextBaseIds. */
+  knowledgeBaseIds?: string[];
+  prompt: string;
   useContext?: {
+    audienceData?: boolean;
     brandVoice?: boolean;
     pastContent?: boolean;
-    audienceData?: boolean;
     productInfo?: boolean;
   };
 }

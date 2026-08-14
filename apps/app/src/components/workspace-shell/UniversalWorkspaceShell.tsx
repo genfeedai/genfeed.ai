@@ -756,7 +756,8 @@ function UniversalWorkspaceShellContent({
       const resolvedAction = resolveTrustedComposerAction({
         invocation,
         isConsequentiallyBlocked: conversationScope.isConsequentiallyBlocked,
-        trustedAction: getConversationComposerAction(invocation.action.name),
+        trustedAction:
+          getConversationComposerAction(invocation.action.name) ?? undefined,
       });
       if (!resolvedAction.ok) {
         return resolvedAction.result;

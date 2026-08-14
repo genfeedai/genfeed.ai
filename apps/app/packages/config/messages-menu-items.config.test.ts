@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getMessagesMenuItemsForScope,
+  isOrgMessagesRouteScope,
   MESSAGES_LOGO_HREF,
   MESSAGES_MENU_ITEMS,
 } from './messages-menu-items.config';
@@ -50,5 +52,35 @@ describe('MESSAGES_MENU_ITEMS', () => {
         item.label.toLowerCase().includes('campaign'),
       ),
     ).toBe(false);
+  });
+
+  it('marks every destination as primary so the inbox panel keeps them visible', () => {
+    expect(MESSAGES_MENU_ITEMS.every((item) => item.isPrimary === true)).toBe(
+      true,
+    );
+  });
+
+  it('treats empty and tilde brand slugs as org messages scope', () => {
+    expect(isOrgMessagesRouteScope('')).toBe(true);
+    expect(isOrgMessagesRouteScope('~')).toBe(true);
+    expect(isOrgMessagesRouteScope('default')).toBe(false);
+  });
+
+  it('hides brand-only Messages destinations on org scope', () => {
+    const orgItems = getMessagesMenuItemsForScope('~');
+    expect(orgItems.map((item) => item.label)).toEqual(['Inbox']);
+    expect(orgItems.some((item) => item.href === '/messages/outreach')).toBe(
+      false,
+    );
+    expect(orgItems.every((item) => item.group === undefined)).toBe(true);
+
+    const brandItems = getMessagesMenuItemsForScope('default');
+    expect(brandItems.length).toBe(MESSAGES_MENU_ITEMS.length);
+    expect(brandItems.map((item) => item.href)).toEqual([
+      '/messages',
+      '/messages/outreach',
+      '/messages/replies',
+      '/messages/reply-drip',
+    ]);
   });
 });

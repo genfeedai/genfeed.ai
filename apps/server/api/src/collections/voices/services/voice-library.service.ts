@@ -3,7 +3,6 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { parseVoiceProviders } from '@api/collections/voices/utils/voice-provider.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -27,19 +26,15 @@ export class VoiceLibraryService {
     };
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       const normalizedSearch = query.search?.trim();
       const sort = query.sort || 'metadata.label: 1, createdAt: -1';
-      const where: Record<string, unknown> = scopedWhere(
-        publicMetadata.organization,
-        {
-          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
-          brandId: publicMetadata.brand,
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.VOICE,
-          ),
-        },
-      );
+      const where: Record<string, unknown> = scopedWhere(user.organizationId, {
+        OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+        brandId: user.brandId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VOICE,
+        ),
+      });
 
       if (query.isDefault !== undefined) {
         where.isDefault = Boolean(query.isDefault);
@@ -100,11 +95,10 @@ export class VoiceLibraryService {
     };
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       return await this.voicesService.findAll(
         {
           orderBy: { createdAt: -1 as const },
-          where: scopedWhere(publicMetadata.organization, {
+          where: scopedWhere(user.organizationId, {
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.VOICE,
             ),

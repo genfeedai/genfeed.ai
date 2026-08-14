@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   type AnalyzePerformanceOptions,
   ContentOptimizationService,
@@ -33,7 +32,7 @@ export class ContentOptimizationController {
     @Query('endDate') endDate?: string,
     @Query('topN') topN?: string,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const options: AnalyzePerformanceOptions = {
       endDate,
@@ -58,7 +57,7 @@ export class ContentOptimizationController {
     @CurrentUser() user: User,
     @Body() body: { prompt: string },
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     return this.contentOptimizationService.optimizePrompt(
       organizationId,
@@ -76,7 +75,7 @@ export class ContentOptimizationController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     return this.contentOptimizationService.getRecommendations(
       organizationId,
@@ -93,7 +92,7 @@ export class ContentOptimizationController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     return this.contentOptimizationService.generateSuggestions(
       organizationId,
@@ -111,7 +110,7 @@ export class ContentOptimizationController {
     @CurrentUser() user: User,
     @Body() body: AutoApplySuggestionDto,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     return this.contentOptimizationService.autoApplySuggestion(
       organizationId,
@@ -129,7 +128,7 @@ export class ContentOptimizationController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const jobId = await this.queueService.queueAnalysis(
       organizationId,

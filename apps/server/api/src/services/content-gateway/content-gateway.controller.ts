@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import {
@@ -27,7 +26,8 @@ export class ContentGatewayController {
     @CurrentUser() user: User,
     @Body() dto: RouteSignalDto,
   ): Promise<ContentGatewayResponse> {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const result = await this.contentGatewayService.routeSignal({
       brandId: dto.brandId,
@@ -45,7 +45,8 @@ export class ContentGatewayController {
     @CurrentUser() user: User,
     @Body() dto: ExecuteSkillDto,
   ): Promise<ContentGatewayResponse> {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const result = await this.contentGatewayService.processManualRequest(
       organization,

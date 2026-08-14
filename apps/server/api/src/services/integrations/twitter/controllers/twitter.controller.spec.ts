@@ -20,12 +20,14 @@ vi.mock('twitter-api-v2', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -41,6 +43,7 @@ describe('TwitterController', () => {
       credential: { id: 'cred' },
       state: 'opaque-oauth-state',
     }),
+    findOne: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
     updateExternalProfile: vi
@@ -52,6 +55,10 @@ describe('TwitterController', () => {
     getAnalytics: vi.fn(),
     getTrends: vi.fn(),
     postTweet: vi.fn(),
+  };
+
+  const mockTwitterAuthorizedSignalsService = {
+    refresh: vi.fn().mockResolvedValue({ state: 'full' }),
   };
 
   beforeEach(async () => {
@@ -85,9 +92,16 @@ describe('TwitterController', () => {
       controllers: [TwitterController],
       providers: [
         { provide: ConfigService, useValue: { get: vi.fn(() => 'test-val') } },
-        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
         { provide: BrandsService, useValue: mockBrandsService },
         { provide: TwitterService, useValue: mockTwitterService },
+        {
+          provide: TwitterAuthorizedSignalsService,
+          useValue: mockTwitterAuthorizedSignalsService,
+        },
         { provide: CredentialsService, useValue: mockCredentialsService },
       ],
     })
@@ -106,10 +120,8 @@ describe('TwitterController', () => {
     const brandId = 'test-object-id';
     const orgId = 'test-object-id';
     const mockUser = {
-      publicMetadata: {
-        organization: orgId.toString(),
-        user: 'test-object-id',
-      },
+      organizationId: orgId.toString(),
+      userId: 'test-object-id',
     };
     const mockRequest = {} as Request;
 
@@ -216,6 +228,32 @@ describe('TwitterController', () => {
           name: 'Test User',
         },
       );
+      expect(mockTwitterAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        accessToken: 'oauth2-access-token',
+        credentialId: 'cred',
+        force: true,
+        grantedScopes: 'tweet.read tweet.write users.read',
+        organizationId,
+      });
+    });
+
+    it('still returns the credential when authorized signal refresh fails', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId: '507f1f77bcf86cd799439011',
+        id: 'cred',
+        oauthTokenSecret: 'encrypted-code-verifier',
+        organizationId: '507f1f77bcf86cd799439012',
+      });
+      mockTwitterAuthorizedSignalsService.refresh.mockRejectedValueOnce(
+        new Error('X rate limited'),
+      );
+
+      const result = await controller.verify({} as Request, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(result.data).toEqual({ id: 'cred', isConnected: true });
     });
 
     it('should throw BAD_REQUEST when code or state is missing', async () => {
@@ -243,6 +281,55 @@ describe('TwitterController', () => {
       await expect(
         controller.verify({} as Request, { code: 'code', state }),
       ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('refreshAuthorizedSignals', () => {
+    const mockUser = {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const mockRequest = {} as Request;
+
+    it('returns the documented 404 when the credential is missing or cross-org', async () => {
+      mockTwitterAuthorizedSignalsService.refresh.mockRejectedValueOnce(
+        new NotFoundException('X credential'),
+      );
+
+      const failure = await controller
+        .refreshAuthorizedSignals(mockRequest, mockUser as never, 'missing')
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('refreshes and returns only the caller organization credential', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({
+        id: 'cred',
+        organizationId: 'org-1',
+      });
+
+      const result = await controller.refreshAuthorizedSignals(
+        mockRequest,
+        mockUser as never,
+        'cred',
+      );
+
+      expect(mockTwitterAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        credentialId: 'cred',
+        organizationId: 'org-1',
+      });
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: 'cred',
+        organizationId: 'org-1',
+        platform: 'TWITTER',
+      });
+      expect(result.data).toEqual({ id: 'cred', organizationId: 'org-1' });
     });
   });
 

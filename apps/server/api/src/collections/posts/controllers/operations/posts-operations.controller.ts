@@ -18,7 +18,6 @@ import {
   assertApiKeyPostStatusPublishingScope,
   assertApiKeyPublishingScope,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   serializeCollection,
@@ -26,7 +25,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { mapLegacyPostStatusToTargetExecutionState } from '@api-types/contracts/scheduler.contract';
+import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -35,7 +34,6 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -111,15 +109,14 @@ export class PostsOperationsController {
     @Body() dto: PostsBatchDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    assertApiKeyPublishingScope(publicMetadata, 'schedule');
+    assertApiKeyPublishingScope(user, 'schedule');
 
     try {
       // Validate credential
       const credential = await this.credentialsService.findOne({
         id: dto.credentialId,
         isConnected: true,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!credential) {
@@ -143,7 +140,7 @@ export class PostsOperationsController {
         ingredientIds.length > 0
           ? await this.ingredientsService.findByIds(
               ingredientIds,
-              publicMetadata.organization,
+              user.organizationId,
             )
           : [];
       const ingredientSet = new Set(ingredients.map((i) => i.id.toString()));
@@ -162,7 +159,7 @@ export class PostsOperationsController {
             text: item.text,
             timezone: item.timezone,
           })),
-          publicMetadata.organization.toString(),
+          user.organizationId.toString(),
           {
             credentialId: dto.credentialId,
             platform: String(credential.platform),
@@ -181,13 +178,13 @@ export class PostsOperationsController {
         updatedPosts.map(
           (updatedPost) =>
             new ActivityEntity({
-              brandId: publicMetadata.brand,
+              brandId: user.brandId,
               entityId: updatedPost.id,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.VIDEO_SCHEDULED,
-              organizationId: publicMetadata.organization,
+              organizationId: user.organizationId,
               source: ActivitySource.SCRIPT,
-              userId: publicMetadata.user,
+              userId: user.userId ?? user.id,
               value: (updatedPost.id as string).toString(),
             }),
         ),
@@ -223,16 +220,11 @@ export class PostsOperationsController {
     @Param('postId') postId: string,
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const requestedExecutionState =
-      createPostDto.targetExecutionState ??
-      mapLegacyPostStatusToTargetExecutionState(
-        createPostDto.status ?? PostStatus.SCHEDULED,
-      );
-    assertApiKeyPostStatusPublishingScope(
-      publicMetadata,
-      requestedExecutionState,
-    );
+    const requestedExecutionState = resolveDefaultTargetExecutionState({
+      scheduledDate: createPostDto.scheduledDate,
+      targetExecutionState: createPostDto.targetExecutionState,
+    });
+    assertApiKeyPostStatusPublishingScope(user, requestedExecutionState);
     const parentId = postId;
     try {
       const parentPost = await this.postsService.findOne({ id: parentId });
@@ -246,7 +238,7 @@ export class PostsOperationsController {
         );
       }
 
-      if (parentPost.organizationId !== publicMetadata.organization) {
+      if (parentPost.organizationId !== user.organizationId) {
         throw new HttpException(
           {
             detail: 'You do not have access to this post',
@@ -259,7 +251,7 @@ export class PostsOperationsController {
       const credential = await this.credentialsService.findOne({
         id: createPostDto.credentialId,
         isConnected: true,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!credential) {
@@ -330,7 +322,7 @@ export class PostsOperationsController {
         for (const ingredientId of createPostDto.ingredients) {
           const ingredient = await this.ingredientsService.findOne({
             id: ingredientId,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
           });
 
           if (!ingredient) {
@@ -352,14 +344,11 @@ export class PostsOperationsController {
         }
       }
 
-      await this.quotaService.verifyQuota(
-        credential,
-        publicMetadata.organization,
-      );
+      await this.quotaService.verifyQuota(credential, user.organizationId);
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
-        brandId: firstIngredient?.brandId ?? publicMetadata.brand,
+        brandId: firstIngredient?.brandId ?? user.brandId,
         category:
           createPostDto.category ??
           this.getPostCategoryFromIngredient(firstIngredient),
@@ -374,14 +363,13 @@ export class PostsOperationsController {
                 createPostDto.description.trim(),
               )
             : ''),
-        organizationId:
-          firstIngredient?.organizationId ?? publicMetadata.organization,
+        organizationId: firstIngredient?.organizationId ?? user.organizationId,
         platform: credentialPlatform,
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         targetExecutionState: requestedExecutionState,
         tags: createPostDto.tags || [],
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         visibility: createPostDto.visibility,
       });
 
@@ -409,8 +397,6 @@ export class PostsOperationsController {
     @Body() dto: CreateRemixPostDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       // Verify the original post exists and user has access
       const originalPost = await this.postsService.findOne({ id: postId }, [
@@ -428,7 +414,7 @@ export class PostsOperationsController {
         );
       }
 
-      if (originalPost.organizationId !== publicMetadata.organization) {
+      if (originalPost.organizationId !== user.organizationId) {
         throw new HttpException(
           {
             detail: 'You do not have access to this post',
@@ -443,23 +429,23 @@ export class PostsOperationsController {
         postId,
         dto.description,
         {
-          brandId: publicMetadata.brand,
+          brandId: user.brandId,
           label: dto.label,
-          organizationId: publicMetadata.organization,
-          userId: publicMetadata.user,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
         },
       );
 
       // Create activity log
       await this.activitiesService.create(
         new ActivityEntity({
-          brandId: publicMetadata.brand,
+          brandId: user.brandId,
           entityId: remixPost.id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_CREATED,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           source: ActivitySource.WEB,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           value: (remixPost.id as string).toString(),
         }),
       );
@@ -483,9 +469,8 @@ export class PostsOperationsController {
     @Param('postId') postId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     // Re-arming to SCHEDULED is a scheduling action, same as batchUpdate.
-    assertApiKeyPublishingScope(publicMetadata, 'schedule');
+    assertApiKeyPublishingScope(user, 'schedule');
     const post = await this.postsService.findOne({
       id: postId,
       isDeleted: false,
@@ -501,7 +486,7 @@ export class PostsOperationsController {
       );
     }
 
-    if (post.organizationId !== publicMetadata.organization) {
+    if (post.organizationId !== user.organizationId) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',
@@ -512,8 +497,7 @@ export class PostsOperationsController {
     }
 
     if (
-      (post.targetExecutionState ??
-        mapLegacyPostStatusToTargetExecutionState(post.status)) !==
+      (post.targetExecutionState ?? TargetExecutionState.DRAFT) !==
       TargetExecutionState.FAILED
     ) {
       throw new HttpException(

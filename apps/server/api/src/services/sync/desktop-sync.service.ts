@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -92,18 +91,16 @@ export class DesktopSyncService {
     organizationId: string;
     userId: string;
   } {
-    const publicMetadata = getPublicMetadata(user);
-
-    if (!publicMetadata.organization || !publicMetadata.user) {
+    if (!user.organizationId || !(user.userId ?? user.id)) {
       throw new BadRequestException(
         'Desktop sync requires a selected Genfeed organization and user.',
       );
     }
 
     return {
-      brandId: publicMetadata.brand,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      brandId: user.brandId,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
   }
 

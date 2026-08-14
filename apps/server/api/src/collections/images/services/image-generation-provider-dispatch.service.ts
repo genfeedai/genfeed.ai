@@ -88,7 +88,7 @@ export class ImageGenerationProviderDispatchService {
           }),
         );
       },
-      organizationId: context.publicMetadata.organization,
+      organizationId: context.user.organizationId,
       outputs: context.outputs,
       prompt: context.promptData.original,
       promptBuilderBrand: context.promptBuilderBrand,
@@ -123,9 +123,9 @@ export class ImageGenerationProviderDispatchService {
         entityId: ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_PROCESSING,
-        organizationId: context.publicMetadata.organization,
+        organizationId: context.user.organizationId,
         source: ActivitySource.IMAGE_GENERATION,
-        userId: context.publicMetadata.user,
+        userId: context.user.userId,
         value: JSON.stringify({
           ingredientId: ingredientId.toString(),
           model: context.model,
@@ -449,7 +449,7 @@ export class ImageGenerationProviderDispatchService {
       generationSeed: context.createImageDto.seed,
       model: context.model,
       negativePrompt: context.createImageDto.negativePrompt,
-      organizationId: context.publicMetadata.organization,
+      organizationId: context.user.organizationId,
       parentId: context.ingredientData.parentId ?? undefined,
       promptId: context.promptData.id,
       scope: context.createImageDto.scope,
@@ -562,7 +562,7 @@ export class ImageGenerationProviderDispatchService {
       this.imagesService,
       ingredientId,
       WebSocketPaths.image(ingredientId),
-      context.publicMetadata,
+      context.user,
       getUserRoomName(context.user.id),
       errorMessage,
     );
@@ -573,7 +573,7 @@ export class ImageGenerationProviderDispatchService {
       generationId: ingredientId.toString(),
       kind: 'image',
       model: context.model,
-      organizationId: context.publicMetadata.organization,
+      organizationId: context.user.organizationId,
     });
 
     throw error;
@@ -589,7 +589,7 @@ export class ImageGenerationProviderDispatchService {
       generationId: ingredientId.toString(),
       kind: 'image',
       model: context.model,
-      organizationId: context.publicMetadata.organization,
+      organizationId: context.user.organizationId,
       output,
     });
   }

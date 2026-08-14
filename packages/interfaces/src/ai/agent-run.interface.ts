@@ -35,8 +35,6 @@ export interface IAgentRun {
   trigger: AgentExecutionTrigger;
   status: AgentExecutionStatus;
   strategy?: string;
-  /** @deprecated Agent runs are persisted and serialized against `thread`. */
-  conversation?: string;
   thread?: string;
   parentRun?: string;
   label: string;

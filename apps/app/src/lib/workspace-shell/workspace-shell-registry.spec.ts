@@ -456,6 +456,17 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('does not publish brand-only Messages destinations at org scope', () => {
+    expect(resolveWorkspaceShellRoute('/acme/~/messages/outreach')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/messages/replies')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/messages/reply-drip'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/messages/outreach'),
+    ).not.toBeNull();
+  });
+
   it('registers organization-scoped Discover as an embedded surface', () => {
     const route = resolveWorkspaceShellRoute('/acme/~/discover/overview');
 

@@ -328,6 +328,30 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(winnerPromotion).toContain('contextsService.addEntry');
   });
 
+  it('ingests KnowledgeBase sources as chunked ContextEntry embeddings', () => {
+    const autoCreate = readRepo(
+      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
+    );
+    const ingest = readRepo(
+      'apps/server/api/src/collections/contexts/services/knowledge-source-ingest.service.ts',
+    );
+    const extract = readRepo(
+      'apps/server/api/src/collections/contexts/utils/extract-source-text.util.ts',
+    );
+    const processor = readRepo(
+      'apps/server/workers/src/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor.ts',
+    );
+    expect(autoCreate).toContain('chunkText');
+    expect(autoCreate).toContain('this.addEntry');
+    expect(ingest).toContain('extractSourceText');
+    expect(ingest).toContain('chunkText');
+    expect(ingest).toContain('scanForBackfill');
+    expect(extract).toContain('safeFetch');
+    expect(extract).toContain('UnsupportedKnowledgeSourceError');
+    expect(processor).toContain('KNOWLEDGE_SOURCE_INGEST_QUEUE');
+    expect(processor).toContain('KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME');
+  });
+
   it('registers platform-x harness pack from open-source ranking signals', () => {
     const xPack = readRepo('packages/harness/src/platforms/x-algorithm.ts');
     const harnessService = readRepo(
@@ -438,5 +462,22 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     // Non-YouTube inbox path. Leading `:` so this cannot match `?? 48`.
     expect(authorLoop).toContain(': clampReplyMaxAgeHours(params.hours)');
     expect(authorLoop).toContain('resolveReplyIntent');
+  });
+
+  it('keeps repaired API E2E specs in the full tier and drops the dead health harness', () => {
+    const manifest = readRepo(
+      'apps/server/api/scripts/api-e2e-tiers.manifest.ts',
+    );
+    expect(manifest).not.toContain('test/integration/health.e2e-spec.ts');
+    expect(manifest).not.toContain('test/e2e/tasks.e2e-spec.ts');
+    expect(manifest).not.toContain(
+      'test/integration/publish-flow.integration.spec.ts',
+    );
+    expect(manifest).toContain('test/integration/health.e2e-spec.spec.ts');
+
+    const routeCoverage = readRepo('scripts/e2e-route-coverage.mjs');
+    expect(routeCoverage).toContain(
+      "process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '90'",
+    );
   });
 });

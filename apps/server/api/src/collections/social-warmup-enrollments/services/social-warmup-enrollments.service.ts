@@ -4,6 +4,7 @@ import type { SocialWarmupEnrollmentsQueryDto } from '@api/collections/social-wa
 import type { UpsertSocialWarmupSignalDto } from '@api/collections/social-warmup-enrollments/dto/upsert-social-warmup-signal.dto';
 import type { SocialWarmupEnrollmentDocument } from '@api/collections/social-warmup-enrollments/schemas/social-warmup-enrollment.schema';
 import {
+  authorizedEvidenceFromWarmupSignals,
   completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   isEnrollmentUniqueViolation,
@@ -11,7 +12,12 @@ import {
   mapTikTokSource,
   mapTikTokStatus,
   reconnectForCredential,
+  type StoredSocialWarmupEventRecord,
+  type StoredSocialWarmupSignalRecord,
   safeSignalEvidence,
+  socialWarmupEnrollmentStateFromStorage,
+  socialWarmupEventRecordFromStorage,
+  socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -21,6 +27,7 @@ import {
   type SocialWarmupBlueprint,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
@@ -29,8 +36,6 @@ import {
   SocialWarmupSignalStatus,
 } from '@genfeedai/enums';
 import type {
-  ISocialWarmupEventRecord,
-  ISocialWarmupSignalRecord,
   SocialWarmupEventProvenance,
   SocialWarmupScope,
   SyncSocialWarmupPlatformSnapshotInput,
@@ -49,8 +54,6 @@ const enrollmentInclude = {
     where: { isDeleted: false },
   },
 } as const;
-
-const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
 
 @Injectable()
 export class SocialWarmupEnrollmentsService {
@@ -254,6 +257,26 @@ export class SocialWarmupEnrollmentsService {
     organizationId: string;
     snapshot: TikTokAuthorizedSignalsSnapshot;
   }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  async syncTwitterAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: TwitterAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
+  private async syncAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot:
+      | TikTokAuthorizedSignalsSnapshot
+      | TwitterAuthorizedSignalsSnapshot;
+  }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,
       credentialId: params.credentialId,
@@ -344,7 +367,7 @@ export class SocialWarmupEnrollmentsService {
         id: enrollment.credentialId,
       }),
     });
-    return this.hydrateEnrollment(enrollment, credential);
+    return this.hydrateEnrollment(enrollment, credential ?? undefined);
   }
 
   private async requireCredential(
@@ -372,13 +395,13 @@ export class SocialWarmupEnrollmentsService {
       credentialId: string;
       currentPhaseId: string;
       enrolledByUserId: string;
-      events?: ISocialWarmupEventRecord[];
+      events?: StoredSocialWarmupEventRecord[];
       id: string;
       isDeleted?: boolean;
       organizationId: string;
-      signals?: ISocialWarmupSignalRecord[];
+      signals?: StoredSocialWarmupSignalRecord[];
       startedAt: Date;
-      state: SocialWarmupEnrollmentState;
+      state: string;
       updatedAt?: Date;
     },
     credential:
@@ -390,13 +413,15 @@ export class SocialWarmupEnrollmentsService {
         }
       | undefined,
   ): Promise<SocialWarmupEnrollmentDocument> {
-    const events = enrollment.events ?? [];
-    const signals = enrollment.signals ?? [];
+    const events =
+      enrollment.events?.map(socialWarmupEventRecordFromStorage) ?? [];
+    const signals =
+      enrollment.signals?.map(socialWarmupSignalRecordFromStorage) ?? [];
     const isConnected = credential?.isConnected !== false;
     const hasPartialScopes = hasPartialSocialWarmupScopes(
       credential?.warmupSignals,
     );
-    let state = enrollment.state;
+    let state = socialWarmupEnrollmentStateFromStorage(enrollment.state);
 
     if (credential && !credential.isConnected) {
       state = SocialWarmupEnrollmentState.DISCONNECTED;
@@ -456,59 +481,34 @@ export class SocialWarmupEnrollmentsService {
 
   private signalCreatesFromCredential(credential: {
     warmupSignals: unknown;
-  }): Prisma.SocialWarmupSignalCreateWithoutEnrollmentInput[] {
-    const stored =
-      credential.warmupSignals &&
-      typeof credential.warmupSignals === 'object' &&
-      !Array.isArray(credential.warmupSignals)
-        ? (credential.warmupSignals as Record<string, unknown>)
-        : {};
-    const snapshot = stored[TIKTOK_AUTHORIZED_STORAGE_KEY];
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return [];
-    }
-    const evidence = (snapshot as { evidence?: unknown }).evidence;
-    if (!Array.isArray(evidence)) {
-      return [];
-    }
-
-    return evidence.flatMap((item) => {
-      const record =
-        item && typeof item === 'object' && !Array.isArray(item)
-          ? (item as Record<string, unknown>)
-          : {};
-      const key = typeof record.key === 'string' ? record.key : undefined;
-      if (!key) {
-        return [];
-      }
-      return [
-        {
-          evidence: safeSignalEvidence({
+  }): Prisma.SocialWarmupSignalUncheckedCreateWithoutEnrollmentInput[] {
+    return authorizedEvidenceFromWarmupSignals(credential.warmupSignals).map(
+      (record) => ({
+        evidence: toPrismaJson(
+          safeSignalEvidence({
             fieldAvailability: record.fieldAvailability,
             reason: record.reason,
             scope: record.scope,
             value: record.value,
           }),
-          key,
-          observedAt:
-            typeof record.observedAt === 'string'
-              ? new Date(record.observedAt)
-              : undefined,
-          source: mapTikTokSource(
-            typeof record.provenance === 'string'
-              ? record.provenance
-              : undefined,
-          ),
-          staleAt:
-            typeof record.staleAt === 'string'
-              ? new Date(record.staleAt)
-              : undefined,
-          status: mapTikTokStatus(
-            typeof record.status === 'string' ? record.status : undefined,
-          ),
-        },
-      ];
-    });
+        ),
+        key: String(record.key),
+        observedAt:
+          typeof record.observedAt === 'string'
+            ? new Date(record.observedAt)
+            : undefined,
+        source: mapTikTokSource(
+          typeof record.provenance === 'string' ? record.provenance : undefined,
+        ),
+        staleAt:
+          typeof record.staleAt === 'string'
+            ? new Date(record.staleAt)
+            : undefined,
+        status: mapTikTokStatus(
+          typeof record.status === 'string' ? record.status : undefined,
+        ),
+      }),
+    );
   }
 
   private async upsertSignalRow(params: {
@@ -536,7 +536,7 @@ export class SocialWarmupEnrollmentsService {
     if (existing) {
       await this.prisma.socialWarmupSignal.update({
         data: {
-          evidence,
+          evidence: toPrismaJson(evidence),
           observedAt,
           source: params.source,
           staleAt,
@@ -555,7 +555,7 @@ export class SocialWarmupEnrollmentsService {
         data: {
           brandId: params.brandId,
           enrollmentId: params.enrollmentId,
-          evidence,
+          evidence: toPrismaJson(evidence),
           key: params.key,
           observedAt,
           organizationId: params.organizationId,
@@ -582,7 +582,11 @@ function findBlueprintItem(
       return step;
     }
   }
-  return blueprint.graduationRules.find((rule) => rule.id === itemId);
+  return blueprint.graduation.rules.find((rule) => rule.id === itemId);
+}
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
 function resolvePhaseAfterEvent(

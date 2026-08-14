@@ -12,7 +12,6 @@ import {
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -64,7 +63,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const assets = await this.adminFleetService.getAssets(
         organization,
         query,
@@ -98,7 +97,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const asset = await this.adminFleetService.reviewAsset(
         id,
         organization,
@@ -121,7 +120,8 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const brand = user.brandId;
       const result = await this.adminFleetService.publishAsset(
         id,
         organization,
@@ -148,7 +148,9 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const brand = user.brandId;
+      const dbUserId = user.userId ?? user.id;
       let width: number | undefined;
       let height: number | undefined;
 
@@ -197,7 +199,9 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const brand = user.brandId;
+      const dbUserId = user.userId ?? user.id;
       const data = await this.adminFleetService.createGenerationJob(
         organization,
         brand,
@@ -227,7 +231,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const data = await this.adminFleetService.getGenerationJob(
         jobId,
         organization,
@@ -251,7 +255,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const data = await this.adminFleetService.generateLipSync(
         organization,
         dto,
@@ -325,7 +329,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const data = await this.adminFleetService.generateVoice(
         organization,
         dto,
@@ -349,7 +353,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const trainings = await this.adminFleetService.getTrainings(
         organization,
         personaSlug,
@@ -381,7 +385,7 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const training = await this.adminFleetService.getTraining(
         id,
         organization,
@@ -402,7 +406,9 @@ export class AdminFleetMediaController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const brand = user.brandId;
+      const dbUserId = user.userId ?? user.id;
       const training = await this.adminFleetService.startTraining(
         organization,
         dbUserId,

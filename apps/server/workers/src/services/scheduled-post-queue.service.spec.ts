@@ -48,13 +48,7 @@ describe('ScheduledPostQueueService', () => {
           children: expect.objectContaining({
             where: {
               isDeleted: false,
-              OR: expect.arrayContaining([
-                {
-                  targetExecutionState: {
-                    in: [TargetExecutionState.SCHEDULED],
-                  },
-                },
-              ]),
+              targetExecutionState: TargetExecutionState.SCHEDULED,
             },
           }),
         }),
@@ -71,16 +65,12 @@ describe('ScheduledPostQueueService', () => {
               ],
             },
             {
-              OR: expect.arrayContaining([
-                {
-                  targetExecutionState: {
-                    in: [
-                      TargetExecutionState.SCHEDULED,
-                      TargetExecutionState.PUBLISHING,
-                    ],
-                  },
-                },
-              ]),
+              targetExecutionState: {
+                in: [
+                  TargetExecutionState.SCHEDULED,
+                  TargetExecutionState.PUBLISHING,
+                ],
+              },
             },
           ],
           OR: [
@@ -119,23 +109,19 @@ describe('ScheduledPostQueueService', () => {
           isDeleted: false,
           organizationId: 'org-1',
           parentId: null,
-          OR: expect.arrayContaining([
-            {
-              targetExecutionState: {
-                in: [
-                  TargetExecutionState.SCHEDULED,
-                  TargetExecutionState.PUBLISHING,
-                ],
-              },
-            },
-          ]),
+          targetExecutionState: {
+            in: [
+              TargetExecutionState.SCHEDULED,
+              TargetExecutionState.PUBLISHING,
+            ],
+          },
         }),
       }),
       expect.objectContaining({ limit: 1, page: 1 }),
     );
     const query = postsService.findAll.mock.calls[0]?.[0];
     expect(query?.where).not.toHaveProperty('AND');
-    expect(query?.where).toHaveProperty('OR');
+    expect(query?.where).toHaveProperty('targetExecutionState');
   });
 
   it('marks an approval queued before preserving its bound queue identity', async () => {

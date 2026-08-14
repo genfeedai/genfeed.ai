@@ -133,11 +133,9 @@ describe('ImagesOperationsController', () => {
 
   const mockUser = {
     id: 'authProvider_user_123',
-    publicMetadata: {
-      brand: mockBrandId.toString(),
-      organization: mockOrgId.toString(),
-      user: mockUserId.toString(),
-    },
+    brandId: mockBrandId.toString(),
+    organizationId: mockOrgId.toString(),
+    userId: mockUserId.toString(),
   } as unknown as User;
 
   const mockRequest = {

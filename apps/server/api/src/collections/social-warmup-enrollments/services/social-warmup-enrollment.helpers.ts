@@ -1,4 +1,5 @@
 import {
+  SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
@@ -15,6 +16,12 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';
 const FIRST_UPLOAD_KEY = 'first-upload-platform-signal';
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
+const TWITTER_AUTHORIZED_STORAGE_KEY = 'twitterAuthorized';
+
+const AUTHORIZED_SNAPSHOT_STORAGE_KEYS = [
+  TIKTOK_AUTHORIZED_STORAGE_KEY,
+  TWITTER_AUTHORIZED_STORAGE_KEY,
+] as const;
 
 const TIKTOK_REQUIRED_WARMUP_SCOPES = [
   'user.info.basic',
@@ -22,11 +29,99 @@ const TIKTOK_REQUIRED_WARMUP_SCOPES = [
   'video.list',
 ] as const;
 
+const TWITTER_REQUIRED_WARMUP_SCOPES = ['users.read', 'tweet.read'] as const;
+
 export const ENROLLMENT_UNIQUE_CONSTRAINT =
   'social_warmup_enrollments_org_credential_alive_key';
 
 export const SIGNAL_UNIQUE_CONSTRAINT =
   'social_warmup_signals_enrollment_key_alive_key';
+
+export type StoredSocialWarmupEventRecord = Omit<
+  ISocialWarmupEventRecord,
+  'action'
+> & {
+  action: string;
+};
+
+export type StoredSocialWarmupSignalRecord = Omit<
+  ISocialWarmupSignalRecord,
+  'source' | 'status'
+> & {
+  source: string;
+  status: string;
+};
+
+export function socialWarmupEnrollmentStateFromStorage(
+  state: string,
+): SocialWarmupEnrollmentState {
+  const storedState = Object.values(SocialWarmupEnrollmentState).find(
+    (candidate) => candidate === state,
+  );
+  if (!storedState) {
+    throw new Error(`Unsupported social warm-up enrollment state: ${state}`);
+  }
+  return storedState;
+}
+
+export function socialWarmupEventRecordFromStorage(
+  event: StoredSocialWarmupEventRecord,
+): ISocialWarmupEventRecord {
+  return {
+    ...event,
+    action: socialWarmupEventActionFromStorage(event.action),
+  };
+}
+
+export function socialWarmupSignalRecordFromStorage(
+  signal: StoredSocialWarmupSignalRecord,
+): ISocialWarmupSignalRecord {
+  return {
+    ...signal,
+    source: socialWarmupSignalSourceFromStorage(signal.source),
+    status: socialWarmupSignalStatusFromStorage(signal.status),
+  };
+}
+
+function socialWarmupEventActionFromStorage(
+  action: string,
+): SocialWarmupEventAction {
+  switch (action) {
+    case SocialWarmupEventAction.COMPLETED:
+      return SocialWarmupEventAction.COMPLETED;
+    case SocialWarmupEventAction.REOPENED:
+      return SocialWarmupEventAction.REOPENED;
+    default:
+      throw new Error(`Unsupported social warm-up event action: ${action}`);
+  }
+}
+
+function socialWarmupSignalSourceFromStorage(
+  source: string,
+): SocialWarmupSignalSource {
+  switch (source) {
+    case SocialWarmupSignalSource.PLATFORM:
+      return SocialWarmupSignalSource.PLATFORM;
+    case SocialWarmupSignalSource.GENFEED:
+      return SocialWarmupSignalSource.GENFEED;
+    case SocialWarmupSignalSource.USER:
+      return SocialWarmupSignalSource.USER;
+    default:
+      throw new Error(`Unsupported social warm-up signal source: ${source}`);
+  }
+}
+
+function socialWarmupSignalStatusFromStorage(
+  status: string,
+): SocialWarmupSignalStatus {
+  const storedStatus = Object.values(SocialWarmupSignalStatus).find(
+    (candidate) => candidate === status,
+  );
+  if (!storedStatus) {
+    throw new Error(`Unsupported social warm-up signal status: ${status}`);
+  }
+  return storedStatus;
+}
 
 export function isEnrollmentUniqueViolation(error: unknown): boolean {
   return isNamedUniqueViolation(error, ENROLLMENT_UNIQUE_CONSTRAINT, [
@@ -79,9 +174,44 @@ export function resolveSocialWarmupAccountAge(
   };
 }
 
+export function authorizedEvidenceFromWarmupSignals(
+  warmupSignals: unknown,
+): Array<Record<string, unknown>> {
+  const stored = readRecord(warmupSignals);
+  const items: Array<Record<string, unknown>> = [];
+
+  for (const storageKey of AUTHORIZED_SNAPSHOT_STORAGE_KEYS) {
+    const snapshot = readRecord(stored[storageKey]);
+    const evidence = Array.isArray(snapshot.evidence) ? snapshot.evidence : [];
+    for (const item of evidence) {
+      const record = readRecord(item);
+      if (typeof record.key === 'string') {
+        items.push(record);
+      }
+    }
+  }
+
+  return items;
+}
+
 export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
   const stored = readRecord(warmupSignals);
-  const snapshot = readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]);
+  return (
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]),
+      TIKTOK_REQUIRED_WARMUP_SCOPES,
+    ) ||
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[TWITTER_AUTHORIZED_STORAGE_KEY]),
+      TWITTER_REQUIRED_WARMUP_SCOPES,
+    )
+  );
+}
+
+function hasPartialAuthorizedSnapshot(
+  snapshot: Record<string, unknown>,
+  requiredScopes: readonly string[],
+): boolean {
   if (snapshot.state === 'partial') {
     return true;
   }
@@ -91,9 +221,7 @@ export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
     : [];
   if (
     grantedScopes.length > 0 &&
-    TIKTOK_REQUIRED_WARMUP_SCOPES.some(
-      (scope) => !grantedScopes.includes(scope),
-    )
+    requiredScopes.some((scope) => !grantedScopes.includes(scope))
   ) {
     return true;
   }

@@ -15,11 +15,9 @@ describe('OutreachCampaignsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439014',
   } as unknown as User;
 
   const mockOutreachCampaignsService = {
@@ -91,7 +89,8 @@ describe('OutreachCampaignsController', () => {
     it('should return true for super admin regardless of tenant', () => {
       const superAdmin = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
+        ...mockUser,
+        isSuperAdmin: true,
       } as unknown as User;
       const entity = {
         organizationId: '507f1f77bcf86cd799439099',
@@ -116,8 +115,8 @@ describe('OutreachCampaignsController', () => {
 
       expect(mockOutreachCampaignsService.pause).toHaveBeenCalledWith(
         'campaign_1',
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
       );
       expect(mockOutreachCampaignsService.patch).not.toHaveBeenCalled();
     });

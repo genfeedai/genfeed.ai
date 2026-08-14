@@ -8,7 +8,7 @@ import {
   getAppSecondaryMenuItems,
   PUBLISH_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
-import { MESSAGES_MENU_ITEMS } from '@app-config/messages-menu-items.config';
+import { getMessagesMenuItemsForScope } from '@app-config/messages-menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { PUBLISH_MENU_ITEMS } from '@app-config/publish-menu-items.config';
 import {
@@ -331,13 +331,13 @@ export function useAppProtectedLayout(
 
   const messagesMenuItems = useMemo(
     () =>
-      MESSAGES_MENU_ITEMS.map(
+      getMessagesMenuItemsForScope(brandSlug).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [taskContextSearchParams],
+    [brandSlug, taskContextSearchParams],
   );
 
   const analyticsMenuItems = useMemo(

@@ -190,6 +190,22 @@ export class SocialMessagesService extends BaseService<
     return this.enqueueSync('/instagram/dms/sync', limit);
   }
 
+  syncX(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/x/sync', limit);
+  }
+
+  syncXDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/x/dms/sync', limit);
+  }
+
+  syncLinkedIn(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/linkedin/sync', limit);
+  }
+
+  syncLinkedInDms(limit = 25): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/linkedin/dms/sync', limit);
+  }
+
   private enqueueSync(
     path: string,
     limit: number,

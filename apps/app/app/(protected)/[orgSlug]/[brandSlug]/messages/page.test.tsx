@@ -24,6 +24,10 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
+  syncLinkedIn: vi.fn(),
+  syncLinkedInDms: vi.fn(),
+  syncX: vi.fn(),
+  syncXDms: vi.fn(),
   syncYoutube: vi.fn(),
 }));
 
@@ -279,6 +283,10 @@ describe('SocialMessagesPage', () => {
       sendDm: vi.fn(),
       syncInstagram: mocks.syncInstagram,
       syncInstagramDms: mocks.syncInstagramDms,
+      syncLinkedIn: mocks.syncLinkedIn,
+      syncLinkedInDms: mocks.syncLinkedInDms,
+      syncX: mocks.syncX,
+      syncXDms: mocks.syncXDms,
       syncYoutube: mocks.syncYoutube,
       updateStatus: vi.fn(),
     });
@@ -485,8 +493,11 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.syncInstagramDms).toHaveBeenCalledTimes(1),
     );
+    expect(mocks.syncXDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedInDms).toHaveBeenCalledTimes(1);
     expect(mocks.syncYoutube).not.toHaveBeenCalled();
     expect(mocks.syncInstagram).not.toHaveBeenCalled();
+    expect(mocks.syncX).not.toHaveBeenCalled();
   });
 
   it('sweeps every comment platform when syncing the comments surface', async () => {
@@ -498,7 +509,10 @@ describe('SocialMessagesPage', () => {
 
     await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
     expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
+    expect(mocks.syncX).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
     expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
+    expect(mocks.syncXDms).not.toHaveBeenCalled();
   });
 
   it('renders a DM thread without a source content anchor', async () => {

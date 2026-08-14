@@ -219,10 +219,10 @@ export default function ModalPreset({
       }
 
       const promptData = new Prompt({
-        brand: brandId,
+        brandId,
         category: `presets-description-${presetCategory}`,
         isSkipEnhancement: false,
-        organization: organizationId,
+        organizationId,
         original: watchedDescription,
         systemPromptKey,
         useRAG: true, // Enable RAG if context bases exist

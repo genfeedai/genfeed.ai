@@ -528,7 +528,7 @@ export class CronPostsService {
         platform,
         post.targetSettings,
       );
-      const visibility = resolvePostVisibility(post.visibility, post.status);
+      const visibility = resolvePostVisibility(post.visibility);
       const targetValidation = validateChannelTargetSettings({
         caption: post.description,
         credentialId: postCredentialId ?? undefined,

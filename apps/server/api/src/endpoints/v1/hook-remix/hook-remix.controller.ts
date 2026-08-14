@@ -6,7 +6,6 @@ import {
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
@@ -29,7 +28,8 @@ export class HookRemixController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: userId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const userId = user.userId ?? user.id;
 
       return await this.hookRemixService.createHookRemix(
         dto,
@@ -49,7 +49,8 @@ export class HookRemixController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: userId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const userId = user.userId ?? user.id;
 
       return await this.hookRemixService.createBatchHookRemix(
         dto,

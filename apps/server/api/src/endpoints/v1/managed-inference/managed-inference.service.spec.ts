@@ -73,10 +73,8 @@ describe('ManagedInferenceService', () => {
   const request = {
     user: {
       id: 'user-1',
-      publicMetadata: {
-        organization: 'org-1',
-        user: 'user-1',
-      },
+      organizationId: 'org-1',
+      userId: 'user-1',
     },
   } as ManagedInferenceAuthenticatedRequest;
 

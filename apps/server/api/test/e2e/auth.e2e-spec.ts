@@ -124,33 +124,33 @@ describe('Authentication E2E Tests', () => {
       // The E2E test module uses MockBetterAuthGuard which always returns true
       // This test verifies the mock is working correctly
       const mockJwtPayload = {
+        brandId: generateIdString(),
         email: testUser.email,
-        publicMetadata: {
-          isOwner: true,
-          organization: testOrganization.id.toString(),
-          user: testUser.id.toString(),
-        },
+        organizationId: testOrganization.id.toString(),
+        userId: testUser.id.toString(),
         sub: testUser.id.toString(),
       };
 
       expect(mockJwtPayload.sub).toBe(testUser.id.toString());
-      expect(mockJwtPayload.publicMetadata.isOwner).toBe(true);
+      expect(mockJwtPayload.organizationId).toBe(
+        testOrganization.id.toString(),
+      );
     });
 
-    it('should verify public metadata structure', () => {
-      const publicMetadata = {
+    it('should verify canonical request identity structure', () => {
+      const identity = {
+        brandId: generateIdString(),
         email: testUser.email,
-        isOwner: true,
         isSuperAdmin: false,
-        organization: testOrganization.id.toString(),
-        user: testUser.id.toString(),
+        organizationId: testOrganization.id.toString(),
+        userId: testUser.id.toString(),
       };
 
-      expect(publicMetadata).toHaveProperty('organization');
-      expect(publicMetadata).toHaveProperty('user');
-      expect(publicMetadata).toHaveProperty('email');
-      expect(publicMetadata).toHaveProperty('isOwner');
-      expect(publicMetadata).toHaveProperty('isSuperAdmin');
+      expect(identity).toHaveProperty('brandId');
+      expect(identity).toHaveProperty('organizationId');
+      expect(identity).toHaveProperty('userId');
+      expect(identity).toHaveProperty('email');
+      expect(identity).toHaveProperty('isSuperAdmin');
     });
   });
 

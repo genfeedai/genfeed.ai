@@ -30,8 +30,6 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       '127.0.0.1',
       'genfeed.localhost',
       '**.genfeed.localhost',
-      // Temporary backwards-compatible development host.
-      'local.genfeed.ai',
       'localhost',
     ],
     distDir: process.env.NEXT_DIST_DIR || undefined,

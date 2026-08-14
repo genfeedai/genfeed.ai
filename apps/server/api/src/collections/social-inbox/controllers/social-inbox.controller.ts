@@ -20,7 +20,6 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -131,6 +130,75 @@ export class SocialInboxController {
       user,
       body,
       Platform.INSTAGRAM,
+      SocialConversationType.DM,
+    );
+  }
+
+  @Post('x/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent X mentions and replies',
+  })
+  async syncXComments(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.TWITTER,
+      SocialConversationType.COMMENT,
+    );
+  }
+
+  @Post('x/dms/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent X direct messages',
+  })
+  async syncXDms(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.TWITTER,
+      SocialConversationType.DM,
+    );
+  }
+
+  @Post('linkedin/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent LinkedIn comments',
+  })
+  async syncLinkedInComments(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.LINKEDIN,
+      SocialConversationType.COMMENT,
+    );
+  }
+
+  @Post('linkedin/dms/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary:
+      'Enqueue a background sync of LinkedIn DMs when the connected account permits it',
+  })
+  async syncLinkedInDms(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.LINKEDIN,
       SocialConversationType.DM,
     );
   }
@@ -307,17 +375,16 @@ export class SocialInboxController {
   }
 
   private buildScope(user: User): SocialInboxScope {
-    const publicMetadata = getPublicMetadata(user);
-    if (!publicMetadata.organization) {
+    if (!user.organizationId) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
       );
     }
 
     return {
-      brandId: publicMetadata.brand,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      brandId: user.brandId,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
   }
 }

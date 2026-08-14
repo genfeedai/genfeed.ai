@@ -28,10 +28,8 @@ describe('VotesController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439013',
-      user: '507f191e810c19729de860ea',
-    },
+    organizationId: '507f1f77bcf86cd799439013',
+    userId: '507f191e810c19729de860ea',
   };
 
   const validEntityId = '507f191e810c19729de860ea';
@@ -81,7 +79,7 @@ describe('VotesController', () => {
     expect(service.create).toHaveBeenCalledWith({
       entityId: validEntityId,
       entityModel: VoteEntityModel.INGREDIENT,
-      userId: mockUser.publicMetadata.user,
+      userId: mockUser.userId,
     });
     expect(result).toEqual(mockVote);
   });
@@ -152,7 +150,7 @@ describe('VotesController', () => {
     expect(service.patchAll).toHaveBeenCalledWith(
       expect.objectContaining({
         entityId: validEntityId,
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       }),
       { isDeleted: true },
     );

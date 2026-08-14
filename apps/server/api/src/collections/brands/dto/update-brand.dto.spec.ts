@@ -67,5 +67,18 @@ describe('UpdateBrandDto', () => {
         ).rejects.toMatchObject({ status: 400 });
       },
     );
+
+    it('does not require unknown extra fields and strips undeclared relocationAck', async () => {
+      const result = await pipe.transform(
+        {
+          label: 'Renamed Brand',
+          relocationAck: 'legacy-token',
+        },
+        metadata,
+      );
+
+      expect(result).toMatchObject({ label: 'Renamed Brand' });
+      expect(result).not.toHaveProperty('relocationAck');
+    });
   });
 });

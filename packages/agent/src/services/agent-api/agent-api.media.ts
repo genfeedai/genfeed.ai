@@ -17,8 +17,8 @@ export function getModelsEffect(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Effect.Effect<GenerationModel[], AgentApiError> {
-  // List endpoints are always paginated server-side, and `pagination=false` is
-  // ignored — the active model catalog fits in one max-size page.
+  // List endpoints are always paginated server-side (HTTP does not accept a
+  // `pagination` flag) — the active model catalog fits in one max-size page.
   return api.fetchCollectionEffect<GenerationModel>(
     `${api.config.baseUrl}/models?isActive=true&limit=${MAX_PAGE_SIZE}`,
     { signal },

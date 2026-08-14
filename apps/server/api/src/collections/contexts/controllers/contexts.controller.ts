@@ -1,16 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
+import { AddSourceDto } from '@api/collections/contexts/dto/add-source.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
 import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.dto';
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
+import { UpdateSourceDto } from '@api/collections/contexts/dto/update-source.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -38,7 +40,10 @@ import type { Request } from 'express';
 @ApiTags('Contexts')
 @Controller('contexts')
 export class ContextsController {
-  constructor(private readonly contextsService: ContextsService) {}
+  constructor(
+    private readonly contextsService: ContextsService,
+    private readonly knowledgeSourceService: KnowledgeSourceService,
+  ) {}
 
   /**
    * Create a new context base
@@ -50,7 +55,8 @@ export class ContextsController {
     @Body() dto: CreateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization, user: dbUserId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const dbUserId = user.userId ?? user.id;
     const data = await this.contextsService.create(dto, organization, dbUserId);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -67,7 +73,7 @@ export class ContextsController {
     @Query('isActive') isActive?: string,
     @Query('search') search?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const docs = await this.contextsService.findAll(organization, {
       category,
@@ -87,7 +93,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.findOne(contextId, organization);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -103,7 +109,7 @@ export class ContextsController {
     @Body() dto: UpdateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.update(
       contextId,
       dto,
@@ -121,7 +127,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.contextsService.remove(contextId, organization);
     return { message: 'Context base deleted successfully' };
   }
@@ -137,7 +143,7 @@ export class ContextsController {
     @Body() dto: AddEntryDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.addEntry(
       contextId,
       dto,
@@ -156,9 +162,86 @@ export class ContextsController {
     @Param('entryId') entryId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.contextsService.removeEntry(contextId, entryId, organization);
     return { message: 'Entry removed successfully' };
+  }
+
+  /**
+   * Add a URL or document source and enqueue chunk/embed ingest.
+   */
+  @Post(':contextId/sources')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async addSource(
+    @Req() req: Request,
+    @Param('contextId') contextId: string,
+    @Body() dto: AddSourceDto,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    const result = await this.knowledgeSourceService.addSource(
+      contextId,
+      dto,
+      organization,
+    );
+    return {
+      ...serializeSingle(req, ContextBaseSerializer, result.contextBase),
+      jobId: result.jobId,
+      source: result.source,
+    };
+  }
+
+  /**
+   * Update a source. Changing URL or category re-ingests chunks.
+   */
+  @Patch(':contextId/sources/:sourceId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async updateSource(
+    @Req() req: Request,
+    @Param('contextId') contextId: string,
+    @Param('sourceId') sourceId: string,
+    @Body() dto: UpdateSourceDto,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    const result = await this.knowledgeSourceService.updateSource(
+      contextId,
+      sourceId,
+      dto,
+      organization,
+    );
+    return {
+      ...serializeSingle(req, ContextBaseSerializer, result.contextBase),
+      jobId: result.jobId,
+      source: result.source,
+    };
+  }
+
+  /**
+   * Soft-delete a source and its embedded chunks.
+   */
+  @Delete(':contextId/sources/:sourceId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async removeSource(
+    @Param('contextId') contextId: string,
+    @Param('sourceId') sourceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const organization = user.organizationId;
+    return this.knowledgeSourceService.removeSource(
+      contextId,
+      sourceId,
+      organization,
+    );
+  }
+
+  /**
+   * Queue a tenant-scoped backfill of KnowledgeBase sources.
+   */
+  @Post('backfill')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async backfillSources(@CurrentUser() user: User) {
+    return this.knowledgeSourceService.backfill(user.organizationId);
   }
 
   /**
@@ -171,8 +254,9 @@ export class ContextsController {
     @Body() dto: AutoCreateContextDto,
     @CurrentUser() user: User,
   ) {
-    // Pass the DB user ID (publicMetadata.user), not the legacy auth provider user ID (user.id).
-    const { organization, user: dbUserId } = getPublicMetadata(user);
+    // Pass the DB user ID (identity.userId), not the legacy auth provider user ID (user.id).
+    const organization = user.organizationId;
+    const dbUserId = user.userId ?? user.id;
     const data = await this.contextsService.autoCreateFromAccount(
       dto,
       organization,
@@ -191,7 +275,7 @@ export class ContextsController {
     @Body() dto: EnhancePromptDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return this.contextsService.enhancePrompt(dto, organization);
   }
 
@@ -201,7 +285,7 @@ export class ContextsController {
   @Post('query')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async queryContext(@Body() dto: QueryContextDto, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.contextsService.queryContext(dto, organization);
   }
 
@@ -214,7 +298,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.contextsService.getStats(contextId, organization);
   }
 }

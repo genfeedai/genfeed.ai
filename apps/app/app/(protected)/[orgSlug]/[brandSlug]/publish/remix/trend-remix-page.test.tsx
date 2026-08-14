@@ -118,6 +118,9 @@ describe('TrendRemixPage', () => {
     });
     expect(screen.getByText('2 of 3 variations ready')).toBeInTheDocument();
     expect(
+      screen.getByText('Group group-12 · 2 credits charged'),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText('Organization defaults (no brand voice configured)'),
     ).toBeInTheDocument();
     expect(screen.getByText('First distinct variation')).toBeInTheDocument();
@@ -213,6 +216,7 @@ describe('TrendRemixPage', () => {
       expect(screen.getByText('2 of 2 variations ready')).toBeInTheDocument();
     });
     expect(screen.getByText('First distinct variation')).toBeInTheDocument();
+    expect(screen.getByText('2 credits charged')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /Review all/ }),
     ).not.toBeInTheDocument();

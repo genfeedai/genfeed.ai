@@ -9,7 +9,10 @@ import type {
   UseSocialWarmupEnrollmentOptions,
   UseSocialWarmupEnrollmentResult,
 } from '@props/social/social-warmup-enrollments.props';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
+
+export const SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY = 'social-warmup-enrollment';
 
 export function useSocialWarmupEnrollment(
   options: UseSocialWarmupEnrollmentOptions = {},
@@ -17,9 +20,15 @@ export function useSocialWarmupEnrollment(
   const { autoLoad = true, credentialId } = options;
   const { isSignedIn } = useAuthIdentity();
   const { brandId } = useBrand();
+  const queryClient = useQueryClient();
 
   const getService = useAuthedService((token: string) =>
     SocialWarmupEnrollmentsService.getInstance(token),
+  );
+
+  const queryKey = useMemo(
+    () => [SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY, brandId, credentialId],
+    [brandId, credentialId],
   );
 
   const {
@@ -43,29 +52,58 @@ export function useSocialWarmupEnrollment(
       )) as ISocialWarmupEnrollment[];
       return enrollments[0] ?? null;
     },
-    queryKey: ['social-warmup-enrollment', brandId, credentialId],
+    queryKey,
   });
 
-  async function enroll(nextCredentialId: string) {
-    const service = await getService();
-    return service.enroll({ credentialId: nextCredentialId });
-  }
+  const invalidateEnrollment = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: [SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY],
+    });
+  }, [queryClient]);
 
-  async function completeItem(itemId: string) {
-    if (!data?.id) {
-      throw new Error('Social warm-up enrollment is required');
-    }
-    const service = await getService();
-    return service.completeItem(data.id, itemId);
-  }
+  const enroll = useCallback(
+    async (nextCredentialId: string) => {
+      const service = await getService();
+      const enrollment = await service.enroll({
+        credentialId: nextCredentialId,
+      });
+      queryClient.setQueryData(
+        [SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY, brandId, nextCredentialId],
+        enrollment,
+      );
+      await invalidateEnrollment();
+      return enrollment;
+    },
+    [brandId, getService, invalidateEnrollment, queryClient],
+  );
 
-  async function reopenItem(itemId: string) {
-    if (!data?.id) {
-      throw new Error('Social warm-up enrollment is required');
-    }
-    const service = await getService();
-    return service.reopenItem(data.id, itemId);
-  }
+  const completeItem = useCallback(
+    async (itemId: string) => {
+      if (!data?.id) {
+        throw new Error('Social warm-up enrollment is required');
+      }
+      const service = await getService();
+      const enrollment = await service.completeItem(data.id, itemId);
+      queryClient.setQueryData(queryKey, enrollment);
+      await invalidateEnrollment();
+      return enrollment;
+    },
+    [data?.id, getService, invalidateEnrollment, queryClient, queryKey],
+  );
+
+  const reopenItem = useCallback(
+    async (itemId: string) => {
+      if (!data?.id) {
+        throw new Error('Social warm-up enrollment is required');
+      }
+      const service = await getService();
+      const enrollment = await service.reopenItem(data.id, itemId);
+      queryClient.setQueryData(queryKey, enrollment);
+      await invalidateEnrollment();
+      return enrollment;
+    },
+    [data?.id, getService, invalidateEnrollment, queryClient, queryKey],
+  );
 
   return {
     completeItem,

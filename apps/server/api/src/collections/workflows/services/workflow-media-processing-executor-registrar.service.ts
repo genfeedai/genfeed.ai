@@ -164,7 +164,6 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
 
         const ingredientId = ingredientData.id.toString();
         const job = await fileQueueService.processVideo({
-          authProviderUserId: context.userId,
           ingredientId,
           organizationId: context.organizationId,
           params: {
@@ -295,7 +294,6 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           false,
           {
             brandId,
-            authProviderUserId: context.userId,
             organizationId: context.organizationId,
             userId: context.userId,
           },

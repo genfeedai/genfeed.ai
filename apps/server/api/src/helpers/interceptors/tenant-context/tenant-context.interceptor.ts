@@ -23,7 +23,7 @@ function readRequestOrganizationId(
     return fromContext;
   }
 
-  const fromMetadata = request.user?.publicMetadata?.organization?.trim();
+  const fromMetadata = request.user?.organizationId?.trim();
   return fromMetadata || undefined;
 }
 

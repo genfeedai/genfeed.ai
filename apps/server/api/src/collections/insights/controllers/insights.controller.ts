@@ -17,7 +17,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
@@ -60,7 +59,7 @@ export class InsightsController {
   @Post('forecast')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getForecast(@Body() dto: GetForecastDto, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.insightsService.getForecast(dto, organization);
   }
 
@@ -75,7 +74,7 @@ export class InsightsController {
     @CurrentUser() user: User,
     @Query('limit') limit?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const parsedLimit = limit ? parseInt(limit, 10) : 5;
     const docs = await this.insightsService.getInsights(
       organization,
@@ -104,7 +103,7 @@ export class InsightsController {
     @Body() dto: PredictViralDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -133,7 +132,7 @@ export class InsightsController {
   @DeferCreditsUntilModelResolution()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getContentGaps(@Req() req: Request, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -166,7 +165,7 @@ export class InsightsController {
     @Query('platform') platform?: string,
     @Query('timezone') timezone?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -193,7 +192,7 @@ export class InsightsController {
     @CurrentUser() user: User,
     @Query('platform') platform?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.insightsService.getGrowthPrediction(
       platform || 'instagram',
       organization,
@@ -211,7 +210,7 @@ export class InsightsController {
     @CurrentUser() user: User,
     @Body() dto: UpdateInsightDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.insightsService.update(
       insightId,
       organization,

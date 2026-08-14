@@ -20,7 +20,9 @@ describe('TagsController', () => {
 
   const mockUser = {
     id: 'authProvider_user_123',
-    publicMetadata: { brand: brandId, organization: orgId, user: userId },
+    brandId: brandId,
+    organizationId: orgId,
+    userId: userId,
   } as never;
 
   beforeEach(() => {

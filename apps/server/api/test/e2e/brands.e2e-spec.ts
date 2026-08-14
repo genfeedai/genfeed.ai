@@ -4,16 +4,6 @@
  * All external services are mocked to prevent real API calls
  */
 
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-// Import controllers and services
-import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { LinksService } from '@api/collections/links/services/links.service';
-import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -45,19 +35,7 @@ describe('Brands E2E Tests', () => {
   let testBrand: ReturnType<typeof createTestBrand>;
 
   beforeAll(async () => {
-    const moduleConfig = await E2ETestModule.forRoot({
-      controllers: [BrandsController],
-      providers: [
-        BrandsService,
-        OrganizationsService,
-        MembersService,
-        UsersService,
-        AssetsService,
-        SettingsService,
-        CredentialsService,
-        LinksService,
-      ],
-    });
+    const moduleConfig = await E2ETestModule.forBrands();
 
     moduleRef = await Test.createTestingModule({
       imports: [moduleConfig],
@@ -142,7 +120,6 @@ describe('Brands E2E Tests', () => {
   const authenticatedRequest = () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   };

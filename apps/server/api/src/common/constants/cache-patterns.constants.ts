@@ -36,6 +36,8 @@ export const CACHE_PATTERNS = {
   LISTENING_TOPICS_SINGLE: (id: string) => `listeningTopics:single:${id}`,
   TIKTOK_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
     `tiktokAuthorizedSignals:single:${id}`,
+  TWITTER_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
+    `twitterAuthorizedSignals:single:${id}`,
 } as const;
 
 /**
@@ -52,6 +54,7 @@ export const CACHE_TAGS = {
   INGREDIENTS: 'ingredients',
   LISTENING_TOPICS: 'listeningTopics',
   TIKTOK_AUTHORIZED_SIGNALS: 'tiktokAuthorizedSignals',
+  TWITTER_AUTHORIZED_SIGNALS: 'twitterAuthorizedSignals',
 } as const;
 
 /**
@@ -63,4 +66,5 @@ export const CACHE_TAGS = {
 export const SCOPED_CACHE_TAGS = {
   BRAND_CONTEXT: (orgId: string) => `brand-ctx:${orgId}`,
   TIKTOK_AUTHORIZED_SIGNALS: (orgId: string) => `tiktok-authz:${orgId}`,
+  TWITTER_AUTHORIZED_SIGNALS: (orgId: string) => `twitter-authz:${orgId}`,
 } as const;

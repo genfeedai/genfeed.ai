@@ -23,11 +23,9 @@ describe('WorkflowCrudController', () => {
   const mockRequest = {} as Request;
 
   const mockUser: User = {
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockWorkflow = {
@@ -115,10 +113,10 @@ describe('WorkflowCrudController', () => {
       const result = await controller.create(mockRequest, createDto, mockUser);
 
       expect(service.createWorkflow).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         createDto,
-        mockUser.publicMetadata.brand,
+        mockUser.brandId,
       );
       expect(result).toBeDefined();
     });
@@ -140,7 +138,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where).toMatchObject({
         isDeleted: false,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
       expect(aggregateArg.where.OR).toBeUndefined();
     });
@@ -162,7 +160,7 @@ describe('WorkflowCrudController', () => {
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
       expect(aggregateArg.where.OR).toEqual([
-        { userId: mockUser.publicMetadata.user },
+        { userId: mockUser.userId },
         {
           metadata: {
             equals: 'organization',
@@ -187,7 +185,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where).toMatchObject({
         brandId,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
     });
   });
@@ -202,8 +200,8 @@ describe('WorkflowCrudController', () => {
       });
 
       expect(service.getWorkflowStatistics).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
       );
       expect(result).toEqual({ data: stats });
     });
@@ -228,7 +226,7 @@ describe('WorkflowCrudController', () => {
 
       expect(
         mockSystemWorkflowCatalogService.listCatalogForOrganization,
-      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization);
+      ).toHaveBeenCalledWith(mockUser.organizationId);
       expect(result).toEqual({ data: catalog });
     });
   });
@@ -241,8 +239,8 @@ describe('WorkflowCrudController', () => {
       const result = await controller.findOne(mockRequest, id, mockUser);
 
       expect(service.findVisibleOrThrow).toHaveBeenCalledWith(id, {
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(result).toBeDefined();
     });
@@ -264,10 +262,10 @@ describe('WorkflowCrudController', () => {
       );
 
       expect(service.createWorkflow).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         { sourceWorkflowId: id },
-        mockUser.publicMetadata.brand,
+        mockUser.brandId,
       );
       expect(result).toBeDefined();
     });
@@ -294,8 +292,8 @@ describe('WorkflowCrudController', () => {
       );
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(service.patch).toHaveBeenCalledWith(id, updateDto);
       expect(result).toBeDefined();
@@ -332,8 +330,8 @@ describe('WorkflowCrudController', () => {
       );
       expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
       expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(result).toBeDefined();
     });
@@ -359,8 +357,8 @@ describe('WorkflowCrudController', () => {
 
       expect(mockWorkflowsService.publishToMarketplace).toHaveBeenCalledWith(
         id,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
       );
       expect(
         mockWorkflowsService.findMutableOwnedOrThrow,
@@ -381,8 +379,8 @@ describe('WorkflowCrudController', () => {
       const result = await controller.remove(mockRequest, id, mockUser);
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(service.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
@@ -401,8 +399,8 @@ describe('WorkflowCrudController', () => {
       ).rejects.toThrow('System workflows are immutable');
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(service.remove).not.toHaveBeenCalled();
     });

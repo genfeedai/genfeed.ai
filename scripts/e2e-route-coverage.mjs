@@ -14,7 +14,7 @@
  *
  * The gate is on DEDICATED coverage by default because that is what reflects
  * intentional, interaction-level testing. Override with:
- *   E2E_ROUTE_COVERAGE_THRESHOLD=80   (percentage, default 80)
+ *   E2E_ROUTE_COVERAGE_THRESHOLD=90   (percentage, default 90)
  *   E2E_ROUTE_COVERAGE_MODE=effective (gate on effective coverage instead)
  *
  * Usage:
@@ -40,7 +40,7 @@ const e2eRoots = [
   path.join(repoRoot, 'playwright/e2e/pages'),
 ];
 
-const THRESHOLD = Number(process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '80');
+const THRESHOLD = Number(process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '90');
 const MODE = process.env.E2E_ROUTE_COVERAGE_MODE ?? 'dedicated';
 
 // ---------------------------------------------------------------------------

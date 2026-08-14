@@ -45,7 +45,6 @@ vi.mock('@hooks/data/agent-runs/use-agent-runs', () => ({
     runs: [
       {
         completedAt: '2026-03-26T10:15:00.000Z',
-        conversation: undefined,
         createdAt: '2026-03-26T10:00:00.000Z',
         creditBudget: undefined,
         creditsUsed: 6,

@@ -4,7 +4,6 @@ import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/gener
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -47,7 +46,8 @@ export class ContentEngineController {
     @Param('brandId') brandId: string,
     @Body() dto: GenerateContentPlanDto,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const data = await this.contentPlannerService.generatePlan(
       organization,
       brandId,
@@ -63,7 +63,7 @@ export class ContentEngineController {
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const docs = await this.contentPlansService.listByBrand(
       organization,
       brandId,
@@ -77,7 +77,7 @@ export class ContentEngineController {
     @CurrentUser() user: User,
     @Param('planId') planId: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const plan = await this.contentPlansService.getByIdOrFail(
       organization,
       planId,
@@ -101,7 +101,7 @@ export class ContentEngineController {
     @Param('planId') planId: string,
     @Body() dto: UpdateContentPlanDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contentPlansService.patch(planId, {
       ...dto,
       organizationId: organization,
@@ -111,7 +111,7 @@ export class ContentEngineController {
 
   @Delete('plans/:planId')
   async deletePlan(@CurrentUser() user: User, @Param('planId') planId: string) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.contentPlanItemsService.softDeleteByPlan(organization, planId);
     return this.contentPlansService.softDelete(organization, planId);
   }
@@ -124,7 +124,8 @@ export class ContentEngineController {
     @Param('brandId') brandId: string,
     @Param('planId') planId: string,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     return this.contentExecutionService.executePlan(
       organization,
       brandId,
@@ -139,7 +140,8 @@ export class ContentEngineController {
     @Param('brandId') brandId: string,
     @Param('itemId') itemId: string,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     return this.contentExecutionService.executeSingleItem(
       organization,
       brandId,

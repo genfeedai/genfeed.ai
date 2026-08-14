@@ -3,7 +3,6 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -346,7 +345,7 @@ export class AgentThreadRuntimeController {
   }
 
   private resolveOrganizationId(user: User): string {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -356,7 +355,7 @@ export class AgentThreadRuntimeController {
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {
-    const { user: metadataUserId } = getPublicMetadata(user);
+    const metadataUserId = user.userId ?? user.id;
     if (metadataUserId) {
       return metadataUserId;
     }

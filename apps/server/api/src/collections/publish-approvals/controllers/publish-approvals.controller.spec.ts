@@ -29,10 +29,8 @@ describe('PublishApprovalsController', () => {
     );
     const user = {
       id: 'user-1',
-      publicMetadata: {
-        organization: 'org-1',
-        user: 'user-1',
-      },
+      organizationId: 'org-1',
+      userId: 'user-1',
     } as User;
 
     await controller.create({} as Request, user, { postId: 'post-1' });

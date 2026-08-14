@@ -17,10 +17,7 @@ export interface ContentPlanConfig {
 export interface ContentPlanDocument
   extends Omit<PrismaContentPlan, 'config' | 'executedCount'>,
     ContentPlanConfig {
-  brand?: string | null;
   config?: Record<string, unknown>;
-  createdBy?: string | null;
-  organization: string;
   [key: string]: unknown;
 }
 

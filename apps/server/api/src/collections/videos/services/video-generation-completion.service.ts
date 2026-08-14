@@ -75,22 +75,22 @@ export class VideoGenerationCompletionService {
   }
 
   private startBackgroundMusic(context: VideoGenerationContext): void {
-    if (!shouldStartBackgroundMusic(context.createVideoDto.backgroundMusic)) {
+    const backgroundMusic = context.createVideoDto.backgroundMusic;
+    if (!backgroundMusic || !shouldStartBackgroundMusic(backgroundMusic)) {
       return;
     }
     const ingredientId = context.ingredientData.id.toString();
     this.videoMusicOrchestrationService
       .orchestrateVideoWithMusic(
         ingredientId,
-        context.createVideoDto.backgroundMusic,
+        backgroundMusic,
         resolveBackgroundMusicDuration(context.createVideoDto.duration),
         resolveBackgroundMusicVolume(context.createVideoDto.musicVolume),
         context.createVideoDto.muteVideoAudio ?? false,
         {
-          authProviderUserId: context.user.id,
           brandId: context.brand.id.toString(),
-          organizationId: context.publicMetadata.organization,
-          userId: context.publicMetadata.user,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId,
         },
       )
       .then((mergedVideoId) => {
@@ -114,8 +114,8 @@ export class VideoGenerationCompletionService {
       this.cancellationService.bindCancelOnAbort({
         abortSignal: context.abortSignal,
         id: context.ingredientData.id.toString(),
-        organizationId: context.publicMetadata.organization,
-        userId: context.publicMetadata.user,
+        organizationId: context.user.organizationId,
+        userId: context.user.userId,
       });
       const completedIngredients =
         await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(

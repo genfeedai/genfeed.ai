@@ -17,9 +17,7 @@ describe('TelegramController', () => {
   const brandId = 'test-object-id';
   const userId = 'test-object-id';
   const mockUser = {
-    publicMetadata: {
-      user: userId,
-    },
+    userId: userId,
   } as Record<string, unknown>;
 
   const validAuthData: TelegramAuthData = {
@@ -117,7 +115,7 @@ describe('TelegramController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should pass publicMetadata.user as userId', async () => {
+    it('should pass identity.userId as userId', async () => {
       await controller.verify(mockUser, orgId, brandId, validAuthData);
       const callArgs = telegramService.verifyAndSaveAuth.mock
         .calls[0] as unknown[];

@@ -10,11 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUser = {
   id: 'user_123',
-  publicMetadata: {
-    brand: '507f1f77bcf86cd799439013',
-    organization: 'org-abc',
-    user: 'user-xyz',
-  },
+  brandId: '507f1f77bcf86cd799439013',
+  organizationId: 'org-abc',
+  userId: 'user-xyz',
 };
 
 const fakeApproval = {
@@ -196,8 +194,8 @@ describe('McpApprovalsController', () => {
         'approve',
         { ok: true },
         expect.objectContaining({
-          organization: 'org-abc',
-          user: 'user-xyz',
+          organizationId: 'org-abc',
+          userId: 'user-xyz',
         }),
       );
       expect(result.data).toMatchObject({

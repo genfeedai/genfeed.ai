@@ -383,10 +383,10 @@ export function useWorkspaceTaskComposer({
       const service = PromptsService.getInstance(token);
       const prompt = await service.post(
         new Prompt({
-          brand: effectiveTaskBrandId,
+          brandId: effectiveTaskBrandId,
           category: PromptCategory.ARTICLE,
           isSkipEnhancement: false,
-          organization: organizationId,
+          organizationId,
           original: normalizedRequest,
           systemPromptKey: SystemPromptKey.DEFAULT,
           useRAG: true,

@@ -5,7 +5,6 @@ import { TrackedLinksService } from '@api/collections/tracked-links/services/tra
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -44,7 +43,7 @@ export class TrackedLinksController {
     @Body() dto: CreateTrackedLinkDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.trackedLinksService.generateTrackingLink(
       dto,
       organization,
@@ -62,7 +61,7 @@ export class TrackedLinksController {
     @Param('id') linkId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.trackedLinksService.getById(linkId, organization);
     return serializeSingle(req, TrackedLinkSerializer, data);
   }
@@ -79,7 +78,7 @@ export class TrackedLinksController {
     @Query('campaignName') campaignName: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     if (contentId) {
       const docs = await this.trackedLinksService.getContentLinks(
@@ -108,7 +107,7 @@ export class TrackedLinksController {
     @Param('id') linkId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.trackedLinksService.getLinkPerformance(
       linkId,
       organization,
@@ -124,7 +123,7 @@ export class TrackedLinksController {
     @Param('contentId') contentId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.trackedLinksService.getContentCTAStats(
       contentId,
       organization,
@@ -142,7 +141,7 @@ export class TrackedLinksController {
     @Body() updates: Record<string, unknown>,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.trackedLinksService.update(
       linkId,
       organization,
@@ -157,7 +156,7 @@ export class TrackedLinksController {
   @Delete('links/:id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async deleteLink(@Param('id') linkId: string, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.trackedLinksService.delete(linkId, organization);
     return { success: true };
   }

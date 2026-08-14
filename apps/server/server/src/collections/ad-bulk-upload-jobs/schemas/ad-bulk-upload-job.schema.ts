@@ -15,9 +15,6 @@ export interface BulkUploadError {
 }
 
 export type AdBulkUploadJobDocument = Omit<AdBulkUploadJob, 'data'> & {
-  organization?: string;
-  brand?: string;
-  credential?: string;
   status?: BulkUploadStatus;
   totalPermutations?: number;
   completedPermutations?: number;

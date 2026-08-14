@@ -34,7 +34,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   finalizeDeferredTextCredits,
   finalizeOutputCredits,
@@ -108,19 +107,18 @@ export class PostsGenerationController {
     @CurrentUser() user: User,
     @Body() dto: GenerateSourcePostVariationsDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const source = request.resolvedPostVariationSource;
     if (!source) {
       throw new NotFoundException('Source post');
     }
 
     const result = await this.postVariationService.generate({
-      brandId: publicMetadata.brand,
+      brandId: user.brandId,
       count: dto.count,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: dto.platform,
       source,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
     finalizeOutputCredits(request, result.meta.creditCost);
 
@@ -155,15 +153,13 @@ export class PostsGenerationController {
     @Param('postId') postId: string,
     @Body() dto: RepurposePostDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const result = await this.postRepurposeService.repurpose({
       credentialId: dto.credentialId,
       mode: dto.mode,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: dto.platform,
       postId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (dto.mode === PostRepurposeMode.AGENT) {
@@ -183,8 +179,6 @@ export class PostsGenerationController {
     @Body() dto: GenerateAccountPostDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     if (isAccountThreadFormat(dto.format)) {
       const invalidCount = invalidThreadCountMessage(dto.count);
       if (invalidCount) {
@@ -200,7 +194,7 @@ export class PostsGenerationController {
       const createdPosts =
         await this.postGenerationService.startAccountContentGeneration(
           dto,
-          publicMetadata,
+          user,
         );
 
       return serializeCollection(request, PostListSerializer, {
@@ -244,8 +238,6 @@ export class PostsGenerationController {
     @Param('postId') postId: string,
     @Body() dto: ExpandToThreadDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const originalPost = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -259,7 +251,7 @@ export class PostsGenerationController {
       );
     }
 
-    if (!isOwnedPost(originalPost, publicMetadata.organization)) {
+    if (!isOwnedPost(originalPost, user.organizationId)) {
       throw createPostsGenerationHttpException(
         'You do not have access to this post',
         'Access denied',
@@ -295,19 +287,19 @@ export class PostsGenerationController {
 
     for (let i = 0; i < additionalCount; i++) {
       const childPost = await this.postsService.create({
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: PostCategory.TEXT,
         credentialId: originalPost.credentialId ?? undefined,
         description: 'Generating...',
         ingredients: [],
         label: '',
         order: i + 1,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         parentId: postId,
         platform:
           parsePlatform(originalPost.platform) ?? CredentialPlatform.TWITTER,
         targetExecutionState: TargetExecutionState.PUBLISHING,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       });
       createdPosts.push(childPost);
     }
@@ -317,12 +309,7 @@ export class PostsGenerationController {
     });
 
     this.postGenerationService
-      .expandThreadAsync(
-        originalPost,
-        createdPosts.slice(1),
-        dto,
-        publicMetadata,
-      )
+      .expandThreadAsync(originalPost, createdPosts.slice(1), dto, user)
       .catch((error) => {
         this.logger.error('Failed to expand thread asynchronously', error);
       });
@@ -349,8 +336,6 @@ export class PostsGenerationController {
     @Body() dto: EnhancePostDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const post = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -358,7 +343,7 @@ export class PostsGenerationController {
 
     const enhanceAccess = postAccessBlockReason(
       post,
-      publicMetadata.organization,
+      user.organizationId,
       postId,
     );
     if (enhanceAccess) {
@@ -368,14 +353,13 @@ export class PostsGenerationController {
         enhanceAccess.status,
       );
     }
+    if (!post) {
+      throw new NotFoundException('Post', postId);
+    }
 
     try {
       const enhancedDescription =
-        await this.postGenerationService.enhanceDescription(
-          post,
-          dto,
-          publicMetadata,
-        );
+        await this.postGenerationService.enhanceDescription(post, dto, user);
       const updatedPost = await this.postsService.patch(postId, {
         description: enhancedDescription,
       });
@@ -409,18 +393,12 @@ export class PostsGenerationController {
     @Body() dto: ScoreSeoDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const post = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
 
-    const seoAccess = postAccessBlockReason(
-      post,
-      publicMetadata.organization,
-      postId,
-    );
+    const seoAccess = postAccessBlockReason(post, user.organizationId, postId);
     if (seoAccess) {
       throw createPostsGenerationHttpException(
         seoAccess.detail,
@@ -431,7 +409,7 @@ export class PostsGenerationController {
 
     await this.seoScorerService.scorePost(
       postId,
-      publicMetadata.organization,
+      user.organizationId,
       dto.targetKeyword,
     );
 
@@ -456,13 +434,8 @@ export class PostsGenerationController {
     @Body() dto: GenerateHooksDto,
     @Req() _request: Request,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
-      return await this.postGenerationService.generateHookVariations(
-        dto,
-        publicMetadata,
-      );
+      return await this.postGenerationService.generateHookVariations(dto, user);
     } catch (error: unknown) {
       const errorMessage = generationFailureMessage(error, 'Unknown error');
       this.logger.error(`Hook generation failed: ${errorMessage}`);

@@ -8,7 +8,6 @@ import {
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -46,7 +45,7 @@ export class AdminFleetOperationsController {
   })
   async listCampaigns(@Req() request: Request, @CurrentUser() user: User) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const campaigns =
         await this.adminFleetService.listCampaigns(organization);
       const data = campaigns.map((campaign: (typeof campaigns)[number]) => ({
@@ -79,7 +78,7 @@ export class AdminFleetOperationsController {
   })
   async getPipelineStats(@Req() request: Request, @CurrentUser() user: User) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const stats = await this.adminFleetService.getPipelineStats(organization);
       const data = {
         assetsGenerated: stats.assets.total,

@@ -9,7 +9,6 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
@@ -60,10 +59,9 @@ export class GoogleAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -78,7 +76,7 @@ export class GoogleAdsController {
 
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
-      publicMetadata.user,
+      user.userId ?? user.id,
       CredentialPlatform.GOOGLE_ADS,
       {
         isConnected: false,
@@ -109,13 +107,12 @@ export class GoogleAdsController {
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const credential = await this.credentialsService.findPendingOAuthCredential(
       body.state,
       CredentialPlatform.GOOGLE_ADS,
       {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -314,9 +311,8 @@ export class GoogleAdsController {
    * Token is encrypted at rest in the database and decrypted when retrieved.
    */
   private async getAccessTokenFromCredential(user: User): Promise<string> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization as string;
-    const userId = publicMetadata.user as string;
+    const organizationId = user.organizationId as string;
+    const userId = (user.userId ?? user.id) as string;
 
     const credential = await this.credentialsService.findOne({
       isConnected: true,

@@ -1,5 +1,5 @@
+import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,7 +38,7 @@ export class CreditsInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
+    const identity: AuthenticatedUser = user;
 
     return next.handle().pipe(
       tap({
@@ -49,7 +49,7 @@ export class CreditsInterceptor implements NestInterceptor {
           // Don't deduct credits if the operation failed
           this.loggerService.debug('Operation failed, credits not deducted', {
             amount: currentCreditsConfig?.amount,
-            organizationId: publicMetadata.organization,
+            organizationId: identity.organizationId,
           });
         },
         next: () => {
@@ -65,7 +65,7 @@ export class CreditsInterceptor implements NestInterceptor {
             this.loggerService.debug(
               'Credits deduction skipped: no finalized credits config',
               {
-                organizationId: publicMetadata.organization,
+                organizationId: identity.organizationId,
               },
             );
             return;
@@ -75,7 +75,7 @@ export class CreditsInterceptor implements NestInterceptor {
             void this.creditDeductionQueueService.queueByokUsage({
               amount: currentCreditsConfig.amount || 0,
               description: currentCreditsConfig.description,
-              organizationId: publicMetadata.organization,
+              organizationId: identity.organizationId,
               source: currentCreditsConfig.source || ActivitySource.SCRIPT,
               type: 'record-byok-usage',
             });
@@ -84,10 +84,10 @@ export class CreditsInterceptor implements NestInterceptor {
               amount: currentCreditsConfig.amount || 0,
               description: currentCreditsConfig.description,
               maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
-              organizationId: publicMetadata.organization,
+              organizationId: identity.organizationId,
               source: currentCreditsConfig.source || ActivitySource.SCRIPT,
               type: 'deduct-credits',
-              userId: publicMetadata.user,
+              userId: identity.userId,
             });
           }
 

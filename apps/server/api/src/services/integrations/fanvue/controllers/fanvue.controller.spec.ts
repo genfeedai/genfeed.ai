@@ -11,13 +11,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn().mockImplementation((detail) => ({
     errors: [{ ...detail, status: '400' }],
@@ -64,7 +57,8 @@ describe('FanvueController', () => {
   const brandId = 'test-object-id';
 
   const mockUser = {
-    publicMetadata: { organization: orgId, user: '507f1f77bcf86cd799439011' },
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockReq = {

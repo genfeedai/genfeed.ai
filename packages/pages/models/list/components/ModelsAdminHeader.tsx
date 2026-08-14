@@ -1,7 +1,7 @@
 'use client';
 
-import type { StatsCardItem } from '@genfeedai/props/ui/cards/stats-cards.props';
-import StatsCards from '@ui/card/stats/StatsCards';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import type { DefaultModelCard } from './models-admin-header.helpers';
 
 type ModelsAdminHeaderProps = {
@@ -13,8 +13,40 @@ export default function ModelsAdminHeader({
   defaultModelCards,
   isLoadingDefaults,
 }: ModelsAdminHeaderProps) {
-  // Lucide IconType is assignable at runtime; StatsCards only needs a component.
-  const statsItems = defaultModelCards as unknown as StatsCardItem[];
+  if (isLoadingDefaults) {
+    return (
+      <MetricCardGrid className="mb-6" columns={4}>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <MetricCard
+            key={`loading-${index}`}
+            isLoading
+            label="Loading"
+            size="sm"
+            value="0"
+          />
+        ))}
+      </MetricCardGrid>
+    );
+  }
 
-  return <StatsCards items={statsItems} isLoading={isLoadingDefaults} />;
+  if (defaultModelCards.length === 0) {
+    return null;
+  }
+
+  return (
+    <MetricCardGrid className="mb-6" columns={4}>
+      {defaultModelCards.map((stat) => (
+        <MetricCard
+          key={stat.label}
+          className={stat.cardClassName}
+          description={stat.description}
+          icon={stat.icon}
+          iconClassName={stat.colorClass}
+          label={stat.label}
+          size="sm"
+          value={String(stat.count)}
+        />
+      ))}
+    </MetricCardGrid>
+  );
 }

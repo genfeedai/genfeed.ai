@@ -13,15 +13,13 @@ import {
 } from '@genfeedai/enums';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
-const makeUser = (overrides: Partial<User['publicMetadata']> = {}): User =>
+const makeUser = (overrides: Partial<User> = {}): User =>
   ({
-    publicMetadata: {
-      organization: 'org-1',
-      brand: 'brand-1',
-      user: 'user-1',
-      role: 'member',
-      ...overrides,
-    },
+    organizationId: 'org-1',
+    brandId: 'brand-1',
+    userId: 'user-1',
+    role: 'member',
+    ...overrides,
   }) as unknown as User;
 
 describe('PostsController.buildFindAllQuery', () => {
@@ -80,13 +78,7 @@ describe('PostsController.buildFindAllQuery', () => {
     expect(result.where).toMatchObject({
       AND: [
         {
-          OR: expect.arrayContaining([
-            {
-              targetExecutionState: {
-                in: [TargetExecutionState.PUBLISHED],
-              },
-            },
-          ]),
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         },
       ],
     });
@@ -100,37 +92,35 @@ describe('PostsController.buildFindAllQuery', () => {
       AND: [
         {
           NOT: {
-            OR: expect.arrayContaining([
-              {
-                targetExecutionState: {
-                  in: [TargetExecutionState.PUBLISHED],
-                },
-              },
-            ]),
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           },
         },
       ],
     });
   });
 
-  it('lets an explicit status filter win over publicationState', () => {
+  it('lets an explicit executionState filter win over publicationState', () => {
     const query = {
+      executionState: TargetExecutionState.FAILED,
       publicationState: 'posted',
-      status: PostStatus.FAILED,
     } as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
     expect(result.where).toMatchObject({
       AND: [
         {
-          OR: expect.arrayContaining([
-            {
-              targetExecutionState: { in: [TargetExecutionState.FAILED] },
-            },
-          ]),
+          targetExecutionState: TargetExecutionState.FAILED,
         },
       ],
     });
+    expect(JSON.stringify(result.where)).not.toContain('"status"');
+  });
+
+  it('ignores leftover Post.status query params', () => {
+    const query = { status: 'draft' } as PostsQueryDto & { status: string };
+    const result = controller.buildFindAllQuery(makeUser(), query);
+
+    expect(JSON.stringify(result.where)).not.toContain('"status"');
   });
 });
 
@@ -189,7 +179,7 @@ describe('PostsController.create account-health warmup gate', () => {
       ingredients: [],
       label: 'Scheduled content',
       scheduledDate: new Date('2026-07-01T10:00:00.000Z'),
-      status: PostStatus.SCHEDULED,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
       tags: [],
     });
 
@@ -239,7 +229,7 @@ describe('PostsController.create account-health warmup gate', () => {
           ingredients: [],
           label: 'Scheduled content',
           scheduledDate: new Date('2026-07-01T10:00:00.000Z'),
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
           tags: [],
         },
       ),
@@ -249,6 +239,39 @@ describe('PostsController.create account-health warmup gate', () => {
       }),
     });
     expect(credentialsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('treats omitted execution state as draft when no scheduled date is set', async () => {
+    const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
+    const controller = new PostsController(
+      {} as never,
+      {} as never,
+      credentialsService as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { error: vi.fn(), log: vi.fn() } as never,
+    );
+
+    await expect(
+      controller.create(
+        request,
+        makeUser({
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+        }),
+        {
+          category: PostCategory.TEXT,
+          credentialId: 'credential-1',
+          description: 'Draft content',
+          ingredients: [],
+          label: 'Draft content',
+          tags: [],
+        },
+      ),
+    ).rejects.toBeDefined();
+    expect(credentialsService.findOne).toHaveBeenCalled();
   });
 
   it('declares all dynamically resolved post creation scopes', () => {
@@ -273,11 +296,11 @@ describe('PostsController.patch publishing scopes', () => {
   } as never;
   const postId = 'ckpost0000000000000000001';
 
-  const makeController = (existingStatus: PostStatus) => {
+  const makeController = (existingState: TargetExecutionState) => {
     const postsService = {
       findOne: vi.fn().mockResolvedValue({
         id: postId,
-        status: existingStatus,
+        targetExecutionState: existingState,
         userId: 'user-1',
       }),
       patch: vi.fn(),
@@ -300,29 +323,29 @@ describe('PostsController.patch publishing scopes', () => {
   it.each([
     [
       'moving a draft to scheduled',
-      PostStatus.DRAFT,
-      { status: PostStatus.SCHEDULED },
+      TargetExecutionState.DRAFT,
+      { targetExecutionState: TargetExecutionState.SCHEDULED },
       [ApiKeyScope.POSTS_CREATE],
       ApiKeyScope.POSTS_SCHEDULE,
     ],
     [
       'editing an existing scheduled post',
-      PostStatus.SCHEDULED,
+      TargetExecutionState.SCHEDULED,
       { label: 'Changed label' },
       [ApiKeyScope.POSTS_CREATE],
       ApiKeyScope.POSTS_SCHEDULE,
     ],
     [
-      'moving a draft to public',
-      PostStatus.DRAFT,
-      { status: PostStatus.PUBLIC },
+      'moving a draft to published',
+      TargetExecutionState.DRAFT,
+      { targetExecutionState: TargetExecutionState.PUBLISHED },
       [ApiKeyScope.POSTS_SCHEDULE],
       ApiKeyScope.POSTS_PUBLISH,
     ],
   ])(
     'fails closed before writes when %s',
-    async (_case, existingStatus, updateDto, scopes, requiredScope) => {
-      const { controller, postsService } = makeController(existingStatus);
+    async (_case, existingState, updateDto, scopes, requiredScope) => {
+      const { controller, postsService } = makeController(existingState);
 
       await expect(
         controller.patch(

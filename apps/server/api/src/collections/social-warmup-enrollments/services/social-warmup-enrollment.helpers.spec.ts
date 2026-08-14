@@ -1,12 +1,17 @@
 import {
+  authorizedEvidenceFromWarmupSignals,
   completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   mapTikTokSource,
   mapTikTokStatus,
   resolveSocialWarmupAccountAge,
   safeSignalEvidence,
+  socialWarmupEnrollmentStateFromStorage,
+  socialWarmupEventRecordFromStorage,
+  socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import {
+  SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
@@ -14,6 +19,32 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('social-warmup-enrollment helpers', () => {
+  it('normalizes Prisma storage strings at the public enum boundary', () => {
+    expect(socialWarmupEnrollmentStateFromStorage('IN_PROGRESS')).toBe(
+      SocialWarmupEnrollmentState.IN_PROGRESS,
+    );
+    expect(
+      socialWarmupEventRecordFromStorage({
+        action: 'COMPLETED',
+        itemId: 'native-profile-complete',
+        occurredAt: new Date('2026-08-14T00:00:00.000Z'),
+      }).action,
+    ).toBe(SocialWarmupEventAction.COMPLETED);
+    expect(
+      socialWarmupSignalRecordFromStorage({
+        key: 'native-account-age',
+        source: 'GENFEED',
+        status: 'AVAILABLE',
+      }),
+    ).toMatchObject({
+      source: SocialWarmupSignalSource.GENFEED,
+      status: SocialWarmupSignalStatus.AVAILABLE,
+    });
+    expect(() => socialWarmupEnrollmentStateFromStorage('UNKNOWN')).toThrow(
+      'Unsupported social warm-up enrollment state',
+    );
+  });
+
   it('keeps the latest complete/reopen outcome per checklist item', () => {
     expect(
       completedItemIdsFromEvents([
@@ -126,6 +157,40 @@ describe('social-warmup-enrollment helpers', () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it('detects partial X scopes without treating a full snapshot as limited', () => {
+    expect(
+      hasPartialSocialWarmupScopes({
+        twitterAuthorized: {
+          evidence: [{ status: 'permission_limited' }],
+          grantedScopes: ['users.read'],
+          state: 'partial',
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      hasPartialSocialWarmupScopes({
+        twitterAuthorized: {
+          evidence: [{ status: 'available' }],
+          grantedScopes: ['users.read', 'tweet.read'],
+          state: 'full',
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('reads authorized evidence from TikTok or X warmup snapshots', () => {
+    expect(
+      authorizedEvidenceFromWarmupSignals({
+        twitterAuthorized: {
+          evidence: [
+            { key: 'native-account-age', provenance: 'platform_verified' },
+          ],
+        },
+      }),
+    ).toEqual([{ key: 'native-account-age', provenance: 'platform_verified' }]);
   });
 
   it('maps TikTok snapshot labels and strips secret evidence keys', () => {

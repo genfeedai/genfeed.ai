@@ -19,7 +19,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
@@ -67,7 +66,7 @@ export class ProfilesController {
     @Body() dto: CreateProfileDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const profile = await this.profilesService.create(
       dto,
       organization,
@@ -87,7 +86,7 @@ export class ProfilesController {
     @Query('search') search?: string,
     @Query('isDefault') isDefault?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const docs = await this.profilesService.findAll(organization, {
       isDefault: isDefault ? isDefault === 'true' : undefined,
@@ -106,7 +105,7 @@ export class ProfilesController {
     @Param('profileId') profileId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const profile = await this.profilesService.findOne(profileId, organization);
     return serializeSingle(req, ProfileSerializer, profile);
   }
@@ -122,7 +121,7 @@ export class ProfilesController {
     @Body() dto: UpdateProfileDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const profile = await this.profilesService.update(
       profileId,
       dto,
@@ -140,7 +139,7 @@ export class ProfilesController {
     @Param('profileId') profileId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.profilesService.remove(profileId, organization);
     return { message: 'Profile deleted successfully' };
   }
@@ -161,7 +160,7 @@ export class ProfilesController {
     @Body() dto: ApplyProfileDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -197,7 +196,7 @@ export class ProfilesController {
     @Body() dto: AnalyzeToneDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -233,7 +232,7 @@ export class ProfilesController {
     @Body() dto: GenerateFromExamplesDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),

@@ -1,12 +1,8 @@
-import type {
-  IAuthPublicMetadata,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
@@ -49,20 +45,19 @@ export class VoiceCloneService {
     request: Request,
   ): Promise<IngredientDocument> {
     this.validateInput(dto, file);
-    const publicMetadata = getPublicMetadata(user);
     const provider = dto.provider ?? VoiceProvider.ELEVENLABS;
 
     try {
       if (provider === VoiceProvider.ELEVENLABS) {
         await this.voiceCreditsService.settleElevenLabsCloneCredits(
           request,
-          publicMetadata.organization,
+          user.organizationId,
         );
-        return await this.cloneWithElevenLabs(user, dto, file, publicMetadata);
+        return await this.cloneWithElevenLabs(user, dto, file);
       }
 
       if (provider === VoiceProvider.GENFEED_AI) {
-        return await this.cloneWithGenfeedAi(user, dto, publicMetadata);
+        return await this.cloneWithGenfeedAi(user, dto);
       }
 
       throw new HttpException(
@@ -93,9 +88,8 @@ export class VoiceCloneService {
     user: User,
     id: string,
   ): Promise<IngredientDocument | null> {
-    const publicMetadata = getPublicMetadata(user);
     const voice = await this.voicesService.findOne(
-      scopedWhere(publicMetadata.organization, {
+      scopedWhere(user.organizationId, {
         id: id,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VOICE,
@@ -119,7 +113,7 @@ export class VoiceCloneService {
         voiceRecord.voiceProvider === VoiceProvider.ELEVENLABS
       ) {
         const byokKey = await this.byokService.resolveApiKey(
-          publicMetadata.organization,
+          user.organizationId,
           ByokProvider.ELEVENLABS,
         );
         await this.elevenLabsService.deleteVoice(
@@ -165,10 +159,9 @@ export class VoiceCloneService {
     user: User,
     dto: CloneVoiceDto,
     file: Express.Multer.File | undefined,
-    publicMetadata: IAuthPublicMetadata,
   ): Promise<IngredientDocument> {
     const byokKey = await this.byokService.resolveApiKey(
-      publicMetadata.organization,
+      user.organizationId,
       ByokProvider.ELEVENLABS,
     );
     const result = await this.elevenLabsService.cloneVoice(
@@ -189,10 +182,10 @@ export class VoiceCloneService {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VOICE,
         label: dto.name,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         status: IngredientStatus.GENERATED,
       },
     );
@@ -218,7 +211,7 @@ export class VoiceCloneService {
     await this.notificationsPublisherService.publishAssetStatus(
       ingredientId,
       VoiceCloneStatus.READY,
-      publicMetadata.user,
+      user.userId ?? user.id,
       {
         cloneStatus: VoiceCloneStatus.READY,
         provider: VoiceProvider.ELEVENLABS,
@@ -231,35 +224,34 @@ export class VoiceCloneService {
   private async cloneWithGenfeedAi(
     user: User,
     dto: CloneVoiceDto,
-    publicMetadata: IAuthPublicMetadata,
   ): Promise<IngredientDocument> {
     await this.assertGenfeedAiAvailable(dto);
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VOICE,
         label: dto.name,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
       },
     );
     const ingredientId = String(ingredientData.id);
 
-    await this.markGenfeedAiCloneStarted(ingredientId, dto, publicMetadata);
+    await this.markGenfeedAiCloneStarted(ingredientId, dto, user);
     const result = await this.fleetService.cloneVoice({
       audioUrl: dto.audioUrl as string,
       handle: ingredientId,
       label: dto.name,
     });
     if (!result) {
-      return await this.markGenfeedAiCloneFailed(ingredientId, publicMetadata);
+      return await this.markGenfeedAiCloneFailed(ingredientId, user);
     }
 
     await this.voicesService.patchAll(
       {
         id: ingredientId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       {
         providerData: {
@@ -306,12 +298,12 @@ export class VoiceCloneService {
   private async markGenfeedAiCloneStarted(
     ingredientId: string,
     dto: CloneVoiceDto,
-    publicMetadata: IAuthPublicMetadata,
+    user: User,
   ): Promise<void> {
     await this.voicesService.patchAll(
       {
         id: ingredientId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       {
         cloneStatus: VoiceCloneStatus.CLONING,
@@ -326,7 +318,7 @@ export class VoiceCloneService {
     await this.notificationsPublisherService.publishAssetStatus(
       ingredientId,
       VoiceCloneStatus.CLONING,
-      publicMetadata.user,
+      user.userId ?? user.id,
       {
         cloneStatus: VoiceCloneStatus.CLONING,
         progress: 10,
@@ -337,12 +329,12 @@ export class VoiceCloneService {
 
   private async markGenfeedAiCloneFailed(
     ingredientId: string,
-    publicMetadata: IAuthPublicMetadata,
+    user: User,
   ): Promise<never> {
     await this.voicesService.patchAll(
       {
         id: ingredientId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       {
         cloneStatus: VoiceCloneStatus.FAILED,
@@ -352,7 +344,7 @@ export class VoiceCloneService {
     await this.notificationsPublisherService.publishAssetStatus(
       ingredientId,
       VoiceCloneStatus.FAILED,
-      publicMetadata.user,
+      user.userId ?? user.id,
       {
         cloneStatus: VoiceCloneStatus.FAILED,
         provider: VoiceProvider.GENFEED_AI,

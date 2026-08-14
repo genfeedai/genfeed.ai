@@ -30,8 +30,25 @@ export const ALLOW_UNKNOWN_PROPERTIES: unique symbol = Symbol.for(
   'genfeedai:validation:allow-unknown-properties',
 );
 
+/**
+ * Static opt-in marker for rejecting undeclared properties with 400.
+ *
+ * The pipe's default is `{ whitelist: true }` without `forbidNonWhitelisted`,
+ * so leftover fields are stripped silently. Post create/update/query DTOs opt
+ * in so a leftover `status` cannot be dropped and then defaulted into a
+ * schedule. Mutually exclusive with {@link ALLOW_UNKNOWN_PROPERTIES}.
+ *
+ * ```ts
+ * static readonly [FORBID_NON_WHITELISTED] = true;
+ * ```
+ */
+export const FORBID_NON_WHITELISTED: unique symbol = Symbol.for(
+  'genfeedai:validation:forbid-non-whitelisted',
+);
+
 interface UnknownPropertyAwareMetatype {
   [ALLOW_UNKNOWN_PROPERTIES]?: boolean;
+  [FORBID_NON_WHITELISTED]?: boolean;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -153,8 +170,11 @@ export class ValidationPipe implements PipeTransform<unknown> {
       return;
     }
 
+    const forbidsNonWhitelisted = this.forbidsNonWhitelisted(metatype);
     const errors = await validate(object, {
-      whitelist: !this.allowsUnknownProperties(metatype),
+      forbidNonWhitelisted: forbidsNonWhitelisted,
+      whitelist:
+        forbidsNonWhitelisted || !this.allowsUnknownProperties(metatype),
     });
     if (errors.length > 0) {
       const messages = errors.map((error) => ({
@@ -173,6 +193,14 @@ export class ValidationPipe implements PipeTransform<unknown> {
     return (
       typeof metatype === 'function' &&
       (metatype as UnknownPropertyAwareMetatype)[ALLOW_UNKNOWN_PROPERTIES] ===
+        true
+    );
+  }
+
+  private forbidsNonWhitelisted(metatype: unknown): boolean {
+    return (
+      typeof metatype === 'function' &&
+      (metatype as UnknownPropertyAwareMetatype)[FORBID_NON_WHITELISTED] ===
         true
     );
   }

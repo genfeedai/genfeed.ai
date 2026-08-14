@@ -36,7 +36,6 @@ import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { CronJobsModule } from '@api/collections/cron-jobs/cron-jobs.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
 import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
 import { DistributionsModule } from '@api/collections/distributions/distributions.module';
@@ -271,7 +270,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BrandInterviewModule,
     BrandsModule,
     OutreachCampaignsModule,
-    CronJobsModule,
     CaptionsModule,
     ClipProjectsModule,
     EditorProjectsModule,

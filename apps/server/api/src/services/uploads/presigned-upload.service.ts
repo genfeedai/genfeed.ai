@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -100,15 +99,13 @@ export class PresignedUploadService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const publicMetadata = getPublicMetadata(user);
-
     // Find and update the ingredient status
     const ingredient = await this.ingredientsService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       [{ path: 'metadata' }],
     );

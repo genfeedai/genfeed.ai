@@ -17,10 +17,8 @@ describe('GoalsController.canUserModifyEntity', () => {
   );
 
   const mockUser = {
-    publicMetadata: {
-      organization: organizationId,
-      user: '507f191e810c19729de860ef',
-    },
+    organizationId: organizationId,
+    userId: '507f191e810c19729de860ef',
   } as unknown as User;
 
   it('allows modification when the canonical organization ID matches', () => {

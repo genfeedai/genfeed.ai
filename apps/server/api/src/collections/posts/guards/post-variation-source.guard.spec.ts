@@ -23,11 +23,9 @@ describe('PostVariationSourceGuard', () => {
       body,
       user: {
         id: 'auth-user',
-        publicMetadata: {
-          brand: 'brand-1',
-          organization: 'org-1',
-          user: 'user-1',
-        },
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
       },
     } as unknown as SourcePostVariationRequest;
     const context = {

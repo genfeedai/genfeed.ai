@@ -19,7 +19,7 @@ const createContext = (
   const req: Record<string, unknown> = {
     body,
     params: {},
-    user: { id: 'user-1', publicMetadata: { organization: orgId } },
+    user: { id: 'user-1', organizationId: orgId },
   };
   return {
     getClass: vi.fn(),
@@ -318,7 +318,7 @@ describe('CreditsGuard', () => {
     const req: Record<string, unknown> = {
       body: {},
       params: {},
-      user: { id: 'user-1', publicMetadata: {} },
+      user: { id: 'user-1' },
     };
     const ctx = {
       getClass: vi.fn(),

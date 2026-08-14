@@ -1,6 +1,6 @@
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'vitest';
+import { runContract } from './executable-contract-runner';
 
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -97,26 +97,12 @@ const REPOSITORY_CONTRACTS = [
   },
 ] as const;
 
-function runContract(command: readonly string[]): void {
-  const [bin, ...args] = command;
-  const result = spawnSync(bin, args, {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      `${command.join(' ')} exited ${String(result.status)}\n${result.stdout ?? ''}${result.stderr ?? ''}`,
-    );
-  }
-}
-
 describe('executable repository contracts', () => {
   it.each(REPOSITORY_CONTRACTS)(
     '$name holds on this repository',
     { timeout: 180_000 },
     ({ command }) => {
-      runContract(command);
+      runContract(command, repositoryRoot);
     },
   );
 });

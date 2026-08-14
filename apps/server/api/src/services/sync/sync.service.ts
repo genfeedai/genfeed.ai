@@ -7,7 +7,6 @@ import type {
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -133,7 +132,7 @@ export class SyncService {
   }
 
   async getStatus(user: User): Promise<SyncStatusResponse> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     // Fetch all non-deleted workflows for this org
     const allWorkflows =
@@ -159,7 +158,7 @@ export class SyncService {
     localWorkflowId: string,
     authProviderToken: string,
   ): Promise<PushWorkflowResponse> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     // 1. Find the local workflow
     const workflow = (await this.workflowsService.findOne({
@@ -256,7 +255,8 @@ export class SyncService {
     remoteWorkflowId: string,
     authProviderToken: string,
   ): Promise<PullWorkflowResponse> {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const apiUrl = this.configService.get('GENFEEDAI_API_URL');
 
     // 1. Fetch workflow from cloud API

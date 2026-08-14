@@ -12,11 +12,9 @@ describe('PresetsController', () => {
   let controller: PresetsController;
 
   const mockUser: User = {
-    publicMetadata: {
-      isSuperAdmin: true,
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    },
+    isSuperAdmin: true,
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
   const mockPreset = {
@@ -120,11 +118,9 @@ describe('PresetsController', () => {
 
     it('should add organization for non-superadmin', () => {
       const regularUser: User = {
-        publicMetadata: {
-          isSuperAdmin: false,
-          organization: 'cmorganization000000000000001',
-          user: 'cmuser0000000000000000001',
-        },
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
       } as unknown as User;
 
       const createDto: CreatePresetDto = {
@@ -149,11 +145,9 @@ describe('PresetsController', () => {
 
     it('should deny non-admin modifying default presets', () => {
       const regularUser: User = {
-        publicMetadata: {
-          isSuperAdmin: false,
-          organization: 'cmorganization000000000000001',
-          user: 'cmuser0000000000000000001',
-        },
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
       } as unknown as User;
 
       const entity = { organizationId: null };
@@ -164,11 +158,9 @@ describe('PresetsController', () => {
 
     it('should allow modifying own organization presets', () => {
       const regularUser: User = {
-        publicMetadata: {
-          isSuperAdmin: false,
-          organization: 'cmorganization000000000000001',
-          user: 'cmuser0000000000000000001',
-        },
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
       } as unknown as User;
 
       const entity = {

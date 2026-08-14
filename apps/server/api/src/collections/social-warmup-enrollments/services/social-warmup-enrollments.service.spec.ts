@@ -10,7 +10,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
@@ -308,5 +311,118 @@ describe('SocialWarmupEnrollmentsService', () => {
         }),
       }),
     );
+  });
+
+  it('seeds enrollment signals from a stored X authorized snapshot', async () => {
+    credential.findFirst.mockResolvedValue(
+      makeCredential({
+        platform: CredentialPlatform.TWITTER,
+        warmupSignals: {
+          twitterAuthorized: {
+            evidence: [
+              {
+                fieldAvailability: { createdAt: 'available' },
+                key: 'native-account-age',
+                observedAt: '2026-08-14T08:00:00.000Z',
+                provenance: 'platform_verified',
+                status: 'available',
+                value: { createdAt: '2018-01-01T00:00:00.000Z' },
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    await service.enrollScoped({ credentialId: 'credential-1' }, context);
+
+    expect(socialWarmupEnrollment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blueprintId: TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+          blueprintVersion: TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+          signals: {
+            create: [
+              expect.objectContaining({
+                key: 'native-account-age',
+                source: SocialWarmupSignalSource.PLATFORM,
+                status: SocialWarmupSignalStatus.AVAILABLE,
+              }),
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('upserts enrollment signals from a refreshed X authorized snapshot', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      id: 'enrollment-1',
+      organizationId: 'org-1',
+    });
+    socialWarmupSignal.findFirst.mockResolvedValue(null);
+
+    await service.syncTwitterAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot: {
+        credentialId: 'credential-1',
+        evidence: [
+          {
+            fieldAvailability: { createdAt: 'available' },
+            key: 'native-account-age',
+            observedAt: '2026-08-14T08:00:00.000Z',
+            provenance: 'platform_verified',
+            scope: {
+              granted: ['users.read'],
+              missing: [],
+              required: ['users.read'],
+            },
+            staleAt: null,
+            status: 'available',
+            value: { createdAt: '2018-01-01T00:00:00.000Z' },
+          },
+        ],
+        grantedScopes: ['users.read'],
+        platform: CredentialPlatform.TWITTER,
+        refreshAttemptedAt: '2026-08-14T08:00:00.000Z',
+        state: 'partial',
+      } as TwitterAuthorizedSignalsSnapshot,
+    });
+
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'native-account-age',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+  });
+
+  it('does not write enrollment signals when no X enrollment exists', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue(null);
+
+    await service.syncTwitterAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot: {
+        credentialId: 'credential-1',
+        evidence: [],
+        grantedScopes: [],
+        platform: CredentialPlatform.TWITTER,
+        refreshAttemptedAt: '2026-08-14T08:00:00.000Z',
+        state: 'partial',
+      } as unknown as TwitterAuthorizedSignalsSnapshot,
+    });
+
+    expect(socialWarmupSignal.create).not.toHaveBeenCalled();
+    expect(socialWarmupSignal.update).not.toHaveBeenCalled();
   });
 });

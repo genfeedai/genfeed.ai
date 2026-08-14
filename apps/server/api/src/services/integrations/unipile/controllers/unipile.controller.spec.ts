@@ -18,9 +18,7 @@ describe('UnipileController', () => {
   };
 
   const user = {
-    publicMetadata: {
-      organization: 'org_1',
-    },
+    organizationId: 'org_1',
   } as unknown as User;
 
   beforeEach(async () => {
@@ -46,9 +44,7 @@ describe('UnipileController', () => {
   });
 
   it('rejects requests without organization context', async () => {
-    const userWithoutOrg = {
-      publicMetadata: {},
-    } as unknown as User;
+    const userWithoutOrg = {} as unknown as User;
 
     expect(() => controller.status(userWithoutOrg)).toThrow(
       BadRequestException,

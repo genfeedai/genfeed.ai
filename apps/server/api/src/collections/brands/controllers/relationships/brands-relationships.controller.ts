@@ -21,10 +21,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
@@ -61,13 +58,11 @@ export class BrandsRelationshipsController {
     brandId: string,
     user: User,
   ): Promise<BrandDocument> {
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: brandId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -102,8 +97,6 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify user has access to this brand
     await this.verifyBrandAccess(brandId, user);
 
@@ -114,7 +107,7 @@ export class BrandsRelationshipsController {
           brandId: brandId,
           isConnected: true,
           isDeleted: false,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         },
       },
       { pagination: false },
@@ -126,7 +119,7 @@ export class BrandsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const metrics = await this.analyticsAggregationService.getOverviewMetrics(
-      publicMetadata.organization,
+      user.organizationId,
       brandId,
       startDate,
       endDate,
@@ -150,8 +143,6 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify user has access to this brand
     await this.verifyBrandAccess(brandId, user);
 
@@ -159,7 +150,7 @@ export class BrandsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const data = await this.analyticsAggregationService.getPlatformAnalytics(
-      publicMetadata.organization,
+      user.organizationId,
       platform,
       brandId,
       startDate,
@@ -180,8 +171,6 @@ export class BrandsRelationshipsController {
     @Query() query: TimeSeriesQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify user has access to this brand
     await this.verifyBrandAccess(brandId, user);
 
@@ -192,7 +181,7 @@ export class BrandsRelationshipsController {
 
     const timeSeriesData =
       await this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
-        publicMetadata.organization,
+        user.organizationId,
         brandId,
         startDate,
         endDate,

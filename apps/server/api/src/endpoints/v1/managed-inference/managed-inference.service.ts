@@ -49,8 +49,8 @@ export class ManagedInferenceService {
     dto: ManagedInferenceRequestDto,
     request: ManagedInferenceAuthenticatedRequest,
   ): Promise<ManagedInferenceResponse> {
-    const organizationId = request.user?.publicMetadata?.organization;
-    const userId = request.user?.publicMetadata?.user ?? request.user?.id;
+    const organizationId = request.user?.organizationId;
+    const userId = request.user?.userId ?? request.user?.id;
     const credits = dto.credits ?? DEFAULT_MANAGED_INFERENCE_CREDITS;
 
     if (!organizationId || !userId) {

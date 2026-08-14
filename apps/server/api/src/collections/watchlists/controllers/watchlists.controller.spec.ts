@@ -14,7 +14,9 @@ describe('WatchlistsController', () => {
 
   const mockUser = {
     id: 'authProvider_user_123',
-    publicMetadata: { brand: brandId, organization: orgId, user: userId },
+    brandId: brandId,
+    organizationId: orgId,
+    userId: userId,
   } as never;
 
   const mockRequest = {
@@ -68,7 +70,8 @@ describe('WatchlistsController', () => {
     it('should throw NotFoundException when no brand ID available', async () => {
       const noBrandUser = {
         id: 'authProvider_user_123',
-        publicMetadata: { organization: orgId, user: userId },
+        organizationId: orgId,
+        userId: userId,
       } as never;
       const reqNoBrand = {
         ...mockRequest,

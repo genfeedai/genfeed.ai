@@ -592,6 +592,10 @@ export async function safeFetch(
       return markRedirected(response, redirectCount);
     }
 
+    if (!location) {
+      return markRedirected(response, redirectCount);
+    }
+
     await assertRedirectAllowed(
       currentInit,
       redirectCount,

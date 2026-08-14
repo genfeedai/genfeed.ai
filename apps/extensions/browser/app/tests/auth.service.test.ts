@@ -25,19 +25,14 @@ describe('browser extension auth cookie configuration', () => {
     process.env = { ...originalEnv };
   });
 
-  it('inspects the canonical cookie origin before the compatibility origin', async () => {
+  it('inspects the canonical cookie origin', async () => {
     const { authService } = await import('../src/services/auth.service');
 
     authService.debugCookies();
 
-    expect(chrome.cookies.getAll).toHaveBeenNthCalledWith(
-      1,
+    expect(chrome.cookies.getAll).toHaveBeenCalledTimes(1);
+    expect(chrome.cookies.getAll).toHaveBeenCalledWith(
       { url: 'https://app.genfeed.localhost' },
-      expect.any(Function),
-    );
-    expect(chrome.cookies.getAll).toHaveBeenNthCalledWith(
-      2,
-      { url: 'http://local.genfeed.ai:3000' },
       expect.any(Function),
     );
   });

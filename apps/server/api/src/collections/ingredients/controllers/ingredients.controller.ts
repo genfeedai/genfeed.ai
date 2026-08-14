@@ -8,7 +8,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -70,10 +69,9 @@ export class IngredientsController {
       throw new BadRequestException('At least one valid ID is required');
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const ingredients = await this.ingredientsService.findByIds(
       ids,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return serializeCollection(request, IngredientSerializer, {
@@ -90,8 +88,6 @@ export class IngredientsController {
     @CurrentUser() user: User,
     @Body() updateIngredientDto: UpdateIngredientDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const processedDto = {
       ...(updateIngredientDto as unknown as Record<string, unknown>),
     };
@@ -99,14 +95,13 @@ export class IngredientsController {
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.
     const ingredient = await this.ingredientsService.findOne(
-      scopedWhere(publicMetadata.organization, { id: ingredientId }),
+      scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
     if (
       !ingredient ||
-      (ingredient.brandId &&
-        ingredient.brandId.toString() !== publicMetadata.brand)
+      (ingredient.brandId && ingredient.brandId.toString() !== user.brandId)
     ) {
       return returnNotFound(this.constructorName, ingredientId);
     }
@@ -116,14 +111,14 @@ export class IngredientsController {
       processedDto.folderId !== null
     ) {
       const folder = await this.foldersService.findOne(
-        scopedWhere(publicMetadata.organization, {
+        scopedWhere(user.organizationId, {
           id: processedDto.folderId,
         }),
       );
 
       if (
         !folder ||
-        (folder.brandId && folder.brandId.toString() !== publicMetadata.brand)
+        (folder.brandId && folder.brandId.toString() !== user.brandId)
       ) {
         return returnNotFound(
           this.constructorName,
@@ -140,7 +135,7 @@ export class IngredientsController {
     // Fetch the updated document with populated fields
     // Only populate metadata fully and brand minimally (id, label, handle)
     const data = await this.ingredientsService.findOne(
-      scopedWhere(publicMetadata.organization, { id: ingredientId }),
+      scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull, PopulatePatterns.brandMinimal],
     );
 
@@ -159,12 +154,11 @@ export class IngredientsController {
     @Param('ingredientId') ingredientId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const ingredient =
       await this.cancellationService.cancelProcessingIngredient({
         id: ingredientId,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       });
 
     return serializeSingle(request, IngredientSerializer, ingredient);

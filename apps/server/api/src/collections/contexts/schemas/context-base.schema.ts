@@ -10,10 +10,11 @@ export interface ContextBase extends PrismaContextBase {
   isActive?: boolean;
   label?: string;
   lastAnalyzed?: Date | string | null;
-  organization?: string;
+  purpose?: string;
   source?: string;
   sourceBrand?: string | null;
   sourceUrl?: string;
+  sources?: unknown[];
   type?: string;
   usageCount?: number;
   [key: string]: unknown;

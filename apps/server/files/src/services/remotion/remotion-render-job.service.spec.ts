@@ -41,7 +41,6 @@ describe('RemotionRenderJobService', () => {
   const configService = { ingredientsEndpoint: 'https://cdn.example.com' };
 
   const data = {
-    authProviderUserId: 'auth-user',
     createdAt: new Date(),
     id: 'job-data-123',
     ingredientId: 'output-123',
@@ -50,12 +49,12 @@ describe('RemotionRenderJobService', () => {
     params: {
       ...BRANDED_AVATAR_RENDER_FIXTURE,
       editorRender: {
-        authProviderUserId: 'auth-user',
         ingredientId: 'output-123',
         jobId: 'job-123',
         metadataId: 'metadata-123',
         projectId: 'project-123',
         room: 'user-room',
+        userId: 'auth-user',
       },
     },
     room: 'user-room',

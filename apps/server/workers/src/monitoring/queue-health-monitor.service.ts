@@ -2,13 +2,13 @@ import { ALL_QUEUE_NAMES, type QueueName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
-import { QueueHealthAlertNotifierService } from '@workers/monitoring/queue-health-alert-notifier.service';
 import type {
   OperationalQueueHealthSnapshot,
   QueueHealthBreach,
   QueueHealthSnapshot,
   QueueHealthThresholds,
 } from '@workers/monitoring/queue-health.types';
+import { QueueHealthAlertNotifierService } from '@workers/monitoring/queue-health-alert-notifier.service';
 import type Redis from 'ioredis';
 
 const SNAPSHOT_PREFIX = 'genfeed:monitoring:queue-health:snapshot';

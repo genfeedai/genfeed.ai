@@ -41,10 +41,8 @@ describe('AgentThreadsController', () => {
 
   const mockUser = {
     id: 'u07f1f77bcf86cd799439011',
-    publicMetadata: {
-      organization: 'org_current',
-      user: 'u07f1f77bcf86cd799439011',
-    },
+    organizationId: 'org_current',
+    userId: 'u07f1f77bcf86cd799439011',
   };
 
   beforeEach(() => {
@@ -76,7 +74,7 @@ describe('AgentThreadsController', () => {
     };
     usersService = {
       findOne: vi.fn().mockResolvedValue({
-        id: mockUser.publicMetadata.user,
+        id: mockUser.userId,
       }),
     };
     const loggerService = {
@@ -141,15 +139,15 @@ describe('AgentThreadsController', () => {
       expect(usersService.findOne).not.toHaveBeenCalled();
     });
 
-    it('should trust publicMetadata.user directly with no DB re-lookup (no 401 for authenticated user)', async () => {
+    it('should trust identity.userId directly with no DB re-lookup (no 401 for authenticated user)', async () => {
       service.getUserThreads.mockResolvedValue([]);
 
       await controller.listThreads({} as never, mockUser);
 
       expect(usersService.findOne).not.toHaveBeenCalled();
       expect(service.getUserThreads).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         undefined,
         undefined,
         undefined,
@@ -165,10 +163,8 @@ describe('AgentThreadsController', () => {
         {} as never,
         {
           ...mockUser,
-          publicMetadata: {
-            ...mockUser.publicMetadata,
-            user: '',
-          },
+          ...mockUser,
+          userId: '',
         } as unknown as User,
       );
 
@@ -195,10 +191,8 @@ describe('AgentThreadsController', () => {
         {} as never,
         {
           ...mockUser,
-          publicMetadata: {
-            ...mockUser.publicMetadata,
-            user: '',
-          },
+          ...mockUser,
+          userId: '',
         } as unknown as User,
       );
 
@@ -217,8 +211,8 @@ describe('AgentThreadsController', () => {
       await controller.listThreads({} as never, mockUser, 'active', 'brand-1');
 
       expect(service.getUserThreads).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         'active',
         'brand-1',
         undefined,
@@ -237,8 +231,8 @@ describe('AgentThreadsController', () => {
       );
 
       expect(service.getUserThreads).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         'active',
         undefined,
         'onboarding',
@@ -257,8 +251,8 @@ describe('AgentThreadsController', () => {
       );
 
       expect(service.getUserThreads).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         'active',
         undefined,
         undefined,

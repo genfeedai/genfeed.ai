@@ -8,7 +8,6 @@ import { PatternAnalyzerService } from '@api/collections/content-intelligence/se
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -105,8 +104,7 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Query() query: CreatorsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const options = {
       customLabels,
@@ -155,10 +153,9 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.contentIntelligenceService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!data) {
@@ -174,9 +171,8 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Body() dto: AddCreatorDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const organizationId = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     // Check if creator already exists
     const existing = await this.contentIntelligenceService.findByHandle(
@@ -204,9 +200,8 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Body() dto: ImportCreatorsDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const organizationId = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const results: CreatorAnalysisDocument[] = [];
 
@@ -253,10 +248,9 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!creator) {
@@ -293,10 +287,9 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!creator) {
@@ -304,10 +297,7 @@ export class CreatorsController {
     }
 
     // Delete associated patterns (scoped to the caller's organization)
-    await this.patternStoreService.deleteByCreator(
-      id,
-      publicMetadata.organization,
-    );
+    await this.patternStoreService.deleteByCreator(id, user.organizationId);
 
     // Soft delete creator
     const deleted = await this.contentIntelligenceService.remove(id);

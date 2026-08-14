@@ -105,6 +105,7 @@
     "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && node ./scripts/run-smoke.cjs",
     "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
     "test": "bun test ./src/**/*.test.ts",
+    "test:cov": "bun test --coverage ./src/**/*.test.ts",
     "type-check": "bunx tsc --noEmit",
     "verify:bundle-size": "node ./scripts/check-bundle-size.cjs",
     "visual:qa:release": "node ./scripts/capture-visual-qa.cjs"

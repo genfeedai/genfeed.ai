@@ -2,10 +2,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import {
-  LEGACY_CRON_JOB_EXECUTOR,
-  type LegacyCronJobExecutor,
-} from '@api/collections/cron-jobs/legacy-cron-job-executor.token';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
@@ -65,7 +61,7 @@ import type {
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
@@ -130,9 +126,6 @@ export class WorkflowEngineAdapterService {
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
     @Optional()
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
-    @Optional()
-    @Inject(LEGACY_CRON_JOB_EXECUTOR)
-    private readonly legacyCronJobExecutor?: LegacyCronJobExecutor,
     @Optional()
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
     @Optional() private readonly seoScorerService?: SeoScorerService,
@@ -212,7 +205,6 @@ export class WorkflowEngineAdapterService {
       this.contentProductionWorkflowService,
       this.replyPollingWorkflowService,
       this.trendNotificationWorkflowService,
-      this.legacyCronJobExecutor,
       this.livestreamBotWorkflowService,
     );
     this.trendPublishRegistrar =

@@ -37,10 +37,8 @@ describe('GenerateController', () => {
 
     const mockUser = {
       id: 'user_123',
-      publicMetadata: {
-        organization: '507f191e810c19729de860ee'.toString(),
-        user: '507f191e810c19729de860ee'.toString(),
-      },
+      organizationId: '507f191e810c19729de860ee'.toString(),
+      userId: '507f191e810c19729de860ee'.toString(),
     } as unknown as User;
 
     beforeEach(async () => {

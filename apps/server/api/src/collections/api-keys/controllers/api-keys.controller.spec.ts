@@ -26,11 +26,9 @@ describe('ApiKeysController', () => {
   const mockRequest = {} as Request;
 
   const mockUser: User = {
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockApiKey: ApiKey = {
@@ -205,7 +203,6 @@ describe('ApiKeysController', () => {
         isDeleted: false,
         limit: 10,
         page: 1,
-        pagination: true,
         sort: 'createdAt: -1',
       };
 
@@ -229,7 +226,6 @@ describe('ApiKeysController', () => {
         label: 'Test',
         limit: 10,
         page: 1,
-        pagination: true,
         sort: 'createdAt: -1',
       } as unknown as BaseQueryDto;
 
@@ -253,7 +249,6 @@ describe('ApiKeysController', () => {
         isDeleted: false,
         limit: 100,
         page: 1,
-        pagination: true,
         search: 'mcp',
         sort: 'createdAt: -1',
       } as unknown as BaseQueryDto;
@@ -303,9 +298,9 @@ describe('ApiKeysController', () => {
 
       expect(mockMcpConnectionVerificationService.verify).toHaveBeenCalledWith({
         apiKeyId: mockApiKey.id,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         plainKey: 'gf_test_secret-value',
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       });
       expect(result).toMatchObject({ status: 'connected' });
     });

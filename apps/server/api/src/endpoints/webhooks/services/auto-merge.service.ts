@@ -185,7 +185,6 @@ export class AutoMergeService {
 
   private async resolveUserInfo(ingredient: IngredientDocument): Promise<{
     dbUserId?: string;
-    authProviderUserId?: string;
     userId?: string;
     userRoom?: string;
   }> {
@@ -198,12 +197,11 @@ export class AutoMergeService {
     videoIds: string[],
     userInfo: {
       dbUserId?: string;
-      authProviderUserId?: string;
       userId?: string;
       userRoom?: string;
     },
   ): Promise<void> {
-    const { dbUserId, authProviderUserId, userId, userRoom } = userInfo;
+    const { dbUserId, userId, userRoom } = userInfo;
     const resolvedUserId = userId ?? dbUserId;
     if (!resolvedUserId) {
       throw new Error('No userId available for auto-merge');
@@ -281,7 +279,6 @@ export class AutoMergeService {
 
     this.fileQueueService
       .processVideo({
-        authProviderUserId: authProviderUserId || '',
         ingredientId: mergedIngredientId,
         organizationId,
         params: {

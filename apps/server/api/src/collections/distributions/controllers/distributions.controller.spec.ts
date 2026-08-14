@@ -31,11 +31,9 @@ const USER_ID = '507f191e810c19729de860ee'.toString();
 
 function createMockUser() {
   return {
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      organization: ORG_ID,
-      user: USER_ID,
-    },
+    brandId: '507f191e810c19729de860ee'.toString(),
+    organizationId: ORG_ID,
+    userId: USER_ID,
   };
 }
 

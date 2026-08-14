@@ -8,7 +8,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ActivitySource } from '@genfeedai/enums';
@@ -47,7 +46,6 @@ export class AvatarVideoController {
     @Body() createAvatarVideoDto: CreateAvatarVideoDto,
   ): Promise<JsonApiSingleResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
       const result =
         await this.avatarVideoGenerationService.generateAvatarVideo(
           {
@@ -63,15 +61,15 @@ export class AvatarVideoController {
             voiceProvider: createAvatarVideoDto.voiceProvider,
           },
           {
-            brandId: publicMetadata.brand,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            brandId: user.brandId,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           },
         );
 
       const ingredient = await this.videosService.findOne({
         id: result.ingredientId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!ingredient) {

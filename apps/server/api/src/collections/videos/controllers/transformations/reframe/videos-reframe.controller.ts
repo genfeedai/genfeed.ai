@@ -18,7 +18,6 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -98,12 +97,11 @@ export class VideosReframeController {
   ): Promise<JsonApiSingleResponse> {
     let url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const publicMetadata = getPublicMetadata(user);
     const parent = await this.videosService.findOne(
       {
         id: videoId,
         category: IngredientCategory.VIDEO,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -157,22 +155,22 @@ export class VideosReframeController {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original:
           typeof promptText === 'string'
             ? promptText
             : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     );
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         category: IngredientCategory.VIDEO,
         duration: parentMetadata.duration,
         extension: MetadataExtension.MP4,
@@ -181,7 +179,7 @@ export class VideosReframeController {
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         negativePrompt: createVideoDto.negativePrompt,
-        organizationId: parent.organizationId ?? publicMetadata.organization,
+        organizationId: parent.organizationId ?? user.organizationId,
         parentId: parent.id,
         promptId: promptData.id,
         scope: createVideoDto.scope,
@@ -201,13 +199,13 @@ export class VideosReframeController {
     // Create activity for video reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_REFRAME_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.VIDEO_REFRAME,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,

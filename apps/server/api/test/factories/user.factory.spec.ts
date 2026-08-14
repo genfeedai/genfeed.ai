@@ -58,7 +58,7 @@ describe('Controller mocks', () => {
 
     const request = mockAuthRequest({ headers: { authorization: 'Bearer x' } });
     expect(request.headers.authorization).toBe('Bearer x');
-    expect(request.publicMetadata.organization).toBeDefined();
+    expect(request.organizationId).toBeDefined();
   });
 
   it('builds testing modules with logger disabled', async () => {

@@ -14,6 +14,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { mockModel } from '@api/helpers/mocks/model.mock';
@@ -27,6 +28,20 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+
+function makeTwitterCredential(
+  overrides: Partial<CredentialDocument> = {},
+): CredentialDocument {
+  return {
+    accessToken: 'access-token',
+    id: 'cred-id',
+    isConnected: true,
+    isDeleted: false,
+    refreshToken: 'refresh-token',
+    userId: 'user-id',
+    ...overrides,
+  } as CredentialDocument;
+}
 
 describe('TwitterService', () => {
   let service: TwitterService;
@@ -118,7 +133,9 @@ describe('TwitterService', () => {
 
   describe('getTrends', () => {
     it('fetches trending topics', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(undefined);
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeTwitterCredential(),
+      );
 
       const trendsMock = vi
         .fn()
@@ -141,10 +158,12 @@ describe('TwitterService', () => {
 
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue({
-        accessToken: 'a',
-        refreshToken: 'r',
-      });
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeTwitterCredential({
+          accessToken: 'a',
+          refreshToken: 'r',
+        }),
+      );
 
       mockSendDm.mockResolvedValue({});
 

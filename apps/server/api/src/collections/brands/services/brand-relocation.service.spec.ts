@@ -157,9 +157,7 @@ describe('BrandRelocationService', () => {
     });
 
     expect(preview).toEqual({
-      ackToken: null,
       counts: {
-        sharedWorkflows: 0,
         soleBrandWorkflows: 1,
         staleMembers: 1,
       },
@@ -389,13 +387,13 @@ describe('BrandRelocationService', () => {
     });
   });
 
-  it('ignores deprecated relocationAck and moves brand-owned workflows without cloning', async () => {
+  it('moves brand-owned workflows without cloning', async () => {
     primeRelocatableBrand();
     mockBrandWorkflows([{ id: 'wf_owned' }]);
 
     const result = await service.relocateToOrganization(
       BRAND_ID,
-      { organizationId: DEST_ORG, relocationAck: 'legacy-token' },
+      { organizationId: DEST_ORG },
       { isSuperAdmin: true, userId: USER_ID },
     );
 

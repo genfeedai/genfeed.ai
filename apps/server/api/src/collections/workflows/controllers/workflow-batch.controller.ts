@@ -5,7 +5,6 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   BatchWorkflowStatusResponse,
   BatchWorkflowSummary,
@@ -63,11 +62,9 @@ export class WorkflowBatchController {
     @Param('batchJobId') batchJobId: string,
     @CurrentUser() user: User,
   ): Promise<{ data: BatchWorkflowStatusResponse }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const job = await this.batchWorkflowService.getBatchJobForOrg(
       batchJobId,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return {
@@ -114,9 +111,8 @@ export class WorkflowBatchController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ): Promise<{ data: BatchWorkflowSummary[] }> {
-    const publicMetadata = getPublicMetadata(user);
     const jobs = await this.batchWorkflowService.listBatchJobs(
-      publicMetadata.organization,
+      user.organizationId,
       limit ? Number.parseInt(limit, 10) : 20,
       offset ? Number.parseInt(offset, 10) : 0,
     );
@@ -141,11 +137,9 @@ export class WorkflowBatchController {
     @Body() body: { ingredientIds: string[] },
     @CurrentUser() user: User,
   ): Promise<{ data: { batchJobId: string; totalCount: number } }> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Validate workflow exists and belongs to org
     await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!body.ingredientIds?.length) {
@@ -158,8 +152,8 @@ export class WorkflowBatchController {
     // Create the batch job
     const batchJob = await this.batchWorkflowService.createBatchJob({
       ingredientIds: body.ingredientIds,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
       workflowId,
     });
 
@@ -171,8 +165,8 @@ export class WorkflowBatchController {
       batchJobId: batchJob.id.toString(),
       ingredientId: item.ingredientId.toString(),
       itemId: this.getBatchItemId(item),
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
       workflowId,
     }));
 

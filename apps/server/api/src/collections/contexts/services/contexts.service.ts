@@ -20,6 +20,7 @@ import {
   buildContextSimilarityQuery,
   serializeContextEmbedding,
 } from '@api/collections/contexts/utils/context-similarity-query.util';
+import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -77,62 +78,27 @@ export class ContextsService {
     return this.isPlainObject(value) ? { ...value } : {};
   }
 
-  private normalizeContextBase(contextBase: {
-    id: string;
-    organizationId: string;
-    createdById?: string | null;
-    sourceBrandId?: string | null;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextBase {
+  private normalizeContextBase(contextBase: ContextBase): ContextBase {
     return {
       ...contextBase,
       ...this.getDataRecord(contextBase.data),
-      createdBy: contextBase.createdById ?? undefined,
-      organization: contextBase.organizationId,
-      sourceBrand: contextBase.sourceBrandId ?? undefined,
-    } as ContextBase;
+    };
   }
 
-  private normalizeContextBases(
-    contextBases: Array<{
-      id: string;
-      organizationId: string;
-      createdById?: string | null;
-      sourceBrandId?: string | null;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextBase[] {
+  private normalizeContextBases(contextBases: ContextBase[]): ContextBase[] {
     return contextBases.map((contextBase) =>
       this.normalizeContextBase(contextBase),
     );
   }
 
-  private normalizeContextEntry(entry: {
-    id: string;
-    contextBaseId: string;
-    organizationId: string;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextEntry {
+  private normalizeContextEntry(entry: ContextEntry): ContextEntry {
     return {
       ...entry,
       ...this.getDataRecord(entry.data),
-      contextBase: entry.contextBaseId,
-      organization: entry.organizationId,
-    } as ContextEntry;
+    };
   }
 
-  private normalizeContextEntries(
-    entries: Array<{
-      id: string;
-      contextBaseId: string;
-      organizationId: string;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextEntry[] {
+  private normalizeContextEntries(entries: ContextEntry[]): ContextEntry[] {
     return entries.map((entry) => this.normalizeContextEntry(entry));
   }
 
@@ -401,6 +367,38 @@ export class ContextsService {
     );
   }
 
+  /**
+   * Soft-delete every live chunk for a knowledge source and keep the
+   * context-base entryCount in sync. Used on re-ingest and source delete.
+   */
+  async removeEntriesBySource(
+    contextBaseId: string,
+    sourceId: string,
+    organizationId: string,
+  ): Promise<number> {
+    const result = await this.prisma.contextEntry.updateMany({
+      data: { isDeleted: true },
+      where: scopedWhere(organizationId, {
+        contextBaseId,
+        data: {
+          equals: sourceId,
+          path: ['metadata', 'sourceId'],
+        },
+      }),
+    });
+
+    if (result.count > 0) {
+      await this.adjustContextBaseMetric(
+        contextBaseId,
+        organizationId,
+        'entryCount',
+        -result.count,
+      );
+    }
+
+    return result.count;
+  }
+
   async enhancePrompt(
     dto: EnhancePromptDto,
     organizationId: string,
@@ -638,24 +636,24 @@ export class ContextsService {
           .join('\n\n');
         if (!content.trim()) continue;
 
-        await this.prisma.contextEntry.create({
-          data: {
+        const chunks = chunkText(content);
+        for (const [chunkIndex, chunk] of chunks.entries()) {
+          await this.addEntry(
             contextBaseId,
-            data: {
-              content,
+            {
+              content: chunk,
               metadata: {
+                chunkIndex,
                 platform: dto.platform,
                 postId: post.id,
                 publishedAt: post.publicationDate || post.scheduledDate,
                 source: 'social-post',
                 sourceId: post.id,
               },
-              relevanceWeight: 1,
             },
-            isDeleted: false,
             organizationId,
-          },
-        });
+          );
+        }
       }
 
       return contextBase;

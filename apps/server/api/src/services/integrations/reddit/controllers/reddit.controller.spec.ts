@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((data: unknown) => data),
   returnNotFound: vi.fn((name: string, id: string) => ({ id, name })),
@@ -42,10 +35,15 @@ describe('RedditController', () => {
   };
 
   const mockRequest = {} as unknown as Request;
-  const mockUser = { id: 'authProvider_user_1' } as never;
   const brandId = 'test-object-id';
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
+  const mockUser = {
+    brandId,
+    id: 'authProvider_user_1',
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439013',
+  } as never;
 
   // A real Prisma row: the scalar FK only. The Mongo-era `organization` alias
   // is undefined unless the query populated the relation, so a fixture that

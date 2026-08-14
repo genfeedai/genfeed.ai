@@ -22,6 +22,8 @@ export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly accessTokenExpiry: Credential['accessTokenExpiry'];
   declare readonly refreshToken: Credential['refreshToken'];
   declare readonly refreshTokenExpiry: Credential['refreshTokenExpiry'];
+  declare readonly grantedScopes: Credential['grantedScopes'];
+  declare readonly grantedScopesCapturedAt: Credential['grantedScopesCapturedAt'];
 
   declare readonly label: Credential['label'];
   declare readonly description: Credential['description'];

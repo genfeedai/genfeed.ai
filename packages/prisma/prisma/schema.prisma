@@ -374,20 +374,6 @@ enum AgentRunStatus {
   CANCELLED
 }
 
-enum CronJobStatus {
-  ACTIVE
-  PAUSED
-  COMPLETED
-  FAILED
-}
-
-enum CronRunStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-}
-
 enum BotStatus {
   ACTIVE
   PAUSED
@@ -561,8 +547,6 @@ model User {
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
   workflowExecutions       WorkflowExecution[]
-  cronJobs                 CronJob[]
-  cronRuns                 CronRun[]
   bots                     Bot[]
   livestreamBotSessions    LivestreamBotSession[]
   botActivities            BotActivity[]
@@ -614,7 +598,6 @@ model User {
 
 model Organization {
   id                         String                @id @default(cuid())
-  authProviderOrganizationId String?               @unique
   authProviderLogoUrl        String?
   userId                     String
   user                       User                  @relation(fields: [userId], references: [id])
@@ -673,8 +656,6 @@ model Organization {
   workflowExecutions            WorkflowExecution[]
   batchWorkflowJobs             BatchWorkflowJob[]
   contentRuns                   ContentRun[]
-  cronJobs                      CronJob[]
-  cronRuns                      CronRun[]
   bots                          Bot[]
   livestreamBotSessions         LivestreamBotSession[]
   botActivities                 BotActivity[]
@@ -3592,49 +3573,6 @@ model ContentRun {
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, status, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_status_created_at_idx")
   @@map("content_runs")
-}
-
-model CronJob {
-  id             String        @id @default(cuid())
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User          @relation(fields: [userId], references: [id])
-  label          String?
-  expression     String?
-  config         Json          @default("{}")
-  status         CronJobStatus @default(ACTIVE)
-  lastRunAt      DateTime?
-  nextRunAt      DateTime?
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  runs CronRun[]
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("cron_jobs")
-}
-
-model CronRun {
-  id             String        @id @default(cuid())
-  cronJobId      String
-  cronJob        CronJob       @relation(fields: [cronJobId], references: [id])
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User          @relation(fields: [userId], references: [id])
-  status         CronRunStatus @default(PENDING)
-  result         Json?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("cron_runs")
 }
 
 // ═══════════════════════════════════════════════════════════════
