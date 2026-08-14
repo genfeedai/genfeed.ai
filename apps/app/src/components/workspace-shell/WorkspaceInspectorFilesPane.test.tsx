@@ -124,7 +124,11 @@ describe('WorkspaceInspectorFilesPane', () => {
     expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage Library' }),
-    ).toHaveAttribute('href', '/acme/moonrise/library');
+    ).toHaveAttribute('href', '/acme/moonrise/library/images');
+    expect(screen.getByRole('button', { name: 'Images' })).toHaveAttribute(
+      'data-variant',
+      'underline',
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Select Source image-1' }),
@@ -134,5 +138,27 @@ describe('WorkspaceInspectorFilesPane', () => {
       expect(mocks.dispatchOpenBrowserTab).toHaveBeenCalledTimes(1);
     });
     expect(mocks.result.select).toHaveBeenCalledWith(source);
+  });
+
+  it('sends Manage Library to the active category and keeps underline filters', () => {
+    mocks.result = pickerResult({ category: 'videos' });
+
+    render(
+      <WorkspaceInspectorPreviewProvider>
+        <WorkspaceInspectorFilesPane />
+      </WorkspaceInspectorPreviewProvider>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Manage Library' }),
+    ).toHaveAttribute('href', '/acme/moonrise/library/videos');
+    expect(screen.getByRole('button', { name: 'Videos' })).toHaveAttribute(
+      'data-variant',
+      'underline',
+    );
+    expect(screen.getByRole('button', { name: 'Images' })).toHaveAttribute(
+      'data-variant',
+      'underline',
+    );
   });
 });

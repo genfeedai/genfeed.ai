@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
@@ -89,7 +90,13 @@ export default function WorkspaceInspectorFilesPane() {
       dispatchOpenBrowserTab();
     },
   });
-  const managementHref = href(APP_ROUTES.LIBRARY.ROOT);
+  const managementHref = href(
+    category === 'videos'
+      ? APP_ROUTES.LIBRARY.VIDEOS
+      : category === 'gifs'
+        ? APP_ROUTES.LIBRARY.GIFS
+        : APP_ROUTES.LIBRARY.IMAGES,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -99,23 +106,28 @@ export default function WorkspaceInspectorFilesPane() {
           className="flex min-w-0 flex-wrap gap-1"
           role="group"
         >
-          {LIBRARY_PICKER_CATEGORIES.map((candidate) => (
-            <Button
-              key={candidate.key}
-              aria-pressed={category === candidate.key}
-              className="h-8 px-2.5 text-xs"
-              onClick={() => setCategory(candidate.key)}
-              size={ButtonSize.SM}
-              variant={
-                category === candidate.key
-                  ? ButtonVariant.SECONDARY
-                  : ButtonVariant.GHOST
-              }
-              withWrapper={false}
-            >
-              {translate(candidate.key)}
-            </Button>
-          ))}
+          {LIBRARY_PICKER_CATEGORIES.map((candidate) => {
+            const isActive = category === candidate.key;
+            return (
+              <Button
+                key={candidate.key}
+                aria-pressed={isActive}
+                data-variant="underline"
+                className={cn(
+                  'h-8 rounded-none border-b-2 px-2.5 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                  isActive
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-foreground/55 hover:text-foreground',
+                )}
+                onClick={() => setCategory(candidate.key)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              >
+                {translate(candidate.key)}
+              </Button>
+            );
+          })}
         </div>
         <Button
           asChild
