@@ -9,9 +9,13 @@ vi.mock('@ui/primitives/command', async () => {
   const React = await import('react');
 
   return {
-    Command: ({ children }: { children: React.ReactNode }) => (
-      <div>{children}</div>
-    ),
+    Command: ({
+      children,
+      className,
+    }: {
+      children: React.ReactNode;
+      className?: string;
+    }) => <div className={className}>{children}</div>,
     CommandEmpty: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>
     ),
@@ -28,15 +32,18 @@ vi.mock('@ui/primitives/command', async () => {
       </section>
     ),
     CommandInput: ({
+      className,
       onValueChange,
       placeholder,
       value,
     }: {
+      className?: string;
       onValueChange?: (value: string) => void;
       placeholder?: string;
       value?: string;
     }) => (
       <input
+        className={className}
         placeholder={placeholder}
         value={value}
         onChange={(event) => onValueChange?.(event.target.value)}
@@ -93,11 +100,18 @@ vi.mock('@ui/primitives/popover', async () => {
     ),
     PopoverContent: ({
       children,
+      className,
       __popoverOpen,
     }: {
       children: React.ReactNode;
+      className?: string;
       __popoverOpen?: boolean;
-    }) => (__popoverOpen ? <div>{children}</div> : null),
+    }) =>
+      __popoverOpen ? (
+        <div data-testid="model-selector-popover" className={className}>
+          {children}
+        </div>
+      ) : null,
     PopoverTrigger: ({
       children,
       __setPopoverOpen,
@@ -224,6 +238,33 @@ function visibleExpandedModelFamilies(): string[] {
 }
 
 describe('ModelSelectorPopover', () => {
+  it('uses the elevated overlay surface instead of the canvas card', async () => {
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+
+    expect(screen.getByTestId('model-selector-popover')).toHaveClass(
+      'bg-tertiary',
+      'shadow-dropdown',
+    );
+    expect(container.querySelector('.bg-card')).toBeNull();
+  });
+
   it('renders family groups and selects concrete variants', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

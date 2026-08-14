@@ -27,6 +27,7 @@ import {
   CommandItem,
   CommandList,
 } from '@ui/primitives/command';
+import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
 import {
   Popover,
   PopoverContent,
@@ -488,16 +489,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           }
         }}
         className={cn(
-          // Solid card surface — never washed gray secondary against the agent canvas.
-          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border p-0',
-          'bg-card text-card-foreground shadow-dropdown',
+          overlayMenuSurfaceClassName,
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg p-0',
           'sm:w-[340px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className="flex max-h-[inherit] min-h-0 w-full bg-card">
+        <div className="flex max-h-[inherit] min-h-0 w-full bg-tertiary">
           {shouldShowProviderRail ? (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -508,10 +508,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           ) : null}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-tertiary">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
-                {/* Track sits one step off its bg-card parent so the segmented
+              <div className="shrink-0 overflow-x-auto border-b border-border bg-tertiary px-1.5 py-1">
+                {/* Track sits one step off its elevated parent so the segmented
                     affordance reads in both themes; active tabs stay bg-accent. */}
                 <div className="inline-flex min-w-max rounded border border-border bg-muted p-0.5">
                   <SourceTabButton
@@ -533,7 +533,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-card text-card-foreground"
+              className="flex min-h-0 flex-col bg-tertiary text-primary"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -544,9 +544,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'h-8 border-0 border-b border-border bg-card px-2 text-card-foreground',
+                    'h-8 border-0 border-b border-border bg-tertiary px-2 text-primary',
                     'placeholder:text-muted-foreground',
-                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-card-foreground',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-primary',
                     '[&_input]:placeholder:!text-muted-foreground',
                   )}
                 />

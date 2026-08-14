@@ -7,5 +7,8 @@ export const fieldControlInputClassName =
 export const fieldControlTriggerClassName =
   'items-center justify-between gap-2 whitespace-nowrap [&>span]:line-clamp-1';
 
-export const fieldControlPopoverClassName =
-  'ship-ui rounded-xl bg-elevated text-primary shadow-dropdown';
+/** Floating menus sit on `bg-tertiary` — darker than `bg-elevated`, never canvas. */
+export const overlayMenuSurfaceClassName =
+  'bg-tertiary text-primary shadow-dropdown';
+
+export const fieldControlPopoverClassName = `ship-ui rounded-xl ${overlayMenuSurfaceClassName}`;

@@ -42,8 +42,8 @@ const ModelSelectorProviderSidebar = memo(
           aria-label="Filter by model provider"
           className={cn(
             'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
-            // Same surface as the picker body — never a gray secondary strip.
-            'border-r border-border bg-card py-1',
+            // Same overlay surface as the picker body.
+            'border-r border-border bg-tertiary py-1',
           )}
         >
           {hasFavorites ? (
