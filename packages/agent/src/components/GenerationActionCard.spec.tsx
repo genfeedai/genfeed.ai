@@ -114,15 +114,20 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-const storeState = {
-  activeThreadId: 'thread-1',
-  setError: vi.fn(),
-  setThreadUiBusy: vi.fn(),
-};
+const { storeState } = vi.hoisted(() => ({
+  storeState: {
+    activeThreadId: 'thread-1',
+    error: null as string | null,
+    setError: vi.fn(),
+    setThreadUiBusy: vi.fn(),
+  },
+}));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
-  useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
-    selector(storeState),
+  useAgentChatStore: Object.assign(
+    (selector: (state: typeof storeState) => unknown) => selector(storeState),
+    { getState: () => storeState },
+  ),
 }));
 
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -177,6 +182,7 @@ function createApiServiceMock(options?: {
 describe('GenerationActionCard', () => {
   beforeEach(() => {
     storeState.activeThreadId = 'thread-1';
+    storeState.error = null;
     storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();
     capturedModelSelectorPopoverProps.autoLabel = undefined;
@@ -483,6 +489,42 @@ describe('GenerationActionCard', () => {
     expect(
       await screen.findByRole('link', { name: 'Library' }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps Generate clickable when the composer UI action reports failure', async () => {
+    storeState.error =
+      'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
+    const onUiAction = vi.fn().mockResolvedValue(false);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'Cinematic vertical portrait of Elon Musk heading into space.',
+          },
+          generationType: 'image',
+          id: 'action-ui-action-401',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByText(/provider authentication failed/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /generate image/i }),
+    ).toBeInTheDocument();
+    expect(storeState.setError).toHaveBeenCalledWith(null);
   });
 
   it('routes composer generation through the persisted thread UI action', async () => {

@@ -233,7 +233,7 @@ export function useGenerationActionCard({
 
     try {
       if (onUiAction) {
-        await onUiAction('confirm_generate_media', {
+        const outcome = await onUiAction('confirm_generate_media', {
           aspectRatio,
           duration: generationType === 'video' ? duration : undefined,
           generationType,
@@ -243,6 +243,15 @@ export function useGenerationActionCard({
           references: referenceIds.length > 0 ? referenceIds : undefined,
           sourceActionId: action.id,
         });
+        // handleAgentUiAction returns false and writes the composer error
+        // instead of throwing. Treating that as success marked the card Done
+        // and hid Generate after a 401.
+        if (outcome === false) {
+          const composerError = useAgentChatStore.getState().error;
+          throw new Error(
+            composerError?.trim() ? composerError : 'Generation failed',
+          );
+        }
         setStatus('done');
         return;
       }
@@ -293,6 +302,9 @@ export function useGenerationActionCard({
         err instanceof Error ? err.message : 'Generation failed';
       setError(formatGenerationError(rawMessage, { isAutoMode }));
       setStatus('error');
+      // Keep Generate reachable — the sticky composer stack covers the card
+      // when this error also lives there.
+      setComposerError(null);
     } finally {
       abortRef.current = null;
       if (requestThreadId) {
