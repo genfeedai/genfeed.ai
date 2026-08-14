@@ -8,7 +8,12 @@ describe('shouldOfferGenerationPromptPreview', () => {
     expect(shouldOfferGenerationPromptPreview('A short scene.')).toBe(false);
   });
 
-  it('offers a preview when structured sections need more than two rows', () => {
+  it('offers a preview when the prompt needs more than one compact row', () => {
+    expect(
+      shouldOfferGenerationPromptPreview(
+        'SCENE: A cinematic launch-day moment.\nSUBJECT: Elon Musk.',
+      ),
+    ).toBe(true);
     expect(
       shouldOfferGenerationPromptPreview(
         [

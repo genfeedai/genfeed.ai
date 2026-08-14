@@ -11,6 +11,7 @@ import {
   type RouterPriority,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
@@ -115,36 +116,40 @@ export function GenerationActionCardControls({
   return (
     <>
       <div>
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <label
-            htmlFor="gen-action-prompt"
-            className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            Prompt
-          </label>
+        <label
+          htmlFor="gen-action-prompt"
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        >
+          Prompt
+        </label>
+        <div className="flex items-center gap-2">
+          <Textarea
+            id="gen-action-prompt"
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => onPromptChange(e.target.value)}
+            disabled={isDisabled}
+            maxHeight={GENERATION_PROMPT_COMPACT_MAX_HEIGHT}
+            rows={GENERATION_PROMPT_COMPACT_ROWS}
+            className="min-h-8 h-8 max-h-8 w-full resize-none overflow-hidden py-1.5"
+            placeholder="Describe what you want to generate…"
+          />
           {canPreviewPrompt ? (
             <Button
               ariaLabel={translate('readFullAria')}
+              className={cn(
+                'shrink-0 px-2 text-xs',
+                SHELL_CONTROL_HEIGHT_CLASS,
+              )}
               icon={<Expand className="size-3.5" />}
               label={translate('readFull')}
               onClick={() => setIsPromptPreviewOpen(true)}
-              size={ButtonSize.XS}
+              size={ButtonSize.SM}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
           ) : null}
         </div>
-        <Textarea
-          id="gen-action-prompt"
-          ref={textareaRef}
-          value={prompt}
-          onChange={(e) => onPromptChange(e.target.value)}
-          disabled={isDisabled}
-          maxHeight={GENERATION_PROMPT_COMPACT_MAX_HEIGHT}
-          rows={GENERATION_PROMPT_COMPACT_ROWS}
-          className="max-h-[72px] w-full resize-none overflow-y-auto"
-          placeholder="Describe what you want to generate…"
-        />
       </div>
 
       <Dialog open={isPromptPreviewOpen} onOpenChange={setIsPromptPreviewOpen}>
@@ -250,35 +255,26 @@ export function GenerationActionCardControls({
         </div>
         {isImage ? (
           <div className="shrink-0">
-            <label
-              htmlFor="gen-action-outputs"
-              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-            >
+            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Outputs
-            </label>
-            <Select
-              disabled={isDisabled}
-              onValueChange={(value) => onOutputsChange(Number(value))}
+            </span>
+            <ButtonDropdown
+              name="outputs"
               value={String(outputs)}
-            >
-              <SelectTrigger
-                aria-label="Number of outputs"
-                className={cn('min-w-14', SHELL_CONTROL_HEIGHT_CLASS)}
-                id="gen-action-outputs"
-              >
-                <SelectValue placeholder="1x" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from(
-                  { length: maxOutputs },
-                  (_, index) => index + 1,
-                ).map((count) => (
-                  <SelectItem key={count} value={String(count)}>
-                    {count}x
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={Array.from({ length: maxOutputs }, (_, index) => {
+                const count = index + 1;
+                return {
+                  label: `${count}x`,
+                  value: String(count),
+                };
+              })}
+              onChange={(_name, value) => onOutputsChange(Number(value))}
+              className="border border-border bg-background hover:bg-accent/50"
+              isDisabled={isDisabled}
+              direction={DropdownDirection.UP}
+              placeholder="1x"
+              tooltip="Number of outputs"
+            />
           </div>
         ) : null}
         {/* Duration (video only, if model supports it) */}

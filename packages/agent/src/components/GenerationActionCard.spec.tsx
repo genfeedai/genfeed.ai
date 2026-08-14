@@ -108,6 +108,35 @@ vi.mock('@ui/dropdowns/aspect-ratio/AspectRatioDropdown', () => ({
   ),
 }));
 
+vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
+  default: ({
+    onChange,
+    options,
+    tooltip,
+    value,
+  }: {
+    onChange: (name: string, value: string) => void;
+    options: Array<{ label: string; value: string }>;
+    tooltip?: string;
+    value?: string;
+  }) => (
+    <div data-testid="outputs-button-dropdown">
+      <button type="button" aria-label={tooltip ?? 'Number of outputs'}>
+        {value}x
+      </button>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onChange('outputs', option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
 const { selectHarness } = vi.hoisted(() => ({
   selectHarness: {
     onValueChange: undefined as ((value: string) => void) | undefined,
@@ -239,6 +268,9 @@ describe('GenerationActionCard', () => {
     );
     expect(source).toContain("useTranslations('agent.generationActionCard')");
     expect(source).not.toContain('const COPY =');
+    expect(source).toContain('ButtonDropdown');
+    expect(source).toContain('name="outputs"');
+    expect(source).not.toContain('id="gen-action-outputs"');
   });
 
   beforeEach(() => {
@@ -277,11 +309,14 @@ describe('GenerationActionCard', () => {
     const compactPrompt = await screen.findByRole('textbox', {
       name: 'Prompt',
     });
-    expect(compactPrompt).toHaveAttribute('rows', '2');
+    expect(compactPrompt).toHaveAttribute('rows', '1');
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Read and edit the full prompt' }),
-    );
+    const readEdit = screen.getByRole('button', {
+      name: 'Read and edit the full prompt',
+    });
+    expect(compactPrompt.parentElement).toContainElement(readEdit);
+
+    fireEvent.click(readEdit);
 
     const fullPrompt = await screen.findByRole('textbox', {
       name: 'Full prompt',

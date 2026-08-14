@@ -1,5 +1,5 @@
-export const GENERATION_PROMPT_COMPACT_ROWS = 2;
-export const GENERATION_PROMPT_COMPACT_MAX_HEIGHT = 72;
+export const GENERATION_PROMPT_COMPACT_ROWS = 1;
+export const GENERATION_PROMPT_COMPACT_MAX_HEIGHT = 32;
 export const GENERATION_PROMPT_PREVIEW_CHAR_BUDGET = 160;
 
 export function shouldOfferGenerationPromptPreview(prompt: string): boolean {

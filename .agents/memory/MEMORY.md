@@ -46,7 +46,8 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_no_composer_context_meter](feedback_no_composer_context_meter.md) — no token / context-window meter on the agent composer
 - [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — All view lists collapsed families; no second provider accordion
 - [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card model/priority/outputs persist in a Zustand store separate from chat
-- [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs dropdown
+- [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs ButtonDropdown
+- [feedback_generation_card_one_line_prompt](feedback_generation_card_one_line_prompt.md) — generation-card prompt is one line; Read & edit sits on that row
 - [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
 - [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — opaque bg block sits behind the prompt bar only; generation cards above it stay uncut
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — first-login /agent/onboarding is a conversation; compact card sits on the prompt bar
