@@ -56,6 +56,20 @@ describe('formatAgentError', () => {
     );
   });
 
+  it('maps thread UI-action axios 500s to connection-interrupted, not provider outage', () => {
+    // Confirm-generate waits on POST /v1/images through the same API. When that
+    // hop 500s (proxy timeout, hung Replicate call, local reload) axios says
+    // "Request failed with status code 500" and the UI-action wrapper repeats
+    // the 500. That must not read as "the model provider is down".
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 500 - Request failed with status code 500',
+    );
+
+    expect(formatted.title).toBe('Connection interrupted');
+    expect(formatted.summary).toMatch(/server error mid-request/i);
+    expect(formatted.title).not.toBe('Provider temporarily unavailable');
+  });
+
   it('classifies local API / proxy connection failures', () => {
     expect(formatAgentError('connect ECONNREFUSED 127.0.0.1:4635').title).toBe(
       'Connection interrupted',

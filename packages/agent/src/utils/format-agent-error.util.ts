@@ -95,7 +95,7 @@ const CONFIG_PATTERNS: Array<{
     // API dies mid-request (nest-fast-dev rebuild). Prefer connection copy over
     // a vague "provider unavailable" reading.
     match:
-      /generation failed:\s*5\d{2}\b|failed with status\s*5\d{2}\b|:\s*5\d{2}\s*$/i,
+      /generation failed:\s*5\d{2}\b|failed with status(?: code)?\s*500\b|Failed to respond to UI action:\s*500\b|:\s*500\s*$/i,
     title: 'Connection interrupted',
     summary:
       'The API returned a server error mid-request — often a local reload.',
