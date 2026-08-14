@@ -7,9 +7,11 @@ import {
   createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  createPlatformHomeRoute,
   LEGACY_APP_ROUTES,
   resolveArtifactEditorBackHref,
   withArtifactEditorReturn,
+  withPlatformQuery,
 } from './routes.constant';
 
 function collectRouteValues(value: unknown): string[] {
@@ -138,6 +140,19 @@ describe('routes.constant', () => {
     expect(APP_ROUTE_TEMPLATES.BRAND_SETTINGS).toBe(
       '/:orgSlug/:brandSlug/settings',
     );
+  });
+
+  it('builds brand platform home paths and platform query filters', () => {
+    expect(APP_ROUTES.PLATFORMS.ROOT).toBe('/platforms');
+    expect(APP_ROUTE_PREFIXES.PLATFORMS).toBe('/platforms');
+    expect(createPlatformHomeRoute('instagram')).toBe('/platforms/instagram');
+    expect(createPlatformHomeRoute('google_ads')).toBe('/platforms/google_ads');
+    expect(withPlatformQuery(APP_ROUTES.PUBLISH.SCHEDULED, 'instagram')).toBe(
+      '/publish/scheduled?platform=instagram',
+    );
+    expect(
+      withPlatformQuery(`${APP_ROUTES.PUBLISH.POSTS}?status=draft`, 'youtube'),
+    ).toBe('/publish/posts?status=draft&platform=youtube');
   });
 
   it('keeps Tasks inside the Workspace route family', () => {

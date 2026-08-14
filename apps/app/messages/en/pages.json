@@ -1,4 +1,65 @@
 {
+  "platforms": {
+    "home": {
+      "accountsLabel": "Connected accounts",
+      "actionsTitle": "Work this destination",
+      "brandMissing": "Brand not found.",
+      "calendar": {
+        "cta": "Open calendar",
+        "description": "See what ships this week and reschedule from Publish.",
+        "label": "Calendar"
+      },
+      "connection": {
+        "cta": "Manage connection",
+        "descriptionAttention": "{account} needs attention. Reconnect or review Social settings.",
+        "descriptionConnected": "{account} is connected. Open Social settings to manage or reconnect.",
+        "descriptionHealthy": "{account} is healthy. Reconnect from Social settings if publishing stalls.",
+        "healthAttention": "Needs attention",
+        "healthConnected": "Connected",
+        "healthHealthy": "Healthy",
+        "label": "Connection",
+        "unnamedAccount": "This account"
+      },
+      "create": {
+        "cta": "Create for {platform}",
+        "description": "Start a new post with {platform} already in mind.",
+        "label": "Create"
+      },
+      "description": "Queue, engage, and connection health for {platform} — without leaving this brand.",
+      "empty": {
+        "connect": "Connect {platform}",
+        "description": "Connect this destination to see its queue, engage inbox, and health.",
+        "manage": "Open Social settings",
+        "title": "{platform} is not connected"
+      },
+      "engage": {
+        "cta": "Open Messages",
+        "description": "Comments and DMs for this brand.",
+        "label": "Engage"
+      },
+      "live": {
+        "cta": "Open live",
+        "description": "Chat and livestream bots for {platform}.",
+        "label": "Live"
+      },
+      "queue": {
+        "cta": "Open queue",
+        "description": "Drafts and scheduled posts filtered to {platform}.",
+        "label": "Queue"
+      },
+      "replies": {
+        "cta": "Open Replies",
+        "description": "Author replies on your {platform} posts.",
+        "label": "Replies"
+      },
+      "title": "{platform} home",
+      "winners": {
+        "cta": "Open analytics",
+        "description": "Top posts and winners for {platform}.",
+        "label": "Top posts"
+      }
+    }
+  },
   "posts": {
     "list": {
       "channelCount": "{count, plural, one {# channel} other {# channels}}",

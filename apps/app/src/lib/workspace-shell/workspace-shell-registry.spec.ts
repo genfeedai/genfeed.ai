@@ -86,6 +86,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/~/automate', 'Automate', 'Overview'],
     ['/acme/moonrise/discover/following', 'Discover', 'Following'],
     ['/acme/moonrise/discover/instagram', 'Discover', 'Instagram'],
+    ['/acme/moonrise/platforms/instagram', 'Platforms', 'Instagram'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
@@ -163,6 +164,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
+    ['/:orgSlug/:brandSlug/platforms/:platform', 'canvas'],
     ['/:orgSlug/~/settings/subscription', 'canvas'],
     ['/admin/administration/users', 'canvas'],
   ] as const)('classifies %s as %s', (pattern, mode) => {

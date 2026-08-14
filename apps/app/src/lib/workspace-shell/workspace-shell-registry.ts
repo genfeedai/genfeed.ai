@@ -116,6 +116,7 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   library: 'Library',
   messages: 'Messages',
   overview: 'Workspace',
+  platforms: 'Platforms',
   publish: 'Publish',
   discover: 'Discover',
   settings: 'Settings',
@@ -169,6 +170,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
   '/:orgSlug/:brandSlug/discover/:platform': ':platform',
   '/:orgSlug/~/discover/:platform': ':platform',
+  '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
   '/:orgSlug/:brandSlug/studio/edit': 'Edit',
   '/:orgSlug/:brandSlug/studio/edit/:id': 'Project',
@@ -927,6 +929,15 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'management',
     },
   ),
+  ...registerRoutes(['/:orgSlug/:brandSlug/platforms/:platform'], {
+    fallback: '/:orgSlug/:brandSlug/settings/social',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'brand',
+    surfaceKey: 'platforms',
+    switcherItems: ['publish', 'messages'],
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/lab/articles',
