@@ -4419,14 +4419,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "apps/server/api/test/integration/health.e2e-spec.ts",
-      "fingerprint": "a289fd978f63c18d989d",
-      "message": "Cannot find module '@test/app.module' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
       "fingerprint": "0370b2f1d5c7152c5604",
       "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
@@ -4534,14 +4526,6 @@
       "file": "apps/server/api/test/integration/publish-flow.integration.spec.ts",
       "fingerprint": "56fadd0c827ee45a2f8f",
       "message": "Type 'string | null' is not assignable to type 'string | undefined'.   Type 'null' is not assignable to type 'string | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/test/integration/publish-flow.integration.spec.ts",
-      "fingerprint": "eb2094468b1a4053ee04",
-      "message": "Type 'Date' is not assignable to type 'string'.",
       "workspace": "api"
     },
     {

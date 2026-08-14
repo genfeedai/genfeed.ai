@@ -12,6 +12,8 @@ vi.mock('@genfeedai/integrations', () => ({
 
 const { MetaAdsService } = await import('./meta-ads.service');
 
+type MetaAdsServiceInstance = InstanceType<typeof MetaAdsService>;
+
 type MetaAdsHttpParams = {
   toHttpServiceParams: (
     searchParams: URLSearchParams,
@@ -19,7 +21,7 @@ type MetaAdsHttpParams = {
 };
 
 function readHttpParams(
-  service: MetaAdsService,
+  service: MetaAdsServiceInstance,
   searchParams: URLSearchParams,
 ): Record<string, string | number> {
   return (service as unknown as MetaAdsHttpParams).toHttpServiceParams(
@@ -29,7 +31,7 @@ function readHttpParams(
 
 function createService(): {
   get: ReturnType<typeof vi.fn>;
-  service: MetaAdsService;
+  service: MetaAdsServiceInstance;
 } {
   const get = vi.fn().mockReturnValue(of({ data: {}, status: 200 }));
   const httpService = {
