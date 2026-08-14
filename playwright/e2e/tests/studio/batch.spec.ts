@@ -19,61 +19,51 @@ const workflow = {
   updatedAt: '2026-03-15T12:00:00.000Z',
 };
 
+const BATCH_VIDEO_COUNT = 500;
+const BATCH_VIDEO_DURATION_SECONDS = 5;
+
+function createBatchVideoItem(index: number) {
+  const id = `video-output-${index}`;
+
+  return {
+    _id: `item-${index}`,
+    completedAt: '2026-03-15T12:02:00.000Z',
+    executionId: `exec-${index}`,
+    ingredientId: `input-${index}`,
+    outputCategory: 'video',
+    outputIngredientId: id,
+    outputSummary: {
+      category: 'video',
+      duration: BATCH_VIDEO_DURATION_SECONDS,
+      id,
+      ingredientUrl: `https://cdn.example.com/ingredients/videos/${id}`,
+      status: 'generated',
+      thumbnailUrl: `https://cdn.example.com/ingredients/thumbnails/${id}`,
+    },
+    status: 'completed',
+  };
+}
+
 const recentJob = {
   _id: 'job-1',
   completedCount: 0,
   createdAt: '2026-03-15T12:01:00.000Z',
   failedCount: 0,
   status: 'processing',
-  totalCount: 2,
+  totalCount: BATCH_VIDEO_COUNT,
   workflowId: workflow.id,
 };
 
 const completedBatchJob = {
   _id: 'job-1',
-  completedCount: 2,
+  completedCount: BATCH_VIDEO_COUNT,
   createdAt: '2026-03-15T12:01:00.000Z',
   failedCount: 0,
-  items: [
-    {
-      _id: 'item-1',
-      completedAt: '2026-03-15T12:02:00.000Z',
-      executionId: 'exec-1',
-      ingredientId: 'input-1',
-      outputCategory: 'video',
-      outputIngredientId: 'video-output-1',
-      outputSummary: {
-        category: 'video',
-        id: 'video-output-1',
-        ingredientUrl:
-          'https://cdn.example.com/ingredients/videos/video-output-1',
-        status: 'generated',
-        thumbnailUrl:
-          'https://cdn.example.com/ingredients/thumbnails/video-output-1',
-      },
-      status: 'completed',
-    },
-    {
-      _id: 'item-2',
-      completedAt: '2026-03-15T12:02:10.000Z',
-      executionId: 'exec-2',
-      ingredientId: 'input-2',
-      outputCategory: 'video',
-      outputIngredientId: 'video-output-2',
-      outputSummary: {
-        category: 'video',
-        id: 'video-output-2',
-        ingredientUrl:
-          'https://cdn.example.com/ingredients/videos/video-output-2',
-        status: 'generated',
-        thumbnailUrl:
-          'https://cdn.example.com/ingredients/thumbnails/video-output-2',
-      },
-      status: 'completed',
-    },
-  ],
+  items: Array.from({ length: BATCH_VIDEO_COUNT }, (_, index) =>
+    createBatchVideoItem(index + 1),
+  ),
   status: 'completed',
-  totalCount: 2,
+  totalCount: BATCH_VIDEO_COUNT,
   updatedAt: '2026-03-15T12:02:10.000Z',
   workflowId: workflow.id,
 };
@@ -111,6 +101,14 @@ async function routeBatchWorkflow(
     });
   });
 }
+
+test('batch generation mocks 500 five-second videos in one job', () => {
+  expect(completedBatchJob.totalCount).toBe(500);
+  expect(completedBatchJob.items).toHaveLength(500);
+  expect(
+    completedBatchJob.items.every((item) => item.outputSummary.duration === 5),
+  ).toBe(true);
+});
 
 test.describe('Batch Workflow Runner', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
