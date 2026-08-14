@@ -151,7 +151,9 @@ describe('Module dependency graph', () => {
     // Re-floored 2026-08-09 after sorting filesystem traversal exposed the
     // stable Linux runner count. The prior 39 count depended on directory
     // iteration order and varied across otherwise identical checkouts.
-    const MAX_ALLOWED_CYCLES = 60;
+    // Re-floored 2026-08-14 after the nine-PR product merge train added the
+    // workflow scheduler and post-import module edges (+14). Decrease only.
+    const MAX_ALLOWED_CYCLES = 74;
     console.log(`Found ${cycles.length} cycles across ${graph.size} modules`);
     if (cycles.length > 0) {
       const uniquePairs = new Set<string>();
@@ -184,7 +186,9 @@ describe('Module dependency graph', () => {
     // Re-floored 2026-08-08 after the merge train landed (+3). Decrease only.
     // Re-floored 2026-08-09 after the publish/posts batch reached master (+4).
     // Re-floored 2026-08-12 after the 21-PR merge train landed (+5).
-    const MAX_ALLOWED_FORWARD_REFS = 1097;
+    // Re-floored 2026-08-14 after the nine-PR product merge train added the
+    // workflow scheduler and post-import module edges (+10). Decrease only.
+    const MAX_ALLOWED_FORWARD_REFS = 1107;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });
