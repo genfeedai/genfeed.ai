@@ -20,6 +20,8 @@ API origin split Better Auth's local cookie context and caused magic-link failur
 **Apply:**
 - Run `bun run dev:setup` once per development machine. It idempotently installs or verifies the
   repository-pinned Portless HTTPS startup service and never synchronizes `/etc/hosts`.
+- `bun run dev:status` lists live Portless routes and each `next-server` cwd. `FOREIGN` is another
+  repo. Never kill the shared Portless proxy on :443.
 - Prefer `export PATH="$PWD/node_modules/.bin:$PATH"` so the repo-pinned Portless binary is used.
 - Normal interactive boot: `bun run dev:backend:min` + `bun run dev:app` (or `bun run dev`).
   Open **`https://app.genfeed.localhost/`**.

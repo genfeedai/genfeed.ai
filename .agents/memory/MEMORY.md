@@ -33,6 +33,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 - [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
+- [feedback_dev_orphan_watchdog](feedback_dev_orphan_watchdog.md) — wrappers reap orphan next-server children; `dev:status` before blaming Genfeed; never kill :443
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
 - [feedback_code_ci_not_workflow_gates](feedback_code_ci_not_workflow_gates.md) — product contracts are tests; do not add named `check:*` steps to the CI guards job
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items

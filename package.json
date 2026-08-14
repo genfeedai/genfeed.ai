@@ -102,6 +102,7 @@
     "deps:update": "bunx npm-check-updates -u --workspaces --root --cooldown 3h --reject typescript,better-auth,api,jsdom,@types/vscode,@types/node && bun install",
     "dev:setup": "bun run scripts/dev/setup-portless.ts",
     "dev:doctor": "bun run scripts/dev/setup-portless.ts --check",
+    "dev:status": "bun run scripts/dev/dev-status.ts",
     "dev": "bunx turbo run dev --filter=@genfeedai/app --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --filter=@genfeedai/docs --filter=@genfeedai/website --concurrency=9",
     "dev:app": "bun run --cwd apps/app dev",
     "dev:api": "bun run --cwd apps/server/api dev",
