@@ -24,6 +24,7 @@ import {
   type InstagramAuthorizedSignalsSnapshot,
   type InstagramMediaPerformanceSignal,
   type InstagramOwnedMediaSignal,
+  instagramAuthorizedSignalStatusValues,
   instagramAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/instagram-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
@@ -90,6 +91,15 @@ const PERFORMANCE_FIELDS = [
   'shares',
   'totalInteractions',
 ] as const;
+
+type InstagramSignalFieldStatus =
+  (typeof instagramAuthorizedSignalStatusValues)[number];
+
+function toFieldAvailability(
+  entries: ReadonlyArray<readonly [string, InstagramSignalFieldStatus]>,
+): Record<string, InstagramSignalFieldStatus> {
+  return Object.fromEntries(entries);
+}
 
 const PROFILE_PROVIDER_FIELDS =
   'id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type';
@@ -739,7 +749,7 @@ export class InstagramAuthorizedSignalsService {
       username: readString(result.value.username),
       website: readString(result.value.website),
     };
-    const fieldAvailability = Object.fromEntries(
+    const fieldAvailability = toFieldAvailability(
       PROFILE_FIELDS.map((field) => [
         field,
         value[field] === undefined ? 'unavailable' : 'available',
@@ -790,7 +800,7 @@ export class InstagramAuthorizedSignalsService {
     }
 
     const scope = this.buildScope(requiredScopes, grantedScopes);
-    const fieldAvailability = Object.fromEntries(
+    const fieldAvailability = toFieldAvailability(
       MEDIA_FIELDS.map((field) => [
         field,
         result.value?.media.length === 0 ||
@@ -860,7 +870,7 @@ export class InstagramAuthorizedSignalsService {
       isProfessionalAccount: isProfessional,
     };
     const professionalLimited = accountType !== undefined && !canPublish;
-    const fieldAvailability = Object.fromEntries(
+    const fieldAvailability = toFieldAvailability(
       PUBLISHING_FIELDS.map((field) => [
         field,
         value[field] === undefined ? 'unavailable' : 'available',
@@ -958,7 +968,7 @@ export class InstagramAuthorizedSignalsService {
     }
 
     const performance = result.value.performance;
-    const fieldAvailability = Object.fromEntries(
+    const fieldAvailability = toFieldAvailability(
       PERFORMANCE_FIELDS.map((field) => [
         field,
         performance.length === 0 ||
@@ -1023,7 +1033,7 @@ export class InstagramAuthorizedSignalsService {
         : scope;
 
     return {
-      fieldAvailability: Object.fromEntries(
+      fieldAvailability: toFieldAvailability(
         fieldNames.map((field) => [
           field,
           reason === 'missing_scope' ||
