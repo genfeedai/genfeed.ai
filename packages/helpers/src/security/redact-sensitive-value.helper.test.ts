@@ -66,4 +66,21 @@ describe('redactSensitiveValue', () => {
 
     expect(redactSensitiveString(value)).toBe(value);
   });
+  it('preserves a begin marker that is not a private key type', () => {
+    const value = '-----BEGIN rsa PRIVATE KEY-----\nmaterial';
+    expect(redactSensitiveString(value)).toBe(value);
+  });
+
+  it('preserves an unmatched begin marker until a valid end marker exists', () => {
+    const beginMarker = ['-----BEGIN ', 'PRIVATE KEY-----'].join('');
+    const value = `before ${beginMarker}\nmaterial`;
+    expect(redactSensitiveString(value)).toBe(value);
+  });
+
+  it('ignores an end marker that is not a private key type', () => {
+    const beginMarker = ['-----BEGIN ', 'PRIVATE KEY-----'].join('');
+    const invalidEnd = ['-----END ', 'rsa PRIVATE KEY-----'].join('');
+    const value = [beginMarker, 'material', invalidEnd].join('\n');
+    expect(redactSensitiveString(value)).toBe(value);
+  });
 });

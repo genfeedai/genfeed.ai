@@ -98,4 +98,54 @@ describe('agent orchestrator input parsing', () => {
       extractBatchTopic(repeatedTopicCandidates, repeatedTopicCandidates),
     ).toBeUndefined();
   });
+  it('does not treat a glued count and asset as a match', () => {
+    expect(extractRecurringContentCount('create 5images')).toBeUndefined();
+  });
+
+  it('reads a platform-qualified asset count', () => {
+    expect(extractRecurringContentCount('create 5 twitter videos')).toBe(5);
+  });
+
+  it('ignores a platform token that is not followed by an asset', () => {
+    expect(
+      extractRecurringContentCount('create 5 twitter weekly'),
+    ).toBeUndefined();
+  });
+
+  it('extracts style notes after in-an', () => {
+    expect(extractStyleNotes('Create images in an editorial style')).toBe(
+      'editorial',
+    );
+  });
+
+  it('returns undefined when a style cue has no notes', () => {
+    expect(extractStyleNotes('Create images in a style')).toBeUndefined();
+  });
+
+  it('ignores about with no following whitespace', () => {
+    expect(
+      extractBatchTopic('Create posts about.', 'create posts about.'),
+    ).toBeUndefined();
+  });
+
+  it.each(['on', 'this', 'next', 'over'])(
+    'stops a topic before terminator "%s"',
+    (terminator) => {
+      expect(
+        extractBatchTopic(
+          `Create posts about AI Safety ${terminator} Monday`,
+          `create posts about ai safety ${terminator} monday`,
+        ),
+      ).toBe('AI Safety');
+    },
+  );
+
+  it.each(['!', '?'])('stops a topic at sentence punctuation %s', (mark) => {
+    expect(
+      extractBatchTopic(
+        `Create posts about AI Safety${mark} extra`,
+        `create posts about ai safety${mark} extra`,
+      ),
+    ).toBe('AI Safety');
+  });
 });
