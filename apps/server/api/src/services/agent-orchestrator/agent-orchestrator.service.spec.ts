@@ -52,9 +52,13 @@ import { Effect } from 'effect';
 
 const ORG_ID = 'c7a123456789012345678901';
 const USER_ID = 'c7a123456789012345678902';
-const LLM_CALL_CONTEXT = { organizationId: ORG_ID, userId: USER_ID };
 const CONVERSATION_ID = 'c7a123456789012345678903';
 const RUN_ID = 'c7a123456789012345678904';
+const LLM_CALL_CONTEXT = {
+  runId: undefined,
+  threadId: CONVERSATION_ID,
+  userId: USER_ID,
+};
 
 describe('AgentOrchestratorService', () => {
   let service: AgentOrchestratorService;
