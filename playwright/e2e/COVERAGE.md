@@ -65,7 +65,7 @@ specs (direct `.goto()` plus `routes = [...]` arrays passed to
 Gate options:
 
 ```bash
-E2E_ROUTE_COVERAGE_THRESHOLD=80   # percentage, default 80
+E2E_ROUTE_COVERAGE_THRESHOLD=90   # percentage, default 90
 E2E_ROUTE_COVERAGE_MODE=effective # gate on effective instead of dedicated
 ```
 
