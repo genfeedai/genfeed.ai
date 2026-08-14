@@ -5,19 +5,18 @@ import type { Request } from 'express';
  * response has been written. Used so `waitForCompletion` can cancel the
  * provider job instead of polling until timeout after the browser is gone.
  *
- * Listen only to `response.close`. IncomingMessage `request.close` also
- * fires when the request body has been fully received — that is the
- * normal start of a long `waitForCompletion` generate, not a hangup.
- * Treating it as abort canceled Replicate predictions in under a second.
+ * Do not treat a consumed IncomingMessage as a hangup. Node auto-destroys
+ * the request stream after Express reads the JSON body, and `request.close`
+ * also fires then. Either one canceled Replicate in under a second.
  *
- * Successful responses also emit `close`; those are ignored because
- * `writableEnded` is already true.
+ * Listen only to `response.close`. Successful responses also emit `close`;
+ * those are ignored because `writableEnded` is already true.
  */
 export function createRequestAbortSignal(request: Request): AbortSignal {
   const controller = new AbortController();
   const response = request.res;
 
-  if (request.destroyed || request.aborted) {
+  if (request.aborted && !response?.writableEnded) {
     controller.abort();
     return controller.signal;
   }

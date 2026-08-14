@@ -70,6 +70,10 @@ const BRAND_IDENTITY_MESSAGE_MAX_PAGES = 50;
 const PROVIDER_AUTHENTICATION_DETAIL =
   'The model provider rejected the credentials for this request.';
 
+function isCancelledGeneration(error: string | undefined): boolean {
+  return /Cancelled by user/i.test(error ?? '');
+}
+
 function readForbiddenDetail(error: string | undefined): string {
   const trimmed = error?.trim() ?? '';
   if (!trimmed) {
@@ -1016,6 +1020,9 @@ export class AgentOrchestratorUiActionService {
     }
     if (status === HttpStatus.FORBIDDEN) {
       ErrorResponse.forbidden(readForbiddenDetail(error));
+    }
+    if (isCancelledGeneration(error)) {
+      ErrorResponse.conflict('generation', 'Cancelled by user');
     }
     throw new InternalServerErrorException(error?.trim() || fallback);
   }

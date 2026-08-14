@@ -93,6 +93,21 @@ describe('formatAgentError', () => {
     expect(formatted.title).not.toBe('Provider access denied');
   });
 
+  it('does not call a cancelled generate a connection interrupt', () => {
+    // The abort hook used to cancel Replicate when the POST body finished,
+    // then Nest turned GenerationCancelledError into 500. The generic
+    // UI-action-500 rule said "local reload". Vincent did not reload.
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 500 - Request failed with status code 500: Cancelled by user',
+    );
+
+    expect(formatted.title).toBe('Generate was cancelled');
+    expect(formatted.summary).toMatch(/stopped before the image finished/i);
+    expect(formatted.title).not.toBe('Connection interrupted');
+    expect(formatted.recovery).toMatch(/retry/i);
+    expect(formatted.isConfigurationError).toBe(false);
+  });
+
   it('maps thread UI-action axios 500s to connection-interrupted, not provider outage', () => {
     // Confirm-generate waits on POST /v1/images through the same API. When that
     // hop 500s (proxy timeout, hung Replicate call, local reload) axios says

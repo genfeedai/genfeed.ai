@@ -346,6 +346,33 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     );
   });
 
+  it('maps a cancelled generate to 409, not a 500 connection failure', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error: 'Request failed with status code 500: Cancelled by user',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.CONFLICT,
+    );
+
+    expect(error).not.toBeInstanceOf(InternalServerErrorException);
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Cancelled by user',
+        status: HttpStatus.CONFLICT,
+      }),
+    );
+  });
+
   it('keeps unexpected generate-media failures as 500', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({
