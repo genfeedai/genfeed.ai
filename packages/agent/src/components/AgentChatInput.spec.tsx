@@ -704,4 +704,27 @@ describe('AgentChatInput', () => {
     });
     expect(onSendSecond).not.toHaveBeenCalled();
   });
+
+  it('changes the empty placeholder to drop it here? while a file is dragged over the prompt bar', async () => {
+    const view = render(<AgentChatInput onSend={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(
+        document.querySelector(
+          '[data-placeholder="Ask for help with content, review, or planning…"]',
+        ),
+      ).toBeTruthy();
+    });
+
+    view.rerender(
+      <AgentChatInput dragState={{ isActive: true }} onSend={vi.fn()} />,
+    );
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-placeholder="drop it here?"]'),
+      ).toBeTruthy();
+    });
+    expect(screen.queryByText('Drop files here')).not.toBeInTheDocument();
+  });
 });
