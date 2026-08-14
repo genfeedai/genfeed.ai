@@ -66,15 +66,21 @@ export function hostnameFromUrl(value: string | undefined): string | undefined {
  * True when any configured public Genfeed URL points at `*.genfeed.ai`.
  * Shared by API and Next — same rule both sides.
  */
-export function isHostedGenfeedFromEnv(): boolean {
+export type EnvValueReader = (key: string) => string | undefined;
+
+export function isHostedGenfeedFromReader(readEnv: EnvValueReader): boolean {
   for (const key of HOSTED_GENFEED_URL_ENV_KEYS) {
-    const hostname = hostnameFromUrl(process.env[key]);
+    const hostname = hostnameFromUrl(readEnv(key));
     if (hostname && isHostedGenfeedHostname(hostname)) {
       return true;
     }
   }
 
   return false;
+}
+
+export function isHostedGenfeedFromEnv(): boolean {
+  return isHostedGenfeedFromReader((key) => process.env[key]);
 }
 
 /**
@@ -113,9 +119,9 @@ export function isHostedGenfeedApi(): boolean {
 }
 
 /** Resolve the backend deployment axis. Explicit flags win; domain is the safety net. */
-export function getDeployment(): Deployment {
-  const serverFlag = process.env.GENFEED_CLOUD?.trim();
-  const publicFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
+export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
+  const serverFlag = readEnv('GENFEED_CLOUD')?.trim();
+  const publicFlag = readEnv('NEXT_PUBLIC_GENFEED_CLOUD')?.trim();
   const explicitFlag = serverFlag || publicFlag;
 
   if (explicitFlag) {
@@ -124,12 +130,22 @@ export function getDeployment(): Deployment {
 
   // Domain is the product source of truth for hosted SaaS. A missing
   // GENFEED_CLOUD on api.genfeed.ai / app.genfeed.ai must never drop billing
-  // (or UI) into community/OSS mode.
-  if (isHostedGenfeedCloud()) {
+  // (or UI) into community/OSS mode. Browser hostname is not used here so
+  // Nest/libs can pass ConfigService instead of reading process.env.
+  if (isHostedGenfeedFromReader(readEnv)) {
     return 'cloud';
   }
 
   return 'self-hosted';
+}
+
+export function getDeployment(): Deployment {
+  const fromEnv = getDeploymentFromReader((key) => process.env[key]);
+  if (fromEnv === 'cloud') {
+    return 'cloud';
+  }
+
+  return isHostedGenfeedFromBrowser() ? 'cloud' : 'self-hosted';
 }
 
 /** Resolve the client-surface axis independently from the deployment. */

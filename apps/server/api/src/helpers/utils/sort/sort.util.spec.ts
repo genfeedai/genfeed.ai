@@ -40,4 +40,14 @@ describe('handleQuerySort', () => {
   ])('falls back for invalid or adversarial input: %s', (query) => {
     expect(handleQuerySort(query)).toEqual({ createdAt: -1 });
   });
+  it('accepts underscore and digit field names', () => {
+    expect(handleQuerySort('field_1: 1, createdAt: -1')).toEqual({
+      createdAt: -1,
+      field_1: 1,
+    });
+  });
+
+  it('rejects operator-like field characters', () => {
+    expect(handleQuerySort('createdAt$: 1')).toEqual({ createdAt: -1 });
+  });
 });

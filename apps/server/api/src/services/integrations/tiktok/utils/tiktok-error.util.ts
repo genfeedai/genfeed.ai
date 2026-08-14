@@ -1,3 +1,4 @@
+import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import type { AxiosError } from 'axios';
 
 interface TikTokErrorPayload {
@@ -7,20 +8,7 @@ interface TikTokErrorPayload {
 }
 
 export function parseTikTokGrantedScopes(value: unknown): string[] {
-  const scopes = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split(',')
-      : [];
-
-  return [
-    ...new Set(
-      scopes
-        .filter((scope): scope is string => typeof scope === 'string')
-        .map((scope) => scope.trim())
-        .filter(Boolean),
-    ),
-  ].sort();
+  return parseGrantedOAuthScopes(value);
 }
 
 export function getTikTokErrorCode(error: unknown): string | undefined {

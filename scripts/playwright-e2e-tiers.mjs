@@ -1,0 +1,521 @@
+#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { PLAYWRIGHT_E2E_QUARANTINES } from './playwright-e2e-tiers.manifest.mjs';
+
+const REPOSITORY_ROOT = fileURLToPath(new URL('..', import.meta.url));
+const SPECS_ROOT = 'playwright/e2e/tests';
+const PLAYWRIGHT_CONFIG = 'playwright/configs/playwright.config.ts';
+const PLAYWRIGHT_PROJECT = 'app-core';
+const REPORT_DIRECTORY = path.join(
+  REPOSITORY_ROOT,
+  'playwright/artifacts/report',
+);
+const SUMMARY_FILENAME = 'full-tier-summary.json';
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
+  configs: {
+    authed: PLAYWRIGHT_CONFIG,
+    core: PLAYWRIGHT_CONFIG,
+    full: PLAYWRIGHT_CONFIG,
+  },
+  scripts: {
+    authed: 'test:e2e:authed',
+    core: 'test:e2e:core',
+    full: 'test:e2e:full',
+  },
+  tiers: ['core', 'authed', 'full'],
+};
+
+/**
+ * @typedef {import('./playwright-e2e-tiers.manifest.mjs').PlaywrightE2eQuarantine} PlaywrightE2eQuarantine
+ */
+
+/**
+ * @typedef {{
+ *   discoveredFiles: string[],
+ *   quarantinedFiles: PlaywrightE2eQuarantine[],
+ *   selectedFiles: string[],
+ *   tier: 'full',
+ * }} PlaywrightE2eTierPlan
+ */
+
+/**
+ * @typedef {{
+ *   discoveredFileCount: number,
+ *   discoveredFiles: string[],
+ *   executedFileCount: number | null,
+ *   failedFileCount: number | null,
+ *   quarantinedFileCount: number,
+ *   quarantinedFiles: PlaywrightE2eQuarantine[],
+ *   selectedFileCount: number,
+ *   selectedFiles: string[],
+ *   status: 'failed' | 'passed' | 'planned',
+ *   tier: 'full',
+ * }} PlaywrightE2eTierSummary
+ */
+
+function toPosixPath(file) {
+  return file.replaceAll(path.sep, '/');
+}
+
+function toIsoDate(now) {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+function collectSpecFiles(rootDir, directory) {
+  const absoluteDirectory = path.join(rootDir, directory);
+  if (!existsSync(absoluteDirectory)) {
+    return [];
+  }
+
+  return readdirSync(absoluteDirectory, { withFileTypes: true }).flatMap(
+    (entry) => {
+      const relativePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return collectSpecFiles(rootDir, relativePath);
+      }
+
+      return entry.isFile() && entry.name.endsWith('.spec.ts')
+        ? [toPosixPath(relativePath)]
+        : [];
+    },
+  );
+}
+
+export function discoverPlaywrightSpecs(rootDir = REPOSITORY_ROOT) {
+  return collectSpecFiles(rootDir, SPECS_ROOT).sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function duplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+    }
+    seen.add(value);
+  }
+
+  return [...duplicates].sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * @param {string[]} discoveredFiles
+ * @param {PlaywrightE2eQuarantine[]} quarantines
+ * @param {Date | number} [now]
+ */
+export function validatePlaywrightE2eQuarantines(
+  discoveredFiles,
+  quarantines,
+  now = new Date(),
+) {
+  const discovered = new Set(discoveredFiles);
+  const errors = [];
+  const duplicates = duplicateValues(quarantines.map(({ file }) => file));
+  if (duplicates.length > 0) {
+    errors.push(`Duplicate quarantines: ${duplicates.join(', ')}`);
+  }
+
+  const today = toIsoDate(now);
+  const seen = new Set();
+
+  for (const quarantine of quarantines) {
+    if (seen.has(quarantine.file)) {
+      continue;
+    }
+    seen.add(quarantine.file);
+
+    if (!discovered.has(quarantine.file)) {
+      errors.push(`Quarantined file is not discoverable: ${quarantine.file}`);
+    }
+    if (!quarantine.reason || quarantine.reason.trim().length === 0) {
+      errors.push(`Quarantine has no reason: ${quarantine.file}`);
+    }
+
+    const hasOwner =
+      typeof quarantine.owner === 'string' &&
+      quarantine.owner.trim().length > 0;
+    const hasTrackingIssue =
+      Number.isSafeInteger(quarantine.trackingIssue) &&
+      quarantine.trackingIssue > 0;
+    if (!hasOwner && !hasTrackingIssue) {
+      errors.push(
+        `Quarantine has no owner or tracking issue: ${quarantine.file}`,
+      );
+    }
+
+    if (!ISO_DATE.test(quarantine.reviewBy ?? '')) {
+      errors.push(`Quarantine has no review date: ${quarantine.file}`);
+      continue;
+    }
+
+    if (quarantine.reviewBy < today) {
+      errors.push(
+        `Quarantine expired: ${quarantine.file} (reviewBy ${quarantine.reviewBy})`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * @param {{
+ *   now?: Date | number,
+ *   quarantines?: PlaywrightE2eQuarantine[],
+ *   rootDir?: string,
+ * }} [options]
+ */
+export function buildPlaywrightE2eTierPlan(options = {}) {
+  const quarantines = options.quarantines ?? PLAYWRIGHT_E2E_QUARANTINES;
+  const rootDir = options.rootDir ?? REPOSITORY_ROOT;
+  const discoveredFiles = discoverPlaywrightSpecs(rootDir);
+  const manifestErrors = validatePlaywrightE2eQuarantines(
+    discoveredFiles,
+    quarantines,
+    options.now ?? new Date(),
+  );
+
+  if (manifestErrors.length > 0) {
+    throw new Error(
+      `Invalid Playwright E2E quarantine manifest:\n${manifestErrors
+        .map((error) => `- ${error}`)
+        .join('\n')}`,
+    );
+  }
+
+  const quarantinedPaths = new Set(quarantines.map(({ file }) => file));
+  return {
+    discoveredFiles,
+    quarantinedFiles: [...quarantines],
+    selectedFiles: discoveredFiles.filter(
+      (file) => !quarantinedPaths.has(file),
+    ),
+    tier: 'full',
+  };
+}
+
+/**
+ * @param {{ specs?: Array<{ ok?: boolean }>, suites?: unknown[] }} [suite]
+ * @returns {{ executed: number, failed: number }}
+ */
+function countSpecs(suite) {
+  let executed = 0;
+  let failed = 0;
+
+  for (const spec of suite?.specs ?? []) {
+    executed += 1;
+    if (spec.ok === false) {
+      failed += 1;
+    }
+  }
+
+  for (const child of suite?.suites ?? []) {
+    const nested = countSpecs(child);
+    executed += nested.executed;
+    failed += nested.failed;
+  }
+
+  return { executed, failed };
+}
+
+/**
+ * @param {{
+ *   plan: PlaywrightE2eTierPlan,
+ *   playwrightReport?: { stats?: { expected?: number, unexpected?: number }, suites?: unknown[] },
+ *   status: 'failed' | 'passed' | 'planned',
+ * }} input
+ */
+export function buildPlaywrightE2eTierSummary({
+  plan,
+  playwrightReport,
+  status,
+}) {
+  let executedFileCount = null;
+  let failedFileCount = null;
+
+  if (status !== 'planned') {
+    const walked = countSpecs({ suites: playwrightReport?.suites ?? [] });
+    if (walked.executed > 0) {
+      executedFileCount = walked.executed;
+      failedFileCount = walked.failed;
+    } else if (playwrightReport?.stats) {
+      const passed = playwrightReport.stats.expected ?? 0;
+      const failed = playwrightReport.stats.unexpected ?? 0;
+      executedFileCount = passed + failed;
+      failedFileCount = failed;
+    } else {
+      executedFileCount = 0;
+      failedFileCount = 0;
+    }
+  }
+
+  return {
+    discoveredFileCount: plan.discoveredFiles.length,
+    discoveredFiles: plan.discoveredFiles,
+    executedFileCount,
+    failedFileCount,
+    quarantinedFileCount: plan.quarantinedFiles.length,
+    quarantinedFiles: plan.quarantinedFiles,
+    selectedFileCount: plan.selectedFiles.length,
+    selectedFiles: plan.selectedFiles,
+    status,
+    tier: 'full',
+  };
+}
+
+function writeSummary(summary) {
+  mkdirSync(REPORT_DIRECTORY, { recursive: true });
+  const reportPath = path.join(REPORT_DIRECTORY, SUMMARY_FILENAME);
+  writeFileSync(reportPath, `${JSON.stringify(summary, null, 2)}\n`);
+  appendGitHubSummary(summary);
+  console.log(
+    `[playwright-e2e] status=${summary.status} discovered=${summary.discoveredFileCount} selected=${summary.selectedFileCount} quarantined=${summary.quarantinedFileCount} executed=${summary.executedFileCount ?? 'n/a'} failed=${summary.failedFileCount ?? 'n/a'} report=${toPosixPath(path.relative(REPOSITORY_ROOT, reportPath))}`,
+  );
+}
+
+/**
+ * @param {PlaywrightE2eTierSummary} summary
+ */
+function appendGitHubSummary(summary) {
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (!summaryPath) {
+    return;
+  }
+
+  const lines = [
+    '### Playwright E2E full tier',
+    '',
+    '| Discovered | Selected | Executed | Quarantined | Failed | Status |',
+    '| ---: | ---: | ---: | ---: | ---: | --- |',
+    `| ${summary.discoveredFileCount} | ${summary.selectedFileCount} | ${summary.executedFileCount ?? 'n/a'} | ${summary.quarantinedFileCount} | ${summary.failedFileCount ?? 'n/a'} | ${summary.status} |`,
+    '',
+  ];
+
+  if (summary.quarantinedFiles.length > 0) {
+    lines.push('Quarantined files:', '');
+    for (const quarantine of summary.quarantinedFiles) {
+      const tracker = quarantine.trackingIssue
+        ? ` ([#${quarantine.trackingIssue}](https://github.com/genfeedai/genfeed.ai/issues/${quarantine.trackingIssue}))`
+        : quarantine.owner
+          ? ` (${quarantine.owner})`
+          : '';
+      lines.push(
+        `- \`${quarantine.file}\` — ${quarantine.reason}${tracker} — review by ${quarantine.reviewBy}`,
+      );
+    }
+    lines.push('');
+  }
+
+  writeFileSync(summaryPath, `${lines.join('\n')}\n`, { flag: 'a' });
+}
+
+function parseShard(value) {
+  const match = /^(\d+)\/(\d+)$/.exec(value ?? '');
+  if (!match) {
+    return null;
+  }
+
+  const index = Number(match[1]);
+  const total = Number(match[2]);
+  if (
+    !Number.isInteger(index) ||
+    !Number.isInteger(total) ||
+    index < 1 ||
+    total < 1 ||
+    index > total
+  ) {
+    return null;
+  }
+
+  return `${index}/${total}`;
+}
+
+function readShardFromEnv() {
+  const combined = parseShard(process.env.E2E_SHARD);
+  if (combined) {
+    return combined;
+  }
+
+  const index = process.env.E2E_SHARD_INDEX;
+  const total = process.env.E2E_TOTAL_SHARDS;
+  if (!index || !total) {
+    return null;
+  }
+
+  return parseShard(`${index}/${total}`);
+}
+
+function readPlaywrightReport(reportPath) {
+  return JSON.parse(readFileSync(reportPath, 'utf8'));
+}
+
+function parseCliOptions(args) {
+  const separatorIndex = args.indexOf('--');
+  const ownArgs = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
+  const playwrightArgs =
+    separatorIndex === -1 ? [] : args.slice(separatorIndex + 1);
+
+  let listOnly = false;
+  let summarize = false;
+  let shard = null;
+  let playwrightReportPath = null;
+  let statusOverride = null;
+
+  for (const arg of ownArgs) {
+    if (arg === '--list') {
+      listOnly = true;
+      continue;
+    }
+    if (arg === '--summarize') {
+      summarize = true;
+      continue;
+    }
+    if (arg.startsWith('--status=')) {
+      statusOverride = arg.slice('--status='.length);
+      if (!['failed', 'passed', 'planned'].includes(statusOverride)) {
+        throw new Error(`Invalid status: ${arg}`);
+      }
+      continue;
+    }
+    if (arg.startsWith('--shard=')) {
+      shard = parseShard(arg.slice('--shard='.length));
+      if (!shard) {
+        throw new Error(`Invalid shard: ${arg}`);
+      }
+      continue;
+    }
+    if (arg.startsWith('--playwright-report=')) {
+      playwrightReportPath = arg.slice('--playwright-report='.length);
+      continue;
+    }
+    playwrightArgs.push(arg);
+  }
+
+  return {
+    listOnly,
+    playwrightArgs,
+    playwrightReportPath,
+    shard: shard ?? readShardFromEnv(),
+    statusOverride,
+    summarize,
+  };
+}
+
+function runPlaywrightFullTier(options) {
+  const plan = buildPlaywrightE2eTierPlan();
+
+  console.log(
+    `[playwright-e2e] tier=${plan.tier} discovered=${plan.discoveredFiles.length} selected=${plan.selectedFiles.length} quarantined=${plan.quarantinedFiles.length}`,
+  );
+  for (const file of plan.selectedFiles) {
+    console.log(`[playwright-e2e] selected ${file}`);
+  }
+  for (const quarantine of plan.quarantinedFiles) {
+    const tracker = quarantine.trackingIssue
+      ? `#${quarantine.trackingIssue}`
+      : quarantine.owner;
+    console.log(
+      `[playwright-e2e] quarantined ${quarantine.file} (${tracker}, reviewBy ${quarantine.reviewBy}): ${quarantine.reason}`,
+    );
+  }
+
+  if (options.listOnly) {
+    writeSummary(
+      buildPlaywrightE2eTierSummary({
+        plan,
+        status: 'planned',
+      }),
+    );
+    return 0;
+  }
+
+  if (options.summarize) {
+    let playwrightReport;
+    if (
+      options.playwrightReportPath &&
+      existsSync(options.playwrightReportPath)
+    ) {
+      playwrightReport = readPlaywrightReport(options.playwrightReportPath);
+    }
+    const status =
+      options.statusOverride ??
+      (playwrightReport &&
+      (playwrightReport.stats?.unexpected ?? 0) === 0 &&
+      countSpecs({ suites: playwrightReport.suites ?? [] }).failed === 0
+        ? 'passed'
+        : 'failed');
+    writeSummary(
+      buildPlaywrightE2eTierSummary({
+        plan,
+        playwrightReport,
+        status,
+      }),
+    );
+    return 0;
+  }
+
+  if (plan.selectedFiles.length === 0) {
+    writeSummary(
+      buildPlaywrightE2eTierSummary({
+        plan,
+        status: 'passed',
+      }),
+    );
+    return 0;
+  }
+
+  const args = [
+    'playwright',
+    'test',
+    `--config=${PLAYWRIGHT_CONFIG}`,
+    `--project=${PLAYWRIGHT_PROJECT}`,
+    ...plan.selectedFiles,
+  ];
+  if (options.shard) {
+    args.push(`--shard=${options.shard}`);
+  }
+  args.push(...options.playwrightArgs);
+
+  console.log(
+    `[playwright-e2e] running ${PLAYWRIGHT_PROJECT} shard ${options.shard ?? 'all'}`,
+  );
+
+  const result = spawnSync('bunx', args, {
+    cwd: REPOSITORY_ROOT,
+    env: process.env,
+    stdio: 'inherit',
+  });
+
+  if (result.error) {
+    console.error(result.error.message);
+  }
+  if (result.signal) {
+    console.error(`[playwright-e2e] terminated by signal ${result.signal}`);
+  }
+
+  return result.status ?? 1;
+}
+
+if (import.meta.main) {
+  try {
+    process.exit(runPlaywrightFullTier(parseCliOptions(process.argv.slice(2))));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}

@@ -19,6 +19,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isPrivateKeyMarkerCharacter(character: string): boolean {
+  const code = character.charCodeAt(0);
+  return (code >= 65 && code <= 90) || character === ' ';
+}
+
 function findPrivateKeyMarkerEnd(
   value: string,
   start: number,
@@ -34,9 +39,7 @@ function findPrivateKeyMarkerEnd(
       return cursor + PRIVATE_KEY_MARKER_SUFFIX.length;
     }
 
-    const code = value.charCodeAt(cursor);
-    const isUppercaseLetter = code >= 65 && code <= 90;
-    if (!isUppercaseLetter && value[cursor] !== ' ') {
+    if (!isPrivateKeyMarkerCharacter(value[cursor])) {
       return -1;
     }
 
@@ -46,57 +49,113 @@ function findPrivateKeyMarkerEnd(
   return -1;
 }
 
-function redactPrivateKeyBlocks(value: string): string {
-  const output: string[] = [];
-  let copyStart = 0;
-  let blockStart = -1;
-  let cursor = 0;
+type PrivateKeyScanState = {
+  blockStart: number;
+  copyStart: number;
+  cursor: number;
+};
 
-  while (cursor < value.length) {
-    if (blockStart < 0) {
-      const candidate = value.indexOf(PRIVATE_KEY_BEGIN_PREFIX, cursor);
-      if (candidate < 0) {
-        break;
-      }
-
-      const markerEnd = findPrivateKeyMarkerEnd(
-        value,
-        candidate,
-        PRIVATE_KEY_BEGIN_PREFIX,
-      );
-      if (markerEnd < 0) {
-        cursor = candidate + 1;
-        continue;
-      }
-
-      output.push(value.slice(copyStart, candidate));
-      blockStart = candidate;
-      cursor = markerEnd;
-      continue;
-    }
-
-    const candidate = value.indexOf(PRIVATE_KEY_END_PREFIX, cursor);
-    if (candidate < 0) {
-      break;
-    }
-
-    const markerEnd = findPrivateKeyMarkerEnd(
-      value,
-      candidate,
-      PRIVATE_KEY_END_PREFIX,
-    );
-    if (markerEnd < 0) {
-      cursor = candidate + 1;
-      continue;
-    }
-
-    output.push(REDACTED_VALUE);
-    blockStart = -1;
-    copyStart = markerEnd;
-    cursor = markerEnd;
+function findNextPrivateKeyMarker(
+  value: string,
+  cursor: number,
+  prefix: string,
+): { candidate: number; markerEnd: number } | undefined {
+  const candidate = value.indexOf(prefix, cursor);
+  if (candidate < 0) {
+    return undefined;
   }
 
-  output.push(value.slice(blockStart >= 0 ? blockStart : copyStart));
+  return {
+    candidate,
+    markerEnd: findPrivateKeyMarkerEnd(value, candidate, prefix),
+  };
+}
+
+function consumeBeginMarker(
+  value: string,
+  state: PrivateKeyScanState,
+  output: string[],
+): PrivateKeyScanState | undefined {
+  const marker = findNextPrivateKeyMarker(
+    value,
+    state.cursor,
+    PRIVATE_KEY_BEGIN_PREFIX,
+  );
+  if (!marker) {
+    return undefined;
+  }
+
+  if (marker.markerEnd < 0) {
+    return { ...state, cursor: marker.candidate + 1 };
+  }
+
+  output.push(value.slice(state.copyStart, marker.candidate));
+  return {
+    blockStart: marker.candidate,
+    copyStart: state.copyStart,
+    cursor: marker.markerEnd,
+  };
+}
+
+function consumeEndMarker(
+  value: string,
+  state: PrivateKeyScanState,
+): PrivateKeyScanState | undefined {
+  const marker = findNextPrivateKeyMarker(
+    value,
+    state.cursor,
+    PRIVATE_KEY_END_PREFIX,
+  );
+  if (!marker) {
+    return undefined;
+  }
+
+  if (marker.markerEnd < 0) {
+    return { ...state, cursor: marker.candidate + 1 };
+  }
+
+  return {
+    blockStart: -1,
+    copyStart: marker.markerEnd,
+    cursor: marker.markerEnd,
+  };
+}
+
+function advancePrivateKeyScan(
+  value: string,
+  state: PrivateKeyScanState,
+  output: string[],
+): PrivateKeyScanState | undefined {
+  if (state.blockStart < 0) {
+    return consumeBeginMarker(value, state, output);
+  }
+
+  const next = consumeEndMarker(value, state);
+  if (next && next.blockStart < 0 && state.blockStart >= 0) {
+    output.push(REDACTED_VALUE);
+  }
+  return next;
+}
+
+function redactPrivateKeyBlocks(value: string): string {
+  const output: string[] = [];
+  let state: PrivateKeyScanState = {
+    blockStart: -1,
+    copyStart: 0,
+    cursor: 0,
+  };
+
+  while (state.cursor < value.length) {
+    const next = advancePrivateKeyScan(value, state, output);
+    if (!next) {
+      break;
+    }
+    state = next;
+  }
+
+  const remainderStart =
+    state.blockStart >= 0 ? state.blockStart : state.copyStart;
+  output.push(value.slice(remainderStart));
   return output.join('');
 }
 

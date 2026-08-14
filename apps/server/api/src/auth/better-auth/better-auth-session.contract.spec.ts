@@ -37,6 +37,10 @@ const SESSION_CONTRACT_MODES: SessionContractMode[] = [
     expectedCookieDomain: 'genfeed.ai',
     name: 'cloud',
   },
+  {
+    baseURL: 'https://api.genfeed.ai',
+    name: 'cloud-without-cookie-domain-env',
+  },
 ];
 
 function createSessionContractHarness(mode: SessionContractMode) {

@@ -210,6 +210,7 @@ describe('LinkedInController', () => {
       mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
         accessToken: 'linkedin-token',
         expiresIn: 5184000,
+        scope: 'openid profile w_member_social',
       });
       mockLinkedInService.getUserProfile.mockResolvedValue({
         email: 'john@example.com',
@@ -248,6 +249,8 @@ describe('LinkedInController', () => {
           isConnected: true,
           isDeleted: false,
           oauthState: null,
+          grantedScopes: ['openid', 'profile', 'w_member_social'],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(

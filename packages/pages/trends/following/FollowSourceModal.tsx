@@ -33,6 +33,7 @@ import {
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, Loader2, Plus, Search, UserPlus } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -47,11 +48,6 @@ const PLATFORM_OPTIONS = [
   { label: 'Instagram', value: SocialSourcePlatform.INSTAGRAM },
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
 ] as const;
-
-const POST_NOUN = 'post';
-const BY_AUTHOR_PREFIX = 'by @';
-const IMPORT_CHOICE_COPY =
-  'This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.';
 
 type SourceCandidate = {
   key: string;
@@ -113,6 +109,7 @@ export default function FollowSourceModal({
   onOpenChange,
   onFollowed,
 }: Props) {
+  const translate = useTranslations('common.following.followModal');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getSocialSourcesService = useAuthedService((token: string) =>
     SocialSourcesService.getInstance(token),
@@ -400,11 +397,8 @@ export default function FollowSourceModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Follow sources</DialogTitle>
-          <DialogDescription>
-            Search a handle to follow accounts on X, Instagram, and TikTok — or
-            paste a post link to import that exact post.
-          </DialogDescription>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
         <form className="space-y-3" onSubmit={handleSubmitSearch}>
@@ -448,16 +442,22 @@ export default function FollowSourceModal({
               <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                 {getPlatformIcon(postReference.platform, 'h-4 w-4')}
                 <span className="font-medium">
-                  {`${formatPlatformLabel(postReference.platform)} ${POST_NOUN}`}
+                  {translate('postLabel', {
+                    platform:
+                      formatPlatformLabel(postReference.platform) ??
+                      postReference.platform,
+                  })}
                 </span>
                 {postReference.authorHandle ? (
                   <span className="text-foreground/60">
-                    {`${BY_AUTHOR_PREFIX}${postReference.authorHandle}`}
+                    {translate('byAuthor', {
+                      author: postReference.authorHandle,
+                    })}
                   </span>
                 ) : null}
               </div>
               <p className="text-xs leading-5 text-foreground/58">
-                {IMPORT_CHOICE_COPY}
+                {translate('postChoice')}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -495,7 +495,7 @@ export default function FollowSourceModal({
           {isSearching ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/60">
               <Loader2 className="size-4 animate-spin" />
-              Looking up accounts across platforms…
+              {translate('lookingUp')}
             </div>
           ) : null}
 
@@ -504,7 +504,7 @@ export default function FollowSourceModal({
           hasSearched &&
           !candidates.length ? (
             <div className="rounded-card border border-border px-4 py-8 text-center text-sm text-foreground/62">
-              No accounts found for that handle.
+              {translate('noAccounts')}
             </div>
           ) : null}
 
@@ -595,10 +595,14 @@ export default function FollowSourceModal({
                           </span>
                           <Badge variant="ghost">{platformLabel}</Badge>
                           {candidate.isAlreadyFollowed ? (
-                            <Badge variant="secondary">Following</Badge>
+                            <Badge variant="secondary">
+                              {translate('following')}
+                            </Badge>
                           ) : null}
                           {!candidate.isValid ? (
-                            <Badge variant="ghost">Not found</Badge>
+                            <Badge variant="ghost">
+                              {translate('notFound')}
+                            </Badge>
                           ) : null}
                         </div>
                         {candidate.displayName ? (
@@ -662,8 +666,7 @@ export default function FollowSourceModal({
 
           {!isSearching && !postReference && !hasSearched ? (
             <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm leading-6 text-foreground/58">
-              Try a public handle to follow accounts, or paste a post link (X,
-              Instagram, or TikTok) to import that exact post.
+              {translate('emptyHint')}
             </div>
           ) : null}
         </div>

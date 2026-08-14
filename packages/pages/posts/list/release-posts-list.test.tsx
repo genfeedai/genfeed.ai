@@ -26,6 +26,12 @@ describe('ReleasePostsList', () => {
     expect(source).toContain('buildSourcePostVariationsHref');
     expect(source).toContain('postId: target.id');
     expect(source).toContain('target.executionState === TargetState.PUBLISHED');
-    expect(source).toContain('Generate variations from');
+    expect(source).toContain('generateVariationsAria');
+  });
+
+  it('resolves user-visible copy through the host pages catalog', () => {
+    expect(source).toContain("useTranslations('pages.posts.list')");
+    expect(source).not.toContain('const POSTS_LOAD_ERROR');
+    expect(source).not.toContain('function viewCopy');
   });
 });

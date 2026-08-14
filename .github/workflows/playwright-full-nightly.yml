@@ -1,0 +1,293 @@
+# Nightly Playwright full tier — reporting only.
+#
+# Discovers every Playwright spec except explicit quarantines
+# (scripts/playwright-e2e-tiers.manifest.mjs), shards the run, uploads merged
+# reports / traces / screenshots / a discovered-executed-quarantined summary,
+# and opens exactly one deduplicated tracking issue when the scheduled run is
+# red. Canonical tier names: docs/e2e-tiers.md (`core`, `authed`, `full`).
+#
+# This workflow is NOT reusable. full-suite.yml and daily-production-deploy.yml
+# must never uses/needs it. Production stays gated by e2e.yml core + authed.
+
+name: Nightly Playwright Full Tier
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 2 * * *" # 02:47 UTC — after e2e.yml core/authed (02:17), does not change deploy schedule
+
+concurrency:
+  group: playwright-full-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  discover:
+    name: Discover Playwright full tier
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup Node.js 24.x
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Record discovered / quarantined inventory
+        run: node scripts/playwright-e2e-tiers.mjs --list
+
+      - name: Upload full-tier discovery summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-full-tier-discovery
+          path: playwright/artifacts/report/full-tier-summary.json
+          retention-days: 7
+
+  e2e-frontend-full:
+    name: Playwright Full (Shard ${{ matrix.shard }}/8)
+    needs: [discover]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          cache-playwright: "true"
+
+      - name: Build app
+        run: bunx turbo run build --filter=@genfeedai/app
+        env:
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
+          NEXT_PUBLIC_GENFEED_CLOUD: "false"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
+          E2E_COVERAGE: "1"
+
+      - name: Run full E2E shard ${{ matrix.shard }}/8
+        run: node scripts/playwright-e2e-tiers.mjs -- --reporter=blob --trace retain-on-failure
+        env:
+          CI: true
+          APP_BASE_URL: http://localhost:3000
+          E2E_EXPECT_TIMEOUT_MS: "15000"
+          E2E_RETRIES: "0"
+          E2E_SHARD_INDEX: ${{ matrix.shard }}
+          E2E_TOTAL_SHARDS: "8"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      - name: Upload blob report (full shard ${{ matrix.shard }})
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: blob-report-full-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Upload traces and screenshots (full shard ${{ matrix.shard }})
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-full-results-${{ matrix.shard }}
+          path: playwright/artifacts/results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  e2e-merge-reports:
+    name: Merge Playwright full reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [e2e-frontend-full]
+    if: always()
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          cache-turbo: "false"
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-full-*
+          merge-multiple: true
+          path: all-blob-reports/
+
+      - name: Merge into HTML report
+        run: bunx playwright merge-reports --reporter=html,github ./all-blob-reports
+        continue-on-error: true
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report-full-merged
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Download shard traces and screenshots
+        uses: actions/download-artifact@v8
+        if: always()
+        with:
+          pattern: playwright-full-results-*
+          merge-multiple: true
+          path: all-full-results/
+
+      - name: Upload merged traces
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-full-traces
+          path: all-full-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload merged screenshots
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-full-screenshots
+          path: all-full-results/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  summarize:
+    name: Write full-tier inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [discover, e2e-frontend-full, e2e-merge-reports]
+    if: always()
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup Node.js 24.x
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Download discovery summary
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: playwright-full-tier-discovery
+          path: playwright/artifacts/report/
+
+      - name: Write discovered / executed / quarantined summary
+        env:
+          FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
+        run: |
+          set -euo pipefail
+          status="failed"
+          if [ "${FULL_TIER_RESULT}" = "success" ]; then
+            status="passed"
+          fi
+          node scripts/playwright-e2e-tiers.mjs --summarize --status="${status}"
+
+      - name: Upload full-tier summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-full-tier-summary
+          path: playwright/artifacts/report/full-tier-summary.json
+          retention-days: 7
+
+  nightly-failure-report:
+    name: Report nightly Playwright full-tier failure
+    needs: [e2e-frontend-full, summarize]
+    if: >-
+      !cancelled()
+      && github.event_name == 'schedule'
+      && (needs.e2e-frontend-full.result == 'failure'
+        || needs.e2e-frontend-full.result == 'cancelled')
+    concurrency:
+      group: nightly-playwright-full-failure-reporter
+      cancel-in-progress: false
+      queue: max
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download full-tier summary
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: playwright-full-tier-summary
+          path: playwright/artifacts/report/
+
+      - name: Open, reopen, or update the Playwright full-tier tracker
+        uses: actions/github-script@v9
+        env:
+          FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const {
+              NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,
+              reportNightlyPlaywrightFullFailure,
+            } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/nightly-playwright-full-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+            let inventory = 'Inventory artifact was not available.';
+            const summaryPath = path.join(
+              process.env.GITHUB_WORKSPACE,
+              'playwright/artifacts/report/full-tier-summary.json',
+            );
+            if (fs.existsSync(summaryPath)) {
+              const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+              inventory = [
+                `- Discovered: ${summary.discoveredFileCount}`,
+                `- Selected: ${summary.selectedFileCount}`,
+                `- Executed: ${summary.executedFileCount ?? 'n/a'}`,
+                `- Quarantined: ${summary.quarantinedFileCount}`,
+                `- Failed: ${summary.failedFileCount ?? 'n/a'}`,
+              ].join('\n');
+            }
+            const body = [
+              'The scheduled Playwright **full** tier failed.',
+              '',
+              `- Result: ${process.env.FULL_TIER_RESULT}`,
+              `- Label: ${NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL}`,
+              `- Run: ${process.env.RUN_URL}`,
+              '',
+              inventory,
+              '',
+              'This issue auto-updates on each red full-tier nightly. Close it once the nightly is green again.',
+              'This tracker is distinct from `nightly-e2e-failure` (core + authed).',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            await reportNightlyPlaywrightFullFailure({ github, owner, repo, body });

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -30,13 +31,11 @@ import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 import WorkflowCardDropdown from './WorkflowCardDropdown';
 import WorkflowCardPreview from './WorkflowCardPreview';
 
-const NEXT_RUN_PREFIX = ' · Next run ';
-const PAUSED_SUFFIX = ' · Paused';
-
 /**
  * Workflow Library - List of saved workflows with search, cards, and actions
  */
 export default function WorkflowLibraryPage() {
+  const translate = useTranslations('common.automation.workflows');
   const {
     href,
     isConnected,
@@ -61,8 +60,8 @@ export default function WorkflowLibraryPage() {
   if (isLoading && workflows.length === 0) {
     return (
       <Container
-        label="Workflows"
-        description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
+        label={translate('library.title')}
+        description={translate('library.description')}
         icon={Zap}
         right={
           <>
@@ -89,14 +88,14 @@ export default function WorkflowLibraryPage() {
   if (error) {
     return (
       <Container
-        label="Workflows"
-        description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
+        label={translate('library.title')}
+        description={translate('library.description')}
         icon={Zap}
       >
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-6 text-center">
           <p className="text-destructive">{error}</p>
           <Button
-            label="Retry"
+            label={translate('actions.retry')}
             variant={ButtonVariant.SECONDARY}
             onClick={() => {
               const controller = new AbortController();
@@ -110,21 +109,21 @@ export default function WorkflowLibraryPage() {
 
   return (
     <Container
-      label="Workflows"
-      description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
+      label={translate('library.title')}
+      description={translate('library.description')}
       icon={Zap}
       right={
         <>
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES)}>
               <Copy className="size-4" />
-              Templates
+              {translate('library.templates')}
             </Link>
           </Button>
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW)}>
               <Plus className="size-4" />
-              New Workflow
+              {translate('library.newWorkflow')}
             </Link>
           </Button>
         </>
@@ -136,7 +135,7 @@ export default function WorkflowLibraryPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
           <Input
             type="text"
-            placeholder="Search workflows..."
+            placeholder={translate('library.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="h-10 rounded-lg border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
@@ -149,16 +148,17 @@ export default function WorkflowLibraryPage() {
 
       {/* Contextual info */}
       <div className="mb-4 rounded-lg border border-border bg-muted/30 p-4 text-sm text-foreground/70">
-        <span className="font-medium text-foreground">Workflows</span> are
-        explicit automation graphs. Schedule a workflow when the steps should be
-        predictable and repeatable. For adaptive agent behavior, use{' '}
+        <span className="font-medium text-foreground">
+          {translate('library.title')}
+        </span>{' '}
+        {translate('library.info')}{' '}
         <Link
           href={href(APP_ROUTES.AUTOMATE.AUTOPILOT)}
           className="underline underline-offset-2"
         >
-          Autopilot
+          {translate('library.autopilot')}
         </Link>
-        .
+        {translate('library.infoSuffix')}
       </div>
 
       {filteredWorkflows.length === 0 && !searchInput ? (
@@ -166,7 +166,7 @@ export default function WorkflowLibraryPage() {
       ) : filteredWorkflows.length === 0 && searchInput ? (
         <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
           <p className="text-sm text-foreground/50">
-            No workflows matching &ldquo;{searchInput}&rdquo;
+            {translate('library.noMatching', { search: searchInput })}
           </p>
         </div>
       ) : (
@@ -184,7 +184,7 @@ export default function WorkflowLibraryPage() {
                   <Plus className="size-7 text-foreground/50" />
                 </div>
                 <span className="text-sm font-medium text-foreground/70">
-                  New Workflow
+                  {translate('library.newWorkflow')}
                 </span>
               </div>
             </Link>
@@ -207,18 +207,18 @@ export default function WorkflowLibraryPage() {
                   <div className="relative z-20 flex items-center gap-2">
                     {isSystemWorkflow ? (
                       <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
-                        System
+                        {translate('library.system')}
                       </span>
                     ) : null}
                     {isCapable && isConnected && workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
                         <Cloud className="size-3" />
-                        synced
+                        {translate('library.synced')}
                       </span>
                     ) : isCapable && isConnected && !workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         <CloudUpload className="size-3" />
-                        local
+                        {translate('library.local')}
                       </span>
                     ) : null}
                     <span
@@ -268,28 +268,28 @@ export default function WorkflowLibraryPage() {
                         {describeCadence(workflow.schedule)}
                         {workflow.isScheduleEnabled && workflow.nextRunAt ? (
                           <>
-                            {NEXT_RUN_PREFIX}
+                            {` · ${translate('library.nextRun')} `}
                             <ClientFormattedDate
                               format="relative"
                               value={workflow.nextRunAt}
                             />
                           </>
                         ) : workflow.isScheduleEnabled ? null : (
-                          PAUSED_SUFFIX
+                          ' · Paused'
                         )}
                       </span>
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between text-xs text-foreground/50">
                     <span>
-                      Updated{' '}
+                      {translate('library.updated')}{' '}
                       <ClientFormattedDate
                         format="relative"
                         value={workflow.updatedAt}
                       />
                     </span>
                     <span>
-                      Created{' '}
+                      {translate('library.created')}{' '}
                       <ClientFormattedDate
                         format="date"
                         value={workflow.createdAt}

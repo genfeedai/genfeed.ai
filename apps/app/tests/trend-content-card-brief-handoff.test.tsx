@@ -8,6 +8,9 @@ const notifyError = vi.fn();
 const notifySuccess = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: { slug: 'brand-1' },
+  }),
   useBrandId: () => 'brand-1',
 }));
 
@@ -57,6 +60,18 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      'actions.copyPrompt': 'Copy prompt',
+      'actions.openSource': 'Open source',
+      'actions.remix': 'Remix',
+      'actions.sendToAgent': 'Send to agent',
+    };
+    return messages[key] ?? key;
+  },
 }));
 
 describe('TrendContentCard brief handoff', () => {

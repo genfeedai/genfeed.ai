@@ -5,6 +5,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
@@ -277,6 +278,9 @@ describe('TiktokAuthorizedSignalsService', () => {
       { log: vi.fn() } as unknown as LoggerService,
       prisma as unknown as PrismaService,
       tiktokService as unknown as TiktokService,
+      {
+        syncTikTokAuthorizedSnapshot: vi.fn().mockResolvedValue(undefined),
+      } as unknown as SocialWarmupEnrollmentsService,
     );
   });
 

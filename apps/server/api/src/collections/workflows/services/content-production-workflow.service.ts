@@ -1,10 +1,8 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentSchedulesService } from '@api/collections/content-schedules/services/content-schedules.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
@@ -16,7 +14,7 @@ import {
   PersonaStatus,
   VideoTaskModel,
 } from '@genfeedai/enums';
-import type { ContentSchedule, Credential, Persona } from '@genfeedai/prisma';
+import type { Credential, Persona } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -24,12 +22,10 @@ import { Injectable } from '@nestjs/common';
 const MAX_BRANDS_PER_CYCLE = 10;
 const MAX_PERSONAS_PER_CYCLE = 20;
 const FIFTEEN_MINUTES_SECONDS = 900;
-const CONTENT_SCHEDULE_LOCK_SECONDS = 55;
 
 type ContentProductionAction =
   | 'contentEngineProduction'
-  | 'contentPipelineAutopilot'
-  | 'contentScheduleRun';
+  | 'contentPipelineAutopilot';
 
 type PersonaContentStrategy = {
   formats?: PersonaContentFormat[];
@@ -70,8 +66,6 @@ export class ContentProductionWorkflowService {
     private readonly contentExecutionService: ContentExecutionService,
     private readonly prisma: PrismaService,
     private readonly contentPipelineQueueService: ContentPipelineQueueService,
-    private readonly contentSchedulesService: ContentSchedulesService,
-    private readonly contentGatewayService: ContentGatewayService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
@@ -204,72 +198,6 @@ export class ContentProductionWorkflowService {
         organizationId,
         processed,
         skipped,
-        status: 'completed',
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
-  }
-
-  async runContentSchedule(
-    organizationId: string,
-    contentScheduleId: string,
-    workflowId?: string,
-  ): Promise<ContentProductionWorkflowResult> {
-    const action: ContentProductionAction = 'contentScheduleRun';
-    const schedule = await this.prisma.contentSchedule.findFirst({
-      where: scopedWhere(organizationId, { id: contentScheduleId }),
-    });
-
-    if (!schedule) {
-      return this.skipped(action, organizationId, 'content_schedule_not_found');
-    }
-
-    if (!schedule.isEnabled) {
-      return this.skipped(action, organizationId, 'content_schedule_disabled');
-    }
-
-    const now = new Date();
-    if (schedule.nextRunAt && schedule.nextRunAt.getTime() > now.getTime()) {
-      return this.skipped(action, organizationId, 'content_schedule_not_due');
-    }
-
-    const lockKey = this.lockKey(action, organizationId, schedule.id);
-    const acquired = await this.cacheService.acquireLock(
-      lockKey,
-      CONTENT_SCHEDULE_LOCK_SECONDS,
-    );
-
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        'content_schedule_already_running',
-      );
-    }
-
-    try {
-      await this.routeSchedule(schedule, workflowId);
-
-      const nextRunAt = this.contentSchedulesService.calculateNextRunAt(
-        schedule.cronExpression ?? '* * * * *',
-        schedule.timezone ?? 'UTC',
-        now,
-      );
-
-      await this.contentSchedulesService.markScheduleRan(
-        schedule.id,
-        organizationId,
-        nextRunAt,
-        now,
-      );
-
-      return {
-        action,
-        failed: 0,
-        organizationId,
-        processed: 1,
-        skipped: 0,
         status: 'completed',
       };
     } finally {
@@ -431,23 +359,6 @@ export class ContentProductionWorkflowService {
         nextAutopilotRunAt: nextRun,
       },
       where: { id: persona.id },
-    });
-  }
-
-  private async routeSchedule(
-    schedule: ContentSchedule,
-    workflowId?: string,
-  ): Promise<void> {
-    await this.contentGatewayService.routeSignal({
-      brandId: String(schedule.brandId),
-      organizationId: schedule.organizationId,
-      payload: {
-        scheduleId: schedule.id,
-        skillParams: this.readRecord(schedule.skillParams),
-        skillSlugs: schedule.skillSlugs ?? [],
-        workflowId,
-      },
-      type: 'cron',
     });
   }
 

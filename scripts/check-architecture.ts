@@ -93,6 +93,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-deleted-audit-orphans.ts',
+    ],
+    name: 'Deleted audit orphans (#2665)',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-legacy-cron-jobs-surface.ts',
     ],
     name: 'Legacy cron-jobs product surface',
@@ -116,6 +124,10 @@ const checks = [
   {
     command: ['bun', 'run', 'scripts/architecture/check-route-shadowing.ts'],
     name: 'Controller route shadowing',
+  },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-cross-org-unsafe.ts'],
+    name: 'Cross-org unsafe hatch ratchet',
   },
   {
     command: [

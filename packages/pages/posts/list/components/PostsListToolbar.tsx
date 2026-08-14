@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 
 export interface PostsListToolbarOption {
@@ -18,19 +19,15 @@ export interface PostsListToolbarOption {
   value: string;
 }
 
-/**
- * Held as data rather than inline JSX so the labels stay one translatable list
- * once shared packages gain a message catalog.
- */
 const PUBLISHER_VIEW_OPTIONS: {
-  label: string;
+  messageKey: 'failed' | 'notPosted' | 'pending' | 'posted' | 'publishing';
   value: PublisherPostsView;
 }[] = [
-  { label: 'Not posted', value: 'not-posted' },
-  { label: 'Pending', value: PostStatus.PENDING },
-  { label: 'Publishing', value: PostStatus.PROCESSING },
-  { label: 'Posted', value: 'posted' },
-  { label: 'Failed', value: PostStatus.FAILED },
+  { messageKey: 'notPosted', value: 'not-posted' },
+  { messageKey: 'pending', value: PostStatus.PENDING },
+  { messageKey: 'publishing', value: PostStatus.PROCESSING },
+  { messageKey: 'posted', value: 'posted' },
+  { messageKey: 'failed', value: PostStatus.FAILED },
 ];
 
 export interface PostsListToolbarProps {
@@ -52,6 +49,8 @@ export default function PostsListToolbar({
   onPublisherViewChange,
   publisherView,
 }: PostsListToolbarProps) {
+  const translate = useTranslations('pages.posts.list');
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-48 sm:w-56 xl:w-64">
@@ -61,7 +60,7 @@ export default function PostsListToolbar({
             onSearchChange(event.target.value)
           }
           onClear={() => onSearchChange('')}
-          placeholder="Search posts"
+          placeholder={translate('toolbar.searchPlaceholder')}
           // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
           size={ComponentSize.SM}
           className="w-full"
@@ -77,7 +76,7 @@ export default function PostsListToolbar({
           }
         >
           <SelectTrigger
-            aria-label="Publishing state"
+            aria-label={translate('toolbar.publishingStateAria')}
             className="h-8 w-32 rounded-md border-white/10 bg-white/[0.03]"
           >
             <SelectValue />
@@ -85,7 +84,7 @@ export default function PostsListToolbar({
           <SelectContent>
             {PUBLISHER_VIEW_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                {translate(`toolbar.${option.messageKey}`)}
               </SelectItem>
             ))}
           </SelectContent>

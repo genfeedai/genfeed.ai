@@ -1,9 +1,10 @@
 // Deployment
-export type { ClientSurface, Deployment } from './deployment';
+export type { ClientSurface, Deployment, EnvValueReader } from './deployment';
 export {
   envFlag,
   getClientSurface,
   getDeployment,
+  getDeploymentFromReader,
   hasAgentFirstOnboarding,
   hostnameFromUrl,
   isCloudDeployment,
@@ -13,6 +14,7 @@ export {
   isHostedGenfeedCloud,
   isHostedGenfeedFromBrowser,
   isHostedGenfeedFromEnv,
+  isHostedGenfeedFromReader,
   isHostedGenfeedHostname,
   isSaaS,
   isSelfHostedDeployment,

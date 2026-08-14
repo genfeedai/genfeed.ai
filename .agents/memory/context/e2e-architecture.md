@@ -1,7 +1,11 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-07-17 (against workflow files on `master`; latest live run not checked in this memory pass)
+> **Last verified:** 2026-08-14 (Playwright `full` nightly is reporting-only; core/authed deploy gates unchanged)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
+>
+> **Tier contract (`core` / `authed` / `full`):** [`docs/e2e-tiers.md`](../../../docs/e2e-tiers.md).
+> Playwright `full` is reporting-only (`playwright-full-nightly.yml`) and must
+> never gate `full-suite.yml` or production deploy.
 
 End-to-end testing runs **entirely on GitHub-hosted runners** (free for this public/OSS repo).
 The legacy MacStudio cron is still active in parallel — this CI is the replacement, kept always-ready
@@ -51,6 +55,9 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
 | `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |
 | `e2e-frontend-authed` | Frontend Authed E2E (real Better Auth) | ubuntu / 40m | **yes on nightly cron** (`continue-on-error` on all other events; gated by `E2E_AUTHED_ENABLED` var) | hermetic full stack: Postgres+Redis containers, `prisma migrate deploy`, real API on :3010, `bun run test:e2e:authed` |
+
+Playwright **full** is a separate scheduled workflow (`.github/workflows/playwright-full-nightly.yml`).
+It is reporting-only: it never `uses`/`needs` into `full-suite.yml` or production deploy.
 
 `e2e-gate` is the single job that represents the required suite's pass/fail (it `needs:` route-coverage +
 frontend + API). It exits 1 if route coverage failed, API E2E failed, or any shard failed/was cancelled. Re-running only the
@@ -113,7 +120,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 |---|---|---|---|---|
 | `playwright.config.ts` | `playwright/e2e/tests` | auth setup, `app-core`, `app-authed` | yes (CI: `start`, dev: `dev`) | primary / `test:e2e:core` |
 | `playwright-coverage.config.ts` | (coverage variant) | — | — | `test:e2e:coverage` |
-| `playwright-full.config.ts` | `playwright/e2e/tests` (ignores admin/core/marketplace/website) | `chromium` | yes (30s CI) | `test:e2e:full` |
+| `playwright-full.config.ts` | leftover ad-hoc config | `chromium` | yes (30s CI) | Prefer `test:e2e:full` → `scripts/playwright-e2e-tiers.mjs` + `playwright.config.ts` |
 | `playwright-cross-app.config.ts` | `playwright/e2e/tests` | `website` (:3002), `marketplace` (:3104) | **none** (expects running servers) | cross-app |
 | `playwright-smoke.config.ts` | `playwright/e2e/tests/smoke` | `chromium` | none | quick smoke |
 
@@ -133,7 +140,7 @@ Primary config highlights:
 | `test:e2e` | all `e2e/tests/**/*.spec.ts` | all |
 | `test:e2e:core` | `e2e/tests/smoke` + `e2e/tests/core` | `app-core` |
 | `test:e2e:smoke` | `smoke/all-app-pages.spec.ts` | `app-core` |
-| `test:e2e:full` | all except admin/core/marketplace/website | `chromium` |
+| `test:e2e:full` | discovery-based full tier minus quarantines (`scripts/playwright-e2e-tiers.mjs`) | `app-core` |
 | `test:e2e:coverage` | `E2E_COVERAGE=1` + coverage config | — |
 | `test:e2e:routes` | `node scripts/e2e-route-coverage.mjs` | — |
 

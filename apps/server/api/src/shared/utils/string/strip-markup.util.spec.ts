@@ -43,4 +43,15 @@ describe('replaceMarkup', () => {
     const input = '<'.repeat(50_000);
     expect(replaceMarkup(input, ' ')).toBe(input);
   });
+  it('preserves empty angle brackets that are not markup tags', () => {
+    expect(replaceMarkup('before <> after', ' ')).toBe('before <> after');
+  });
+
+  it('strips blocked elements case-insensitively', () => {
+    expect(replaceMarkup('<SCRIPT>alert(1)</SCRIPT>ok', '', true)).toBe('ok');
+  });
+
+  it('leaves plain text unchanged', () => {
+    expect(replaceMarkup('no markup here', ' ')).toBe('no markup here');
+  });
 });

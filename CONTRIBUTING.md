@@ -164,6 +164,11 @@ request, list exactly what you ran and any checks left to CI.
 - Use conventional commit subjects such as `feat:`, `fix:`, `docs:`, and
   `refactor:`.
 - Match at least three existing examples before introducing a new code pattern.
+- New user-visible copy in `apps/app` or shared product packages
+  (`packages/ui`, `packages/pages`, `packages/agent`, `packages/contexts`) goes
+  through the host app message catalog (`apps/app/messages/en/<namespace>.json`
+  + `useTranslations` / `getTranslations`). Do not hoist strings into a
+  module-level `COPY` const to satisfy `bun run check:untranslated-strings`.
 
 ## Repository boundaries
 

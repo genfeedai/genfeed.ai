@@ -31,9 +31,9 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  * coverage grows — running `bun run check:serializer-drift` prints the current
  * "Matched schema/serializer pairs" count.
  */
-// Issue #2643 intentionally removes the orphaned ContentDraft schema and its
-// serializer triplet, reducing the canonical pair inventory by exactly one.
-const SERIALIZER_MATCH_FLOOR = 103;
+// Issue #2643 removed the orphaned ContentDraft serializer triplet.
+// Issue #2665 removes the unreachable ContentSchedule serializer triplet.
+const SERIALIZER_MATCH_FLOOR = 102;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -439,7 +439,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'vote:Vote': ['entity'],
   'watchlist:Watchlist': [],
-  'workflow:Workflow': ['cloudSync', 'key', 'tasks'],
+  'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
     'attentionState',
     'lastActivityAt',
@@ -540,7 +540,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'bookmark:Bookmark': [],
   'brand-memory:BrandMemory': [],
   'content-performance:ContentPerformance': [],
-  'content-schedule:ContentSchedule': [],
   'context-base:ContextBase': [],
   'context-entry:ContextEntry': [],
   'cron-job:CronJob': [],

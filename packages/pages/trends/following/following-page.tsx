@@ -112,8 +112,6 @@ const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
 ];
 
-const IMPORTED_BADGE_LABEL = 'Imported';
-
 export default function FollowingPage() {
   const translate = useTranslations('common.following');
   const brandId = useBrandId();
@@ -572,6 +570,7 @@ function SourceRow({
   onSync: (id: string) => Promise<void>;
   source: ISocialSource;
 }) {
+  const translate = useTranslations('common.following');
   const isImportContainer = source.sourceType === SocialSourceType.POST;
   const syncStatus = source.lastSyncStatus ?? null;
   const statusLabel =
@@ -598,7 +597,7 @@ function SourceRow({
             @{source.handle || source.displayName || 'source'}
           </span>
           {isImportContainer ? (
-            <Badge variant="ghost">{IMPORTED_BADGE_LABEL}</Badge>
+            <Badge variant="ghost">{translate('manage.imported')}</Badge>
           ) : null}
           {statusLabel ? (
             <Badge

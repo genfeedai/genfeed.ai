@@ -3,6 +3,14 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import {
+  interpretReplicatePredictionStatus,
+  replicateImageOutputStrategy,
+  replicatePredictionFailureMessage,
+  replicatePredictionTimeoutMessage,
+  requireReplicateOutputUrls,
+  shouldPollReplicatePrediction,
+} from '@api/collections/images/services/providers/replicate-image-generation.helpers';
 import { GenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import {
   isFalDestination,
@@ -35,18 +43,6 @@ type ReplicatePrediction = {
   status?: string;
 };
 
-const extractOutputUrls = (output: unknown): string[] => {
-  if (typeof output === 'string') {
-    return [output];
-  }
-
-  if (!Array.isArray(output)) {
-    return [];
-  }
-
-  return output.filter((value): value is string => typeof value === 'string');
-};
-
 @Injectable()
 export class ReplicateImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
@@ -73,47 +69,61 @@ export class ReplicateImageGenerationProviderAdapter
     const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
 
     while (Date.now() < deadline) {
-      if (signal?.aborted) {
-        await this.replicateService.cancelPrediction(predictionId);
-        throw new GenerationCancelledError();
-      }
-
+      await this.cancelIfPredictionAborted(predictionId, signal);
       const prediction = (await this.replicateService.getPrediction(
         predictionId,
       )) as ReplicatePrediction;
-
-      if (signal?.aborted) {
-        await this.replicateService.cancelPrediction(predictionId);
-        throw new GenerationCancelledError();
-      }
-
-      if (prediction.status === 'succeeded') {
-        const outputUrls = extractOutputUrls(prediction.output);
-        if (outputUrls.length === 0) {
-          throw new Error(
-            `Replicate prediction ${predictionId} succeeded without an output URL`,
-          );
-        }
+      await this.cancelIfPredictionAborted(predictionId, signal);
+      const outputUrls = this.resolveLocalPredictionResult(
+        prediction,
+        predictionId,
+      );
+      if (outputUrls) {
         return outputUrls;
       }
-
-      if (prediction.status === 'canceled') {
-        throw new GenerationCancelledError();
-      }
-
-      if (prediction.status === 'failed') {
-        throw new Error(
-          prediction.error ||
-            `Replicate prediction ${predictionId} ${prediction.status}`,
-        );
-      }
-
       await this.sleep(LOCAL_PREDICTION_POLL_INTERVAL_MS, signal);
     }
 
     throw new Error(
-      `Replicate prediction ${predictionId} timed out after ${LOCAL_PREDICTION_TIMEOUT_MS}ms`,
+      replicatePredictionTimeoutMessage(
+        predictionId,
+        LOCAL_PREDICTION_TIMEOUT_MS,
+      ),
     );
+  }
+
+  private async cancelIfPredictionAborted(
+    predictionId: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (!signal?.aborted) {
+      return;
+    }
+    await this.replicateService.cancelPrediction(predictionId);
+    throw new GenerationCancelledError();
+  }
+
+  private resolveLocalPredictionResult(
+    prediction: ReplicatePrediction,
+    predictionId: string,
+  ): string[] | null {
+    const status = interpretReplicatePredictionStatus(prediction.status);
+    if (status === 'succeeded') {
+      return requireReplicateOutputUrls(prediction.output, predictionId);
+    }
+    if (status === 'canceled') {
+      throw new GenerationCancelledError();
+    }
+    if (status === 'failed') {
+      throw new Error(
+        replicatePredictionFailureMessage(
+          predictionId,
+          prediction.status,
+          prediction.error,
+        ),
+      );
+    }
+    return null;
   }
 
   private sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -192,8 +202,10 @@ export class ReplicateImageGenerationProviderAdapter
         // (GENFEED_CLOUD=true with api.genfeed.localhost) and self-hosted
         // never receive provider webhooks, so poll Replicate and return
         // output URLs for immediate finalize/upload.
-        const shouldPollForOutput =
-          !isCloudDeployment() || !canReceiveProviderWebhooks();
+        const shouldPollForOutput = shouldPollReplicatePrediction(
+          isCloudDeployment(),
+          canReceiveProviderWebhooks(),
+        );
         const outputUrls = shouldPollForOutput
           ? await this.waitForLocalPrediction(generationId, request.abortSignal)
           : undefined;
@@ -204,7 +216,7 @@ export class ReplicateImageGenerationProviderAdapter
           ...(outputUrls ? { outputUrls } : {}),
         };
       },
-      outputStrategy: isBatchSupported ? 'batch' : 'sequential',
+      outputStrategy: replicateImageOutputStrategy(isBatchSupported),
       trackAdditionalOutputsInResponse: false,
     };
   }

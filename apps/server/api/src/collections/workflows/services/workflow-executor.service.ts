@@ -103,6 +103,8 @@ export class WorkflowExecutorService {
       this.prisma,
       this.executionsService,
       this.graphService,
+      this.websocketService,
+      this.logger,
     );
     this.reviewGateService = new WorkflowReviewGateService(
       this.prisma,

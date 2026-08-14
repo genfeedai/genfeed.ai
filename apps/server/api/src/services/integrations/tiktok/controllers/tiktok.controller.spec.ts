@@ -216,6 +216,14 @@ describe('TiktokController', () => {
           isDeleted: false,
           oauthState: null,
           refreshToken: 'tt_refresh',
+          grantedScopes: [
+            'user.info.basic',
+            'user.info.profile',
+            'user.info.stats',
+            'video.list',
+            'video.publish',
+          ],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
     });

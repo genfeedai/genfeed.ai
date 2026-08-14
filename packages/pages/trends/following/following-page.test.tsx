@@ -53,6 +53,7 @@ vi.mock('next-intl', () => ({
         'errors.load': 'Failed to load the following feed.',
         'filters.allPlatforms': 'All platforms',
         'manage.empty': 'No followed sources yet.',
+        'manage.imported': 'Imported',
         'manage.summary': '{active} active of {total} sources',
         'manage.title': 'Manage sources',
       };

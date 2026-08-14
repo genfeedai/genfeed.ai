@@ -41,17 +41,7 @@ describe('SourcePostsService canonical identity contract', () => {
     );
   });
 
-  it('uses brandId when publishing a source-post action', async () => {
-    await service.publishTwitterAction(
-      'source-post-1',
-      { actionType: 'reply', text: 'Reply' },
-      { brandId: 'brand-1' },
-    );
-
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/source-post-1/actions/twitter',
-      { actionType: 'reply', text: 'Reply' },
-      { params: { brandId: 'brand-1' } },
-    );
+  it('does not expose a native twitter action client (#2665)', () => {
+    expect(service).not.toHaveProperty('publishTwitterAction');
   });
 });

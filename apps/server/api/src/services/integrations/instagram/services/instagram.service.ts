@@ -5,6 +5,10 @@ import {
   InstagramMediaType,
   OAuthGrantType,
 } from '@genfeedai/enums';
+import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
 import type {
   InstagramAccountDetails,
   InstagramConversationThread,
@@ -410,6 +414,9 @@ export class InstagramService {
           isConnected: true,
           refreshToken: null,
           refreshTokenExpiry: null,
+          ...buildGrantedScopesCredentialPatch(
+            readOAuthTokenScopeField(response.data),
+          ),
         },
       );
 

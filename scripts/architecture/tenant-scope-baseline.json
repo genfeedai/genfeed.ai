@@ -459,14 +459,6 @@
     {
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "c9864c99c27984af48bd",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "35ab8488455d903d9ad5",
       "method": "update",
       "model": "ContextBase",
@@ -476,14 +468,6 @@
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "78890308bcf2433750af",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "bb3d62c53f19486e049d",
       "method": "update",
       "model": "ContextBase",
       "reason": "missing-organization-id"
@@ -2739,7 +2723,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "05ad519a3b77425f5c7c",
+      "fingerprint": "a879ea2f50b49fd21374",
       "method": "findFirst",
       "model": "Workflow",
       "reason": "missing-organization-id"

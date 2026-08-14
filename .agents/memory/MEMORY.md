@@ -34,6 +34,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
+- [feedback_code_ci_not_workflow_gates](feedback_code_ci_not_workflow_gates.md) — product contracts are tests; do not add named `check:*` steps to the CI guards job
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, context meter, real Studio Stop
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
@@ -65,6 +66,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Architecture decisions
 
+- [shared-package-message-catalogs](project_shared_package_message_catalogs.md) — shared packages consume the host app next-intl catalog (`ui` / `pages` / `agent` / `contexts`); no COPY consts (#2686)
 - [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md) — 3 modes (SaaS/Community/Desktop) as `deployment × client`; Better Auth is the active baseline; platform admin via `users.platformRole`; multi-tenancy stays EE/SaaS; managed credits cloud-only. Supersedes the auth half of #95. Contributor doc: `docs/deployment-modes.md`
 - [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3.2: conversation is a surface, composer follows it, frame/nav are route-owned, and the topbar breadcrumb owns visible page identity
 - [ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via the workflow engine
@@ -94,6 +96,8 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [messages-engagement-surfaces](spec-messages-engagement-surfaces.md) · [decisions](decisions-messages-engagement-surfaces.md) — #2742
 - [publish-content-campaigns](spec-publish-content-campaigns.md) · [decisions](decisions-publish-content-campaigns.md) — Publish Campaign desk + `Post.campaignId`
 - [source-post-variations](spec-source-post-variations.md) · [decisions](decisions-source-post-variations.md) — #2662
+- [social-warmup-enrollments](spec-social-warmup-enrollments.md) · [decisions](decisions-social-warmup-enrollments.md) — #2214
+- [llm-vendor-cost-ledger](spec-llm-vendor-cost-ledger.md) · [decisions](decisions-llm-vendor-cost-ledger.md) — #2361
 
 ## Project state
 

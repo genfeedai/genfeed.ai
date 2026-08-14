@@ -37,6 +37,24 @@ describe('path containment', () => {
       resolveContainedPath('/srv/genfeed/files', candidate, createError),
     ).toThrow(ContainmentError);
   });
+
+  it('rejects a missing containment root', () => {
+    expect(() =>
+      resolveContainedPath('', 'nested/file.txt', createError),
+    ).toThrow(/Containment root is not configured/);
+  });
+
+  it('rejects a missing candidate path', () => {
+    expect(() =>
+      resolveContainedPath('/srv/genfeed/files', '', createError),
+    ).toThrow(/File path is required/);
+  });
+
+  it('allows a candidate that resolves to the root itself', () => {
+    expect(resolveContainedPath('/srv/genfeed/files', '.', createError)).toBe(
+      '/srv/genfeed/files',
+    );
+  });
 });
 
 /**
@@ -208,4 +226,43 @@ describe('object-key containment', () => {
       assertObjectKeyWithinPrefix('ingredients/images/', key, createError),
     ).toBe(key);
   });
+
+  it('rejects an empty or non-string object key', () => {
+    expect(() => assertSafeObjectKey('', createError)).toThrow(
+      /required and must be a string/,
+    );
+  });
+
+  it('rejects a leading slash, backslash, or NUL in an object key', () => {
+    expect(() => assertSafeObjectKey('/absolute.png', createError)).toThrow(
+      /relative POSIX object key/,
+    );
+    expect(() =>
+      assertSafeObjectKey('nested\\escaped.png', createError),
+    ).toThrow(/relative POSIX object key/);
+    expect(() => assertSafeObjectKey('nested\\0file.png', createError)).toThrow(
+      /relative POSIX object key/,
+    );
+  });
+
+  it('rejects a trailing slash on a concrete object key', () => {
+    expect(() =>
+      assertSafeObjectKey('ingredients/images/photo.png/', createError),
+    ).toThrow(/invalid path segment/);
+  });
+
+  it('accepts a listing prefix that ends with a slash', () => {
+    expect(assertSafeObjectKeyPrefix('ingredients/images/', createError)).toBe(
+      'ingredients/images/',
+    );
+  });
+
+  it.each(['.', '..', 'nested//empty.png', './same.png'])(
+    'rejects object-key segment %s',
+    (candidate) => {
+      expect(() => assertSafeObjectKey(candidate, createError)).toThrow(
+        /invalid path segment/,
+      );
+    },
+  );
 });

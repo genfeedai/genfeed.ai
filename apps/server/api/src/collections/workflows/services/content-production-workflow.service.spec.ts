@@ -7,15 +7,9 @@ describe('ContentProductionWorkflowService', () => {
   const contentPlannerService = { generatePlan: vi.fn() };
   const contentExecutionService = { executePlan: vi.fn() };
   const prisma = {
-    contentSchedule: { findFirst: vi.fn() },
     persona: { findMany: vi.fn(), update: vi.fn() },
   };
   const contentPipelineQueueService = { queueGenerateAndPublish: vi.fn() };
-  const contentSchedulesService = {
-    calculateNextRunAt: vi.fn(),
-    markScheduleRan: vi.fn(),
-  };
-  const contentGatewayService = { routeSignal: vi.fn() };
   const cacheService = { acquireLock: vi.fn(), releaseLock: vi.fn() };
   const logger = {
     error: vi.fn(),
@@ -47,18 +41,9 @@ describe('ContentProductionWorkflowService', () => {
     });
     prisma.persona.findMany.mockResolvedValue([]);
     prisma.persona.update.mockResolvedValue({});
-    prisma.contentSchedule.findFirst.mockResolvedValue(null);
     contentPipelineQueueService.queueGenerateAndPublish.mockResolvedValue(
       'job-1',
     );
-    contentGatewayService.routeSignal.mockResolvedValue({
-      posts: [],
-      runs: ['run-1'],
-    });
-    contentSchedulesService.calculateNextRunAt.mockReturnValue(
-      new Date('2026-06-24T09:05:00.000Z'),
-    );
-    contentSchedulesService.markScheduleRan.mockResolvedValue(undefined);
 
     service = new ContentProductionWorkflowService(
       brandsService as never,
@@ -66,8 +51,6 @@ describe('ContentProductionWorkflowService', () => {
       contentExecutionService as never,
       prisma as never,
       contentPipelineQueueService as never,
-      contentSchedulesService as never,
-      contentGatewayService as never,
       cacheService as never,
       logger as never,
     );
@@ -180,82 +163,6 @@ describe('ContentProductionWorkflowService', () => {
     );
     expect(result).toMatchObject({
       action: 'contentPipelineAutopilot',
-      organizationId: 'org-1',
-      processed: 1,
-      skipped: 0,
-      status: 'completed',
-    });
-  });
-
-  it('skips disabled content schedules without routing a signal', async () => {
-    prisma.contentSchedule.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      cronExpression: '* * * * *',
-      id: 'schedule-1',
-      isEnabled: false,
-      nextRunAt: new Date('2026-06-24T08:59:00.000Z'),
-      organizationId: 'org-1',
-      skillParams: {},
-      skillSlugs: [],
-      timezone: 'UTC',
-    });
-
-    const result = await service.runContentSchedule('org-1', 'schedule-1');
-
-    expect(contentGatewayService.routeSignal).not.toHaveBeenCalled();
-    expect(contentSchedulesService.markScheduleRan).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      action: 'contentScheduleRun',
-      reason: 'content_schedule_disabled',
-      status: 'skipped',
-    });
-  });
-
-  it('routes due content schedules and advances nextRunAt', async () => {
-    const nextRunAt = new Date('2026-06-24T09:05:00.000Z');
-    prisma.contentSchedule.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      cronExpression: '*/5 * * * *',
-      id: 'schedule-1',
-      isEnabled: true,
-      nextRunAt: new Date('2026-06-24T08:55:00.000Z'),
-      organizationId: 'org-1',
-      skillParams: { topic: 'launch' },
-      skillSlugs: ['daily-post'],
-      timezone: 'Europe/Malta',
-    });
-    contentSchedulesService.calculateNextRunAt.mockReturnValue(nextRunAt);
-
-    const result = await service.runContentSchedule(
-      'org-1',
-      'schedule-1',
-      'workflow-1',
-    );
-
-    expect(contentGatewayService.routeSignal).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      payload: {
-        scheduleId: 'schedule-1',
-        skillParams: { topic: 'launch' },
-        skillSlugs: ['daily-post'],
-        workflowId: 'workflow-1',
-      },
-      type: 'cron',
-    });
-    expect(contentSchedulesService.calculateNextRunAt).toHaveBeenCalledWith(
-      '*/5 * * * *',
-      'Europe/Malta',
-      new Date('2026-06-24T09:00:00.000Z'),
-    );
-    expect(contentSchedulesService.markScheduleRan).toHaveBeenCalledWith(
-      'schedule-1',
-      'org-1',
-      nextRunAt,
-      new Date('2026-06-24T09:00:00.000Z'),
-    );
-    expect(result).toMatchObject({
-      action: 'contentScheduleRun',
       organizationId: 'org-1',
       processed: 1,
       skipped: 0,

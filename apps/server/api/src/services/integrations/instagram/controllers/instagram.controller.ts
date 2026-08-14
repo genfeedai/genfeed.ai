@@ -16,6 +16,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -32,11 +33,13 @@ import { firstValueFrom } from 'rxjs';
 interface InstagramShortLivedTokenResponse {
   access_token: string;
   expires_in?: number;
+  scope?: string;
 }
 
 interface InstagramLongLivedTokenResponse {
   access_token: string;
   expires_in?: number;
+  scope?: string;
 }
 
 @AutoSwagger()
@@ -348,6 +351,7 @@ export class InstagramController {
       }
 
       const { access_token, expires_in } = longTokenRes.data || {};
+      const scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
 
       if (!access_token) {
         return returnBadRequest({
@@ -370,6 +374,7 @@ export class InstagramController {
           oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

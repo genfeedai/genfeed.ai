@@ -21,9 +21,6 @@ describe('SourcePostsService', () => {
   const credentialsService = {
     findOne: vi.fn(),
   };
-  const twitterPipelineService = {
-    publish: vi.fn(),
-  };
   const sourcePost = {
     count: vi.fn(),
     findFirst: vi.fn(),
@@ -47,7 +44,6 @@ describe('SourcePostsService', () => {
       { ingredient, post, sourcePost } as unknown as PrismaService,
       logger,
       credentialsService as never,
-      twitterPipelineService as never,
     );
   });
 
