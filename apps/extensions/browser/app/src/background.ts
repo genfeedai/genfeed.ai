@@ -1293,7 +1293,7 @@ async function handleGetBrandVoice(
   await executeAuthenticatedRequest<{
     data?: Array<{ attributes: { branding?: Record<string, unknown> } }>;
   }>(
-    `/knowledge-bases?brand=${payload.brandId}&limit=1`,
+    `/contexts?brand=${payload.brandId}`,
     { method: 'GET' },
     sendResponse,
     (data) => {

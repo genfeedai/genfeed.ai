@@ -226,14 +226,23 @@ export function useMessagesActions({
     try {
       const service = await getMessagesService();
       if (conversationType === SocialConversationType.DM) {
-        await service.syncInstagramDms();
+        await Promise.all([
+          service.syncInstagramDms(),
+          service.syncXDms(),
+          service.syncLinkedInDms(),
+        ]);
         setNotice(
           'Direct message sync started. New threads will appear here once the background job finishes.',
         );
       } else {
         // The comments surface spans every connected platform, so one sync
         // sweeps them all rather than making the operator pick.
-        await Promise.all([service.syncYoutube(), service.syncInstagram()]);
+        await Promise.all([
+          service.syncYoutube(),
+          service.syncInstagram(),
+          service.syncX(),
+          service.syncLinkedIn(),
+        ]);
         setNotice(
           'Comment sync started. New comments will appear here once the background jobs finish.',
         );

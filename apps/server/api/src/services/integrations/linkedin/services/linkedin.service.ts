@@ -43,7 +43,55 @@ interface LinkedInCredential {
   id: string;
   accessToken?: string | null;
   refreshToken?: string | null;
+  grantedScopes?: string[] | null;
 }
+
+export type LinkedInInboxComment = {
+  commentId: string;
+  threadId: string;
+  text: string;
+  createdAt: Date;
+  authorExternalId?: string;
+  authorName?: string;
+};
+
+export type LinkedInInboxDmThread = {
+  conversationId: string;
+  participantExternalId?: string;
+  participantName?: string;
+  messages: Array<{
+    messageId: string;
+    text: string;
+    createdAt: Date;
+    senderExternalId?: string;
+    senderName?: string;
+  }>;
+};
+
+export type LinkedInDirectMessageListing = {
+  isPermitted: boolean;
+  reason?: string;
+  threads: LinkedInInboxDmThread[];
+};
+
+const LINKEDIN_MESSAGING_SCOPES = new Set([
+  'r_member_mailbox',
+  'r_messages',
+  'w_member_mailbox',
+]);
+
+type LinkedInCommentElement = {
+  $URN?: string;
+  id?: string;
+  actor?: string;
+  created?: { time?: number };
+  message?: { text?: string };
+  parentComment?: string;
+};
+
+type LinkedInCommentsResponse = {
+  elements?: LinkedInCommentElement[];
+};
 
 type LinkedInReactionCounts = {
   like?: number;
@@ -905,6 +953,113 @@ export class LinkedInService {
   private toReferenceTopic(sourceLabel: string, index: number): string {
     const token = sourceLabel.toLowerCase().replace(/[^a-z0-9]+/g, '');
     return token ? `#${token}` : `#linkedinreference${index + 1}`;
+  }
+
+  /**
+   * List comments on one published LinkedIn share/UGC post.
+   * Replies keep the top-level comment id as their thread id.
+   */
+  public async listPostComments(
+    organizationId: string,
+    brandId: string,
+    postUrn: string,
+    options: { limit?: number; start?: number } = {},
+  ): Promise<LinkedInInboxComment[]> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.refreshToken(organizationId, brandId);
+      if (!credential?.accessToken) {
+        throw new Error('LinkedIn credential not found or invalid');
+      }
+
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+      const count = Math.min(Math.max(options.limit ?? 25, 1), 100);
+      const start = Math.max(options.start ?? 0, 0);
+
+      const response = await firstValueFrom(
+        this.httpService.get<LinkedInCommentsResponse>(
+          `https://api.linkedin.com/v2/socialActions/${encodeURIComponent(postUrn)}/comments`,
+          {
+            headers: {
+              Authorization: `Bearer ${decryptedAccessToken}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+            },
+            params: { count, start },
+          },
+        ),
+      );
+
+      const comments = (response.data.elements ?? []).flatMap((element) => {
+        const commentId = element.id ?? element.$URN;
+        const text = element.message?.text;
+        if (!commentId || !text) {
+          return [];
+        }
+
+        const createdAt =
+          typeof element.created?.time === 'number'
+            ? new Date(element.created.time)
+            : new Date();
+
+        return [
+          {
+            authorExternalId: element.actor,
+            commentId,
+            createdAt: Number.isNaN(createdAt.getTime())
+              ? new Date()
+              : createdAt,
+            text,
+            threadId: element.parentComment ?? commentId,
+          } satisfies LinkedInInboxComment,
+        ];
+      });
+
+      this.loggerService.log(`${url} succeeded`, {
+        count: comments.length,
+        postUrn,
+        start,
+      });
+
+      return comments;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * LinkedIn member messaging is a partner API. The connected-account OAuth
+   * path only requests `w_member_social`, so DMs stay closed unless a later
+   * grant adds a mailbox scope.
+   */
+  public async listDirectMessages(
+    organizationId: string,
+    brandId: string,
+  ): Promise<LinkedInDirectMessageListing> {
+    const credential = await this.credentialsService.findOne({
+      brandId,
+      isDeleted: false,
+      organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+
+    const grantedScopes = credential?.grantedScopes ?? [];
+    const isPermitted = grantedScopes.some((scope) =>
+      LINKEDIN_MESSAGING_SCOPES.has(scope),
+    );
+
+    if (!isPermitted) {
+      return {
+        isPermitted: false,
+        reason: 'LinkedIn messaging is not available on the connected account',
+        threads: [],
+      };
+    }
+
+    return { isPermitted: true, threads: [] };
   }
 
   /**

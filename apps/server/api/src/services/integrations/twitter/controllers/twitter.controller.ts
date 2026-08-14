@@ -9,7 +9,11 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
+import {
+  CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
@@ -25,6 +29,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Req,
 } from '@nestjs/common';
@@ -41,6 +46,7 @@ export class TwitterController {
     private readonly configService: ConfigService,
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
+    private readonly twitterAuthorizedSignalsService: TwitterAuthorizedSignalsService,
     private readonly twitterService: TwitterService,
   ) {}
 
@@ -226,11 +232,62 @@ export class TwitterController {
         },
       );
 
+      try {
+        await this.twitterAuthorizedSignalsService.refresh({
+          accessToken,
+          credentialId: updatedCredential.id.toString(),
+          force: true,
+          grantedScopes: scope,
+          organizationId,
+        });
+        updatedCredential =
+          (await this.credentialsService.findOne({
+            id: updatedCredential.id.toString(),
+            organizationId,
+            platform: toPrismaCredentialPlatform(CredentialPlatform.TWITTER),
+          })) ?? updatedCredential;
+      } catch (signalError: unknown) {
+        this.loggerService.warn(
+          `${url} authorized signal refresh failed after connection`,
+          signalError,
+        );
+      }
+
       return serializeSingle(request, CredentialSerializer, updatedCredential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  @Post(':credentialId/authorized-signals/refresh')
+  async refreshAuthorizedSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    await this.twitterAuthorizedSignalsService.refresh({
+      credentialId,
+      organizationId: user.organizationId,
+    });
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: toPrismaCredentialPlatform(CredentialPlatform.TWITTER),
+    });
+
+    if (!credential) {
+      throw new HttpException(
+        {
+          detail: 'X credential not found',
+          title: 'Credential not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   @Get('trends')

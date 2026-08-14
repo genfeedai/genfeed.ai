@@ -262,4 +262,37 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     }
     expect(contextEntry.update).not.toHaveBeenCalled();
   });
+
+  it('removeEntriesBySource: soft-deletes chunks for one source and decrements entryCount', async () => {
+    const { service, contextEntry } = buildService({
+      contextEntries: [
+        {
+          contextBaseId: 'ctx-1',
+          id: 'entry-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      ],
+    });
+
+    const removed = await service.removeEntriesBySource(
+      'ctx-1',
+      'src_1',
+      'org-1',
+    );
+
+    expect(removed).toBe(1);
+    expect(contextEntry.updateMany).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: {
+        contextBaseId: 'ctx-1',
+        data: {
+          equals: 'src_1',
+          path: ['metadata', 'sourceId'],
+        },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
 });
