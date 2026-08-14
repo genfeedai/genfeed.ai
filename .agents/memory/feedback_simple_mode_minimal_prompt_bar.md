@@ -19,10 +19,17 @@ TipTap composer mirrors it), then scroll.
 
 Busy/status text uses the single-element `animate-text-shimmer` utility
 (`packages/styles/keyframes.css`) — no per-letter pulse spans, no dot loaders.
-The agent timeline groups entries into turns and pins the user prompt with
-`position: sticky` plus `--agent-conversation-sticky-top` for the duration of
-its turn. Off-screen assistant/work rows use `content-visibility: auto` instead
-of a virtualized list (sticky + windowing do not mix well here).
+The agent timeline groups entries into turns and pins the user prompt as a
+sticky highlighted card (`bg-tertiary`, `data-message-surface="prompt"`) with
+`--agent-conversation-sticky-top`. No "You" label — the card is the highlight.
+The sticky wrapper paints `bg-background` so assistant lines cannot show
+through rounded corners. Off-screen assistant/work rows use
+`content-visibility: auto` instead of a virtualized list (sticky + windowing
+do not mix well here).
+
+The generation card lives on the floating composer, not in the transcript.
+Pad the scroll track by the measured overlay height so the last assistant
+line can scroll above the card.
 
 While a turn is actually in flight (`isBusy`), the composer stays editable.
 Enter queues a follow-up above the bar (`ComposerFollowUpQueue`); "Send now"
@@ -47,4 +54,8 @@ must enqueue, not call `sendMessage` (that aborts the live stream). Studio
 Stop on `GenerationActionCard` aborts the `waitForCompletion` fetch so the
 server can cancel Replicate and mark the placeholder FAILED. PromptBar shows
 Stop only when the parent passes `onCancel` backed by that abort — never a
-button that only clears local loading state.
+button that only clears local loading state. User messages are a sticky
+`bg-tertiary` card (`data-message-surface="prompt"`) — no "You" label, no
+right-side bubbles. Keep the generation card on the composer and pad the
+transcript by the overlay height (`resolveComposerTranscriptPaddingPx`); do
+not drop a fixed `pb-32` that the card can outgrow.

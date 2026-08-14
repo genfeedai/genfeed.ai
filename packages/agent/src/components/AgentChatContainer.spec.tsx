@@ -710,7 +710,9 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(container.querySelector('.pb-32')).not.toBeNull();
+    expect(
+      container.querySelector('[data-composer-padding="128"]'),
+    ).not.toBeNull();
     expect(
       portalTarget.querySelector(
         '[data-layout-mode="inflow"][data-show-top-fade="false"]',
@@ -746,8 +748,10 @@ describe('AgentChatContainer', () => {
       screen.getByText(/The agent hit an error while running/i),
     ).toBeInTheDocument();
     expect(screen.getByText('Submit requested input')).toBeInTheDocument();
-    expect(container.querySelector('.pb-5')).not.toBeNull();
-    expect(container.querySelector('.pb-32')).toBeNull();
+    expect(
+      container.querySelector('[data-composer-padding="20"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('[data-composer-padding="128"]')).toBeNull();
   });
 
   it('uses an inflow prompt bar layout on the empty state even when a surface layout is requested', () => {
@@ -794,6 +798,40 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'false',
     );
+  });
+
+  it('puts the onboarding card on the empty conversation prompt bar', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    const { container } = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        emptyStateTitle="Welcome to GenFeed"
+        onboardingMode
+        promptBarLayoutMode="surface-fixed"
+      />,
+    );
+
+    expect(screen.getByTestId('onboarding-composer-card')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /start with my first image/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/what best describes you/i),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelectorAll(
+        '[data-layout-mode="inflow"][data-max-width="full"]',
+      ).length,
+    ).toBe(1);
+    expect(
+      container.querySelector(
+        '[data-layout-mode="inflow"] [data-testid="onboarding-composer-card"]',
+      ),
+    ).not.toBeNull();
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

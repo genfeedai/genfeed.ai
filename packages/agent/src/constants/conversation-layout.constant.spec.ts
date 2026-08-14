@@ -4,6 +4,7 @@ import {
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
+  AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS,
 } from './conversation-layout.constant';
 
 describe('conversation-layout.constant', () => {
@@ -22,5 +23,13 @@ describe('conversation-layout.constant', () => {
   it('provides a borderless inline row for low-chrome status', () => {
     expect(AGENT_CONVERSATION_INLINE_ROW_CLASS).toContain('min-w-0');
     expect(AGENT_CONVERSATION_INLINE_ROW_CLASS).not.toContain('border');
+  });
+
+  it('highlights the sticky user prompt as a tertiary card, not a You label', () => {
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('bg-tertiary');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('rounded-xl');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
+      'bg-transparent',
+    );
   });
 });

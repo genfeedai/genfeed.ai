@@ -79,6 +79,7 @@ type AgentChatPromptBarProps = {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
+  onOverlayElement?: (node: HTMLElement | null) => void;
 };
 
 export function AgentChatPromptBar({
@@ -123,6 +124,7 @@ export function AgentChatPromptBar({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
+  onOverlayElement,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isInspectorComposer = composerShell?.placement === 'inspector';
@@ -186,6 +188,7 @@ export function AgentChatPromptBar({
       showTopFade={false}
       topContent={topContent}
       zIndex={40}
+      containerRef={onOverlayElement}
       className={cn(
         'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
