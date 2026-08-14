@@ -259,7 +259,7 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByRole('button', { name: /select models/i }));
 
     expect(screen.getByTestId('model-selector-popover')).toHaveClass(
-      'bg-tertiary',
+      'bg-secondary',
       'shadow-dropdown',
     );
     expect(container.querySelector('.bg-card')).toBeNull();

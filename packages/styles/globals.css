@@ -176,7 +176,7 @@ body.gf-studio-app {
   --foreground: 240 6% 96%; /* #f4f4f5 text-primary */
   --card: 0 0% 3%; /* #080808 card / pricing-card black surface */
   --card-foreground: 240 6% 96%;
-  --popover: 223 12% 12%; /* #1a1c21 bg-elevated */
+  --popover: 225 14% 5%; /* #0c0d10 bg-secondary — elevated is too light */
   --popover-foreground: 240 6% 96%;
   --secondary: 216 12% 8%; /* #131518 */
   --secondary-foreground: 240 6% 96%;

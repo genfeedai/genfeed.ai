@@ -279,9 +279,13 @@ function WorkspaceInspectorChrome({
   return (
     <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
       <div className="flex min-w-0 flex-1 items-center gap-1">
-        <TabsList className="h-8 min-w-0 overflow-x-auto">
+        <TabsList className="h-8 min-w-0 overflow-x-auto overflow-y-hidden bg-transparent">
           {layout.openKinds.map((kind) => (
-            <TabsTrigger key={kind} value={kind}>
+            <TabsTrigger
+              className="data-[state=active]:bg-secondary"
+              key={kind}
+              value={kind}
+            >
               {translate(kind)}
             </TabsTrigger>
           ))}

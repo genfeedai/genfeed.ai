@@ -41,9 +41,10 @@ const ModelSelectorProviderSidebar = memo(
         <nav
           aria-label="Filter by model provider"
           className={cn(
-            'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
+            'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-x-hidden overflow-y-auto',
+            '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             // Same overlay surface as the picker body.
-            'border-r border-border bg-tertiary py-1',
+            'border-r border-border bg-secondary py-1',
           )}
         >
           {hasFavorites ? (

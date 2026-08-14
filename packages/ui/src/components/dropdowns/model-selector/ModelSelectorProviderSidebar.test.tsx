@@ -75,6 +75,18 @@ describe('ModelSelectorProviderSidebar', () => {
     );
   });
 
+  it('does not paint a vertical scrollbar in the provider rail', () => {
+    renderSidebar();
+
+    const rail = screen.getByRole('navigation', {
+      name: 'Filter by model provider',
+    });
+
+    expect(rail.className).toContain('overflow-x-hidden');
+    expect(rail.className).toContain('overflow-y-auto');
+    expect(rail.className).toMatch(/scrollbar-width:none|scrollbar-none/);
+  });
+
   it('mounts a single tooltip provider for the whole rail', () => {
     renderSidebar();
 

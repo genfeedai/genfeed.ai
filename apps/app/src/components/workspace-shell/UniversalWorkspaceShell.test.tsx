@@ -962,6 +962,24 @@ describe('UniversalWorkspaceShell', () => {
     expect(labels).toEqual(['Context', 'Conversation']);
   });
 
+  it('does not put a vertical scrollbar inside the inspector tab strip', () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    const [tabList] = screen.getAllByRole('tablist');
+
+    // overflow-x-auto alone computes overflow-y to auto, which paints a
+    // scrollbar inside the Context pill when the h-8 track is a pixel short.
+    expect(tabList.className).toContain('overflow-y-hidden');
+    expect(tabList.className).not.toMatch(/(?:^|\s)overflow-y-auto(?:\s|$)/);
+  });
+
   it('lets the operator add a Files pane and preview a library source in Browser', async () => {
     navigation.pathname = '/acme/moonrise/publish/overview';
     navigation.searchParams = new URLSearchParams();
