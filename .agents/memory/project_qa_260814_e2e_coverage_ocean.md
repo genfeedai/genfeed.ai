@@ -36,6 +36,10 @@ last_verified: 2026-08-14
   mobile HTTP/async hooks, browser-extension platform config,
   app cloud-session + BYOK headers)
 - Docs SEO page-count derived from the MDX tree (#2444)
+- Second wave (still on this branch): agent util specs, query-cache /
+  pick-defined-fields, integration retry-policy, website FAQ catalog,
+  constants inventory, app desktop/analytics/colors, mobile network +
+  offline queue + ideas/approvals/analytics, extension logger
 
 ## After merge
 
