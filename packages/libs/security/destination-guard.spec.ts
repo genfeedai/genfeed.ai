@@ -366,6 +366,16 @@ describe('destination guard', () => {
     });
   });
 
+  it('treats a redirect status without Location as the final response', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(302);
+
+    const response = await safeFetch('http://public.example/start');
+
+    expect(response.status).toBe(302);
+    expect(httpRequestMock).toHaveBeenCalledTimes(1);
+  });
+
   it('returns redirect responses untouched in manual redirect mode', async () => {
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mockHttpResponse(302, ['location', 'http://public.example/next']);

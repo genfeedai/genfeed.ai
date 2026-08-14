@@ -218,7 +218,7 @@ function assertPublicAddresses(
 function selectResolvedAddress(
   addresses: readonly LookupAddress[],
   hostname: string,
-): LookupAddress {
+): LookupAddress & { family: 4 | 6 } {
   const selected = addresses[0];
   if (!selected || (selected.family !== 4 && selected.family !== 6)) {
     throw new DestinationGuardError(
@@ -226,14 +226,17 @@ function selectResolvedAddress(
     );
   }
 
-  return selected;
+  return {
+    address: selected.address,
+    family: selected.family,
+  };
 }
 
 function assertResolvedAddresses(
   addresses: readonly LookupAddress[],
   hostname: string,
   allowPrivateNetwork: boolean,
-): LookupAddress {
+): LookupAddress & { family: 4 | 6 } {
   if (addresses.length === 0) {
     throw new DestinationGuardError(
       `Destination hostname did not resolve: ${hostname}`,
@@ -516,13 +519,6 @@ function isRedirectResponse(
   return Boolean(location) && REDIRECT_STATUSES.has(response.status);
 }
 
-function shouldReturnCurrentResponse(
-  init: RequestInit,
-  isRedirect: boolean,
-): boolean {
-  return !isRedirect || init.redirect === 'manual';
-}
-
 function markRedirected(response: Response, redirectCount: number): Response {
   if (redirectCount > 0) {
     Object.defineProperty(response, 'redirected', { value: true });
@@ -589,9 +585,10 @@ export async function safeFetch(
     const destination = await resolveSafeDestination(currentUrl, options);
     const response = await requestPinnedDestination(destination, currentInit);
     const location = response.headers.get('location');
-    const isRedirect = isRedirectResponse(response, location);
-
-    if (shouldReturnCurrentResponse(currentInit, isRedirect)) {
+    if (
+      !isRedirectResponse(response, location) ||
+      currentInit.redirect === 'manual'
+    ) {
       return markRedirected(response, redirectCount);
     }
 
