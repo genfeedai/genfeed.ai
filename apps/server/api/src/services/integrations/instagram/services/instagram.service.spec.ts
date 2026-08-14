@@ -337,7 +337,7 @@ describe('InstagramService', () => {
 
       const result = await service.getValidCredential('org-id', 'brand-id');
 
-      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id');
+      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id', undefined);
       expect(result.accessToken).toBe('new-token');
     });
 
