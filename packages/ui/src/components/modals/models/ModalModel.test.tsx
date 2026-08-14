@@ -14,10 +14,7 @@ const closeModal = vi.fn();
 const onSubmit = vi.fn();
 
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({
-    children,
-    title,
-  }: PropsWithChildren<{ title?: string }>) => (
+  default: ({ children, title }: PropsWithChildren<{ title?: string }>) => (
     <div data-testid="modal">
       <h2>{title}</h2>
       {children}
@@ -64,15 +61,13 @@ describe('ModalModel', () => {
   it('opens the add-model form and the view-model details', () => {
     const { rerender } = render(<ModalModel onConfirm={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'Add Model' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Add Model' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('model-form')).toBeInTheDocument();
 
     rerender(
-      <ModalModel
-        mode="view"
-        onConfirm={vi.fn()}
-        entity={imagenModel}
-      />,
+      <ModalModel mode="view" onConfirm={vi.fn()} entity={imagenModel} />,
     );
 
     expect(
@@ -83,12 +78,7 @@ describe('ModalModel', () => {
   });
 
   it('titles the edit mode from the existing model', () => {
-    render(
-      <ModalModel
-        onConfirm={vi.fn()}
-        entity={imagenModel}
-      />,
-    );
+    render(<ModalModel onConfirm={vi.fn()} entity={imagenModel} />);
 
     expect(
       screen.getByRole('heading', { name: 'Edit Model' }),

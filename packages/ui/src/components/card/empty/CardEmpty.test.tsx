@@ -77,12 +77,7 @@ describe('CardEmpty', () => {
   });
 
   it('applies the large size title class on CardEmptyContent', () => {
-    render(
-      <CardEmptyContent
-        label="Nothing here"
-        size={CardEmptySize.LG}
-      />,
-    );
+    render(<CardEmptyContent label="Nothing here" size={CardEmptySize.LG} />);
 
     expect(screen.getByRole('heading', { name: 'Nothing here' })).toHaveClass(
       'text-base',
