@@ -299,7 +299,7 @@ export class ClipLibraryLinkService {
 
   private async createTranscriptSidecar(
     clipResult: ClipResultDocument,
-    organizationId: string,
+    _organizationId: string,
     ingredientId: string,
   ): Promise<void> {
     const captionSrt = this.readString(clipResult.captionSrt);
