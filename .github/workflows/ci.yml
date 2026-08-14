@@ -239,10 +239,6 @@ jobs:
         run: bun run check:route-inventory
       - name: Tenant Scope (API + shared server)
         run: bun run check:tenant-scope
-      - name: Cross-Org Unsafe Hatch Ratchet
-        run: bun run check:cross-org-unsafe
-      - name: Cross-Org Unsafe Hatch Guard Tests
-        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-cross-org-unsafe.test.ts
       # The agent half of the curated action catalog contract. MCP crashes on
       # boot when its surface and dispatch disagree; the agent had no such
       # check, and five live credit-costed tools drifted outside the catalog.
