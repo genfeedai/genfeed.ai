@@ -1,4 +1,4 @@
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
+import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 
 interface SchedulableWorkflowFields {
   isScheduleEnabled?: boolean | null;

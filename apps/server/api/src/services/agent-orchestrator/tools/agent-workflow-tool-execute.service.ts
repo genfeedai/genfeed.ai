@@ -1,7 +1,7 @@
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';

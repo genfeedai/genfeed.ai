@@ -1,7 +1,3 @@
-import {
-  computeNextRunAtOrThrow,
-  isSchedulableTimezone,
-} from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -11,6 +7,10 @@ import {
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@api/collections/workflows/utils/cron-schedule.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';

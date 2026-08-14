@@ -1,6 +1,6 @@
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { resolveWorkflowBrand } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.helpers';

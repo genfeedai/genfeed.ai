@@ -21,15 +21,15 @@ import {
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import {
-  computeNextRunAtOrThrow,
-  isSchedulableTimezone,
-} from '@api/collections/cron-jobs/utils/cron-schedule.util';
-import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
   nextSlugCandidate,
   slugAllocationBase,
 } from '@api/collections/shared/slug-allocation.util';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@api/collections/workflows/utils/cron-schedule.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
