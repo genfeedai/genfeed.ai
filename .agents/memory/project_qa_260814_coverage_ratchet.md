@@ -33,6 +33,11 @@ last_verified: 2026-08-14
   not migrate desktop/IDE to Vitest
 - Leave brands/orgs API E2E quarantined — fixture/CreditsGuard reasons
   in the tier manifest are still true
+- Raise `apps/server/api` coverage by replacing empty placeholder specs
+  and adding util/exception tests (json-prompt, external-api-cache,
+  pagination, content-plan data, text pricing, wrapError, cron timezone,
+  onboarding error mapping, campaign scope, workflow status, asset
+  parent, reply-bot platform, telegram args)
 
 ## After this PR
 
