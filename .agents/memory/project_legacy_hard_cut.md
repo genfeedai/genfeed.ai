@@ -28,4 +28,4 @@ last_verified: 2026-08-14
 2. Rename files queue `authProviderUserId` → `userId`; drop `local.genfeed.ai`
 3. Delete cron-jobs collection, worker dispatcher, Prisma tables, `legacyCronJob` node
 4. Replace Clerk `publicMetadata` with canonical `userId` / `organizationId` / `brandId` on `request.user`
-5. Drop `Post.status` dual API; clients send release/visibility only
+5. Drop `Post.status` dual API; clients send `targetExecutionState` / `visibility` only. Prisma `Post.status` remains a response projection via `projectLegacyPostStatus`.

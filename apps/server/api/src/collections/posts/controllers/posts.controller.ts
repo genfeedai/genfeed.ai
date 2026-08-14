@@ -37,7 +37,6 @@ import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  mapLegacyPostStatusToTargetExecutionState,
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
 } from '@api-types/contracts/scheduler.contract';
@@ -101,10 +100,7 @@ export class PostsController extends BaseCRUDController<
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const executionState =
-      createPostDto.targetExecutionState ??
-      (createPostDto.status
-        ? mapLegacyPostStatusToTargetExecutionState(createPostDto.status)
-        : TargetExecutionState.SCHEDULED);
+      createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
     assertApiKeyPublishingScope(
       user,
       executionState === TargetExecutionState.DRAFT
@@ -126,7 +122,7 @@ export class PostsController extends BaseCRUDController<
           postsService: this.postsService,
           quotaService: this.quotaService,
         },
-        user,
+        identity: user,
       });
 
       return serializeSingle(request, this.serializer, data);
@@ -153,12 +149,8 @@ export class PostsController extends BaseCRUDController<
       existing.targetExecutionState as TargetExecutionState,
     )
       ? (existing.targetExecutionState as TargetExecutionState)
-      : mapLegacyPostStatusToTargetExecutionState(existing.status);
-    const nextStatus =
-      updateDto.targetExecutionState ??
-      (updateDto.status
-        ? mapLegacyPostStatusToTargetExecutionState(updateDto.status)
-        : existingStatus);
+      : TargetExecutionState.DRAFT;
+    const nextStatus = updateDto.targetExecutionState ?? existingStatus;
     const changesPublishState =
       ![TargetExecutionState.DRAFT, TargetExecutionState.SCHEDULED].includes(
         existingStatus,
@@ -237,11 +229,7 @@ export class PostsController extends BaseCRUDController<
       matchFilter.platform = query.platform;
     }
 
-    const executionState = query.executionState
-      ? query.executionState
-      : query.status
-        ? mapLegacyPostStatusToTargetExecutionState(query.status)
-        : undefined;
+    const executionState = query.executionState;
     const axisFilters: Record<string, unknown>[] = [];
     if (executionState) {
       axisFilters.push(postExecutionStateReadFilter(executionState));

@@ -11,10 +11,6 @@ import type { PostsService } from '@api/collections/posts/services/posts.service
 import type { QuotaService } from '@api/services/quota/quota.service';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
 import {
-  mapLegacyPostStatusToTargetExecutionState,
-  mapLegacyPostStatusToVisibility,
-} from '@api-types/contracts/scheduler.contract';
-import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
@@ -22,7 +18,7 @@ import {
   fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
+  PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -81,15 +77,8 @@ export async function createPost({
   identity,
 }: PostCreateParams): Promise<PostDocument> {
   const requestedExecutionState =
-    createPostDto.targetExecutionState ??
-    mapLegacyPostStatusToTargetExecutionState(
-      createPostDto.status ?? PostStatus.SCHEDULED,
-    );
-  const requestedVisibility =
-    createPostDto.visibility ??
-    mapLegacyPostStatusToVisibility(
-      createPostDto.status ?? PostStatus.SCHEDULED,
-    );
+    createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+  const requestedVisibility = createPostDto.visibility ?? PostVisibility.PUBLIC;
   const credential = await dependencies.credentialsService.findOne({
     id: createPostDto.credentialId,
     isConnected: true,

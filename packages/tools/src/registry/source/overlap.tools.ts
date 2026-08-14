@@ -443,18 +443,27 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List recent posts for the user. Can filter by status (draft, published, scheduled).',
+      'List recent posts for the user. Can filter by target execution state (draft, scheduled, published).',
     name: 'list_posts',
     parameters: {
       properties: {
+        executionState: {
+          description: 'Filter by canonical target execution state',
+          enum: [
+            'draft',
+            'scheduled',
+            'paused',
+            'cancelled',
+            'publishing',
+            'published',
+            'failed',
+            'skipped',
+          ],
+          type: 'string',
+        },
         limit: {
           description: 'Maximum number of posts to return (default 10)',
           type: 'number',
-        },
-        status: {
-          description: 'Filter by post status',
-          enum: ['draft', 'published', 'scheduled'],
-          type: 'string',
         },
       },
       required: [],

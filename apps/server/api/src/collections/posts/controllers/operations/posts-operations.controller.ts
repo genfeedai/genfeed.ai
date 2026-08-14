@@ -25,7 +25,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { mapLegacyPostStatusToTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -34,7 +33,6 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -222,10 +220,7 @@ export class PostsOperationsController {
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const requestedExecutionState =
-      createPostDto.targetExecutionState ??
-      mapLegacyPostStatusToTargetExecutionState(
-        createPostDto.status ?? PostStatus.SCHEDULED,
-      );
+      createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
     assertApiKeyPostStatusPublishingScope(user, requestedExecutionState);
     const parentId = postId;
     try {
@@ -499,8 +494,7 @@ export class PostsOperationsController {
     }
 
     if (
-      (post.targetExecutionState ??
-        mapLegacyPostStatusToTargetExecutionState(post.status)) !==
+      (post.targetExecutionState ?? TargetExecutionState.DRAFT) !==
       TargetExecutionState.FAILED
     ) {
       throw new HttpException(

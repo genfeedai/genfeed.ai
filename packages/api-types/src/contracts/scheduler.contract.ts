@@ -23,9 +23,8 @@
  *   - `Post.repeat*` fields become an embedded {@link RecurrenceInput}.
  *   - `Post.externalId` / `externalShortcode` / `url` become target provider IDs.
  *
- * {@link LEGACY_POST_SCHEDULE_FIELD_MAP} and the mapper helpers below document
- * and encode that mapping; the persistence/backfill work is owned by #1127.
- * The mapping is backward-compatible: no legacy field is dropped, only relocated.
+ * Create, update, and query accept `targetExecutionState` and `visibility`
+ * only. Do not send or read a combined `Post.status` on those paths.
  */
 
 import {
@@ -453,118 +452,15 @@ export function deriveReleaseStatusFromTargets(
   return deriveReleaseStatusProjectionFromTargets(targetStates).status;
 }
 
-// ============================================================================
-// Legacy Post schedule migration
-// ============================================================================
-
 /**
- * Documents where each legacy `Post` schedule field lands in the release-group
- * + channel-target contract. Dot paths are namespaced by target: `release.*`,
- * `target.*`, and `recurrence.*`. Consumed as the reference for the #1127
- * backfill; every legacy field is relocated, never dropped.
- */
-export const LEGACY_POST_SCHEDULE_FIELD_MAP = {
-  credential: 'target.credentialId',
-  description: 'release.baseContent',
-  externalId: 'target.externalProviderId',
-  externalShortcode: 'target.externalShortcode',
-  isRepeat: 'release.recurrence',
-  label: 'release.title',
-  lastAttemptAt: 'target.lastAttemptAt',
-  maxRepeats: 'recurrence.maxRepeats',
-  nextScheduledDate: 'recurrence.nextRunAt',
-  platform: 'target.platform',
-  publishedAt: 'target.publishedAt',
-  repeatCount: 'recurrence.repeatCount',
-  repeatDaysOfWeek: 'recurrence.weekdays',
-  repeatEndDate: 'recurrence.endDate',
-  repeatFrequency: 'recurrence.frequency',
-  repeatInterval: 'recurrence.interval',
-  retryCount: 'target.retryCount',
-  scheduledDate: 'target.scheduledDate',
-  status: 'release.status',
-  timezone: 'release.timezone',
-  url: 'target.url',
-} as const satisfies Record<string, string>;
-
-/**
- * Map a legacy `Post.status` (lowercase {@link PostStatus} value) to the new
- * release-level status. Published-visibility variants collapse to `PUBLISHED`.
- */
-export function mapLegacyPostStatusToReleaseStatus(
-  status: string,
-): ReleaseStatus {
-  switch (status) {
-    case PostStatus.DRAFT:
-      return ReleaseStatus.DRAFT;
-    case PostStatus.SCHEDULED:
-      return ReleaseStatus.SCHEDULED;
-    case PostStatus.PENDING:
-    case PostStatus.PROCESSING:
-      return ReleaseStatus.PUBLISHING;
-    case PostStatus.FAILED:
-      return ReleaseStatus.FAILED;
-    case PostStatus.PUBLIC:
-    case PostStatus.PRIVATE:
-    case PostStatus.UNLISTED:
-      return ReleaseStatus.PUBLISHED;
-    default:
-      return ReleaseStatus.DRAFT;
-  }
-}
-
-/**
- * Map a legacy `Post.status` to a single channel target's execution state.
- * Unlike the release roll-up, a target has no `PARTIALLY_PUBLISHED` value.
- */
-export function mapLegacyPostStatusToTargetExecutionState(
-  status: string,
-): TargetExecutionState {
-  switch (status) {
-    case PostStatus.DRAFT:
-      return TargetExecutionState.DRAFT;
-    case PostStatus.SCHEDULED:
-      return TargetExecutionState.SCHEDULED;
-    case PostStatus.PENDING:
-    case PostStatus.PROCESSING:
-      return TargetExecutionState.PUBLISHING;
-    case PostStatus.FAILED:
-      return TargetExecutionState.FAILED;
-    case PostStatus.PUBLIC:
-    case PostStatus.PRIVATE:
-    case PostStatus.UNLISTED:
-      return TargetExecutionState.PUBLISHED;
-    default:
-      return TargetExecutionState.DRAFT;
-  }
-}
-
-/** Map a legacy visibility-like status into the independent audience axis. */
-export function mapLegacyPostStatusToVisibility(
-  status: string,
-): PostVisibility {
-  switch (status) {
-    case PostStatus.PRIVATE:
-      return PostVisibility.PRIVATE;
-    case PostStatus.UNLISTED:
-      return PostVisibility.UNLISTED;
-    default:
-      return PostVisibility.PUBLIC;
-  }
-}
-
-/**
- * Resolve an expand-phase nullable visibility value with a legacy fallback.
- * Unknown stored values fail closed to public instead of leaking provider data.
+ * Resolve stored visibility. Unknown or unset values fail closed to public
+ * instead of leaking provider data.
  */
 export function resolvePostVisibility(
   visibility: string | null | undefined,
-  legacyStatus: string,
 ): PostVisibility {
   const parsed = z.nativeEnum(PostVisibility).safeParse(visibility);
-  return parsed.success
-    ? parsed.data
-    : mapLegacyPostStatusToVisibility(legacyStatus);
+  return parsed.success ? parsed.data : PostVisibility.PUBLIC;
 }
 
 /**
@@ -600,73 +496,21 @@ export function projectLegacyPostStatus(
   }
 }
 
-const LEGACY_STATUSES_BY_EXECUTION_STATE: Readonly<
-  Record<TargetExecutionState, readonly PostStatus[]>
-> = {
-  [TargetExecutionState.CANCELLED]: [],
-  [TargetExecutionState.DRAFT]: [PostStatus.DRAFT],
-  [TargetExecutionState.FAILED]: [PostStatus.FAILED],
-  [TargetExecutionState.PAUSED]: [],
-  [TargetExecutionState.PUBLISHED]: [
-    PostStatus.PUBLIC,
-    PostStatus.PRIVATE,
-    PostStatus.UNLISTED,
-  ],
-  [TargetExecutionState.PUBLISHING]: [
-    PostStatus.PENDING,
-    PostStatus.PROCESSING,
-  ],
-  [TargetExecutionState.SCHEDULED]: [PostStatus.SCHEDULED],
-  [TargetExecutionState.SKIPPED]: [],
-};
-
-/**
- * Expand-phase read filter for canonical lifecycle plus unclassified legacy
- * rows. A NULL visibility is the migration marker; once classified, stale
- * legacy status can no longer affect the result.
- */
+/** Read filter for canonical target execution state. */
 export function postExecutionStateReadFilter(
   states: TargetExecutionState | readonly TargetExecutionState[],
 ): Record<string, unknown> {
   const requested: readonly TargetExecutionState[] =
     typeof states === 'string' ? [states] : states;
-  const nonDraftStates = requested.filter(
-    (state) => state !== TargetExecutionState.DRAFT,
-  );
-  const legacyStatuses = [
-    ...new Set(
-      requested.flatMap((state) => LEGACY_STATUSES_BY_EXECUTION_STATE[state]),
-    ),
-  ];
-  const clauses: Record<string, unknown>[] = [];
 
-  if (nonDraftStates.length > 0) {
-    clauses.push({ targetExecutionState: { in: nonDraftStates } });
-  }
-  if (requested.includes(TargetExecutionState.DRAFT)) {
-    clauses.push({
-      OR: [{ visibility: { not: null } }, { status: PostStatus.DRAFT }],
-      targetExecutionState: TargetExecutionState.DRAFT,
-    });
-  }
-  if (legacyStatuses.length > 0) {
-    clauses.push({
-      status: { in: legacyStatuses },
-      visibility: null,
-    });
-  }
-
-  return { OR: clauses };
+  return requested.length === 1
+    ? { targetExecutionState: requested[0] }
+    : { targetExecutionState: { in: requested } };
 }
 
-/** Compatibility read filter for the nullable expand-phase visibility axis. */
+/** Read filter for the audience visibility axis. */
 export function postVisibilityReadFilter(
   visibility: PostVisibility,
 ): Record<string, unknown> {
-  const legacyStatuses = Object.values(PostStatus).filter(
-    (status) => mapLegacyPostStatusToVisibility(status) === visibility,
-  );
-  return {
-    OR: [{ visibility }, { status: { in: legacyStatuses }, visibility: null }],
-  };
+  return { visibility };
 }

@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CredentialPlatform,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -62,17 +61,6 @@ export class PostsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEnum(CredentialPlatform)
   platform?: CredentialPlatform;
-
-  @ApiProperty({
-    description: 'Filter posts by status',
-    enum: PostStatus,
-    enumName: 'PostStatus',
-    example: PostStatus.PUBLIC,
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(PostStatus)
-  status?: PostStatus;
 
   @ApiProperty({
     description: 'Filter posts by canonical target execution state',

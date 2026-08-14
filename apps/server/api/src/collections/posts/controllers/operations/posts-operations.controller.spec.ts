@@ -970,7 +970,7 @@ Tweet 3: Tech innovation is changing the world.`,
       description: 'Reply to thread',
       ingredients: [] as string[],
       label: 'Reply',
-      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
     };
 
     beforeEach(() => {
@@ -999,29 +999,29 @@ Tweet 3: Tech innovation is changing the world.`,
     it.each([
       [
         'draft replies without a draft scope',
-        PostStatus.DRAFT,
+        TargetExecutionState.DRAFT,
         [],
         [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE],
       ],
       [
         'scheduled replies with only the draft scope',
-        PostStatus.SCHEDULED,
+        TargetExecutionState.SCHEDULED,
         [ApiKeyScope.POSTS_DRAFT],
         [ApiKeyScope.POSTS_SCHEDULE],
       ],
       [
-        'public replies with only the schedule scope',
-        PostStatus.PUBLIC,
+        'published replies with only the schedule scope',
+        TargetExecutionState.PUBLISHED,
         [ApiKeyScope.POSTS_SCHEDULE],
         [ApiKeyScope.POSTS_PUBLISH],
       ],
     ])(
       'rejects API-key %s before reads or writes',
-      async (_case, status, scopes, requiredScopes) => {
+      async (_case, executionState, scopes, requiredScopes) => {
         await expect(
           controller.addThreadReply(mockRequest, apiKeyUser(scopes), postId, {
             ...createPostDto,
-            status,
+            targetExecutionState: executionState,
           }),
         ).rejects.toMatchObject({
           response: expect.objectContaining({
@@ -1071,7 +1071,7 @@ Tweet 3: Tech innovation is changing the world.`,
       const scheduledTextDto = {
         ...createPostDto,
         category: PostCategory.TEXT,
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       };
 
       await expect(
@@ -1093,7 +1093,7 @@ Tweet 3: Tech innovation is changing the world.`,
       const scheduledNoMediaDto = {
         ...createPostDto,
         ingredients: [],
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       };
 
       await expect(
@@ -1116,7 +1116,7 @@ Tweet 3: Tech innovation is changing the world.`,
         ...createPostDto,
         category: PostCategory.TEXT,
         ingredients: [],
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       };
 
       await controller.addThreadReply(
@@ -1130,7 +1130,7 @@ Tweet 3: Tech innovation is changing the world.`,
         postId,
         expect.objectContaining({
           platform: CredentialPlatform.THREADS,
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
       );
     });
@@ -1665,7 +1665,7 @@ Tweet 3: Tech innovation is changing the world.`,
         description: 'Reply',
         ingredients: [],
         label: 'Reply',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       };
 
       await controller.addThreadReply(

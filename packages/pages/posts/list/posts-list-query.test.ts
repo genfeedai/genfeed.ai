@@ -1,4 +1,4 @@
-import { PageScope, PostStatus } from '@genfeedai/enums';
+import { PageScope, PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,
@@ -95,6 +95,48 @@ describe('posts list query helpers', () => {
         brandId: 'brand_123',
         organizationId: 'org_123',
       }),
+    );
+    expect(findAllPage.mock.calls[0]?.[0]).not.toHaveProperty('status');
+  });
+
+  it('sends executionState to the posts API instead of Post.status', async () => {
+    const findOrganizationPostsPage = vi.fn().mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 12,
+      total: 0,
+      totalPages: 1,
+    });
+
+    await fetchPosts({
+      adminBrand: '',
+      adminOrg: '',
+      brandId: undefined,
+      currentPage: 1,
+      filterSearch: '',
+      filterSort: undefined,
+      filterStatus: PostStatus.DRAFT,
+      getBrandsService: vi.fn(),
+      getOrganizationsService: vi.fn().mockResolvedValue({
+        findOrganizationPostsPage,
+      }),
+      getPostsService: vi.fn(),
+      organizationId: 'org_123',
+      platformFilter: undefined,
+      scope: PageScope.ORGANIZATION,
+      status: undefined,
+    } as never);
+
+    expect(findOrganizationPostsPage).toHaveBeenCalledWith(
+      'org_123',
+      expect.objectContaining({
+        executionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    expect(findOrganizationPostsPage.mock.calls[0]?.[1]).not.toHaveProperty(
+      'status',
     );
   });
 });

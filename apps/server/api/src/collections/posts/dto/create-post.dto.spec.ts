@@ -1,7 +1,6 @@
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import {
   PostFormat,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -49,7 +48,7 @@ describe('CreatePostDto', () => {
         ingredients: ['ckz1234567890abcdefgij'],
         label: 'Post',
         parentId: 'ckz1234567890abcdefgik',
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
         tags: ['ckz1234567890abcdefgil'],
       });
 
@@ -66,7 +65,7 @@ describe('CreatePostDto', () => {
           format,
           ingredients: [],
           label: 'Post',
-          status: PostStatus.DRAFT,
+          targetExecutionState: TargetExecutionState.DRAFT,
         });
 
         expect(await validate(dto)).toHaveLength(0);
@@ -80,7 +79,7 @@ describe('CreatePostDto', () => {
         format: 'carousel',
         ingredients: [],
         label: 'Post',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       });
 
       const errors = await validate(dto);
@@ -96,7 +95,7 @@ describe('CreatePostDto', () => {
         ingredients: [],
         label: 'Post',
         parent: 'ckz1234567890abcdefgik',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       });
 
       const errors = await validate(dto, {
@@ -109,6 +108,24 @@ describe('CreatePostDto', () => {
       );
     });
 
+    it('rejects leftover Post.status on create', async () => {
+      const dto = Object.assign(new CreatePostDto(), {
+        credentialId: validEntityId,
+        description: 'Thread reply',
+        ingredients: [],
+        label: 'Post',
+        status: 'scheduled',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      });
+
+      const errors = await validate(dto, {
+        forbidNonWhitelisted: true,
+        whitelist: true,
+      });
+
+      expect(errors.map((error) => error.property)).toContain('status');
+    });
+
     it('rejects invalid content run attribution IDs', async () => {
       const dto = Object.assign(new CreatePostDto(), {
         contentRunId: 'not-an-entity-id',
@@ -116,7 +133,7 @@ describe('CreatePostDto', () => {
         description: 'Caption',
         ingredients: [],
         label: 'Post',
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       });
 
       const errors = await validate(dto);

@@ -27,7 +27,6 @@ import {
   IngredientCategory,
   Platform,
   PostRepurposeMode,
-  PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
@@ -156,7 +155,6 @@ export class PostRepurposeService {
       organizationId: params.organizationId,
       originalPostId: source.id,
       platform: params.platform,
-      status: PostStatus.DRAFT,
       targetExecutionState: TargetExecutionState.DRAFT,
       targetSettings: { ...resolveChannelTargetSettings(params.platform, {}) },
       targetValidationIssues: this.validationIssues(outcome.validation),

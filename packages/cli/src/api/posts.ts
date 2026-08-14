@@ -13,13 +13,13 @@ export interface Post {
 }
 
 export async function listPosts(params?: {
+  executionState?: string;
   limit?: number;
   platform?: string;
-  status?: string;
 }): Promise<Post[]> {
   const query = new URLSearchParams();
   if (params?.platform) query.set('platform', params.platform);
-  if (params?.status) query.set('status', params.status);
+  if (params?.executionState) query.set('executionState', params.executionState);
   if (params?.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
   const path = qs ? `/posts?${qs}` : '/posts';

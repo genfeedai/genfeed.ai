@@ -91,10 +91,7 @@ export class YoutubeUploadService {
       const hasFutureScheduledDate =
         post.scheduledDate && new Date(post.scheduledDate) > new Date();
 
-      const requestedPrivacy = resolvePostVisibility(
-        post.visibility,
-        post.status,
-      );
+      const requestedPrivacy = resolvePostVisibility(post.visibility);
       const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
       // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
       // and YouTube rejects the field when it is absent rather than defaulting.
