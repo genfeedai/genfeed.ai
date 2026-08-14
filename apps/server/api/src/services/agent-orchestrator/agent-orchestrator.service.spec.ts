@@ -93,6 +93,7 @@ describe('AgentOrchestratorService', () => {
             },
           },
         ],
+        id: 'chat-completion-1',
         usage: {
           completion_tokens: 20,
           prompt_tokens: 20,

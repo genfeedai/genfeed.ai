@@ -465,7 +465,7 @@ describe('PinterestPublisherService', () => {
         credentialsService.findOne.mockResolvedValue({
           ...mockCredential,
           externalId: null,
-        } as unknown as PostEntity);
+        } as unknown as CredentialDocument);
 
         const result = await service.publish(context);
 
