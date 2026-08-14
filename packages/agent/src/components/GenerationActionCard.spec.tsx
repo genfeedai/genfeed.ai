@@ -469,6 +469,45 @@ describe('GenerationActionCard', () => {
     });
   });
 
+  it('keeps the generate form open while a run is in flight', async () => {
+    const generateIngredient = vi.fn(() => new Promise(() => undefined));
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-keep-open',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByRole('textbox', { name: 'Prompt' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Stop generation' }).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('retries generation with current state and marks the active thread as locally busy', async () => {
     const createPrompt = vi.fn().mockResolvedValue({ id: 'prompt-1' });
     const generateIngredient = vi
@@ -533,8 +572,8 @@ describe('GenerationActionCard', () => {
     });
 
     expect(
-      await screen.findByRole('link', { name: 'Library' }),
-    ).toBeInTheDocument();
+      (await screen.findAllByRole('link', { name: 'Library' })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps Generate clickable after failure and clears the composer error', async () => {
@@ -588,8 +627,8 @@ describe('GenerationActionCard', () => {
     });
     expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
-      await screen.findByRole('link', { name: 'Library' }),
-    ).toBeInTheDocument();
+      (await screen.findAllByRole('link', { name: 'Library' })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps Generate clickable when the composer UI action reports failure', async () => {
@@ -699,7 +738,7 @@ describe('GenerationActionCard', () => {
     );
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /stop generation/i }),
+      (await screen.findAllByRole('button', { name: /stop generation/i }))[0],
     );
 
     await waitFor(() => {

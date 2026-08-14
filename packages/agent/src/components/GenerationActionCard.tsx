@@ -89,18 +89,13 @@ export function GenerationActionCard({
     onUiAction,
   });
 
-  // Large prompt cards own the chat column — collapse frees the thread.
-  // Auto-collapse once generation starts so progress stays visible without
-  // burying prior messages. Idle and error expand so Generate stays
-  // reachable above the sticky composer.
+  // The card sits on the composer. Keep the generate form open so the dock
+  // is not a header sliver; operators can still collapse it by hand.
+  // Error always expands so Generate stays reachable.
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isEffectivelyCollapsed = isCollapsed && status !== 'error';
 
   useEffect(() => {
-    if (status === 'generating') {
-      setIsCollapsed(true);
-      return;
-    }
     if (status === 'error' || status === 'idle') {
       setIsCollapsed(false);
     }

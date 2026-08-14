@@ -119,10 +119,7 @@ export default function PromptBarContainer({
       ) : null}
       <div className={cn(innerClassName, topContent && 'flex flex-col gap-0')}>
         {topContent ? (
-          <div
-            className="relative z-10 mx-auto w-[90%]"
-            data-composer-top-stack=""
-          >
+          <div className="relative z-10 w-full" data-composer-top-stack="">
             {topContent}
           </div>
         ) : null}

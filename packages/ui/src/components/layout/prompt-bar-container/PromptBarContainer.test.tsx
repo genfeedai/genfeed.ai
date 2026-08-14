@@ -74,7 +74,7 @@ describe('PromptBarContainer', () => {
     expect(inner?.firstElementChild).toHaveTextContent('banner');
   });
 
-  it('docks top cards flush against the prompt bar at 90% width', () => {
+  it('docks top cards flush against the prompt bar at full width', () => {
     const { container } = render(
       <PromptBarContainer topContent={<div>banner</div>}>
         <div>content</div>
@@ -86,7 +86,8 @@ describe('PromptBarContainer', () => {
     expect(inner?.className).not.toContain('gap-2');
 
     const topStack = container.querySelector('[data-composer-top-stack]');
-    expect(topStack).toHaveClass('w-[90%]');
+    expect(topStack).toHaveClass('w-full');
+    expect(topStack).not.toHaveClass('w-[90%]');
     expect(topStack).toHaveTextContent('banner');
   });
 
