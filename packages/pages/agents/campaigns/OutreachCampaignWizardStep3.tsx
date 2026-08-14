@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 
 const toneOptions = Object.values(ReplyTone).map((tone) => ({
   label: tone.charAt(0).toUpperCase() + tone.slice(1).replace('_', ' '),
@@ -84,6 +85,8 @@ export default function OutreachCampaignWizardStep3({
   onDmCustomInstructionsChange,
   onDmTemplateTextChange,
 }: Props) {
+  const translate = useTranslations('common.outreachCampaign');
+
   return (
     <div className="space-y-6">
       {campaignType === CampaignType.DM_OUTREACH ? (
@@ -93,7 +96,7 @@ export default function OutreachCampaignWizardStep3({
               className="text-sm font-medium"
               htmlFor="campaign-wizard-dm-use-ai"
             >
-              Use AI Generation
+              {translate('useAiGeneration')}
             </label>
             <Checkbox
               id="campaign-wizard-dm-use-ai"
@@ -112,7 +115,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-dm-context"
                   className="text-sm font-medium text-foreground"
                 >
-                  Product Context
+                  {translate('productContext')}
                 </Label>
                 <Textarea
                   id="campaign-wizard-dm-context"
@@ -128,7 +131,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-dm-offer"
                   className="text-sm font-medium text-foreground"
                 >
-                  Offer
+                  {translate('offer')}
                 </label>
                 <Input
                   id="campaign-wizard-dm-offer"
@@ -143,7 +146,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-dm-cta-link"
                   className="text-sm font-medium text-foreground"
                 >
-                  CTA Link
+                  {translate('ctaLink')}
                 </label>
                 <Input
                   id="campaign-wizard-dm-cta-link"
@@ -158,7 +161,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-dm-custom-instructions"
                   className="text-sm font-medium text-foreground"
                 >
-                  Custom Instructions
+                  {translate('customInstructions')}
                 </Label>
                 <Textarea
                   id="campaign-wizard-dm-custom-instructions"
@@ -175,7 +178,7 @@ export default function OutreachCampaignWizardStep3({
                 htmlFor="campaign-wizard-dm-template"
                 className="text-sm font-medium text-foreground"
               >
-                DM Template
+                {translate('dmTemplate')}
               </Label>
               <Textarea
                 id="campaign-wizard-dm-template"
@@ -194,7 +197,7 @@ export default function OutreachCampaignWizardStep3({
               className="text-sm font-medium"
               htmlFor="campaign-wizard-use-ai"
             >
-              Use AI Generation
+              {translate('useAiGeneration')}
             </label>
             <Checkbox
               id="campaign-wizard-use-ai"
@@ -213,7 +216,7 @@ export default function OutreachCampaignWizardStep3({
                   className="text-sm font-medium text-foreground"
                   htmlFor="campaign-wizard-reply-tone"
                 >
-                  Reply Tone
+                  {translate('replyTone')}
                 </label>
                 <Select
                   value={tone}
@@ -237,7 +240,7 @@ export default function OutreachCampaignWizardStep3({
                   className="text-sm font-medium text-foreground"
                   htmlFor="campaign-wizard-reply-length"
                 >
-                  Reply Length
+                  {translate('replyLength')}
                 </label>
                 <Select
                   value={length}
@@ -263,7 +266,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-custom-instructions"
                   className="text-sm font-medium text-foreground"
                 >
-                  Custom Instructions
+                  {translate('customInstructions')}
                 </Label>
                 <Textarea
                   id="campaign-wizard-custom-instructions"
@@ -279,7 +282,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-context"
                   className="text-sm font-medium text-foreground"
                 >
-                  Context
+                  {translate('context')}
                 </Label>
                 <Textarea
                   id="campaign-wizard-context"
@@ -295,7 +298,7 @@ export default function OutreachCampaignWizardStep3({
                   htmlFor="campaign-wizard-cta-link"
                   className="text-sm font-medium text-foreground"
                 >
-                  CTA Link
+                  {translate('ctaLink')}
                 </label>
                 <Input
                   id="campaign-wizard-cta-link"
@@ -311,7 +314,7 @@ export default function OutreachCampaignWizardStep3({
                 htmlFor="campaign-wizard-template-text"
                 className="text-sm font-medium text-foreground"
               >
-                Template Text
+                {translate('templateText')}
               </Label>
               <Textarea
                 id="campaign-wizard-template-text"

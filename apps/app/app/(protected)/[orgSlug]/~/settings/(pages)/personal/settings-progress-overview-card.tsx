@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
-import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -74,37 +74,31 @@ export default function SettingsProgressOverviewCard({
         )
       }
     >
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard
-          label="Setup"
-          size="md"
-          value={`${completedCount}/${totalCount}`}
-        />
-        <MetricCard
-          label="Current streak"
-          size="md"
-          value={isLoading ? '...' : currentStreak}
-        />
-        <MetricCard
-          label="Longest streak"
-          size="md"
-          value={isLoading ? '...' : longestStreak}
-        />
-        <MetricCard
-          description={
-            isLoading
-              ? 'Loading streak'
-              : nextMilestone
-                ? `${nextMilestone.remaining} day${nextMilestone.remaining === 1 ? '' : 's'} remaining`
-                : 'All milestone tiers reached'
-          }
-          label="Next milestone"
-          size="md"
-          value={
-            isLoading ? '...' : nextMilestone ? nextMilestone.days : 'Done'
-          }
-        />
-      </div>
+      <MetricSummary
+        className="flex flex-wrap gap-y-2"
+        items={[
+          { label: 'setup', value: `${completedCount}/${totalCount}` },
+          {
+            label: 'current streak',
+            value: isLoading ? '...' : currentStreak,
+          },
+          {
+            label: 'longest streak',
+            value: isLoading ? '...' : longestStreak,
+          },
+          {
+            label: 'next milestone',
+            value: isLoading ? '...' : nextMilestone?.days || 'Done',
+          },
+        ]}
+      />
+      <p className="text-xs text-foreground/55">
+        {isLoading
+          ? 'Loading streak'
+          : nextMilestone
+            ? `${nextMilestone.remaining} day${nextMilestone.remaining === 1 ? '' : 's'} remaining`
+            : 'All milestone tiers reached'}
+      </p>
     </Card>
   );
 }

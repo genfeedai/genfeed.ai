@@ -240,7 +240,7 @@ export default function LivestreamBotConfigCard({
             htmlFor="host-prompt-template"
             className="text-sm font-medium text-foreground"
           >
-            Scheduled Host Prompt Template
+            {translate('hostPromptTemplate')}
           </Label>
           <Textarea
             id="host-prompt-template"
@@ -255,7 +255,7 @@ export default function LivestreamBotConfigCard({
             htmlFor="context-template"
             className="text-sm font-medium text-foreground"
           >
-            Context-Aware Question Template
+            {translate('contextTemplate')}
           </Label>
           <Textarea
             id="context-template"

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 
 interface Credential {
   id: string;
@@ -53,6 +54,8 @@ export default function OutreachCampaignWizardStep2({
   onLabelChange,
   onSubredditsChange,
 }: OutreachCampaignWizardStep2Props) {
+  const translate = useTranslations('common.outreachCampaign');
+
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
@@ -60,7 +63,7 @@ export default function OutreachCampaignWizardStep2({
           htmlFor="campaign-wizard-name"
           className="text-sm font-medium text-foreground"
         >
-          Campaign Name
+          {translate('campaignName')}
         </label>
         <Input
           id="campaign-wizard-name"
@@ -76,7 +79,7 @@ export default function OutreachCampaignWizardStep2({
           htmlFor="campaign-wizard-description"
           className="text-sm font-medium text-foreground"
         >
-          Description
+          {translate('description')}
         </Label>
         <Textarea
           id="campaign-wizard-description"
@@ -92,7 +95,7 @@ export default function OutreachCampaignWizardStep2({
           className="text-sm font-medium text-foreground"
           htmlFor="campaign-wizard-credential"
         >
-          Credential
+          {translate('credential')}
         </label>
         <Select value={credential} onValueChange={onCredentialChange} required>
           <SelectTrigger id="campaign-wizard-credential">
@@ -115,7 +118,7 @@ export default function OutreachCampaignWizardStep2({
               htmlFor="campaign-wizard-keywords"
               className="text-sm font-medium text-foreground"
             >
-              Keywords (comma-separated)
+            {translate('keywords')}
             </label>
             <Input
               id="campaign-wizard-keywords"
@@ -130,7 +133,7 @@ export default function OutreachCampaignWizardStep2({
               htmlFor="campaign-wizard-hashtags"
               className="text-sm font-medium text-foreground"
             >
-              Hashtags (comma-separated)
+            {translate('hashtags')}
             </label>
             <Input
               id="campaign-wizard-hashtags"
@@ -146,7 +149,7 @@ export default function OutreachCampaignWizardStep2({
                 htmlFor="campaign-wizard-subreddits"
                 className="text-sm font-medium text-foreground"
               >
-                Subreddits (comma-separated)
+            {translate('subreddits')}
               </label>
               <Input
                 id="campaign-wizard-subreddits"

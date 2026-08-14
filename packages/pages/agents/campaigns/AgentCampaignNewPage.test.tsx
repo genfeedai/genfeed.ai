@@ -22,6 +22,22 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      agentStrategies: 'Agent Strategies',
+      brief: 'Brief',
+      campaignLabel: 'Campaign Label *',
+      creditsAllocated: 'Credits Allocated',
+      endDate: 'End Date (optional)',
+      noAgentStrategies: 'No agent strategies available. Create agents first.',
+      startDate: 'Start Date *',
+      'status.active': 'Active',
+      'status.draft': 'Draft',
+      'status.label': 'Status',
+    })[key] ?? key,
+}));
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({

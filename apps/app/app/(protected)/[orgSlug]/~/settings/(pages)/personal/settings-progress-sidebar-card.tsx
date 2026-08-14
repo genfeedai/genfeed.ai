@@ -1,7 +1,7 @@
 'use client';
 
 import Card from '@ui/card/Card';
-import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Switch } from '@ui/primitives/switch';
 
@@ -40,20 +40,16 @@ export default function SettingsProgressSidebarCard({
         />
       </InsetSurface>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <MetricCard
-          label="Freezes"
-          size="md"
-          value={isLoading ? '...' : streakFreezes}
-          valueClassName="text-2xl"
-        />
-        <MetricCard
-          label="Setup status"
-          size="md"
-          value={completedCount === totalCount ? 'Ready' : 'In progress'}
-          valueClassName="text-2xl"
-        />
-      </div>
+      <MetricSummary
+        className="flex flex-wrap gap-y-2"
+        items={[
+          { label: 'freezes', value: isLoading ? '...' : streakFreezes },
+          {
+            label: 'setup status',
+            value: completedCount === totalCount ? 'Ready' : 'In progress',
+          },
+        ]}
+      />
     </Card>
   );
 }
