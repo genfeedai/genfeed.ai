@@ -347,7 +347,7 @@ export class SocialWarmupEnrollmentsService {
         id: enrollment.credentialId,
       }),
     });
-    return this.hydrateEnrollment(enrollment, credential);
+    return this.hydrateEnrollment(enrollment, credential ?? undefined);
   }
 
   private async requireCredential(

@@ -28,7 +28,7 @@ export function getTrendFreshnessStatus(
   return ageMs <= freshnessWindowMs * 2 ? 'stale' : 'expired';
 }
 
-export function optionalSourceFields<T extends Record<string, unknown>>(
+export function optionalSourceFields<T extends object>(
   source: T,
   text?: string,
   title?: string,
