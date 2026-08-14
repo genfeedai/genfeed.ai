@@ -1,18 +1,20 @@
 ---
-name: generation card single model outputs stepper
-description: Generation card picks one model; multiple images use the 1x outputs stepper
+name: generation card single model outputs dropdown
+description: Generation card picks one model; multiple images use the Outputs dropdown
 type: feedback
 ---
 
 # One model, N outputs
 
 The generation card model picker is **single-select**. Multiple images
-come from the **Outputs** `1x` stepper (same control as studio), not
-from checking several models.
+come from the **Outputs** dropdown (`1x`…`maxOutputs`, same pattern as
+Duration), not from checking several models and not from a cycle button.
 
-**Why:** Vincent saw checkboxes and expected multi-model = multi-output.
-The card had defaulted to multi-select UI while only keeping one model.
+**Why:** Vincent saw checkboxes and expected multi-model = multi-output,
+then asked for a real dropdown instead of the `1x` stepper that did not
+remember the pick on refresh.
 
 **How to apply:** Pass `selectionMode="single"` on the generation-card
-picker. Put the outputs stepper on the card and forward `outputs` through
+picker. Use `Select` for Outputs. Persist the count with
+`writePreferredGenerationOutputs` and forward `outputs` through
 `confirm_generate_media` → `POST /v1/images`.

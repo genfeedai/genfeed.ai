@@ -108,16 +108,49 @@ vi.mock('@ui/dropdowns/aspect-ratio/AspectRatioDropdown', () => ({
   ),
 }));
 
+const { selectHarness } = vi.hoisted(() => ({
+  selectHarness: {
+    onValueChange: undefined as ((value: string) => void) | undefined,
+    value: undefined as string | undefined,
+  },
+}));
+
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Select: ({
+    children,
+    onValueChange,
+    value,
+  }: {
+    children: ReactNode;
+    onValueChange?: (value: string) => void;
+    value?: string;
+  }) => {
+    selectHarness.onValueChange = onValueChange;
+    selectHarness.value = value;
+    return (
+      <div data-testid="select" data-value={value}>
+        {children}
+      </div>
+    );
+  },
   SelectContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
   SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <div data-value={value}>{children}</div>
+    <button onClick={() => selectHarness.onValueChange?.(value)} type="button">
+      {children}
+    </button>
   ),
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <button type="button">{children}</button>
+  SelectTrigger: ({ children, id }: { children: ReactNode; id?: string }) => (
+    <button
+      aria-label={id === 'gen-action-outputs' ? 'Number of outputs' : undefined}
+      id={id}
+      type="button"
+    >
+      {id === 'gen-action-outputs' && selectHarness.value
+        ? `${selectHarness.value}x`
+        : children}
+    </button>
   ),
   SelectValue: ({ placeholder }: { placeholder?: string }) => (
     <span>{placeholder}</span>
@@ -142,8 +175,11 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import {
   clearPreferredAgentChatModel,
-  writePreferredAgentChatModel,
-  writePreferredAgentChatPriority,
+  clearPreferredGenerationPrefs,
+  readPreferredAgentChatModel,
+  writePreferredGenerationModel,
+  writePreferredGenerationOutputs,
+  writePreferredGenerationPriority,
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -218,6 +254,7 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.selectionMode = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
     clearPreferredAgentChatModel();
+    clearPreferredGenerationPrefs();
   });
 
   it('keeps the prompt field compact and opens an editable full prompt', async () => {
@@ -409,7 +446,7 @@ describe('GenerationActionCard', () => {
     expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
   });
 
-  it('uses the outputs stepper for multiple images, not multi-model checkboxes', async () => {
+  it('uses the outputs dropdown for multiple images, not multi-model checkboxes', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -440,12 +477,12 @@ describe('GenerationActionCard', () => {
       expect(capturedModelSelectorPopoverProps.selectionMode).toBe('single');
     });
 
-    const outputsButton = await screen.findByRole('button', {
+    const outputsTrigger = await screen.findByRole('button', {
       name: /number of outputs/i,
     });
-    expect(outputsButton).toHaveTextContent('1x');
-    fireEvent.click(outputsButton);
-    expect(outputsButton).toHaveTextContent('2x');
+    expect(outputsTrigger).toHaveTextContent('1x');
+    fireEvent.click(screen.getByRole('button', { name: '2x' }));
+    expect(outputsTrigger).toHaveTextContent('2x');
 
     fireEvent.click(
       await screen.findByRole('button', { name: /generate image/i }),
@@ -552,8 +589,8 @@ describe('GenerationActionCard', () => {
   });
 
   it('hydrates Auto priority from the preferred store even when the action pinned a model', async () => {
-    writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
-    writePreferredAgentChatPriority(RouterPriority.COST);
+    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
+    writePreferredGenerationPriority(RouterPriority.COST);
 
     render(
       <GenerationActionCard
@@ -586,6 +623,100 @@ describe('GenerationActionCard', () => {
     expect(capturedModelSelectorPopoverProps.values).toEqual([
       AUTO_MODEL_OPTION_VALUE,
     ]);
+  });
+
+  it('restores a concrete generation model and 3x outputs after remount', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      label: 'Flux 2 Dev',
+    });
+    const action = {
+      generationParams: {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        prompt: 'SCENE: Professional boxing ring.',
+      },
+      generationType: 'image' as const,
+      id: 'action-model-persist',
+      title: 'Generate Image',
+      type: 'generation_action_card' as const,
+    };
+    const apiService = createApiServiceMock({ models: [imageModel] });
+
+    const first = render(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.onChange).toBeTypeOf('function');
+    });
+
+    capturedModelSelectorPopoverProps.onChange?.('models', [
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: '3x' }));
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
+    expect(readPreferredAgentChatModel()).toBeNull();
+
+    first.unmount();
+
+    render(<GenerationActionCard action={action} apiService={apiService} />);
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
+    expect(readPreferredAgentChatModel()).toBeNull();
+  });
+
+  it('hydrates a stored generation model over the action pin', async () => {
+    writePreferredGenerationModel(
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+    );
+    writePreferredGenerationOutputs(3);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-model-hydrate',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+              label: 'Flux 2 Dev',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.values).toEqual([
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: /number of outputs/i }),
+    ).toHaveTextContent('3x');
   });
 
   it('allows leaving auto mode without forcing auto back on', async () => {

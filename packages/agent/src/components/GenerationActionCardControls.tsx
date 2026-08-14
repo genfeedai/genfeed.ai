@@ -250,24 +250,35 @@ export function GenerationActionCardControls({
         </div>
         {isImage ? (
           <div className="shrink-0">
-            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <label
+              htmlFor="gen-action-outputs"
+              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            >
               Outputs
-            </span>
-            <Button
-              ariaLabel="Number of outputs"
-              className={cn(
-                'min-w-14 border border-border bg-background px-2.5 text-xs hover:bg-accent/50',
-                SHELL_CONTROL_HEIGHT_CLASS,
-              )}
-              isDisabled={isDisabled}
-              label={`${outputs}x`}
-              onClick={() =>
-                onOutputsChange(outputs >= maxOutputs ? 1 : outputs + 1)
-              }
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
+            </label>
+            <Select
+              disabled={isDisabled}
+              onValueChange={(value) => onOutputsChange(Number(value))}
+              value={String(outputs)}
+            >
+              <SelectTrigger
+                aria-label="Number of outputs"
+                className={cn('min-w-14', SHELL_CONTROL_HEIGHT_CLASS)}
+                id="gen-action-outputs"
+              >
+                <SelectValue placeholder="1x" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from(
+                  { length: maxOutputs },
+                  (_, index) => index + 1,
+                ).map((count) => (
+                  <SelectItem key={count} value={String(count)}>
+                    {count}x
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ) : null}
         {/* Duration (video only, if model supports it) */}
