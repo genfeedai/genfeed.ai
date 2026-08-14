@@ -56,6 +56,18 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
   ].filter(Boolean),
 );
 
+/**
+ * First-login agent onboarding (`/agent/onboarding` and `/agent/onboarding/:threadId`)
+ * after {@link normalizeProtectedPathname}. Conversation is the canvas; the
+ * workspace inspector does not host it.
+ */
+export function isFocusedOnboardingPath(normalizedPathname: string): boolean {
+  return (
+    normalizedPathname === APP_ROUTES.AGENT.ONBOARDING ||
+    normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ONBOARDING}/`)
+  );
+}
+
 export function normalizeProtectedPathname(rawPathname: string): string {
   const parts = rawPathname.split('/').filter(Boolean);
 

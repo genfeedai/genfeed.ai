@@ -84,4 +84,41 @@ describe('AgentOAuthConnectMenu', () => {
     );
     expect(twitterButton).toBeEnabled();
   });
+
+  it('omits excluded platforms from the open menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <AgentOAuthConnectMenu
+        excludePlatforms={new Set(['twitter'])}
+        onOAuthConnect={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Twitter' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Instagram' }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens on the elevated overlay surface, not the canvas panel', async () => {
+    const user = userEvent.setup();
+    render(<AgentOAuthConnectMenu onOAuthConnect={vi.fn()} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+
+    const panel = screen
+      .getByText('Connect a channel')
+      .closest('div[class*="w-[20rem]"]');
+    expect(panel).toHaveClass('bg-secondary');
+    expect(panel).toHaveClass('shadow-dropdown');
+    expect(document.querySelector('.gen-shell-panel')).toBeNull();
+  });
 });

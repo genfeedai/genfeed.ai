@@ -181,7 +181,11 @@ export function AgentFullPage({
                   ? "I'm your AI content agent. Let's get you set up."
                   : 'Plan content, review drafts, or decide what to do next.'
               }
-              placeholder="Ask for help with content, review, or planning..."
+              placeholder={
+                onboardingMode
+                  ? 'Paste a site or handle, or type what you make...'
+                  : 'Ask for help with content, review, or planning...'
+              }
               suggestedActions={
                 onboardingMode ? ONBOARDING_SUGGESTED_ACTIONS : resolvedActions
               }

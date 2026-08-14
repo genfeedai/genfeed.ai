@@ -1,3 +1,4 @@
+import type { IIngredient } from '@genfeedai/interfaces';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -64,5 +65,36 @@ describe('MasonryGrid', () => {
       <MasonryGrid {...defaultProps} isLoading={true} />,
     );
     expect(getByTestId('skeleton')).toBeInTheDocument();
+  });
+
+  it('compacts column and row gaps', () => {
+    const { container } = render(
+      <MasonryGrid
+        ingredients={[{ id: 'img-1' } as IIngredient]}
+        selectedIngredientId={[]}
+      />,
+    );
+
+    const masonry = container.querySelector('.masonry-container');
+    expect(masonry).toHaveStyle({ columnGap: '4px' });
+    expect(container.querySelector('.masonry-item')).toHaveClass('mb-1');
+  });
+
+  it('uses a denser default column count so library tiles stay compact', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+
+    const { container } = render(
+      <MasonryGrid
+        ingredients={[{ id: 'img-1' } as IIngredient]}
+        selectedIngredientId={[]}
+      />,
+    );
+
+    expect(container.querySelector('.masonry-container')).toHaveStyle({
+      columnCount: 5,
+    });
   });
 });

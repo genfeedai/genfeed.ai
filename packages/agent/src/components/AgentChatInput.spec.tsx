@@ -188,22 +188,12 @@ describe('AgentChatInput', () => {
     expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
   });
 
-  it('renders the context usage meter', () => {
-    render(
-      <AgentChatInput
-        contextUsage={{
-          label: '12k / 128k',
-          ratio: 0.1,
-          usedTokens: 12_400,
-          windowTokens: 128_000,
-        }}
-        onSend={vi.fn()}
-      />,
-    );
+  it('does not render a context usage meter', () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
 
-    expect(screen.getByTestId('composer-context-usage')).toHaveTextContent(
-      '12k / 128k',
-    );
+    expect(
+      screen.queryByTestId('composer-context-usage'),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps plan mode out and exposes the compact attachment control', () => {
@@ -703,5 +693,28 @@ describe('AgentChatInput', () => {
       );
     });
     expect(onSendSecond).not.toHaveBeenCalled();
+  });
+
+  it('changes the empty placeholder to drop it here? while a file is dragged over the prompt bar', async () => {
+    const view = render(<AgentChatInput onSend={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(
+        document.querySelector(
+          '[data-placeholder="Ask for help with content, review, or planning…"]',
+        ),
+      ).toBeTruthy();
+    });
+
+    view.rerender(
+      <AgentChatInput dragState={{ isActive: true }} onSend={vi.fn()} />,
+    );
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-placeholder="drop it here?"]'),
+      ).toBeTruthy();
+    });
+    expect(screen.queryByText('Drop files here')).not.toBeInTheDocument();
   });
 });

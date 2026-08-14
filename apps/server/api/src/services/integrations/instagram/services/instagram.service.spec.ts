@@ -24,7 +24,7 @@ describe('InstagramService', () => {
   const httpServiceMock = {
     get: vi.fn(),
     post: vi.fn(),
-  } as HttpService;
+  } as unknown as HttpService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

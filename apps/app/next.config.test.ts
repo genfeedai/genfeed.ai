@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -5,8 +8,14 @@ import {
   LEGACY_APP_ROUTES,
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
+import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
 import { describe, expect, it } from 'vitest';
+import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
+import appPackage from './package.json' with { type: 'json' };
+
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(appDir, '../..');
 
 describe('app next.config', () => {
   it('advertises the public agent catalog without indexing the app', async () => {
@@ -51,6 +60,36 @@ describe('app next.config', () => {
       expect(isAllowed('evil.example.com')).toBe(false);
       expect(isAllowed('genfeed.localhost.evil.com')).toBe(false);
     });
+  });
+
+  it('allows Portless local file hosts for next/image', () => {
+    // LibrarySourcePreview feeds ingredient URLs from the files service into
+    // next/image. Next's default loader throws unconfigured-host unless the
+    // hostname matches images.remotePatterns via this exact matcher.
+    const remotePatterns = config.images?.remotePatterns ?? [];
+    const domains = config.images?.domains ?? [];
+    const isAllowed = (href: string) =>
+      hasRemoteMatch(domains, remotePatterns, new URL(href));
+
+    expect(
+      isAllowed(
+        'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+      ),
+    ).toBe(true);
+    expect(
+      isAllowed(
+        'https://qa-local-2026-08-13.files.genfeed.localhost/local/ingredients/images/x',
+      ),
+    ).toBe(true);
+    expect(
+      isAllowed('https://files.genfeed.ai/local/ingredients/images/x'),
+    ).toBe(true);
+    expect(
+      isAllowed('https://evil.example.com/local/ingredients/images/x'),
+    ).toBe(false);
+    expect(isAllowed('https://files.genfeed.localhost.evil.com/local/x')).toBe(
+      false,
+    );
   });
 
   it('allows current social-provider avatars without retaining Clerk hosts', () => {
@@ -499,6 +538,28 @@ describe('app next.config', () => {
         '../../packages/workflows/src/nodes/index.ts',
       '@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts',
     });
+  });
+
+  it('opts out of Next rewriting CLAUDE.md and AGENTS.md', () => {
+    // next 16.3+ upserts a managed agent-rules block into the Next project
+    // root on `next dev`. That is apps/app here, not the monorepo root.
+    expect(config.agentRules).toBe(false);
+  });
+
+  it('hoists next-intl to the turbopack root without remapping package exports', () => {
+    // bun isolates next-intl under apps/app unless the root workspace lists it.
+    // turbopack.root is the repo root, so workspace packages (agent/pages)
+    // fail with "Can't resolve 'next-intl'" when it is missing there.
+    // A resolveAlias to a filesystem path also fails: it bypasses next-intl's
+    // react-server / react-client exports.
+    expect(config.turbopack?.root).toBe(repoRoot);
+    expect(rootPackage.dependencies['next-intl']).toBe(
+      appPackage.dependencies['next-intl'],
+    );
+    expect(
+      existsSync(path.join(repoRoot, 'node_modules/next-intl/package.json')),
+    ).toBe(true);
+    expect(config.turbopack?.resolveAlias?.['next-intl']).toBeUndefined();
   });
 
   it('exposes a non-empty build id that generateBuildId agrees with', async () => {

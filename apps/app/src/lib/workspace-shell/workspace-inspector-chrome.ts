@@ -3,8 +3,8 @@
  * Edit here — shell header, empty states, and expand control all read these.
  */
 export const WORKSPACE_INSPECTOR_CHROME = {
-  // Tab order in the rail is Context first, then Conversation — see
-  // `UniversalWorkspaceShell`. These are labels only; order lives there.
+  // Tab labels live in `common.workspaceInspector.tabs`. Order is the user's
+  // persisted layout; the default is Context first, then Conversation.
   contextTab: 'Context',
   conversationTab: 'Conversation',
   /** Sole title when the rail is context-only (e.g. `/agent`). */

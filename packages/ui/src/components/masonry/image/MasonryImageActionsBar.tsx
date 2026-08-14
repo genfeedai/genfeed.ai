@@ -210,7 +210,7 @@ export default function MasonryImageActionsBar({
   return (
     <div
       className={cn(
-        'absolute inset-x-0 bottom-0 z-50 border-t border-white/[0.08] bg-black/72 p-2 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 overflow-visible',
+        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100',
         showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >

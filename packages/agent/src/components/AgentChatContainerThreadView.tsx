@@ -4,7 +4,6 @@ import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline
 import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
-import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
@@ -39,13 +38,10 @@ export type AgentChatContainerThreadViewProps = {
   isReadOnly: boolean;
   isStreamingActive: boolean;
   isSubmittingInputRequest: boolean;
-  isEmpty: boolean;
   isAtBottom: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   onboardingMode: boolean;
-  onboardingSignupGiftCredits?: number;
-  onboardingTotalJourneyCredits?: number;
   onApprovePlan: () => Promise<void>;
   onBrandCreate?: (payload: {
     name: string;
@@ -64,14 +60,13 @@ export type AgentChatContainerThreadViewProps = {
     price: string;
     credits: number;
   }) => void;
-  onSend: (prompt: string) => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
   onUiAction: AgentUiActionHandler;
   padBottomForComposer: boolean;
-  /** Extra clearance when follow-up chips sit above the fixed composer. */
-  padBottomForFollowUpChips?: boolean;
+  composerTranscriptPaddingPx: number;
   pendingInputRequest: AgentInputRequest | null;
   pendingUiActions: AgentUiAction[];
+  hasDockedGenerationCard?: boolean;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   scrollToBottom: () => void;
   shouldShowInputRequestOverlay: boolean;
@@ -92,7 +87,6 @@ export function AgentChatContainerThreadView({
   isAtBottom,
   isBusy,
   isCreatingFollowUpTasks,
-  isEmpty,
   isGenerating,
   isWideLayout,
   isReadOnly,
@@ -101,8 +95,6 @@ export function AgentChatContainerThreadView({
   latestProposedPlan,
   messagesEndRef,
   onboardingMode,
-  onboardingSignupGiftCredits,
-  onboardingTotalJourneyCredits,
   onApprovePlan,
   onBrandCreate,
   onCopy,
@@ -114,13 +106,13 @@ export function AgentChatContainerThreadView({
   onRetry,
   onRetryLastFailedRun,
   onSelectCreditPack,
-  onSend,
   onSubmitInputRequest,
   onUiAction,
   padBottomForComposer,
-  padBottomForFollowUpChips = false,
+  composerTranscriptPaddingPx,
   pendingInputRequest,
   pendingUiActions,
+  hasDockedGenerationCard = false,
   scrollContainerRef,
   scrollToBottom,
   shouldShowInputRequestOverlay,
@@ -155,17 +147,9 @@ export function AgentChatContainerThreadView({
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
       <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
         <div
-          className={cn(
-            AGENT_CONVERSATION_TRACK_CLASS,
-            'space-y-1 pt-4',
-            // Reserve only what the floating stack actually uses (glass bar
-            // ~6rem + optional chip row ~2.5rem + bottom offset).
-            padBottomForComposer && padBottomForFollowUpChips
-              ? 'pb-40 md:pb-44'
-              : padBottomForComposer
-                ? 'pb-32 md:pb-36'
-                : 'pb-5',
-          )}
+          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'space-y-1 pt-4')}
+          data-composer-padding={String(composerTranscriptPaddingPx)}
+          style={{ paddingBottom: composerTranscriptPaddingPx }}
         >
           {/* Thread title lives in the shell topbar — no second title chrome. */}
           {activeThreadTitle ? (
@@ -188,17 +172,6 @@ export function AgentChatContainerThreadView({
             />
           ) : null}
 
-          {isEmpty && onboardingMode ? (
-            <div className="flex flex-col items-center px-2 pt-8 pb-4">
-              <OnboardingConversationCard
-                signupGiftCredits={onboardingSignupGiftCredits}
-                totalJourneyCredits={onboardingTotalJourneyCredits}
-                onStart={onSend}
-                isDisabled={isBusy || isReadOnly}
-              />
-            </div>
-          ) : null}
-
           <AgentChatTimeline
             timeline={timeline}
             pendingUiActions={pendingUiActions}
@@ -218,6 +191,7 @@ export function AgentChatContainerThreadView({
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onIngredientSelect}
             onUiAction={onUiAction}
+            hasDockedGenerationCard={hasDockedGenerationCard}
             // Docked composer status owns busy chrome — hide pure Thinking rows.
             suppressThinkingPlaceholder={padBottomForComposer}
           />

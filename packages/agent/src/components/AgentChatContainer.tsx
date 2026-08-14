@@ -9,10 +9,12 @@ import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSu
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
+import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -28,6 +30,7 @@ import {
 } from '@genfeedai/agent/utils/agent-auto-model.util';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
+import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   AlertCategory,
@@ -77,6 +80,11 @@ export function AgentChatContainer({
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const [composerOverlayElement, setComposerOverlayElement] =
+    useState<HTMLElement | null>(null);
+  const composerOverlayHeightPx = useOverlayElementHeight(
+    composerShell?.portalTarget ?? composerOverlayElement,
+  );
   const userContext = useOptionalUser();
   const currentUser = userContext?.currentUser ?? null;
   const mutateUser = userContext?.mutateUser;
@@ -335,9 +343,21 @@ export function AgentChatContainer({
     [container.isBusy, container.workEvents],
   );
 
+  const sendConversationMessage = useCallback(
+    (
+      content: string,
+      mentions?: Parameters<typeof container.handleSend>[1],
+      attachments?: Parameters<typeof container.handleSend>[2],
+      options?: Parameters<typeof container.handleSend>[3],
+    ) => {
+      container.handleSend(content, mentions, attachments, options);
+    },
+    [container.handleSend],
+  );
+
   const handleSuggestionSend = useCallback(
     (prompt: string) => {
-      container.handleSend(prompt, undefined, undefined, {
+      sendConversationMessage(prompt, undefined, undefined, {
         ...(composerShell?.artifactReferences?.length
           ? {
               artifactReferences: composerShell.artifactReferences.map(
@@ -352,7 +372,7 @@ export function AgentChatContainer({
     [
       composerShell?.artifactReferences,
       composerShell?.brandId,
-      container.handleSend,
+      sendConversationMessage,
     ],
   );
 
@@ -397,15 +417,19 @@ export function AgentChatContainer({
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
-    (!container.isEmpty ||
-      onboardingMode ||
-      composerShell?.placement === 'inspector');
+    (!container.isEmpty || composerShell?.placement === 'inspector');
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
   const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
+  const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
+    hasFollowUpChips:
+      showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
+    isComposerVisible: composerShell?.isComposerVisible !== false,
+    overlayHeightPx: composerOverlayHeightPx,
+  });
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col">
@@ -440,12 +464,15 @@ export function AgentChatContainer({
               title={container.activeThreadTitle}
             />
           </div>
-        ) : container.isEmpty && !onboardingMode ? (
+        ) : container.isEmpty ? (
           <AgentChatEmptyState
             addFiles={container.addFiles}
             apiService={apiService}
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
+            composerBanner={
+              onboardingMode ? <OnboardingConversationCard /> : null
+            }
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
             emptyStateTitle={emptyStateTitle}
@@ -466,10 +493,9 @@ export function AgentChatContainer({
             variant={
               composerShell?.placement === 'inspector' ? 'inspector' : 'default'
             }
-            contextUsage={container.contextUsage}
             onMoveFollowUp={container.followUpQueue.move}
             onRemoveFollowUp={container.followUpQueue.remove}
-            onSend={container.handleSend}
+            onSend={sendConversationMessage}
             onSendFollowUpNow={container.sendFollowUpNow}
             onStop={container.handleStopRun}
             placeholder={placeholder}
@@ -493,7 +519,6 @@ export function AgentChatContainer({
             isAtBottom={container.isAtBottom}
             isBusy={container.isBusy}
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
-            isEmpty={container.isEmpty}
             isGenerating={container.isGenerating}
             isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}
@@ -502,12 +527,6 @@ export function AgentChatContainer({
             latestProposedPlan={container.latestProposedPlan}
             messagesEndRef={container.messagesEndRef}
             onboardingMode={onboardingMode}
-            onboardingSignupGiftCredits={
-              container.onboardingSignupGiftCredits ?? undefined
-            }
-            onboardingTotalJourneyCredits={
-              container.onboardingTotalJourneyCredits ?? undefined
-            }
             onApprovePlan={container.handleApprovePlan}
             onBrandCreate={onBrandCreate}
             onCopy={container.handleCopy}
@@ -519,15 +538,13 @@ export function AgentChatContainer({
             onRetry={container.handleRetry}
             onRetryLastFailedRun={handleRetryLastFailedRun}
             onSelectCreditPack={onSelectCreditPack}
-            onSend={container.handleSend}
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
             padBottomForComposer={composerShell?.isComposerVisible !== false}
-            padBottomForFollowUpChips={
-              showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions)
-            }
+            composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
+            hasDockedGenerationCard={Boolean(pendingGenerationAction)}
             scrollContainerRef={container.scrollContainerRef}
             scrollToBottom={container.scrollToBottom}
             shouldShowInputRequestOverlay={
@@ -574,7 +591,6 @@ export function AgentChatContainer({
               isComposerUnavailable={
                 isLoadingThread || stableSocketConnectionState !== 'connected'
               }
-              contextUsage={container.contextUsage}
               followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}
               isRunActive={container.isRunActive}
@@ -582,12 +598,13 @@ export function AgentChatContainer({
               latestProposedPlan={container.latestProposedPlan}
               layoutMode={promptBarLayoutMode}
               onClearError={() => container.setError(null)}
+              onOverlayElement={setComposerOverlayElement}
               creditsAvailable={creditsRemaining}
               onModelChange={handleModelChange}
               onMoveFollowUp={container.followUpQueue.move}
               onPrioritizeChange={handlePrioritizeChange}
               onRemoveFollowUp={container.followUpQueue.remove}
-              onSend={container.handleSend}
+              onSend={sendConversationMessage}
               onSendFollowUpNow={container.sendFollowUpNow}
               onStop={container.handleStopRun}
               onSubmitInputRequest={container.handleSubmitInputRequest}

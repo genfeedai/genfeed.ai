@@ -628,12 +628,18 @@ export class AgentMediaGenerationToolHandler {
       (params.imageUrl as string | undefined) ||
       (ctx.attachmentUrls?.length ? ctx.attachmentUrls[0] : undefined);
 
+    const requestedOutputs =
+      typeof params.outputs === 'number' && Number.isFinite(params.outputs)
+        ? Math.min(8, Math.max(1, Math.round(params.outputs)))
+        : undefined;
+
     const body: Record<string, unknown> = {
       height: dimensions.height,
       prompt,
       text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
+      ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       ...(imageUrl ? { references: [imageUrl] } : {}),

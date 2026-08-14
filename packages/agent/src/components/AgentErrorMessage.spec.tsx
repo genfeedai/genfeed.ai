@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { copyToClipboard } = vi.hoisted(() => ({
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard }),
+  },
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
     ariaLabel?: string;
@@ -28,8 +38,7 @@ describe('AgentErrorMessage', () => {
   });
 
   it('copies the complete error message', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    copyToClipboard.mockClear();
 
     render(
       <AgentErrorMessage message="Generation failed: Prisma rejected prompt" />,
@@ -38,10 +47,11 @@ describe('AgentErrorMessage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(
-        'Generation failed: Prisma rejected prompt',
-      );
+      expect(copyToClipboard).toHaveBeenCalled();
     });
+    const copied = String(copyToClipboard.mock.calls[0]?.[0]);
+    expect(copied).toContain('## Agent run failure');
+    expect(copied).toContain('Generation failed: Prisma rejected prompt');
   });
 
   it('displays human-readable connection copy for bare Generation failed: 500', () => {

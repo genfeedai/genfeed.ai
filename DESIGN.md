@@ -20,10 +20,11 @@ colors:
   border: "#1e2022"
   border-strong: "#333538"
 
-  # Text — three-tier hierarchy
-  text-primary: "#f4f4f5"
-  text-secondary: "#b4b4bc"
-  text-muted: "#6b6b78"
+  # Text — three-tier hierarchy. Muted must stay AA on the void canvas.
+  # Chroma lives in gallery / video / image artefacts, not in chrome.
+  text-primary: "#ffffff"
+  text-secondary: "#c8c8d0"
+  text-muted: "#8a8a8a"
 
   # Accent — inverted for dark mode (white CTA on dark bg)
   primary: "#fafafa"
@@ -158,14 +159,14 @@ components:
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
   dropdown-menu:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.bg-tertiary}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
   sidebar:
     backgroundColor: "{colors.bg-primary}"
     textColor: "{colors.text-secondary}"
   popover:
-    backgroundColor: "{colors.bg-elevated}"
+    backgroundColor: "{colors.bg-tertiary}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
   stat-card:
@@ -249,8 +250,9 @@ map directly to content and workflow states.
 
 Five background tones create depth without borders. From deepest to most elevated:
 `bg-primary` (main canvas, sidebar) -> `bg-secondary` (cards, panels) ->
-`bg-tertiary` (inputs, nested surfaces) -> `bg-elevated` (popovers, dropdowns) ->
-`bg-hover` (interactive hover states).
+`bg-tertiary` (inputs, nested surfaces, overlay menus) -> `bg-elevated` ->
+`bg-hover` (interactive hover states). Overlay menus stay on `bg-tertiary`
+(`#131518`) — not the lighter `bg-elevated` slab.
 
 ### Accent
 
@@ -364,8 +366,9 @@ trigger button. Grouped into Content and Tools sections with a subtle divider.
 
 ### Dropdown
 
-`bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (4px) with `hover:bg-hover`.
-Inline margin `mx-1` insets items from panel edges.
+`bg-tertiary` with `shadow-dropdown`. Items use `rounded-sm` (4px) with `hover:bg-hover`.
+Inline margin `mx-1` insets items from panel edges. Popovers use the same overlay
+surface — never `bg-elevated`, `bg-card`, or the page canvas.
 
 ## Brand OS Surfaces
 

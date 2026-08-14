@@ -17,6 +17,7 @@ describe('canOptimizeImageSource', () => {
     'blob:https://app.genfeed.ai/object-id',
     'data:image/png;base64,abc',
     'https://customer-cdn.example.com/image.webp',
+    'https://files.genfeed.localhost/local/ingredients/images/x',
     'https://genfeed.ai/image.webp',
     '//customer-cdn.example.com/image.webp',
     'not a URL',

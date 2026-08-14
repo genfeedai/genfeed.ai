@@ -71,6 +71,7 @@ describe('createStorageProvider', () => {
   });
 
   it('returns S3StorageProvider with options when cloud', async () => {
+    vi.stubEnv('GENFEEDAI_CDN_URL', '');
     vi.doMock('@genfeedai/config', () => ({
       isDesktopClient: () => false,
       isSelfHostedDeployment: () => false,

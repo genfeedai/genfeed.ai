@@ -80,6 +80,8 @@ describe('UserProvisioningListener', () => {
 
     expect(userSetupService.initializeUserResources).toHaveBeenCalledWith(
       'u_1',
+      undefined,
+      { email: 'new@genfeed.ai' },
     );
     expect(lifecycleEmailService.scheduleSignupLifecycle).toHaveBeenCalledWith(
       'u_1',

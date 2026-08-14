@@ -162,6 +162,33 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(result.message.content).toBe('Image generated.');
   });
 
+  it('forwards the outputs count on confirmed generate-media', async () => {
+    const { executeTool, service } = createService();
+
+    await service.handleThreadUiAction(
+      {
+        ...GENERATE_MEDIA_REQUEST,
+        payload: {
+          ...GENERATE_MEDIA_REQUEST.payload,
+          outputs: 3,
+        },
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+      host,
+    );
+
+    expect(executeTool).toHaveBeenCalledWith(
+      AgentToolName.GENERATE_IMAGE,
+      expect.objectContaining({
+        outputs: 3,
+        prompt: 'Editorial product photo on a dark neutral set',
+      }),
+      expect.objectContaining({
+        organizationId: ORG_ID,
+      }),
+    );
+  });
+
   it('maps a swallowed upstream 401 from generate-media to 401, not 500', async () => {
     const { service, threadEventRecorder } = createService({
       executeTool: vi.fn().mockResolvedValue({
@@ -263,6 +290,34 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(JSON.stringify(error.getResponse())).not.toContain('Bearer');
   });
 
+  it('preserves a specific generate-media 403 detail', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error:
+          'Request failed with status code 403: Model not enabled for this organization',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.FORBIDDEN,
+    );
+
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Model not enabled for this organization',
+        status: HttpStatus.FORBIDDEN,
+        title: 'Forbidden',
+      }),
+    );
+  });
+
   it('maps a forbidden generate-media failure to 403', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({
@@ -287,6 +342,33 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
         detail: 'Insufficient permissions',
         status: HttpStatus.FORBIDDEN,
         title: 'Forbidden',
+      }),
+    );
+  });
+
+  it('maps a cancelled generate to 409, not a 500 connection failure', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error: 'Request failed with status code 500: Cancelled by user',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.CONFLICT,
+    );
+
+    expect(error).not.toBeInstanceOf(InternalServerErrorException);
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Cancelled by user',
+        status: HttpStatus.CONFLICT,
       }),
     );
   });

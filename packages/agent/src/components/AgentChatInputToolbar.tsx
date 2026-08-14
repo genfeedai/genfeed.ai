@@ -1,7 +1,5 @@
-import { ComposerContextUsageIndicator } from '@genfeedai/agent/components/ComposerContextUsageIndicator';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import {
   ButtonSize,
   ButtonVariant,
@@ -39,7 +37,6 @@ import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
   creditsAvailable?: number | null;
-  contextUsage?: ConversationContextUsage | null;
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
@@ -79,7 +76,6 @@ function AgentChatInputToolbarInner({
   isUploading,
   models,
   creditsAvailable = null,
-  contextUsage = null,
   onAddFiles,
   onInsertReference,
   onModelChange,
@@ -169,7 +165,8 @@ function AgentChatInputToolbarInner({
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
-  // Trailing primary: Stop (optional, during a run) plus send or mic.
+  // Trailing primary: Stop replaces mic during a run; send sits beside Stop
+  // only when the field has text to queue.
   let trailingPrimary: ReactElement | null = null;
 
   if (isTranscribing) {
@@ -227,7 +224,7 @@ function AgentChatInputToolbarInner({
       ) : null;
 
     let actionButton: ReactElement | null = null;
-    if (shouldShowVoiceInput) {
+    if (shouldShowVoiceInput && !showStop) {
       actionButton = (
         <Button
           ariaLabel="Start voice input"
@@ -359,12 +356,9 @@ function AgentChatInputToolbarInner({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {contextUsage ? (
-          <ComposerContextUsageIndicator usage={contextUsage} />
-        ) : null}
       </div>
 
-      {/* Trailing: stop + send (queue while running) | mic */}
+      {/* Trailing: stop (replaces mic) + optional queue send */}
       <div
         className={cn(
           'flex min-w-0 shrink items-center justify-end',

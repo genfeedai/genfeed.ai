@@ -34,6 +34,7 @@ export function buildAgentGenerationRequestBody({
   duration,
   identity,
   modelKey,
+  outputs,
   prioritize = DEFAULT_AGENT_GENERATION_PRIORITY,
   promptId,
   promptText,
@@ -44,6 +45,7 @@ export function buildAgentGenerationRequestBody({
   duration?: number;
   identity?: AgentClipRunIdentity;
   modelKey?: string;
+  outputs?: number;
   prioritize?: RouterPriority;
   promptId: string;
   promptText: string;
@@ -67,6 +69,10 @@ export function buildAgentGenerationRequestBody({
 
   if (duration != null) {
     body.duration = duration;
+  }
+
+  if (outputs != null && Number.isFinite(outputs) && outputs >= 1) {
+    body.outputs = Math.min(8, Math.round(outputs));
   }
 
   if (waitForCompletion != null) {

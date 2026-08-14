@@ -3,9 +3,11 @@
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import { Check, CircleAlert, Clipboard } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { buildAgentRunFailureCopyText } from './AgentRunFailureCard';
 
 interface AgentErrorMessageProps {
   className?: string;
@@ -31,9 +33,9 @@ export function AgentErrorMessage({
 
   const copyError = useCallback(async () => {
     try {
-      // Copy the original tool/provider string so an agent can debug it;
-      // display stays human-readable.
-      await navigator.clipboard.writeText(message);
+      await ClipboardService.getInstance().copyToClipboard(
+        buildAgentRunFailureCopyText(message),
+      );
       setIsCopied(true);
       window.setTimeout(() => setIsCopied(false), 1500);
     } catch {

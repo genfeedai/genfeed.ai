@@ -64,14 +64,26 @@ function getFileType(key: string): string {
   return 'file';
 }
 
+function normalizeCdnUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.replace(/\/+$/, '');
+}
+
 export class S3StorageProvider implements StorageProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly region: string;
+  private readonly cdnUrl: string | undefined;
 
   constructor(options: StorageProviderOptions = {}) {
     this.bucket = options.bucket ?? process.env.AWS_S3_BUCKET ?? '';
     this.region = options.region ?? process.env.AWS_REGION ?? 'us-east-1';
+    this.cdnUrl = normalizeCdnUrl(
+      options.cdnUrl ?? process.env.GENFEEDAI_CDN_URL,
+    );
     this.client = new S3Client({
       region: this.region,
       credentials: {
@@ -160,6 +172,9 @@ export class S3StorageProvider implements StorageProvider {
    * ordinary buckets, so listing builds its URLs through here instead.
    */
   private buildObjectUrl(objectKey: string): string {
+    if (this.cdnUrl) {
+      return `${this.cdnUrl}/${objectKey}`;
+    }
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${objectKey}`;
   }
 

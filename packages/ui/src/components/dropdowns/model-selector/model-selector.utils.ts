@@ -14,19 +14,29 @@ type ModelWithLifecycle = IModel & {
 };
 
 const KNOWN_VARIANT_SUFFIXES = new Set([
+  'avatar',
   'base',
   'dev',
+  'edit',
   'fast',
   'flash',
   'high',
+  'i2v',
+  'klein',
   'lite',
+  'lora',
   'max',
   'mini',
+  'preview',
   'pro',
+  'pulid',
+  'refiner',
   'slow',
   'standard',
+  't2v',
   'turbo',
   'ultra',
+  'upscale',
 ]);
 
 function titleCaseToken(value: string): string {
@@ -96,16 +106,13 @@ export function parseModelFamilyAndVariant(
     };
   }
 
-  const suffixMatch = modelSlug.match(/^(.+)-([a-z0-9-]+)$/i);
-  if (suffixMatch) {
-    const [, baseSlug, suffix] = suffixMatch;
-    if (KNOWN_VARIANT_SUFFIXES.has(suffix.toLowerCase())) {
-      return {
-        familyKey: `${brandSlug}:${baseSlug}`,
-        familyLabel: humanizeSlug(baseSlug),
-        variantLabel: titleCaseToken(suffix),
-      };
-    }
+  const stripped = stripKnownVariantSuffixes(modelSlug);
+  if (stripped) {
+    return {
+      familyKey: `${brandSlug}:${stripped.familySlug}`,
+      familyLabel: humanizeSlug(stripped.familySlug),
+      variantLabel: stripped.variantLabel,
+    };
   }
 
   return {
@@ -113,6 +120,49 @@ export function parseModelFamilyAndVariant(
     familyLabel: getFallbackFamilyLabel(model.label),
     variantLabel: 'Base',
   };
+}
+
+function stripKnownVariantSuffixes(modelSlug: string): {
+  familySlug: string;
+  variantLabel: string;
+} | null {
+  const tokens = modelSlug.split('-').filter(Boolean);
+  const variantTokens: string[] = [];
+
+  while (
+    tokens.length > 1 &&
+    KNOWN_VARIANT_SUFFIXES.has(tokens[tokens.length - 1]?.toLowerCase() ?? '')
+  ) {
+    const token = tokens.pop();
+    if (token) {
+      variantTokens.unshift(token);
+    }
+  }
+
+  if (variantTokens.length === 0) {
+    return null;
+  }
+
+  return {
+    familySlug: tokens.join('-'),
+    variantLabel: variantTokens.map((token) => titleCaseToken(token)).join(' '),
+  };
+}
+
+export function shouldRenderModelFamilyHeader(variantCount: number): boolean {
+  return variantCount > 1;
+}
+
+export function isModelFamilyExpanded({
+  familyKey,
+  hasSearchMatch,
+  toggledFamilyKeys,
+}: {
+  familyKey: string;
+  hasSearchMatch: boolean;
+  toggledFamilyKeys: readonly string[];
+}): boolean {
+  return hasSearchMatch || toggledFamilyKeys.includes(familyKey);
 }
 
 export function transformModelsToOptions(

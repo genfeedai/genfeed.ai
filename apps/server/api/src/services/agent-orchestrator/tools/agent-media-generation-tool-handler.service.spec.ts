@@ -261,6 +261,33 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
     expect(result.error).toMatch(/CDN URL|asset id/i);
   });
 
+  it('forwards the requested output count to POST /v1/images', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://cdn.example.com/logo.png',
+        },
+        id: 'ingredient-1',
+      },
+    });
+
+    await handler.generateImage(
+      { outputs: 3, prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/images',
+      expect.objectContaining({
+        outputs: 3,
+        text: expect.any(String),
+      }),
+      context,
+    );
+  });
+
   it('returns a content preview only when a CDN URL is present', async () => {
     const { handler, internalApi, onboardingHandler } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({

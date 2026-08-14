@@ -143,6 +143,9 @@ export class PerformanceInterceptor implements NestInterceptor {
     const shouldLogCompletion = this.logSuccessfulRequests && !error;
     const isSlow = duration > this.slowRequestThreshold;
     const isVerySlow = duration > this.verySlowRequestThreshold;
+    const isUnauthorizedResponse =
+      !error && (statusCode === 401 || statusCode === 403);
+    const isFailedResponse = !error && statusCode >= 500;
     const metrics: PerformanceMetrics = {
       duration,
       method,
@@ -167,7 +170,14 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.configService,
     );
 
-    if (!shouldLogCompletion && !isSlow && !isVerySlow && !error) {
+    if (
+      !shouldLogCompletion &&
+      !isSlow &&
+      !isVerySlow &&
+      !error &&
+      !isUnauthorizedResponse &&
+      !isFailedResponse
+    ) {
       return;
     }
 
@@ -205,6 +215,18 @@ export class PerformanceInterceptor implements NestInterceptor {
               ? `High memory usage: ${memoryStats.heapUsedPercent}%`
               : undefined,
         }),
+      });
+    } else if (isFailedResponse) {
+      this.logger.error('Request failed', {
+        ...metrics,
+        ...(databaseMetrics && { database: databaseMetrics }),
+        severity,
+      });
+    } else if (isUnauthorizedResponse) {
+      this.logger.warn('Request unauthorized', {
+        ...metrics,
+        ...(databaseMetrics && { database: databaseMetrics }),
+        severity,
       });
     } else if (shouldLogCompletion) {
       // Keep low-value request completion logs out of the production hot path.

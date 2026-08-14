@@ -1,11 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import {
-  BG_BLUR,
-  BORDER_WHITE_30,
-  cn,
-} from '@genfeedai/helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { QuickActionsMenuProps } from '@genfeedai/props/content/quick-actions.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
@@ -264,18 +260,19 @@ export default function QuickActionsMenu({
               transform: 'translateY(-100%)',
               zIndex: isInModal ? 10000 : 9999,
             }}
-            className={cn(BG_BLUR, BORDER_WHITE_30, 'min-w-52 rounded-2xl')}
+            className="min-w-40 rounded-lg bg-secondary shadow-dropdown"
+            data-testid="quick-actions-menu"
           >
-            <div className="p-1">
+            <div className="p-0.5">
               {actions.map((action, index) => (
                 <div key={action.id}>
                   {(action.dividerBefore || action.sectionLabel) && (
-                    <div className="my-1">
+                    <div className="my-0.5">
                       {action.dividerBefore && index > 0 && (
-                        <div className="mb-1.5 border-t border-white/12" />
+                        <div className="mb-0.5 border-t border-white/12" />
                       )}
                       {action.sectionLabel && (
-                        <div className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                        <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                           {action.sectionLabel}
                         </div>
                       )}
@@ -288,7 +285,7 @@ export default function QuickActionsMenu({
                     onClick={() => onActionClick(action)}
                     isDisabled={action.isDisabled || action.isLoading}
                     className={cn(
-                      'flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
+                      'flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors duration-150',
                       action.isDisabled || action.isLoading
                         ? 'opacity-50 cursor-not-allowed text-white/50'
                         : action.variant === 'error'

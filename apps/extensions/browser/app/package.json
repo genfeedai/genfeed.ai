@@ -16,14 +16,14 @@
     "plasmo": "0.90.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "zustand": "5.0.14"
+    "zustand": "5.0.15"
   },
   "description": "Genfeed.ai - Generate (good) AI content for your business",
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.7.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
-    "@types/chrome": "0.2.5",
+    "@types/chrome": "0.2.6",
     "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",

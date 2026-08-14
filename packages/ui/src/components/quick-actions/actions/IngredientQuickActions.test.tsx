@@ -16,6 +16,7 @@ vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
         id: 'see-details',
         label: 'Open',
         onClick: vi.fn(),
+        variant: 'primary' as const,
       };
 
       const contextActions = [];
@@ -115,5 +116,8 @@ describe('IngredientQuickActions', () => {
     expect(screen.queryByTestId('dropdown-prompt')).not.toBeInTheDocument();
     expect(screen.queryByTestId('dropdown-status')).not.toBeInTheDocument();
     expect(screen.queryByTestId('dropdown-scope')).not.toBeInTheDocument();
+    expect(screen.getByTestId('primary-actions-group')).toHaveClass(
+      'bg-secondary/80',
+    );
   });
 });

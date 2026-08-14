@@ -36,6 +36,7 @@ const ROUTED_SERVICES = [
 const DEFAULT_SCRIPT_EXPECTATIONS = {
   'dev:doctor': 'bun run scripts/dev/setup-portless.ts --check',
   'dev:setup': 'bun run scripts/dev/setup-portless.ts',
+  'dev:status': 'bun run scripts/dev/dev-status.ts',
   'dev:app': 'bun run --cwd apps/app dev',
   'dev:api': 'bun run --cwd apps/server/api dev',
   'dev:backend':
@@ -140,6 +141,10 @@ export function checkPortlessContract(
     path.join(rootDir, 'scripts/dev/run-portless.ts'),
     'utf8',
   );
+  const portlessService = readFileSync(
+    path.join(rootDir, 'scripts/dev/run-service.ts'),
+    'utf8',
+  );
   const portlessSetup = readFileSync(
     path.join(rootDir, 'scripts/dev/setup-portless.ts'),
     'utf8',
@@ -150,11 +155,14 @@ export function checkPortlessContract(
     PORTLESS_PROXY_ENVIRONMENT.PORTLESS_PORT !== '443' ||
     PORTLESS_PROXY_ENVIRONMENT.PORTLESS_SYNC_HOSTS !== '0' ||
     PORTLESS_PROXY_ENVIRONMENT.PORTLESS_TLD !== 'localhost' ||
-    !portlessRunner.includes('...PORTLESS_PROXY_ENVIRONMENT')
+    !portlessRunner.includes('...PORTLESS_PROXY_ENVIRONMENT') ||
+    !portlessRunner.includes('pruneStalePortlessSessions') ||
+    !portlessRunner.includes('runDetachedCommand') ||
+    !portlessService.includes('runDetachedCommand')
   ) {
     violations.push({
       message:
-        'Portless must enforce HTTPS on 443 with .localhost routes and hosts-file synchronization disabled',
+        'Portless must enforce HTTPS on 443 with .localhost routes, prune stale sessions on boot, and terminate the child process group when a wrapper is orphaned',
       path: 'scripts/dev/run-portless.ts',
     });
   }

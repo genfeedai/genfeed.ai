@@ -9,6 +9,7 @@ import {
 } from '@shipshitdev/ui/primitives';
 import type { ComponentPropsWithRef } from 'react';
 import { cn } from '../lib/utils';
+import { overlayMenuSurfaceClassName } from './field-control';
 
 const Popover: typeof ShipPopover = ShipPopover;
 
@@ -28,7 +29,7 @@ function PopoverContent({
       ref={ref}
       align={align}
       sideOffset={sideOffset}
-      className={cn('ship-ui w-72 p-4 text-primary', className)}
+      className={cn('ship-ui w-72 p-4', overlayMenuSurfaceClassName, className)}
       {...props}
     />
   );
@@ -48,7 +49,8 @@ function PopoverPanelContent({
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'ship-ui z-[10001] overflow-hidden rounded-xl text-primary shadow-dropdown',
+        'ship-ui z-[10001] overflow-hidden rounded-xl',
+        overlayMenuSurfaceClassName,
         className,
       )}
       {...props}
