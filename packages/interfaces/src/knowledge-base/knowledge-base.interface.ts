@@ -23,13 +23,29 @@ export interface KnowledgeSource {
   tags?: string[];
 }
 
+export interface KnowledgeBranding {
+  audience?: string;
+  hashtags?: string[];
+  taglines?: string[];
+  tone?: string;
+  values?: string[];
+  voice?: string;
+}
+
 export interface KnowledgeBase {
   brandId?: string;
+  branding?: KnowledgeBranding;
   createdAt: string;
+  defaultImageModel?: string;
+  defaultImageToVideoModel?: string;
+  defaultMusicModel?: string;
+  defaultVideoModel?: string;
   description?: string;
+  fontFamily?: string;
   id: string;
   isActive: boolean;
   label: string;
+  lastAnalyzedAt?: string;
   organizationId?: string;
   scope?: KnowledgeBaseScope;
   sources?: KnowledgeSource[];
