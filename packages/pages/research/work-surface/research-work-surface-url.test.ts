@@ -49,6 +49,20 @@ describe('parseResearchFindingReference', () => {
     expect(
       parseResearchFindingReference(`research-source-post:${'a'.repeat(161)}`),
     ).toBeNull();
+    expect(
+      parseResearchFindingReference('research-source-post:../../admin'),
+    ).toBeNull();
+  });
+
+  it('round-trips a finite typed finding reference', () => {
+    const reference = {
+      id: 'post_123.4',
+      kind: 'research-source-post' as const,
+    };
+
+    expect(
+      parseResearchFindingReference(encodeResearchFindingReference(reference)),
+    ).toEqual(reference);
   });
 });
 
@@ -78,6 +92,52 @@ describe('parseResearchWorkSurfaceUrl', () => {
       id: 'post-1',
       kind: 'research-source-post',
     });
+  });
+
+  it('restores opaque shell state alongside owned filters', () => {
+    const state = parseResearchWorkSurfaceUrl(
+      new URLSearchParams({
+        finding: 'research-trend-video:video-123',
+        page: '3',
+        platform: 'tiktok',
+        q: 'viral hooks',
+        thread: 'thread-1',
+      }),
+    );
+
+    expect(state).toMatchObject({
+      isCanonical: true,
+      page: 3,
+      query: 'viral hooks',
+      requestedReference: {
+        id: 'video-123',
+        kind: 'research-trend-video',
+      },
+    });
+    expect(state.canonicalSearchParams.toString()).toContain('platform=tiktok');
+    expect(state.canonicalSearchParams.toString()).toContain('thread=thread-1');
+  });
+
+  it('removes malformed owned state without dropping opaque route parameters', () => {
+    const state = parseResearchWorkSurfaceUrl(
+      new URLSearchParams({
+        finding: 'approval:grant-access',
+        page: '10001',
+        q: '   ',
+        source: 'public',
+        thread: 'thread-1',
+      }),
+    );
+
+    expect(state).toMatchObject({
+      isCanonical: false,
+      page: 1,
+      query: '',
+      requestedReference: null,
+    });
+    expect(state.canonicalSearchParams.toString()).toBe(
+      'source=public&thread=thread-1',
+    );
   });
 
   it('trims a padded query and marks the url non-canonical', () => {
@@ -150,5 +210,11 @@ describe('buildResearchWorkSurfaceHref', () => {
         new URLSearchParams({ q: 'x' }),
       ),
     ).toBe('/research?q=x');
+    expect(
+      buildResearchWorkSurfaceHref(
+        '/acme/moonrise/discover/following',
+        new URLSearchParams({ page: '2' }),
+      ),
+    ).toBe('/acme/moonrise/discover/following?page=2');
   });
 });
