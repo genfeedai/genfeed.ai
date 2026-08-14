@@ -785,9 +785,11 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-composer-slot')).toHaveClass(
       'max-w-3xl',
+    );
+    expect(screen.getByTestId('workspace-composer-slot')).not.toHaveClass(
       'bg-background',
     );
-    expect(screen.getByTestId('workspace-composer-dock')).toHaveClass(
+    expect(screen.getByTestId('workspace-composer-dock')).not.toHaveClass(
       'bg-background',
     );
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(

@@ -48,7 +48,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card model/priority/outputs persist in a Zustand store separate from chat
 - [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs dropdown
 - [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
-- [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — composer dock paints bg-background so transcript text cannot pass under the bar
+- [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — opaque bg block sits behind the prompt bar only; generation cards above it stay uncut
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — first-login /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
 - [feedback_prompt_bar_drop_placeholder](feedback_prompt_bar_drop_placeholder.md) — file drag over the prompt bar swaps the empty placeholder to "drop it here?"

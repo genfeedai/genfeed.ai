@@ -1,20 +1,24 @@
 ---
 name: composer opaque dock
-description: Composer dock paints bg-background so transcript text cannot pass under the bar
+description: Opaque bg block sits behind the prompt bar only — generation cards above it stay uncut
 type: feedback
 ---
 
 # Composer dock is an opaque background block
 
-The floating prompt bar sits on a solid `bg-background` dock (Cursor/Codex
-footer), not over a transparent gap. Transcript lines must not show through
-the glass bar or the padding under it.
+The **prompt bar** sits on a solid `bg-background` block so transcript
+lines cannot pass under the glass input. That block is
+`[data-composer-prompt-slot] > [data-composer-bg-block]`.
 
-**Why:** Vincent asked for a block with the page background so conversation
-text does not pass under the composer.
+Generation, status, and follow-up cards stay in
+`[data-composer-top-stack]` **above** the bar. Do not paint a full-height
+slab over the whole composer stack or the canvas dock — that cuts
+"Generate Image" and covers the last message.
 
-**How to apply:** `PromptBarContainer` keeps `[data-composer-bg-block]` as
-`absolute inset-0 bg-background` behind the stack. The canvas composer dock
-(`workspace-composer-dock`) is also `bg-background` (transparent only while
-the slot is empty). Do not rely on glass/`backdrop-blur` alone to hide
-scrolled text.
+**Why:** Vincent asked for a Cursor-style footer under the input, then
+the full-stack slab clipped the generation card.
+
+**How to apply:** Keep the opaque block on the prompt bar only. Top cards
+use their own `bg-background`. The canvas `workspace-composer-dock` stays
+transparent (`overflow-visible`). Do not put `bg-background` on the
+full-width dock.

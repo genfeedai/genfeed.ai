@@ -106,6 +106,28 @@ describe('PromptBarContainer', () => {
     expect(block).toHaveClass('inset-0');
   });
 
+  it('keeps the opaque block on the prompt bar only so top cards are not cut', () => {
+    const { container } = render(
+      <PromptBarContainer topContent={<div>banner</div>}>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    expect(
+      container.querySelector('[data-layout-mode] > [data-composer-bg-block]'),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-composer-prompt-slot] > [data-composer-bg-block]',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-composer-top-stack] [data-composer-bg-block]',
+      ),
+    ).toBeNull();
+  });
+
   it('should render an optional top fade scrim when requested', () => {
     const { container } = render(
       <PromptBarContainer showTopFade>
