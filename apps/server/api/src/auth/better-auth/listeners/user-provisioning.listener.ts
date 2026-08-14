@@ -38,6 +38,8 @@ export class UserProvisioningListener {
     try {
       const setupResult = await this.userSetupService.initializeUserResources(
         event.userId,
+        undefined,
+        { email: event.email },
       );
       this.logger.log(
         `Provisioned resources for Better Auth user ${event.userId}`,

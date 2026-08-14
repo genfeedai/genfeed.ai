@@ -108,6 +108,10 @@ export class OnboardingService {
       const setupResult = await this.userSetupService.initializeUserResources(
         userId,
         category,
+        {
+          email: (dbUser as { email?: string | null } | null)?.email,
+          name: (dbUser as { name?: string | null } | null)?.name,
+        },
       );
 
       organizationId = this.getEntityId(setupResult.organization);

@@ -627,6 +627,10 @@ export class StripeCheckoutWebhookHandler {
       const setupResult = await this.userSetupService.initializeUserResources(
         String(dbUser.id),
         OrganizationCategory.BUSINESS,
+        {
+          email: (dbUser as { email?: string | null }).email,
+          name: (dbUser as { name?: string | null }).name,
+        },
       );
 
       organization = setupResult.organization;
