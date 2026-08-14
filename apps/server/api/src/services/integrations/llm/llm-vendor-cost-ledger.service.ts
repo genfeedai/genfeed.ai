@@ -1,7 +1,6 @@
 import { foldLlmVendorCostGroups } from '@api/services/integrations/llm/llm-vendor-cost-aggregate.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
-  ILlmVendorCostGroupRow,
   ILlmVendorCostModelAggregate,
   ILlmVendorCostRangeQuery,
   ILlmVendorCostRecordInput,
@@ -39,7 +38,7 @@ export class LlmVendorCostLedgerService {
   async aggregateByOrgModel(
     query: ILlmVendorCostRangeQuery,
   ): Promise<ILlmVendorCostModelAggregate[]> {
-    const rows = (await this.prisma.llmVendorCost.groupBy({
+    const rows = await this.prisma.llmVendorCost.groupBy({
       _count: { _all: true },
       _sum: {
         completionTokens: true,
@@ -55,7 +54,7 @@ export class LlmVendorCostLedgerService {
         isDeleted: false,
         organizationId: query.organizationId,
       },
-    })) as ILlmVendorCostGroupRow[];
+    });
 
     this.logger.debug(
       `${this.constructorName} aggregated ${rows.length} vendor-cost groups`,

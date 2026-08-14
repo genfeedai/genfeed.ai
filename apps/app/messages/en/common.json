@@ -65,6 +65,12 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "workspaceInspector": {
+    "chooseWorkflow": "Choose workflow",
+    "fullManagement": "Full management remains available on this canonical route.",
+    "openOverlayPreview": "Open overlay preview",
+    "returnToConversation": "Return to conversation"
+  },
   "desktop": {
     "local": {
       "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",

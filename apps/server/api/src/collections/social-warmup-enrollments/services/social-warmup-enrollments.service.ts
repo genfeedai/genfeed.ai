@@ -314,13 +314,10 @@ export class SocialWarmupEnrollmentsService {
             ? enrollment.state
             : SocialWarmupEnrollmentState.IN_PROGRESS,
       },
-      where: {
-        id_organizationId_brandId: {
-          brandId: enrollment.brandId,
-          id: enrollment.id,
-          organizationId: enrollment.organizationId,
-        },
-      },
+      where: scopedWhere(enrollment.organizationId, {
+        brandId: enrollment.brandId,
+        id: enrollment.id,
+      }),
     });
 
     return this.requireEnrollment(id, context);
@@ -406,13 +403,10 @@ export class SocialWarmupEnrollmentsService {
       await this.prisma.$transaction([
         this.prisma.socialWarmupEnrollment.update({
           data: { state: SocialWarmupEnrollmentState.DISCONNECTED },
-          where: {
-            id_organizationId_brandId: {
-              brandId: enrollment.brandId,
-              id: enrollment.id,
-              organizationId: enrollment.organizationId,
-            },
-          },
+          where: scopedWhere(enrollment.organizationId, {
+            brandId: enrollment.brandId,
+            id: enrollment.id,
+          }),
         }),
         this.prisma.socialWarmupSignal.updateMany({
           data: {
@@ -548,13 +542,10 @@ export class SocialWarmupEnrollmentsService {
           staleAt,
           status: params.status,
         },
-        where: {
-          id_organizationId_brandId: {
-            brandId: params.brandId,
-            id: existing.id,
-            organizationId: params.organizationId,
-          },
-        },
+        where: scopedWhere(params.organizationId, {
+          brandId: params.brandId,
+          id: existing.id,
+        }),
       });
       return;
     }
