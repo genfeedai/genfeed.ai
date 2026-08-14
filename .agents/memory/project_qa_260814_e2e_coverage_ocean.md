@@ -45,6 +45,10 @@ last_verified: 2026-08-14
 
 ## After merge
 
+**New branch / PR.** Do not keep piling onto `cursor/qa-e2e-coverage-ocean-805a`
+after #2952 is rebased green. Cut the next #2687 train from updated `master`
+(`cursor/qa-coverage-ratchet-<suffix>`) so this PR stays reviewable.
+
 1. Re-measure `apps/app`, `packages/ui`, `apps/server/api` via the existing
    sharded coverage workflow and add `coverage.thresholds` ~2 points below
    the merged number (#2687 remainder).
@@ -52,3 +56,12 @@ last_verified: 2026-08-14
    `forBrands()` / `forOrganizations()` have been exercised against Postgres.
 3. Bun-runner surfaces (`apps/desktop/app`, `apps/extensions/ide/app`) still
    need a coverage gate decision.
+
+## Merge order (this closeout)
+
+1. #2950 (`codex/fix-master-ci-2948`) — required checks green, then squash.
+2. Rebase #2952 onto that `master` tip. Do not open a third CI-stabilize PR.
+3. Merge #2952 when green.
+4. Rebase or close #2947 after that; leftover public-route / UI skeleton work
+   stays on #2947 unless it is abandoned.
+5. Next remainder → new branch from updated `master`.
