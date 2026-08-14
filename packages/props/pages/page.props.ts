@@ -20,6 +20,14 @@ export interface PostsPlatformPageProps {
   params: Promise<{ platform: string }>;
 }
 
+export interface BrandPlatformHomePageProps {
+  params: Promise<{
+    brandSlug: string;
+    orgSlug: string;
+    platform: string;
+  }>;
+}
+
 export interface AnalyticsBrandPageProps {
   params: Promise<{ id: string }>;
 }

@@ -86,6 +86,7 @@ export type WorkspaceShellSurfaceKey =
   | 'organization-settings'
   | 'personal-settings'
   | 'platform-admin'
+  | 'platforms'
   | 'protected-bootstrap'
   | 'publish'
   | 'studio-edit'

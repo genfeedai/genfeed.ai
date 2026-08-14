@@ -28,6 +28,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'messages',
   'discover',
   'overview',
+  'platforms',
   'ingredients',
   'videos',
   'edit',

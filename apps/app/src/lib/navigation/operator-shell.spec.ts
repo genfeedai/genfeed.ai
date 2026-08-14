@@ -17,6 +17,9 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/studio/storyboard')).toBe(
       '/studio/storyboard',
     );
+    expect(
+      normalizeProtectedPathname('/acme/brand-x/platforms/instagram'),
+    ).toBe('/platforms/instagram');
     expect(normalizeProtectedPathname('/acme/~/settings')).toBe('/settings');
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
       '/settings/organization',

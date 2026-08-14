@@ -239,6 +239,13 @@ export const APP_ROUTES = {
     REPLY_DRIP: '/messages/reply-drip',
     ROOT: '/messages',
   },
+  /**
+   * Per-destination brand hub (`/platforms/:platform`).
+   * Composition page — queue, engage, connect, and create shortcuts.
+   */
+  PLATFORMS: {
+    ROOT: '/platforms',
+  },
   ONBOARDING: {
     BRAND: '/onboarding/brand',
     POST_SIGNUP: '/onboarding/post-signup',
@@ -381,6 +388,7 @@ export const APP_ROUTE_PREFIXES = {
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
+  PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
   PUBLISH: APP_ROUTES.PUBLISH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
@@ -456,6 +464,17 @@ export function createBrandAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/${brandSlug}${normalizeScopedRoutePath(path)}`;
+}
+
+/** Brand-relative path to a destination hub: `/platforms/instagram`. */
+export function createPlatformHomeRoute(platform: string): string {
+  return `${APP_ROUTES.PLATFORMS.ROOT}/${encodeURIComponent(platform)}`;
+}
+
+/** Append a `platform=` filter to an existing brand-relative path. */
+export function withPlatformQuery(path: string, platform: string): string {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}platform=${encodeURIComponent(platform)}`;
 }
 
 export function createOrganizationAppRoute(
