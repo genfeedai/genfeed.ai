@@ -156,29 +156,6 @@ export class WorkflowAutomationExecutorRegistrarService {
             )
           : this.contentProductionUnavailable('contentPipelineAutopilot', ctx),
     );
-    engine.registerExecutor('contentScheduleRun', (node, _inputs, context) => {
-      if (!this.contentProductionWorkflowService) {
-        return this.contentProductionUnavailable('contentScheduleRun', context);
-      }
-
-      const contentScheduleId = this.helper.readConfigString(
-        node.config,
-        'contentScheduleId',
-      );
-      if (!contentScheduleId) {
-        return this.contentProductionUnavailable(
-          'contentScheduleRun',
-          context,
-          'content_schedule_id_missing',
-        );
-      }
-
-      return this.contentProductionWorkflowService.runContentSchedule(
-        context.organizationId,
-        contentScheduleId,
-        context.workflowId,
-      );
-    });
   }
 
   private registerReplyPollingExecutors(engine: WorkflowEngine): void {

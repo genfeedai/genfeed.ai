@@ -127,7 +127,7 @@ export class TrendQueryService {
     // tenant-scope-ignore: purging the synthetic rows found by the sweep above, addressed by their own primary keys
     const result = await this.prisma.trend.updateMany({
       data: { isDeleted: true },
-      where: { id: { in: syntheticIds } },
+      where: { id: { in: syntheticIds }, isDeleted: false },
     });
 
     return { purged: result.count };

@@ -7,6 +7,10 @@ import {
 describe('metric value formatting', () => {
   it.each([
     ['42K', 'K'],
+    ['42M', 'M'],
+    ['42B', 'B'],
+    ['42T', 'T'],
+    ['42k', 'k'],
     ['42mb', 'mb'],
     ['42%', '%'],
     ['42', ''],

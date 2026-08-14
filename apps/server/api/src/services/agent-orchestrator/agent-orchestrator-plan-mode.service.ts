@@ -187,6 +187,11 @@ export class AgentOrchestratorPlanModeService {
         source: params.request.source,
       }),
       params.context.organizationId,
+      {
+        runId: params.context.runId,
+        threadId: params.threadId,
+        userId: params.context.userId,
+      },
     );
 
     const choice = response.choices[0];

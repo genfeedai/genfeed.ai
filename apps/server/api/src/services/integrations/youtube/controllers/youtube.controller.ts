@@ -12,6 +12,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -190,6 +191,7 @@ export class YoutubeController {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: tokens.refresh_token || undefined, // Only save if present
+          ...buildGrantedScopesCredentialPatch(tokens.scope),
         },
       );
 

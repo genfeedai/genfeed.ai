@@ -11,6 +11,31 @@ const mocks = vi.hoisted(() => ({
   isSystemWorkflow: false,
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      'actions.retry': 'Retry',
+      'library.autopilot': 'Autopilot',
+      'library.created': 'Created',
+      'library.description':
+        'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
+      'library.info':
+        'are explicit automation graphs. Schedule a workflow when the steps should be predictable and repeatable. For adaptive agent behavior, use',
+      'library.infoSuffix': '.',
+      'library.local': 'local',
+      'library.newWorkflow': 'New Workflow',
+      'library.nextRun': 'Next run',
+      'library.searchPlaceholder': 'Search workflows...',
+      'library.synced': 'synced',
+      'library.system': 'System',
+      'library.templates': 'Templates',
+      'library.title': 'Workflows',
+      'library.updated': 'Updated',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 // Spread the real module: a bare object drops every other enum, so any new
 // import in the render tree (CredentialPlatform, etc.) fails module resolution.
 vi.mock('@genfeedai/enums', async (importOriginal) => {

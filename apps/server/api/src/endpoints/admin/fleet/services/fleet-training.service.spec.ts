@@ -262,6 +262,85 @@ describe('AdminFleetTrainingService', () => {
       });
       expect(result).toEqual(dataset);
     });
+
+    it('rejects a non-ok images service response', async () => {
+      safeFetchMock.mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        text: async () => 'down',
+      } as unknown as Response);
+
+      await expect(service.getDatasetInfo('alice')).rejects.toThrow(
+        'Images service returned 503 Service Unavailable',
+      );
+    });
+
+    it('returns undefined for an empty 204 response', async () => {
+      safeFetchMock.mockResolvedValue({
+        ok: true,
+        status: 204,
+        statusText: 'No Content',
+        text: async () => 'ignored',
+      } as unknown as Response);
+
+      await expect(service.getDatasetInfo('alice')).resolves.toBeUndefined();
+    });
+
+    it('returns undefined for a 200 response with an empty body', async () => {
+      safeFetchMock.mockResolvedValue(successResponse(undefined));
+
+      await expect(service.getDatasetInfo('alice')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('requestImagesApi base URL', () => {
+    async function compileWithImagesUrl(imagesApiUrl: string) {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_API_KEY' ? 'internal-key' : imagesApiUrl,
+      );
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AdminFleetTrainingService,
+          { provide: TrainingsService, useValue: trainingsService },
+          { provide: PersonasService, useValue: personasService },
+          { provide: ConfigService, useValue: configService },
+          { provide: LoggerService, useValue: loggerService },
+          {
+            provide: ModelRegistrationService,
+            useValue: modelRegistrationService,
+          },
+        ],
+      }).compile();
+
+      return module.get<AdminFleetTrainingService>(AdminFleetTrainingService);
+    }
+
+    it('rejects an invalid GPU_IMAGES_URL', async () => {
+      const isolated = await compileWithImagesUrl('not a url');
+      await expect(isolated.getDatasetInfo('alice')).rejects.toThrow(
+        'GPU_IMAGES_URL must be a valid http(s) URL',
+      );
+    });
+
+    it('joins pathnames onto a trailing-slash base URL', async () => {
+      const isolated = await compileWithImagesUrl('http://gpu-images:3000/');
+      safeFetchMock.mockResolvedValue(
+        successResponse({
+          imageCount: 1,
+          images: ['img1.jpg'],
+          path: '/datasets/alice',
+          slug: 'alice',
+        }),
+      );
+
+      await isolated.getDatasetInfo('alice');
+
+      expect(String(safeFetchMock.mock.calls[0]?.[0])).toBe(
+        'http://gpu-images:3000/datasets/alice',
+      );
+    });
   });
 
   describe('syncDataset', () => {

@@ -267,8 +267,8 @@ export class VideosController {
         PopulatePatterns.brandMinimal,
         PopulatePatterns.organizationMinimal,
         { path: 'captions' },
-        { path: 'votes' },
-        { path: 'posts' },
+        // Vote status is loaded via VotesService below. `votes` and `posts`
+        // are not Ingredient relations (`postIngredients` is the post link).
       ],
     );
 

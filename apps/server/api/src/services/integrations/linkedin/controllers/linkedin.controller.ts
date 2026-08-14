@@ -19,6 +19,7 @@ import {
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -125,7 +126,7 @@ export class LinkedInController {
       const { organizationId } = existingCredential;
 
       // Exchange code for access token
-      const { accessToken, expiresIn } =
+      const { accessToken, expiresIn, scope } =
         await this.linkedInService.exchangeAuthCodeForAccessToken(code);
 
       if (!accessToken) {
@@ -152,6 +153,7 @@ export class LinkedInController {
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
           oauthState: null,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

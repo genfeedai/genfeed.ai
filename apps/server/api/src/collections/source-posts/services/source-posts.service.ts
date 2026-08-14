@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -11,7 +10,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
-  ITwitterPublishResult,
   SourcePostDraftActionInput,
   SourcePostDraftActionResult,
   SourcePostMetrics,
@@ -123,7 +121,6 @@ export class SourcePostsService {
     private readonly prisma: PrismaService,
     readonly _logger: LoggerService,
     private readonly credentialsService: CredentialsService,
-    private readonly twitterPipelineService: TwitterPipelineService,
   ) {}
 
   private get db(): PrismaWithSourcePosts {
@@ -329,63 +326,6 @@ export class SourcePostsService {
     });
 
     return { draftId: post.id, post };
-  }
-
-  async publishTwitterAction(
-    id: string,
-    context: { organizationId: string; brandId: string },
-    input: { actionType: SourcePostActionType; text?: string },
-  ): Promise<ITwitterPublishResult> {
-    const sourcePost = await this.findOneScoped(id, {
-      brandId: context.brandId,
-      organizationId: context.organizationId,
-    });
-
-    if (sourcePost.platform !== SocialSourcePlatform.TWITTER) {
-      throw new BadRequestException(
-        'Reply, quote, and repost actions are only supported for X sources',
-      );
-    }
-
-    if (
-      input.actionType !== SourcePostActionType.REPLY &&
-      input.actionType !== SourcePostActionType.QUOTE &&
-      input.actionType !== SourcePostActionType.REPOST
-    ) {
-      throw new BadRequestException(
-        'Only reply, quote, and repost actions can publish to X',
-      );
-    }
-
-    if (input.actionType === SourcePostActionType.REPOST) {
-      return this.twitterPipelineService.publish(
-        context.organizationId,
-        context.brandId,
-        {
-          targetTweetId: sourcePost.externalId,
-          text: '',
-          type: 'repost',
-        },
-      );
-    }
-
-    const text = input.text?.trim();
-    if (!text) {
-      throw new BadRequestException(
-        'text is required for reply and quote actions',
-      );
-    }
-
-    return this.twitterPipelineService.publish(
-      context.organizationId,
-      context.brandId,
-      {
-        targetTweetId: sourcePost.externalId,
-        text,
-        type:
-          input.actionType === SourcePostActionType.QUOTE ? 'quote' : 'reply',
-      },
-    );
   }
 
   async attachIngredientToPost(

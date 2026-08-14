@@ -21,6 +21,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Play, RefreshCw, Square } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement, RefObject } from 'react';
 
 type GenerationActionCardControlsProps = {
@@ -82,6 +83,7 @@ export function GenerationActionCardControls({
   onGenerate,
   onStop,
 }: GenerationActionCardControlsProps): ReactElement {
+  const translate = useTranslations('common.agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   // An empty catalog is indistinguishable from a failed fetch at the picker —
   // both render a control the user can open but never select anything from.
@@ -219,14 +221,14 @@ export function GenerationActionCardControls({
 
         {showStop ? (
           <Button
-            ariaLabel="Stop generation"
+            ariaLabel={translate('stopAria')}
             className={cn('shrink-0 px-3 text-xs', SHELL_CONTROL_HEIGHT_CLASS)}
             onClick={onStop}
             size={ButtonSize.SM}
             variant={ButtonVariant.DESTRUCTIVE}
           >
             <Square className="size-3.5 fill-current stroke-none" />
-            Stop
+            {translate('stop')}
           </Button>
         ) : null}
 

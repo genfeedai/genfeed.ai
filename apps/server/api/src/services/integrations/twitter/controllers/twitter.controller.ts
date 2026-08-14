@@ -11,6 +11,7 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -187,6 +188,7 @@ export class TwitterController {
         accessToken,
         refreshToken,
         expiresIn,
+        scope,
       } = await client.loginWithOAuth2({
         code,
         codeVerifier,
@@ -212,6 +214,7 @@ export class TwitterController {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

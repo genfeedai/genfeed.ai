@@ -1,10 +1,11 @@
-import messages from '../messages/en/common.json';
+import { DEFAULT_LOCALE } from '@genfeedai/constants';
+import { loadMessages } from '../i18n/messages';
 
 type MessageNode = string | { readonly [key: string]: MessageNode };
 
-// Catalog files contain a namespace's messages; i18n/messages.ts is what
-// nests them. Mirror that shape so common.actions.cancel resolves here too.
-const catalog: MessageNode = { common: messages as MessageNode };
+// Resolve against the real English catalog so shared-package namespaces
+// (`agent`, `pages`, …) stay in sync with i18n/messages.ts.
+const catalog = loadMessages(DEFAULT_LOCALE) as unknown as MessageNode;
 
 /**
  * `vi.mock('next-intl')` replacement that resolves keys against the real

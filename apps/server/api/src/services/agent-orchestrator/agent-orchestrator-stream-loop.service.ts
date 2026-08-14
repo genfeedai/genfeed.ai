@@ -334,10 +334,20 @@ export class AgentOrchestratorStreamLoopService {
                   chatParams,
                   context.organizationId,
                   onStreamToken,
+                  {
+                    runId: context.runId,
+                    threadId,
+                    userId: context.userId,
+                  },
                 )
               : await this.llmDispatcher.chatCompletion(
                   chatParams,
                   context.organizationId,
+                  {
+                    runId: context.runId,
+                    threadId,
+                    userId: context.userId,
+                  },
                 );
           } catch (error) {
             if (error instanceof StreamCancelledError) {

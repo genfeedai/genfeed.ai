@@ -169,7 +169,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
 
 const PRODUCT_CRON_PATH_SEGMENTS = [
   '/content-pipeline/',
-  '/content-schedules/',
   '/dynamic-jobs/',
   '/posts/',
 ];

@@ -8,6 +8,14 @@
  * does not mean a surface is fully migrated; pseudo-locale QA and migration
  * review still have to find the strings this static guard cannot see.
  *
+ * Correct fix for new copy in `apps/app` or shared product packages: add a key
+ * to `apps/app/messages/en/<namespace>.json` and resolve it with
+ * `useTranslations('<namespace>')` / `getTranslations` from next-intl. Shared
+ * packages consume the host app catalog (namespaces `ui`, `pages`, `agent`,
+ * `contexts`). Do not hoist strings into a module-level `COPY` const — that
+ * hides them from this ratchet without making them translatable. See
+ * `.agents/memory/project_shared_package_message_catalogs.md`.
+ *
  * Counts are tracked per file. A file over its allowance is a regression, and
  * a file under it makes the baseline stale so cleanup is locked in immediately.
  * `--update-baseline` refuses equal or higher totals and refuses per-file growth,
@@ -21,6 +29,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import * as ts from 'typescript';
+
+export const UNTRANSLATED_STRING_FIX_HELP =
+  'Fix: add the copy to apps/app/messages/en/<namespace>.json and resolve it with ' +
+  "useTranslations('<namespace>') or getTranslations from next-intl. Shared packages " +
+  'consume the host app catalog (namespaces ui, pages, agent, contexts). Do not hoist ' +
+  'strings into a module-level COPY const — that hides them from this ratchet without ' +
+  'making them translatable.';
 
 const BASELINE_VERSION = 1;
 const ROOT = path.resolve(import.meta.dirname, '../..');
@@ -324,6 +339,7 @@ function printDrift(
         `  ${occurrence.file}:${occurrence.line} — ${occurrence.text}\n`,
       );
     }
+    process.stderr.write(`\n${UNTRANSLATED_STRING_FIX_HELP}\n`);
   }
 
   if (diff.stale.length > 0) {

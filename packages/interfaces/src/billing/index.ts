@@ -3,6 +3,7 @@ export * from './credits.interface';
 export * from './credits-utils.contract';
 export * from './isubscription-attributions-service.contract';
 export * from './iuser-subscriptions-service.contract';
+export * from './llm-vendor-cost.interface';
 export * from './managed-credits.interface';
 export * from './pricing.interface';
 export * from './subscription.interface';

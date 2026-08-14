@@ -9,6 +9,10 @@ import {
 } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
+import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
 } from '@genfeedai/integrations';
@@ -227,6 +231,7 @@ export class LinkedInService {
   public async exchangeAuthCodeForAccessToken(code: string): Promise<{
     accessToken: string;
     expiresIn: number;
+    scope?: unknown;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -234,9 +239,12 @@ export class LinkedInService {
       const tokenResponse =
         await this.authClient.exchangeAuthCodeForAccessToken(code);
 
+      const scope = readOAuthTokenScopeField(tokenResponse);
+
       return {
         accessToken: tokenResponse.access_token,
         expiresIn: tokenResponse.expires_in,
+        ...(scope === undefined ? {} : { scope }),
       };
     } catch (error: unknown) {
       this.loggerService.error(
@@ -288,6 +296,9 @@ export class LinkedInService {
           isDeleted: false,
           refreshToken:
             refreshResponse.refresh_token || credentials.refreshToken,
+          ...buildGrantedScopesCredentialPatch(
+            readOAuthTokenScopeField(refreshResponse),
+          ),
         });
       }
 

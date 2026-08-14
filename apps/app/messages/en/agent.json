@@ -1,0 +1,78 @@
+{
+  "brandIdentityConfirmation": {
+    "awaitingConfirmation": "Awaiting confirmation",
+    "confirmCreateTitle": "Confirm create brand",
+    "confirmRenameTitle": "Confirm rename brand",
+    "createBrand": "Create brand",
+    "createError": "Could not create the brand. Your edits are still here; try again.",
+    "created": "Brand \"{label}\" created.",
+    "creating": "Creating...",
+    "currentBrand": "Current brand:",
+    "descriptionField": "Description",
+    "descriptionPlaceholder": "Describe the brand",
+    "labelField": "Brand label",
+    "labelPlaceholder": "Brand label",
+    "renameBrand": "Rename brand",
+    "renameError": "Could not rename the brand. Your edits are still here; try again.",
+    "renamed": "Brand renamed to \"{label}\".",
+    "renaming": "Renaming...",
+    "slugField": "Brand slug",
+    "slugPlaceholder": "brand-slug"
+  },
+  "publishPostCard": {
+    "caption": "Caption",
+    "captionPlaceholder": "Optional caption override",
+    "confirmPublish": "Confirm publish",
+    "confirmSchedule": "Confirm schedule",
+    "confirmed": "Publish confirmed from chat.",
+    "defaultTitle": "Publish selected content",
+    "platforms": "Platforms",
+    "publishing": "Publishing...",
+    "scheduleForLater": "Schedule for later",
+    "scheduled": "Publish scheduled from chat.",
+    "visibility": "Visibility",
+    "visibilityAria": "Post visibility",
+    "visibilityPlaceholder": "Select visibility",
+    "visibilityPrivate": "Private",
+    "visibilityPublic": "Public",
+    "visibilityUnlisted": "Unlisted"
+  },
+  "settings": {
+    "autoDescription": "Use the platform default model",
+    "autoLabel": "Auto",
+    "costTierTitle": "Cost tier {symbol}",
+    "defaultModel": "Default Model Override",
+    "defaultModelHelp": "Leave unset to use the platform default model for new threads.",
+    "defaultsBanner": "No model, persona, or generation priority overrides are saved yet. These defaults become persisted only after you save.",
+    "generationQuality": "Generation Quality",
+    "generationQualityHelp": "Control how the agent selects models for image and video generation.",
+    "loadingModels": "Loading models…",
+    "noModels": "No agent models in the registry. Seed the model catalog.",
+    "persona": "Persona",
+    "personaAria": "Agent persona",
+    "personaHelp": "Customize your agent's personality and instructions. Leave empty to use the default.",
+    "personaPlaceholder": "Customize your agent's personality and instructions...",
+    "priority": {
+      "balanced": {
+        "description": "Smart balance of quality, speed, and cost",
+        "label": "Balanced"
+      },
+      "cost": {
+        "description": "Cheapest models, saves credits",
+        "label": "Budget"
+      },
+      "quality": {
+        "description": "Premium models, highest quality output",
+        "label": "Best Quality"
+      },
+      "speed": {
+        "description": "Fastest generation, may use lighter models",
+        "label": "Fast"
+      }
+    },
+    "save": "Save Settings",
+    "saveFailed": "Failed to save settings",
+    "saved": "Settings saved",
+    "saving": "Saving..."
+  }
+}

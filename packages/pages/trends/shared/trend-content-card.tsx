@@ -43,6 +43,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 function getViralityVariant(
@@ -108,6 +109,7 @@ export default function TrendContentCard({
   item: TrendContentItem;
   onSelect?: (finding: AuthorizedResearchFinding) => void;
 }) {
+  const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -241,7 +243,7 @@ export default function TrendContentCard({
           {item.publishedAt ? (
             <span>{getRelativeTime(item.publishedAt)}</span>
           ) : null}
-          <span>Rank #{item.contentRank}</span>
+          <span>{translate('rank', { rank: item.contentRank })}</span>
         </div>
 
         <div className="space-y-2">
@@ -264,18 +266,38 @@ export default function TrendContentCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/55">
-          <span>{formatCompactNumber(item.trendMentions)} mentions</span>
+          <span>
+            {translate('metrics.mentions', {
+              count: formatCompactNumber(item.trendMentions),
+            })}
+          </span>
           {item.metrics?.views ? (
-            <span>{formatCompactNumber(item.metrics.views)} views</span>
+            <span>
+              {translate('metrics.views', {
+                count: formatCompactNumber(item.metrics.views),
+              })}
+            </span>
           ) : null}
           {item.metrics?.likes ? (
-            <span>{formatCompactNumber(item.metrics.likes)} likes</span>
+            <span>
+              {translate('metrics.likes', {
+                count: formatCompactNumber(item.metrics.likes),
+              })}
+            </span>
           ) : null}
           {item.metrics?.comments ? (
-            <span>{formatCompactNumber(item.metrics.comments)} comments</span>
+            <span>
+              {translate('metrics.comments', {
+                count: formatCompactNumber(item.metrics.comments),
+              })}
+            </span>
           ) : null}
           {item.metrics?.shares ? (
-            <span>{formatCompactNumber(item.metrics.shares)} shares</span>
+            <span>
+              {translate('metrics.shares', {
+                count: formatCompactNumber(item.metrics.shares),
+              })}
+            </span>
           ) : null}
         </div>
 
@@ -290,7 +312,7 @@ export default function TrendContentCard({
             >
               <Link href={remixHref}>
                 <Sparkles className="size-3.5" />
-                Remix
+                {translate('actions.remix')}
               </Link>
             </Button>
           ) : null}
@@ -331,15 +353,15 @@ export default function TrendContentCard({
                 }}
               >
                 <Copy className="size-4" />
-                Copy prompt
+                {translate('actions.copyPrompt')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleOpenSource}>
                 <ExternalLink className="size-4" />
-                Open source
+                {translate('actions.openSource')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleSendToAgent}>
                 <Film className="size-4" />
-                Send to agent
+                {translate('actions.sendToAgent')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -105,3 +105,15 @@ export interface IPublishingProviderReadiness {
   lastSuccessfulValidationAt?: string | null;
   diagnostics: IPublishingDiagnostic[];
 }
+
+export interface PermissionScopeReadinessInput {
+  checkedAt: string;
+  grantedScopes: readonly string[];
+  hasCapturedGrantedScopes: boolean;
+  requiredScopes: readonly string[] | undefined;
+}
+
+export interface PermissionScopeReadinessResult {
+  diagnostics: IPublishingDiagnostic[];
+  status: PublishingSetupCheckStatus;
+}

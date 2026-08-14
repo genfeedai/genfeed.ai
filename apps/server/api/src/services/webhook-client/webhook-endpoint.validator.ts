@@ -2,6 +2,7 @@ import { lookup } from 'node:dns/promises';
 import { Agent as HttpAgent } from 'node:http';
 import { Agent as HttpsAgent } from 'node:https';
 import { isIP, type LookupFunction } from 'node:net';
+import { getRequestedAddressFamily } from '@api/services/webhook-client/webhook-address-family.util';
 import { isBlockedDestinationAddress } from '@libs/security/destination-guard';
 
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
@@ -49,20 +50,6 @@ function createValidatedWebhookAddress(
     address,
     family: parsedFamily,
   };
-}
-
-function getRequestedAddressFamily(
-  family: number | string | undefined,
-): 4 | 6 | undefined {
-  if (family === 4 || family === 'IPv4') {
-    return 4;
-  }
-
-  if (family === 6 || family === 'IPv6') {
-    return 6;
-  }
-
-  return undefined;
 }
 
 function filterAddressesByFamily(

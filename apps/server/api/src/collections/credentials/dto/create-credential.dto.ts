@@ -145,4 +145,22 @@ export class CreateCredentialDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly isConnected?: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Provider-granted OAuth scopes captured at connect or refresh',
+    required: false,
+    type: [String],
+  })
+  readonly grantedScopes?: string[];
+
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'When grantedScopes were last written. Null means they were never captured.',
+    required: false,
+  })
+  readonly grantedScopesCapturedAt?: Date;
 }

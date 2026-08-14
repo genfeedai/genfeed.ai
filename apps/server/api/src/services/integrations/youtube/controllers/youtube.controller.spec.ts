@@ -208,6 +208,8 @@ describe('YoutubeController', () => {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'yt_refresh',
+          grantedScopes: ['youtube'],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
       expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
