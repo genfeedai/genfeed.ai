@@ -226,6 +226,96 @@ describe('TwitterService (coverage)', () => {
       );
     });
 
+    it('looks up a specific credential when refreshToken receives a credential id', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+        scope: 'tweet.read users.read',
+      });
+
+      await service.refreshToken('org', 'brand', 'cred-id');
+
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        id: 'cred-id',
+        organizationId: 'org',
+        platform: 'TWITTER',
+      });
+    });
+  });
+
+  describe('getValidCredential', () => {
+    it('returns the stored credential when the access token is still valid', async () => {
+      const cred = makeCredential({
+        accessTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+      credentialsService.findOne.mockResolvedValue(cred);
+
+      const result = await service.getValidCredential(
+        'org',
+        'brand',
+        'cred-id',
+      );
+
+      expect(result).toEqual(cred);
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('refreshes an expired credential instead of using the stale token', async () => {
+      const cred = makeCredential({
+        accessTokenExpiry: new Date('2020-01-01T00:00:00.000Z'),
+        refreshToken: 'enc-rt',
+      });
+      credentialsService.findOne.mockResolvedValue(cred);
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+        scope: 'tweet.read',
+      });
+      const updated = makeCredential({ accessToken: 'new-access' });
+      credentialsService.patch.mockResolvedValue(updated);
+
+      const result = await service.getValidCredential(
+        'org',
+        'brand',
+        'cred-id',
+      );
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalled();
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('handleAuthorizationError', () => {
+    it('disconnects only on authorization failures', async () => {
+      await expect(
+        service.handleAuthorizationError(
+          'cred-id',
+          { response: { status: 401 } },
+          'refresh',
+        ),
+      ).resolves.toBe(true);
+      expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
+        isConnected: false,
+      });
+
+      credentialsService.patch.mockClear();
+      await expect(
+        service.handleAuthorizationError(
+          'cred-id',
+          { response: { data: { title: 'client-not-enrolled' }, status: 403 } },
+          'refresh',
+        ),
+      ).resolves.toBe(false);
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshToken errors', () => {
     it('marks disconnected, logs activity, and rethrows when refresh SDK call fails', async () => {
       const cred = makeCredential({ refreshToken: 'enc-rt' });
       credentialsService.findOne.mockResolvedValue(cred);

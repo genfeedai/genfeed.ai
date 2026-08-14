@@ -3,6 +3,11 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  isTwitterAuthorizationError,
+  isTwitterRateLimitError,
+  isTwitterScopeOrTierError,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
@@ -12,6 +17,7 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
@@ -211,6 +217,8 @@ interface TweetMediaOptions {
  * vocabulary. `everyone` is absent on purpose: the API expresses it by omitting
  * the field, and sending an unknown value rejects the whole tweet.
  */
+const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
+
 const TWITTER_REPLY_SETTINGS_BY_POLICY: Record<string, string> = {
   following: 'following',
   mentioned: 'mentionedUsers',
@@ -272,18 +280,117 @@ export class TwitterService {
     return SocialUrlHelper.buildTwitterUrl(tweetId, username);
   }
 
+  private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
+    if (!expiresAt) {
+      return true;
+    }
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) {
+      return true;
+    }
+
+    return expiresAtMs <= Date.now() + TWITTER_TOKEN_REFRESH_BUFFER_MS;
+  }
+
+  public async getValidCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument> {
+    const credential = await this.findTwitterCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+
+    if (!credential) {
+      throw new Error('Twitter credential not found');
+    }
+
+    if (
+      !credential.accessToken ||
+      this.shouldRefreshAccessToken(credential.accessTokenExpiry)
+    ) {
+      return this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId ?? credential.id,
+      );
+    }
+
+    return credential;
+  }
+
+  /**
+   * Reuse the integration's reconnect lifecycle from auxiliary X reads.
+   * Returns false for permission, rate-limit, and provider errors so callers
+   * can preserve those states without disconnecting a valid credential.
+   */
+  public async handleAuthorizationError(
+    credentialId: string,
+    error: unknown,
+    context: string,
+  ): Promise<boolean> {
+    if (
+      isTwitterScopeOrTierError(error) ||
+      isTwitterRateLimitError(error) ||
+      !isTwitterAuthorizationError(error)
+    ) {
+      return false;
+    }
+
+    try {
+      await this.credentialsService.patch(credentialId, {
+        isConnected: false,
+      });
+      this.loggerService.warn(
+        `${context} - credential marked as disconnected due to auth error`,
+        { credentialId },
+      );
+    } catch (patchError: unknown) {
+      this.loggerService.error(
+        `${context} - failed to mark credential as disconnected`,
+        patchError,
+      );
+    }
+
+    return true;
+  }
+
+  private async findTwitterCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument | null> {
+    const platform =
+      toPrismaCredentialPlatform(CredentialPlatform.TWITTER) ??
+      CredentialPlatform.TWITTER;
+
+    return credentialId
+      ? this.credentialsService.findOne({
+          id: credentialId,
+          organizationId,
+          platform,
+        })
+      : this.credentialsService.findOne({
+          brandId,
+          isDeleted: false,
+          organizationId,
+          platform,
+        });
+  }
+
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<CredentialDocument> {
-    const queryCredentials = {
-      brandId,
-      isDeleted: false,
+    const credentials = await this.findTwitterCredential(
       organizationId,
-      platform: CredentialPlatform.TWITTER,
-    };
-
-    const credentials = await this.credentialsService.findOne(queryCredentials);
+      brandId,
+      credentialId,
+    );
 
     if (!credentials) {
       throw new Error('Twitter credential not found');
