@@ -308,15 +308,15 @@ export class ClipLibraryLinkService {
       return;
     }
 
-    await this.captionsService.create({
-      content: captionSrt,
+    const caption = await this.captionsService.create({
       format: CaptionFormat.SRT,
       ingredientId,
-      isDeleted: false,
       language: CaptionLanguage.EN,
-      organizationId,
-      userId,
     });
+    const captionId = this.readString(caption?.id);
+    if (captionId) {
+      await this.captionsService.patch(captionId, { content: captionSrt });
+    }
   }
 
   private isUsableLibraryAsset(ingredient: unknown): ingredient is {

@@ -102,6 +102,6 @@ describe('ClipResultSerializer — raw-cut contract', () => {
       ingredientId: 'ckingredient00000000000001',
       libraryLinkStatus: 'linked',
     });
-    expect(output.data.attributes.libraryLinkError).toBeUndefined();
+    expect(output.data.attributes.libraryLinkError).toBeNull();
   });
 });

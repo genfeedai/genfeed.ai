@@ -327,6 +327,7 @@ export class ClipResultsService extends BaseService<
       return false;
     }
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Compare-and-swap for one clip result; `where` is scopedWhere(organizationId, { id, isDeleted }).
     const result = await this.delegate.updateMany({
       data: this.toPrismaWriteData(
         {
@@ -361,6 +362,7 @@ export class ClipResultsService extends BaseService<
       return;
     }
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Single clip result status write; `where` is scopedWhere(organizationId, { id, isDeleted }).
     await this.delegate.updateMany({
       data: this.toPrismaWriteData(
         {

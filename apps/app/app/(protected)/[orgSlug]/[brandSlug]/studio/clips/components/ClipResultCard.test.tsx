@@ -12,6 +12,20 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const copy: Record<string, string> = {
+      edit: 'Edit',
+      generationFailed:
+        'Generation failed. The clip will be retried automatically.',
+      inLibrary: 'In Library',
+      publish: 'Publish',
+      retryLibraryLink: 'Retry Library link',
+    };
+    return copy[key] ?? key;
+  },
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/brand${path}`,

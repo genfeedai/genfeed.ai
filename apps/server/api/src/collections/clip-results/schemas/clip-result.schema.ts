@@ -14,7 +14,7 @@ export type ClipResultStatusType = (typeof ClipResultStatus)[number];
 
 type ClipResultRecord = Omit<
   PrismaClipResult,
-  'isSelected' | 'mode' | 'readiness' | 'status' | 'terminalAt'
+  'ingredientId' | 'isSelected' | 'mode' | 'readiness' | 'status' | 'terminalAt'
 >;
 
 export interface ClipResultDocument extends ClipResultRecord {

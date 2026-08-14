@@ -1,4 +1,11 @@
 {
+  "studioClips": {
+    "edit": "Edit",
+    "generationFailed": "Generation failed. The clip will be retried automatically.",
+    "inLibrary": "In Library",
+    "publish": "Publish",
+    "retryLibraryLink": "Retry Library link"
+  },
   "posts": {
     "list": {
       "channelCount": "{count, plural, one {# channel} other {# channels}}",

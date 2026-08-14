@@ -49,7 +49,10 @@ function makeClip(
 
 describe('ClipLibraryLinkService', () => {
   let service: ClipLibraryLinkService;
-  let captionsService: { create: ReturnType<typeof vi.fn> };
+  let captionsService: {
+    create: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
   let clipProjectsService: { findOne: ReturnType<typeof vi.fn> };
   let clipResultsService: {
     claimLibraryIngredient: ReturnType<typeof vi.fn>;
@@ -69,6 +72,7 @@ describe('ClipLibraryLinkService', () => {
   beforeEach(() => {
     captionsService = {
       create: vi.fn().mockResolvedValue({ id: 'caption-1' }),
+      patch: vi.fn().mockResolvedValue({ id: 'caption-1' }),
     };
     clipProjectsService = {
       findOne: vi.fn().mockResolvedValue({
@@ -149,13 +153,12 @@ describe('ClipLibraryLinkService', () => {
       }),
     );
     expect(captionsService.create).toHaveBeenCalledWith({
-      content: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
       format: CaptionFormat.SRT,
       ingredientId: 'ingredient-1',
-      isDeleted: false,
       language: CaptionLanguage.EN,
-      organizationId: 'org-1',
-      userId: 'user-1',
+    });
+    expect(captionsService.patch).toHaveBeenCalledWith('caption-1', {
+      content: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
     });
     expect(clipResultsService.claimLibraryIngredient).toHaveBeenCalledWith({
       clipResultId: 'clip-1',

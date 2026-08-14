@@ -20,6 +20,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 import type { ClipsApiService } from '../services/clips-api.service';
@@ -79,6 +80,7 @@ export default function ClipResultCard({
   mode,
   projectId,
 }: ClipResultCardProps) {
+  const t = useTranslations('pages.studioClips');
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const [retryLink, setRetryLink] = useState<{
@@ -215,7 +217,7 @@ export default function ClipResultCard({
               variant="secondary"
               className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
-              In Library
+              {t('inLibrary')}
             </Badge>
           )}
         </div>
@@ -287,7 +289,7 @@ export default function ClipResultCard({
               title="Edit in Studio"
             >
               <SquarePen className="size-3.5" />
-              <span>Edit</span>
+              <span>{t('edit')}</span>
             </Button>
           )}
           {canPublish && (
@@ -298,7 +300,7 @@ export default function ClipResultCard({
               title="Publish to social platforms"
             >
               <Rocket className="size-3.5" />
-              <span>Publish</span>
+              <span>{t('publish')}</span>
             </Button>
           )}
           {canDownload && (
@@ -331,7 +333,7 @@ export default function ClipResultCard({
             title="Retry saving this clip to Library"
           >
             <Library className="size-3.5" />
-            <span>Retry Library link</span>
+            <span>{t('retryLibraryLink')}</span>
           </Button>
           {libraryLink.error && (
             <p className="mt-1 text-xs text-destructive/70">
@@ -344,9 +346,7 @@ export default function ClipResultCard({
       {/* Failed state */}
       {clip.status === 'failed' && (
         <div className="mt-auto pt-2">
-          <p className="text-xs text-destructive/70">
-            Generation failed. The clip will be retried automatically.
-          </p>
+          <p className="text-xs text-destructive/70">{t('generationFailed')}</p>
         </div>
       )}
     </Card>
