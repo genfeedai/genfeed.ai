@@ -223,6 +223,17 @@ describe('SocialWarmupEnrollmentsService', () => {
       }),
     );
 
+    expect(socialWarmupEnrollment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          id: 'enrollment-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+
     await service.reopenItemScoped(
       'enrollment-1',
       'watch-niche-content',
@@ -279,6 +290,17 @@ describe('SocialWarmupEnrollmentsService', () => {
       isAvailable: true,
       reason: 'disconnected',
     });
+    expect(socialWarmupEnrollment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { state: SocialWarmupEnrollmentState.DISCONNECTED },
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          id: 'enrollment-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
     expect(socialWarmupSignal.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
