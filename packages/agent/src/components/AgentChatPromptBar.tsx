@@ -156,24 +156,22 @@ export function AgentChatPromptBar({
         />
       ) : null}
       {!isReadOnly && activeGenerationAction ? (
-        <div className="pb-2">
-          <GenerationActionCard
-            // Card state (prompt edits, chosen model, aspect ratio) is
-            // initialized once from the action. Keying on the action id makes a
-            // genuinely new request start clean while re-renders of the same
-            // request preserve everything the user has changed.
-            key={activeGenerationAction.id}
-            action={activeGenerationAction}
-            apiService={apiService}
-            className="mt-0 rounded-lg shadow-sm"
-            onUiAction={onUiAction}
-          />
-        </div>
+        <GenerationActionCard
+          // Card state (prompt edits, chosen model, aspect ratio) is
+          // initialized once from the action. Keying on the action id makes a
+          // genuinely new request start clean while re-renders of the same
+          // request preserve everything the user has changed.
+          key={activeGenerationAction.id}
+          action={activeGenerationAction}
+          apiService={apiService}
+          className="mt-0 rounded-t-xl rounded-b-none border-b-0 shadow-sm"
+          onUiAction={onUiAction}
+        />
       ) : null}
       {statusStack}
       {hasFollowUpChips ? (
         // Chips carry their own solid fill + shadow — no full-width black strip.
-        <div className="relative z-10 pb-0.5">{promptBarSuggestions}</div>
+        <div className="relative z-10">{promptBarSuggestions}</div>
       ) : null}
     </>
   );

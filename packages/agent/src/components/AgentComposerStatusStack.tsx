@@ -110,7 +110,7 @@ export function AgentComposerStatusStack({
       aria-label="Conversation status and pending input"
       // Cap height so status cards scroll instead of growing into the
       // overflow-hidden workspace canvas and clipping during reconnect thrash.
-      className="max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain pb-2"
+      className="max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain"
       role="region"
     >
       {pendingInputRequest ? (

@@ -117,6 +117,13 @@ describe('AgentChatPromptBar', () => {
     expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
   });
 
+  it('docks the generation card flush on the prompt bar without a transcript gap', () => {
+    renderPromptBar(false);
+
+    const card = screen.getByTestId('generation-action-card');
+    expect(card.parentElement).not.toHaveClass('pb-2');
+  });
+
   it('renders queued follow-ups above the composer', () => {
     renderPromptBar(false, {
       followUps: [

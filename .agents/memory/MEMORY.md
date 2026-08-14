@@ -43,6 +43,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_next_agent_rules_off](feedback_next_agent_rules_off.md) — Next must not rewrite CLAUDE.md or AGENTS.md
 - [feedback_no_nested_claude_md](feedback_no_nested_claude_md.md) — only the repo-root CLAUDE.md; no apps/* or packages/* copies
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, context meter, real Studio Stop
+- [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at 90% width; no transcript gap
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — first-login /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
 - [feedback_prompt_bar_drop_placeholder](feedback_prompt_bar_drop_placeholder.md) — file drag over the prompt bar swaps the empty placeholder to "drop it here?"

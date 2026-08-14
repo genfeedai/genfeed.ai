@@ -74,6 +74,22 @@ describe('PromptBarContainer', () => {
     expect(inner?.firstElementChild).toHaveTextContent('banner');
   });
 
+  it('docks top cards flush against the prompt bar at 90% width', () => {
+    const { container } = render(
+      <PromptBarContainer topContent={<div>banner</div>}>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const inner = container.querySelector('[data-layout-mode] > div');
+    expect(inner?.className).toContain('gap-0');
+    expect(inner?.className).not.toContain('gap-2');
+
+    const topStack = container.querySelector('[data-composer-top-stack]');
+    expect(topStack).toHaveClass('w-[90%]');
+    expect(topStack).toHaveTextContent('banner');
+  });
+
   it('should render an optional top fade scrim when requested', () => {
     const { container } = render(
       <PromptBarContainer showTopFade>
