@@ -28,11 +28,9 @@ describe('ElementsStylesController', () => {
   let controller: ElementsStylesController;
 
   const mockUser: User = {
-    publicMetadata: {
-      isSuperAdmin: true,
-      organization: organizationId,
-      user: userId,
-    },
+    isSuperAdmin: true,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockStyle = {
@@ -111,9 +109,7 @@ describe('ElementsStylesController', () => {
 
     it('should load defaults when no organization', () => {
       const userWithoutOrg: User = {
-        publicMetadata: {
-          user: userId,
-        },
+        userId: userId,
       } as unknown as User;
 
       const inputQuery = {};

@@ -24,10 +24,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -273,11 +270,10 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const { brand: moved, summary } =
       await this.brandsService.relocateToOrganization(id, updateDto, {
         isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       });
 
     await this.activitiesService.create(
@@ -286,7 +282,7 @@ export class BrandsController extends BaseCRUDController<
         key: ActivityKey.BRAND_RELOCATED,
         organizationId: requestedOrgId,
         source: ActivitySource.BRAND_RELOCATION,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify(summary),
       }),
     );
@@ -319,13 +315,12 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const preview = await this.brandsService.previewRelocation(
       id,
       organizationId,
       {
         isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -373,13 +368,11 @@ export class BrandsController extends BaseCRUDController<
     brandId: string,
     user: User,
   ): Promise<BrandDocument> {
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: brandId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -425,11 +418,7 @@ export class BrandsController extends BaseCRUDController<
    * (or active) organization via `GET /brands?organization=`.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     const isDeleted = query.isDeleted ?? false;
 
@@ -443,13 +432,13 @@ export class BrandsController extends BaseCRUDController<
     // Members may only filter by their session organization (or omit the param).
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
-      publicMetadata,
+      user,
       false,
     );
-    const organizationId = scope.organizationId ?? publicMetadata.organization;
+    const organizationId = scope.organizationId ?? user.organizationId;
 
     const orConditions: Record<string, unknown>[] = [
-      { userId: publicMetadata.user },
+      { userId: user.userId ?? user.id },
     ];
     if (organizationId) {
       orConditions.push({ organizationId });
@@ -500,12 +489,11 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOneBySlug({
       slug,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
       isDeleted: false,
     });

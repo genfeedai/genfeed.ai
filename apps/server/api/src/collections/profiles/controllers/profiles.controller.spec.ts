@@ -27,10 +27,8 @@ describe('ProfilesController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockProfile = {
@@ -120,7 +118,7 @@ describe('ProfilesController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         createDto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
       );
       expect(result).toEqual(mockProfile);
@@ -134,13 +132,10 @@ describe('ProfilesController', () => {
 
       const result = await controller.findAll(mockReq, mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        {
-          isDefault: undefined,
-          search: undefined,
-        },
-      );
+      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+        isDefault: undefined,
+        search: undefined,
+      });
       expect(result).toEqual(profiles);
     });
 
@@ -149,13 +144,10 @@ describe('ProfilesController', () => {
 
       await controller.findAll(mockReq, mockUser, 'professional');
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        {
-          isDefault: undefined,
-          search: 'professional',
-        },
-      );
+      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+        isDefault: undefined,
+        search: 'professional',
+      });
     });
 
     it('should filter by isDefault', async () => {
@@ -163,13 +155,10 @@ describe('ProfilesController', () => {
 
       await controller.findAll(mockReq, mockUser, undefined, 'true');
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        {
-          isDefault: true,
-          search: undefined,
-        },
-      );
+      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+        isDefault: true,
+        search: undefined,
+      });
     });
   });
 
@@ -180,10 +169,7 @@ describe('ProfilesController', () => {
 
       const result = await controller.findOne(mockReq, id, mockUser);
 
-      expect(service.findOne).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.findOne).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual(mockProfile);
     });
   });
@@ -203,7 +189,7 @@ describe('ProfilesController', () => {
       expect(service.update).toHaveBeenCalledWith(
         id,
         updateDto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(updatedProfile);
     });
@@ -216,10 +202,7 @@ describe('ProfilesController', () => {
 
       const result = await controller.remove(id, mockUser);
 
-      expect(service.remove).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.remove).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual({ message: 'Profile deleted successfully' });
     });
   });
@@ -243,7 +226,7 @@ describe('ProfilesController', () => {
 
       expect(service.applyProfile).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(response).toEqual(result);
@@ -269,7 +252,7 @@ describe('ProfilesController', () => {
 
       expect(service.analyzeTone).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(result).toEqual(analysis);
@@ -293,7 +276,7 @@ describe('ProfilesController', () => {
 
       expect(service.generateFromExamples).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
       );

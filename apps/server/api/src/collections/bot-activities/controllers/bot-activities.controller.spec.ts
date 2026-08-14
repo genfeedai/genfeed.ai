@@ -1,11 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: 'brand-123',
-    organization: 'org-123',
-    user: 'user-123',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),

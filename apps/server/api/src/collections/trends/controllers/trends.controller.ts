@@ -18,7 +18,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
@@ -62,9 +61,8 @@ export class TrendsController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
 
     // Check if user wants to force refresh
     if (refresh === 'true') {
@@ -94,9 +92,8 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Query() query: GenerateTrendIdeasDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
     await this.assertOrganizationCreditsAvailable(
       organizationId,
       await this.getDefaultTextMinimumCredits(),
@@ -206,9 +203,8 @@ export class TrendsController {
   @Post('refresh')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async refreshTrends(@CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
 
     const refreshedTrends = await this.trendsService.refreshTrends(
       organizationId,
@@ -225,9 +221,8 @@ export class TrendsController {
   @Get('preferences')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPreferences(@CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
 
     if (!organizationId) {
       return { preferences: null };
@@ -256,8 +251,7 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Body() dto: SaveTrendPreferencesDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
+    const organizationId = user?.organization;
 
     if (!organizationId) {
       throw new Error('Organization ID is required');
@@ -267,7 +261,7 @@ export class TrendsController {
       organizationId,
       {
         autoRequeueWinners: dto.autoRequeueWinners,
-        brandId: dto.brandId || publicMetadata?.brand,
+        brandId: dto.brandId || user?.brand,
         categories: dto.categories,
         hashtags: dto.hashtags,
         keywords: dto.keywords,
@@ -322,8 +316,7 @@ export class TrendsController {
     @Param('id') id: string,
     @Query('limit') limitParam?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
+    const organizationId = user?.organization;
     const parsedLimit = Number.parseInt(limitParam ?? '5', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 5
@@ -345,8 +338,7 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
+    const organizationId = user?.organization;
 
     // Get the trend
     const trend = await this.trendsService.getTrendById(id, organizationId);

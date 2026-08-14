@@ -35,7 +35,7 @@ export class VideoGenerationService {
     await this.creditsService.ensureDeferredCredits(
       createVideoDto,
       resolved.model,
-      resolved.publicMetadata.organization,
+      resolved.user.organizationId,
       request,
     );
     const context = await this.preparationService.prepare(resolved);

@@ -19,11 +19,9 @@ describe('AgentCampaignsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439014',
   };
 
   beforeEach(async () => {
@@ -101,10 +99,8 @@ describe('AgentCampaignsController', () => {
     it('falls back to lookup by authenticated user id when metadata user id is unavailable', async () => {
       const userWithoutMetadataId = {
         ...mockUser,
-        publicMetadata: {
-          ...mockUser.publicMetadata,
-          user: undefined,
-        },
+        ...mockUser,
+        userId: undefined,
       };
 
       mockUsersService.findOne.mockResolvedValueOnce({
@@ -187,10 +183,8 @@ describe('AgentCampaignsController', () => {
     it('should omit the brand filter when no brand is selected', () => {
       const userWithoutBrand = {
         ...mockUser,
-        publicMetadata: {
-          ...mockUser.publicMetadata,
-          brand: undefined,
-        },
+        ...mockUser,
+        brandId: undefined,
       };
       const query = controller.buildFindAllQuery(
         userWithoutBrand as any,
@@ -228,7 +222,8 @@ describe('AgentCampaignsController', () => {
     it('should return true for super admin', () => {
       const superAdmin = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
+        ...mockUser,
+        isSuperAdmin: true,
       };
       const entity = { organizationId: 'different_org_id' };
       expect(

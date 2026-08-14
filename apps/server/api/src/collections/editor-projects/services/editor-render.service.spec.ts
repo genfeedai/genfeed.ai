@@ -34,7 +34,7 @@ describe('EditorRenderService', () => {
   const audioIngredientId = 'music-123';
   const user = {
     id: 'auth-provider-user',
-    publicMetadata: { user: 'database-user' },
+    userId: 'database-user',
   } as unknown as User;
 
   const makeClip = (

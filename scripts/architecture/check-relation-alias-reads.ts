@@ -34,8 +34,8 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
  *   - using `_id` / `organization` / `user` as an object key for a scalar id
  *
  * Sub-property walks (`post.organization.slug`) stay allowed: those only work
- * when the relation is populated. Auth-metadata values
- * (`publicMetadata.organization`) are not row reads and are not flagged as
+ * when the relation is populated. Auth identity values
+ * (`user.organizationId`) are not row reads and are not flagged as
  * filter values.
  *
  * @see .agents/memory/rules/prisma_legacy_alias_fields.md

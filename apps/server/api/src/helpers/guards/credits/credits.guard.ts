@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -20,7 +21,6 @@ import {
   modelKeyToByokProvider,
   modelProviderToByokProvider,
 } from '@api/services/byok/byok-provider-map.util';
-import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
@@ -39,10 +39,7 @@ import type { Request } from 'express';
 
 // Type for authenticated request with user data
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
-  user?: {
-    id?: string;
-    publicMetadata: IAuthPublicMetadata;
-  };
+  user?: AuthenticatedUser;
   creditsConfig?: CreditsConfig & {
     amount: number;
     modelKey?: string;
@@ -103,10 +100,8 @@ export class CreditsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
-    const publicMetadata: IAuthPublicMetadata | undefined =
-      user?.publicMetadata;
 
-    if (!user || !publicMetadata) {
+    if (!user) {
       this.loggerService.warn('Credits guard: No user found in request');
       throw new InsufficientCreditsException(0, 0);
     }
@@ -451,11 +446,10 @@ export class CreditsGuard implements CanActivate {
         }
       }
 
-      if (!publicMetadata.organization) {
+      if (!user.organizationId) {
         this.loggerService.error(
           'Credits guard: No organization found for user',
           {
-            publicMetadata,
             userId: user.id,
           },
         );
@@ -471,7 +465,7 @@ export class CreditsGuard implements CanActivate {
       if (!Number.isFinite(requiredCredits) || requiredCredits < 0) {
         this.loggerService.error('Credits guard: Invalid credits amount', {
           isFinite: Number.isFinite(requiredCredits),
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           requiredCredits,
           userId: user.id,
         });
@@ -501,9 +495,9 @@ export class CreditsGuard implements CanActivate {
         }
       }
 
-      if (byokProvider && publicMetadata.organization) {
+      if (byokProvider && user.organizationId) {
         const isByokActive = await this.byokService.isByokActiveForProvider(
-          publicMetadata.organization,
+          user.organizationId,
           byokProvider,
         );
 
@@ -511,7 +505,7 @@ export class CreditsGuard implements CanActivate {
           // Check BYOK billing status — block if past_due or suspended
           const isBillingOk =
             await this.byokService.isByokBillingInGoodStanding(
-              publicMetadata.organization,
+              user.organizationId,
             );
 
           if (!isBillingOk) {
@@ -519,7 +513,7 @@ export class CreditsGuard implements CanActivate {
               'Credits guard: BYOK billing not in good standing',
               {
                 byokProvider,
-                organizationId: publicMetadata.organization,
+                organizationId: user.organizationId,
               },
             );
 
@@ -535,7 +529,7 @@ export class CreditsGuard implements CanActivate {
 
           this.loggerService.debug('Credits guard: BYOK bypass active', {
             byokProvider,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             requiredCredits,
           });
 
@@ -552,20 +546,20 @@ export class CreditsGuard implements CanActivate {
 
       const hasEnoughCredits =
         await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-          publicMetadata.organization,
+          user.organizationId,
           requiredCredits,
         );
 
       if (!hasEnoughCredits) {
         const currentBalance =
           await this.creditsUtilsService.getOrganizationCreditsBalance(
-            publicMetadata.organization,
+            user.organizationId,
           );
 
         this.loggerService.warn('Credits guard: Insufficient credits', {
           available: currentBalance,
           modelKey: modelKey || creditsConfig.modelKey,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           required: requiredCredits,
           userId: user.id,
         });

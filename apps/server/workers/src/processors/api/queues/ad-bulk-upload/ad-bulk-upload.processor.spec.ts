@@ -101,14 +101,14 @@ describe('AdBulkUploadProcessor', () => {
       'https://vid/one.mp4',
     );
     expect(metaAdsService.createAd).toHaveBeenCalledTimes(2);
-    const [, , imageAd] = metaAdsService.createAd.mock.calls[0] as [
+    const [, imageAd] = metaAdsService.createAd.mock.calls[0] as [
       string,
       string,
       { creative: { imageHash?: string; videoId?: string } },
     ];
     expect(imageAd.creative.imageHash).toBe('image-hash-1');
     expect(imageAd.creative.videoId).toBeUndefined();
-    const [, , videoAd] = metaAdsService.createAd.mock.calls[1] as [
+    const [, videoAd] = metaAdsService.createAd.mock.calls[1] as [
       string,
       string,
       { creative: { imageHash?: string; videoId?: string } },

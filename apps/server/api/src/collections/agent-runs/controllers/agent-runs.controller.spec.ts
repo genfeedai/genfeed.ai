@@ -24,11 +24,9 @@ describe('AgentRunsController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439014',
   };
 
   const mockRequest = { originalUrl: '/api/runs', query: {} } as Request;
@@ -104,7 +102,8 @@ describe('AgentRunsController', () => {
     it('should allow organization-scoped users to select a brand', () => {
       const organizationUser: User = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, brand: undefined },
+        ...mockUser,
+        brandId: undefined,
       };
 
       const query = controller.buildFindAllQuery(organizationUser, {
@@ -243,7 +242,8 @@ describe('AgentRunsController', () => {
     it('should return true for super admin', () => {
       const superAdmin: User = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
+        ...mockUser,
+        isSuperAdmin: true,
       };
       const entity = { organizationId: 'different_org' };
       expect(
@@ -254,7 +254,8 @@ describe('AgentRunsController', () => {
     it('should let super admin bypass brand scope', () => {
       const superAdmin: User = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
+        ...mockUser,
+        isSuperAdmin: true,
       };
       const entity = {
         brandId: '507f1f77bcf86cd799439099',
@@ -370,7 +371,8 @@ describe('AgentRunsController', () => {
     it('uses a requested brand for organization-scoped detail access', async () => {
       const organizationUser: User = {
         ...mockUser,
-        publicMetadata: { ...mockUser.publicMetadata, brand: undefined },
+        ...mockUser,
+        brandId: undefined,
       };
       mockServiceMethods.findOne.mockResolvedValue({ id: 'run1' });
 

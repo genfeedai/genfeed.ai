@@ -24,7 +24,6 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -124,8 +123,6 @@ export class ImagesOperationsController {
   ): Promise<{
     data: { frames: Array<{ id: string; url: string; index: number }> };
   }> {
-    const publicMetadata = getPublicMetadata(user);
-
     if (!isEntityId(id)) {
       throw new HttpException(
         {
@@ -140,7 +137,7 @@ export class ImagesOperationsController {
     const sourceImage = await this.imagesService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -184,7 +181,7 @@ export class ImagesOperationsController {
     let splittedTag = await this.tagsService.findOne({
       category: TagCategory.INGREDIENT,
       key: TagKey.SPLITTED,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!splittedTag) {
@@ -192,7 +189,7 @@ export class ImagesOperationsController {
         category: TagCategory.INGREDIENT,
         key: TagKey.SPLITTED,
         label: 'Splitted',
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       } as unknown as CreateTagDto);
     }
 
@@ -232,7 +229,7 @@ export class ImagesOperationsController {
               : undefined,
           label: `Frame ${i + 1}`,
           model: sourceMetadata?.model,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           parentId: id,
           promptId: sourceMetadata?.promptId ?? undefined,
           status: IngredientStatus.GENERATED,
@@ -272,9 +269,9 @@ export class ImagesOperationsController {
       new ActivityEntity({
         brandId: sourceImage.brandId ?? undefined,
         key: ActivityKey.IMAGE_GENERATED,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.IMAGE_GENERATION,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           frameCount: frameResults.length,
           frameIds: frameResults.map((f) => f.id),

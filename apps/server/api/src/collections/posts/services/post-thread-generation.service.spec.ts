@@ -18,7 +18,7 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 describe('PostThreadGenerationService', () => {
   let service: PostThreadGenerationService;
 
-  const publicMetadata = {
+  const identity = {
     brand: '507f1f77bcf86cd799439013',
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',
@@ -102,7 +102,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenNthCalledWith(
@@ -141,7 +141,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(
@@ -172,7 +172,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
@@ -214,7 +214,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       cleanupChildren,
       { count: 4, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(cleanupChildren[1].id, {
@@ -239,7 +239,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).not.toHaveBeenCalledWith(
@@ -270,7 +270,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       positionedChildren,
       { count: 4, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenNthCalledWith(
@@ -307,7 +307,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenNthCalledWith(1, childPosts[0].id, {
@@ -333,7 +333,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(activitiesService.patch).not.toHaveBeenCalled();
@@ -357,7 +357,7 @@ describe('PostThreadGenerationService', () => {
       originalPost,
       childPosts,
       { count: 3, tone: TweetTone.PROFESSIONAL },
-      publicMetadata,
+      identity,
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {

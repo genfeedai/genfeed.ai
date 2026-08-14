@@ -89,8 +89,8 @@ export class VideoGenerationCompletionService {
         context.createVideoDto.muteVideoAudio ?? false,
         {
           brandId: context.brand.id.toString(),
-          organizationId: context.publicMetadata.organization,
-          userId: context.publicMetadata.user,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId,
         },
       )
       .then((mergedVideoId) => {
@@ -114,8 +114,8 @@ export class VideoGenerationCompletionService {
       this.cancellationService.bindCancelOnAbort({
         abortSignal: context.abortSignal,
         id: context.ingredientData.id.toString(),
-        organizationId: context.publicMetadata.organization,
-        userId: context.publicMetadata.user,
+        organizationId: context.user.organizationId,
+        userId: context.user.userId,
       });
       const completedIngredients =
         await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(

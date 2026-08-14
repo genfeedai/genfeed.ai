@@ -17,10 +17,8 @@ describe('SlackController', () => {
   const mockBrandId = 'test-object-id';
 
   const mockUser = {
-    publicMetadata: {
-      organization: mockOrganization,
-      user: mockUserId,
-    },
+    organizationId: mockOrganization,
+    userId: mockUserId,
   } as unknown as User;
 
   const mockBrandsService = {

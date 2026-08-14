@@ -7,7 +7,6 @@ import type {
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -35,7 +34,8 @@ export class AgentMemoriesController {
   @ApiOperation({ summary: 'List memory entries for the user' })
   async list(@Req() req: Request, @CurrentUser() user: User) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const dbUserId = user.userId ?? user.id;
       const entries = await this.memoriesService.listForUser(
         dbUserId,
         organization,
@@ -72,7 +72,8 @@ export class AgentMemoriesController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const dbUserId = user.userId ?? user.id;
       const result = await this.memoryCaptureService.capture(
         dbUserId,
         organization,
@@ -96,7 +97,8 @@ export class AgentMemoriesController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const dbUserId = user.userId ?? user.id;
       await this.memoriesService.removeMemory(id, dbUserId, organization);
       return { status: 'ok' };
     } catch (error: unknown) {

@@ -6,13 +6,6 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn().mockReturnValue({ errors: [{ status: '404' }] }),
   serializeCollection: vi
@@ -52,7 +45,8 @@ describe('ClipResultsController', () => {
   let service: ReturnType<typeof createMockService>;
 
   const mockUser = {
-    publicMetadata: { organization: organizationId, user: userId },
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockReq = { headers: {}, url: '/clip-results' } as unknown as Request;

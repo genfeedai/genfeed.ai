@@ -7,7 +7,6 @@ import {
 } from '@api/collections/skills/dto/skill.dto';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -22,7 +21,7 @@ export class SkillsController {
 
   @Get('skills')
   async listSkills(@Req() req: Request, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const docs = await this.skillsService.listAllForOrg(organization);
 
@@ -35,7 +34,7 @@ export class SkillsController {
     @CurrentUser() user: User,
     @Param('slug') idOrSlug: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.skillsService.getSkillById(organization, idOrSlug);
 
@@ -48,7 +47,7 @@ export class SkillsController {
     @CurrentUser() user: User,
     @Body() body: CreateSkillDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.skillsService.createSkill(organization, body);
 
     return serializeSingle(req, SkillSerializer, data);
@@ -60,7 +59,7 @@ export class SkillsController {
     @CurrentUser() user: User,
     @Body() body: ImportSkillDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.skillsService.importSkill(organization, body);
 
     return serializeSingle(req, SkillSerializer, data);
@@ -73,7 +72,7 @@ export class SkillsController {
     @Param('id') id: string,
     @Body() body: CustomizeSkillDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.skillsService.customizeSkill(
       organization,
       id,
@@ -90,7 +89,7 @@ export class SkillsController {
     @Param('id') id: string,
     @Body() body: UpdateSkillDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.skillsService.updateSkill(organization, id, body);
 
     return serializeSingle(req, SkillSerializer, data);

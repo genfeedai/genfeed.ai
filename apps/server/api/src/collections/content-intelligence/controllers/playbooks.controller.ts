@@ -6,7 +6,6 @@ import {
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import {
@@ -86,8 +85,7 @@ export class PlaybooksController {
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const pipeline = {
       include: { sourceCreators: { select: { id: true } } },
@@ -117,11 +115,10 @@ export class PlaybooksController {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.playbookBuilderService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       ['sourceCreators'],
     );
@@ -139,9 +136,8 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Body() dto: CreatePlaybookDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const organizationId = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const data = await this.playbookBuilderService.createPlaybook(
       organizationId,
@@ -163,11 +159,10 @@ export class PlaybooksController {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       ['sourceCreators'],
     );
@@ -194,11 +189,10 @@ export class PlaybooksController {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       ['sourceCreators'],
     );
@@ -209,7 +203,7 @@ export class PlaybooksController {
 
     const data = await this.playbookBuilderService.buildInsights(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return serializeSingle(request, PatternPlaybookSerializer, data);
@@ -225,11 +219,10 @@ export class PlaybooksController {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       ['sourceCreators'],
     );

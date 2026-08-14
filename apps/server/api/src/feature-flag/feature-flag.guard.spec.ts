@@ -88,9 +88,7 @@ describe('FeatureFlagGuard', () => {
     );
     const context = createContext({
       auth: {
-        publicMetadata: {
-          user: 'auth-user',
-        },
+        userId: 'auth-user',
       },
     });
 

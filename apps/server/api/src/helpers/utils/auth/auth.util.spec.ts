@@ -1,38 +1,94 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
-  getPublicMetadata,
+  extractRequestContext,
+  getIsSuperAdmin,
+  getStripeSubscriptionStatus,
+  getSubscriptionTier,
   resolveRequiredBrandRequestContext,
 } from '@api/helpers/utils/auth/auth.util';
 
-describe('getPublicMetadata', () => {
-  it('returns typed public metadata', () => {
-    const user = {
+function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    brandId: '3',
+    id: 'user-auth',
+    isSuperAdmin: false,
+    organizationId: '2',
+    userId: '1',
+    ...overrides,
+  };
+}
+
+describe('extractRequestContext', () => {
+  it('reads canonical identity fields from the user', () => {
+    const ctx = extractRequestContext(makeUser());
+    expect(ctx.userId).toBe('1');
+    expect(ctx.organizationId).toBe('2');
+    expect(ctx.brandId).toBe('3');
+  });
+
+  it('falls back to user.id when userId is missing', () => {
+    const ctx = extractRequestContext(
+      makeUser({ id: 'auth-id', userId: undefined as unknown as string }),
+    );
+    expect(ctx.userId).toBe('auth-id');
+  });
+
+  it('ignores leftover Clerk publicMetadata when canonical fields are set', () => {
+    const ctx = extractRequestContext({
+      ...makeUser(),
       publicMetadata: {
-        brand: '3',
-        isSuperAdmin: false,
-        organization: '2',
-        user: '1',
+        brand: 'legacy-brand',
+        organization: 'legacy-org',
+        user: 'legacy-user',
       },
-    } as unknown as User;
-    const metadata = getPublicMetadata(user);
-    expect(metadata.user).toBe('1');
-    expect(metadata.organization).toBe('2');
-    expect(metadata.brand).toBe('3');
-    expect(metadata.isSuperAdmin).toBe(false);
+    } as User);
+
+    expect(ctx.brandId).toBe('3');
+    expect(ctx.organizationId).toBe('2');
+    expect(ctx.userId).toBe('1');
+  });
+});
+
+describe('getIsSuperAdmin', () => {
+  it('reads user.isSuperAdmin when request context is unset', () => {
+    expect(getIsSuperAdmin(makeUser({ isSuperAdmin: true }))).toBe(true);
+    expect(getIsSuperAdmin(makeUser({ isSuperAdmin: false }))).toBe(false);
+  });
+
+  it('prefers request.context.isSuperAdmin', () => {
+    expect(
+      getIsSuperAdmin(makeUser({ isSuperAdmin: false }), {
+        context: { isSuperAdmin: true },
+      } as never),
+    ).toBe(true);
+  });
+});
+
+describe('getStripeSubscriptionStatus', () => {
+  it('reads the user field when request context is unset', () => {
+    expect(
+      getStripeSubscriptionStatus(
+        makeUser({ stripeSubscriptionStatus: 'active' }),
+      ),
+    ).toBe('ACTIVE');
+  });
+});
+
+describe('getSubscriptionTier', () => {
+  it('reads the user field when request context is unset', () => {
+    expect(getSubscriptionTier(makeUser({ subscriptionTier: 'pro' }))).toBe(
+      'pro',
+    );
   });
 });
 
 describe('resolveRequiredBrandRequestContext', () => {
   it('ignores scope overrides for non-admin users', () => {
-    const user = {
-      id: 'user-auth',
-      publicMetadata: {
-        brand: 'brand-1',
-        isSuperAdmin: false,
-        organization: 'org-1',
-        user: 'user-1',
-      },
-    } as unknown as User;
+    const user = makeUser({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
 
     expect(
       resolveRequiredBrandRequestContext(user, {
@@ -47,15 +103,12 @@ describe('resolveRequiredBrandRequestContext', () => {
   });
 
   it('allows super-admin scope overrides', () => {
-    const user = {
-      id: 'user-auth',
-      publicMetadata: {
-        brand: 'brand-1',
-        isSuperAdmin: true,
-        organization: 'org-1',
-        user: 'user-1',
-      },
-    } as unknown as User;
+    const user = makeUser({
+      brandId: 'brand-1',
+      isSuperAdmin: true,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
 
     expect(
       resolveRequiredBrandRequestContext(user, {
@@ -71,7 +124,11 @@ describe('resolveRequiredBrandRequestContext', () => {
 
   it('rejects incomplete scope', () => {
     expect(() =>
-      resolveRequiredBrandRequestContext({ id: 'user-auth' } as User),
+      resolveRequiredBrandRequestContext({
+        id: 'user-auth',
+        isSuperAdmin: false,
+        userId: 'user-auth',
+      }),
     ).toThrow('Organization, brand, and user context are required');
   });
 });

@@ -49,11 +49,9 @@ describe('BookmarksController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: mockBrandId.toString(),
-      organization: mockOrgId.toString(),
-      user: mockUserId.toString(),
-    },
+    brandId: mockBrandId.toString(),
+    organizationId: mockOrgId.toString(),
+    userId: mockUserId.toString(),
   } as unknown as User;
 
   const mockRequest = {
@@ -124,9 +122,9 @@ describe('BookmarksController', () => {
       expect(bookmarksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          organizationId: mockUser.publicMetadata.organization,
+          organizationId: mockUser.organizationId,
           savedAt: expect.any(Date),
-          userId: mockUser.publicMetadata.user,
+          userId: mockUser.userId,
         }),
       );
       expect(result).toBeDefined();
@@ -245,8 +243,8 @@ describe('BookmarksController', () => {
 
       expect(bookmarksService.findOne).toHaveBeenCalledWith({
         id: bookmarkId,
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
       expect(result).toBeDefined();
     });

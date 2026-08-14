@@ -43,7 +43,7 @@ function createMockContext(overrides: {
   const mockSetHeader = vi.fn();
 
   const mockRequest = {
-    auth: userId ? { publicMetadata: { user: userId } } : undefined,
+    auth: userId ? { userId: userId } : undefined,
     connection: { remoteAddress: ip },
     context: {
       ...(organizationId ? { organizationId } : {}),

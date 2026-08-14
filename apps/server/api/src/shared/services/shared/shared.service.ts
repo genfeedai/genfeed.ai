@@ -5,7 +5,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   InternalMediaDocumentsInput,
@@ -199,17 +198,16 @@ export class SharedService {
   }
 
   public async createMediaDocuments(user: User, input: MediaDocumentsInput) {
-    const publicMetadata = getPublicMetadata(user);
     return this.persistMediaDocuments(input, {
       brandId:
         normalizeId(input.brandId, 'brandId') ??
-        normalizeId(publicMetadata.brand, 'publicMetadata.brand'),
+        normalizeId(user.brandId, 'user.brandId'),
       organizationId:
         normalizeId(input.organizationId, 'organizationId') ??
-        normalizeId(publicMetadata.organization, 'publicMetadata.organization'),
+        normalizeId(user.organizationId, 'user.organizationId'),
       userId:
         normalizeId(input.userId, 'userId') ??
-        normalizeId(publicMetadata.user, 'publicMetadata.user'),
+        normalizeId(user.userId ?? user.id, '(user.userId ?? user.id)'),
     });
   }
 

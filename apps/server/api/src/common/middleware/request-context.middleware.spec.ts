@@ -36,12 +36,12 @@ import type { NextFunction, Response } from 'express';
 function buildUser(
   overrides: Partial<{
     id: string;
-    publicMetadata: Record<string, unknown>;
+    identity: Record<string, unknown>;
   }> = {},
 ) {
   return {
     id: overrides.id ?? 'authProvider_abc123',
-    publicMetadata: overrides.publicMetadata ?? {
+    identity: overrides ?? {
       brand: 'brand_1',
       isSuperAdmin: false,
       organization: 'org_1',
@@ -163,15 +163,13 @@ describe('RequestContextMiddleware', () => {
 
     const req = {
       user: buildUser({
-        publicMetadata: {
-          brand: 'brand_1',
-          isSuperAdmin: false,
-          organization: 'org_1',
-          // Stale legacy auth provider metadata — should be overridden by DB
-          stripeSubscriptionStatus: 'canceled',
-          subscriptionTier: 'free',
-          user: 'user_1',
-        },
+        brandId: 'brand_1',
+        isSuperAdmin: false,
+        organizationId: 'org_1',
+        // Stale legacy auth provider metadata — should be overridden by DB
+        stripeSubscriptionStatus: 'canceled',
+        subscriptionTier: 'free',
+        userId: 'user_1',
       }),
     } as never;
     const next: NextFunction = vi.fn();
@@ -192,7 +190,7 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('DB returns null → falls back to legacy auth provider publicMetadata', async () => {
+  it('DB returns null → falls back to legacy auth provider identity', async () => {
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
 
@@ -206,14 +204,12 @@ describe('RequestContextMiddleware', () => {
 
     const req = {
       user: buildUser({
-        publicMetadata: {
-          brand: 'brand_1',
-          isSuperAdmin: false,
-          organization: 'org_1',
-          stripeSubscriptionStatus: 'active',
-          subscriptionTier: 'starter',
-          user: 'user_1',
-        },
+        brandId: 'brand_1',
+        isSuperAdmin: false,
+        organizationId: 'org_1',
+        stripeSubscriptionStatus: 'active',
+        subscriptionTier: 'starter',
+        userId: 'user_1',
       }),
     } as never;
     const next: NextFunction = vi.fn();
@@ -224,7 +220,7 @@ describe('RequestContextMiddleware', () => {
       string,
       unknown
     >;
-    // Falls back to legacy auth provider publicMetadata when DB returns null
+    // Falls back to legacy auth provider identity when DB returns null
     expect(ctx.subscriptionTier).toBe('starter');
     expect(ctx.stripeSubscriptionStatus).toBe('active');
     expect(next).toHaveBeenCalledOnce();
@@ -244,20 +240,18 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('isSuperAdmin from publicMetadata is false even if bearer JWT claimed true', async () => {
+  it('isSuperAdmin from identity is false even if bearer JWT claimed true', async () => {
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
 
     const req = {
       user: buildUser({
-        publicMetadata: {
-          brand: 'brand_1',
-          isSuperAdmin: false, // server-verified false
-          organization: 'org_1',
-          stripeSubscriptionStatus: 'active',
-          subscriptionTier: 'basic',
-          user: 'user_1',
-        },
+        brandId: 'brand_1',
+        isSuperAdmin: false, // server-verified false
+        organizationId: 'org_1',
+        stripeSubscriptionStatus: 'active',
+        subscriptionTier: 'basic',
+        userId: 'user_1',
       }),
     } as never;
     const next: NextFunction = vi.fn();

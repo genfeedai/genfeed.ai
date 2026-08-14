@@ -11,7 +11,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -69,8 +68,6 @@ export class AssetsController {
     @Query() query: AssetQueryDto,
     @Req() request: Request,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -80,13 +77,13 @@ export class AssetsController {
     // Build match conditions
     const matchConditions: AssetMatchConditions = {
       isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     };
 
     if (!query.parentType || query.parentType === AssetParent.BRAND) {
       matchConditions.parentBrandId = CollectionFilterUtil.buildBrandFilter(
         query.brandId,
-        publicMetadata,
+        user,
         'user',
       );
     }
@@ -136,12 +133,11 @@ export class AssetsController {
       assetId,
       'assetId',
     );
-    const publicMetadata = getPublicMetadata(user);
 
     // Find asset with ownership verification
     const asset = await this.assetsService.findOne({
       id: validatedId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!asset) {
@@ -163,11 +159,10 @@ export class AssetsController {
       assetId,
       'assetId',
     );
-    const publicMetadata = getPublicMetadata(user);
 
     const existingAsset = await this.assetsService.findOne({
       id: validatedId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!existingAsset) {
@@ -240,7 +235,7 @@ export class AssetsController {
       sanitizedUpdate,
     );
 
-    const userId = publicMetadata.user;
+    const userId = user.userId ?? user.id;
     if (
       userId &&
       updatedAsset &&
@@ -277,11 +272,10 @@ export class AssetsController {
       assetId,
       'assetId',
     );
-    const publicMetadata = getPublicMetadata(user);
 
     const existingAsset = await this.assetsService.findOne({
       id: validatedId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!existingAsset) {

@@ -47,9 +47,8 @@ export class ApiAccessGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
-    const publicMetadata = user?.publicMetadata;
 
-    if (!user || !publicMetadata) {
+    if (!user) {
       this.loggerService.warn('ApiAccessGuard: No user found in request');
       throw new HttpException(
         {
@@ -64,7 +63,7 @@ export class ApiAccessGuard implements CanActivate {
     // entitled when the key was minted; request-time per-tier rate limiting
     // (ApiKeysService.checkRateLimit) is what throttles a downgraded org. Keep
     // this consistent with SubscriptionGuard, which also bypasses API keys.
-    if (publicMetadata.isApiKey === true) {
+    if (user.isApiKey === true) {
       return true;
     }
 

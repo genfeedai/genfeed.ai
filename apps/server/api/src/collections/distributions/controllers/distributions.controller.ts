@@ -5,7 +5,6 @@ import { DistributionsService } from '@api/collections/distributions/services/di
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -45,7 +44,8 @@ export class DistributionsController {
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(@Body() dto: CreateDistributionDto, @CurrentUser() user: User) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     switch (dto.platform) {
       case DistributionPlatform.TELEGRAM: {
@@ -87,7 +87,7 @@ export class DistributionsController {
     @Query() query: QueryDistributionDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const page = query.page ? Number.parseInt(query.page, 10) : 1;
     const limit = query.limit ? Number.parseInt(query.limit, 10) : 20;
 
@@ -116,7 +116,7 @@ export class DistributionsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.distributionsService.findOneByOrganization(
       id,
@@ -138,7 +138,7 @@ export class DistributionsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.distributionsService.cancelScheduled(
       id,

@@ -33,11 +33,9 @@ describe('MediumController', () => {
   const userId = 'user-id';
   const request = {} as Request;
   const user = {
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const brandsService = {

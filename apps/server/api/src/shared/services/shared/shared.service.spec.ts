@@ -29,11 +29,9 @@ describe('SharedService', () => {
     userId: '550e8400-e29b-41d4-a716-446655440001',
   };
   const mockUser = {
-    publicMetadata: {
-      brand: owner.brandId,
-      organization: owner.organizationId,
-      user: owner.userId,
-    },
+    brandId: owner.brandId,
+    organizationId: owner.organizationId,
+    userId: owner.userId,
   } as unknown as User;
   const mockMetadata = { id: '550e8400-e29b-41d4-a716-446655440004' };
   const mockIngredient = {

@@ -11,7 +11,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -91,12 +90,10 @@ export class VideosLipSyncController {
     let ingredientId: string | undefined;
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // 1. Resolve parent (image) ingredient
       const imageIngredient = await this.ingredientsService.findOne({
         id: createLipSyncDto.parent,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!imageIngredient) {
@@ -137,7 +134,7 @@ export class VideosLipSyncController {
       // 2. Resolve voice (audio) ingredient
       const audioIngredient = await this.ingredientsService.findOne({
         id: createLipSyncDto.voice,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!audioIngredient) {
@@ -194,11 +191,11 @@ export class VideosLipSyncController {
       // 4. Create video ingredient with metadata
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
-          brandId: imageIngredient.brandId ?? publicMetadata.brand,
+          brandId: imageIngredient.brandId ?? user.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           parentId: createLipSyncDto.parent,
           // Store references for traceability
           sourceIds: [createLipSyncDto.parent, createLipSyncDto.voice],
@@ -215,15 +212,15 @@ export class VideosLipSyncController {
       });
 
       const heygenByokKey = await this.byokService.resolveApiKey(
-        publicMetadata.organization,
+        user.organizationId,
         ByokProvider.HEYGEN,
       );
       const heygenVideoId = await this.heygenService.generatePhotoAvatarVideo(
         ingredientId,
         photoUrl,
         audioUrl,
-        publicMetadata.organization,
-        publicMetadata.user,
+        user.organizationId,
+        user.userId ?? user.id,
         heygenByokKey?.apiKey,
       );
 

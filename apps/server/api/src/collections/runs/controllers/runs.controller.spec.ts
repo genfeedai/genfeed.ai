@@ -64,10 +64,8 @@ describe('RunsController', () => {
 
     const result = await controller.create(
       {
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439011',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439011',
+        userId: '507f1f77bcf86cd799439012',
       } as never,
       { headers: { 'x-trace-id': 'trace-from-header' } } as never,
       {
@@ -102,11 +100,9 @@ describe('RunsController', () => {
 
     await controller.create(
       {
-        publicMetadata: {
-          isApiKey: true,
-          organization: '507f1f77bcf86cd799439011',
-          user: '507f1f77bcf86cd799439012',
-        },
+        isApiKey: true,
+        organizationId: '507f1f77bcf86cd799439011',
+        userId: '507f1f77bcf86cd799439012',
       } as never,
       { headers: {} } as never,
       {
@@ -135,9 +131,7 @@ describe('RunsController', () => {
     await expect(
       controller.create(
         {
-          publicMetadata: {
-            organization: '507f1f77bcf86cd799439011',
-          },
+          organizationId: '507f1f77bcf86cd799439011',
         } as never,
         { headers: {} } as never,
         {
@@ -155,10 +149,8 @@ describe('RunsController', () => {
 
     const result = await controller.update(
       {
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439011',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439011',
+        userId: '507f1f77bcf86cd799439012',
       } as never,
       { headers: {} } as never,
       'run-cancel',
@@ -197,10 +189,8 @@ describe('RunsController', () => {
       for (const actionType of actions) {
         await controller.create(
           {
-            publicMetadata: {
-              organization: '507f1f77bcf86cd799439011',
-              user: '507f1f77bcf86cd799439012',
-            },
+            organizationId: '507f1f77bcf86cd799439011',
+            userId: '507f1f77bcf86cd799439012',
           } as never,
           {
             headers: { 'x-trace-id': `trace-${surface}-${actionType}` },

@@ -167,10 +167,8 @@ describe('ClipProjectsController', () => {
   const projectId = '507f191e810c19729de860ee'.toString();
   const userId = '507f191e810c19729de860ee'.toString();
   const currentUser = {
-    publicMetadata: {
-      organization: organizationId,
-      user: userId,
-    },
+    organizationId: organizationId,
+    userId: userId,
   };
 
   let controller: ClipProjectsController;

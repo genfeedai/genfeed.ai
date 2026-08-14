@@ -295,10 +295,10 @@ describe('check-relation-alias-reads', () => {
       writeFixture(
         'apps/server/api/src/runs/runs.controller.ts',
         [
-          'export async function findOne(service, publicMetadata, id) {',
+          'export async function findOne(service, user, id) {',
           '  return service.findOne({',
           '    _id: id,',
-          '    organization: publicMetadata.organization,',
+          '    organization: user.organizationId,',
           '  });',
           '}',
         ].join('\n'),

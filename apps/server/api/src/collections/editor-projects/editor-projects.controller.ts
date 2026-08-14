@@ -12,7 +12,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -74,8 +73,7 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Body() createDto: CreateEditorProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
+    const orgId = user.organizationId;
     const DEFAULT_FPS = 30;
     const DEFAULT_DURATION_FRAMES = DEFAULT_FPS * 10;
 
@@ -164,7 +162,7 @@ export class EditorProjectsController {
     // flattened on read via BaseService.normalizeDocument.
     const data: EditorProjectDocument = await this.editorProjectsService.create(
       {
-        ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+        ...(user.brandId ? { brandId: user.brandId } : {}),
         config: {
           name,
           settings,
@@ -176,7 +174,7 @@ export class EditorProjectsController {
         },
         organizationId: orgId,
         tracks,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       } as never,
     );
 
@@ -190,8 +188,6 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -199,9 +195,9 @@ export class EditorProjectsController {
 
     const aggregate = {
       where: {
-        ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+        ...(user.brandId ? { brandId: user.brandId } : {}),
         isDeleted: false,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
@@ -220,14 +216,12 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Org-scoped id lookup only — do not require brandId match. Projects are
     // often opened from the org shell (`/:org/~`) even when created under a
     // brand; brand-filtering here caused false 404s ("Controller doesn't exist").
     const data = await this.editorProjectsService.findOne({
       id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!data) {
@@ -245,11 +239,9 @@ export class EditorProjectsController {
     @Param('id') id: string,
     @Body() updateDto: UpdateEditorProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const existing = await this.editorProjectsService.findOne({
       id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!existing) {
@@ -271,11 +263,9 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const existing = await this.editorProjectsService.findOne({
       id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!existing) {
@@ -297,11 +287,9 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const result = await this.editorRenderService.render(
       id,
-      publicMetadata.organization,
+      user.organizationId,
       user,
     );
 
@@ -315,10 +303,9 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const result = await this.editorRenderService.cancel(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return serializeSingle(request, EditorProjectSerializer, result);

@@ -32,7 +32,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -104,14 +103,13 @@ export class ArticlesOperationsController {
     @Body() dto: GenerateArticlesDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const brandId = dto.brandId || publicMetadata.brand;
+    const brandId = dto.brandId || user.brandId;
     const generationType = dto.type || ArticleGenerationType.STANDARD;
     const isXArticle = generationType === ArticleGenerationType.X_ARTICLE;
 
     // Check if article generation is enabled for this organization
     const orgSettings = await this.organizationSettingsService.findOne({
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (orgSettings && !orgSettings.isGenerateArticlesEnabled) {
@@ -124,7 +122,7 @@ export class ArticlesOperationsController {
 
     const modelConfig =
       await this.articlesService.resolveArticleCycleModelConfig(
-        publicMetadata.organization,
+        user.organizationId,
         dto.model,
       );
     const minimumRequiredCredits = (
@@ -136,7 +134,7 @@ export class ArticlesOperationsController {
     ).reduce((sum, amount) => sum + amount, 0);
 
     await this.assertOrganizationCreditsAvailable(
-      publicMetadata.organization,
+      user.organizationId,
       minimumRequiredCredits,
     );
 
@@ -147,9 +145,9 @@ export class ArticlesOperationsController {
       new ActivityEntity({
         brandId,
         key: ActivityKey.ARTICLE_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.ARTICLE_GENERATION,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           count: dto.count || 1,
           prompt: dto.prompt?.substring(0, 100),
@@ -172,8 +170,8 @@ export class ArticlesOperationsController {
     try {
       const articles = await this.articlesService.generateArticles(
         dto,
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
         brandId,
         (amount) => {
           billedCredits += amount;
@@ -190,9 +188,9 @@ export class ArticlesOperationsController {
             entityId: article.id,
             entityModel: ActivityEntityModel.ARTICLE,
             key: ActivityKey.ARTICLE_GENERATED,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             source: ActivitySource.ARTICLE_GENERATION,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
             value: article.id.toString(),
           }),
         );
@@ -243,14 +241,13 @@ export class ArticlesOperationsController {
     @Body() dto: ReviewArticleDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const modelConfig =
       await this.articlesService.resolveArticleCycleModelConfig(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
     await this.assertOrganizationCreditsAvailable(
-      publicMetadata.organization,
+      user.organizationId,
       await this.getTextModelMinimumCredits(modelConfig.reviewModel),
     );
 
@@ -258,8 +255,8 @@ export class ArticlesOperationsController {
 
     const review = await this.articlesService.reviewArticle(
       articleId,
-      publicMetadata.user,
-      publicMetadata.organization,
+      user.userId ?? user.id,
+      user.organizationId,
       dto.focus,
       (amount) => {
         billedCredits += amount;

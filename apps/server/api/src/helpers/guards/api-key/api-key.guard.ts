@@ -88,16 +88,15 @@ export class ApiKeyAuthGuard implements CanActivate {
 
     // Attach user info to request for downstream use
     request.user = {
+      actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
+      apiKeyId,
+      brandId: apiKey.organizationId,
       id: apiKey.userId,
-      publicMetadata: {
-        apiKeyId,
-        actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
-        brand: apiKey.organizationId, // Default to org
-        isApiKey: true,
-        organization: apiKey.organizationId,
-        scopes: apiKey.scopes,
-        user: apiKey.userId,
-      },
+      isApiKey: true,
+      isSuperAdmin: false,
+      organizationId: apiKey.organizationId,
+      scopes: apiKey.scopes,
+      userId: apiKey.userId,
     };
 
     // Update usage stats

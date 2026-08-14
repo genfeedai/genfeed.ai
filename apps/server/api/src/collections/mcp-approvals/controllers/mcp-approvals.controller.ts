@@ -9,7 +9,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { MemberRole } from '@genfeedai/enums';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -67,7 +66,8 @@ export class McpApprovalsController {
     @CurrentUser() user: User,
     @Body() dto: CreateMcpApprovalDto,
   ): Promise<{ data: McpApprovalResponse }> {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const result = await this.service.createPending(
       organization,
       userId,
@@ -86,7 +86,7 @@ export class McpApprovalsController {
     @Query('status', new ParseEnumPipe(McpApprovalStatus, { optional: true }))
     status?: McpApprovalStatus,
   ): Promise<{ data: McpApprovalResponse[] }> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const list = await this.service.findByOrganization(organization, status);
     return { data: list.map((a) => this.toResponse(a)) };
   }
@@ -99,7 +99,7 @@ export class McpApprovalsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<{ data: McpApprovalResponse }> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const approval = await this.service.findOne(
       scopedWhere(organization, { id }),
     );
@@ -122,7 +122,7 @@ export class McpApprovalsController {
     @Param('id') id: string,
     @Body() dto: ResolveMcpApprovalDto,
   ): Promise<{ data: McpApprovalResponse }> {
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const result = await this.service.resolve(
       id,
       metadata.organization,
@@ -146,7 +146,7 @@ export class McpApprovalsController {
     @Param('id') id: string,
     @Body() dto: AttachMcpApprovalResultDto,
   ): Promise<{ data: McpApprovalResponse }> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.service.attachResult(id, organization, dto.result);
 
     const approval = await this.service.findOne(

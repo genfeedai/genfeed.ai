@@ -36,7 +36,7 @@ describe('AssetAccessGuard', () => {
     assetId?: string;
     user?: {
       id: string;
-      publicMetadata?: {
+      identity?: {
         user?: string;
         organization?: string;
         brand?: string;
@@ -69,7 +69,7 @@ describe('AssetAccessGuard', () => {
         createContext({
           user: {
             id: 'jwt-sub',
-            publicMetadata: { user: 'user_db_1' },
+            userId: 'user_db_1',
           },
         }),
       ),
@@ -88,7 +88,7 @@ describe('AssetAccessGuard', () => {
         createContext({
           user: {
             id: 'jwt-sub',
-            publicMetadata: { user: 'someone-else' },
+            userId: 'someone-else',
           },
         }),
       ),

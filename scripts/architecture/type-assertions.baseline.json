@@ -22,7 +22,6 @@
     "apps/server/api/src/collections/contexts/services/contexts.service.ts": 1,
     "apps/server/api/src/collections/creative-patterns/creative-patterns.service.ts": 2,
     "apps/server/api/src/collections/credits/services/credit-transactions.service.ts": 1,
-    "apps/server/api/src/collections/cron-jobs/services/legacy-cron-job-migration.service.ts": 6,
     "apps/server/api/src/collections/distributions/services/distributions.service.ts": 3,
     "apps/server/api/src/collections/editor-projects/editor-projects.controller.ts": 1,
     "apps/server/api/src/collections/editor-projects/editor-projects.service.ts": 4,

@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -45,7 +44,8 @@ export class PinterestController {
     @CurrentUser() user: User,
     @Body() body: ConnectCredentialDto,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const brand = await this.brandsService.findOne({
       id: body.brandId,
       organizationId: organization,

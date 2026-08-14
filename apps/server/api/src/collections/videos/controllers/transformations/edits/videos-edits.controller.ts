@@ -7,7 +7,6 @@ import { requireVideoOutputPath } from '@api/collections/videos/utils/video-proc
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -71,11 +70,10 @@ export class VideosEditsController {
     @Body() trimParams: ITrimVideoBodyParams,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!video) {
@@ -112,7 +110,7 @@ export class VideosEditsController {
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           params: {
             endTime: trimParams.endTime,
             inputPath: videoUrl,
@@ -120,7 +118,7 @@ export class VideosEditsController {
           },
           room: getUserRoomName(user.id),
           type: 'trim-video',
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {
@@ -198,11 +196,10 @@ export class VideosEditsController {
     @Body() createVideoDto: ITextOverlayBodyParams,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!video) {
@@ -250,7 +247,7 @@ export class VideosEditsController {
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           params: {
             height: originalMetadata.height,
             inputPath: videoUrl,
@@ -260,7 +257,7 @@ export class VideosEditsController {
           },
           room: getUserRoomName(user.id),
           type: 'add-text-overlay',
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {

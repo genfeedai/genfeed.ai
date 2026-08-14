@@ -10,7 +10,6 @@ import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -43,8 +42,8 @@ export class CreditsController {
   @Cache({
     keyGenerator: (req) => {
       const orgId =
-        (req.user as { publicMetadata?: { organization?: string } })
-          ?.publicMetadata?.organization ?? 'unknown';
+        (req.user as { user?: { organization?: string } })?.user
+          ?.organization ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_USAGE(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
@@ -52,8 +51,7 @@ export class CreditsController {
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getUsageMetrics(@Req() req: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization.toString();
+    const organizationId = user.organizationId.toString();
 
     const data =
       await this.creditTransactionsService.getUsageMetrics(organizationId);
@@ -77,9 +75,8 @@ export class CreditsController {
     @Query('limit') limitRaw?: string,
     @Query('skip') skipRaw?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const organizationId =
-      req.context?.organizationId ?? publicMetadata.organization.toString();
+      req.context?.organizationId ?? user.organizationId.toString();
 
     const limit = Math.min(
       Math.max(Number.parseInt(limitRaw ?? '50', 10) || 50, 1),
@@ -107,8 +104,8 @@ export class CreditsController {
   @Cache({
     keyGenerator: (req) => {
       const orgId =
-        (req.user as { publicMetadata?: { organization?: string } })
-          ?.publicMetadata?.organization ?? 'unknown';
+        (req.user as { user?: { organization?: string } })?.user
+          ?.organization ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_BYOK(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
@@ -116,8 +113,7 @@ export class CreditsController {
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getByokUsageSummary(@Req() req: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization.toString();
+    const organizationId = user.organizationId.toString();
 
     if (!this.byokBillingService) {
       const fallback = {
@@ -146,9 +142,8 @@ export class CreditsController {
     @Req() req: RequestWithContext,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const organizationId =
-      req.context?.organizationId ?? publicMetadata.organization.toString();
+      req.context?.organizationId ?? user.organizationId.toString();
 
     const data =
       await this.topbarBalancesService.getTopbarBalances(organizationId);
@@ -160,8 +155,8 @@ export class CreditsController {
   @Cache({
     keyGenerator: (req) => {
       const orgId =
-        (req.user as { publicMetadata?: { organization?: string } })
-          ?.publicMetadata?.organization ?? 'unknown';
+        (req.user as { user?: { organization?: string } })?.user
+          ?.organization ?? 'unknown';
       return CACHE_PATTERNS.CREDITS_LAST_PURCHASE_BASELINE(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
@@ -172,8 +167,7 @@ export class CreditsController {
     @Req() req: Request,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization.toString();
+    const organizationId = user.organizationId.toString();
 
     const data =
       await this.creditTransactionsService.getLastPurchaseBaseline(

@@ -41,7 +41,7 @@ describe('BetterAuthStrategy', () => {
     );
   });
 
-  it('verifies the token and shapes the resolved identity as publicMetadata', async () => {
+  it('verifies the token and shapes the resolved identity on the user', async () => {
     betterAuthService.verifyToken.mockResolvedValue({
       email: 'user@example.com',
       name: 'Ada',
@@ -60,15 +60,14 @@ describe('BetterAuthStrategy', () => {
     expect(identityResolver.resolve).toHaveBeenCalledWith('user_1');
     expect(result).toEqual(
       expect.objectContaining({
+        brandId: 'brand_1',
         id: 'user_1',
-        publicMetadata: {
-          brand: 'brand_1',
-          isSuperAdmin: true,
-          organization: 'org_1',
-          user: 'user_1',
-        },
+        isSuperAdmin: true,
+        organizationId: 'org_1',
+        userId: 'user_1',
       }),
     );
+    expect(result).not.toHaveProperty('publicMetadata');
   });
 
   it('rejects a legacy Mongo-shaped subject before identity resolution', async () => {

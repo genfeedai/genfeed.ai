@@ -16,10 +16,8 @@ describe('WorkflowExecutionController', () => {
   const mockRequest = {} as Request;
 
   const mockUser: User = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockWorkflowsService = {
@@ -105,14 +103,14 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.findMutableOwnedOrThrow).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         {
-          organizationId: mockUser.publicMetadata.organization,
-          userId: mockUser.publicMetadata.user,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         },
       );
       expect(mockWorkflowsService.lockNodes).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         ['node-1'],
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(mockWorkflowsService.unlockNodes).not.toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -129,7 +127,7 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.unlockNodes).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         ['node-1'],
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -146,8 +144,8 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         {
-          organizationId: mockUser.publicMetadata.organization,
-          userId: mockUser.publicMetadata.user,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         },
       );
       expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();
@@ -175,10 +173,10 @@ describe('WorkflowExecutionController', () => {
         mockWorkflowExecutionAuthorizationService.authorize,
       ).toHaveBeenCalledWith({
         expectedContextVersion: 4,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         requestedBrandId: undefined,
         threadId: 'thread-1',
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
         workflowId: '507f1f77bcf86cd799439014',
       });
       expect(
@@ -186,8 +184,8 @@ describe('WorkflowExecutionController', () => {
       ).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         'exec-1',
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
       );
       expect(result.data.runId).toBe('exec-2');
     });
@@ -197,7 +195,7 @@ describe('WorkflowExecutionController', () => {
     it('should submit a review gate approval for the current org', async () => {
       mockWorkflowExecutorService.submitReviewGateApproval.mockResolvedValue({
         approvedAt: '2026-01-01T00:00:00.000Z',
-        approvedBy: mockUser.publicMetadata.user,
+        approvedBy: mockUser.userId,
         executionId: 'exec-1',
         nodeId: 'review-gate-1',
         status: 'approved',
@@ -215,8 +213,8 @@ describe('WorkflowExecutionController', () => {
       ).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         'exec-1',
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         'review-gate-1',
         true,
         undefined,
@@ -225,16 +223,16 @@ describe('WorkflowExecutionController', () => {
         mockWorkflowExecutionAuthorizationService.authorize,
       ).toHaveBeenCalledWith({
         expectedContextVersion: undefined,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         requestedBrandId: undefined,
         threadId: undefined,
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
         workflowId: '507f1f77bcf86cd799439014',
       });
       expect(result).toEqual({
         data: {
           approvedAt: '2026-01-01T00:00:00.000Z',
-          approvedBy: mockUser.publicMetadata.user,
+          approvedBy: mockUser.userId,
           executionId: 'exec-1',
           nodeId: 'review-gate-1',
           status: 'approved',

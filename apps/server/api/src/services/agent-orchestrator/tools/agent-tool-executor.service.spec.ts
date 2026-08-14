@@ -516,9 +516,7 @@ describe('AgentToolExecutorService', () => {
     };
     const authProviderService = {
       getUser: vi.fn().mockResolvedValue({
-        publicMetadata: {
-          brand: 'c7a1234567890123456789ab',
-        },
+        brandId: 'c7a1234567890123456789ab',
       }),
       updateUserPublicMetadata: vi.fn().mockResolvedValue({}),
     };

@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -85,11 +84,10 @@ export class OpusProController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       let isConnected = false;
 
       try {
-        await this.opusProService.getAccountInfo(publicMetadata.organization);
+        await this.opusProService.getAccountInfo(user.organizationId);
         isConnected = true;
       } catch {
         isConnected = false;
@@ -124,9 +122,8 @@ export class OpusProController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       const templates = await this.opusProService.getTemplates(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       return {
@@ -160,13 +157,12 @@ export class OpusProController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       const videoId = await this.opusProService.generateVideo(
         '', // metadataId — caller should provide via upstream workflow
         body.templateId,
         body.params || {},
-        publicMetadata.organization,
-        publicMetadata.user,
+        user.organizationId,
+        user.userId ?? user.id,
       );
 
       return {
@@ -200,10 +196,9 @@ export class OpusProController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       const status = await this.opusProService.getVideoStatus(
         videoId,
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       return {

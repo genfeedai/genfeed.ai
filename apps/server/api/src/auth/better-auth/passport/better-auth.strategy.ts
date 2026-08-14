@@ -46,18 +46,16 @@ export class BetterAuthStrategy extends PassportStrategy(
     const identity = await this.identityResolver.resolve(claims.sub);
 
     return {
+      brandId: identity.brandId,
       emailAddresses: claims.email
         ? [{ emailAddress: claims.email, id: claims.sub }]
         : [],
       firstName: claims.name ?? null,
       id: claims.sub,
+      isSuperAdmin: identity.isSuperAdmin,
       lastName: null,
-      publicMetadata: {
-        brand: identity.brandId,
-        isSuperAdmin: identity.isSuperAdmin,
-        organization: identity.organizationId,
-        user: identity.userId,
-      },
+      organizationId: identity.organizationId,
+      userId: identity.userId,
     };
   }
 }

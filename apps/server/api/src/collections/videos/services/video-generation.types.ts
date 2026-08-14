@@ -1,8 +1,3 @@
-/**
- * Internal types for VideoGenerationService.
- * Extracted per repo rule: no inline interfaces in service files.
- */
-
 export type PromptInput = Record<string, unknown> & {
   prompt?: string;
   resolution?: string;
@@ -43,14 +38,10 @@ export interface CreateVideoPlaceholderActivityParams {
   brandId: string;
   ingredientId: string;
   model: string;
-  organization: string;
-  user: string;
+  organizationId: string;
   userId: string;
 }
 
-export type VideoGenerationPublicMetadata = ReturnType<
-  typeof getPublicMetadata
->;
 export type VideoGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>
 >;
@@ -65,7 +56,6 @@ export interface ResolvedVideoGenerationRequest {
   brand: VideoGenerationResolvedBrand;
   createVideoDto: CreateVideoDto;
   model: string;
-  publicMetadata: VideoGenerationPublicMetadata;
   referenceIds: string[];
   request: Request;
   user: User;
@@ -89,5 +79,4 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type { SharedService } from '@api/shared/services/shared/shared.service';

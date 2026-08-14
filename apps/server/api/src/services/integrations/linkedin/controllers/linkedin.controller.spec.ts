@@ -60,10 +60,8 @@ describe('LinkedInController', () => {
   const orgId = 'test-object-id';
   const userId = 'test-object-id';
   const mockUser = {
-    publicMetadata: {
-      organization: orgId.toString(),
-      user: userId.toString(),
-    },
+    organizationId: orgId.toString(),
+    userId: userId.toString(),
   };
   const mockRequest = {} as Request;
 

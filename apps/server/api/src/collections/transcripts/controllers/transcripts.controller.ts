@@ -5,7 +5,6 @@ import { TranscriptsService } from '@api/collections/transcripts/services/transc
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -36,8 +35,8 @@ export class TranscriptsController {
     @Body() createTranscriptDto: CreateTranscriptDto,
     @CurrentUser() user: User,
   ) {
-    const { user: userId, organization: organizationId } =
-      getPublicMetadata(user);
+    const userId = user.userId ?? user.id;
+    const organizationId = user.organizationId;
     if (!organizationId) {
       throw new BadRequestException('Organization ID is required');
     }
@@ -59,8 +58,8 @@ export class TranscriptsController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    const { user: userId, organization: organizationId } =
-      getPublicMetadata(user);
+    const userId = user.userId ?? user.id;
+    const organizationId = user.organizationId;
     if (!organizationId) {
       throw new BadRequestException('Organization ID is required');
     }
@@ -82,7 +81,7 @@ export class TranscriptsController {
     @Param('transcriptId') transcriptId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
     if (!organizationId) {
       throw new BadRequestException('Organization ID is required');
     }
@@ -103,7 +102,7 @@ export class TranscriptsController {
     @Body() updateTranscriptDto: UpdateTranscriptDto,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
     if (!organizationId) {
       throw new BadRequestException('Organization ID is required');
     }

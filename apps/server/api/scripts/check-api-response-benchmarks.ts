@@ -82,7 +82,7 @@ type ApiBenchmarkHeaders = {
 
 type ApiBenchmarkUser = {
   id: string;
-  publicMetadata?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
 };
 
 type ApiBenchmarkHarness = {
@@ -516,14 +516,11 @@ function createBenchmarkAuthMiddleware(): NestMiddleware['use'] {
 
     const currentUser = {
       id: userId || 'benchmark-user',
-      publicMetadata: {
-        brand: brandId,
-        email: 'benchmark@example.com',
-        isOwner: true,
-        isSuperAdmin: false,
-        organization: organizationId,
-        user: userId,
-      },
+      brandId: brandId,
+
+      isSuperAdmin: false,
+      organizationId: organizationId,
+      userId: userId,
     } as ApiBenchmarkUser;
 
     (req as typeof req & { user?: ApiBenchmarkUser }).user = currentUser;

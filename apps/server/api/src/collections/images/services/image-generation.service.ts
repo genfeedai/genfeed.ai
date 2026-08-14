@@ -6,7 +6,6 @@ import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
-  ImageGenerationPublicMetadata,
   ImageGenerationResolvedBrand,
   ImageGenerationResolvedPrompt,
   ImageGenerationSavedIngredient,
@@ -22,7 +21,6 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -94,7 +92,7 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto,
     request: Request,
   ): Promise<JsonApiSingleResponse> {
-    const { brand, model, promptOriginalText, publicMetadata } =
+    const { brand, model, promptOriginalText, user } =
       await this.resolveAndValidate(user, createImageDto, request);
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
@@ -140,11 +138,10 @@ export class ImageGenerationService {
         model,
         promptBuilderBrand,
         promptOriginalText,
-        publicMetadata,
+        user,
         referenceIds,
         referenceImageUrls,
         style,
-        user,
         width,
       });
 
@@ -162,7 +159,6 @@ export class ImageGenerationService {
       pendingIngredientIds: [ingredientData.id.toString()],
       promptBuilderBrand,
       promptData,
-      publicMetadata,
       referenceIds,
       referenceImageUrl,
       referenceImageUrls,
@@ -200,12 +196,10 @@ export class ImageGenerationService {
     brand: ImageGenerationResolvedBrand;
     model: string;
     promptOriginalText: string;
-    publicMetadata: ImageGenerationPublicMetadata;
   }> {
     this.loggerService.log(`${this.constructorName} create`, {
       ...createImageDto,
     });
-    const publicMetadata = getPublicMetadata(user);
 
     if (!createImageDto.text) {
       throw new HttpException(
@@ -219,10 +213,10 @@ export class ImageGenerationService {
 
     const promptOriginalText = createImageDto.text;
 
-    const brandId = createImageDto.brandId || publicMetadata.brand;
+    const brandId = createImageDto.brandId || user.brandId;
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -237,7 +231,7 @@ export class ImageGenerationService {
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
 
@@ -246,7 +240,7 @@ export class ImageGenerationService {
       promptOriginalText,
       brand,
       organizationSettings,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     // Validate resolved model against org (catches default-resolution bypassing
@@ -254,7 +248,7 @@ export class ImageGenerationService {
     // request-context middleware did not populate organizationId; only
     // single-tenant deployments (no org at all) skip it.
     const validationOrgId =
-      publicMetadata.organization || request.context?.organizationId;
+      user.organizationId || request.context?.organizationId;
     if (validationOrgId) {
       await this.modelRegistrationService.validateModelForOrg(
         model,
@@ -265,7 +259,7 @@ export class ImageGenerationService {
     await this.creditsService.ensureDeferredCredits(
       createImageDto,
       model,
-      publicMetadata.organization,
+      user.organizationId,
       request,
     );
 
@@ -279,7 +273,7 @@ export class ImageGenerationService {
       );
     }
 
-    return { brand, model, promptOriginalText, publicMetadata };
+    return { brand, model, promptOriginalText, user };
   }
 
   /**
@@ -295,7 +289,6 @@ export class ImageGenerationService {
     model: string;
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
-    publicMetadata: ImageGenerationPublicMetadata;
     referenceIds: string[];
     referenceImageUrls: string[];
     style?: string;
@@ -314,11 +307,10 @@ export class ImageGenerationService {
       model,
       promptBuilderBrand,
       promptOriginalText,
-      publicMetadata,
+      user,
       referenceIds,
       referenceImageUrls,
       style,
-      user,
       width,
     } = params;
 
@@ -328,8 +320,8 @@ export class ImageGenerationService {
     const submittedPrompt = submittedPromptId
       ? await this.promptsService.findOne({
           id: submittedPromptId,
-          organizationId: publicMetadata.organization,
-          userId: publicMetadata.user,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
         })
       : null;
     const promptData = submittedPrompt
@@ -341,13 +333,13 @@ export class ImageGenerationService {
           new PromptEntity({
             brandId: isEntityId(createImageDto.brandId)
               ? createImageDto.brandId
-              : publicMetadata.brand,
+              : user.brandId,
             category: PromptCategory.MODELS_PROMPT_IMAGE,
             model,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             original: promptOriginalText,
             status: PromptStatus.PROCESSING,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
           }),
         );
 
@@ -381,7 +373,7 @@ export class ImageGenerationService {
         useTemplate: createImageDto.useTemplate,
         width,
       },
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     const { metadataData, ingredientData } =
@@ -395,7 +387,7 @@ export class ImageGenerationService {
         isDefault: createImageDto.isDefault,
         model,
         negativePrompt: createImageDto.negativePrompt,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         parentId: isEntityId(createImageDto.parentId)
           ? createImageDto.parentId
           : undefined,
@@ -492,8 +484,8 @@ export class ImageGenerationService {
       this.cancellationService.bindCancelOnAbort({
         abortSignal: context.abortSignal,
         id: context.ingredientData.id.toString(),
-        organizationId: context.publicMetadata.organization,
-        userId: context.publicMetadata.user,
+        organizationId: context.user.organizationId,
+        userId: context.user.userId,
       });
       try {
         await plan.generationPromise;

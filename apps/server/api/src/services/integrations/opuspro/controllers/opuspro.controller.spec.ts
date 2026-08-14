@@ -1,12 +1,4 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -31,10 +23,8 @@ describe('OpusProController', () => {
   };
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439011',
-      user: '507f1f77bcf86cd799439013',
-    },
+    organizationId: '507f1f77bcf86cd799439011',
+      userId: '507f1f77bcf86cd799439013',
   } as unknown as User;
 
   beforeEach(async () => {
@@ -81,8 +71,6 @@ describe('OpusProController', () => {
     });
 
     it('should throw HttpException on unexpected outer error', async () => {
-      vi.mocked(getPublicMetadata).mockImplementationOnce(() => {
-        throw new Error('authProvider failure');
       });
 
       await expect(controller.getStatus(mockUser)).rejects.toThrow(

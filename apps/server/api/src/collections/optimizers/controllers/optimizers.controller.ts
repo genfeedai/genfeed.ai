@@ -19,7 +19,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
@@ -67,7 +66,7 @@ export class OptimizersController {
     @Body() dto: AnalyzeContentDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -105,7 +104,7 @@ export class OptimizersController {
     @Body() dto: OptimizeContentDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -143,7 +142,7 @@ export class OptimizersController {
     @Body() dto: SuggestHashtagsDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -180,7 +179,7 @@ export class OptimizersController {
     @Body() dto: GenerateVariantsDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -217,7 +216,7 @@ export class OptimizersController {
     @Body() dto: GeneratePromptsDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -255,7 +254,7 @@ export class OptimizersController {
     @Query('timezone') timezone: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -287,7 +286,7 @@ export class OptimizersController {
     @Query('limit') limit: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const docs = await this.optimizersService.getOptimizationHistory(
       organization,
       user.id,

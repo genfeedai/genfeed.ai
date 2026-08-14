@@ -22,10 +22,8 @@ describe('ContentOptimizationController', () => {
   };
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   beforeEach(async () => {

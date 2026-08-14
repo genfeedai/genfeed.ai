@@ -25,22 +25,18 @@ class TestCurrentUserGuard implements CanActivate {
       headers: Record<string, string | string[] | undefined>;
       user?: {
         id: string;
-        publicMetadata: {
-          organization: string;
-          user: string;
-        };
+        organizationId: string;
+          userId: string;;
       };
     }>();
 
     request.user = {
       id: getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
-      publicMetadata: {
-        organization:
+      organizationId:
           getHeaderValue(request.headers['x-organization-id']) ??
           generateIdString(),
-        user:
+        userId:
           getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
-      },
     };
 
     return true;

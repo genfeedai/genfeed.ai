@@ -12,11 +12,9 @@ import type { Request } from 'express';
 describe('IngredientsController.cancelGeneration', () => {
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439014',
   };
   const mockRequest = { originalUrl: '/api/ingredients', query: {} } as Request;
   const cancellationService = {

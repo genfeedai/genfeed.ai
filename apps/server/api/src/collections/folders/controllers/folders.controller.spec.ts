@@ -5,7 +5,6 @@ import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto'
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -49,18 +48,14 @@ describe('FoldersController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: mockBrandId,
-      organization: mockOrganizationId,
-      user: mockUserId,
-    } as IAuthPublicMetadata,
+    brandId: mockBrandId,
+    isSuperAdmin: false,
+    organizationId: mockOrganizationId,
+    userId: mockUserId,
   } as unknown as User;
   const mockSuperAdmin = {
     ...mockUser,
-    publicMetadata: {
-      ...mockUser.publicMetadata,
-      isSuperAdmin: true,
-    },
+    isSuperAdmin: true,
   } as unknown as User;
 
   const mockRequest = {
@@ -186,7 +181,7 @@ describe('FoldersController', () => {
 
     it('keeps ordinary members in current-brand scope when they request their organization', () => {
       const result = controller.buildFindAllQuery(mockUser, {
-        organization: mockUser.publicMetadata.organization,
+        organization: mockUser.organizationId,
       } as BaseQueryDto & { organization: string });
 
       expect(result).toMatchObject({
@@ -194,11 +189,11 @@ describe('FoldersController', () => {
           OR: [
             {
               brandId: null,
-              organizationId: mockUser.publicMetadata.organization,
+              organizationId: mockUser.organizationId,
             },
             {
-              brandId: mockUser.publicMetadata.brand,
-              organizationId: mockUser.publicMetadata.organization,
+              brandId: mockUser.brandId,
+              organizationId: mockUser.organizationId,
             },
           ],
         }),
@@ -293,8 +288,8 @@ describe('FoldersController', () => {
         id: folderId,
         ...createDto,
         brandId: null,
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       };
 
       foldersService.create.mockResolvedValue(mockCreatedFolder);
@@ -306,8 +301,8 @@ describe('FoldersController', () => {
           brandId: null,
           description: 'Test Description',
           label: 'Test Folder',
-          organizationId: mockUser.publicMetadata.organization,
-          userId: mockUser.publicMetadata.user,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         },
         [],
       );
@@ -316,24 +311,24 @@ describe('FoldersController', () => {
 
     it('creates a current-brand folder with scalar foreign keys', async () => {
       foldersService.create.mockResolvedValue({
-        brandId: mockUser.publicMetadata.brand,
+        brandId: mockUser.brandId,
         id: folderId,
         label: 'Brand Folder',
-        organizationId: mockUser.publicMetadata.organization,
-        userId: mockUser.publicMetadata.user,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
       });
 
       await controller.create(mockRequest, mockUser, {
-        brandId: mockUser.publicMetadata.brand,
+        brandId: mockUser.brandId,
         label: 'Brand Folder',
       });
 
       expect(foldersService.create).toHaveBeenCalledWith(
         {
-          brandId: mockUser.publicMetadata.brand,
+          brandId: mockUser.brandId,
           label: 'Brand Folder',
-          organizationId: mockUser.publicMetadata.organization,
-          userId: mockUser.publicMetadata.user,
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
         },
         [],
       );
@@ -369,7 +364,7 @@ describe('FoldersController', () => {
         id: folderId,
         isDeleted: false,
         label: 'Scoped Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
       foldersService.findOne.mockResolvedValue(mockFolder);
 
@@ -378,7 +373,7 @@ describe('FoldersController', () => {
       expect(foldersService.findOne).toHaveBeenCalledWith({
         id: folderId,
         isDeleted: false,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
       expect(result).toEqual({ data: mockFolder });
     });
@@ -389,7 +384,7 @@ describe('FoldersController', () => {
         id: folderId,
         isDeleted: false,
         label: 'Foreign Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
 
       await expect(
@@ -430,7 +425,7 @@ describe('FoldersController', () => {
       const mockExistingFolder = {
         id: folderId,
         label: 'Old Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       const mockUpdatedFolder = {
@@ -473,7 +468,7 @@ describe('FoldersController', () => {
       const mockExistingFolder = {
         id: folderId,
         label: 'Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
       foldersService.findOne.mockResolvedValue(mockExistingFolder);
       foldersService.patch.mockResolvedValue(mockExistingFolder);
@@ -491,21 +486,21 @@ describe('FoldersController', () => {
       const mockExistingFolder = {
         id: folderId,
         label: 'Shared Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
       foldersService.findOne.mockResolvedValue(mockExistingFolder);
       foldersService.patch.mockResolvedValue({
         ...mockExistingFolder,
-        brandId: mockUser.publicMetadata.brand,
+        brandId: mockUser.brandId,
       });
 
       await controller.update(mockRequest, mockUser, folderId, {
-        brandId: mockUser.publicMetadata.brand,
+        brandId: mockUser.brandId,
       });
 
       expect(foldersService.patch).toHaveBeenCalledWith(
         folderId,
-        { brandId: mockUser.publicMetadata.brand },
+        { brandId: mockUser.brandId },
         [],
       );
     });
@@ -530,7 +525,7 @@ describe('FoldersController', () => {
         brandId: foreignBrandId,
         id: folderId,
         label: 'Foreign Brand Folder',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
 
       await expect(
@@ -547,7 +542,7 @@ describe('FoldersController', () => {
       const mockFolder = {
         id: folderId,
         label: 'Folder to Delete',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);
@@ -599,12 +594,12 @@ describe('FoldersController', () => {
           {
             id: 'cmfolder000000000000000002',
             label: 'Folder 1',
-            userId: mockUser.publicMetadata.user,
+            userId: mockUser.userId,
           },
           {
             id: 'cmfolder000000000000000003',
             label: 'Folder 2',
-            organizationId: mockUser.publicMetadata.organization,
+            organizationId: mockUser.organizationId,
           },
         ],
         hasNextPage: false,

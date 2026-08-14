@@ -13,7 +13,7 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 type FeatureFlagRequest = Request & {
-  auth?: { publicMetadata?: { user?: string } };
+  auth?: { userId?: string };
   context?: {
     organizationId?: string;
     subscriptionTier?: string;
@@ -27,6 +27,7 @@ type FeatureFlagRequest = Request & {
     }>;
     id?: string;
     primaryEmailAddressId?: string | null;
+    userId?: string;
   };
 };
 
@@ -62,8 +63,9 @@ export class FeatureFlagGuard implements CanActivate {
   ): FeatureFlagAttributes | undefined {
     const id =
       request.context?.userId ||
+      request.user?.userId ||
       request.user?.id ||
-      request.auth?.publicMetadata?.user;
+      request.auth?.userId;
     const organizationId = request.context?.organizationId;
     const plan = request.context?.subscriptionTier;
     const isInternal = resolveIsInternal(request);

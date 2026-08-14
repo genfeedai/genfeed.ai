@@ -28,10 +28,8 @@ describe('SchedulesController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: MOCK_ORGANIZATION_ID,
-      user: MOCK_USER_ID,
-    },
+    organizationId: MOCK_ORGANIZATION_ID,
+    userId: MOCK_USER_ID,
   } as unknown as User;
 
   const mockSchedulesService = {

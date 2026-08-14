@@ -45,11 +45,9 @@ describe('ActionOriginInterceptor', () => {
           [MCP_ACTION_ORIGIN_PROOF_HEADER]: trustedProof,
         },
         user: {
-          publicMetadata: {
-            apiKeyId: 'key-1',
-            isApiKey: true,
-            user: 'user-1',
-          },
+          apiKeyId: 'key-1',
+          isApiKey: true,
+          userId: 'user-1',
         },
       }),
     ).resolves.toEqual({
@@ -67,11 +65,9 @@ describe('ActionOriginInterceptor', () => {
           'x-action-origin': 'mcp',
         },
         user: {
-          publicMetadata: {
-            apiKeyId: 'key-1',
-            isApiKey: true,
-            user: 'user-1',
-          },
+          apiKeyId: 'key-1',
+          isApiKey: true,
+          userId: 'user-1',
         },
       }),
     ).resolves.toEqual({
@@ -86,12 +82,10 @@ describe('ActionOriginInterceptor', () => {
       readContext({
         headers: {},
         user: {
-          publicMetadata: {
-            actionOrigin: ActionOrigin.CLI,
-            apiKeyId: 'key-1',
-            isApiKey: true,
-            user: 'user-1',
-          },
+          actionOrigin: ActionOrigin.CLI,
+          apiKeyId: 'key-1',
+          isApiKey: true,
+          userId: 'user-1',
         },
       }),
     ).resolves.toMatchObject({ origin: ActionOrigin.CLI });
@@ -99,19 +93,17 @@ describe('ActionOriginInterceptor', () => {
       readContext({
         headers: {},
         user: {
-          publicMetadata: {
-            actionOrigin: ActionOrigin.MCP,
-            apiKeyId: 'key-2',
-            isApiKey: true,
-            user: 'user-1',
-          },
+          actionOrigin: ActionOrigin.MCP,
+          apiKeyId: 'key-2',
+          isApiKey: true,
+          userId: 'user-1',
         },
       }),
     ).resolves.toMatchObject({ origin: ActionOrigin.MCP });
     await expect(
       readContext({
         headers: {},
-        user: { publicMetadata: { user: 'user-1' } },
+        user: { userId: 'user-1' },
       }),
     ).resolves.toMatchObject({ origin: ActionOrigin.UI });
   });

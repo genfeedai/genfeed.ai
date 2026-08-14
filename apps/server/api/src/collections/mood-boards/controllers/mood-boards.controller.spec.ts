@@ -2,14 +2,9 @@ import { MoodBoardsController } from '@api/collections/mood-boards/controllers/m
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({ organization: 'org-1' })),
-}));
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -82,7 +77,7 @@ describe('MoodBoardsController', () => {
   });
 
   describe('findByBrand', () => {
-    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+    const mockUser = { organizationId: 'org-1' } as never;
 
     it('returns serialized board scoped to the caller organization', async () => {
       service.findOrCreateByBrand.mockResolvedValueOnce(mockMoodBoard as never);
@@ -101,9 +96,6 @@ describe('MoodBoardsController', () => {
     });
 
     it('threads the caller organization (not a foreign one) into the service', async () => {
-      vi.mocked(getPublicMetadata).mockReturnValueOnce({
-        organization: 'org-2',
-      } as never);
       service.findOrCreateByBrand.mockResolvedValueOnce(mockMoodBoard as never);
 
       await controller.findByBrand(mockRequest as never, mockUser, 'brand-1');
@@ -132,7 +124,7 @@ describe('MoodBoardsController', () => {
   });
 
   describe('update', () => {
-    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+    const mockUser = { organizationId: 'org-1' } as never;
 
     it('patches board when found', async () => {
       const dto: UpdateMoodBoardDto = { layout: [] };

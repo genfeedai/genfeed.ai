@@ -4,7 +4,6 @@ import { VotesService } from '@api/collections/votes/services/votes.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
@@ -36,8 +35,6 @@ export class VotesController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       if (
         !createVoteDto.entity ||
         !/^[0-9a-f]{24}$/i.test(createVoteDto.entity)
@@ -48,7 +45,7 @@ export class VotesController {
       const vote = await this.votesService.create({
         entityId: createVoteDto.entity,
         entityModel: createVoteDto.entityModel,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       } as unknown as CreateVoteDto);
 
       return serializeSingle(request, VoteSerializer, vote);
@@ -67,12 +64,10 @@ export class VotesController {
       throw new BadRequestException('Invalid entity id');
     }
 
-    const publicMetadata = getPublicMetadata(user);
-
     await this.votesService.patchAll(
       {
         entityId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       { isDeleted: true },
     );

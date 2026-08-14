@@ -12,7 +12,6 @@ import {
 } from '@api/common/services/access-bootstrap-cache.service';
 import {
   getIsSuperAdmin,
-  getPublicMetadata,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
@@ -87,17 +86,15 @@ export class AuthBootstrapService {
   private getOverviewBootstrapRequestCacheKey(
     request: AuthBootstrapRequest,
   ): string | null {
-    const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> =
-      request.user ? getPublicMetadata(request.user) : {};
     const organizationId =
-      request.context?.organizationId ?? publicMetadata.organization ?? '';
+      request.context?.organizationId ?? user.organizationId ?? '';
 
     if (!organizationId) {
       return null;
     }
 
-    const brandId = request.context?.brandId ?? publicMetadata.brand ?? '';
-    const userId = request.context?.userId ?? publicMetadata.user ?? '';
+    const brandId = request.context?.brandId ?? user.brandId ?? '';
+    const userId = request.context?.userId ?? user.userId ?? user.id ?? '';
 
     return [organizationId, brandId || 'no-brand', userId || 'no-user'].join(
       ':',
@@ -176,14 +173,11 @@ export class AuthBootstrapService {
     request: AuthBootstrapRequest,
   ): Promise<BootstrapBaseData> {
     const user = request.user;
-    const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> = user
-      ? getPublicMetadata(user)
-      : {};
     const requestContext = request.context;
-    const userId = requestContext?.userId ?? publicMetadata.user ?? '';
+    const userId = requestContext?.userId ?? user.userId ?? user.id ?? '';
     const organizationId =
-      requestContext?.organizationId ?? publicMetadata.organization ?? '';
-    const brandId = requestContext?.brandId ?? publicMetadata.brand ?? '';
+      requestContext?.organizationId ?? user.organizationId ?? '';
+    const brandId = requestContext?.brandId ?? user.brandId ?? '';
     const subscriptionStatus =
       requestContext?.stripeSubscriptionStatus ??
       (user ? getStripeSubscriptionStatus(user, request) : '');
@@ -274,11 +268,10 @@ export class AuthBootstrapService {
   ): Promise<AccessBootstrapCachePayload> {
     // Streak only needs ids already on the request — fetch it in parallel with
     // the base bootstrap resolve so a cold miss is one network hop, not two.
-    const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> =
-      request.user ? getPublicMetadata(request.user) : {};
-    const requestUserId = request.context?.userId ?? publicMetadata.user ?? '';
+    const requestUserId =
+      request.context?.userId ?? user.userId ?? user.id ?? '';
     const requestOrganizationId =
-      request.context?.organizationId ?? publicMetadata.organization ?? '';
+      request.context?.organizationId ?? user.organizationId ?? '';
 
     const [base, streak] = await Promise.all([
       this.resolveBootstrapBase(request),

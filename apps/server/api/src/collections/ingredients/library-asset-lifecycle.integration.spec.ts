@@ -365,20 +365,16 @@ describe('Library asset lifecycle', () => {
 
   const owner = {
     id: USER_ID,
-    publicMetadata: {
-      brand: BRAND_ID,
-      organization: ORGANIZATION_ID,
-      user: USER_ID,
-    },
+    brandId: BRAND_ID,
+    organizationId: ORGANIZATION_ID,
+    userId: USER_ID,
   } as unknown as User;
 
   const foreignUser = {
     id: FOREIGN_USER_ID,
-    publicMetadata: {
-      brand: FOREIGN_BRAND_ID,
-      organization: FOREIGN_ORGANIZATION_ID,
-      user: FOREIGN_USER_ID,
-    },
+    brandId: FOREIGN_BRAND_ID,
+    organizationId: FOREIGN_ORGANIZATION_ID,
+    userId: FOREIGN_USER_ID,
   } as unknown as User;
 
   const request = {
@@ -527,20 +523,17 @@ describe('Library asset lifecycle', () => {
 
     const sharedService = {
       createMediaDocuments: vi.fn(async (user: User, input: PrismaWhere) => {
-        const publicMetadata = user.publicMetadata;
-        if (!publicMetadata) {
-          throw new Error('Authenticated user metadata is required');
-        }
+        const identity = user;
         const row = seedAsset({
-          brandId: String(input.brandId ?? publicMetadata.brand),
+          brandId: String(input.brandId ?? identity.brandId),
           category: String(input.category),
           isCloned: String(input.category) === IngredientCategory.VOICE,
           label: String(input.label ?? 'upload'),
           organizationId: String(
-            input.organizationId ?? publicMetadata.organization,
+            input.organizationId ?? identity.organizationId,
           ),
           status: String(input.status ?? IngredientStatus.UPLOADED),
-          userId: String(input.userId ?? publicMetadata.user),
+          userId: String(input.userId ?? identity.userId),
         });
         return {
           ingredientData: row,

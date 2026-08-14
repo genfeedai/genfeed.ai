@@ -27,7 +27,6 @@ import { WorkflowValidator } from '@api/collections/workflows/validators/workflo
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkflowTrigger } from '@genfeedai/enums';
@@ -136,8 +135,6 @@ export class WorkflowBuilderController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-
       const inputWorkflow = dto.workflow as unknown as
         | CoreWorkflowFormat
         | CloudWorkflowFormat;
@@ -156,8 +153,8 @@ export class WorkflowBuilderController {
         dto.name ?? cloudWorkflow.name ?? 'Imported Workflow';
 
       const created = await this.workflowsService.createWorkflow(
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
         {
           description: cloudWorkflow.description,
           edges: cloudWorkflow.edges,
@@ -172,7 +169,7 @@ export class WorkflowBuilderController {
           nodes: cloudWorkflow.nodes,
           trigger: WorkflowTrigger.MANUAL,
         } as CreateWorkflowDto,
-        publicMetadata.brand || undefined,
+        user.brandId || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, created);
@@ -187,9 +184,8 @@ export class WorkflowBuilderController {
   ): Promise<{
     data: { inputs: Record<string, unknown>; outputs: Record<string, unknown> };
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     const inputs: Record<string, unknown> = {};
@@ -251,9 +247,8 @@ export class WorkflowBuilderController {
     @Body() body: { inputs: Record<string, unknown> },
     @CurrentUser() user: User,
   ): Promise<{ data: { isValid: boolean; errors: string[] } }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     const errors: string[] = [];
@@ -295,10 +290,9 @@ export class WorkflowBuilderController {
       errors: Array<{ nodeId?: string; edgeId?: string; message: string }>;
     };
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     const result = WorkflowValidator.validate({

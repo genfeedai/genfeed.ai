@@ -8,7 +8,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -53,11 +52,9 @@ export class PresetsController extends BaseCRUDController<
    * Uses PresetFilterUtil for consistent three-tier scope filtering
    */
   public buildFindAllQuery(user: User, query: PresetsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Use PresetFilterUtil to build base match stage
     const matchStage = PresetFilterUtil.buildBaseMatch(
-      publicMetadata,
+      user,
       {
         category: query.category,
         isActive: query.isActive,

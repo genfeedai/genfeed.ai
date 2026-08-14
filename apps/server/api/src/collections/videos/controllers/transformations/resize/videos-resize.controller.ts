@@ -7,7 +7,6 @@ import { requireVideoOutputPath } from '@api/collections/videos/utils/video-proc
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -62,13 +61,12 @@ export class VideosResizeController {
     @Body() resizeVideoDto: IResizeBodyParams,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -78,10 +76,10 @@ export class VideosResizeController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: video.brandId ?? publicMetadata.brand,
+        brandId: video.brandId ?? user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         parentId: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
@@ -90,7 +88,7 @@ export class VideosResizeController {
     this.fileQueueService
       .processVideo({
         ingredientId: ingredientData.id.toString(),
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         params: {
           height: resizeVideoDto.height,
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
@@ -98,7 +96,7 @@ export class VideosResizeController {
         },
         room: getUserRoomName(user.id),
         type: 'resize',
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
@@ -140,11 +138,10 @@ export class VideosResizeController {
     @Param('videoId') videoId: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!video) {
@@ -153,10 +150,10 @@ export class VideosResizeController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         parentId: videoId,
         status: IngredientStatus.PROCESSING,
       });
@@ -164,7 +161,7 @@ export class VideosResizeController {
     this.fileQueueService
       .processVideo({
         ingredientId: ingredientData.id.toString(),
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         params: {
           height: 1920,
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
@@ -172,7 +169,7 @@ export class VideosResizeController {
         },
         room: getUserRoomName(user.id),
         type: 'convert-to-portrait',
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {

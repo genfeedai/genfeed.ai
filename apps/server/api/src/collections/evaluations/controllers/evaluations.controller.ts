@@ -12,7 +12,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   returnNotFound,
@@ -85,15 +84,11 @@ export class EvaluationsController extends BaseCRUDController<
     user: User,
     query: EvaluationsQueryDto,
   ): PrismaFindAllInput {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     const where: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      ...(adminFilter ?? { organizationId: publicMetadata.organization }),
+      ...(adminFilter ?? { organizationId: user.organizationId }),
     };
 
     if (query.entityType) {
@@ -125,15 +120,13 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() dto: EvaluateContentDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.evaluateContent(
       'post',
       postId,
       dto.evaluationType || EvaluationType.PRE_PUBLICATION,
-      publicMetadata.organization,
-      publicMetadata.user,
-      publicMetadata.brand,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
     );
 
     return serializeSingle(request, EvaluationSerializer, evaluation);
@@ -152,15 +145,13 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() dto: EvaluateContentDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.evaluateContent(
       'article',
       articleId,
       dto.evaluationType || EvaluationType.PRE_PUBLICATION,
-      publicMetadata.organization,
-      publicMetadata.user,
-      publicMetadata.brand,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
     );
 
     return serializeSingle(request, EvaluationSerializer, evaluation);
@@ -179,15 +170,13 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() dto: EvaluateContentDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.evaluateContent(
       IngredientCategory.IMAGE,
       imageId,
       dto.evaluationType || EvaluationType.PRE_PUBLICATION,
-      publicMetadata.organization,
-      publicMetadata.user,
-      publicMetadata.brand,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
     );
 
     return serializeSingle(request, EvaluationSerializer, evaluation);
@@ -206,15 +195,13 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() dto: EvaluateContentDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.evaluateContent(
       IngredientCategory.VIDEO,
       videoId,
       dto.evaluationType || EvaluationType.PRE_PUBLICATION,
-      publicMetadata.organization,
-      publicMetadata.user,
-      publicMetadata.brand,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
     );
 
     return serializeSingle(request, EvaluationSerializer, evaluation);
@@ -232,13 +219,11 @@ export class EvaluationsController extends BaseCRUDController<
     @Body() dto: EvaluateExternalDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.evaluateExternalUrl(
       dto,
-      publicMetadata.organization,
-      publicMetadata.user,
-      publicMetadata.brand,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
     );
 
     return serializeSingle(request, EvaluationSerializer, evaluation);
@@ -253,10 +238,8 @@ export class EvaluationsController extends BaseCRUDController<
     @Query() filters: EvaluationFiltersDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return await this.evaluationsService.getEvaluationTrends(
-      publicMetadata.organization,
+      user.organizationId,
       filters,
     );
   }
@@ -270,10 +253,8 @@ export class EvaluationsController extends BaseCRUDController<
     @Body() dto: CompareEvaluationsDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return await this.evaluationsService.compareEvaluations(
-      publicMetadata.organization,
+      user.organizationId,
       dto,
     );
   }
@@ -289,12 +270,10 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() dto: RecordEvaluationReviewDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const evaluation = await this.evaluationsService.recordReviewerFeedback(
       evaluationId,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
       dto,
     );
 
@@ -310,13 +289,11 @@ export class EvaluationsController extends BaseCRUDController<
     @Param('evaluationId') evaluationId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Use CollectionFilterUtil for ownership filtering
-    const ownershipFilter = CollectionFilterUtil.buildOwnershipFilter(
-      publicMetadata,
-      { includeOrganization: true, includeUser: true },
-    );
+    const ownershipFilter = CollectionFilterUtil.buildOwnershipFilter(user, {
+      includeOrganization: true,
+      includeUser: true,
+    });
 
     const evaluation = await this.evaluationsService.findOne({
       id: evaluationId,

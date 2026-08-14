@@ -1,5 +1,8 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
@@ -10,7 +13,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -46,11 +48,9 @@ describe('TrainingsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee'.toString(),
-      organization: 'c07f191e810c19729de860ee'.toString(),
-      user: 'c07f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: 'c07f191e810c19729de860ee'.toString(),
+    organizationId: 'c07f191e810c19729de860ee'.toString(),
+    userId: 'c07f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockRequest = {
@@ -130,11 +130,11 @@ describe('TrainingsController', () => {
             isDeleted: false,
             label: 'Training 1',
             model: 'replicate/fast-flux-trainer:test',
-            organizationId: mockUser.publicMetadata.organization as string,
+            organizationId: mockUser.organizationId as string,
             sources: [],
             steps: 1000,
             trigger: 'TOK1',
-            userId: mockUser.publicMetadata.user as string,
+            userId: mockUser.userId as string,
           },
         ],
         hasNextPage: false,
@@ -222,9 +222,9 @@ describe('TrainingsController', () => {
       expect(trainingsService.createTrainingWithSources).toHaveBeenCalledWith(
         createDto,
         expect.objectContaining({
-          brand: mockUser.publicMetadata.brand,
-          organization: mockUser.publicMetadata.organization,
-          user: mockUser.publicMetadata.user,
+          brand: mockUser.brandId,
+          organization: mockUser.organizationId,
+          user: mockUser.userId,
         }),
       );
       expect(result).toBeDefined();
@@ -250,7 +250,7 @@ describe('TrainingsController', () => {
 
       expect(trainingsService.findOne).toHaveBeenCalledWith({
         id: cuid,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
       expect(result).toBeDefined();
     });
@@ -317,7 +317,7 @@ describe('TrainingsController', () => {
   describe('canUserModifyEntity', () => {
     it('should return true when user owns the entity', () => {
       const entity = {
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);
@@ -326,7 +326,7 @@ describe('TrainingsController', () => {
 
     it('should return true when user organization owns the entity', () => {
       const entity = {
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);
@@ -346,7 +346,7 @@ describe('TrainingsController', () => {
     it('should prefer the canonical scalar owner over a populated relation', () => {
       const entity = {
         user: { id: 'different-user' },
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

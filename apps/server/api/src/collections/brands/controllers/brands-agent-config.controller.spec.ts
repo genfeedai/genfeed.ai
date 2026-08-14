@@ -15,10 +15,8 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
 
   const mockUser = {
     id: 'user-1',
-    publicMetadata: {
-      organization: orgId,
-      user: userId,
-    },
+    organizationId: orgId,
+    userId: userId,
   } as unknown as User;
 
   const mockBrand = {
@@ -169,7 +167,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     expect(mockBrandsService.updateAgentConfig).not.toHaveBeenCalled();
   });
 
-  it('uses organization from user publicMetadata', async () => {
+  it('uses organization from user identity', async () => {
     mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
     await controller.updateAgentConfig(
       mockRequest,

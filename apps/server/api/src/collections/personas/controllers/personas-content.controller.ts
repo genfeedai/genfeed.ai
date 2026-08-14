@@ -3,7 +3,6 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -40,16 +39,14 @@ export class PersonasContentController {
   ) {}
 
   private resolvePersonaContext(user: User, personaId: string) {
-    const publicMetadata = getPublicMetadata(user);
-
     return {
       organizationId: EntityIdUtil.validate(
-        publicMetadata.organization,
+        user.organizationId,
         'organizationId',
       ),
       personaId: EntityIdUtil.validate(personaId, 'personaId'),
-      publicMetadata,
-      userId: EntityIdUtil.validate(publicMetadata.user, 'userId'),
+      user,
+      userId: EntityIdUtil.validate(user.userId ?? user.id, 'userId'),
     };
   }
 
@@ -160,7 +157,7 @@ export class PersonasContentController {
       );
 
       const input = {
-        brandId: EntityIdUtil.validate(context.publicMetadata.brand, 'brandId'),
+        brandId: EntityIdUtil.validate(context.brandId, 'brandId'),
         credentialId: body.credentialId
           ? EntityIdUtil.validate(body.credentialId, 'credentialId')
           : undefined,
@@ -210,7 +207,7 @@ export class PersonasContentController {
     try {
       const context = this.resolvePersonaContext(user, id);
       const result = await this.personaPublisherService.publishToAll({
-        brandId: EntityIdUtil.validate(context.publicMetadata.brand, 'brandId'),
+        brandId: EntityIdUtil.validate(context.brandId, 'brandId'),
         category: body.category,
         description: body.description,
         ingredientIds: body.ingredientIds

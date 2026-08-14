@@ -13,7 +13,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -78,16 +77,15 @@ export class VideosUploadController {
     )
     file: Express.Multer.File,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const validatedFile = file;
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: validatedFile.originalname,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });
@@ -96,7 +94,7 @@ export class VideosUploadController {
     await this.websocketService.publishIngredientStatus(
       videoId,
       IngredientStatus.PROCESSING,
-      publicMetadata.user,
+      user.userId ?? user.id,
       { result: videoId },
     );
 

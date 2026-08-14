@@ -30,10 +30,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -100,14 +97,13 @@ export class AnalyticsController {
       return undefined;
     }
 
-    const publicMetadata = getPublicMetadata(user);
-    if (!publicMetadata.organization) {
+    if (!user.organizationId) {
       throw new ForbiddenException(
         'You must be part of an organization to access analytics',
       );
     }
 
-    return publicMetadata.organization;
+    return user.organizationId;
   }
 
   constructor(
@@ -290,7 +286,6 @@ export class AnalyticsController {
     @Res() response: ExpressResponse,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     // Determine which organization to export data for
     let targetOrganizationId: string | undefined;
@@ -300,7 +295,7 @@ export class AnalyticsController {
       targetOrganizationId = query.organizationId || undefined;
     } else {
       // Non-superadmins can only export their own organization's data
-      if (!publicMetadata.organization) {
+      if (!user.organizationId) {
         throw new ForbiddenException(
           'You must be part of an organization to export data',
         );
@@ -308,13 +303,13 @@ export class AnalyticsController {
       // If they try to export another org's data, deny access
       if (
         query.organizationId &&
-        query.organizationId !== publicMetadata.organization
+        query.organizationId !== user.organizationId
       ) {
         throw new ForbiddenException(
           'You can only export data for your own organization',
         );
       }
-      targetOrganizationId = publicMetadata.organization;
+      targetOrganizationId = user.organizationId;
     }
 
     // Default to CSV if no format specified

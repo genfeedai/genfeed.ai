@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -67,10 +66,7 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const voices = await this.heygenService.getVoices(
-        publicMetadata.organization,
-      );
+      const voices = await this.heygenService.getVoices(user.organizationId);
 
       return {
         data: {
@@ -105,10 +101,7 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const avatars = await this.heygenService.getAvatars(
-        publicMetadata.organization,
-      );
+      const avatars = await this.heygenService.getAvatars(user.organizationId);
 
       return {
         data: {
@@ -143,17 +136,15 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // Try to fetch voices to check if API key is valid
       let isConnected = false;
       let hasCustomKey = false;
 
-      await this.heygenService.getVoices(publicMetadata.organization);
+      await this.heygenService.getVoices(user.organizationId);
       isConnected = true;
 
       // Check if using custom key (this is simplified - you may want to check org settings directly)
-      hasCustomKey = !!publicMetadata.organization;
+      hasCustomKey = !!user.organizationId;
 
       return {
         data: {

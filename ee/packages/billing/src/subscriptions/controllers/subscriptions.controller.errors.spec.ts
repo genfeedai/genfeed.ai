@@ -20,7 +20,7 @@ const ORGANIZATION_ID = 'org_1';
 const mockUser = {
   id: 'user_1',
   organizationId: ORGANIZATION_ID,
-  publicMetadata: { organization: ORGANIZATION_ID, user: 'user_1' },
+  identity: { organization: ORGANIZATION_ID, user: 'user_1' },
 } as unknown as User;
 
 function contextRequest(organizationId?: string): RequestWithContext {
@@ -180,7 +180,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     });
 
     it('refuses a credits breakdown with no resolvable organization', async () => {
-      const anonymousUser = { publicMetadata: {} } as unknown as User;
+      const anonymousUser = { identity: {} } as unknown as User;
 
       const error = await controller
         .getCreditsBreakdown(anonymousUser, contextRequest())

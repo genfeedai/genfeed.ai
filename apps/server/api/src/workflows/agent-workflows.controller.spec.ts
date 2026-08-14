@@ -15,10 +15,8 @@ describe('AgentWorkflowsController', () => {
   };
 
   const user = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439011',
-      user: '507f1f77bcf86cd799439012',
-    },
+    organizationId: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439012',
   };
 
   beforeEach(async () => {

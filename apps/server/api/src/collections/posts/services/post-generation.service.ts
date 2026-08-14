@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
@@ -48,12 +48,12 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
- * {@link IAuthPublicMetadata} so callers can pass the resolved request metadata
+ * {@link AuthenticatedUser} so callers can pass the resolved request metadata
  * directly without constructing a bespoke shape.
  */
 type GenerationMetadata = Pick<
-  IAuthPublicMetadata,
-  'brand' | 'organization' | 'user'
+  AuthenticatedUser,
+  'brandId' | 'organizationId' | 'userId'
 >;
 
 /**
@@ -179,7 +179,7 @@ export class PostGenerationService {
     draftType: 'thread' | 'tweet';
     platform: CredentialPlatform;
     postId: string;
-    publicMetadata: Pick<IAuthPublicMetadata, 'brand' | 'organization'>;
+    identity: Pick<AuthenticatedUser, 'brandId' | 'organizationId'>;
     prompt: string;
   }): Promise<void> {
     const metadata = this.buildRemixMetadata(params.dto);
@@ -189,11 +189,11 @@ export class PostGenerationService {
     }
 
     await this.trendReferenceCorpusService.recordPostRemixLineage({
-      brandId: params.publicMetadata.brand,
+      brandId: params.brandId,
       draftType: params.draftType,
       generatedBy: 'posts-generation',
       metadata,
-      organizationId: params.publicMetadata.organization,
+      organizationId: params.organizationId,
       platforms: [params.platform],
       postId: params.postId,
       prompt: params.prompt,
@@ -205,12 +205,12 @@ export class PostGenerationService {
       GenerateAccountPostDto,
       'credentialId' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
     >,
-    publicMetadata: Pick<IAuthPublicMetadata, 'brand' | 'organization'>,
+    identity: Pick<AuthenticatedUser, 'brandId' | 'organizationId'>,
   ): Promise<AccountPublishingContext> {
     return this.accountPublishingContextService.resolve({
-      brandId: publicMetadata.brand,
+      brandId: identity.brandId,
       credentialId: dto.credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: identity.organizationId,
       sourceLineage: {
         sourceReferenceIds: dto.sourceReferenceIds,
         sourceUrl: dto.sourceUrl,
@@ -222,7 +222,7 @@ export class PostGenerationService {
 
   private async createProcessingPostsForAccount(
     dto: GenerateAccountPostDto,
-    publicMetadata: GenerationMetadata,
+    identity: GenerationMetadata,
     context: AccountPublishingContext,
   ): Promise<PostDocument[]> {
     const createdPosts: PostDocument[] = [];
@@ -231,7 +231,7 @@ export class PostGenerationService {
 
     for (let i = 0; i < dto.count; i++) {
       const post = await this.postsService.create({
-        brandId: publicMetadata.brand,
+        brandId: identity.brandId,
         category: PostCategory.TEXT,
         credentialId: dto.credentialId,
         description: 'Generating...',
@@ -241,11 +241,11 @@ export class PostGenerationService {
         ingredients: [],
         label: '',
         order: i,
-        organizationId: publicMetadata.organization,
+        organizationId: identity.organizationId,
         parentId: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
         platform: context.account.platform,
         targetExecutionState: TargetExecutionState.PUBLISHING,
-        userId: publicMetadata.user,
+        userId: identity.userId,
       });
 
       createdPosts.push(post);
@@ -261,7 +261,7 @@ export class PostGenerationService {
   private async buildAccountGenerationPrompt(
     dto: GenerateAccountPostDto,
     context: AccountPublishingContext,
-    publicMetadata: Pick<IAuthPublicMetadata, 'organization'>,
+    identity: Pick<AuthenticatedUser, 'organizationId'>,
   ): Promise<string> {
     const tone = dto.tone || TweetTone.PROFESSIONAL;
     const isTwitter = context.account.platform === CredentialPlatform.TWITTER;
@@ -278,7 +278,7 @@ export class PostGenerationService {
           tone,
           topic: dto.topic,
         },
-        publicMetadata.organization,
+        identity.organizationId,
       );
 
       return this.appendPublishingContextToPrompt(prompt, context);
@@ -373,22 +373,19 @@ export class PostGenerationService {
    */
   async startAccountContentGeneration(
     dto: GenerateAccountPostDto,
-    publicMetadata: GenerationMetadata,
+    identity: GenerationMetadata,
   ): Promise<PostDocument[]> {
-    const context = await this.resolveAccountPublishingContext(
-      dto,
-      publicMetadata,
-    );
+    const context = await this.resolveAccountPublishingContext(dto, identity);
     const createdPosts = await this.createProcessingPostsForAccount(
       dto,
-      publicMetadata,
+      identity,
       context,
     );
 
     this.generateAccountContentAsync(
       dto,
       createdPosts,
-      publicMetadata,
+      identity,
       context,
     ).catch((error) => {
       this.logger.error(
@@ -403,7 +400,7 @@ export class PostGenerationService {
   async generateAccountContentAsync(
     dto: GenerateAccountPostDto,
     createdPosts: PostDocument[],
-    publicMetadata: GenerationMetadata,
+    identity: GenerationMetadata,
     context: AccountPublishingContext,
   ): Promise<void> {
     // Create the PROCESSING activity inside the try so a failure here cannot
@@ -414,11 +411,11 @@ export class PostGenerationService {
     try {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brandId: publicMetadata.brand,
+          brandId: identity.brandId,
           key: ActivityKey.POST_PROCESSING,
-          organizationId: publicMetadata.organization,
+          organizationId: identity.organizationId,
           source: ActivitySource.POST_GENERATION,
-          userId: publicMetadata.user,
+          userId: identity.userId,
           value: JSON.stringify({
             count: dto.count,
             topic: dto.topic?.substring(0, 100),
@@ -430,7 +427,7 @@ export class PostGenerationService {
       const prompt = await this.buildAccountGenerationPrompt(
         dto,
         context,
-        publicMetadata,
+        identity,
       );
       const model = DEFAULT_MINI_TEXT_MODEL;
       const { input } = await this.promptBuilderService.buildPrompt(
@@ -448,7 +445,7 @@ export class PostGenerationService {
           temperature: 0.8,
           useTemplate: false,
         },
-        publicMetadata.organization,
+        identity.organizationId,
       );
 
       const generatedLines = await this.generateParsedAccountPosts({
@@ -456,7 +453,7 @@ export class PostGenerationService {
         count: dto.count,
         input,
         model,
-        organizationId: publicMetadata.organization,
+        organizationId: identity.organizationId,
       });
 
       for (
@@ -492,13 +489,13 @@ export class PostGenerationService {
 
           await this.activitiesService.create(
             new ActivityEntity({
-              brandId: publicMetadata.brand,
+              brandId: identity.brandId,
               entityId: postId,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.POST_GENERATED,
-              organizationId: publicMetadata.organization,
+              organizationId: identity.organizationId,
               source: ActivitySource.POST_GENERATION,
-              userId: publicMetadata.user,
+              userId: identity.userId,
               value: postId,
             }),
           );
@@ -510,7 +507,7 @@ export class PostGenerationService {
               platform: context.account.platform,
               postId,
               prompt: dto.topic,
-              publicMetadata,
+              identity,
             });
           } catch (lineageError) {
             this.logger.warn('Failed to record post remix lineage', {
@@ -596,13 +593,13 @@ export class PostGenerationService {
     originalPost: PostDocument,
     childPosts: PostDocument[],
     dto: ExpandToThreadDto,
-    publicMetadata: GenerationMetadata,
+    identity: GenerationMetadata,
   ): Promise<void> {
     return this.postThreadGenerationService.expandThread(
       originalPost,
       childPosts,
       dto,
-      publicMetadata,
+      identity,
     );
   }
 
@@ -617,7 +614,7 @@ export class PostGenerationService {
   async enhanceDescription(
     post: PostDocument,
     dto: EnhancePostDto,
-    publicMetadata: Pick<IAuthPublicMetadata, 'organization'>,
+    identity: Pick<AuthenticatedUser, 'organizationId'>,
   ): Promise<string> {
     const currentDescription = post.description || '';
     const platform = post.platform || 'social media';
@@ -644,7 +641,7 @@ export class PostGenerationService {
         tone: dto.tone || 'professional',
         userRequest: dto.prompt,
       },
-      publicMetadata.organization,
+      identity.organizationId,
     );
 
     // Use PromptBuilderService to build prompt with templates and brand context
@@ -658,7 +655,7 @@ export class PostGenerationService {
         temperature: 0.8,
         useTemplate: false,
       },
-      publicMetadata.organization,
+      identity.organizationId,
     );
 
     return this.replicateService.generateTextCompletionSync(
@@ -677,7 +674,7 @@ export class PostGenerationService {
    */
   async generateHookVariations(
     dto: GenerateHooksDto,
-    publicMetadata: Pick<IAuthPublicMetadata, 'organization'>,
+    identity: Pick<AuthenticatedUser, 'organizationId'>,
   ): Promise<{
     hooks: string[];
     metadata: {
@@ -726,7 +723,7 @@ Requirements:
         temperature: 0.8,
         useTemplate: false,
       },
-      publicMetadata.organization,
+      identity.organizationId,
     );
 
     const result = await this.replicateService.generateTextCompletionSync(

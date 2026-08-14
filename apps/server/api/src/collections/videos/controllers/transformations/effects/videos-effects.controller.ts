@@ -7,7 +7,6 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -67,11 +66,10 @@ export class VideosEffectsController {
     @Param('videoId') videoId: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!video) {
@@ -92,13 +90,13 @@ export class VideosEffectsController {
     this.fileQueueService
       .processVideo({
         ingredientId: ingredientData.id.toString(),
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         params: {
           inputPath: videoUrl,
         },
         room: getUserRoomName(user.id),
         type: 'reverse-video',
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
@@ -146,11 +144,10 @@ export class VideosEffectsController {
     @Param('videoId') videoId: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
       id: videoId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!video) {
@@ -172,13 +169,13 @@ export class VideosEffectsController {
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           params: {
             inputPath: videoUrl,
           },
           room: getUserRoomName(user.id),
           type: 'mirror-video',
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {

@@ -170,7 +170,6 @@ export class EditorRenderService {
   }
 
   async render(id: string, orgId: string, user: User): Promise<RenderResult> {
-    const publicMetadata = user.publicMetadata as Record<string, string>;
     const projectForValidation = await this.editorProjectsService.findForRender(
       id,
       orgId,
@@ -240,7 +239,7 @@ export class EditorRenderService {
         params: { ...contract, editorRender: renderJob },
         room,
         type: 'render-editor-composition',
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: `/videos/${ingredientId}`,
       });
 

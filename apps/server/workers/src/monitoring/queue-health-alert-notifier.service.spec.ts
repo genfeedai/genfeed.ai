@@ -1,8 +1,8 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
-import { QueueHealthAlertNotifierService } from '@workers/monitoring/queue-health-alert-notifier.service';
 import type { QueueHealthNotification } from '@workers/monitoring/queue-health.types';
+import { QueueHealthAlertNotifierService } from '@workers/monitoring/queue-health-alert-notifier.service';
 
 describe('QueueHealthAlertNotifierService', () => {
   let service: QueueHealthAlertNotifierService;

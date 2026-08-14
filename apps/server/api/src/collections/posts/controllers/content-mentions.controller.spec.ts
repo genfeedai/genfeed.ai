@@ -4,11 +4,9 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 describe('ContentMentionsController', () => {
   const makeUser = (organization = 'org-1') =>
     ({
-      publicMetadata: {
-        brand: 'brand-1',
-        organization,
-        user: 'user-1',
-      },
+      brandId: 'brand-1',
+      organization,
+      userId: 'user-1',
     }) as unknown as User;
 
   it('returns content mentions for the current organization', async () => {

@@ -31,7 +31,7 @@ describe('ArticlesOperationsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: mockPublicMetadata,
+    identity: mockPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

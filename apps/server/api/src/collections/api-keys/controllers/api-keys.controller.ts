@@ -10,7 +10,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -135,14 +134,12 @@ export class ApiKeysController {
     @CurrentUser() user: User,
     @Body() createApiKeyDto: CreateApiKeyDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Check if user has reached API key limit (e.g., 10 keys)
     const existingKeys = await this.apiKeysService.findAll(
       {
         where: {
           isRevoked: false,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
         },
       },
       { limit: 100, page: 1 },
@@ -161,8 +158,8 @@ export class ApiKeysController {
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
       metadata: this.withoutReservedMetadata(createApiKeyDto.metadata),
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     // Add the plain key to the document for serialization (only on creation)
@@ -189,13 +186,11 @@ export class ApiKeysController {
     @CurrentUser() user: User,
     @Query() query: ApiKeysQueryDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const findAllQuery = {
       orderBy: { createdAt: -1 },
       where: {
         isRevoked: false,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         ...(query.label && {
           label: { mode: 'insensitive', contains: query.label },
         }),
@@ -231,11 +226,9 @@ export class ApiKeysController {
     @CurrentUser() user: User,
     @Param('apiKeyId') apiKeyId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const apiKey = await this.apiKeysService.findOne({
       id: apiKeyId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!apiKey) {
@@ -260,12 +253,10 @@ export class ApiKeysController {
     @Param('apiKeyId') apiKeyId: string,
     @Body() updateApiKeyDto: UpdateApiKeyDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership before updating
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!existingKey) {
@@ -304,13 +295,11 @@ export class ApiKeysController {
     @CurrentUser() user: User,
     @Param('apiKeyId') apiKeyId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
       isRevoked: false,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     if (!existingKey) {
@@ -340,10 +329,10 @@ export class ApiKeysController {
       expiresAt: existingKey.expiresAt?.toISOString(),
       label: existingKey.label,
       metadata,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       rateLimit: existingKey.rateLimit ?? undefined,
       scopes: existingKey.scopes,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     };
     const { apiKey, plainKey } = trustedOrigin
       ? await this.apiKeysService.rotateWithKey(
@@ -374,13 +363,11 @@ export class ApiKeysController {
     @Param('apiKeyId') apiKeyId: string,
     @Body() dto: VerifyMcpConnectionDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.mcpConnectionVerificationService.verify({
       apiKeyId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       plainKey: dto.key,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
   }
 
@@ -396,13 +383,11 @@ export class ApiKeysController {
     @CurrentUser() user: User,
     @Param('apiKeyId') apiKeyId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership before revoking
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
       isRevoked: false,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!existingKey) {

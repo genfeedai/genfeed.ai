@@ -3,7 +3,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -54,7 +53,8 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: userId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const userId = user.userId ?? user.id;
 
       const data = await this.batchGenerationService.createBatch(
         dto,
@@ -78,7 +78,8 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: userId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const userId = user.userId ?? user.id;
 
       const data = await this.batchGenerationService.createManualReviewBatch(
         dto,
@@ -111,7 +112,7 @@ export class BatchGenerationController {
     @Query('offset') offset?: string,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
 
       const data = await this.batchGenerationService.getBatches(organization, {
         limit: limit ? parseInt(limit, 10) : undefined,
@@ -135,7 +136,7 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
 
       const data = await this.batchGenerationService.getBatch(id, organization);
       return serializeSingle(req, BatchSerializer, data);
@@ -153,7 +154,7 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
 
       const data = await this.batchGenerationService.processBatch(
         id,
@@ -175,7 +176,8 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: userId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const userId = user.userId ?? user.id;
 
       let data: unknown;
       if (dto.action === BatchAction.APPROVE) {
@@ -218,7 +220,7 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
 
       const data = await this.batchGenerationService.updateBatch(
         id,

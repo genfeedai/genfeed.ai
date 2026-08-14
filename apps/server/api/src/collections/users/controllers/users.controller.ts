@@ -13,7 +13,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
-  getPublicMetadata,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
@@ -76,53 +75,52 @@ export class UsersController {
   }
 
   private canAccessUser(targetUserId: string, currentUser: User): boolean {
-    const publicMetadata = getPublicMetadata(currentUser);
-    return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
+    return (
+      getIsSuperAdmin(currentUser) || (user.userId ?? user.id) === targetUserId
+    );
   }
 
   private async setBrandSelectionForUser(
     user: User,
     selectedBrandId: string | null,
   ): Promise<void> {
-    const publicMetadata = getPublicMetadata(user);
-
     if (selectedBrandId === null) {
       await this.brandsService.clearBrandSelectionForUser(
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
       );
 
       await this.membersService.setLastUsedBrand(
         {
           isActive: true,
           isDeleted: false,
-          organizationId: publicMetadata.organization,
-          userId: publicMetadata.user,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
         },
         null,
       );
 
-      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
+      await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
       return;
     }
 
     const selectedBrand = await this.brandsService.selectBrandForUser(
       selectedBrandId,
-      publicMetadata.user,
-      publicMetadata.organization,
+      user.userId ?? user.id,
+      user.organizationId,
     );
 
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
         isDeleted: false,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
       selectedBrand.id,
     );
 
-    await this.userAccessCacheService.invalidateAll(publicMetadata.user);
+    await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
   }
 
   @Get()
@@ -151,10 +149,9 @@ export class UsersController {
   @Get('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findMe(@Req() request: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     const subscriptionStatus = getStripeSubscriptionStatus(user, request);
-    const userId = publicMetadata.user;
-    const organizationId = publicMetadata.organization;
+    const userId = user.userId ?? user.id;
+    const organizationId = user.organizationId;
 
     let dbSubscription = await this.subscriptionsService.findOne({
       userId: userId,
@@ -182,7 +179,7 @@ export class UsersController {
     });
 
     if (!data) {
-      return returnNotFound(this.constructorName, publicMetadata.user);
+      return returnNotFound(this.constructorName, user.userId ?? user.id);
     }
 
     // Auto-complete onboarding for records missing the onboarding flag
@@ -212,8 +209,7 @@ export class UsersController {
     @CurrentUser() user: User,
     @Body() body: { contentType: string },
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const key = `${publicMetadata.organization}/${publicMetadata.user}-${Date.now()}`;
+    const key = `${user.organizationId}/${user.userId ?? user.id}-${Date.now()}`;
 
     const { uploadUrl, publicUrl, s3Key } =
       await this.filesClientService.getPresignedUploadUrl(
@@ -232,7 +228,6 @@ export class UsersController {
     @CurrentUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const hasSelectedBrandPatch = Object.hasOwn(
       updateUserDto,
       'selectedBrandId',
@@ -262,14 +257,14 @@ export class UsersController {
 
     const hasUserPatch = Object.keys(userPatchDto).length > 0;
     const data = hasUserPatch
-      ? await this.usersService.patch(publicMetadata.user, userPatchDto)
+      ? await this.usersService.patch(user.userId ?? user.id, userPatchDto)
       : await this.usersService.findOne({
-          id: publicMetadata.user,
+          id: user.userId ?? user.id,
         });
 
     return data
       ? serializeSingle(request, UserSerializer, data)
-      : returnNotFound(this.constructorName, publicMetadata.user);
+      : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
   /**
@@ -288,17 +283,15 @@ export class UsersController {
     @CurrentUser() user: User,
     @Body() updateAssetGateDto: UpdateAssetGateDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const data = await this.usersService.patch(publicMetadata.user, {
+    const data = await this.usersService.patch(user.userId ?? user.id, {
       hasDismissedAssetGate: updateAssetGateDto.hasDismissedAssetGate,
     } as Partial<UpdateUserDto>);
 
-    await this.userAccessCacheService.invalidateAll(publicMetadata.user);
+    await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
 
     return data
       ? serializeSingle(request, UserSerializer, data)
-      : returnNotFound(this.constructorName, publicMetadata.user);
+      : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
   /**
@@ -307,8 +300,7 @@ export class UsersController {
    * the new state on the next request.
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const canonicalUserId = publicMetadata.user || user.id;
+    const canonicalUserId = (user.userId ?? user.id) || user.id;
 
     const dbUser = await this.usersService.findOne({
       id: canonicalUserId,
@@ -335,7 +327,7 @@ export class UsersController {
 
     return completed
       ? serializeSingle(request, UserSerializer, completed)
-      : returnNotFound(this.constructorName, publicMetadata.user);
+      : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
   @Get(':userId/onboarding')

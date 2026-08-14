@@ -26,11 +26,13 @@ function buildContext(user?: User | null): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function buildUser(metadata: Record<string, unknown> = {}): User {
+function buildUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user_123',
-    publicMetadata: metadata,
-  } as unknown as User;
+    isSuperAdmin: false,
+    userId: 'user_123',
+    ...overrides,
+  };
 }
 
 describe('SubscriptionGuard', () => {

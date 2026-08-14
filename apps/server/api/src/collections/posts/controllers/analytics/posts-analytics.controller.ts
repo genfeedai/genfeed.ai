@@ -8,7 +8,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
@@ -81,14 +80,12 @@ export class PostsAnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<JsonApiSingleResponse<PostAnalyticsWithRangeAttributes>> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify publication ownership
     const post = await this.postsService.findOne({
       id: postId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -137,14 +134,13 @@ export class PostsAnalyticsController {
     @Param('postId') postId: string,
   ): Promise<JsonApiSingleResponse<PostAnalyticsRefreshAttributes>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     // Verify publication ownership
     const post = await this.postsService.findOne({
       id: postId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -245,10 +241,8 @@ export class PostsAnalyticsController {
   ): Promise<JsonApiSingleResponse<OrganizationAnalyticsRefreshAttributes>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // Check organization-wide rate limiting - one refresh per hour
-      const lastRefreshKey = `analytics_refresh_all:${publicMetadata.organization}`;
+      const lastRefreshKey = `analytics_refresh_all:${user.organizationId}`;
       const lastRefresh = await this.postsService.getCachedData(lastRefreshKey);
 
       if (lastRefresh) {
@@ -271,7 +265,7 @@ export class PostsAnalyticsController {
 
       const refresh =
         await this.analyticsSyncWorkflowService.runOrganizationRefresh(
-          publicMetadata.organization,
+          user.organizationId,
         );
 
       // Set rate limit cache
@@ -289,7 +283,7 @@ export class PostsAnalyticsController {
             successCount: refresh.enqueued,
             totalPosts: refresh.posts,
           },
-          id: publicMetadata.organization,
+          id: user.organizationId,
           type: 'analytics-refresh',
         },
       };

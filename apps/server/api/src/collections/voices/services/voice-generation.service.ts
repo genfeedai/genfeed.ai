@@ -3,7 +3,6 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -36,19 +35,18 @@ export class VoiceGenerationService {
   ): Promise<IngredientDocument> {
     this.validateRequest(dto);
 
-    const publicMetadata = getPublicMetadata(user);
     await this.voiceCreditsService.assertOrganizationCanAfford(
-      publicMetadata.organization,
+      user.organizationId,
       1,
     );
 
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VOICE,
         extension: MetadataExtension.MP3,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
         voiceSource: 'generated',
       },
@@ -60,8 +58,8 @@ export class VoiceGenerationService {
         dto.voiceId,
         dto.text,
         ingredientId,
-        publicMetadata.organization,
-        publicMetadata.user,
+        user.organizationId,
+        user.userId ?? user.id,
       );
 
       await this.voicesService.patchAll(
@@ -74,7 +72,7 @@ export class VoiceGenerationService {
       );
       await this.voiceCreditsService.settleGenerationCredits(
         request,
-        publicMetadata.organization,
+        user.organizationId,
         result.duration,
       );
 

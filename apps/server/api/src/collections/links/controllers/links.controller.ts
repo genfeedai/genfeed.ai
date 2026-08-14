@@ -7,10 +7,7 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -58,19 +55,17 @@ export class LinksController extends BaseCRUDController<
    * params and default brand to the session brand when omitted.
    */
   public buildFindAllQuery(user: User, query: LinksQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const isSuperAdmin = getIsSuperAdmin(user);
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
-      publicMetadata,
+      user,
       isSuperAdmin,
     );
 
     if (
       !isSuperAdmin &&
-      (!publicMetadata.brand ||
-        (scope.brandId &&
-          String(scope.brandId) !== String(publicMetadata.brand)))
+      (!user.brandId ||
+        (scope.brandId && String(scope.brandId) !== String(user.brandId)))
     ) {
       throw new ForbiddenException({
         detail: 'Access denied to this brand',
@@ -82,9 +77,7 @@ export class LinksController extends BaseCRUDController<
     // boundary, so this filter must always be present. `requireRelationId`
     // fails closed instead of allowing an empty tenant filter.
     const brandId = requireRelationId(
-      isSuperAdmin
-        ? (scope.brandId ?? publicMetadata.brand)
-        : publicMetadata.brand,
+      isSuperAdmin ? (scope.brandId ?? user.brandId) : user.brandId,
       'brand',
       'Link list query',
     );
@@ -102,10 +95,9 @@ export class LinksController extends BaseCRUDController<
    * Override enrichCreateDto to not add user field (use brand instead)
    */
   public enrichCreateDto(createDto: CreateLinkDto, user: User): CreateLinkDto {
-    const publicMetadata = getPublicMetadata(user);
     const enriched: CreateLinkDto = {
       ...createDto,
-      brandId: publicMetadata.brand ?? createDto.brandId,
+      brandId: user.brandId ?? createDto.brandId,
     };
 
     // Links are associated with accounts, not users
@@ -133,9 +125,7 @@ export class LinksController extends BaseCRUDController<
    * Override canUserModifyEntity to use brand-based authorization
    */
   public canUserModifyEntity(user: User, entity: LinkDocument): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
-    return entity.brandId === publicMetadata.brand;
+    return entity.brandId === user.brandId;
   }
 
   @Post()

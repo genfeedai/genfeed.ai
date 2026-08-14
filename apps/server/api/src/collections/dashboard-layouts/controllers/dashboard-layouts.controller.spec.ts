@@ -2,15 +2,10 @@ import { DashboardLayoutsController } from '@api/collections/dashboard-layouts/c
 import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({ organization: 'org-1' })),
-}));
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -88,7 +83,7 @@ describe('DashboardLayoutsController', () => {
   });
 
   describe('findForPage', () => {
-    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+    const mockUser = { organizationId: 'org-1' } as never;
 
     it('returns serialized layout scoped to the caller organization', async () => {
       service.findForPage.mockResolvedValueOnce(mockDashboardLayout as never);
@@ -121,9 +116,6 @@ describe('DashboardLayoutsController', () => {
     });
 
     it('threads the caller organization (not a foreign one) into the service', async () => {
-      vi.mocked(getPublicMetadata).mockReturnValueOnce({
-        organization: 'org-2',
-      } as never);
       service.findForPage.mockResolvedValueOnce(mockDashboardLayout as never);
 
       await controller.findForPage(mockRequest as never, mockUser, 'brand-1');
@@ -165,7 +157,7 @@ describe('DashboardLayoutsController', () => {
   });
 
   describe('upsert', () => {
-    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+    const mockUser = { organizationId: 'org-1' } as never;
 
     it('upserts the layout scoped to the caller organization', async () => {
       const dto: UpsertDashboardLayoutDto = {
@@ -200,7 +192,7 @@ describe('DashboardLayoutsController', () => {
   });
 
   describe('remove', () => {
-    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+    const mockUser = { organizationId: 'org-1' } as never;
 
     it('removes the layout when owned by the caller organization', async () => {
       service.removeScoped.mockResolvedValueOnce({

@@ -35,10 +35,8 @@ describe('TrackedLinksController', () => {
   let service: TrackedLinksService;
 
   const mockUser: User = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockTrackedLink = {
@@ -107,7 +105,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.generateTrackingLink).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toBeDefined();
     });
@@ -122,7 +120,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.getById).toHaveBeenCalledWith(
         linkId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toBeDefined();
     });
@@ -145,7 +143,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.getContentLinks).toHaveBeenCalledWith(
         contentId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toBeDefined();
     });
@@ -163,7 +161,7 @@ describe('TrackedLinksController', () => {
       );
 
       expect(service.getOrganizationLinks).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         {
           campaignName: 'summer-campaign',
           platform: 'twitter',
@@ -188,7 +186,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.getLinkPerformance).toHaveBeenCalledWith(
         linkId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(performance);
     });
@@ -211,7 +209,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.getContentCTAStats).toHaveBeenCalledWith(
         contentId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(stats);
     });
@@ -234,7 +232,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.update).toHaveBeenCalledWith(
         linkId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         updates,
       );
       expect(result).toBeDefined();
@@ -250,7 +248,7 @@ describe('TrackedLinksController', () => {
 
       expect(service.delete).toHaveBeenCalledWith(
         linkId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual({ success: true });
     });

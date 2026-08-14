@@ -68,7 +68,7 @@ export class AssetAccessGuard implements CanActivate {
         }
 
         const assetOrgId = asset.organizationId;
-        const userOrgId = user.publicMetadata?.organization?.toString();
+        const userOrgId = user?.organization?.toString();
 
         if (assetOrgId && userOrgId && assetOrgId === userOrgId) {
           return true;
@@ -85,7 +85,7 @@ export class AssetAccessGuard implements CanActivate {
         }
 
         const assetBrandId = asset.brandId;
-        const userBrandId = user.publicMetadata?.brand?.toString();
+        const userBrandId = user?.brand?.toString();
 
         if (assetBrandId && userBrandId && assetBrandId === userBrandId) {
           return true;
@@ -135,7 +135,7 @@ export function normalizeAssetScope(scope: unknown): AssetScope {
 }
 
 /**
- * Prefer canonical `publicMetadata.user` (Prisma users.id). JWT `user.id` is
+ * Prefer canonical `identity.userId` (Prisma users.id). JWT `user.id` is
  * claims.sub and may match, but metadata is the durable identity.
  */
 function isAssetOwner(
@@ -146,5 +146,5 @@ function isAssetOwner(
     return false;
   }
 
-  return assetUserId === user.publicMetadata?.user || assetUserId === user.id;
+  return assetUserId === user?.user || assetUserId === user.id;
 }
