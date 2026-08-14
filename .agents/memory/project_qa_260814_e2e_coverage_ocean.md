@@ -2,7 +2,7 @@
 name: qa/260814 e2e coverage ocean
 description: Complementary QA/E2E/coverage train that does not collide with PR #2947
 type: project
-status: active
+status: completed
 last_verified: 2026-08-14
 ---
 
@@ -45,9 +45,8 @@ last_verified: 2026-08-14
 
 ## After merge
 
-**New branch / PR.** Do not keep piling onto `cursor/qa-e2e-coverage-ocean-805a`
-after #2952 is rebased green. Cut the next #2687 train from updated `master`
-(`cursor/qa-coverage-ratchet-<suffix>`) so this PR stays reviewable.
+#2952 merged as `791f1637f`. Residual #2687 work moved to
+`cursor/qa-coverage-ratchet-805a` / `project_qa_260814_coverage_ratchet.md`.
 
 1. Re-measure `apps/app`, `packages/ui`, `apps/server/api` via the existing
    sharded coverage workflow and add `coverage.thresholds` ~2 points below

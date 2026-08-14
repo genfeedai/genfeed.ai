@@ -401,6 +401,11 @@ export const LEGACY_APP_ROUTES = {
    * redirects to APP_ROUTES.AGENT.NEW; `?id=` links resolve to the editor.
    */
   PUBLISH_NEWSLETTERS: '/publish/newsletters',
+  /**
+   * @deprecated Legacy cron-jobs lab. Permanently redirects to
+   * APP_ROUTES.AUTOMATE.WORKFLOWS. Scheduling is workflow-canonical.
+   */
+  LAB_CRON_JOBS: '/lab/cron-jobs',
   /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
   TASKS: '/tasks',
 } as const;

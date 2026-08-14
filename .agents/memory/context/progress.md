@@ -25,7 +25,7 @@ author: Claude Code PM System
 - Better Auth is the active auth baseline after the #735 cutover and hardening passes.
 - Default local ports remain grouped: frontend `300x`, API core `3010-3014`, service/bot apps `3015-3019`, fleet services `3020-3022`.
 - GitHub issue implementation workflow is trunk-based on `master` with short-lived worktrees/branches and PRs back to `master`.
-- Product recurring automation has been migrated toward workflow-backed scheduling; legacy `cron-jobs` is compatibility-only for new product work.
+- Product recurring automation is workflow-backed. The leftover `cron-jobs` collection, dispatcher, and Prisma tables have been deleted.
 
 ### Codebase Health
 - Executable CI contracts cover build, tests, boot, E2E, API drift, tenant/security, and delivery paths.

@@ -91,13 +91,9 @@ export interface BrandRelocationResult {
 export interface BrandRelocationPreview {
   counts: {
     soleBrandWorkflows: number;
-    /** Always 0 after workflow brand ownership became one-to-one. */
-    sharedWorkflows: number;
     staleMembers: number;
   };
   movingResources: BrandRelocationMovingResource[];
-  /** Always null after workflow brand ownership became one-to-one. */
-  ackToken: string | null;
 }
 
 const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
@@ -302,7 +298,6 @@ export class BrandRelocationService {
     brandId: string,
     updateBrandDto: Partial<UpdateBrandDto> & {
       organizationId?: string;
-      relocationAck?: string;
     },
     actingUser: { userId: string; isSuperAdmin: boolean },
     patchSameOrganization?: BrandSameOrganizationPatch,
@@ -433,8 +428,7 @@ export class BrandRelocationService {
 
   /**
    * Read-only preview for a brand relocation. Workflows are one-to-one with a
-   * brand now, so they move with the brand and shared workflow clone confirmation
-   * is no longer needed. `ackToken` remains for response compatibility.
+   * brand now, so they move with the brand.
    */
   async previewRelocation(
     brandId: string,
@@ -471,9 +465,7 @@ export class BrandRelocationService {
     );
 
     return {
-      ackToken: null,
       counts: {
-        sharedWorkflows: 0,
         soleBrandWorkflows: impact.soleBrandWorkflowIds.length,
         staleMembers: impact.staleMemberIds.length,
       },
@@ -602,13 +594,13 @@ export class BrandRelocationService {
     };
   }
 
-  private stripRelocationField<
-    T extends { organizationId?: string; relocationAck?: string },
-  >(dto: T): Omit<T, 'organizationId' | 'relocationAck'> {
-    // Strip BOTH the relocation trigger and its consent token: neither is a Brand
-    // column, so leaking them into a normal CRUD patch (e.g. a client retry after the
-    // move already committed) would make Prisma reject the update on an unknown field.
-    const { organizationId: _omitOrg, relocationAck: _omitAck, ...rest } = dto;
+  private stripRelocationField<T extends { organizationId?: string }>(
+    dto: T,
+  ): Omit<T, 'organizationId'> {
+    // Strip the relocation trigger: it is not a Brand column, so leaking it into a
+    // normal CRUD patch (e.g. a client retry after the move already committed)
+    // would make Prisma reject the update on an unknown field.
+    const { organizationId: _omitOrg, ...rest } = dto;
     return rest;
   }
 

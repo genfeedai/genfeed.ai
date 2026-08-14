@@ -88,15 +88,15 @@ describe('LocalhostOnlyGuard', () => {
     ).toBe(true);
   });
 
-  it('keeps local.genfeed.ai as an explicit compatibility allowlist entry', () => {
-    expect(
+  it('rejects the retired local.genfeed.ai host', () => {
+    expect(() =>
       guard.canActivate(
         makeContext({
           host: 'local.genfeed.ai:3010',
           origin: 'http://local.genfeed.ai:3000',
         }),
       ),
-    ).toBe(true);
+    ).toThrow(ForbiddenException);
   });
 
   it('does not treat arbitrary local-prefixed domains as loopback', () => {

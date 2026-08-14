@@ -41,12 +41,10 @@ function createMockMusicsService() {
 function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee',
-      organization: 'c07f191e810c19729de860ee',
-      user: 'c07f191e810c19729de860ee',
-      ...overrides,
-    },
+    brandId: 'c07f191e810c19729de860ee',
+    organizationId: 'c07f191e810c19729de860ee',
+    userId: 'c07f191e810c19729de860ee',
+    ...overrides,
   };
 }
 
@@ -227,9 +225,9 @@ describe('MusicsController', () => {
 
   describe('asset lifecycle contract', () => {
     const user = createMockUser({
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
+      brandId,
+      organizationId,
+      userId,
     }) as User;
 
     it('lists tenant-owned music and serializes the collection', async () => {

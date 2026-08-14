@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { BrandMemorySerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
@@ -19,7 +18,7 @@ export class BrandMemoryController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const docs = await this.brandMemoryService.getMemory(
       organizationId,
@@ -39,7 +38,7 @@ export class BrandMemoryController {
     @CurrentUser() user: User,
     @Query('limit') limit?: string,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const docs = await this.brandMemoryService.getInsights(
       organizationId,
@@ -54,7 +53,7 @@ export class BrandMemoryController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const insights = await this.brandMemoryService.distillLongTermMemory(
       organizationId,

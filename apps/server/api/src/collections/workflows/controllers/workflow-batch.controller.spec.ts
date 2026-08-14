@@ -20,10 +20,8 @@ describe('WorkflowBatchController', () => {
   let controller: WorkflowBatchController;
 
   const mockUser: User = {
-    publicMetadata: {
-      organization: organizationId,
-      user: userId,
-    },
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockBatchWorkflowService = {
@@ -108,7 +106,7 @@ describe('WorkflowBatchController', () => {
 
       expect(mockBatchWorkflowService.getBatchJobForOrg).toHaveBeenCalledWith(
         batchId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result.data.items[0]).toMatchObject({
         executionId: 'exec-1',
@@ -142,7 +140,7 @@ describe('WorkflowBatchController', () => {
       const result = await controller.listBatchJobs(mockUser, '10', '5');
 
       expect(mockBatchWorkflowService.listBatchJobs).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         10,
         5,
       );

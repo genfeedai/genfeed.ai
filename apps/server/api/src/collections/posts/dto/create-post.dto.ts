@@ -1,9 +1,9 @@
+import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   PostCategory,
   PostFormat,
   PostFrequency,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -21,6 +21,7 @@ import {
 } from 'class-validator';
 
 export class CreatePostDto {
+  static readonly [FORBID_NON_WHITELISTED] = true;
   @IsArray()
   @IsEntityId({ each: true })
   @ArrayMinSize(0)
@@ -87,21 +88,9 @@ export class CreatePostDto {
   readonly category?: PostCategory;
 
   @ApiProperty({
-    default: PostStatus.SCHEDULED,
-    deprecated: true,
+    default: TargetExecutionState.DRAFT,
     description:
-      'Legacy combined status. Use targetExecutionState and visibility.',
-    enum: PostStatus,
-    enumName: 'PostStatus',
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(PostStatus)
-  readonly status?: PostStatus;
-
-  @ApiProperty({
-    description:
-      'Canonical channel-target publish lifecycle. New clients should use this instead of status.',
+      'Canonical channel-target publish lifecycle. Defaults to draft when omitted, or scheduled when scheduledDate is set.',
     enum: TargetExecutionState,
     enumName: 'TargetExecutionState',
     required: false,

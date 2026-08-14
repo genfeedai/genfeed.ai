@@ -14,13 +14,11 @@ const brandId = '507f191e810c19729de860ee';
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
     id: 'authProvider-user-1',
-    publicMetadata: {
-      brand: brandId,
-      isSuperAdmin: false,
-      organization: orgId,
-      user: userId,
-      ...overrides,
-    },
+    brandId: brandId,
+    isSuperAdmin: false,
+    organizationId: orgId,
+    userId: userId,
+    ...overrides,
   }) as unknown as User;
 
 const now = new Date('2026-06-23T12:00:00.000Z');
@@ -89,7 +87,7 @@ describe('MembersController — invitation endpoints', () => {
         controller.listInvitations(
           {} as never,
           {},
-          makeUser({ organization: undefined }),
+          makeUser({ organizationId: undefined }),
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -146,7 +144,7 @@ describe('MembersController — invitation endpoints', () => {
         controller.revokeInvitation(
           {} as never,
           'inv_1',
-          makeUser({ organization: undefined }),
+          makeUser({ organizationId: undefined }),
         ),
       ).rejects.toThrow(HttpException);
     });

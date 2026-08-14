@@ -14,10 +14,8 @@ describe('PerformanceSummaryController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: mockBrandId,
-      organization: mockOrgId,
-    },
+    brandId: mockBrandId,
+    organizationId: mockOrgId,
   };
 
   const mockReq = { originalUrl: '/content-performance/summary' } as Request;

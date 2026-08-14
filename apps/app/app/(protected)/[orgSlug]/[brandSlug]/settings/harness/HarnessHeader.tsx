@@ -33,7 +33,7 @@ export default function HarnessHeader({
               disabled={isPromoting || isSaving}
               onClick={onPromoteWinners}
               size={ButtonSize.SM}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               {isPromoting ? 'Promoting…' : 'Promote winners to memory'}
             </Button>

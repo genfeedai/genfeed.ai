@@ -4,7 +4,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type { AgentContentMentionsResponse } from '@genfeedai/interfaces';
 import {
   BadRequestException,
@@ -24,9 +23,7 @@ export class ContentMentionsController {
   async getMentions(
     @CurrentUser() user: User,
   ): Promise<AgentContentMentionsResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    if (!publicMetadata.organization) {
+    if (!user.organizationId) {
       throw new BadRequestException({
         detail: 'Organization not found in metadata',
         title: 'Bad Request',
@@ -34,7 +31,7 @@ export class ContentMentionsController {
     }
 
     const mentions = await this.postsService.listContentMentions(
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return { mentions };

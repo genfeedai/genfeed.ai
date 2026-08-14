@@ -40,7 +40,7 @@ describe('OrganizationsIntegrationsController', () => {
 
   const mockReq = {} as Request;
   const mockUser = {
-    publicMetadata: { organization: 'org-123' },
+    organizationId: 'org-123',
   } as unknown as User;
 
   beforeEach(async () => {
@@ -119,7 +119,7 @@ describe('OrganizationsIntegrationsController', () => {
       await controller.create(
         mockReq,
         {
-          publicMetadata: { organization: 'org-456' },
+          organizationId: 'org-456',
         } as unknown as User,
         'org-456',
         createDto,

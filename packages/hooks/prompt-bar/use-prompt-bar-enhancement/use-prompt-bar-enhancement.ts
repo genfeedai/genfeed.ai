@@ -154,11 +154,11 @@ export function usePromptBarEnhancement(
 
       const data = await service.post(
         new Prompt({
-          brand: brandId,
+          brandId: brandId,
           category: promptCategory,
           isSkipEnhancement: false,
           model: watchedModel,
-          organization: organizationId,
+          organizationId: organizationId,
           original: form.getValues('text'),
           profileId: selectedProfile || undefined,
           useRAG: true,

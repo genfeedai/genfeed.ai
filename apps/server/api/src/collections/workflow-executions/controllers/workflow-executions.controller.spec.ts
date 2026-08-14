@@ -19,10 +19,8 @@ describe('WorkflowExecutionsController', () => {
   const mockRequest = {} as never;
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439011',
-      user: 'user-123',
-    },
+    organizationId: '507f1f77bcf86cd799439011',
+    userId: 'user-123',
   } as never;
 
   const mockService = {

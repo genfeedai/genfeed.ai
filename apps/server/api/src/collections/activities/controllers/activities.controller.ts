@@ -8,10 +8,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -67,7 +64,6 @@ export class ActivitiesController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const where: Record<string, unknown> = { isDeleted };
     const isSuperAdmin = getIsSuperAdmin(user, request);
@@ -78,7 +74,7 @@ export class ActivitiesController {
     if (hasExplicitTenantFilter) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
         query,
-        publicMetadata,
+        user,
         isSuperAdmin,
       );
       if (scope.brandId) {
@@ -87,20 +83,20 @@ export class ActivitiesController {
       // Always keep a tenant boundary for non-superadmin explicit filters.
       if (scope.organizationId) {
         where.organizationId = scope.organizationId;
-      } else if (!isSuperAdmin && publicMetadata.user) {
-        where.userId = publicMetadata.user;
+      } else if (!isSuperAdmin && (user.userId ?? user.id)) {
+        where.userId = user.userId ?? user.id;
       }
     } else if (!isSuperAdmin) {
       // Default member scope: active brand, else org ownership OR.
-      if (publicMetadata.brand) {
-        where.brandId = publicMetadata.brand;
-      } else if (publicMetadata.organization) {
+      if (user.brandId) {
+        where.brandId = user.brandId;
+      } else if (user.organizationId) {
         where.OR = [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ];
       } else {
-        where.userId = publicMetadata.user;
+        where.userId = user.userId ?? user.id;
       }
     }
 
@@ -124,14 +120,12 @@ export class ActivitiesController {
     @Body() updateActivityDto: UpdateActivityDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Find and verify ownership
     const activity = await this.activitiesService.findOne({
       id: activityId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -154,7 +148,6 @@ export class ActivitiesController {
     @CurrentUser() user: User,
   ): Promise<{ updated: string[]; failed: string[]; message: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const { ids, isRead, isDeleted } = bulkUpdateDto;
 
@@ -166,15 +159,15 @@ export class ActivitiesController {
       ids,
       ...(typeof isDeleted === 'boolean' ? { isDeleted } : {}),
       ...(typeof isRead === 'boolean' ? { isRead } : {}),
-      organizationId: publicMetadata.organization.toString(),
-      userId: publicMetadata.user.toString(),
+      organizationId: user.organizationId.toString(),
+      userId: (user.userId ?? user.id).toString(),
     });
 
     if (failed.length > 0) {
       this.loggerService.warn(`${url} skipped inaccessible activities`, {
         count: failed.length,
-        orgId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        orgId: user.organizationId,
+        userId: user.userId ?? user.id,
       });
     }
 

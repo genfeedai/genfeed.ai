@@ -65,10 +65,8 @@ describe('DiscordController', () => {
 
   describe('connect', () => {
     const user = {
-      publicMetadata: {
-        organization: 'test-object-id',
-        user: 'test-user-id',
-      },
+      organizationId: 'test-object-id',
+      userId: 'test-user-id',
     } as unknown as User;
     const orgId = 'test-object-id';
     const brandId = 'test-object-id';
@@ -112,10 +110,8 @@ describe('DiscordController', () => {
 
   describe('verify', () => {
     const user = {
-      publicMetadata: {
-        organization: 'test-object-id',
-        user: 'test-user-id',
-      },
+      organizationId: 'test-object-id',
+      userId: 'test-user-id',
     } as unknown as User;
     const orgId = 'test-object-id';
 

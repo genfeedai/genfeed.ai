@@ -50,14 +50,12 @@ export function parseCommaSeparated(value: string | undefined): string[] {
  * routes: `*.localhost` resolves to loopback in every modern browser/OS
  * (RFC 6761) with NO `/etc/hosts` entry, and gives this project its own cookie
  * jar so its session/JWT never collides with another project on plain
- * `localhost`. `local.genfeed.ai` (needs an `/etc/hosts` entry) is kept for
- * back-compat during migration; plain `localhost` also works.
+ * `localhost`. Plain `localhost` also works.
  */
 const LOCAL_DEV_TRUSTED_ORIGINS = [
   'https://*.genfeed.localhost',
   'http://genfeed.localhost:*',
   'http://localhost:*',
-  'http://local.genfeed.ai:*',
 ] as const;
 
 /**
@@ -76,7 +74,7 @@ export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
  * config and never hits a spurious `INVALID_ORIGIN` when accessed via canonical
- * Portless HTTPS, `genfeed.localhost`, `localhost`, or `local.genfeed.ai`.
+ * Portless HTTPS, `genfeed.localhost`, or `localhost`.
  * Real deployments (production/staging) get the configured list plus the one
  * fixed desktop-shell loopback origin; general loopback hosts stay dev-only.
  */

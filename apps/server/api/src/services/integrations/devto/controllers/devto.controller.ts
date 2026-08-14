@@ -3,7 +3,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -52,8 +51,6 @@ export class DevtoController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId: body.brandId });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!body.apiKey || !body.brandId) {
       return returnBadRequest({
         detail: 'API key and brand ID are required',
@@ -63,7 +60,7 @@ export class DevtoController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -87,7 +84,7 @@ export class DevtoController {
 
       const credential = await this.credentialsService.upsertForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.DEV_TO,
         {
           accessToken: body.apiKey,
@@ -126,7 +123,6 @@ export class DevtoController {
     @Query('canonicalUrl') canonicalUrl?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, { articleId, brandId, published });
 
@@ -147,7 +143,7 @@ export class DevtoController {
 
       const devtoArticle = await this.devtoService.publishArticle(
         articleId,
-        publicMetadata.organization,
+        user.organizationId,
         brandId,
         {
           canonicalUrl,

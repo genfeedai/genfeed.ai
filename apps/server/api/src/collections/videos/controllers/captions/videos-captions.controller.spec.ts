@@ -47,11 +47,9 @@ describe('VideosCaptionsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439014',
-      organization: '507f1f77bcf86cd799439013',
-      user: '507f1f77bcf86cd799439012',
-    },
+    brandId: '507f1f77bcf86cd799439014',
+    organizationId: '507f1f77bcf86cd799439013',
+    userId: '507f1f77bcf86cd799439012',
   } as unknown as User;
 
   const mockServices = {
@@ -134,8 +132,8 @@ describe('VideosCaptionsController', () => {
 
       expect(videosService.findOne).toHaveBeenCalledWith({
         OR: [
-          { userId: mockUser.publicMetadata.user },
-          { organizationId: mockUser.publicMetadata.organization },
+          { userId: mockUser.userId },
+          { organizationId: mockUser.organizationId },
         ],
         id: videoId,
       });
@@ -144,7 +142,7 @@ describe('VideosCaptionsController', () => {
           where: {
             ingredientId: videoId,
             isDeleted: false,
-            organizationId: mockUser.publicMetadata.organization,
+            organizationId: mockUser.organizationId,
           },
         }),
         expect.anything(),

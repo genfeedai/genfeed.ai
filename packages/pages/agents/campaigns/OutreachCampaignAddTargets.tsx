@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant, CampaignType } from '@genfeedai/enums';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import { Plus } from 'lucide-react';
 
 type Props = {

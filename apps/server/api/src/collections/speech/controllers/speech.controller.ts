@@ -15,7 +15,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FileInputType } from '@genfeedai/enums';
 import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
@@ -84,7 +83,6 @@ export class SpeechController {
     @Body() transcribeDto: TranscribeAudioDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const language = transcribeDto.language;
     const prompt = transcribeDto.prompt;
@@ -105,7 +103,7 @@ export class SpeechController {
         creditsUsed: 1,
         duration: transcription.duration,
         language: transcription.language,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         textLength: transcription.text.length,
         userId: user.id,
       });
@@ -144,7 +142,6 @@ export class SpeechController {
     @Body() transcribeUrlDto: TranscribeUrlDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const audioUrl = transcribeUrlDto.url;
     const language = transcribeUrlDto.language;
@@ -175,7 +172,7 @@ export class SpeechController {
         creditsUsed: 1,
         duration: transcription.duration,
         language: transcription.language,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         textLength: transcription.text.length,
         userId: user.id,
       });

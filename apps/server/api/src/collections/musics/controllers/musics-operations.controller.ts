@@ -21,7 +21,6 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -110,17 +109,16 @@ export class MusicsOperationsController {
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
-    const brandId = createMusicDto.brandId || publicMetadata.brand;
+    const brandId = createMusicDto.brandId || user.brandId;
 
     // Fetch brand for default model
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
 
@@ -163,9 +161,9 @@ export class MusicsOperationsController {
         brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original: createMusicDto.text,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     );
 
@@ -179,7 +177,7 @@ export class MusicsOperationsController {
         generationSeed: createMusicDto.seed,
         isDefault: createMusicDto.isDefault,
         model,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         promptId: promptData.id,
         scope: createMusicDto.scope,
         status: IngredientStatus.PROCESSING,
@@ -193,9 +191,9 @@ export class MusicsOperationsController {
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.MUSIC_GENERATION,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model,
@@ -261,9 +259,9 @@ export class MusicsOperationsController {
             {
               brandId,
               key: ActivityKey.MUSIC_FAILED,
-              organizationId: publicMetadata.organization,
+              organizationId: user.organizationId,
               source: ActivitySource.MUSIC_GENERATION,
-              userId: publicMetadata.user,
+              userId: user.userId ?? user.id,
               value: JSON.stringify({
                 error: 'Generation failed to start',
                 ingredientId: ingredientId.toString(),
@@ -293,9 +291,9 @@ export class MusicsOperationsController {
           {
             brandId,
             key: ActivityKey.MUSIC_FAILED,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             source: ActivitySource.MUSIC_GENERATION,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
               ingredientId: ingredientId.toString(),
@@ -329,8 +327,8 @@ export class MusicsOperationsController {
 
         if (creditsToDeduct > 0) {
           await this.creditsUtilsService.deductCreditsFromOrganization(
-            publicMetadata.organization,
-            publicMetadata.user,
+            user.organizationId,
+            user.userId ?? user.id,
             creditsToDeduct,
             `Music generation - ${model}${
               outputs > 1 ? ` (${outputs} outputs)` : ''
@@ -341,9 +339,9 @@ export class MusicsOperationsController {
             credits: creditsToDeduct,
             generationId: firstGenerationId,
             model,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             outputs,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
           });
         }
 
@@ -366,7 +364,7 @@ export class MusicsOperationsController {
                 generationPrompt: createMusicDto.text,
                 generationSeed: createMusicDto.seed,
                 model,
-                organizationId: publicMetadata.organization,
+                organizationId: user.organizationId,
                 promptId: promptId,
                 scope: createMusicDto.scope,
                 status: IngredientStatus.PROCESSING,
@@ -406,9 +404,9 @@ export class MusicsOperationsController {
                   {
                     brandId,
                     key: ActivityKey.MUSIC_FAILED,
-                    organizationId: publicMetadata.organization,
+                    organizationId: user.organizationId,
                     source: ActivitySource.MUSIC_GENERATION,
-                    userId: publicMetadata.user,
+                    userId: user.userId ?? user.id,
                     value: JSON.stringify({
                       error: (error as Error)?.message || 'Generation failed',
                       ingredientId: additionalIngredientId.toString(),
@@ -437,9 +435,9 @@ export class MusicsOperationsController {
         {
           brandId,
           key: ActivityKey.MUSIC_FAILED,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           source: ActivitySource.MUSIC_GENERATION,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           value: JSON.stringify({
             error: (error as Error)?.message || 'Generation failed',
             ingredientId: ingredientData.id.toString(),

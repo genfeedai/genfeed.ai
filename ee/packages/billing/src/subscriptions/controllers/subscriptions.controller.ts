@@ -8,7 +8,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -132,7 +131,7 @@ export class SubscriptionsController {
     // Request context tracks the active organization; token metadata can lag
     // behind an organization switch and bill the wrong tenant.
     const organizationId =
-      request.context?.organizationId ?? getPublicMetadata(user).organization;
+      request.context?.organizationId ?? user.organizationId;
 
     try {
       const result = await this.subscriptionsService.changeSubscriptionPlan(
@@ -163,11 +162,9 @@ export class SubscriptionsController {
     @CurrentUser() user: User,
     @Body() subscriptionPreviewDto: CreateSubscriptionPreviewDto,
   ): Promise<SubscriptionMutationResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       const result = await this.subscriptionsService.previewSubscriptionChange(
-        publicMetadata.organization,
+        user.organizationId,
         subscriptionPreviewDto.price,
       );
 
@@ -195,12 +192,10 @@ export class SubscriptionsController {
     @Req() request: RequestWithContext,
   ): Promise<CreditsBreakdownResponse> {
     try {
-      // Middleware-injected context takes priority over JWT publicMetadata
+      // Middleware-injected context takes priority over JWT identity
       // because context reflects the active org after any org-switching
       const organizationId =
-        request.context?.organizationId ??
-        getPublicMetadata(user).organization ??
-        '';
+        request.context?.organizationId ?? user.organizationId ?? '';
 
       if (!organizationId) {
         throw new HttpException(

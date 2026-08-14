@@ -8,10 +8,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -60,8 +57,8 @@ export class FoldersController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, folderId);
     }
 
-    const { brand: brandId, organization: organizationId } =
-      getPublicMetadata(user);
+    const brandId = user.brandId;
+    const organizationId = user.organizationId;
     const isSuperAdmin = getIsSuperAdmin(user, request);
     const folderQuery: Record<string, unknown> = {
       id: folderId,
@@ -117,8 +114,7 @@ export class FoldersController extends BaseCRUDController<
    * keep this query valid at the source, independent of downstream normalization.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     // Check if brand or organization query params are provided
     const requestedBrandId =
@@ -145,8 +141,7 @@ export class FoldersController extends BaseCRUDController<
         matchStage.organizationId = scopedOrganizationId;
       }
     } else if (
-      (requestedBrandId &&
-        requestedBrandId !== publicMetadata.brand?.toString()) ||
+      (requestedBrandId && requestedBrandId !== user.brandId?.toString()) ||
       (requestedOrganizationId && requestedOrganizationId !== organizationId)
     ) {
       matchStage.id = { in: [] };
@@ -158,7 +153,7 @@ export class FoldersController extends BaseCRUDController<
       // repeats its own organization in the query.
       matchStage.OR = this.buildFolderScope(
         organizationId,
-        requestedBrandId || publicMetadata.brand,
+        requestedBrandId || user.brandId,
       );
     }
 
@@ -169,21 +164,17 @@ export class FoldersController extends BaseCRUDController<
     createDto: Partial<CreateFolderDto>,
     user: User,
   ): CreateFolderDto {
-    const publicMetadata = getPublicMetadata(user);
     const requestedBrandId = createDto.brandId?.toString();
 
-    if (
-      requestedBrandId &&
-      requestedBrandId !== publicMetadata.brand?.toString()
-    ) {
+    if (requestedBrandId && requestedBrandId !== user.brandId?.toString()) {
       ErrorResponse.notFound('Brand', requestedBrandId);
     }
 
     return {
       ...createDto,
       brandId: requestedBrandId || null,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     } as unknown as CreateFolderDto;
   }
 
@@ -192,7 +183,7 @@ export class FoldersController extends BaseCRUDController<
     user: User,
   ): Promise<UpdateFolderDto> {
     const requestedBrandId = updateDto.brandId?.toString();
-    const currentBrandId = getPublicMetadata(user).brand?.toString();
+    const currentBrandId = user.brandId?.toString();
 
     if (requestedBrandId && requestedBrandId !== currentBrandId) {
       ErrorResponse.notFound('Brand', requestedBrandId);
@@ -210,8 +201,8 @@ export class FoldersController extends BaseCRUDController<
     user: User,
     entity: FolderDocument,
   ): boolean {
-    const { brand: brandId, organization: organizationId } =
-      getPublicMetadata(user);
+    const brandId = user.brandId;
+    const organizationId = user.organizationId;
     return this.isFolderInScope(entity, organizationId, brandId);
   }
 

@@ -6,7 +6,6 @@ export interface AgentStrategyReportDocument
   allocationChanges?: string[];
   bestPlatformFormatPairs?: Array<Record<string, unknown>>;
   bestPostingWindows?: string[];
-  brand?: string | null;
   clicks?: number;
   costPerVisit?: number;
   creditsSpent?: number;
@@ -15,7 +14,6 @@ export interface AgentStrategyReportDocument
   generatedCount?: number;
   impressions?: number;
   metadata?: Record<string, unknown>;
-  organization?: string;
   periodEnd?: Date | string;
   periodStart?: Date | string;
   publishedCount?: number;

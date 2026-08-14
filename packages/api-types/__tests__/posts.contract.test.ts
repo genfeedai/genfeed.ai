@@ -1,4 +1,4 @@
-import { PostFormat, PostStatus } from '@genfeedai/enums';
+import { PostFormat, PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   createPostSchema,
@@ -16,9 +16,23 @@ describe('posts contract', () => {
         format: PostFormat.LONG_FORM,
         ingredients: [],
         label: 'Launch essay',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }).success,
     ).toBe(true);
+  });
+
+  it('does not keep leftover Post.status on create', () => {
+    const parsed = createPostSchema.parse({
+      credentialId: 'cmptu23g70001zixnzwbzwp2e',
+      description: 'A long X post body',
+      ingredients: [],
+      label: 'Launch essay',
+      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+
+    expect(parsed).not.toHaveProperty('status');
+    expect(parsed.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 
   it('accepts converting an existing post into a thread root', () => {

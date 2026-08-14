@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLensesController } from '@api/collections/elements/lenses/controllers/lenses.controller';
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -19,7 +21,6 @@ const createBaseQuery = (
     isDeleted: false,
     limit: 10,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
@@ -49,12 +50,10 @@ describe('ElementsLensesController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      isSuperAdmin: true,
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    } as IAuthPublicMetadata,
+    brandId: 'cmbrand000000000000000001',
+    isSuperAdmin: true,
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
   const mockRequest = {
@@ -118,7 +117,7 @@ describe('ElementsLensesController', () => {
       const mockCreatedLens = {
         id: 'cmlens00000000000000000001',
         ...createDto,
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       lensesService.create.mockResolvedValue(mockCreatedLens as never);
@@ -145,7 +144,7 @@ describe('ElementsLensesController', () => {
         id,
         key: 'old-lens',
         label: 'Old Lens',
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       const mockUpdatedLens = {
@@ -192,7 +191,7 @@ describe('ElementsLensesController', () => {
         id,
         key: 'delete-lens',
         label: 'Lens to Delete',
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       lensesService.findOne.mockResolvedValue(mockLens as never);

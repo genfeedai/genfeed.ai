@@ -4,7 +4,6 @@ import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -362,7 +361,7 @@ export class AgentThreadsController {
   }
 
   private resolveOrganizationId(user: User): string {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -375,17 +374,17 @@ export class AgentThreadsController {
    * Resolve the internal (cuid) User.id that AgentThread.userId is a foreign
    * key to. This must trust the already-authenticated identity the same way
    * every other working endpoint does (see UsersController): read
-   * `getPublicMetadata(user).user` directly, with no DB re-lookup. That value
+   * `(user.userId ?? user.id)` directly, with no DB re-lookup. That value
    * is populated once per request by the registered Better Auth identity
    * resolver and is exactly the id AgentThread.userId expects.
    *
    * The DB lookup below is retained only as a last-resort fallback for the
-   * rare case where publicMetadata carries no user id at all. It resolves
+   * rare case where identity carries no user id at all. It resolves
    * `user.id` as the canonical primary key; an unresolved subject fails with
    * 401 rather than being reinterpreted as an external identifier.
    */
   private async resolveDatabaseUserId(user: User): Promise<string> {
-    const { user: metadataUserId } = getPublicMetadata(user);
+    const metadataUserId = user.userId ?? user.id;
     if (metadataUserId) {
       return metadataUserId;
     }

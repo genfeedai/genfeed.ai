@@ -1,4 +1,4 @@
-import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
@@ -10,10 +10,7 @@ import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
-import {
-  mapLegacyPostStatusToTargetExecutionState,
-  mapLegacyPostStatusToVisibility,
-} from '@api-types/contracts/scheduler.contract';
+import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -22,7 +19,7 @@ import {
   fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
+  PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -41,7 +38,7 @@ type PostCreateDependencies = {
 type PostCreateParams = {
   createPostDto: CreatePostDto;
   dependencies: PostCreateDependencies;
-  publicMetadata: IAuthPublicMetadata;
+  identity: AuthenticatedUser;
 };
 
 function extractLabelFromText(text: string, maxLength: number = 50): string {
@@ -78,22 +75,17 @@ function getPostCategoryFromIngredient(
 export async function createPost({
   createPostDto,
   dependencies,
-  publicMetadata,
+  identity,
 }: PostCreateParams): Promise<PostDocument> {
-  const requestedExecutionState =
-    createPostDto.targetExecutionState ??
-    mapLegacyPostStatusToTargetExecutionState(
-      createPostDto.status ?? PostStatus.SCHEDULED,
-    );
-  const requestedVisibility =
-    createPostDto.visibility ??
-    mapLegacyPostStatusToVisibility(
-      createPostDto.status ?? PostStatus.SCHEDULED,
-    );
+  const requestedExecutionState = resolveDefaultTargetExecutionState({
+    scheduledDate: createPostDto.scheduledDate,
+    targetExecutionState: createPostDto.targetExecutionState,
+  });
+  const requestedVisibility = createPostDto.visibility ?? PostVisibility.PUBLIC;
   const credential = await dependencies.credentialsService.findOne({
     id: createPostDto.credentialId,
     isConnected: true,
-    organizationId: publicMetadata.organization,
+    organizationId: identity.organizationId,
   });
 
   if (!credential) {
@@ -165,7 +157,7 @@ export async function createPost({
   if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
     const ingredients = await dependencies.ingredientsService.findByIds(
       createPostDto.ingredients,
-      publicMetadata.organization,
+      identity.organizationId,
     );
 
     if (ingredients.length !== createPostDto.ingredients.length) {
@@ -195,8 +187,8 @@ export async function createPost({
     const campaignIngredients =
       await dependencies.ingredientsService.findApprovedImagesByCampaign(
         createPostDto.campaign,
-        publicMetadata.organization,
-        publicMetadata.brand,
+        identity.organizationId,
+        identity.brandId,
       );
 
     if (campaignIngredients.length === 0) {
@@ -216,7 +208,7 @@ export async function createPost({
 
   await dependencies.quotaService.verifyQuota(
     credential,
-    publicMetadata.organization,
+    identity.organizationId,
   );
 
   let effectiveExecutionState = requestedExecutionState;
@@ -224,9 +216,9 @@ export async function createPost({
   if (requestedExecutionState === TargetExecutionState.SCHEDULED) {
     const publishGate =
       await dependencies.accountHealthService.evaluateScheduledPublishGate({
-        brandId: publicMetadata.brand,
+        brandId: identity.brandId,
         credentialId: createPostDto.credentialId,
-        organizationId: publicMetadata.organization,
+        organizationId: identity.organizationId,
       });
 
     if (publishGate.holdPublishing) {
@@ -237,7 +229,7 @@ export async function createPost({
 
   const data = await dependencies.postsService.create({
     ...createPostDto,
-    brandId: firstIngredient?.brandId ?? publicMetadata.brand,
+    brandId: firstIngredient?.brandId ?? identity.brandId,
     category:
       createPostDto.category || getPostCategoryFromIngredient(firstIngredient),
     credentialId: createPostDto.credentialId,
@@ -249,8 +241,7 @@ export async function createPost({
       (createPostDto.description?.trim()
         ? extractLabelFromText(createPostDto.description.trim())
         : ''),
-    organizationId:
-      firstIngredient?.organizationId ?? publicMetadata.organization,
+    organizationId: firstIngredient?.organizationId ?? identity.organizationId,
     // credentials.platform is Prisma SCREAMING; posts.platform is lowercase.
     // fromPrismaCredentialPlatform already owns that mapping — an unknown
     // credential platform stays undefined rather than inventing a dual map.
@@ -261,22 +252,22 @@ export async function createPost({
     scheduledDate: createPostDto.scheduledDate,
     targetExecutionState: effectiveExecutionState,
     tags: createPostDto.tags || [],
-    userId: publicMetadata.user,
+    userId: identity.userId,
     visibility: requestedVisibility,
   });
 
   await dependencies.activitiesService.create(
     new ActivityEntity({
-      brandId: firstIngredient?.brandId ?? publicMetadata.brand,
+      brandId: firstIngredient?.brandId ?? identity.brandId,
       entityId: data.id,
       entityModel: ActivityEntityModel.POST,
       key: warmupHoldReason
         ? ActivityKey.POST_CREATED
         : ActivityKey.VIDEO_SCHEDULED,
       organizationId:
-        firstIngredient?.organizationId ?? publicMetadata.organization,
+        firstIngredient?.organizationId ?? identity.organizationId,
       source: ActivitySource.SCRIPT,
-      userId: publicMetadata.user,
+      userId: identity.userId,
       value: (data.id as string).toString(),
     }),
   );

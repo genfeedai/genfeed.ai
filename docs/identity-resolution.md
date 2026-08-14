@@ -22,15 +22,17 @@ Browser cookie (better-auth.session_token, httpOnly)
        │         • active org = User.lastUsedOrganizationId, validated against
        │           live membership/ownership (never trusted blindly)
        │         • isSuperAdmin = users.platformRole (user-global, org-independent)
-       └─ shapes request.user with a legacy-compatible publicMetadata:
-            { user, organization, brand, isSuperAdmin }
+       └─ shapes request.user as AuthenticatedUser
+            { userId, organizationId, brandId, isSuperAdmin }
 ```
 
 Two consumers of the result:
 
-- **Controllers** read `getPublicMetadata(user)` (`helpers/utils/auth/auth.util.ts`)
-  — the legacy metadata shim. `publicMetadata.user` is the resolved genfeed
-  `User.id`, `publicMetadata.organization` the validated active org.
+- **Controllers** read canonical fields on `request.user`
+  (`user.userId`, `user.organizationId`, `user.brandId`, `user.isSuperAdmin`)
+  via `extractRequestContext` in `helpers/utils/auth/auth.util.ts`.
+  `user.userId` is the resolved genfeed `User.id`; `user.organizationId` is the
+  validated active org.
 - **`/v1/auth/bootstrap`** (`auth/services/auth-bootstrap.service.ts`) returns
   `access { userId, organizationId, brandId, isSuperAdmin }` to the frontend;
   `apps/app/packages/server/protected-bootstrap.server.ts` maps it into
@@ -68,6 +70,10 @@ identity contract:
   ID can otherwise broaden a query.
 
 The architecture relation-boundary guards enforce these rules in CI.
+
+Request identity is `AuthenticatedUser` (`userId` / `organizationId` /
+`brandId` / `isSuperAdmin`) on `request.user`. Do not nest those fields under
+Clerk-shaped `publicMetadata`.
 
 ## Multi-tenancy invariants
 

@@ -257,16 +257,16 @@ export class FailedGenerationService {
     },
     ingredientId: string,
     websocketUrl: string,
-    metadata?: { user: string; organization: string },
+    metadata?: { userId: string; organizationId: string },
     room?: string,
     errorMessage?: string,
   ): Promise<void> {
     const activityMetadata = metadata
       ? {
           key: ActivityKey.IMAGE_FAILED,
-          organizationId: metadata.organization,
+          organizationId: metadata.organizationId,
           source: ActivitySource.SCRIPT,
-          userId: metadata.user,
+          userId: metadata.userId,
           value: JSON.stringify({
             error: errorMessage || 'Generation failed',
             ingredientId,
@@ -277,10 +277,10 @@ export class FailedGenerationService {
     return this.handleFailedGeneration(imagesService, {
       activityMetadata,
       ingredientId,
-      organizationId: metadata?.organization,
+      organizationId: metadata?.organizationId,
       room,
       status: IngredientStatus.FAILED,
-      userId: metadata?.user,
+      userId: metadata?.userId,
       websocketMessage: errorMessage || 'Generation failed',
       websocketMethod: 'publishMediaFailed',
       websocketUrl,

@@ -1,5 +1,6 @@
 import {
   ALLOW_UNKNOWN_PROPERTIES,
+  FORBID_NON_WHITELISTED,
   ValidationPipe,
 } from '@api/helpers/pipes/validation.pipe';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
@@ -80,6 +81,13 @@ class InheritedOptInDto extends OptedInDto {
   @IsOptional()
   @IsString()
   extra?: string;
+}
+
+class ForbidDto {
+  static readonly [FORBID_NON_WHITELISTED] = true;
+
+  @IsString()
+  name!: string;
 }
 
 describe('ValidationPipe', () => {
@@ -465,6 +473,25 @@ describe('ValidationPipe', () => {
       )) as Record<string, unknown>;
 
       expect(result).not.toHaveProperty('injectedField');
+    });
+  });
+
+  describe('FORBID_NON_WHITELISTED', () => {
+    const metadata: ArgumentMetadata = {
+      metatype: ForbidDto,
+      type: 'body',
+    };
+
+    it('rejects undeclared properties instead of stripping them', async () => {
+      await expect(
+        pipe.transform({ name: 'post', status: 'scheduled' }, metadata),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('still accepts declared properties', async () => {
+      await expect(pipe.transform({ name: 'post' }, metadata)).resolves.toEqual(
+        { name: 'post' },
+      );
     });
   });
 

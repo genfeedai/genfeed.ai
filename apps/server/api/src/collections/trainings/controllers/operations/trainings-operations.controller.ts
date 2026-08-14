@@ -18,7 +18,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -80,13 +79,11 @@ export class TrainingsOperationsController {
     @Param('trainingId') trainingId: string,
   ): Promise<JsonApiSingleResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       const existingTraining = await this.trainingsService.findOne({
         id: trainingId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       });
 
@@ -116,7 +113,7 @@ export class TrainingsOperationsController {
       const { sourceImages, training: newTraining } =
         await this.trainingsService.relaunchTrainingWithSources(
           existingTraining,
-          publicMetadata,
+          user,
         );
 
       return this.processAndLaunchTraining(
@@ -144,14 +141,12 @@ export class TrainingsOperationsController {
     @Query() query: ImagesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // Find the training
       const training = await this.trainingsService.findOne({
         id: trainingId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       });
 
@@ -224,13 +219,11 @@ export class TrainingsOperationsController {
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       const training = await this.trainingsService.findOne({
         id: trainingId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       });
 

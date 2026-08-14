@@ -65,10 +65,8 @@ function makeUser(email = 'user@example.com'): AuthenticatedUser {
     emailAddresses: [{ emailAddress: email }],
     firstName: 'Agent',
     id: userId,
-    publicMetadata: {
-      organization: organizationId,
-      user: userId,
-    },
+    organizationId: organizationId,
+    userId: userId,
   } as AuthenticatedUser;
 }
 

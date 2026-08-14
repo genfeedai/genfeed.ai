@@ -39,7 +39,8 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, context meter, real Studio Stop
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
-- [project_qa_260814_e2e_coverage_ocean](project_qa_260814_e2e_coverage_ocean.md) — complementary E2E/coverage train; do not collide with #2947
+- [project_qa_260814_e2e_coverage_ocean](project_qa_260814_e2e_coverage_ocean.md) — complementary E2E/coverage train; merged as #2952
+- [project_qa_260814_coverage_ratchet](project_qa_260814_coverage_ratchet.md) — post-#2952 #2687 remainder; do not collide with #2947
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
@@ -121,6 +122,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_repo_audit_2026-07-28](project_repo_audit_2026-07-28.md) — full-repo audit map; remaining P1–P3 linked to existing GH issues (no new epic)
 - [project_platform_enum_usage](project_platform_enum_usage.md) — Platform/CredentialPlatform for ids; formatPlatformLabel/parsePlatform for display/aliases
+- [project_legacy_hard_cut](project_legacy_hard_cut.md) — leftover Clerk/Mongo/cron compat; hard-cut target state
 
 ## References
 

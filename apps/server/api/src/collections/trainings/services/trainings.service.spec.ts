@@ -24,10 +24,10 @@ describe('TrainingsService', () => {
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
   let configService: { get: ReturnType<typeof vi.fn> };
 
-  const publicMetadata = {
-    brand: '507f191e810c19729de860ee',
-    organization: '507f191e810c19729de860ee',
-    user: '507f191e810c19729de860ee',
+  const identity = {
+    brandId: '507f191e810c19729de860ee',
+    organizationId: '507f191e810c19729de860ee',
+    userId: '507f191e810c19729de860ee',
   };
 
   beforeEach(() => {
@@ -86,7 +86,7 @@ describe('TrainingsService', () => {
       await expect(
         service.createTrainingWithSources(
           buildCreateDto({ sources: ['a', 'b'] } as never),
-          publicMetadata,
+          identity,
         ),
       ).rejects.toThrow(HttpException);
       expect(ingredientsService.findAll).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('TrainingsService', () => {
 
       await service.createTrainingWithSources(
         buildCreateDto({ sources: sourceIds } as never),
-        publicMetadata,
+        identity,
       );
 
       const [aggregate] = ingredientsService.findAll.mock.calls[0] as [
@@ -117,8 +117,8 @@ describe('TrainingsService', () => {
         { id: { in: sourceIds } },
         {
           OR: [
-            { userId: publicMetadata.user },
-            { organizationId: publicMetadata.organization },
+            { userId: identity.userId },
+            { organizationId: identity.organizationId },
           ],
         },
       ]);
@@ -128,7 +128,7 @@ describe('TrainingsService', () => {
       ingredientsService.findAll.mockResolvedValueOnce({ docs: [] });
 
       await expect(
-        service.createTrainingWithSources(buildCreateDto(), publicMetadata),
+        service.createTrainingWithSources(buildCreateDto(), identity),
       ).rejects.toThrow(HttpException);
     });
 
@@ -148,7 +148,7 @@ describe('TrainingsService', () => {
 
       await service.createTrainingWithSources(
         buildCreateDto({ sources: sourceIds } as never),
-        publicMetadata,
+        identity,
       );
 
       expect(modelsService.findOne).toHaveBeenCalled();
@@ -174,12 +174,12 @@ describe('TrainingsService', () => {
 
       const result = await service.createTrainingWithSources(
         buildCreateDto({ sources: sourceIds } as never),
-        publicMetadata,
+        identity,
       );
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          brandId: publicMetadata.brand,
+          brandId: identity.brandId,
           config: expect.objectContaining({
             model: 'default-trainer-model',
             status: IngredientStatus.PROCESSING,
@@ -187,13 +187,13 @@ describe('TrainingsService', () => {
             trigger: 'NEWTOK',
           }),
           label: 'New Training',
-          organizationId: publicMetadata.organization,
+          organizationId: identity.organizationId,
           sources: {
             connect: expect.arrayContaining([
               { id: '507f191e810c19729de860ee' },
             ]),
           },
-          userId: publicMetadata.user,
+          userId: identity.userId,
         }),
       );
       expect(result.training.id).toBe('507f191e810c19729de860ee');
@@ -211,7 +211,7 @@ describe('TrainingsService', () => {
 
       await service.createTrainingWithSources(
         buildCreateDto({ sources: sourceIds } as never),
-        publicMetadata,
+        identity,
       );
 
       // One query regardless of source count — never one UPDATE per row.
@@ -220,8 +220,8 @@ describe('TrainingsService', () => {
         {
           id: { in: sourceIds },
           OR: [
-            { userId: publicMetadata.user },
-            { organizationId: publicMetadata.organization },
+            { userId: identity.userId },
+            { organizationId: identity.organizationId },
           ],
         },
         {
@@ -264,7 +264,7 @@ describe('TrainingsService', () => {
         id: 'training-2',
       } as unknown as TrainingDocument);
 
-      await service.relaunchTrainingWithSources(mockTraining, publicMetadata);
+      await service.relaunchTrainingWithSources(mockTraining, identity);
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -285,7 +285,7 @@ describe('TrainingsService', () => {
       ingredientsService.findAll.mockResolvedValueOnce({ docs: [] });
 
       await expect(
-        service.relaunchTrainingWithSources(mockTraining, publicMetadata),
+        service.relaunchTrainingWithSources(mockTraining, identity),
       ).rejects.toThrow(HttpException);
     });
 
@@ -300,14 +300,14 @@ describe('TrainingsService', () => {
         id: mockTraining.id,
       } as unknown as TrainingDocument);
 
-      await service.relaunchTrainingWithSources(mockTraining, publicMetadata);
+      await service.relaunchTrainingWithSources(mockTraining, identity);
 
       // One query regardless of source count — never one UPDATE per row.
       expect(ingredientsService.patchAll).toHaveBeenCalledTimes(1);
       expect(ingredientsService.patchAll).toHaveBeenCalledWith(
         {
           id: { in: mockTraining.sources },
-          userId: publicMetadata.user,
+          userId: identity.userId,
         },
         {
           category: 'SOURCE',
@@ -328,7 +328,7 @@ describe('TrainingsService', () => {
         id: mockTraining.id,
       } as unknown as TrainingDocument);
 
-      await service.relaunchTrainingWithSources(mockTraining, publicMetadata);
+      await service.relaunchTrainingWithSources(mockTraining, identity);
 
       const pipelineArg = ingredientsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;

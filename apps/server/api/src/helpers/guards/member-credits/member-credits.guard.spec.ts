@@ -25,7 +25,8 @@ function createContext(): ExecutionContext {
     params: { id: orgId },
     user: {
       id: 'user_123',
-      publicMetadata: { organization: orgId, subscriptionTier: '' },
+      organizationId: orgId,
+      subscriptionTier: '',
     },
   };
   return {

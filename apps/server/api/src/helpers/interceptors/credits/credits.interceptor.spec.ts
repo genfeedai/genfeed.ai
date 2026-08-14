@@ -16,10 +16,8 @@ describe('CreditsInterceptor', () => {
     creditsConfig?: CreditsConfig;
     user?: {
       id: string;
-      publicMetadata: {
-        user: string;
-        organization: string;
-      };
+      organizationId: string;
+      userId: string;
     } | null;
   } = {
     creditsConfig: {
@@ -29,10 +27,8 @@ describe('CreditsInterceptor', () => {
     } as CreditsConfig,
     user: {
       id: 'user_123',
-      publicMetadata: {
-        organization: '507f1f77bcf86cd799439013',
-        user: '507f1f77bcf86cd799439012',
-      },
+      organizationId: '507f1f77bcf86cd799439013',
+      userId: '507f1f77bcf86cd799439012',
     },
   };
 
@@ -131,10 +127,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439013',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439013',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -179,10 +173,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439013',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439013',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -218,10 +210,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439013',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439013',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const mockHandlerWithError = {
@@ -261,10 +251,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439013',
-          user: '507f1f77bcf86cd799439012',
-        },
+        organizationId: '507f1f77bcf86cd799439013',
+        userId: '507f1f77bcf86cd799439012',
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);

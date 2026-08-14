@@ -33,7 +33,8 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  */
 // Issue #2643 removed the orphaned ContentDraft serializer triplet.
 // Issue #2665 removes the unreachable ContentSchedule serializer triplet.
-const SERIALIZER_MATCH_FLOOR = 102;
+// The legacy cron hard cut removes the CronJob and CronRun serializer triplets.
+const SERIALIZER_MATCH_FLOOR = 100;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -173,7 +174,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'credit-transactions:CreditTransaction': [],
   'credential:Credential': ['accountHealth'],
-  'cron-run:CronRun': ['endedAt'],
   'distribution:Distribution': ['errorMessage', 'publishedAt'],
   'editor-project:EditorProject': ['name'],
   'fanvue-content:FanvueContent': [
@@ -542,7 +542,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'content-performance:ContentPerformance': [],
   'context-base:ContextBase': [],
   'context-entry:ContextEntry': [],
-  'cron-job:CronJob': [],
   'dashboard-layout:DashboardLayout': [],
   'evaluation:Evaluation': [],
   'font-family:FontFamilyRecord': [],

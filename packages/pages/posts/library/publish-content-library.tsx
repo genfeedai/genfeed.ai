@@ -98,8 +98,8 @@ export default function PublishContentLibrary() {
           getPostsService(),
         ]);
       const collectionQuery = {
-        brand: brandId,
-        organization: organizationId,
+        brandId: brandId,
+        organizationId: organizationId,
         sort: 'createdAt: -1',
       };
 

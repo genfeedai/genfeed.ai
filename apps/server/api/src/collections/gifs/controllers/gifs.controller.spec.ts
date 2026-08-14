@@ -27,10 +27,10 @@ vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   QueryDefaultsUtil: {
     getIsDeletedDefault: vi.fn((val: boolean) => val ?? false),
     getPaginationDefaults: vi.fn(
-      (query: { limit?: number; page?: number; pagination?: boolean }) => ({
+      (query: { limit?: number; page?: number }) => ({
         limit: query?.limit ?? 10,
         page: query?.page ?? 1,
-        pagination: query?.pagination ?? true,
+        pagination: true,
       }),
     ),
     parseStatusFilter: vi.fn(
@@ -75,11 +75,9 @@ describe('GifsController', () => {
   const mockRequest = {} as unknown as Request;
   const mockUser = {
     id: 'authProvider_user_1',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    },
+    brandId: 'cmbrand000000000000000001',
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
   const gifId = 'cmgif000000000000000000001';
 
@@ -154,10 +152,9 @@ describe('GifsController', () => {
       );
     });
 
-    it('should support collapsed "latest" queries via sort/limit/pagination params', async () => {
+    it('should support collapsed "latest" queries via sort/limit params while staying paginated', async () => {
       const query = {
         limit: 10,
-        pagination: false,
         sort: 'createdAt: -1',
       } as unknown as Parameters<typeof controller.findAll>[2];
       await controller.findAll(mockRequest, mockUser, query);
@@ -166,7 +163,7 @@ describe('GifsController', () => {
           orderBy: { createdAt: -1 },
           where: expect.any(Object),
         }),
-        expect.objectContaining({ limit: 10, pagination: false }),
+        expect.objectContaining({ limit: 10, pagination: true }),
       );
     });
 
@@ -202,7 +199,7 @@ describe('GifsController', () => {
                     expect.objectContaining({
                       OR: [
                         {
-                          organizationId: mockUser.publicMetadata.organization,
+                          organizationId: mockUser.organizationId,
                         },
                         { organizationId: null },
                       ],
@@ -226,7 +223,7 @@ describe('GifsController', () => {
           id: gifId,
           category: 'GIF',
           OR: [
-            { organizationId: mockUser.publicMetadata.organization },
+            { organizationId: mockUser.organizationId },
             { isDefault: true, organizationId: null },
           ],
         },
@@ -253,7 +250,7 @@ describe('GifsController', () => {
         expect.objectContaining({
           entityId: gifId,
           entityModel: 'Ingredient',
-          userId: mockUser.publicMetadata.user,
+          userId: mockUser.userId,
         }),
       );
     });
@@ -272,7 +269,7 @@ describe('GifsController', () => {
       const result = await controller.remove(mockRequest, gifId, mockUser);
       expect(gifsService.findOne).toHaveBeenCalledWith({
         id: gifId,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         category: 'GIF',
         isDeleted: false,
       });

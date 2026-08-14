@@ -6,7 +6,6 @@ export interface ContextEntry extends PrismaContextEntry {
   content?: string;
   contextBase?: string;
   metadata?: Record<string, unknown>;
-  organization?: string;
   relevanceWeight?: number;
   [key: string]: unknown;
 }

@@ -398,10 +398,7 @@ export class ReleaseRecurrenceMaterializerService {
         targetValidationState: sourceTarget.targetValidationState,
         timezone: sourceTarget.timezone,
         userId: sourceTarget.userId,
-        visibility: resolvePostVisibility(
-          sourceTarget.visibility,
-          sourceTarget.status,
-        ),
+        visibility: resolvePostVisibility(sourceTarget.visibility),
         workflowExecutionId: context.input.workflowExecutionId,
       },
     });
@@ -474,10 +471,7 @@ export class ReleaseRecurrenceMaterializerService {
         targetExecutionState: TargetExecutionState.SCHEDULED,
         timezone: sourceChild.timezone,
         userId: sourceChild.userId,
-        visibility: resolvePostVisibility(
-          sourceChild.visibility,
-          sourceChild.status,
-        ),
+        visibility: resolvePostVisibility(sourceChild.visibility),
         workflowExecutionId: context.input.workflowExecutionId,
       },
     });

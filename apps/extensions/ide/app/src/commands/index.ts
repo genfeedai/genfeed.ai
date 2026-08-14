@@ -13,15 +13,13 @@ import type { RunQueueViewProvider } from '@views/run-queue-view.provider';
 import type { TemplatesViewProvider } from '@views/templates-view.provider';
 import * as vscode from 'vscode';
 import type { GenFeedStatusBar } from '@/statusBar';
-import {
-  type CampaignAuthoringContext,
-  IngredientFormat,
-  MODEL_DISPLAY_NAMES,
-  type PromptTemplate,
-  type RunActionType,
-  type RunRecord,
-  type RunTimelineEvent,
-  type WorkspaceCampaignDefaults,
+import type {
+  CampaignAuthoringContext,
+  PromptTemplate,
+  RunActionType,
+  RunRecord,
+  RunTimelineEvent,
+  WorkspaceCampaignDefaults,
 } from '@/types';
 import { explainAndPost } from './explain-and-post';
 
@@ -750,105 +748,6 @@ export function registerCommands(
       }
     }
   };
-
-  // Generate image command kept for backwards compatibility.
-  context.subscriptions.push(
-    vscode.commands.registerCommand('genfeed.generateImage', async () => {
-      const authenticated = await requireAuth();
-      if (!authenticated) {
-        return;
-      }
-
-      const prompt = await vscode.window.showInputBox({
-        placeHolder: 'A serene mountain landscape at sunset...',
-        prompt: 'Enter your image prompt',
-        validateInput: (value) => {
-          if (!value?.trim()) {
-            return 'Prompt cannot be empty';
-          }
-          return null;
-        },
-      });
-
-      if (!prompt) {
-        return;
-      }
-
-      const formatItems: vscode.QuickPickItem[] = [
-        {
-          description: '1920x1080',
-          detail: 'Best for banners and headers',
-          label: 'Landscape',
-        },
-        {
-          description: '1080x1920',
-          detail: 'Best for stories and mobile',
-          label: 'Portrait',
-        },
-        {
-          description: '1024x1024',
-          detail: 'Best for social media posts',
-          label: 'Square',
-        },
-      ];
-
-      const selectedFormat = await vscode.window.showQuickPick(formatItems, {
-        placeHolder: 'Select image format',
-      });
-
-      if (!selectedFormat) {
-        return;
-      }
-
-      const formatMap: Record<string, IngredientFormat> = {
-        Landscape: IngredientFormat.LANDSCAPE,
-        Portrait: IngredientFormat.PORTRAIT,
-        Square: IngredientFormat.SQUARE,
-      };
-
-      const modelItems: vscode.QuickPickItem[] = Object.entries(
-        MODEL_DISPLAY_NAMES,
-      ).map(([key, name]) => ({
-        description: key,
-        label: name,
-      }));
-
-      const selectedModel = await vscode.window.showQuickPick(modelItems, {
-        placeHolder: 'Select AI model (or use default)',
-      });
-
-      await vscode.window.withProgress(
-        {
-          cancellable: false,
-          location: vscode.ProgressLocation.Notification,
-          title: 'Generating image...',
-        },
-        async () => {
-          const result = await ApiService.getInstance().generateImage({
-            format: formatMap[selectedFormat.label],
-            model: selectedModel?.description as string,
-            text: prompt,
-            waitForCompletion: true,
-          });
-
-          const action = await vscode.window.showInformationMessage(
-            'Image generated successfully!',
-            'Open in Browser',
-            'Copy URL',
-          );
-
-          if (action === 'Open in Browser') {
-            await vscode.env.openExternal(vscode.Uri.parse(result.url));
-          } else if (action === 'Copy URL') {
-            await vscode.env.clipboard.writeText(result.url);
-            vscode.window.showInformationMessage(
-              'Image URL copied to clipboard',
-            );
-          }
-        },
-      );
-    }),
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('genfeed.generateContent', async () => {

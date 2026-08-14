@@ -29,7 +29,7 @@ export class VideoMergeJobService {
   ) {}
 
   async process(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, metadata, authProviderUserId, room } = job.data;
+    const { ingredientId, metadata, userId, room } = job.data;
 
     await this.publishBackgroundTaskUpdate(job, 'processing', 0);
 
@@ -51,7 +51,7 @@ export class VideoMergeJobService {
           s3Key,
           url: this.s3Service.getPublicUrl(s3Key),
         },
-        authProviderUserId,
+        userId,
         room,
       );
       await this.publishBackgroundTaskUpdate(
@@ -68,7 +68,7 @@ export class VideoMergeJobService {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       await this.publishBackgroundTaskUpdate(
@@ -275,7 +275,7 @@ export class VideoMergeJobService {
     overallProgress: number,
     currentStepLabel: string,
   ): void {
-    const { metadata, authProviderUserId, room, params } = job.data;
+    const { metadata, userId, room, params } = job.data;
     this.webSocketService.emitProgress(
       metadata.websocketUrl,
       {
@@ -285,7 +285,7 @@ export class VideoMergeJobService {
         stepProgress,
         totalSteps: params.isResizeEnabled ? 5 : 4,
       },
-      authProviderUserId,
+      userId,
       room,
     );
 
@@ -307,8 +307,8 @@ export class VideoMergeJobService {
     resultId?: string,
     error?: string,
   ): Promise<void> {
-    const { ingredientId, authProviderUserId, room } = job.data;
-    if (!authProviderUserId) {
+    const { ingredientId, userId, room } = job.data;
+    if (!userId) {
       return;
     }
 
@@ -320,11 +320,11 @@ export class VideoMergeJobService {
         progress,
         resultId,
         resultType: 'VIDEO' as const,
-        room: room || getUserRoomName(authProviderUserId),
+        room: room || getUserRoomName(userId),
         status,
         taskId: job.id?.toString() || ingredientId,
         timestamp: new Date().toISOString(),
-        userId: authProviderUserId,
+        userId,
       });
     } catch (publishError: unknown) {
       this.logger.error(

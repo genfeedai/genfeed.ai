@@ -77,62 +77,27 @@ export class ContextsService {
     return this.isPlainObject(value) ? { ...value } : {};
   }
 
-  private normalizeContextBase(contextBase: {
-    id: string;
-    organizationId: string;
-    createdById?: string | null;
-    sourceBrandId?: string | null;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextBase {
+  private normalizeContextBase(contextBase: ContextBase): ContextBase {
     return {
       ...contextBase,
       ...this.getDataRecord(contextBase.data),
-      createdBy: contextBase.createdById ?? undefined,
-      organization: contextBase.organizationId,
-      sourceBrand: contextBase.sourceBrandId ?? undefined,
-    } as ContextBase;
+    };
   }
 
-  private normalizeContextBases(
-    contextBases: Array<{
-      id: string;
-      organizationId: string;
-      createdById?: string | null;
-      sourceBrandId?: string | null;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextBase[] {
+  private normalizeContextBases(contextBases: ContextBase[]): ContextBase[] {
     return contextBases.map((contextBase) =>
       this.normalizeContextBase(contextBase),
     );
   }
 
-  private normalizeContextEntry(entry: {
-    id: string;
-    contextBaseId: string;
-    organizationId: string;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextEntry {
+  private normalizeContextEntry(entry: ContextEntry): ContextEntry {
     return {
       ...entry,
       ...this.getDataRecord(entry.data),
-      contextBase: entry.contextBaseId,
-      organization: entry.organizationId,
-    } as ContextEntry;
+    };
   }
 
-  private normalizeContextEntries(
-    entries: Array<{
-      id: string;
-      contextBaseId: string;
-      organizationId: string;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextEntry[] {
+  private normalizeContextEntries(entries: ContextEntry[]): ContextEntry[] {
     return entries.map((entry) => this.normalizeContextEntry(entry));
   }
 

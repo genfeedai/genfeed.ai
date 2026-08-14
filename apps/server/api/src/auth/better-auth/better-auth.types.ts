@@ -46,10 +46,11 @@ export interface IDesktopSessionCookieResult {
 }
 
 /**
- * Genfeed identity resolved from a verified Better Auth JWT. Mirrors the subset
- * of `IAuthPublicMetadata` that `RequestContextMiddleware` reads. The
- * compatibility `isSuperAdmin` boolean is derived from the persisted platform
- * role; subscription tier / status are filled by the middleware from the DB.
+ * Genfeed identity resolved from a verified Better Auth JWT. Shaped onto
+ * `AuthenticatedUser` (`userId`, `organizationId`, `brandId`, `isSuperAdmin`)
+ * for `RequestContextMiddleware` and downstream guards. `isSuperAdmin` is
+ * derived from the persisted platform role; subscription tier / status are
+ * filled by the middleware from the DB.
  */
 export interface IBetterAuthResolvedIdentity {
   userId: string;

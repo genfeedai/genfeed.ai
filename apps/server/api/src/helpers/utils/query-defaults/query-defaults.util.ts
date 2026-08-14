@@ -30,10 +30,10 @@ export class QueryDefaultsUtil {
   /**
    * Get default pagination options from BaseQueryDto
    *
-   * HTTP-derived queries are ALWAYS paginated: a client-supplied
-   * `pagination=false` is ignored here so no public list endpoint can opt out
-   * of the `limit`/`page` caps and trigger an unbounded findMany. Internal
-   * service callers that legitimately need unpaginated reads pass
+   * HTTP list endpoints are ALWAYS paginated. `BaseQueryDto` does not accept a
+   * `pagination` query flag; this helper always returns `pagination: true` so
+   * no public list can opt out of the `limit`/`page` caps. Internal service
+   * callers that legitimately need unpaginated reads pass
    * `{ pagination: false }` directly to the service layer and never route
    * through this helper.
    */
@@ -71,12 +71,12 @@ export class QueryDefaultsUtil {
   /**
    * Apply all defaults to a query object
    *
-   * Like `getPaginationDefaults`, HTTP-derived queries are always paginated;
-   * a client `pagination=false` is ignored.
+   * Like `getPaginationDefaults`, HTTP-derived queries are always paginated.
+   * The HTTP DTO does not accept a `pagination` flag.
    */
   static applyDefaults<T extends Partial<BaseQueryDto>>(
     query: T,
-  ): T & BaseQueryDto {
+  ): Omit<T, 'pagination'> & BaseQueryDto & { pagination: true } {
     return {
       ...query,
       isDeleted: query.isDeleted ?? QueryDefaultsUtil.defaults.isDeleted,
@@ -91,7 +91,7 @@ export class QueryDefaultsUtil {
       ),
       pagination: true,
       sort: query.sort ?? QueryDefaultsUtil.defaults.sort,
-    } as T & BaseQueryDto;
+    };
   }
 
   /**

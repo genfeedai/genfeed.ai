@@ -57,18 +57,16 @@ export class LocalIdentityInterceptor implements NestInterceptor {
       const { defaultOrg, defaultUser, defaultBrand } = identity;
 
       request.user = {
+        brandId: defaultBrand.id,
         emailAddresses: [],
         firstName: 'Local',
-        id: 'local-admin',
+        id: defaultUser.id,
+        isSuperAdmin: true,
         lastName: 'Admin',
-        publicMetadata: {
-          brand: defaultBrand.id,
-          isSuperAdmin: true,
-          organization: defaultOrg.id,
-          stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
-          subscriptionTier: 'free',
-          user: defaultUser.id,
-        },
+        organizationId: defaultOrg.id,
+        stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: 'free',
+        userId: defaultUser.id,
       } satisfies AuthenticatedUser;
     } catch (error: unknown) {
       this.logger.error('Local identity injection failed', error, this.context);

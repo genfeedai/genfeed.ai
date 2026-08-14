@@ -47,12 +47,11 @@ export class VideoGenerationExecutionService {
 
   async execute(context: VideoGenerationContext): Promise<void> {
     await this.createPlaceholderActivity({
-      authProviderUserId: context.user.id,
       brandId: context.brand.id,
       ingredientId: context.ingredientData.id,
       model: context.model,
-      organization: context.publicMetadata.organization,
-      user: context.publicMetadata.user,
+      organizationId: context.user.organizationId,
+      userId: context.user.userId ?? context.user.id,
     });
     const outputs = context.createVideoDto.outputs || 1;
     this.loggerService.debug('Video generation request received', {
@@ -116,12 +115,11 @@ export class VideoGenerationExecutionService {
     await Promise.all(
       additionalDocuments.map(({ ingredientData }) =>
         this.createPlaceholderActivity({
-          authProviderUserId: context.user.id,
           brandId: context.brand.id,
           ingredientId: ingredientData.id,
           model: context.model,
-          organization: context.publicMetadata.organization,
-          user: context.publicMetadata.user,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId ?? context.user.id,
         }),
       ),
     );
@@ -164,12 +162,11 @@ export class VideoGenerationExecutionService {
         }),
       ]);
       await this.createPlaceholderActivity({
-        authProviderUserId: context.user.id,
         brandId: context.brand.id,
         ingredientId: documents.ingredientData.id,
         model: context.model,
-        organization: context.publicMetadata.organization,
-        user: context.publicMetadata.user,
+        organizationId: context.user.organizationId,
+        userId: context.user.userId ?? context.user.id,
       });
     }
 
@@ -254,9 +251,9 @@ export class VideoGenerationExecutionService {
           {
             brandId: context.brand.id.toString(),
             key: ActivityKey.VIDEO_FAILED,
-            organizationId: context.publicMetadata.organization,
+            organizationId: context.user.organizationId,
             source: ActivitySource.VIDEO_GENERATION,
-            userId: context.publicMetadata.user,
+            userId: context.user.userId,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
               ingredientId: pendingId,
@@ -276,9 +273,9 @@ export class VideoGenerationExecutionService {
         entityId: params.ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: params.organization,
+        organizationId: params.organizationId,
         source: ActivitySource.VIDEO_GENERATION,
-        userId: params.user,
+        userId: params.userId,
         value: JSON.stringify({
           ingredientId: params.ingredientId.toString(),
           model: params.model,
@@ -290,10 +287,10 @@ export class VideoGenerationExecutionService {
       activityId: activity.id.toString(),
       label: 'Video Generation',
       progress: 0,
-      room: getUserRoomName(params.authProviderUserId),
+      room: getUserRoomName(params.userId),
       status: 'processing',
       taskId: params.ingredientId.toString(),
-      userId: params.authProviderUserId,
+      userId: params.userId,
     });
   }
 }

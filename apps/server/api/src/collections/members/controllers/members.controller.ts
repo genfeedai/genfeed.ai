@@ -9,7 +9,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -73,14 +72,13 @@ export class MembersController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data = await this.membersService.findAll(
       {
         orderBy: handleQuerySort(query.sort),
         where: {
           isDeleted,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
         },
       },
       options,
@@ -109,8 +107,7 @@ export class MembersController {
     @Query() query: InvitationsQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
+    const orgId = user.organizationId;
 
     if (!orgId) {
       throw new HttpException(
@@ -141,8 +138,7 @@ export class MembersController {
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
+    const orgId = user.organizationId;
 
     if (!orgId) {
       throw new HttpException(
@@ -171,8 +167,7 @@ export class MembersController {
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
+    const orgId = user.organizationId;
 
     if (!orgId) {
       throw new HttpException(
@@ -180,7 +175,7 @@ export class MembersController {
         HttpStatus.BAD_REQUEST,
       );
     }
-    if (!publicMetadata.user) {
+    if (!(user.userId ?? user.id)) {
       throw new HttpException(
         { detail: 'Inviting user not found in metadata', title: 'Bad Request' },
         HttpStatus.BAD_REQUEST,
@@ -189,7 +184,7 @@ export class MembersController {
 
     const newInvitation = await this.invitationService.resendInvitation({
       invitationId,
-      invitedByUserId: String(publicMetadata.user),
+      invitedByUserId: String(user.userId ?? user.id),
       organizationId: orgId,
     });
 
@@ -207,8 +202,7 @@ export class MembersController {
     @CurrentUser() user: User,
     @Param('memberId') memberId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     // Tenant scoping has to live here: RolesGuard only proves the CALLER is an
     // active member of their OWN organization — it never inspects the requested

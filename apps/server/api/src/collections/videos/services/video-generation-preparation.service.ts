@@ -26,7 +26,6 @@ import {
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
@@ -84,7 +83,6 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto,
     request: Request,
   ): Promise<ResolvedVideoGenerationRequest> {
-    const publicMetadata = getPublicMetadata(user);
     if (!requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
         {
@@ -96,8 +94,8 @@ export class VideoGenerationPreparationService {
     }
 
     const brand = await this.brandsService.findOne({
-      id: createVideoDto.brandId || publicMetadata.brand,
-      organizationId: publicMetadata.organization,
+      id: createVideoDto.brandId || user.brandId,
+      organizationId: user.organizationId,
     });
     if (!brand) {
       throw new HttpException(
@@ -114,7 +112,7 @@ export class VideoGenerationPreparationService {
       : [];
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
     const model = await this.resolveVideoModel(
@@ -124,7 +122,7 @@ export class VideoGenerationPreparationService {
       referenceIds,
     );
     const validationOrgId =
-      publicMetadata.organization || request.context?.organizationId;
+      user.organizationId || request.context?.organizationId;
     if (validationOrgId) {
       await this.modelRegistrationService.validateModelForOrg(
         model,
@@ -136,7 +134,6 @@ export class VideoGenerationPreparationService {
       brand,
       createVideoDto,
       model,
-      publicMetadata,
       referenceIds,
       request,
       user,
@@ -146,15 +143,8 @@ export class VideoGenerationPreparationService {
   async prepare(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<VideoGenerationContext> {
-    const {
-      brand,
-      createVideoDto,
-      model,
-      publicMetadata,
-      referenceIds,
-      request,
-      user,
-    } = resolved;
+    const { brand, createVideoDto, model, referenceIds, request, user } =
+      resolved;
     const { height, width } = resolveGenerationDimensions(
       createVideoDto.width,
       createVideoDto.height,
@@ -208,7 +198,7 @@ export class VideoGenerationPreparationService {
         useTemplate: createVideoDto.useTemplate,
         width,
       },
-      publicMetadata.organization,
+      user.organizationId,
     );
     const promptInput = promptParams as PromptInput;
     const promptData = await this.promptsService.create(
@@ -218,14 +208,14 @@ export class VideoGenerationPreparationService {
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original: promptText,
         scene: createVideoDto.scene,
         sounds: createVideoDto.sounds,
         speech: createVideoDto.speech,
         status: PromptStatus.PROCESSING,
         style: createVideoDto.style,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     );
     const { metadataData, ingredientData } =
@@ -313,8 +303,7 @@ export class VideoGenerationPreparationService {
       throw createMissingPromptIdException();
     }
     const validationOrgId =
-      resolved.publicMetadata.organization ||
-      resolved.request.context?.organizationId;
+      resolved.user.organizationId || resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
       id: promptId.toString(),
       ...(validationOrgId ? { organizationId: validationOrgId } : {}),

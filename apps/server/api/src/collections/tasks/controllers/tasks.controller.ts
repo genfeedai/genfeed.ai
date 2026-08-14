@@ -10,7 +10,6 @@ import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -73,9 +72,8 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateTaskDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const brandId = createDto.brandId ?? publicMetadata.brand;
+    const organizationId = user.organizationId;
+    const brandId = createDto.brandId ?? user.brandId;
 
     const org = await this.organizationsService.findOne({
       id: organizationId,
@@ -106,7 +104,7 @@ export class TasksController extends BaseCRUDController<
       identifier,
       organizationId: organizationId,
       taskNumber,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     } as CreateTaskDto & {
       brandId?: string;
       identifier: string;
@@ -123,7 +121,7 @@ export class TasksController extends BaseCRUDController<
 
       if (taskId) {
         this.tasksService
-          .recordTaskEvent(taskId, organizationId, publicMetadata.user, {
+          .recordTaskEvent(taskId, organizationId, user.userId ?? user.id, {
             payload: {
               executionPathUsed: doc.executionPathUsed,
               outputType: doc.outputType,
@@ -148,7 +146,7 @@ export class TasksController extends BaseCRUDController<
             platforms: extended.platforms,
             request: extended.request,
             taskId,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
             voiceId: extended.voiceId,
             voiceProvider: extended.voiceProvider,
           })
@@ -165,10 +163,9 @@ export class TasksController extends BaseCRUDController<
   }
 
   public override buildFindAllQuery(user: User, query: TaskQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     };
 
     // Optional brand filter from the request only. Omit for org-wide inbox
@@ -245,7 +242,7 @@ export class TasksController extends BaseCRUDController<
     entity: TaskDocument,
   ): boolean {
     // Both ids must exist: `undefined === undefined` granted write access.
-    const { organization: userOrgId } = getPublicMetadata(user);
+    const userOrgId = user.organizationId;
     return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 
@@ -255,7 +252,7 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('identifier') identifier: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const doc = await this.tasksService.findByIdentifier(
       identifier,
       organization,
@@ -272,7 +269,7 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const doc = await this.tasksService.findOne(
       scopedWhere(organization, { id: id }),
     );
@@ -290,10 +287,9 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const children = await this.tasksService.findChildren(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
     return serializeCollection(request, TaskSerializer, {
       docs: children,
@@ -325,10 +321,9 @@ export class TasksController extends BaseCRUDController<
 
       if (task?.parentId) {
         const parentId = task.parentId.toString();
-        const publicMetadata = getPublicMetadata(user);
         const allDone = await this.tasksService.areAllChildrenDone(
           parentId,
-          publicMetadata.organization,
+          user.organizationId,
         );
 
         if (allDone) {
@@ -360,7 +355,8 @@ export class TasksController extends BaseCRUDController<
       );
     }
 
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     let doc: TaskDocument;
     switch (reviewState) {
@@ -397,7 +393,8 @@ export class TasksController extends BaseCRUDController<
     @Param('outputId') outputId: string,
     @Body() body: UpdateTaskOutputDto,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const doc = body.isKept
       ? await this.tasksService.keepOutput(id, outputId, organization, userId)
       : await this.tasksService.unkeepOutput(id, outputId, organization);
@@ -414,7 +411,8 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Param('outputId') outputId: string,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const doc = await this.tasksService.trashOutput(
       id,
       outputId,
@@ -436,7 +434,7 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId and runId are required');
     }
 
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const doc = await this.tasksService.checkout(
       id,
       body.agentId,
@@ -465,14 +463,15 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId is required');
     }
 
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const doc = await this.tasksService.release(id, body.agentId, organization);
     return serializeSingle(request, TaskSerializer, doc);
   }
 
   @Post(':id/plan-thread')
   async openPlanThread(@CurrentUser() user: User, @Param('id') id: string) {
-    const { organization, user: metadataUserId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const metadataUserId = user.userId ?? user.id;
 
     if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
       throw new UnauthorizedException(
@@ -515,7 +514,8 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const { organization, user: metadataUserId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const metadataUserId = user.userId ?? user.id;
 
     if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
       throw new UnauthorizedException(

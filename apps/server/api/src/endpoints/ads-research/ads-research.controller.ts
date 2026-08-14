@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   AdsChannel,
   AdsResearchMetric,
@@ -33,9 +32,7 @@ export class AdsResearchController {
     @Query('adAccountId') adAccountId?: string,
     @Query('loginCustomerId') loginCustomerId?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    return this.adsResearchService.listAds(publicMetadata.organization, {
+    return this.adsResearchService.listAds(user.organizationId, {
       adAccountId,
       brandId,
       brandName,
@@ -62,9 +59,7 @@ export class AdsResearchController {
     @Query('adAccountId') adAccountId?: string,
     @Query('loginCustomerId') loginCustomerId?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    return this.adsResearchService.getAdDetail(publicMetadata.organization, {
+    return this.adsResearchService.getAdDetail(user.organizationId, {
       adAccountId,
       channel,
       credentialId,
@@ -93,9 +88,7 @@ export class AdsResearchController {
       loginCustomerId?: string;
     },
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    return this.adsResearchService.generateAdPack(publicMetadata.organization, {
+    return this.adsResearchService.generateAdPack(user.organizationId, {
       ...body,
     });
   }
@@ -118,12 +111,10 @@ export class AdsResearchController {
       loginCustomerId?: string;
     },
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.adsResearchService.createRemixWorkflow({
       ...body,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
   }
 
@@ -148,12 +139,10 @@ export class AdsResearchController {
       createWorkflow?: boolean;
     },
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.adsResearchService.prepareCampaignForReview({
       ...body,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
   }
 }

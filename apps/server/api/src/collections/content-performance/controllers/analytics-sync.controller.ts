@@ -3,7 +3,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { QueueService } from '@api/queues/core/queue.service';
 import {
   ANALYTICS_SYNC_QUEUE,
@@ -62,8 +61,7 @@ export class AnalyticsSyncController {
   @Post('trigger')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async triggerSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const job = await this.queueService.add(ANALYTICS_SYNC_QUEUE, {
       brandId: dto.brandId,
@@ -85,8 +83,7 @@ export class AnalyticsSyncController {
   @Post('run')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async runSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const lastSync = dto.since
       ? new Date(dto.since)
@@ -113,8 +110,7 @@ export class AnalyticsSyncController {
     @Query('brandId') brandId: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const lastSyncDate = await this.analyticsSyncService.getLastSyncDate(
       organizationId,
@@ -136,8 +132,7 @@ export class AnalyticsSyncController {
     @Body() dto: TriggerDigestDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const job = await this.queueService.add(EMAIL_DIGEST_QUEUE, {
       brandId: dto.brandId,
@@ -160,8 +155,7 @@ export class AnalyticsSyncController {
   @Post('digest/send')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async sendDigest(@Body() dto: TriggerDigestDto, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const result = await this.emailDigestService.sendDigest({
       brandId: dto.brandId,

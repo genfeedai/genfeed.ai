@@ -9,24 +9,12 @@ import { IngredientCategory } from '@genfeedai/enums';
 
 describe('WebSocketRoomUtil', () => {
   describe('getUserRoom', () => {
-    it('should return authProvider-based room when authProviderUserId is provided', () => {
-      expect(getUserRoom('authProvider_abc', 'db_123')).toBe(
-        'user:authProvider_abc',
-      );
+    it('should return the user room when userId is provided', () => {
+      expect(getUserRoom('user_123')).toBe('user:user_123');
     });
 
-    it('should return db-based room when only dbUserId is provided', () => {
-      expect(getUserRoom(undefined, 'db_123')).toBe('user:db_123');
-    });
-
-    it('should return undefined when no IDs are provided', () => {
+    it('should return undefined when no ID is provided', () => {
       expect(getUserRoom()).toBeUndefined();
-    });
-
-    it('should prefer authProviderUserId over dbUserId', () => {
-      expect(getUserRoom('authProvider_abc', 'db_123')).toBe(
-        'user:authProvider_abc',
-      );
     });
   });
 
@@ -69,21 +57,14 @@ describe('WebSocketRoomUtil', () => {
   });
 
   describe('validateRoomMatch', () => {
-    it('should be valid when authProviderUserId is present', () => {
-      const result = validateRoomMatch('authProvider_abc', 'db_123');
+    it('should be valid when userId is present', () => {
+      const result = validateRoomMatch('user_123');
 
       expect(result.isValid).toBe(true);
       expect(result.warning).toBeUndefined();
     });
 
-    it('should be valid when only dbUserId is present', () => {
-      const result = validateRoomMatch(undefined, 'db_123');
-
-      expect(result.isValid).toBe(true);
-      expect(result.warning).toBeUndefined();
-    });
-
-    it('should warn when no IDs are present', () => {
+    it('should warn when no ID is present', () => {
       const result = validateRoomMatch();
 
       expect(result.isValid).toBe(false);
@@ -93,15 +74,11 @@ describe('WebSocketRoomUtil', () => {
 
   describe('resolveRoom', () => {
     it('should return userRoom when available', () => {
-      expect(resolveRoom('user:authProvider_abc', 'authProvider_abc')).toBe(
-        'user:authProvider_abc',
-      );
+      expect(resolveRoom('user:user_123', 'user_123')).toBe('user:user_123');
     });
 
     it('should fall back to userId-based room', () => {
-      expect(resolveRoom(undefined, 'authProvider_abc')).toBe(
-        'user:authProvider_abc',
-      );
+      expect(resolveRoom(undefined, 'user_123')).toBe('user:user_123');
     });
 
     it('should return undefined when nothing is available', () => {

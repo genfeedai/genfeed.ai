@@ -24,10 +24,8 @@ describe('InsightsController', () => {
   let service: InsightsService;
 
   const mockUser: User = {
-    publicMetadata: {
-      organization: ORGANIZATION_ID,
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: ORGANIZATION_ID,
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockInsightsService = {

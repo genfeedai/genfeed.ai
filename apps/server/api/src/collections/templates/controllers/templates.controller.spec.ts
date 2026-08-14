@@ -26,10 +26,8 @@ describe('TemplatesController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockTemplate = {
@@ -122,7 +120,7 @@ describe('TemplatesController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
       );
       expect(result).toEqual(mockTemplate);
@@ -148,10 +146,7 @@ describe('TemplatesController', () => {
 
       const result = await controller.findOne(mockReq, id, mockUser);
 
-      expect(service.findOne).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.findOne).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual(mockTemplate);
     });
   });
@@ -171,7 +166,7 @@ describe('TemplatesController', () => {
       expect(service.update).toHaveBeenCalledWith(
         id,
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(updatedTemplate);
     });
@@ -184,10 +179,7 @@ describe('TemplatesController', () => {
 
       const result = await controller.remove(id, mockUser);
 
-      expect(service.remove).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.remove).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual({ message: 'Template deleted successfully' });
     });
   });
@@ -210,7 +202,7 @@ describe('TemplatesController', () => {
 
       expect(service.useTemplate).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
       );
@@ -233,7 +225,7 @@ describe('TemplatesController', () => {
 
       expect(service.suggestTemplates).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(result).toEqual(suggestions);
@@ -251,7 +243,7 @@ describe('TemplatesController', () => {
       });
 
       expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.objectContaining({ limit: 20, sort: 'popular' }),
       );
       expect(result).toEqual(popular);

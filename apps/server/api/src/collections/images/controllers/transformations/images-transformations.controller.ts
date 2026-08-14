@@ -28,7 +28,6 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   returnNotFound,
@@ -121,11 +120,10 @@ export class ImagesTransformationsController {
     @Body() body: IResizeBodyParams,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     const image = await this.imagesService.findOne({
       id: imageId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!image) {
@@ -135,12 +133,12 @@ export class ImagesTransformationsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
-          brandId: publicMetadata.brand,
+          brandId: user.brandId,
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.IMAGE,
           ),
           extension: MetadataExtension.JPG,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           parentId: imageId,
           status: IngredientStatus.PROCESSING,
         });
@@ -219,15 +217,13 @@ export class ImagesTransformationsController {
     let url = `${this.constructorName} reframeImage`;
     this.loggerService.log(url, { body: createImageDto, params: { imageId } });
 
-    const publicMetadata = getPublicMetadata(user);
-
     const parent = await this.imagesService.findOne(
       {
         id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -267,23 +263,23 @@ export class ImagesTransformationsController {
       createImageDto.text || `Reframe image to ${format} format`;
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original:
           typeof promptText === 'string'
             ? promptText
             : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     );
 
     // Create new ingredient for reframed image
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
@@ -293,7 +289,7 @@ export class ImagesTransformationsController {
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         negativePrompt: createImageDto.negativePrompt,
-        organizationId: parent.organizationId ?? publicMetadata.organization,
+        organizationId: parent.organizationId ?? user.organizationId,
         parentId: parent.id,
         promptId: promptData.id,
         scope: createImageDto.scope,
@@ -313,13 +309,13 @@ export class ImagesTransformationsController {
     // Create activity for image reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_REFRAME_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.IMAGE_REFRAME,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
@@ -374,7 +370,7 @@ export class ImagesTransformationsController {
           tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
           width: targetWidth,
         },
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       const generationId = await this.replicateService.generateTextToImage(
@@ -395,7 +391,7 @@ export class ImagesTransformationsController {
           this.imagesService,
           ingredientData.id,
           websocketUrl,
-          publicMetadata,
+          user,
           getUserRoomName(user.id),
         );
       }
@@ -407,7 +403,7 @@ export class ImagesTransformationsController {
         this.imagesService,
         ingredientData.id,
         websocketUrl,
-        publicMetadata,
+        user,
         getUserRoomName(user.id),
         errorMessage,
       );
@@ -434,14 +430,12 @@ export class ImagesTransformationsController {
     let url = `${this.constructorName} upscaleImage`;
     this.loggerService.log(url, { body: imageEditDto, params: { imageId } });
 
-    const publicMetadata = getPublicMetadata(user);
-
     const parent = await this.imagesService.findOne(
       {
         id: imageId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
@@ -489,13 +483,13 @@ export class ImagesTransformationsController {
     // Create activity for image upscale start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: parent.brandId ?? publicMetadata.brand,
+        brandId: parent.brandId ?? user.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_UPSCALE_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.IMAGE_UPSCALE,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model,
@@ -543,7 +537,7 @@ export class ImagesTransformationsController {
             upscale_factor: imageEditDto.upscaleFactor || '4x',
           } as Record<string, unknown>),
         },
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       const generationId = await this.replicateService.runModel(
@@ -563,7 +557,7 @@ export class ImagesTransformationsController {
           this.imagesService,
           ingredientData.id,
           websocketUrl,
-          publicMetadata,
+          user,
           getUserRoomName(user.id),
         );
       }
@@ -575,7 +569,7 @@ export class ImagesTransformationsController {
         this.imagesService,
         ingredientData.id,
         websocketUrl,
-        publicMetadata,
+        user,
         getUserRoomName(user.id),
         errorMessage,
       );

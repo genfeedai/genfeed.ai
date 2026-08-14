@@ -67,10 +67,8 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       {
         body: { organization: TOKEN_ORGANIZATION_ID },
@@ -93,10 +91,8 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       { params: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
@@ -126,10 +122,8 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       { params: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
@@ -143,10 +137,8 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       { body: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
@@ -161,10 +153,8 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       { body: { organization: 'creator-handle' } },
     );
@@ -185,9 +175,7 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          user: USER_ID,
-        },
+        userId: USER_ID,
       },
       { params: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
@@ -208,9 +196,7 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          user: USER_ID,
-        },
+        userId: USER_ID,
       },
       { body: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
@@ -230,11 +216,9 @@ describe('RolesGuard', () => {
 
     const context = createContext(
       {
-        publicMetadata: {
-          isSuperAdmin: true,
-          organization: TOKEN_ORGANIZATION_ID,
-          user: USER_ID,
-        },
+        isSuperAdmin: true,
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       },
       {
         body: { organization: REQUEST_ORGANIZATION_ID },
@@ -248,7 +232,7 @@ describe('RolesGuard', () => {
 
   it('returns true when no roles are required', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
-    const context = createContext({ publicMetadata: {} });
+    const context = createContext({});
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 
@@ -273,7 +257,7 @@ describe('RolesGuard', () => {
         getRequest: () => ({
           body: {},
           params: {},
-          user: { publicMetadata: {} },
+          user: {},
         }),
       }),
     } as unknown as ExecutionContext;
@@ -289,12 +273,10 @@ describe('RolesGuard', () => {
     const organizationId = 'b13yktd0f1e38me3f55swu0n';
     const userId = 'hkh2jbovtpcsrzw3oyxr11oj';
     const context = createContext({
-      publicMetadata: {
-        isSuperAdmin: false,
-        organization: organizationId,
-        role: 'admin',
-        user: userId,
-      },
+      isSuperAdmin: false,
+      organizationId: organizationId,
+      role: 'admin',
+      userId: userId,
     });
 
     await expect(guard.canActivate(context)).rejects.toThrow(HttpException);
@@ -312,7 +294,7 @@ describe('RolesGuard', () => {
           body: {},
           params: { organizationId: TOKEN_ORGANIZATION_ID },
           user: {
-            publicMetadata: { organization: TOKEN_ORGANIZATION_ID },
+            organizationId: TOKEN_ORGANIZATION_ID,
           },
         }),
       }),
@@ -336,10 +318,8 @@ describe('RolesGuard', () => {
           body: {},
           params: { organizationId },
           user: {
-            publicMetadata: {
-              organization: organizationId,
-              user: userId,
-            },
+            organizationId: organizationId,
+            userId: userId,
           },
         }),
       }),

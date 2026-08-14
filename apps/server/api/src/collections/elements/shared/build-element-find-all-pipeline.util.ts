@@ -2,7 +2,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 
 interface ElementMetadata {
-  organization?: string;
+  organizationId?: string;
 }
 
 interface BuildElementFindAllQueryOptions {
@@ -25,9 +25,9 @@ export function buildElementFindAllQuery({
   const queryAny = query as unknown as Record<string, unknown>;
   const orConditions: Record<string, unknown>[] = [];
 
-  if (metadata.organization) {
+  if (metadata.organizationId) {
     orConditions.push({
-      organizationId: metadata.organization,
+      organizationId: metadata.organizationId,
     });
   }
 

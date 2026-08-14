@@ -73,14 +73,7 @@ jobs:
 
       - name: Assert package coverage report exists
         if: ${{ always() && steps.coverage.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          report="${{ matrix.package }}/coverage/lcov.info"
-          if [ ! -s "$report" ]; then
-            echo "::error::${{ matrix.package }} tests passed but no non-empty LCOV report was generated at $report"
-            exit 1
-          fi
-          echo "Found coverage report: $report ($(wc -c < "$report") bytes)"
+        run: bash scripts/ci/assert-coverage-report.sh "${{ matrix.package }}/coverage"
 
   # ── Hooks — needs custom vitest config flag ──
   coverage-hooks:
@@ -115,13 +108,7 @@ jobs:
 
       - name: Assert hooks coverage report exists
         if: ${{ always() && steps.coverage.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          report="packages/hooks/coverage/lcov.info"
-          if [ ! -s "$report" ]; then
-            echo "::error::packages/hooks tests passed but no non-empty LCOV report was generated at $report"
-            exit 1
-          fi
+        run: bash scripts/ci/assert-coverage-report.sh packages/hooks/coverage
 
   # ── App — sharded 4-way to keep Next/Vitest memory bounded ──
   coverage-app:
@@ -233,13 +220,7 @@ jobs:
 
       - name: Assert app coverage report exists
         if: ${{ always() && steps.merge.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          report="apps/app/coverage/lcov.info"
-          if [ ! -s "$report" ]; then
-            echo "::error::apps/app coverage merge passed but no non-empty LCOV report was generated at $report"
-            exit 1
-          fi
+        run: bash scripts/ci/assert-coverage-report.sh apps/app/coverage
 
   # ── API — sharded 4-way; needs BETTER_AUTH_SECRET env ──
   coverage-api:
@@ -353,13 +334,7 @@ jobs:
 
       - name: Assert API coverage report exists
         if: ${{ always() && steps.merge.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          report="apps/server/api/coverage/lcov.info"
-          if [ ! -s "$report" ]; then
-            echo "::error::apps/server/api coverage merge passed but no non-empty LCOV report was generated at $report"
-            exit 1
-          fi
+        run: bash scripts/ci/assert-coverage-report.sh apps/server/api/coverage
 
   # ── Frontend E2E coverage — sharded 4-way (V8 → monocart) ──
   # Lives here, NOT in e2e.yml, so a slow/cancelled coverage run can never turn

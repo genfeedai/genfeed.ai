@@ -22,6 +22,22 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      agentStrategies: 'Agent Strategies',
+      brief: 'Brief',
+      campaignLabel: 'Campaign Label *',
+      creditsAllocated: 'Credits Allocated',
+      endDate: 'End Date (optional)',
+      noAgentStrategies: 'No agent strategies available. Create agents first.',
+      startDate: 'Start Date *',
+      'status.active': 'Active',
+      'status.draft': 'Draft',
+      'status.label': 'Status',
+    })[key] ?? key,
+}));
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
@@ -71,26 +87,30 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/inputs/textarea/Textarea', () => ({
-  default: ({
-    label,
+vi.mock('@ui/primitives/label', () => ({
+  Label: ({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) => (
+    <label htmlFor={htmlFor}>{children}</label>
+  ),
+}));
+
+vi.mock('@ui/primitives/textarea', () => ({
+  Textarea: ({
+    id,
     onChange,
     value,
   }: {
-    label: string;
-    onChange: (event: { target: { value: string } }) => void;
-    value: string;
+    id?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    value?: string;
   }) => (
-    <label>
-      <span>{label}</span>
-      <textarea
-        aria-label={label}
-        onChange={(event) =>
-          onChange({ target: { value: event.target.value } })
-        }
-        value={value}
-      />
-    </label>
+    <textarea
+      aria-label={id}
+      id={id}
+      onChange={(event) =>
+        onChange?.({ target: { value: event.target.value } })
+      }
+      value={value}
+    />
   ),
 }));
 

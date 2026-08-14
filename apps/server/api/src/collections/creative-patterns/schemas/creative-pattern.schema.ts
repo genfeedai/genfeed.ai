@@ -15,14 +15,12 @@ export interface CreativePatternExample {
 
 export interface CreativePatternDocument extends Omit<CreativePattern, 'data'> {
   avgPerformanceScore?: number;
-  brand?: string | null;
   data?: Record<string, unknown>;
   description?: string;
   examples?: CreativePatternExample[];
   formula?: string;
   industry?: string | null;
   label?: string;
-  organization?: string;
   patternType?: string;
   platform?: string | null;
   scope?: string;

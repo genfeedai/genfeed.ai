@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -71,10 +70,7 @@ export class HedraController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const voices = await this.hedraService.getVoices(
-        publicMetadata.organization,
-      );
+      const voices = await this.hedraService.getVoices(user.organizationId);
 
       return {
         data: {
@@ -104,10 +100,7 @@ export class HedraController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const avatars = await this.hedraService.getAvatars(
-        publicMetadata.organization,
-      );
+      const avatars = await this.hedraService.getAvatars(user.organizationId);
 
       return {
         data: {
@@ -140,10 +133,9 @@ export class HedraController {
     this.loggerService.log(url, { jobId });
 
     try {
-      const publicMetadata = getPublicMetadata(user);
       const status = await this.hedraService.getJobStatus(
         jobId,
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       return {
@@ -173,17 +165,15 @@ export class HedraController {
     this.loggerService.log(url);
 
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // Try to fetch voices to check if API key is valid
       let isConnected = false;
       let hasCustomKey = false;
 
-      await this.hedraService.getVoices(publicMetadata.organization);
+      await this.hedraService.getVoices(user.organizationId);
       isConnected = true;
 
       // Check if using custom key
-      hasCustomKey = !!publicMetadata.organization;
+      hasCustomKey = !!user.organizationId;
 
       return {
         data: {

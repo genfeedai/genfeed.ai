@@ -5,7 +5,6 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -57,10 +56,9 @@ export class WorkflowWebhookManagementController {
       authType: 'none' | 'secret' | 'bearer';
     };
   }> {
-    const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     const result = await this.workflowWebhookService.generateWebhook(
@@ -84,12 +82,11 @@ export class WorkflowWebhookManagementController {
     @Body() body: PatchWorkflowWebhookDto,
     @CurrentUser() user: User,
   ): Promise<{ data: { webhookSecret: string } }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findMutableOwnedOrThrow(
       workflowId,
       {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -118,10 +115,9 @@ export class WorkflowWebhookManagementController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ): Promise<{ data: { message: string } }> {
-    const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     await this.workflowWebhookService.deleteWebhook(workflowId);
@@ -142,10 +138,9 @@ export class WorkflowWebhookManagementController {
       lastTriggeredAt: Date | null;
     };
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     const baseUrl = this.configService.apiUrl;

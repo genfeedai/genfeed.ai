@@ -27,13 +27,19 @@ describe('api/posts', () => {
     expect(result).toEqual([{ createdAt: '2026-08-01', id: 'post-1' }]);
   });
 
-  it('lists posts with platform, status, and limit filters', async () => {
+  it('lists posts with platform, executionState, and limit filters', async () => {
     mockGet.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([]);
 
     const { listPosts } = await import('../../src/api/posts');
-    await listPosts({ limit: 10, platform: 'instagram', status: 'published' });
+    await listPosts({
+      executionState: 'published',
+      limit: 10,
+      platform: 'instagram',
+    });
 
-    expect(mockGet).toHaveBeenCalledWith('/posts?platform=instagram&status=published&limit=10');
+    expect(mockGet).toHaveBeenCalledWith(
+      '/posts?platform=instagram&executionState=published&limit=10'
+    );
   });
 });

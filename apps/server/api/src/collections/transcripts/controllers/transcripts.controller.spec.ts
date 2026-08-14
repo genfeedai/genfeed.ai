@@ -3,13 +3,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { TranscriptsController } from '@api/collections/transcripts/controllers/transcripts.controller';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import type { TranscriptEntity } from '@api/collections/transcripts/entities/transcript.entity';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { TranscriptStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
@@ -22,21 +24,17 @@ describe('TranscriptsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: '507f191e810c19729de860ee'.toString(),
+    isSuperAdmin: false,
+    organizationId: '507f191e810c19729de860ee'.toString(),
+    userId: '507f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: '507f191e810c19729de860ee'.toString(),
+    isSuperAdmin: false,
+    userId: '507f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockReq = {} as Request;
@@ -98,8 +96,8 @@ describe('TranscriptsController', () => {
       expect(result).toEqual(mockTranscript);
       expect(transcriptsService.createTranscript).toHaveBeenCalledWith(
         createDto,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
       );
     });
 
@@ -132,8 +130,8 @@ describe('TranscriptsController', () => {
 
       expect(result).toEqual(mockResult.docs);
       expect(transcriptsService.findTranscripts).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         1,
         20,
       );
@@ -155,8 +153,8 @@ describe('TranscriptsController', () => {
       await controller.findAll(mockReq, mockUser);
 
       expect(transcriptsService.findTranscripts).toHaveBeenCalledWith(
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
+        mockUser.userId,
+        mockUser.organizationId,
         1,
         20,
       );
@@ -181,7 +179,7 @@ describe('TranscriptsController', () => {
       expect(result).toEqual(mockTranscript);
       expect(transcriptsService.findOne).toHaveBeenCalledWith({
         id: transcriptId,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
     });
 

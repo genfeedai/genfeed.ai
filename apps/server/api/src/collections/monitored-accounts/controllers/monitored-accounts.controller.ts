@@ -7,7 +7,6 @@ import type { MonitoredAccountDocument } from '@api/collections/monitored-accoun
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
@@ -51,22 +50,21 @@ export class MonitoredAccountsController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: MonitoredAccountsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
 
     // Always filter by organization for multi-tenancy
     const organizationId =
-      query.organizationId || publicMetadata.organization?.toString();
+      query.organizationId || user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
 
     if (query.brandId) {
       match.brandId = query.brandId;
-    } else if (publicMetadata.brand) {
-      match.brandId = publicMetadata.brand;
+    } else if (user.brandId) {
+      match.brandId = user.brandId;
     }
 
     // Filter by bot config if provided
@@ -86,7 +84,6 @@ export class MonitoredAccountsController extends BaseCRUDController<
   }
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {
-    const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
       organizationId?: string | null;
       brandId?: string | null;
@@ -96,14 +93,14 @@ export class MonitoredAccountsController extends BaseCRUDController<
     const entityBrandId = entityRecord.brandId;
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization &&
-      (!publicMetadata.brand || entityBrandId === publicMetadata.brand)
+      user.organizationId &&
+      entityOrganizationId === user.organizationId &&
+      (!user.brandId || entityBrandId === user.brandId)
     ) {
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   @Get(':id')
@@ -112,11 +109,10 @@ export class MonitoredAccountsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.monitoredAccountsService.findOne({
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      ...(user.brandId ? { brandId: user.brandId } : {}),
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     return serializeSingle(request, MonitoredAccountSerializer, data);

@@ -47,16 +47,10 @@ function getOrigin(url: string): string {
 }
 
 /**
- * Origins the extension may inspect for Genfeed auth cookies. The legacy host
- * is a temporary compatibility security entry; the configured/canonical app
- * origin is always tried first.
+ * Origins the extension may inspect for Genfeed auth cookies. The configured
+ * canonical app origin is always tried first.
  */
-export const authCookieOrigins = Array.from(
-  new Set([
-    getOrigin(appDomain),
-    ...(isDevelopment ? ['http://local.genfeed.ai:3000'] : []),
-  ]),
-);
+export const authCookieOrigins = Array.from(new Set([getOrigin(appDomain)]));
 
 export function isGenfeedAuthUrl(url: string): boolean {
   let hostname: string;

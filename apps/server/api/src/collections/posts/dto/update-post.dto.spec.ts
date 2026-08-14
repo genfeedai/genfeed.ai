@@ -1,4 +1,6 @@
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { BadRequestException } from '@nestjs/common';
 import { validate } from 'class-validator';
 
 describe('UpdatePostDto', () => {
@@ -55,6 +57,17 @@ describe('UpdatePostDto', () => {
       expect(errors.map((error) => error.property)).toEqual(
         expect.arrayContaining(['credential', 'parent']),
       );
+    });
+
+    it('rejects leftover Post.status through the request pipe', async () => {
+      const pipe = new ValidationPipe();
+
+      await expect(
+        pipe.transform(
+          { status: 'draft' },
+          { metatype: UpdatePostDto, type: 'body' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

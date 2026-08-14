@@ -486,6 +486,10 @@ const config = createAppNextConfig({
       APP_ROUTES.MESSAGES.REPLY_DRIP,
     ),
     ...legacyPathRedirects('/automate/replies', APP_ROUTES.MESSAGES.REPLIES),
+    ...legacyPathRedirects(
+      LEGACY_APP_ROUTES.LAB_CRON_JOBS,
+      APP_ROUTES.AUTOMATE.WORKFLOWS,
+    ),
   ],
   sentryProject: 'app-genfeed-ai',
 });

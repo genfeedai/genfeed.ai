@@ -6,7 +6,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
@@ -109,7 +108,7 @@ export class AgentOrchestratorController {
       const authToken = authorization?.replace('Bearer ', '');
 
       const result = await this.orchestratorService.chat(authorizedRequest, {
-        apiKeyContext: getPublicMetadata(user),
+        apiKeyContext: user,
         authToken,
         organizationId: organization,
         userId: dbUserId,
@@ -142,7 +141,7 @@ export class AgentOrchestratorController {
       const result = await this.orchestratorService.chatStream(
         authorizedRequest,
         {
-          apiKeyContext: getPublicMetadata(user),
+          apiKeyContext: user,
           authToken,
           organizationId: organization,
           userId: dbUserId,
@@ -195,7 +194,7 @@ export class AgentOrchestratorController {
       return body;
     }
 
-    const brandId = getPublicMetadata(user).brand;
+    const brandId = user.brandId;
     const authorizationScope = {
       ...(brandId ? { brandId } : {}),
       organizationId,
@@ -332,7 +331,7 @@ export class AgentOrchestratorController {
   }
 
   private resolveOrganizationId(user: User): string {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -342,7 +341,7 @@ export class AgentOrchestratorController {
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {
-    const { user: metadataUserId } = getPublicMetadata(user);
+    const metadataUserId = user.userId ?? user.id;
     if (metadataUserId) {
       return metadataUserId;
     }

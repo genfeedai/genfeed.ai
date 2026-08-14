@@ -114,7 +114,7 @@ export class SocialSourcesService {
       this.findAllScoped(context, {
         ...query,
         limit: 100,
-        pagination: false,
+        page: 1,
       }),
       this.sourcePostsService.listByBrand(context, {
         limit: query.postsLimit ?? 25,

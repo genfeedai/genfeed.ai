@@ -1,16 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockGetPublicMetadata } = vi.hoisted(() => ({
-  mockGetPublicMetadata: vi.fn(),
-}));
-
 vi.mock('@api/helpers/decorators/log/log-method.decorator', () => ({
   LogMethod: () => () => undefined,
-}));
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: mockGetPublicMetadata,
 }));
 
 vi.mock(
@@ -52,7 +44,14 @@ const userId = '507f191e810c19729de860ee';
 const organizationId = '607f191e810c19729de860ee';
 const brandId = '707f191e810c19729de860ee';
 
-const makeUser = (): User => ({ id: 'user_authProvider' }) as unknown as User;
+const makeUser = (): User =>
+  ({
+    brandId,
+    id: 'user_authProvider',
+    isSuperAdmin: false,
+    organizationId,
+    userId,
+  }) as unknown as User;
 
 function buildService() {
   const prisma = {
@@ -101,11 +100,6 @@ function buildService() {
 describe('DesktopSyncService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetPublicMetadata.mockReturnValue({
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    });
   });
 
   it('pushes threads with canonical Genfeed user and organization ids', async () => {

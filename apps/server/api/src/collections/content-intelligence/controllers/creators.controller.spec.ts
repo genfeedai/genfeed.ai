@@ -5,12 +5,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(
-    (user: { publicMetadata?: unknown }) => user?.publicMetadata ?? {},
-  ),
-}));
-
 vi.mock(
   '@api/collections/content-intelligence/schemas/creator-analysis.schema',
   () => ({
@@ -57,11 +51,9 @@ describe('CreatorsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockRequest = {

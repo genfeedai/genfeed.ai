@@ -13,7 +13,6 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -51,7 +50,6 @@ export class BotsController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: BotsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
@@ -66,7 +64,7 @@ export class BotsController extends BaseCRUDController<
 
     if (scope === 'organization') {
       match.organizationId = requireRelationId(
-        query.organizationId || publicMetadata.organization,
+        query.organizationId || user.organizationId,
         'organization',
         'Bot listing',
       );
@@ -74,7 +72,7 @@ export class BotsController extends BaseCRUDController<
 
     if (scope === 'brand') {
       match.brandId = requireRelationId(
-        query.brandId || publicMetadata.brand,
+        query.brandId || user.brandId,
         'brand',
         'Bot listing',
       );
@@ -82,7 +80,7 @@ export class BotsController extends BaseCRUDController<
 
     if (scope === 'user') {
       match.userId = requireRelationId(
-        query.userId || publicMetadata.user,
+        query.userId || (user.userId ?? user.id),
         'user',
         'Bot listing',
       );
@@ -112,10 +110,9 @@ export class BotsController extends BaseCRUDController<
   }
 
   public canUserModifyEntity(user: User, entity: BotDocument): boolean {
-    const publicMetadata = getPublicMetadata(user);
-    const callerUserId = publicMetadata.user;
-    const callerBrandId = publicMetadata.brand;
-    const callerOrganizationId = publicMetadata.organization;
+    const callerUserId = user.userId ?? user.id;
+    const callerBrandId = user.brandId;
+    const callerOrganizationId = user.organizationId;
 
     if (entity.userId && callerUserId && entity.userId === callerUserId) {
       return true;
@@ -133,7 +130,7 @@ export class BotsController extends BaseCRUDController<
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   @Get(':id/livestream-session')

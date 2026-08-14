@@ -25,11 +25,9 @@ describe('IngredientsController (cloneIngredient)', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: 'c07f1f77bcf86cd799439013',
-      organization: 'c07f1f77bcf86cd799439012',
-      user: 'c07f1f77bcf86cd799439011',
-    },
+    brandId: 'c07f1f77bcf86cd799439013',
+    organizationId: 'c07f1f77bcf86cd799439012',
+    userId: 'c07f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockRequest = {

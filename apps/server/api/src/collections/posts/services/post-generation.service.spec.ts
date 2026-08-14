@@ -33,10 +33,10 @@ describe('PostGenerationService', () => {
   const postId = '507f1f77bcf86cd799439014';
   const credentialId = '507f1f77bcf86cd799439016';
 
-  const publicMetadata = {
-    brand: brandId,
-    organization: organizationId,
-    user: userId,
+  const identity = {
+    brandId,
+    organizationId,
+    userId,
   };
 
   // PostsService is fully mocked here, so this only ever stands in for a
@@ -207,10 +207,7 @@ Tweet 3: Tech innovation is changing the world.`,
         undefined,
       );
 
-      const result = await service.startAccountContentGeneration(
-        dto,
-        publicMetadata,
-      );
+      const result = await service.startAccountContentGeneration(dto, identity);
 
       expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -236,7 +233,7 @@ Tweet 3: Tech innovation is changing the world.`,
         },
       });
 
-      await service.startAccountContentGeneration(dto, publicMetadata);
+      await service.startAccountContentGeneration(dto, identity);
 
       expect(mockPostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({ platform: CredentialPlatform.LINKEDIN }),
@@ -257,7 +254,7 @@ Tweet 3: Tech innovation is changing the world.`,
           trendId: '507f1f77bcf86cd799439098',
         },
         [mockPost],
-        publicMetadata,
+        identity,
         mockPublishingContext,
       );
 
@@ -286,7 +283,7 @@ Tweet 3: Tech innovation is changing the world.`,
           trendId: '507f1f77bcf86cd799439098',
         },
         [mockPost],
-        publicMetadata,
+        identity,
         mockPublishingContext,
       );
 
@@ -309,7 +306,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.generateAccountContentAsync(
         { count: 1, credentialId, format: 'post', topic: 'AI' },
         [mockPost],
-        publicMetadata,
+        identity,
         mockPublishingContext,
       );
 
@@ -329,7 +326,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.generateAccountContentAsync(
         { count: 1, credentialId, format: 'post', topic: 'AI' },
         [mockPost],
-        publicMetadata,
+        identity,
         mockPublishingContext,
       );
 
@@ -351,7 +348,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.generateAccountContentAsync(
         { count: 2, credentialId, format: 'post', topic: 'AI' },
         [mockPost, secondPost],
-        publicMetadata,
+        identity,
         mockPublishingContext,
       );
 
@@ -382,18 +379,13 @@ Tweet 3: Tech innovation is changing the world.`,
 
     it('delegates thread generation through the bounded service', async () => {
       const dto = { count: 3, tone: TweetTone.PROFESSIONAL };
-      await service.expandThreadAsync(
-        originalPost,
-        childPosts,
-        dto,
-        publicMetadata,
-      );
+      await service.expandThreadAsync(originalPost, childPosts, dto, identity);
 
       expect(mockPostThreadGenerationService.expandThread).toHaveBeenCalledWith(
         originalPost,
         childPosts,
         dto,
-        publicMetadata,
+        identity,
       );
     });
   });
@@ -457,7 +449,7 @@ Tweet 3: Tech innovation is changing the world.`,
       const result = await service.enhanceDescription(
         mockPost,
         { prompt: 'Make it more engaging', tone: TweetTone.PROFESSIONAL },
-        publicMetadata,
+        identity,
       );
 
       expect(mockTemplatesService.getRenderedPrompt).toHaveBeenCalled();
@@ -469,7 +461,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.enhanceDescription(
         mockPost,
         { prompt: 'Improve' },
-        publicMetadata,
+        identity,
       );
 
       expect(mockTemplatesService.getRenderedPrompt).toHaveBeenCalledWith(
@@ -492,7 +484,7 @@ Tweet 3: Tech innovation is changing the world.`,
           platform: 'twitter',
           topic: 'AI technology',
         },
-        publicMetadata,
+        identity,
       );
 
       expect(result.hooks).toEqual(['Hook one', 'Hook two', 'Hook three']);
@@ -508,7 +500,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       await service.generateHookVariations(
         { count: 2, platform: 'twitter', topic: 'AI' },
-        publicMetadata,
+        identity,
       );
 
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(

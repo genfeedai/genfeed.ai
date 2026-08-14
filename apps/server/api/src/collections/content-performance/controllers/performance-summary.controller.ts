@@ -3,7 +3,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PerformanceSummarySerializer } from '@genfeedai/serializers';
@@ -64,7 +63,7 @@ export class PerformanceSummaryController {
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const summary = await this.performanceSummaryService.getWeeklySummary(
       organization,
       brandId,
@@ -91,7 +90,7 @@ export class PerformanceSummaryController {
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.performanceSummaryService.getTopPerformers(
       organization,
       brandId,
@@ -115,7 +114,7 @@ export class PerformanceSummaryController {
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.performanceSummaryService.getPromptPerformance(
       organization,
       brandId,
@@ -134,7 +133,7 @@ export class PerformanceSummaryController {
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const context =
       await this.performanceSummaryService.generatePerformanceContext(
         organization,

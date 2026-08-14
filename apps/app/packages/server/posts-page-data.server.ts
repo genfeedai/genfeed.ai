@@ -13,6 +13,7 @@ import type {
   IPreset,
   IQueryParams,
 } from '@genfeedai/interfaces';
+import { mapPostsListStatusFilter } from '@pages/posts/list/components/posts-query.helpers';
 import { logger } from '@services/core/logger.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -75,11 +76,12 @@ export const loadPostsPageData = cache(
     const { brandId, organizationId } = bootstrap;
 
     const query: IQueryParams & {
+      executionState?: string;
       platform?: string;
+      publicationState?: string;
       search?: string;
       sort?: string;
-      status?: string;
-      publicationState?: string;
+      visibility?: string;
     } = {
       limit: ITEMS_PER_PAGE,
       page: currentPage,
@@ -89,12 +91,10 @@ export const loadPostsPageData = cache(
       query.platform = platformFilter;
     }
 
-    if (status) {
-      query.status = status;
-    }
-
     if (publicationState) {
       query.publicationState = publicationState;
+    } else {
+      Object.assign(query, mapPostsListStatusFilter(status));
     }
 
     if (search) {

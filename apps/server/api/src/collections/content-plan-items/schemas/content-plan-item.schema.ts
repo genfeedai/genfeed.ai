@@ -36,10 +36,7 @@ export interface ContentPlanItemData {
 export interface ContentPlanItemDocument
   extends Omit<PrismaContentPlanItem, 'data' | 'scheduledAt' | 'status'>,
     ContentPlanItemData {
-  brand?: string | null;
   data?: Record<string, unknown>;
-  organization: string;
-  plan: string;
   [key: string]: unknown;
 }
 

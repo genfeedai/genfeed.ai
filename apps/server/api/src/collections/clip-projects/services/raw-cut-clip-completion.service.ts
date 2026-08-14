@@ -253,7 +253,6 @@ export class RawCutClipCompletionService {
 
     const captionJobId = getRawCutCaptionJobId(clipResultId);
     const captionJob = await this.fileQueueService.processVideo({
-      authProviderUserId: this.readString(clipResult.authProviderUserId),
       id: captionJobId,
       ingredientId: clipResultId,
       organizationId: event.organizationId,
@@ -359,7 +358,6 @@ export class RawCutClipCompletionService {
     }
 
     const dispatch = await this.rawCutClipService.dispatchClip({
-      authProviderUserId: this.readString(clipResult.authProviderUserId),
       captionSrt,
       clipResultId: this.readId(clipResult),
       endTime,

@@ -7,7 +7,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -43,7 +42,7 @@ export class WatchlistsController {
     @CurrentUser() user: User,
     @Query() query: BrandScopeQueryDto = {},
   ) {
-    const { brand } = getPublicMetadata(user);
+    const brand = user.brandId;
     const brandId = query.brandId || brand;
 
     if (!brandId) {
@@ -88,7 +87,9 @@ export class WatchlistsController {
     @CurrentUser() user: User,
     @Query() query: BrandScopeQueryDto = {},
   ) {
-    const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const brand = user.brandId;
+    const dbUserId = user.userId ?? user.id;
     const brandId = query.brandId || brand;
 
     if (!brandId) {

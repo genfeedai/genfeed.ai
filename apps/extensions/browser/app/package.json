@@ -47,7 +47,6 @@
     "host_permissions": [
       "https://*.genfeed.localhost/*",
       "http://genfeed.localhost/*",
-      "http://local.genfeed.ai/*",
       "https://app.genfeed.ai/*",
       "https://genfeed.ai/*",
       "https://*.twitter.com/*",

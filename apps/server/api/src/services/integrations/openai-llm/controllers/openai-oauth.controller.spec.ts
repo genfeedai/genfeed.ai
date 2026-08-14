@@ -8,13 +8,6 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
-
 describe('OpenAiOAuthController', () => {
   let controller: OpenAiOAuthController;
   let openAiOAuthService: {
@@ -30,7 +23,8 @@ describe('OpenAiOAuthController', () => {
   const userId = '507f1f77bcf86cd799439011';
 
   const mockUser = {
-    publicMetadata: { organization: orgId, user: userId },
+    organizationId: orgId,
+    userId: userId,
   } as unknown as User;
 
   beforeEach(async () => {

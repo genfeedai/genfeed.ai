@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -15,10 +14,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { GhostController } from './ghost.controller';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((x) => ({ error: x })),
   returnInternalServerError: vi.fn((msg) => ({ error: msg })),
@@ -30,7 +25,12 @@ const mockUserId = 'clz1a2b3c4d5e6f7g8h9i0j1l';
 const mockBrandId = 'clz1a2b3c4d5e6f7g8h9i0j1m';
 const mockBrand = { id: mockBrandId, name: 'TestBrand' };
 
-const mockUser = {} as User;
+const mockUser = {
+  brandId: mockBrandId,
+  id: 'auth-provider-user',
+  organizationId: mockOrgId,
+  userId: mockUserId,
+} as User;
 const mockRequest = {} as Request;
 
 describe('GhostController', () => {
@@ -71,11 +71,6 @@ describe('GhostController', () => {
     brandsService = module.get(BrandsService);
     credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
-
-    vi.mocked(getPublicMetadata).mockReturnValue({
-      organization: mockOrgId,
-      user: mockUserId,
-    } as ReturnType<typeof getPublicMetadata>);
   });
 
   afterEach(() => vi.clearAllMocks());

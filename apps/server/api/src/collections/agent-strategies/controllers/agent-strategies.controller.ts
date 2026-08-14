@@ -11,7 +11,6 @@ import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategi
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -58,12 +57,11 @@ export class AgentStrategiesController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: AgentStrategiesQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
 
-    const organizationId = publicMetadata.organization?.toString();
+    const organizationId = user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
@@ -94,19 +92,17 @@ export class AgentStrategiesController extends BaseCRUDController<
     user: User,
     entity: AgentStrategyDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
     const entityOrganizationId = entity.organizationId;
 
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization
+      user.organizationId &&
+      entityOrganizationId === user.organizationId
     ) {
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   /**
@@ -126,11 +122,10 @@ export class AgentStrategiesController extends BaseCRUDController<
       return super.patch(request, user, id, updateDto);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const { isActive, ...rest } = updateDto;
     const strategy = await this.agentStrategiesService.setActive(
       id,
-      publicMetadata.organization,
+      user.organizationId,
       isActive,
     );
 
@@ -154,10 +149,9 @@ export class AgentStrategiesController extends BaseCRUDController<
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<{ message: string }> {
-    const publicMetadata = getPublicMetadata(user);
     const strategy = await this.agentStrategiesService.findOneById(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     if (!strategy) {
@@ -180,10 +174,9 @@ export class AgentStrategiesController extends BaseCRUDController<
       'Preview the deterministic workflow bound to this agent and filled input slots',
   })
   async workflowBinding(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyWorkflowRunService.preview(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 
@@ -199,10 +192,9 @@ export class AgentStrategiesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: RunAgentStrategyWorkflowDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyWorkflowRunService.run(
       id,
-      publicMetadata.organization,
+      user.organizationId,
       user.id,
       body ?? {},
     );
@@ -212,10 +204,9 @@ export class AgentStrategiesController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate a strategy report immediately' })
   async reportNow(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyAutopilotService.generateStrategyReport(
       id,
-      publicMetadata.organization,
+      user.organizationId,
       'daily',
     );
   }
@@ -226,30 +217,27 @@ export class AgentStrategiesController extends BaseCRUDController<
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyAutopilotService.getPerformanceSnapshot(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 
   @Get(':id/opportunities')
   @ApiOperation({ summary: 'Refresh and list strategy opportunities' })
   async listOpportunities(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyAutopilotService.listStrategyOpportunities(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 
   @Get(':id/reports')
   @ApiOperation({ summary: 'List strategy report history' })
   async listReports(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentStrategyReportsService.listByStrategy(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 }

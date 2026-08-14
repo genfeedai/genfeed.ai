@@ -20,7 +20,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
-  getPublicMetadata,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -101,25 +100,24 @@ export class OrganizationsController extends BaseCRUDController<
     user: User,
     entity: OrganizationDocument,
   ): Promise<boolean> {
-    const publicMetadata = getPublicMetadata(user);
     const organizationId = entity?.id?.toString();
 
-    if (!organizationId || !publicMetadata.user) {
+    if (!organizationId || !(user.userId ?? user.id)) {
       return false;
     }
 
-    if (organizationId === publicMetadata.organization) {
+    if (organizationId === user.organizationId) {
       return true;
     }
 
-    if (this.isOrganizationOwner(entity, publicMetadata.user)) {
+    if (this.isOrganizationOwner(entity, user.userId ?? user.id)) {
       return true;
     }
 
     const member = await this.membersService.findOne({
       isActive: true,
       organizationId: organizationId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     return Boolean(member);
@@ -254,8 +252,7 @@ export class OrganizationsController extends BaseCRUDController<
    * Invoked via `GET /organizations?mine=true`.
    */
   async findMine(user: User): Promise<OrganizationOption[]> {
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user;
+    const userId = user.userId ?? user.id;
 
     if (!userId) {
       throw new HttpException(
@@ -281,8 +278,8 @@ export class OrganizationsController extends BaseCRUDController<
     const orgIds =
       membershipOrgIds.length > 0
         ? membershipOrgIds
-        : publicMetadata.organization
-          ? [publicMetadata.organization]
+        : user.organizationId
+          ? [user.organizationId]
           : [];
 
     if (!orgIds.length) {
@@ -311,7 +308,7 @@ export class OrganizationsController extends BaseCRUDController<
               ? { id: brand.id.toString(), label: brand.label }
               : null,
             id: org.id.toString(),
-            isActive: publicMetadata.organization === org.id.toString(),
+            isActive: user.organizationId === org.id.toString(),
             isOwner: this.isOrganizationOwner(org, userId),
             label: org.label,
             slug: org.slug ?? '',
@@ -325,7 +322,7 @@ export class OrganizationsController extends BaseCRUDController<
   /**
    * POST /organizations/switch/:id
    * Switch the active organization for the current user.
-   * Updates legacy auth provider publicMetadata with the new organization + brand.
+   * Updates legacy auth provider user with the new organization + brand.
    */
   @Post('switch/:id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -333,8 +330,7 @@ export class OrganizationsController extends BaseCRUDController<
     @Param('id') orgId: string,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user;
+    const userId = user.userId ?? user.id;
 
     if (!userId) {
       throw new HttpException(
@@ -414,8 +410,7 @@ export class OrganizationsController extends BaseCRUDController<
     body: { label: string; description?: string },
     user: User,
   ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user;
+    const userId = user.userId ?? user.id;
 
     if (!userId) {
       throw new HttpException(
@@ -560,10 +555,9 @@ export class OrganizationsController extends BaseCRUDController<
       return;
     }
 
-    const publicMetadata = getPublicMetadata(user);
-    const settings = publicMetadata.organization
+    const settings = user.organizationId
       ? await this.organizationSettingsService.findOne({
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         })
       : null;
 

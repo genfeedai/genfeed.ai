@@ -46,10 +46,8 @@ describe('AnalyticsController', () => {
   type MockRequest = ExpressRequest & {
     user: {
       id: string;
-      publicMetadata: {
-        isSuperAdmin: boolean;
-        organization: string;
-      };
+      isSuperAdmin: boolean;
+      organizationId: string;
     };
   };
 
@@ -75,7 +73,8 @@ describe('AnalyticsController', () => {
     query: {},
     user: {
       id: 'user_123',
-      publicMetadata: { isSuperAdmin: true, organization: 'org_123' },
+      isSuperAdmin: true,
+      organizationId: 'org_123',
     },
   } as unknown as MockRequest;
 
@@ -291,7 +290,8 @@ describe('AnalyticsController', () => {
       analyticsExportService.exportData.mockResolvedValueOnce('csv-data');
 
       const mockUser = {
-        publicMetadata: { isSuperAdmin: true, organization: 'org-1' },
+        isSuperAdmin: true,
+        organizationId: 'org-1',
       } as never;
       await controller.exportData(
         mockUser,
@@ -324,7 +324,8 @@ describe('AnalyticsController', () => {
       );
 
       const mockUser = {
-        publicMetadata: { isSuperAdmin: true, organization: 'org-1' },
+        isSuperAdmin: true,
+        organizationId: 'org-1',
       } as never;
       await controller.exportData(
         mockUser,

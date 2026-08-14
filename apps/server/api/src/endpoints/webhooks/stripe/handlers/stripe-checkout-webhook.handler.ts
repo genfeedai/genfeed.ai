@@ -851,7 +851,7 @@ export class StripeCheckoutWebhookHandler {
         );
 
         // Balance is persisted to the credit-balance table above (epic #735,
-        // Phase C — no legacy auth provider publicMetadata write-back).
+        // Phase C — no legacy auth provider identity write-back).
         await this.supportService.recordCreditsActivity({
           brandId: organizationId,
           organizationId,

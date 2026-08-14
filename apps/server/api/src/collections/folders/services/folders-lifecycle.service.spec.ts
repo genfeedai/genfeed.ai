@@ -191,11 +191,9 @@ describe('Library folder lifecycle persistence', () => {
   it('persists scalar relationships, preserves assigned assets, and hides a removed folder', async () => {
     const user = {
       id: userId,
-      publicMetadata: {
-        brand: brandId,
-        organization: organizationId,
-        user: userId,
-      },
+      brandId: brandId,
+      organizationId: organizationId,
+      userId: userId,
     } as unknown as User;
     const request = {
       originalUrl: '/api/folders',
