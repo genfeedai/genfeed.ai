@@ -17,7 +17,7 @@ function CanvasMessage({
   children,
 }: CanvasMessageProps): React.JSX.Element {
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-background gen-grain gen-vignette">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-background gen-grain gen-vignette">
       <p className="text-base font-medium text-foreground/85">{title}</p>
       {children}
     </div>
@@ -79,7 +79,7 @@ export default function MoodBoardCanvasClient(): React.JSX.Element {
   }
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-full w-full">
       <MoodBoardCanvas
         assets={assets}
         nodes={nodes}
