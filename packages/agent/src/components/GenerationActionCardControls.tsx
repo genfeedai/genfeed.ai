@@ -151,10 +151,18 @@ export function GenerationActionCardControls({
                 {translate('previewDescription')}
               </DialogDescription>
             </DialogHeader>
-            <div className="overflow-y-auto p-5">
-              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
-                {prompt}
-              </p>
+            <div className="p-5">
+              <Textarea
+                aria-label={translate('previewEditorAria')}
+                className="min-h-[20rem] w-full resize-y overflow-y-auto text-sm leading-6"
+                disabled={isDisabled}
+                id="gen-action-prompt-full"
+                maxHeight={480}
+                onChange={(event) => onPromptChange(event.target.value)}
+                placeholder="Describe what you want to generate…"
+                rows={16}
+                value={prompt}
+              />
             </div>
           </DialogContent>
         </DialogPortal>

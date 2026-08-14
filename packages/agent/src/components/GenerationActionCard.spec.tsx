@@ -8,10 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     ({
-      previewDescription: 'Full generation prompt',
+      previewDescription: 'Read and edit the full generation prompt',
+      previewEditorAria: 'Full prompt',
       previewTitle: 'Prompt',
-      readFull: 'Read full',
-      readFullAria: 'Read the full prompt',
+      readFull: 'Read & edit',
+      readFullAria: 'Read and edit the full prompt',
       stop: 'Stop',
       stopAria: 'Stop generation',
     })[key] ?? key,
@@ -197,7 +198,7 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.values = undefined;
   });
 
-  it('keeps the prompt field compact and opens a read-only preview for long copy', async () => {
+  it('keeps the prompt field compact and opens an editable full prompt', async () => {
     render(
       <GenerationActionCard
         action={{
@@ -214,17 +215,50 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    const textarea = await screen.findByRole('textbox', { name: 'Prompt' });
-    expect(textarea).toHaveAttribute('rows', '2');
+    const compactPrompt = await screen.findByRole('textbox', {
+      name: 'Prompt',
+    });
+    expect(compactPrompt).toHaveAttribute('rows', '2');
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Read the full prompt' }),
+      screen.getByRole('button', { name: 'Read and edit the full prompt' }),
     );
 
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('SCENE: Professional boxing ring.');
-    expect(dialog).toHaveTextContent('NEGATIVE: No text or watermarks.');
+    const fullPrompt = await screen.findByRole('textbox', {
+      name: 'Full prompt',
+    });
+    expect(fullPrompt).not.toBeDisabled();
+    expect(fullPrompt).toHaveValue(
+      [
+        'SCENE: Professional boxing ring.',
+        '',
+        'SUBJECT: Athletic boxer in black gear.',
+        '',
+        'BACKGROUND: Blurred arena crowd.',
+        '',
+        'LIGHTING: Dramatic overhead spotlights.',
+        '',
+        'STYLE: Photorealistic sports photography.',
+        '',
+        'NEGATIVE: No text or watermarks.',
+      ].join('\n'),
+    );
     expect(screen.getByRole('heading', { name: 'Prompt' })).toBeTruthy();
+
+    fireEvent.change(fullPrompt, {
+      target: { value: 'SCENE: A quieter ring.\n\nSUBJECT: One boxer.' },
+    });
+    expect(fullPrompt).toHaveValue(
+      'SCENE: A quieter ring.\n\nSUBJECT: One boxer.',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Prompt' })).toHaveValue(
+        'SCENE: A quieter ring.\n\nSUBJECT: One boxer.',
+      );
+    });
   });
 
   it('hides the prompt preview when the copy already fits two rows', async () => {
@@ -245,7 +279,7 @@ describe('GenerationActionCard', () => {
 
     await screen.findByRole('textbox', { name: 'Prompt' });
     expect(
-      screen.queryByRole('button', { name: 'Read the full prompt' }),
+      screen.queryByRole('button', { name: 'Read and edit the full prompt' }),
     ).toBeNull();
   });
 
