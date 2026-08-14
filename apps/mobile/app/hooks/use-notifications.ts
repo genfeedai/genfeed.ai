@@ -17,7 +17,7 @@ type NotificationRoute =
   | { path: '/approvals' }
   | null;
 
-function getNotificationRoute(data: NotificationData): NotificationRoute {
+export function getNotificationRoute(data: NotificationData): NotificationRoute {
   switch (data.type) {
     case 'content_ready':
       return data.contentId ? { path: `/ingredient/${data.contentId}` } : null;
