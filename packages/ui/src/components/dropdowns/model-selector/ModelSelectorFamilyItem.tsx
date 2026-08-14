@@ -2,36 +2,10 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorFamilyItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import { CommandItem } from '@ui/primitives/command';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo } from 'react';
-
-function ProviderBadge({
-  brandColor,
-  brandIcon: BrandIcon,
-  brandLabel,
-}: Pick<
-  ModelSelectorFamilyItemProps,
-  'brandColor' | 'brandIcon' | 'brandLabel'
->) {
-  return (
-    <div
-      className="flex size-5 shrink-0 items-center justify-center rounded border border-border"
-      style={{ backgroundColor: `${brandColor}1f`, color: brandColor }}
-    >
-      {BrandIcon ? (
-        <BrandIcon
-          className="size-3.5"
-          data-testid="model-family-provider-icon"
-        />
-      ) : (
-        <span className="text-[10px] font-semibold leading-none">
-          {brandLabel.charAt(0)}
-        </span>
-      )}
-    </div>
-  );
-}
 
 const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
   brandColor,
@@ -59,10 +33,11 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
       )}
     >
       <ChevronIcon className="size-3.5 shrink-0 text-foreground/45 transition-transform" />
-      <ProviderBadge
+      <ModelSelectorBrandMark
         brandColor={brandColor}
         brandIcon={brandIcon}
         brandLabel={brandLabel}
+        testId="model-family-provider-icon"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

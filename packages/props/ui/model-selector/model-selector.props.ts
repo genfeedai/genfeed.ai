@@ -73,6 +73,15 @@ export interface ModelSelectorModelItemProps {
   /** Credit lock — row is visible but not selectable. */
   isLocked?: boolean;
   lockReason?: string;
+  /** Single-variant families skip the nest header and show the brand mark here. */
+  isStandalone?: boolean;
+}
+
+export interface ModelSelectorBrandMarkProps {
+  brandColor: string;
+  brandIcon?: IconType;
+  brandLabel: string;
+  testId?: string;
 }
 
 export interface ModelSelectorFamilyItemProps {

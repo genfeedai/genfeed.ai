@@ -232,7 +232,7 @@ const catalogFilterFixtures = [
 
 function visibleExpandedModelFamilies(): string[] {
   return screen
-    .getAllByRole('button', { name: /, .+, expanded$/ })
+    .queryAllByRole('button', { name: /, .+, expanded$/ })
     .map((button) => button.getAttribute('aria-label') ?? '')
     .toSorted();
 }
@@ -341,7 +341,7 @@ describe('ModelSelectorPopover', () => {
 
     await user.click(screen.getByRole('button', { name: 'Trainings' }));
 
-    expect(screen.getByText('Nano Banana')).toBeInTheDocument();
+    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
     expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
   });
 
@@ -425,7 +425,7 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByRole('button', { name: /select models/i }));
     await user.click(screen.getByRole('button', { name: 'Favorites' }));
 
-    expect(screen.getByText('Veo')).toBeInTheDocument();
+    expect(screen.getByText('Veo 3.1')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
   });
 
@@ -450,7 +450,6 @@ describe('ModelSelectorPopover', () => {
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-    await user.click(screen.getByRole('button', { name: /nano banana/i }));
 
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
     // Family heading "Legacy" section + row badge.
@@ -507,7 +506,6 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.click(screen.getByRole('button', { name: /nano banana/i }));
 
     expect(
       screen.getByRole('button', {
@@ -570,16 +568,16 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(visibleExpandedModelFamilies()).toEqual([
-      'Current Alpha, Google, expanded',
-      'Current Beta, OpenAI, expanded',
-    ]);
+    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Current Beta')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
+    expect(visibleExpandedModelFamilies()).toEqual([]);
 
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-    expect(visibleExpandedModelFamilies()).toEqual([
-      'Legacy Alpha, Google, expanded',
-      'Legacy Beta, OpenAI, expanded',
-    ]);
+    expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Legacy Beta')).toBeInTheDocument();
+    expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
+    expect(visibleExpandedModelFamilies()).toEqual([]);
   });
 
   it('blocks selecting models that cost more credits than available', async () => {
@@ -604,12 +602,11 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    // "Expensive Model" is a single-variant family — the credit-lock badge
-    // and the selectable row live inside the collapsed family item, so it
-    // must be expanded first (same two-step flow as the multi-variant case).
-    await user.click(screen.getByRole('button', { name: /expensive model/i }));
     expect(screen.getByText('Credits')).toBeInTheDocument();
-    await user.click(screen.getByText('Base'));
+    expect(
+      screen.queryByRole('button', { name: /collapsed|expanded/ }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByText('Expensive Model'));
 
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -703,19 +700,65 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByRole('button', { name: /select models/i }));
 
     const family = screen.getByRole('button', {
-      name: 'Nano Banana, Google, expanded',
+      name: 'Nano Banana, Google, collapsed',
     });
-    expect(screen.getByText('Pro')).toBeInTheDocument();
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
 
     family.focus();
     await user.keyboard('{Enter}');
 
-    expect(family).toHaveAccessibleName('Nano Banana, Google, collapsed');
-    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+    expect(family).toHaveAccessibleName('Nano Banana, Google, expanded');
+    expect(screen.getByText('Pro')).toBeInTheDocument();
 
     await user.keyboard('{Enter}');
 
-    expect(family).toHaveAccessibleName('Nano Banana, Google, expanded');
-    expect(screen.getByText('Pro')).toBeInTheDocument();
+    expect(family).toHaveAccessibleName('Nano Banana, Google, collapsed');
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+  });
+
+  it('nests GenFeed Flux2 variants under one collapsed family with a real mark', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'genfeed-ai/flux2-dev',
+            label: 'Flux2 Dev',
+          }),
+          createModel({
+            key: 'genfeed-ai/flux2-dev-pulid',
+            label: 'Flux2 Dev Pulid',
+          }),
+          createModel({
+            key: 'genfeed-ai/flux2-klein',
+            label: 'Flux2 Klein',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+
+    expect(
+      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('model-family-provider-icon'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Klein')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+    );
+
+    expect(screen.getByText('Klein')).toBeInTheDocument();
+    expect(screen.getByText('Dev Pulid')).toBeInTheDocument();
   });
 });

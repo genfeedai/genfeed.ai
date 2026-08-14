@@ -93,4 +93,20 @@ describe('ModelSelectorProviderSidebar', () => {
     expect(screen.getAllByRole('button').length).toBeGreaterThan(1);
     expect(mocks.renderTooltipProvider).toHaveBeenCalledTimes(1);
   });
+
+  it('renders the local GenFeed mark instead of a letter tile', () => {
+    render(
+      <ModelSelectorProviderSidebar
+        brands={[
+          { color: '#3B82F6', count: 8, label: 'GenFeed', slug: 'genfeed-ai' },
+        ]}
+        activeBrand={null}
+        onBrandSelect={vi.fn()}
+        hasFavorites={false}
+      />,
+    );
+
+    expect(screen.getByTestId('model-provider-rail-icon')).toBeInTheDocument();
+    expect(screen.queryByText('G')).not.toBeInTheDocument();
+  });
 });

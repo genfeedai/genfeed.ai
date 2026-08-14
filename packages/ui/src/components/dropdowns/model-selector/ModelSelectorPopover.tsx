@@ -16,6 +16,8 @@ import {
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   collectBrandsFromOptions,
+  isModelFamilyExpanded,
+  shouldRenderModelFamilyHeader,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { Button } from '@ui/primitives/button';
@@ -151,7 +153,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const hasLegacy = allOptions.some((option) => option.isDeprecated);
   const shouldShowSourceTabs = sourceGroups.length > 1;
 
-  const visibleOptions = useMemo(() => {
+  const catalogOptions = useMemo(() => {
     let filtered = allOptions;
 
     if (activeSourceGroup !== 'all') {
@@ -168,28 +170,47 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       filtered = filtered.filter((option) => option.brandSlug === activeBrand);
     }
 
-    // Default catalog (All / provider): hide legacy rows unless searching so
-    // the main list stays current — Legacy rail is the subcategory entry.
-    if (
-      activeBrand !== 'legacy' &&
-      activeBrand !== 'favorites' &&
-      !normalizedSearchTerm
-    ) {
+    // Default catalog (All / provider): hide legacy rows so the main list
+    // stays current — Legacy rail is the subcategory entry.
+    if (activeBrand !== 'legacy' && activeBrand !== 'favorites') {
       filtered = filtered.filter((option) => !option.isDeprecated);
     }
 
+    return filtered;
+  }, [activeBrand, activeSourceGroup, allOptions]);
+
+  const visibleOptions = useMemo(() => {
     if (!normalizedSearchTerm) {
-      return filtered;
+      return catalogOptions;
     }
 
-    const optionsByFamily = new Map<string, typeof filtered>();
-    for (const option of filtered) {
+    // Search can surface legacy rows that the default catalog hides.
+    let searchPool = catalogOptions;
+    if (activeBrand !== 'legacy' && activeBrand !== 'favorites') {
+      searchPool = allOptions.filter((option) => {
+        if (
+          activeSourceGroup !== 'all' &&
+          option.sourceGroup !== activeSourceGroup
+        ) {
+          return false;
+        }
+
+        if (activeBrand) {
+          return option.brandSlug === activeBrand;
+        }
+
+        return true;
+      });
+    }
+
+    const optionsByFamily = new Map<string, typeof searchPool>();
+    for (const option of searchPool) {
       const familyOptions = optionsByFamily.get(option.familyKey) ?? [];
       familyOptions.push(option);
       optionsByFamily.set(option.familyKey, familyOptions);
     }
 
-    const searched: typeof filtered = [];
+    const searched: typeof searchPool = [];
 
     for (const familyOptions of optionsByFamily.values()) {
       const representative = familyOptions[0];
@@ -223,7 +244,21 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return searched;
-  }, [activeBrand, activeSourceGroup, allOptions, normalizedSearchTerm]);
+  }, [
+    activeBrand,
+    activeSourceGroup,
+    allOptions,
+    catalogOptions,
+    normalizedSearchTerm,
+  ]);
+
+  const catalogFamilyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const option of catalogOptions) {
+      counts.set(option.familyKey, (counts.get(option.familyKey) ?? 0) + 1);
+    }
+    return counts;
+  }, [catalogOptions]);
 
   const groupedOptions = useMemo((): GroupedFamilies => {
     const groupedByBrand = new Map<
@@ -631,33 +666,36 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                     .includes(normalizedSearchTerm)
                                 : false;
 
-                              const isExpanded =
-                                familySearchMatch ||
-                                (isSingleSelect
-                                  ? !toggledFamilyKeys.includes(
-                                      family.familyKey,
-                                    )
-                                  : toggledFamilyKeys.includes(
-                                      family.familyKey,
-                                    ));
+                              const isExpanded = isModelFamilyExpanded({
+                                familyKey: family.familyKey,
+                                hasSearchMatch: familySearchMatch,
+                                toggledFamilyKeys,
+                              });
+                              const isStandalone =
+                                !shouldRenderModelFamilyHeader(
+                                  catalogFamilyCounts.get(family.familyKey) ??
+                                    family.options.length,
+                                );
 
                               return (
                                 <div key={family.familyKey}>
-                                  <ModelSelectorFamilyItem
-                                    brandColor={brandConfig.color}
-                                    brandIcon={getModelBrandIcon(
-                                      brandConfig.iconKey,
-                                    )}
-                                    brandLabel={brandConfig.label}
-                                    count={family.options.length}
-                                    familyLabel={family.familyLabel}
-                                    isExpanded={isExpanded}
-                                    onToggle={() =>
-                                      handleFamilyToggle(family.familyKey)
-                                    }
-                                  />
+                                  {isStandalone ? null : (
+                                    <ModelSelectorFamilyItem
+                                      brandColor={brandConfig.color}
+                                      brandIcon={getModelBrandIcon(
+                                        brandConfig.iconKey,
+                                      )}
+                                      brandLabel={brandConfig.label}
+                                      count={family.options.length}
+                                      familyLabel={family.familyLabel}
+                                      isExpanded={isExpanded}
+                                      onToggle={() =>
+                                        handleFamilyToggle(family.familyKey)
+                                      }
+                                    />
+                                  )}
 
-                                  {isExpanded && (
+                                  {(isStandalone || isExpanded) && (
                                     <div>
                                       {family.options.map((option) => (
                                         <ModelSelectorModelItem
@@ -677,6 +715,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                           onToggle={handleToggle}
                                           onFavoriteToggle={onFavoriteToggle}
                                           selectionMode={selectionMode}
+                                          isStandalone={isStandalone}
                                         />
                                       ))}
                                     </div>

@@ -82,7 +82,10 @@ const ModelSelectorProviderSidebar = memo(
                 accentColor={brand.color}
               >
                 {BrandIcon ? (
-                  <BrandIcon className="size-3.5" />
+                  <BrandIcon
+                    className="size-3.5"
+                    data-testid="model-provider-rail-icon"
+                  />
                 ) : (
                   <span className="text-[10px] font-semibold leading-none">
                     {brand.label.charAt(0)}
