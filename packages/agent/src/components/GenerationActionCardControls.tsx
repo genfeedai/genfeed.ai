@@ -1,5 +1,10 @@
 import type { GenerationModel } from '@genfeedai/agent/services/agent-api.service';
 import {
+  GENERATION_PROMPT_COMPACT_MAX_HEIGHT,
+  GENERATION_PROMPT_COMPACT_ROWS,
+  shouldOfferGenerationPromptPreview,
+} from '@genfeedai/agent/utils/generation-prompt-preview.util';
+import {
   ButtonSize,
   ButtonVariant,
   DropdownDirection,
@@ -13,6 +18,15 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from '@ui/primitives/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,9 +34,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Play, RefreshCw, Square } from 'lucide-react';
+import { Expand, Play, RefreshCw, Square } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactElement, RefObject } from 'react';
+import { type ReactElement, type RefObject, useState } from 'react';
 
 type GenerationActionCardControlsProps = {
   prompt: string;
@@ -85,35 +99,66 @@ export function GenerationActionCardControls({
 }: GenerationActionCardControlsProps): ReactElement {
   const translate = useTranslations('common.agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  const [isPromptPreviewOpen, setIsPromptPreviewOpen] = useState(false);
   // An empty catalog is indistinguishable from a failed fetch at the picker —
   // both render a control the user can open but never select anything from.
   // Treat them as one explicit, recoverable state instead.
   const hasNoSelectableModels = !modelsLoading && filteredModels.length === 0;
+  const canPreviewPrompt = shouldOfferGenerationPromptPreview(prompt);
 
   return (
     <>
-      {/* Prompt */}
       <div>
-        <label
-          htmlFor="gen-action-prompt"
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-        >
-          Prompt
-        </label>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <label
+            htmlFor="gen-action-prompt"
+            className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Prompt
+          </label>
+          {canPreviewPrompt ? (
+            <Button
+              ariaLabel={translate('readFullAria')}
+              icon={<Expand className="size-3.5" />}
+              label={translate('readFull')}
+              onClick={() => setIsPromptPreviewOpen(true)}
+              size={ButtonSize.XS}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
+        </div>
         <Textarea
           id="gen-action-prompt"
           ref={textareaRef}
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           disabled={isDisabled}
-          // Structured prompts arrive as SCENE/SUBJECT/BACKGROUND/... blocks
-          // separated by blank lines. Two rows hid that structure entirely and
-          // made a well-formed prompt read as a wall of text.
-          rows={6}
-          className="max-h-64 w-full resize-y overflow-y-auto"
+          maxHeight={GENERATION_PROMPT_COMPACT_MAX_HEIGHT}
+          rows={GENERATION_PROMPT_COMPACT_ROWS}
+          className="max-h-[72px] w-full resize-none overflow-y-auto"
           placeholder="Describe what you want to generate…"
         />
       </div>
+
+      <Dialog open={isPromptPreviewOpen} onOpenChange={setIsPromptPreviewOpen}>
+        <DialogPortal>
+          <DialogOverlay className="bg-black/60 backdrop-blur-[1px]" />
+          <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden border-border-strong bg-popover p-0">
+            <DialogHeader className="border-b border-border px-5 py-4">
+              <DialogTitle>{translate('previewTitle')}</DialogTitle>
+              <DialogDescription>
+                {translate('previewDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-y-auto p-5">
+              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                {prompt}
+              </p>
+            </div>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
 
       {/* Model & Aspect Ratio row — wrap on narrow tracks so controls never
           force the conversation column wider than the viewport. */}

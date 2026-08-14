@@ -8,6 +8,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     ({
+      previewDescription: 'Full generation prompt',
+      previewTitle: 'Prompt',
+      readFull: 'Read full',
+      readFullAria: 'Read the full prompt',
       stop: 'Stop',
       stopAria: 'Stop generation',
     })[key] ?? key,
@@ -191,6 +195,58 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.onPrioritizeChange = undefined;
     capturedModelSelectorPopoverProps.prioritize = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
+  });
+
+  it('keeps the prompt field compact and opens a read-only preview for long copy', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'SCENE: Professional boxing ring. SUBJECT: Athletic boxer in black gear. BACKGROUND: Blurred arena crowd. LIGHTING: Dramatic overhead spotlights. STYLE: Photorealistic sports photography. NEGATIVE: No text or watermarks.',
+          },
+          generationType: 'image',
+          id: 'action-preview',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    const textarea = await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(textarea).toHaveAttribute('rows', '2');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Read the full prompt' }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('SCENE: Professional boxing ring.');
+    expect(dialog).toHaveTextContent('NEGATIVE: No text or watermarks.');
+    expect(screen.getByRole('heading', { name: 'Prompt' })).toBeTruthy();
+  });
+
+  it('hides the prompt preview when the copy already fits two rows', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'A short boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-short',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(
+      screen.queryByRole('button', { name: 'Read the full prompt' }),
+    ).toBeNull();
   });
 
   it('formats structured prompts with readable section breaks', async () => {

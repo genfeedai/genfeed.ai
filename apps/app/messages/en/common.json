@@ -213,6 +213,10 @@
       "queued": "Queued"
     },
     "generationActionCard": {
+      "previewDescription": "Full generation prompt",
+      "previewTitle": "Prompt",
+      "readFull": "Read full",
+      "readFullAria": "Read the full prompt",
       "stop": "Stop",
       "stopAria": "Stop generation"
     },
