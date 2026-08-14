@@ -790,10 +790,9 @@ export function useAgentChatInput({
   const canUseVoiceInput =
     isVoiceControlEnabled && isSupported && !isTranscribing;
 
-  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer;
-
-  // Send stays available during a run so Enter queues a follow-up. Stop and
-  // send sit side by side; mic still replaces send only when the field is empty.
+  // Stop occupies the mic slot while a run is in flight. Send still appears
+  // beside Stop when the field has text so Enter can queue a follow-up.
+  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer && !showStop;
   const shouldShowSendButton =
     !isTranscribing && !shouldShowVoiceInput && (!showStop || canSendMessage);
 

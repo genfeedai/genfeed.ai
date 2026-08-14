@@ -174,6 +174,19 @@ describe('useAgentChatInput voice exclusivity', () => {
     expect(onSend).not.toHaveBeenCalled();
     unmount();
   });
+
+  it('hides the mic while Stop is on the trailing edge', async () => {
+    const { result } = renderHook(
+      () => useAgentChatInput({ onSend: vi.fn(), showStop: true }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    expect(result.current.shouldShowVoiceInput).toBe(false);
+  });
 });
 
 describe('useAgentChatInput references', () => {

@@ -169,7 +169,8 @@ function AgentChatInputToolbarInner({
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
-  // Trailing primary: Stop (optional, during a run) plus send or mic.
+  // Trailing primary: Stop replaces mic during a run; send sits beside Stop
+  // only when the field has text to queue.
   let trailingPrimary: ReactElement | null = null;
 
   if (isTranscribing) {
@@ -227,7 +228,7 @@ function AgentChatInputToolbarInner({
       ) : null;
 
     let actionButton: ReactElement | null = null;
-    if (shouldShowVoiceInput) {
+    if (shouldShowVoiceInput && !showStop) {
       actionButton = (
         <Button
           ariaLabel="Start voice input"
@@ -364,7 +365,7 @@ function AgentChatInputToolbarInner({
         ) : null}
       </div>
 
-      {/* Trailing: stop + send (queue while running) | mic */}
+      {/* Trailing: stop (replaces mic) + optional queue send */}
       <div
         className={cn(
           'flex min-w-0 shrink items-center justify-end',
