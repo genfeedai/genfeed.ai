@@ -38,6 +38,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items
 - [feedback_commit_after_each_qa_fix](feedback_commit_after_each_qa_fix.md) — commit each finished QA fix before starting the next one
 - [feedback_next_agent_rules_off](feedback_next_agent_rules_off.md) — Next must not rewrite CLAUDE.md or AGENTS.md
+- [feedback_no_nested_claude_md](feedback_no_nested_claude_md.md) — only the repo-root CLAUDE.md; no apps/* or packages/* copies
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, context meter, real Studio Stop
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — first-login /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
@@ -138,7 +139,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 Already in context: [system-patterns](context/system-patterns.md) · [project-structure](context/project-structure.md) · [project-style-guide](context/project-style-guide.md) · [skills-architecture](context/skills-architecture.md)
 
-Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md)
+Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
 
 ## Features and system
 

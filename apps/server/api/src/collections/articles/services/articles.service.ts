@@ -672,8 +672,8 @@ export class ArticlesService extends BaseService<
     // cross-collection surfaces (e.g. feeds/dashboards) that read articles
     // alongside other collections, so this is the one intentional system-wide
     // eviction path. Every other write path scopes to its own collection via
-    // paginatedQueryCacheTag() — see apps/server/api/CLAUDE.md → Cache
-    // Invalidation Pattern.
+    // paginatedQueryCacheTag() — see
+    // .agents/memory/context/api-cache-invalidation.md.
     if (this.cacheService) {
       const collectionName = this.collectionName;
       // Invalidate all possible cache tags

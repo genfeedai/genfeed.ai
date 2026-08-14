@@ -13,7 +13,7 @@
  * 1. Add its patterns here
  * 2. Add its tag constant
  * 3. Inject CacheInvalidationService and call invalidate() on writes
- * 4. See CLAUDE.md → Cache Invalidation Pattern
+ * 4. See `.agents/memory/context/api-cache-invalidation.md`
  */
 export const CACHE_PATTERNS = {
   API_KEYS_LIST: (orgId: string) => `apiKeys:list:${orgId}`,
