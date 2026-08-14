@@ -16,8 +16,8 @@ describe('CreditsInterceptor', () => {
     creditsConfig?: CreditsConfig;
     user?: {
       id: string;
-      userId: string;
       organizationId: string;
+      userId: string;
     } | null;
   } = {
     creditsConfig: {

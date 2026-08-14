@@ -1,9 +1,11 @@
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
   PostFormat,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 import { validate } from 'class-validator';
 
 describe('CreatePostDto', () => {
@@ -124,6 +126,24 @@ describe('CreatePostDto', () => {
       });
 
       expect(errors.map((error) => error.property)).toContain('status');
+    });
+
+    it('rejects leftover Post.status through the request pipe', async () => {
+      const pipe = new ValidationPipe();
+
+      await expect(
+        pipe.transform(
+          {
+            credentialId: validEntityId,
+            description: 'Thread reply',
+            ingredients: [],
+            label: 'Post',
+            status: 'scheduled',
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          },
+          { metatype: CreatePostDto, type: 'body' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects invalid content run attribution IDs', async () => {

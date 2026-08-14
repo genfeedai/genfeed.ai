@@ -1,5 +1,6 @@
 'use client';
 
+import { mapPostStatusToCanonicalWrite } from '@api-types/contracts/scheduler.contract';
 import {
   ArticleStatus,
   ButtonVariant,
@@ -206,9 +207,10 @@ export default function DropdownStatus({
       } else if (isPost) {
         // Use posts service for both PATCH and GET
         const service = await getPostsService();
-        await service.patch(entity.id, {
-          status: newStatus as PostStatus,
-        });
+        await service.patch(
+          entity.id,
+          mapPostStatusToCanonicalWrite(newStatus as PostStatus),
+        );
 
         // Fetch complete post with all metadata
         updatedItem = (await service.findOne(entity.id)) as IPost | undefined;

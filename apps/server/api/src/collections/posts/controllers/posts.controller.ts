@@ -39,6 +39,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
+  resolveDefaultTargetExecutionState,
 } from '@api-types/contracts/scheduler.contract';
 import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
 import type {
@@ -99,8 +100,10 @@ export class PostsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
-    const executionState =
-      createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+    const executionState = resolveDefaultTargetExecutionState({
+      scheduledDate: createPostDto.scheduledDate,
+      targetExecutionState: createPostDto.targetExecutionState,
+    });
     assertApiKeyPublishingScope(
       user,
       executionState === TargetExecutionState.DRAFT

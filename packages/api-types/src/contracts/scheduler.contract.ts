@@ -496,6 +496,65 @@ export function projectLegacyPostStatus(
   }
 }
 
+/**
+ * Inverse of {@link projectLegacyPostStatus} for write and list-filter clients
+ * that still speak the projected `Post.status` vocabulary.
+ */
+export function mapPostStatusToCanonicalWrite(
+  status: string | PostStatus | undefined,
+): {
+  targetExecutionState?: TargetExecutionState;
+  visibility?: PostVisibility;
+} {
+  switch (status) {
+    case PostStatus.DRAFT:
+      return { targetExecutionState: TargetExecutionState.DRAFT };
+    case PostStatus.SCHEDULED:
+      return { targetExecutionState: TargetExecutionState.SCHEDULED };
+    case PostStatus.FAILED:
+      return { targetExecutionState: TargetExecutionState.FAILED };
+    case PostStatus.PENDING:
+    case PostStatus.PROCESSING:
+      return { targetExecutionState: TargetExecutionState.PUBLISHING };
+    case PostStatus.PUBLIC:
+      return {
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
+      };
+    case PostStatus.PRIVATE:
+      return {
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PRIVATE,
+      };
+    case PostStatus.UNLISTED:
+      return {
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.UNLISTED,
+      };
+    default:
+      return {};
+  }
+}
+
+/**
+ * Create-path default when `targetExecutionState` is omitted. A leftover
+ * `status` field must not silently schedule — that is rejected at the DTO
+ * boundary. An explicit scheduled date is the only omitted-state signal that
+ * means "schedule this".
+ */
+export function resolveDefaultTargetExecutionState(input: {
+  scheduledDate?: Date | string | null;
+  targetExecutionState?: TargetExecutionState;
+}): TargetExecutionState {
+  if (input.targetExecutionState) {
+    return input.targetExecutionState;
+  }
+
+  return input.scheduledDate
+    ? TargetExecutionState.SCHEDULED
+    : TargetExecutionState.DRAFT;
+}
+
 /** Read filter for canonical target execution state. */
 export function postExecutionStateReadFilter(
   states: TargetExecutionState | readonly TargetExecutionState[],
