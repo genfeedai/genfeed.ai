@@ -15,6 +15,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { KnowledgeSourceIngestQueueService } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeBaseStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -61,6 +62,7 @@ export class KnowledgeSourceService {
     };
 
     await this.writeSources(
+      organizationId,
       contextBase.id,
       contextBase.data,
       upsertKnowledgeSource(sources, source),
@@ -115,6 +117,7 @@ export class KnowledgeSourceService {
     }
 
     await this.writeSources(
+      organizationId,
       contextBase.id,
       contextBase.data,
       upsertKnowledgeSource(sources, source),
@@ -147,6 +150,7 @@ export class KnowledgeSourceService {
     const existing = this.requireLiveSource(sources, sourceId);
 
     await this.writeSources(
+      organizationId,
       contextBase.id,
       contextBase.data,
       upsertKnowledgeSource(sources, { ...existing, isDeleted: true }),
@@ -198,6 +202,7 @@ export class KnowledgeSourceService {
   }
 
   private async writeSources(
+    organizationId: string,
     contextBaseId: string,
     currentData: unknown,
     sources: PersistedKnowledgeSource[],
@@ -206,7 +211,7 @@ export class KnowledgeSourceService {
       data: {
         data: writeKnowledgeSources(currentData, sources),
       },
-      where: { id: contextBaseId },
+      where: scopedWhere(organizationId, { id: contextBaseId }),
     });
   }
 

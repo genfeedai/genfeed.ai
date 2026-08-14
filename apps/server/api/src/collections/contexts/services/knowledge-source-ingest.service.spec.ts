@@ -208,11 +208,11 @@ describe('KnowledgeSourceIngestService', () => {
     );
   });
 
-  it('returns an empty backfill scan when no sources exist', async () => {
+  it('returns an empty backfill scan when no tenant is provided', async () => {
     const { contextBaseFindMany, service } = buildService();
-    contextBaseFindMany.mockResolvedValue([]);
 
     await expect(service.scanForBackfill({})).resolves.toEqual({ queued: [] });
+    expect(contextBaseFindMany).not.toHaveBeenCalled();
   });
 
   it('scans draft and failed sources for backfill', async () => {

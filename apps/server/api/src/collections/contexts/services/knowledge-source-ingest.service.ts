@@ -69,28 +69,46 @@ export class KnowledgeSourceIngestService {
     }
 
     if (!isIngestibleKnowledgeSourceCategory(source.category)) {
-      await this.persistSource(contextBase.id, contextBase.data, sources, {
-        ...source,
-        error: `${source.category} sources are not ingested yet`,
-        status: KnowledgeBaseStatus.FAILED,
-      });
+      await this.persistSource(
+        job.organizationId,
+        contextBase.id,
+        contextBase.data,
+        sources,
+        {
+          ...source,
+          error: `${source.category} sources are not ingested yet`,
+          status: KnowledgeBaseStatus.FAILED,
+        },
+      );
       return { chunkCount: 0, sourceId: source.id, status: 'unsupported' };
     }
 
     if (!source.referenceUrl) {
-      await this.persistSource(contextBase.id, contextBase.data, sources, {
-        ...source,
-        error: 'Source is missing a reference URL',
-        status: KnowledgeBaseStatus.FAILED,
-      });
+      await this.persistSource(
+        job.organizationId,
+        contextBase.id,
+        contextBase.data,
+        sources,
+        {
+          ...source,
+          error: 'Source is missing a reference URL',
+          status: KnowledgeBaseStatus.FAILED,
+        },
+      );
       return { chunkCount: 0, sourceId: source.id, status: 'failed' };
     }
 
-    await this.persistSource(contextBase.id, contextBase.data, sources, {
-      ...source,
-      error: undefined,
-      status: KnowledgeBaseStatus.PROCESSING,
-    });
+    await this.persistSource(
+      job.organizationId,
+      contextBase.id,
+      contextBase.data,
+      sources,
+      {
+        ...source,
+        error: undefined,
+        status: KnowledgeBaseStatus.PROCESSING,
+      },
+    );
 
     try {
       const extracted = await extractSourceText({
@@ -125,13 +143,19 @@ export class KnowledgeSourceIngestService {
         );
       }
 
-      await this.persistSource(contextBase.id, contextBase.data, sources, {
-        ...source,
-        chunkCount: chunks.length,
-        error: undefined,
-        lastIngestedAt: new Date().toISOString(),
-        status: KnowledgeBaseStatus.COMPLETED,
-      });
+      await this.persistSource(
+        job.organizationId,
+        contextBase.id,
+        contextBase.data,
+        sources,
+        {
+          ...source,
+          chunkCount: chunks.length,
+          error: undefined,
+          lastIngestedAt: new Date().toISOString(),
+          status: KnowledgeBaseStatus.COMPLETED,
+        },
+      );
 
       this.logger.log('Ingested knowledge source', {
         chunkCount: chunks.length,
@@ -150,11 +174,17 @@ export class KnowledgeSourceIngestService {
         error instanceof Error
           ? error.message
           : 'Knowledge source ingest failed';
-      await this.persistSource(contextBase.id, contextBase.data, sources, {
-        ...source,
-        error: message,
-        status: KnowledgeBaseStatus.FAILED,
-      });
+      await this.persistSource(
+        job.organizationId,
+        contextBase.id,
+        contextBase.data,
+        sources,
+        {
+          ...source,
+          error: message,
+          status: KnowledgeBaseStatus.FAILED,
+        },
+      );
       this.logger.error('Failed to ingest knowledge source', {
         contextBaseId: contextBase.id,
         error,
@@ -168,10 +198,12 @@ export class KnowledgeSourceIngestService {
   async scanForBackfill(
     input: KnowledgeSourceBackfillJobData = {},
   ): Promise<KnowledgeSourceBackfillScanResult> {
+    if (!input.organizationId) {
+      return { queued: [] };
+    }
+
     const rows = await this.prisma.contextBase.findMany({
-      where: input.organizationId
-        ? scopedWhere(input.organizationId, {})
-        : { isDeleted: false },
+      where: scopedWhere(input.organizationId, {}),
     });
 
     const queued: KnowledgeSourceBackfillScanResult['queued'] = [];
@@ -193,6 +225,7 @@ export class KnowledgeSourceIngestService {
   }
 
   private async persistSource(
+    organizationId: string,
     contextBaseId: string,
     currentData: unknown,
     sources: PersistedKnowledgeSource[],
@@ -210,7 +243,7 @@ export class KnowledgeSourceIngestService {
           upsertKnowledgeSource(sources, cleaned),
         ),
       },
-      where: { id: contextBaseId },
+      where: scopedWhere(organizationId, { id: contextBaseId }),
     });
   }
 }

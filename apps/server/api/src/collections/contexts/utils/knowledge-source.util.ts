@@ -1,4 +1,5 @@
 import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 
 export const KNOWLEDGE_BASE_PURPOSE = 'knowledge-base';
 export const KNOWLEDGE_SOURCE_CHUNK_KIND = 'knowledge-source-chunk';
@@ -103,12 +104,12 @@ export function parseKnowledgeSources(
 export function writeKnowledgeSources(
   data: unknown,
   sources: PersistedKnowledgeSource[],
-): Record<string, unknown> {
+): Prisma.InputJsonValue {
   return {
     ...getContextDataRecord(data),
     purpose: KNOWLEDGE_BASE_PURPOSE,
     sources,
-  };
+  } as Prisma.InputJsonValue;
 }
 
 export function findKnowledgeSource(
