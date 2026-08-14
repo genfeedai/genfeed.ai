@@ -11,6 +11,8 @@ import { SystemWorkflowProvenanceService } from '@api/collections/workflows/serv
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
+import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
+import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -20,8 +22,10 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
     forwardRef(() => InstagramModule),
+    LinkedInModule,
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => QueuesModule),
+    TwitterModule,
     forwardRef(() => WorkflowsModule),
     forwardRef(() => YoutubeModule),
   ],

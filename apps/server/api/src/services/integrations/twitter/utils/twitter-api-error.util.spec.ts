@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getTwitterRetryAfterMs,
+  isTwitterAuthorizationError,
+  isTwitterRateLimitError,
+  isTwitterScopeOrTierError,
   mapTwitterApiError,
   X_CREDENTIAL_ERROR,
   X_RATE_LIMIT_ERROR,
@@ -54,5 +58,29 @@ describe('mapTwitterApiError', () => {
     expect(
       mapTwitterApiError(new Error('Tweet not found or incomplete response')),
     ).toBe('Tweet not found or incomplete response');
+  });
+
+  it('classifies 401 as authorization, 403/453 as tier, and 429 as rate-limit', () => {
+    expect(isTwitterAuthorizationError({ response: { status: 401 } })).toBe(
+      true,
+    );
+    expect(
+      isTwitterAuthorizationError({
+        response: { data: { title: 'client-not-enrolled' }, status: 403 },
+      }),
+    ).toBe(false);
+    expect(
+      isTwitterScopeOrTierError({
+        response: { data: { title: 'client-not-enrolled' }, status: 403 },
+      }),
+    ).toBe(true);
+    expect(isTwitterRateLimitError({ response: { status: 429 } })).toBe(true);
+    expect(
+      getTwitterRetryAfterMs(
+        { response: { headers: { 'retry-after': '2' }, status: 429 } },
+        1_000,
+        5_000,
+      ),
+    ).toBe(2_000);
   });
 });

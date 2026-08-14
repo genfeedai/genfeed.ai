@@ -226,6 +226,96 @@ describe('TwitterService (coverage)', () => {
       );
     });
 
+    it('looks up a specific credential when refreshToken receives a credential id', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+        scope: 'tweet.read users.read',
+      });
+
+      await service.refreshToken('org', 'brand', 'cred-id');
+
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        id: 'cred-id',
+        organizationId: 'org',
+        platform: 'TWITTER',
+      });
+    });
+  });
+
+  describe('getValidCredential', () => {
+    it('returns the stored credential when the access token is still valid', async () => {
+      const cred = makeCredential({
+        accessTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+      credentialsService.findOne.mockResolvedValue(cred);
+
+      const result = await service.getValidCredential(
+        'org',
+        'brand',
+        'cred-id',
+      );
+
+      expect(result).toEqual(cred);
+      expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('refreshes an expired credential instead of using the stale token', async () => {
+      const cred = makeCredential({
+        accessTokenExpiry: new Date('2020-01-01T00:00:00.000Z'),
+        refreshToken: 'enc-rt',
+      });
+      credentialsService.findOne.mockResolvedValue(cred);
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+        scope: 'tweet.read',
+      });
+      const updated = makeCredential({ accessToken: 'new-access' });
+      credentialsService.patch.mockResolvedValue(updated);
+
+      const result = await service.getValidCredential(
+        'org',
+        'brand',
+        'cred-id',
+      );
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalled();
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('handleAuthorizationError', () => {
+    it('disconnects only on authorization failures', async () => {
+      await expect(
+        service.handleAuthorizationError(
+          'cred-id',
+          { response: { status: 401 } },
+          'refresh',
+        ),
+      ).resolves.toBe(true);
+      expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
+        isConnected: false,
+      });
+
+      credentialsService.patch.mockClear();
+      await expect(
+        service.handleAuthorizationError(
+          'cred-id',
+          { response: { data: { title: 'client-not-enrolled' }, status: 403 } },
+          'refresh',
+        ),
+      ).resolves.toBe(false);
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshToken errors', () => {
     it('marks disconnected, logs activity, and rethrows when refresh SDK call fails', async () => {
       const cred = makeCredential({ refreshToken: 'enc-rt' });
       credentialsService.findOne.mockResolvedValue(cred);
@@ -1089,6 +1179,176 @@ describe('TwitterService (coverage)', () => {
         service.repostTweet('org', 'brand', '55555'),
       ).rejects.toThrow('403 Client Forbidden — access level');
       expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('listMentions', () => {
+    const recordedMentions = {
+      data: [
+        {
+          author_id: '2244994945',
+          conversation_id: '1980000000000000001',
+          created_at: '2026-08-01T10:00:00.000Z',
+          id: '1980000000000000001',
+          text: 'Just tried @genfeedai for launch replies',
+        },
+        {
+          author_id: 'brand-user-id',
+          conversation_id: '1980000000000000003',
+          created_at: '2026-08-01T10:02:00.000Z',
+          id: '1980000000000000003',
+          text: 'Thanks for the mention',
+        },
+        {
+          author_id: '783214',
+          conversation_id: '1970000000000000009',
+          created_at: '2026-08-01T10:05:00.000Z',
+          id: '1980000000000000002',
+          referenced_tweets: [
+            { id: '1970000000000000009', type: 'replied_to' },
+          ],
+          text: '@genfeedai does this work with LinkedIn too?',
+        },
+      ],
+      includes: {
+        users: [
+          { id: '2244994945', name: 'Taylor', username: 'taylor' },
+          { id: '783214', name: 'Jordan', username: 'jordan' },
+          { id: 'brand-user-id', name: 'Genfeed', username: 'genfeedai' },
+        ],
+      },
+    };
+
+    beforeEach(() => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeCredential({
+          accessToken: 'enc-access-token',
+          externalId: 'brand-user-id',
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+      );
+    });
+
+    it('maps a recorded mentions payload and drops the brand account tweets', async () => {
+      mockV2Get.mockResolvedValue(recordedMentions);
+
+      const result = await service.listMentions('org', 'brand', {
+        limit: 25,
+        sinceId: '1970000000000000000',
+      });
+
+      expect(mockV2Get).toHaveBeenCalledWith('users/brand-user-id/mentions', {
+        expansions: 'author_id',
+        max_results: 25,
+        since_id: '1970000000000000000',
+        'tweet.fields':
+          'author_id,created_at,conversation_id,referenced_tweets,in_reply_to_user_id',
+        'user.fields': 'username,name,profile_image_url',
+      });
+      expect(result).toEqual([
+        {
+          authorAvatarUrl: undefined,
+          authorId: '2244994945',
+          authorName: 'Taylor',
+          authorUsername: 'taylor',
+          conversationId: '1980000000000000001',
+          createdAt: new Date('2026-08-01T10:00:00.000Z'),
+          inReplyToId: null,
+          text: 'Just tried @genfeedai for launch replies',
+          tweetId: '1980000000000000001',
+        },
+        {
+          authorAvatarUrl: undefined,
+          authorId: '783214',
+          authorName: 'Jordan',
+          authorUsername: 'jordan',
+          conversationId: '1970000000000000009',
+          createdAt: new Date('2026-08-01T10:05:00.000Z'),
+          inReplyToId: '1970000000000000009',
+          text: '@genfeedai does this work with LinkedIn too?',
+          tweetId: '1980000000000000002',
+        },
+      ]);
+    });
+
+    it('propagates a rate-limit so the ingest cursor is kept', async () => {
+      mockV2Get.mockRejectedValue({
+        message: 'Too Many Requests',
+        status: 429,
+      });
+
+      await expect(service.listMentions('org', 'brand')).rejects.toEqual(
+        expect.objectContaining({ status: 429 }),
+      );
+    });
+  });
+
+  describe('listDirectMessages', () => {
+    beforeEach(() => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeCredential({
+          accessToken: 'enc-access-token',
+          externalId: 'brand-user-id',
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+      );
+    });
+
+    it('maps a recorded DM events payload and drops outbound sends', async () => {
+      mockV2Get.mockResolvedValue({
+        data: [
+          {
+            created_at: '2026-08-01T11:00:00.000Z',
+            dm_conversation_id: 'x-dm-thread-1',
+            event_type: 'MessageCreate',
+            id: 'x-dm-1',
+            sender_id: '2244994945',
+            text: 'Can we chat about pricing?',
+          },
+          {
+            created_at: '2026-08-01T11:01:00.000Z',
+            dm_conversation_id: 'x-dm-thread-1',
+            event_type: 'MessageCreate',
+            id: 'x-dm-own',
+            sender_id: 'brand-user-id',
+            text: 'Yes — sending a note',
+          },
+        ],
+        includes: {
+          users: [
+            { id: '2244994945', name: 'Taylor', username: 'taylor' },
+            { id: 'brand-user-id', name: 'Genfeed', username: 'genfeedai' },
+          ],
+        },
+      });
+
+      const result = await service.listDirectMessages('org', 'brand', {
+        paginationToken: 'cursor-1',
+      });
+
+      expect(mockV2Get).toHaveBeenCalledWith(
+        'dm_events',
+        expect.objectContaining({
+          event_types: 'MessageCreate',
+          pagination_token: 'cursor-1',
+        }),
+      );
+      expect(result).toEqual([
+        {
+          conversationId: 'x-dm-thread-1',
+          messages: [
+            {
+              createdAt: new Date('2026-08-01T11:00:00.000Z'),
+              messageId: 'x-dm-1',
+              senderId: '2244994945',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Can we chat about pricing?',
+            },
+          ],
+          participantExternalId: '2244994945',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+        },
+      ]);
     });
   });
 });

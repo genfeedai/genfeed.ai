@@ -16,9 +16,14 @@ export const knowledgeBrandingSchema = z.object({
 
 export const knowledgeSourceSchema = z.object({
   category: z.nativeEnum(KnowledgeBaseCategory),
+  chunkCount: z.number().optional(),
+  error: z.string().optional(),
   externalId: z.string().optional(),
+  id: z.string().optional(),
   label: z.string().min(1),
+  lastIngestedAt: z.string().optional(),
   referenceUrl: z.string().url(),
+  status: z.nativeEnum(KnowledgeBaseStatus).optional(),
   summary: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });

@@ -1,4 +1,5 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
@@ -119,11 +120,20 @@ type TestContext = {
     replyToComment: ReturnType<typeof vi.fn>;
     sendCommentReplyDm: ReturnType<typeof vi.fn>;
   };
+  linkedInService: {
+    listDirectMessages: ReturnType<typeof vi.fn>;
+    listPostComments: ReturnType<typeof vi.fn>;
+  };
   prisma: PrismaMock;
   queueService: {
     queueTriggerEvent: ReturnType<typeof vi.fn>;
   };
   service: SocialInboxService;
+  twitterService: {
+    listDirectMessages: ReturnType<typeof vi.fn>;
+    listMentions: ReturnType<typeof vi.fn>;
+    listPostReplies: ReturnType<typeof vi.fn>;
+  };
   youtubeService: {
     listVideoComments: ReturnType<typeof vi.fn>;
     postCommentReply: ReturnType<typeof vi.fn>;
@@ -357,13 +367,16 @@ function createContext(): TestContext {
         messages.push(message);
         return Promise.resolve(message);
       }),
-      findFirst: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            messages.find((item) => matchesWhere(item, where)) ?? null,
-          ),
-        ),
+      findFirst: vi.fn().mockImplementation(({ orderBy, where }) => {
+        const matched = messages.filter((item) => matchesWhere(item, where));
+        if (orderBy?.createdAt === 'desc') {
+          matched.sort(
+            (left, right) =>
+              right.createdAt.getTime() - left.createdAt.getTime(),
+          );
+        }
+        return Promise.resolve(matched[0] ?? null);
+      }),
       findMany: vi
         .fn()
         .mockImplementation(({ where }) =>
@@ -401,6 +414,15 @@ function createContext(): TestContext {
     replyToComment: vi.fn().mockResolvedValue({ commentId: 'ig-reply-1' }),
     sendCommentReplyDm: vi.fn().mockResolvedValue('dm-1'),
   };
+  const twitterService = {
+    listDirectMessages: vi.fn(),
+    listMentions: vi.fn(),
+    listPostReplies: vi.fn(),
+  };
+  const linkedInService = {
+    listDirectMessages: vi.fn(),
+    listPostComments: vi.fn(),
+  };
   const queueService = {
     queueTriggerEvent: vi.fn().mockResolvedValue('workflow-job-1'),
   };
@@ -415,6 +437,8 @@ function createContext(): TestContext {
     prisma as never,
     youtubeService as never,
     instagramService as never,
+    twitterService as never,
+    linkedInService as never,
     realtimeService,
     queueService as never,
   );
@@ -429,6 +453,7 @@ function createContext(): TestContext {
   return {
     conversations,
     instagramService,
+    linkedInService,
     messages,
     notificationsPublisher,
     prisma: prisma as unknown as PrismaMock,
@@ -438,6 +463,7 @@ function createContext(): TestContext {
       ingestionService,
       actionService,
     ),
+    twitterService,
     youtubeService,
   };
 }
@@ -1727,6 +1753,423 @@ describe('SocialInboxService', () => {
       );
       // The unread counter still counts the out-of-order message.
       expect(conversations[0].unreadCount).toBe(2);
+    });
+  });
+
+  describe('ingestXComments', () => {
+    const recordedMentions = [
+      {
+        authorId: '2244994945',
+        authorName: 'Taylor',
+        authorUsername: 'taylor',
+        conversationId: '1980000000000000001',
+        createdAt: new Date('2026-08-01T10:00:00.000Z'),
+        inReplyToId: null,
+        text: 'Just tried @genfeedai for launch replies',
+        tweetId: '1980000000000000001',
+      },
+      {
+        authorId: '783214',
+        authorName: 'Jordan',
+        authorUsername: 'jordan',
+        conversationId: '1970000000000000009',
+        createdAt: new Date('2026-08-01T10:05:00.000Z'),
+        inReplyToId: '1970000000000000009',
+        text: '@genfeedai does this work with LinkedIn too?',
+        tweetId: '1980000000000000002',
+      },
+    ];
+    const recordedReplies = [
+      {
+        authorId: '2244994945',
+        authorName: 'Taylor',
+        authorUsername: 'taylor',
+        conversationId: '1970000000000000100',
+        createdAt: new Date('2026-08-01T10:10:00.000Z'),
+        inReplyToId: '1970000000000000100',
+        text: 'Shipping this week?',
+        tweetId: '1980000000000000101',
+      },
+    ];
+
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@genfeedai',
+          externalId: 'brand-user-id',
+          externalName: 'Genfeed',
+          id: 'credential-x',
+          label: 'X',
+          userId: 'user-1',
+          username: 'genfeedai',
+        },
+      ]);
+      context.prisma.post.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          description: 'Launch tweet',
+          externalId: '1970000000000000100',
+          id: 'post-x-1',
+          label: 'Launch',
+          url: 'https://x.com/genfeedai/status/1970000000000000100',
+        },
+      ]);
+      context.twitterService.listMentions.mockResolvedValue(recordedMentions);
+      context.twitterService.listPostReplies.mockResolvedValue(recordedReplies);
+    }
+
+    it('normalizes recorded mention and reply payloads through ingestInboundMessage', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestXComments(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 50 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 3, messagesCreated: 3 });
+      expect(context.conversations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            conversationType: SocialConversationType.COMMENT,
+            externalConversationId: '1980000000000000001',
+            platform: Platform.TWITTER,
+          }),
+          expect.objectContaining({
+            conversationType: SocialConversationType.COMMENT,
+            postId: 'post-x-1',
+            sourceContentId: '1970000000000000100',
+          }),
+        ]),
+      );
+      expect(context.prisma.credential.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          isConnected: true,
+          isDeleted: false,
+          organizationId: 'org-1',
+          platform: PrismaCredentialPlatform.TWITTER,
+        }),
+      });
+    });
+
+    it('is idempotent — a second poll of the same payloads creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestXComments(scope, { limit: 50 });
+      const second = await context.service.ingestXComments(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(3);
+    });
+
+    it('does not ingest when the X account is not connected', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([]);
+
+      const result = await context.service.ingestXComments(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { credentialId: 'credential-x' },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.twitterService.listMentions).not.toHaveBeenCalled();
+      expect(context.twitterService.listPostReplies).not.toHaveBeenCalled();
+    });
+
+    it('records a rate-limit and keeps the mention cursor for retry', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestXComments(scope, { limit: 50 });
+      const cursor = '1980000000000000002';
+      context.twitterService.listMentions.mockRejectedValue({
+        message: 'Too Many Requests',
+        status: 429,
+      });
+
+      await expect(
+        context.service.ingestXComments(scope, { limit: 50 }),
+      ).rejects.toMatchObject({
+        cursor,
+        isRateLimited: true,
+        name: SocialInboxProviderError.name,
+      });
+      expect(context.twitterService.listMentions).toHaveBeenLastCalledWith(
+        'org-1',
+        'brand-1',
+        { limit: 50, sinceId: cursor },
+      );
+      expect(context.messages).toHaveLength(3);
+    });
+  });
+
+  describe('ingestXDms', () => {
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@genfeedai',
+          externalId: 'brand-user-id',
+          externalName: 'Genfeed',
+          id: 'credential-x',
+          label: 'X',
+          userId: 'user-1',
+          username: 'genfeedai',
+        },
+      ]);
+      context.twitterService.listDirectMessages.mockResolvedValue([
+        {
+          conversationId: 'x-dm-thread-1',
+          messages: [
+            {
+              createdAt: new Date('2026-08-01T11:01:00.000Z'),
+              messageId: 'x-dm-2',
+              senderId: '2244994945',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Following up',
+            },
+            {
+              createdAt: new Date('2026-08-01T11:00:00.000Z'),
+              messageId: 'x-dm-1',
+              senderId: '2244994945',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Can we chat about pricing?',
+            },
+          ],
+          participantExternalId: '2244994945',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+        },
+      ]);
+    }
+
+    it('keys DM threads by the X conversation id with no post anchor', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestXDms(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 25 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations[0]).toMatchObject({
+        conversationType: SocialConversationType.DM,
+        externalConversationId: 'x-dm-thread-1',
+        latestMessageText: 'Following up',
+        participantExternalId: '2244994945',
+        platform: Platform.TWITTER,
+        sourceContentId: null,
+      });
+      expect(context.conversations[0].availability).toMatchObject({
+        canPostReply: false,
+        canSendDm: true,
+      });
+    });
+
+    it('is idempotent — a second poll of the same DM thread creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestXDms(scope, { limit: 25 });
+      const second = await context.service.ingestXDms(scope, { limit: 25 });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(2);
+    });
+  });
+
+  describe('ingestLinkedInComments', () => {
+    const recordedComments = [
+      {
+        authorExternalId: 'urn:li:person:abc',
+        authorName: 'Taylor',
+        commentId: 'urn:li:comment:(urn:li:activity:123,456)',
+        createdAt: new Date('2026-08-01T10:00:00.000Z'),
+        text: 'Congrats on the launch',
+        threadId: 'urn:li:comment:(urn:li:activity:123,456)',
+      },
+      {
+        authorExternalId: 'urn:li:person:def',
+        authorName: 'Jordan',
+        commentId: 'urn:li:comment:(urn:li:activity:123,789)',
+        createdAt: new Date('2026-08-01T10:01:00.000Z'),
+        text: 'When is the waitlist open?',
+        threadId: 'urn:li:comment:(urn:li:activity:123,456)',
+      },
+    ];
+
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: 'genfeed',
+          externalId: 'urn:li:person:brand',
+          externalName: 'Genfeed',
+          id: 'credential-li',
+          label: 'LinkedIn',
+          userId: 'user-1',
+          username: 'genfeed',
+        },
+      ]);
+      context.prisma.post.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          description: 'Launch post',
+          externalId: 'urn:li:share:123',
+          id: 'post-li-1',
+          label: 'Launch',
+          url: 'https://www.linkedin.com/feed/update/urn:li:share:123',
+        },
+      ]);
+      context.linkedInService.listPostComments.mockResolvedValue(
+        recordedComments,
+      );
+    }
+
+    it('normalizes recorded LinkedIn comments through the shared ingest path', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestLinkedInComments(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 50 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations[0]).toMatchObject({
+        conversationType: SocialConversationType.COMMENT,
+        externalConversationId: 'urn:li:comment:(urn:li:activity:123,456)',
+        platform: Platform.LINKEDIN,
+        postId: 'post-li-1',
+        sourceContentId: 'urn:li:share:123',
+      });
+      expect(context.prisma.credential.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          isConnected: true,
+          organizationId: 'org-1',
+          platform: PrismaCredentialPlatform.LINKEDIN,
+        }),
+      });
+    });
+
+    it('is idempotent — a second poll of the same comments creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestLinkedInComments(scope, { limit: 50 });
+      const second = await context.service.ingestLinkedInComments(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(2);
+    });
+
+    it('does not ingest from an unconnected LinkedIn account', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([]);
+
+      const result = await context.service.ingestLinkedInComments({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      });
+
+      expect(result).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.linkedInService.listPostComments).not.toHaveBeenCalled();
+    });
+
+    it('keeps the comment start cursor when LinkedIn rate-limits', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestLinkedInComments(scope, { limit: 50 });
+      context.linkedInService.listPostComments.mockRejectedValue({
+        message: 'Rate limit exceeded',
+        status: 429,
+      });
+
+      await expect(
+        context.service.ingestLinkedInComments(scope, { limit: 50 }),
+      ).rejects.toMatchObject({
+        cursor: '2',
+        isRateLimited: true,
+      });
+      expect(context.linkedInService.listPostComments).toHaveBeenLastCalledWith(
+        'org-1',
+        'brand-1',
+        'urn:li:share:123',
+        { limit: 50, start: 2 },
+      );
+      expect(context.messages).toHaveLength(2);
+    });
+  });
+
+  describe('ingestLinkedInDms', () => {
+    it('does not ingest when the connected-account path has no mailbox scope', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          id: 'credential-li',
+          userId: 'user-1',
+        },
+      ]);
+      context.linkedInService.listDirectMessages.mockResolvedValue({
+        isPermitted: false,
+        reason: 'LinkedIn messaging is not available on the connected account',
+        threads: [
+          {
+            conversationId: 'should-not-ingest',
+            messages: [
+              {
+                createdAt: new Date(),
+                messageId: 'li-dm-1',
+                text: 'secret',
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await context.service.ingestLinkedInDms({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      });
+
+      expect(result).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(0);
     });
   });
 });
