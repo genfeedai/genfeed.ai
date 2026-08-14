@@ -10,6 +10,7 @@ last_verified: 2026-08-14
 
 ## PR
 
+- Ready: https://github.com/genfeedai/genfeed.ai/pull/2947
 - Branch: `cursor/qa-coverage-hardening-de5a`
 - Refs #2687 (measure/gate remaining coverage surfaces)
 - Does not claim #1849 (changed-code ratchet already in CI observation), #1828 / PR #2934 (nightly Playwright full), #1593 / #1594 coverage PRs, or Fallow PRs
