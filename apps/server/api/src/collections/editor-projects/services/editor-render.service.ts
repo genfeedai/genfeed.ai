@@ -162,7 +162,7 @@ export class EditorRenderService {
     await this.notificationsPublisher.publishMediaFailed(
       WebSocketPaths.video(renderJob.ingredientId),
       'The render was cancelled.',
-      renderJob.authProviderUserId,
+      renderJob.userId,
       renderJob.room,
     );
 
@@ -224,17 +224,16 @@ export class EditorRenderService {
       const ingredientId = ingredientData.id.toString();
       outputIngredientId = ingredientId;
       renderJob = {
-        authProviderUserId: user.id,
         ingredientId,
         jobId,
         metadataId: metadataData.id.toString(),
         projectId: id,
         room,
+        userId: user.id,
       };
       await this.editorProjectsService.attachRenderJob(id, renderJob);
 
       const jobResponse = await this.fileQueueService.processVideo({
-        authProviderUserId: user.id,
         id: jobId,
         ingredientId,
         organizationId: orgId,

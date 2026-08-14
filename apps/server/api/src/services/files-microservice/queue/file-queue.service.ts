@@ -397,7 +397,6 @@ export class FileQueueService {
           `${this.filesServiceUrl}/v1/files/process/youtube`,
           {
             brandId: data.brandId,
-            authProviderUserId: data.authProviderUserId,
             credential: {
               accessToken: decryptedAccessToken,
               clientId: this.configService.get('YOUTUBE_CLIENT_ID'),

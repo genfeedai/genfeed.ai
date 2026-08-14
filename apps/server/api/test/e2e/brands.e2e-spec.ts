@@ -120,7 +120,6 @@ describe('Brands E2E Tests', () => {
   const authenticatedRequest = () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   };

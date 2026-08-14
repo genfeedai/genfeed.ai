@@ -41,11 +41,11 @@ export interface VideoGenerationProviderAdapter {
 
 export interface CreateVideoPlaceholderActivityParams {
   brandId: string;
-  authProviderUserId: string;
   ingredientId: string;
   model: string;
   organization: string;
   user: string;
+  userId: string;
 }
 
 export type VideoGenerationPublicMetadata = ReturnType<

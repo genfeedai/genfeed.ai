@@ -91,7 +91,6 @@ export class VideosEffectsController {
     const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
@@ -172,7 +171,6 @@ export class VideosEffectsController {
       const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
       this.fileQueueService
         .processVideo({
-          authProviderUserId: user.id,
           ingredientId: ingredientData.id.toString(),
           organizationId: publicMetadata.organization,
           params: {

@@ -38,7 +38,6 @@ describe('Better Auth config', () => {
       expect(origins).toContain('http://genfeed.localhost:*');
       expect(origins).toContain('https://*.genfeed.localhost');
       expect(origins).toContain('http://localhost:*');
-      expect(origins).toContain('http://local.genfeed.ai:*');
     });
 
     it('merges configured origins with the local-dev defaults and de-dupes', () => {
@@ -59,7 +58,6 @@ describe('Better Auth config', () => {
         ]);
         expect(origins).not.toContain('http://localhost:*');
         expect(origins).not.toContain('http://genfeed.localhost:*');
-        expect(origins).not.toContain('http://local.genfeed.ai:*');
       }
     });
 
@@ -170,7 +168,7 @@ describe('Better Auth config', () => {
       expect(runtime.cookieDomain).toBe('.genfeed.ai');
     });
 
-    it('auto-trusts localhost and local.genfeed.ai only outside production', () => {
+    it('auto-trusts localhost only outside production', () => {
       const development = resolveBetterAuthRuntimeConfig({
         BETTER_AUTH_SECRET: 'runtime-config-secret',
         NODE_ENV: 'development',
@@ -184,7 +182,7 @@ describe('Better Auth config', () => {
       expect(development.trustedOrigins).toEqual(
         expect.arrayContaining([
           'http://localhost:*',
-          'http://local.genfeed.ai:*',
+          'https://*.genfeed.localhost',
         ]),
       );
       expect(production.trustedOrigins).toEqual([

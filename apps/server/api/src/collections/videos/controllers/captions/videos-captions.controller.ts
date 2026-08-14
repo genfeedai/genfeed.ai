@@ -181,7 +181,6 @@ export class VideosCaptionsController {
     // Queue captions addition in files.genfeed service
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {

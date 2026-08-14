@@ -89,7 +89,6 @@ export class VideosResizeController {
 
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
@@ -164,7 +163,6 @@ export class VideosResizeController {
 
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {

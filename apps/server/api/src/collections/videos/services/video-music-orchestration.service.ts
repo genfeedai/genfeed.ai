@@ -51,7 +51,6 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 
 export interface OrchestrationContext {
   brandId: string;
-  authProviderUserId: string;
   organizationId: string;
   userId: string;
 }
@@ -204,10 +203,10 @@ export class VideoMusicOrchestrationService {
       activityId: activity.id.toString(),
       label: 'Generating Background Music',
       progress: 0,
-      room: getUserRoomName(context.authProviderUserId),
+      room: getUserRoomName(context.userId),
       status: 'processing',
       taskId: ingredientData.id.toString(),
-      userId: context.authProviderUserId,
+      userId: context.userId,
     });
 
     // Build prompt params
@@ -318,16 +317,15 @@ export class VideoMusicOrchestrationService {
       activityId,
       label: 'Adding Background Music',
       progress: 0,
-      room: getUserRoomName(context.authProviderUserId),
+      room: getUserRoomName(context.userId),
       status: 'processing',
       taskId: mergedIngredientId,
-      userId: context.authProviderUserId,
+      userId: context.userId,
     });
 
     // Queue merge operation
     try {
       const job = await this.fileQueueService.processVideo({
-        authProviderUserId: context.authProviderUserId,
         ingredientId: mergedIngredientId,
         organizationId: context.organizationId,
         params: {
@@ -336,7 +334,7 @@ export class VideoMusicOrchestrationService {
           musicVolume: musicVolume / 100, // Convert 0-100 to 0-1
           sourceIds: [videoIngredientId],
         },
-        room: getUserRoomName(context.authProviderUserId),
+        room: getUserRoomName(context.userId),
         type: JOB_TYPES.MERGE_VIDEOS,
         userId: context.userId,
         websocketUrl,
@@ -378,8 +376,8 @@ export class VideoMusicOrchestrationService {
           status: WebSocketEventStatus.COMPLETED,
           transformation: TransformationCategory.MERGED,
         },
-        context.authProviderUserId,
-        getUserRoomName(context.authProviderUserId),
+        context.userId,
+        getUserRoomName(context.userId),
       );
 
       // Update activity
@@ -401,10 +399,10 @@ export class VideoMusicOrchestrationService {
         progress: 100,
         resultId: mergedIngredientId,
         resultType: 'VIDEO',
-        room: getUserRoomName(context.authProviderUserId),
+        room: getUserRoomName(context.userId),
         status: 'completed',
         taskId: mergedIngredientId,
-        userId: context.authProviderUserId,
+        userId: context.userId,
       });
 
       this.loggerService.log('Video merged with background music', {
@@ -446,17 +444,17 @@ export class VideoMusicOrchestrationService {
         activityId,
         error: errorMessage,
         label: 'Failed to add background music',
-        room: getUserRoomName(context.authProviderUserId),
+        room: getUserRoomName(context.userId),
         status: 'failed',
         taskId: mergedIngredientId,
-        userId: context.authProviderUserId,
+        userId: context.userId,
       });
 
       await this.websocketService.publishMediaFailed(
         websocketUrl,
         `Failed to add background music: ${errorMessage}`,
-        context.authProviderUserId,
-        getUserRoomName(context.authProviderUserId),
+        context.userId,
+        getUserRoomName(context.userId),
       );
 
       throw new HttpException(

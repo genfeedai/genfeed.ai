@@ -88,7 +88,6 @@ export class VideoGenerationCompletionService {
         resolveBackgroundMusicVolume(context.createVideoDto.musicVolume),
         context.createVideoDto.muteVideoAudio ?? false,
         {
-          authProviderUserId: context.user.id,
           brandId: context.brand.id.toString(),
           organizationId: context.publicMetadata.organization,
           userId: context.publicMetadata.user,

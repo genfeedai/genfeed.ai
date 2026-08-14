@@ -777,19 +777,15 @@ export class PostsService extends BaseService<
       const brandId = post.brandId;
       const organizationId = post.organizationId;
       const userId = post.userId;
-      const authProviderUserId = userId;
 
       await this.fileQueueService?.uploadYoutube({
         brandId,
-        authProviderUserId,
         credentialId: credential.id.toString(),
         description: post.description || '',
         ingredientId: ingredient.id.toString(),
         organizationId,
         postId,
-        room: authProviderUserId
-          ? getUserRoomName(authProviderUserId)
-          : undefined,
+        room: userId ? getUserRoomName(userId) : undefined,
         scheduledDate: post.scheduledDate ?? undefined,
         visibility: originalVisibility,
         tags:

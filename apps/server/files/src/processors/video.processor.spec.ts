@@ -93,7 +93,6 @@ class MockLoggerService {
 const createMockJobData = (
   overrides: Partial<VideoJobData> = {},
 ): VideoJobData => ({
-  authProviderUserId: 'authProvider-user-123',
   createdAt: new Date(),
   id: 'job-data-123',
   ingredientId: 'test-ingredient-123',
@@ -642,9 +641,9 @@ describe('VideoProcessor', () => {
       );
     });
 
-    it('should skip background task updates when no authProviderUserId', async () => {
+    it('should skip background task updates when no userId', async () => {
       const data = createMockJobData({
-        authProviderUserId: undefined,
+        userId: undefined as unknown as string,
         params: { sourceIds: ['source1'] },
       });
       const job = createMockJob(JOB_TYPES.MERGE_VIDEOS, data);

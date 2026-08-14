@@ -366,7 +366,7 @@ describe('EditorRenderService', () => {
   it('cancels the owning render job and records a retry-safe terminal state', async () => {
     editorProjectsService.readRenderProvenance.mockReturnValue({
       job: {
-        authProviderUserId: 'auth-provider-user',
+        userId: 'auth-provider-user',
         ingredientId: 'output-video-123',
         jobId: 'job-123',
         metadataId: 'output-metadata-123',
@@ -404,7 +404,7 @@ describe('EditorRenderService', () => {
   it('does not repeat cancellation side effects after another writer wins', async () => {
     editorProjectsService.readRenderProvenance.mockReturnValue({
       job: {
-        authProviderUserId: 'auth-provider-user',
+        userId: 'auth-provider-user',
         ingredientId: 'output-video-123',
         jobId: 'job-123',
         metadataId: 'output-metadata-123',

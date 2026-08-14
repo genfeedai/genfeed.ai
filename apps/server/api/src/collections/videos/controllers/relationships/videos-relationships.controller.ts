@@ -243,7 +243,6 @@ export class VideosRelationshipsController {
     // Queue merge videos operation
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId,
         organizationId: publicMetadata.organization,
         params: {
@@ -278,7 +277,6 @@ export class VideosRelationshipsController {
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
           const portraitJob = await this.fileQueueService.processVideo({
-            authProviderUserId: user.id,
             ingredientId,
             organizationId: publicMetadata.organization,
             params: {
@@ -324,7 +322,6 @@ export class VideosRelationshipsController {
 
             // Queue captions addition in files.genfeed service
             const captionsJob = await this.fileQueueService.processVideo({
-              authProviderUserId: user.id,
               ingredientId,
               organizationId: publicMetadata.organization,
               params: {

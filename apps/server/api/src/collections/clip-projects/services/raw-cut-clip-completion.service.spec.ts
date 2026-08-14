@@ -11,7 +11,6 @@ function makeClip(
   overrides: Partial<ClipResultDocument> = {},
 ): ClipResultDocument {
   return {
-    authProviderUserId: 'auth-user-1',
     captionSrt: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
     createdAt: new Date(),
     data: {},
@@ -117,7 +116,6 @@ describe('RawCutClipCompletionService', () => {
 
     expect(handled).toBe(true);
     expect(fileQueueService.processVideo).toHaveBeenCalledWith({
-      authProviderUserId: 'auth-user-1',
       id: 'raw-cut-caption-clip-1',
       ingredientId: 'clip-1',
       organizationId: 'org-1',
@@ -235,7 +233,6 @@ describe('RawCutClipCompletionService', () => {
     await service.reconcileActiveClips();
 
     expect(rawCutClipService.dispatchClip).toHaveBeenCalledWith({
-      authProviderUserId: 'auth-user-1',
       captionSrt: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
       clipResultId: 'clip-1',
       endTime: 20,

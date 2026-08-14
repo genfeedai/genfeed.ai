@@ -47,12 +47,12 @@ export class VideoGenerationExecutionService {
 
   async execute(context: VideoGenerationContext): Promise<void> {
     await this.createPlaceholderActivity({
-      authProviderUserId: context.user.id,
       brandId: context.brand.id,
       ingredientId: context.ingredientData.id,
       model: context.model,
       organization: context.publicMetadata.organization,
       user: context.publicMetadata.user,
+      userId: context.user.id,
     });
     const outputs = context.createVideoDto.outputs || 1;
     this.loggerService.debug('Video generation request received', {
@@ -116,12 +116,12 @@ export class VideoGenerationExecutionService {
     await Promise.all(
       additionalDocuments.map(({ ingredientData }) =>
         this.createPlaceholderActivity({
-          authProviderUserId: context.user.id,
           brandId: context.brand.id,
           ingredientId: ingredientData.id,
           model: context.model,
           organization: context.publicMetadata.organization,
           user: context.publicMetadata.user,
+          userId: context.user.id,
         }),
       ),
     );
@@ -164,12 +164,12 @@ export class VideoGenerationExecutionService {
         }),
       ]);
       await this.createPlaceholderActivity({
-        authProviderUserId: context.user.id,
         brandId: context.brand.id,
         ingredientId: documents.ingredientData.id,
         model: context.model,
         organization: context.publicMetadata.organization,
         user: context.publicMetadata.user,
+        userId: context.user.id,
       });
     }
 
@@ -290,10 +290,10 @@ export class VideoGenerationExecutionService {
       activityId: activity.id.toString(),
       label: 'Video Generation',
       progress: 0,
-      room: getUserRoomName(params.authProviderUserId),
+      room: getUserRoomName(params.userId),
       status: 'processing',
       taskId: params.ingredientId.toString(),
-      userId: params.authProviderUserId,
+      userId: params.userId,
     });
   }
 }
