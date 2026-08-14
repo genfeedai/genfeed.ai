@@ -15,11 +15,14 @@ import type {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';
 const FIRST_UPLOAD_KEY = 'first-upload-platform-signal';
+const FIRST_PUBLISH_KEY = 'first-publish-platform-signal';
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
+const INSTAGRAM_AUTHORIZED_STORAGE_KEY = 'instagramAuthorized';
 const TWITTER_AUTHORIZED_STORAGE_KEY = 'twitterAuthorized';
 
 const AUTHORIZED_SNAPSHOT_STORAGE_KEYS = [
   TIKTOK_AUTHORIZED_STORAGE_KEY,
+  INSTAGRAM_AUTHORIZED_STORAGE_KEY,
   TWITTER_AUTHORIZED_STORAGE_KEY,
 ] as const;
 
@@ -29,6 +32,7 @@ const TIKTOK_REQUIRED_WARMUP_SCOPES = [
   'video.list',
 ] as const;
 
+const INSTAGRAM_REQUIRED_WARMUP_SCOPES = ['instagram_basic'] as const;
 const TWITTER_REQUIRED_WARMUP_SCOPES = ['users.read', 'tweet.read'] as const;
 
 export const ENROLLMENT_UNIQUE_CONSTRAINT =
@@ -168,6 +172,13 @@ export function resolveSocialWarmupAccountAge(
     return ageFromSignal(firstUpload, now, FIRST_UPLOAD_KEY);
   }
 
+  const firstPublish = signals.find(
+    (signal) => signal.key === FIRST_PUBLISH_KEY,
+  );
+  if (firstPublish) {
+    return ageFromSignal(firstPublish, now, FIRST_PUBLISH_KEY);
+  }
+
   return {
     accountAgeDays: null,
     accountAgeStatus: SocialWarmupSignalStatus.MISSING,
@@ -200,6 +211,10 @@ export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
     hasPartialAuthorizedSnapshot(
       readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]),
       TIKTOK_REQUIRED_WARMUP_SCOPES,
+    ) ||
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[INSTAGRAM_AUTHORIZED_STORAGE_KEY]),
+      INSTAGRAM_REQUIRED_WARMUP_SCOPES,
     ) ||
     hasPartialAuthorizedSnapshot(
       readRecord(stored[TWITTER_AUTHORIZED_STORAGE_KEY]),
@@ -388,9 +403,11 @@ function ageFromSignal(
 function daysFromEvidence(evidence: unknown, now: Date): number | null {
   const record = readRecord(evidence);
   const nestedVideo = readRecord(record.video);
+  const nestedMedia = readRecord(record.media);
   const createTime =
     readUnixSeconds(record.createTime) ??
     readUnixSeconds(nestedVideo.createTime) ??
+    readUnixSeconds(nestedMedia.createTime) ??
     readUnixSeconds(record.accountCreateTime);
   if (createTime !== undefined) {
     return Math.max(

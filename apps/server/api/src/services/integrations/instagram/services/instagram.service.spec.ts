@@ -337,8 +337,61 @@ describe('InstagramService', () => {
 
       const result = await service.getValidCredential('org-id', 'brand-id');
 
-      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id');
+      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id', undefined);
       expect(result.accessToken).toBe('new-token');
+    });
+
+    it('looks up a specific credential when an id is provided', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'fresh-token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        externalId: 'ig-account-id',
+        id: 'credential-42',
+        isConnected: true,
+      });
+
+      await service.getValidCredential('org-id', 'brand-id', 'credential-42');
+
+      expect(credentialsMock.findOne).toHaveBeenCalledWith({
+        id: 'credential-42',
+        organizationId: 'org-id',
+        platform: 'instagram',
+      });
+    });
+  });
+
+  describe('handleAuthorizationError', () => {
+    it('disconnects only on Graph authorization failures', async () => {
+      credentialsMock.patch = vi.fn().mockResolvedValue({});
+
+      await expect(
+        service.handleAuthorizationError(
+          'credential-id',
+          {
+            response: {
+              data: { error: { code: 190, message: 'Invalid token' } },
+              status: 401,
+            },
+          },
+          'refresh',
+        ),
+      ).resolves.toBe(true);
+      expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
+        isConnected: false,
+      });
+
+      await expect(
+        service.handleAuthorizationError(
+          'credential-id',
+          {
+            response: {
+              data: { error: { code: 10, message: 'Permission denied' } },
+              status: 403,
+            },
+          },
+          'refresh',
+        ),
+      ).resolves.toBe(false);
     });
   });
 
