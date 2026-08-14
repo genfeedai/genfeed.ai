@@ -6,7 +6,6 @@ import { type ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -53,13 +52,11 @@ export class ClipResultsController {
     @Body() createClipResultDto: CreateClipResultDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data: ClipResultDocument =
       await this.clipResultsService.createForOrganization({
         ...createClipResultDto,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       });
 
     return serializeSingle(request, ClipResultSerializer, data);
@@ -73,13 +70,12 @@ export class ClipResultsController {
     @Query('filter[project]') filterProjectId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const resolvedProjectId = projectId || filterProjectId;
 
     if (resolvedProjectId) {
       const data = await this.clipResultsService.findByProject(
         resolvedProjectId,
-        publicMetadata.organization,
+        user.organizationId,
         CLIP_RESULTS_LIST_LIMIT,
       );
       return serializeCollection(request, ClipResultSerializer, {
@@ -97,7 +93,7 @@ export class ClipResultsController {
     }
 
     const data = await this.clipResultsService.findRecentByOrganization(
-      publicMetadata.organization,
+      user.organizationId,
       CLIP_RESULTS_LIST_LIMIT,
     );
 
@@ -122,11 +118,9 @@ export class ClipResultsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.clipResultsService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!data) {
@@ -144,11 +138,9 @@ export class ClipResultsController {
     @Body() updateClipResultDto: UpdateClipResultDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const existing = await this.clipResultsService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!existing) {

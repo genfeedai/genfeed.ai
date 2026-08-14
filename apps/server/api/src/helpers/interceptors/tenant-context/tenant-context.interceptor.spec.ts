@@ -40,9 +40,7 @@ describe('TenantContextInterceptor', () => {
     await expect(
       readContext({
         user: {
-          publicMetadata: {
-            organization: 'org-meta',
-          },
+          organizationId: 'org-meta',
         },
       }),
     ).resolves.toEqual({ organizationId: 'org-meta' });

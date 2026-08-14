@@ -10,7 +10,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 const mockUser = {
   id: 'user_authProvider',
-  publicMetadata: { organization: 'org-1', user: 'user-1' },
+  organizationId: 'org-1',
+  userId: 'user-1',
 } as unknown as User;
 
 const mockPackage = {

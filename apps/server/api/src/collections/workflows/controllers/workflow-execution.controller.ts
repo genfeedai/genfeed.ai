@@ -15,7 +15,6 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/enums';
@@ -72,12 +71,11 @@ export class WorkflowExecutionController {
     | { data: { runId: string; status: string; message: string } }
   > {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       const result = await this.workflowRunControlService.executePartial(
         workflowId,
         dto.nodeIds,
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
         { dryRun: dto.dryRun, respectLocks: dto.respectLocks },
       );
 
@@ -101,20 +99,19 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       await this.workflowExecutionAuthorizationService.authorize({
         expectedContextVersion: dto.expectedContextVersion,
-        organizationId: publicMetadata.organization,
-        requestedBrandId: publicMetadata.brand || undefined,
+        organizationId: user.organizationId,
+        requestedBrandId: user.brandId || undefined,
         threadId: dto.threadId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         workflowId,
       });
       const result = await this.workflowRunControlService.resumeFromFailed(
         workflowId,
         runId,
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
       );
 
       return { data: result };
@@ -129,10 +126,9 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<{ data: CreditEstimate }> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       const estimate = await this.workflowRunControlService.validateCredits(
         workflowId,
-        publicMetadata.organization,
+        user.organizationId,
         query.nodeIds,
       );
 
@@ -148,11 +144,10 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<{ data: unknown }> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       const logs = await this.workflowRunControlService.getExecutionLogs(
         workflowId,
         runId,
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       return { data: logs };
@@ -178,21 +173,20 @@ export class WorkflowExecutionController {
     };
   }> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       await this.workflowExecutionAuthorizationService.authorize({
         expectedContextVersion: dto.expectedContextVersion,
-        organizationId: publicMetadata.organization,
-        requestedBrandId: publicMetadata.brand || undefined,
+        organizationId: user.organizationId,
+        requestedBrandId: user.brandId || undefined,
         threadId: dto.threadId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         workflowId,
       });
       const result =
         await this.workflowExecutorService.submitReviewGateApproval(
           workflowId,
           executionId,
-          publicMetadata.user,
-          publicMetadata.organization,
+          user.userId ?? user.id,
+          user.organizationId,
           dto.nodeId,
           dto.approved,
           dto.rejectionReason,
@@ -217,17 +211,16 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
       await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       });
 
       if (dto.lock && dto.lock.length > 0) {
         await this.workflowsService.lockNodes(
           workflowId,
           dto.lock,
-          publicMetadata.organization,
+          user.organizationId,
         );
       }
 
@@ -235,15 +228,15 @@ export class WorkflowExecutionController {
         await this.workflowsService.unlockNodes(
           workflowId,
           dto.unlock,
-          publicMetadata.organization,
+          user.organizationId,
         );
       }
 
       const workflow = await this.workflowsService.findOwnedOrThrow(
         workflowId,
         {
-          organizationId: publicMetadata.organization,
-          userId: publicMetadata.user,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
         },
       );
 

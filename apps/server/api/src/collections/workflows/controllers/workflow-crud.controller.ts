@@ -16,7 +16,6 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -87,13 +86,11 @@ export class WorkflowCrudController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-
       const workflow = await this.workflowsService.createWorkflow(
-        publicMetadata.user,
-        publicMetadata.organization,
+        user.userId ?? user.id,
+        user.organizationId,
         createWorkflowDto,
-        publicMetadata.brand || undefined,
+        user.brandId || undefined,
       );
 
       return serializeSingle(
@@ -115,15 +112,13 @@ export class WorkflowCrudController {
     | SystemWorkflowCatalogResponse
     | WorkflowStatisticsResponse
   > {
-    const publicMetadata = getPublicMetadata(user);
-
     // Code-owned system catalog (not persisted rows). Same collection resource
     // as workflows; filter via query instead of a parallel /system-catalog path.
     if (query.source === 'system-catalog') {
       return wrapError(async () => {
         const data =
           await this.systemWorkflowCatalogService.listCatalogForOrganization(
-            publicMetadata.organization,
+            user.organizationId,
           );
         return { data };
       }, 'Failed to list system workflow catalog');
@@ -132,8 +127,8 @@ export class WorkflowCrudController {
     if (query.view === 'statistics') {
       return wrapError(async () => {
         const stats = await this.workflowsService.getWorkflowStatistics(
-          publicMetadata.user,
-          publicMetadata.organization,
+          user.userId ?? user.id,
+          user.organizationId,
         );
         return { data: stats };
       }, 'Failed to load workflow statistics');
@@ -153,14 +148,14 @@ export class WorkflowCrudController {
       ? {
           ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         }
       : {
           ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           OR: [
-            { userId: publicMetadata.user },
+            { userId: user.userId ?? user.id },
             {
               metadata: {
                 equals: 'organization',
@@ -189,10 +184,9 @@ export class WorkflowCrudController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ): Promise<{ data: Record<string, unknown> | null }> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     const template = (workflow as WorkflowDocument).comfyuiTemplate;
@@ -213,12 +207,11 @@ export class WorkflowCrudController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findVisibleOrThrow(
       workflowId,
       {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -248,8 +241,6 @@ export class WorkflowCrudController {
     @Body() updateWorkflowDto: UpdateWorkflowDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Marketplace publish: flip public + template and run the seller-lookup +
     // listing-creation cascade behind the service. Self-guards via
     // findMutableOwnedOrThrow inside the service.
@@ -260,8 +251,8 @@ export class WorkflowCrudController {
       return wrapError(async () => {
         const workflow = await this.workflowsService.publishToMarketplace(
           workflowId,
-          publicMetadata.user,
-          publicMetadata.organization,
+          user.userId ?? user.id,
+          user.organizationId,
         );
 
         return serializeSingle(request, WorkflowSerializer, workflow);
@@ -271,8 +262,8 @@ export class WorkflowCrudController {
     const workflow = await this.workflowsService.findMutableOwnedOrThrow(
       workflowId,
       {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -316,8 +307,8 @@ export class WorkflowCrudController {
         const updated = await this.workflowsService.findOwnedOrThrow(
           workflowId,
           {
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           },
         );
 
@@ -347,10 +338,9 @@ export class WorkflowCrudController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     const data = await this.workflowsService.remove(workflowId);

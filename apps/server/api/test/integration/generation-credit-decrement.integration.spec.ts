@@ -101,11 +101,9 @@ const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
 const buildUser = (organization: string = ORG): User =>
   ({
     id: 'auth-user-1',
-    publicMetadata: {
-      brand: 'brand-from-token',
-      organization,
-      user: 'user-1',
-    },
+    brandId: 'brand-from-token',
+    organization,
+    userId: 'user-1',
   }) as unknown as User;
 
 const buildRequest = (

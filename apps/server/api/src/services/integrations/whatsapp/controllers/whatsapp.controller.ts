@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { returnBadRequest } from '@api/helpers/utils/response/response.util';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import type {
@@ -32,8 +31,6 @@ export class WhatsappController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { to: body.to });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!body.brandId) {
       return returnBadRequest({
         detail: 'Brand ID is required',
@@ -43,7 +40,7 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -73,8 +70,6 @@ export class WhatsappController {
       to: body.to,
     });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!body.brandId) {
       return returnBadRequest({
         detail: 'Brand ID is required',
@@ -84,7 +79,7 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -107,8 +102,6 @@ export class WhatsappController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { messageSid });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!brandId) {
       return returnBadRequest({
         detail: 'Brand ID is required',
@@ -118,7 +111,7 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {

@@ -129,19 +129,19 @@ export class AvatarVideoGenerationService {
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organizationId: context.organizationId,
+          organizationId: context.user.organizationId,
           parentId:
             resolvedIdentity.photoIngredientId != null
               ? resolvedIdentity.photoIngredientId
               : undefined,
           status: IngredientStatus.PROCESSING,
-          userId: context.userId,
+          userId: context.user.userId,
         });
 
       ingredientId = String(ingredientData.id);
 
       const heygenByokKey = await this.byokService.resolveApiKey(
-        context.organizationId,
+        context.user.organizationId,
         ByokProvider.HEYGEN,
       );
       const externalId = await this.heygenService.generatePhotoAvatarVideo(
@@ -152,8 +152,8 @@ export class AvatarVideoGenerationService {
           inputText: params.text,
           voiceId: heygenVoiceId,
         },
-        context.organizationId,
-        context.userId,
+        context.user.organizationId,
+        context.user.userId,
         heygenByokKey?.apiKey,
         params.aspectRatio ?? '9:16',
       );
@@ -167,14 +167,14 @@ export class AvatarVideoGenerationService {
       );
 
       await this.creditsUtilsService.deductCreditsFromOrganization(
-        context.organizationId,
-        context.userId,
+        context.user.organizationId,
+        context.user.userId,
         1,
         `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
         ActivitySource.VIDEO_GENERATION,
       );
 
-      await this.publishInitialStatus(ingredientId, context.userId);
+      await this.publishInitialStatus(ingredientId, context.user.userId);
 
       return {
         externalId,
@@ -189,8 +189,8 @@ export class AvatarVideoGenerationService {
           this.videosService,
           ingredientId,
           WebSocketPaths.video(ingredientId),
-          context.userId,
-          getUserRoomName(context.userId),
+          context.user.userId,
+          getUserRoomName(context.user.userId),
         );
       }
 
@@ -232,7 +232,7 @@ export class AvatarVideoGenerationService {
     ) {
       const clonedVoice = await this.findVoiceById(
         params.clonedVoiceId,
-        context.organizationId,
+        context.user.organizationId,
       );
 
       if (clonedVoice?.isCloned) {
@@ -245,7 +245,7 @@ export class AvatarVideoGenerationService {
                 : clonedVoice.provider,
           },
           params.text,
-          context.organizationId,
+          context.user.organizationId,
         );
 
         resolved.audioUrl = resolvedClonedVoice.audioUrl;
@@ -261,7 +261,7 @@ export class AvatarVideoGenerationService {
     }
 
     const organizationSettings = await this.orgSettingsService.findOne({
-      organizationId: context.organizationId,
+      organizationId: context.user.organizationId,
     });
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({
       brand,
@@ -298,7 +298,7 @@ export class AvatarVideoGenerationService {
     ) {
       const resolvedBrandDefaultVoice = await this.resolveSavedVoiceRef(
         brandIdentityDefaults.defaultVoiceRef,
-        context.organizationId,
+        context.user.organizationId,
         params.text,
       );
       resolved.audioUrl = resolvedBrandDefaultVoice.audioUrl;
@@ -317,13 +317,13 @@ export class AvatarVideoGenerationService {
     ) {
       const brandVoice = await this.findVoiceById(
         brandIdentityDefaults.defaultVoiceId.toString(),
-        context.organizationId,
+        context.user.organizationId,
       );
       if (brandVoice) {
         const resolvedBrandVoice = await this.resolveVoiceDocument(
           brandVoice,
           params.text,
-          context.organizationId,
+          context.user.organizationId,
         );
         resolved.audioUrl = resolvedBrandVoice.audioUrl;
         resolved.elevenlabsVoiceId =
@@ -359,7 +359,7 @@ export class AvatarVideoGenerationService {
     ) {
       const resolvedOrganizationDefaultVoice = await this.resolveSavedVoiceRef(
         organizationIdentityDefaults.defaultVoiceRef,
-        context.organizationId,
+        context.user.organizationId,
         params.text,
       );
       resolved.audioUrl = resolvedOrganizationDefaultVoice.audioUrl;
@@ -379,13 +379,13 @@ export class AvatarVideoGenerationService {
     ) {
       const organizationVoice = await this.findVoiceById(
         organizationIdentityDefaults.defaultVoiceId.toString(),
-        context.organizationId,
+        context.user.organizationId,
       );
       if (organizationVoice) {
         const resolvedOrganizationVoice = await this.resolveVoiceDocument(
           organizationVoice,
           params.text,
-          context.organizationId,
+          context.user.organizationId,
         );
         resolved.audioUrl = resolvedOrganizationVoice.audioUrl;
         resolved.elevenlabsVoiceId =
@@ -455,7 +455,7 @@ export class AvatarVideoGenerationService {
       const avatarIngredient =
         await this.ingredientsService.findAvatarImageById(
           resolvedPhotoIngredientId,
-          context.organizationId,
+          context.user.organizationId,
         );
 
       if (!avatarIngredient) {
@@ -488,11 +488,11 @@ export class AvatarVideoGenerationService {
     }
 
     const heygenByokKey = await this.byokService.resolveApiKey(
-      context.organizationId,
+      context.user.organizationId,
       ByokProvider.HEYGEN,
     );
     const avatars = await this.heygenService.getAvatars(
-      context.organizationId,
+      context.user.organizationId,
       undefined,
       heygenByokKey?.apiKey,
     );
@@ -538,15 +538,15 @@ export class AvatarVideoGenerationService {
       }
 
       const elevenLabsByokKey = await this.byokService.resolveApiKey(
-        context.organizationId,
+        context.user.organizationId,
         ByokProvider.ELEVENLABS,
       );
       const audioResult = await this.elevenlabsService.generateAndUploadAudio(
         resolvedIdentity.elevenlabsVoiceId,
         params.text,
         randomUUID(),
-        context.organizationId,
-        context.userId,
+        context.user.organizationId,
+        context.user.userId,
         elevenLabsByokKey?.apiKey,
       );
 
@@ -684,17 +684,17 @@ export class AvatarVideoGenerationService {
   private async findBrandForContext(
     context: AvatarVideoGenerationContext,
   ): Promise<BrandDocument> {
-    const brand = context.brandId
+    const brand = context.user.brandId
       ? await this.brandsService.findOne(
           {
-            id: context.brandId,
-            organizationId: context.organizationId,
+            id: context.user.brandId,
+            organizationId: context.user.organizationId,
           },
           'none',
         )
       : await this.brandsService.findOne(
           {
-            organizationId: context.organizationId,
+            organizationId: context.user.organizationId,
           },
           'none',
         );
@@ -702,7 +702,7 @@ export class AvatarVideoGenerationService {
     if (!brand) {
       throw new HttpException(
         {
-          detail: `No active brand found for organization ${context.organizationId}`,
+          detail: `No active brand found for organization ${context.user.organizationId}`,
           title: 'Validation failed',
         },
         HttpStatus.BAD_REQUEST,

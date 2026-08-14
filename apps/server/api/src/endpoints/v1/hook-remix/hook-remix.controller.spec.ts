@@ -20,13 +20,6 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
       descriptor,
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439012',
-  }),
-}));
-
 describe('HookRemixController', () => {
   const orgId = '507f191e810c19729de860ee'.toString();
   const userId = '507f191e810c19729de860ee'.toString();
@@ -45,7 +38,9 @@ describe('HookRemixController', () => {
 
   const mockUser = {
     id: 'authProvider_user_1',
-    publicMetadata: { organization: orgId, user: userId },
+    isSuperAdmin: false,
+    organizationId: orgId,
+    userId: userId,
   } as unknown as User;
 
   beforeEach(async () => {
@@ -55,14 +50,6 @@ describe('HookRemixController', () => {
       getJob: vi.fn(),
     };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-
-    const { getPublicMetadata } = await import(
-      '@api/helpers/utils/auth/auth.util'
-    );
-    (getPublicMetadata as ReturnType<typeof vi.fn>).mockReturnValue({
-      organization: orgId,
-      user: userId,
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HookRemixController],
@@ -124,15 +111,16 @@ describe('HookRemixController', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
-    it('should extract org and user from legacy auth provider public metadata', async () => {
+    it('should extract org and user from canonical identity fields', async () => {
       hookRemixService.createHookRemix.mockResolvedValue({ jobId: 'j1' });
-      const { getPublicMetadata } = await import(
-        '@api/helpers/utils/auth/auth.util'
-      );
 
       await controller.createHookRemix(dto, mockUser);
 
-      expect(getPublicMetadata).toHaveBeenCalledWith(mockUser);
+      expect(hookRemixService.createHookRemix).toHaveBeenCalledWith(
+        dto,
+        userId,
+        orgId,
+      );
     });
   });
 

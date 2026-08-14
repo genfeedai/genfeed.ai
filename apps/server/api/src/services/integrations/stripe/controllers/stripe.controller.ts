@@ -6,7 +6,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -94,7 +93,6 @@ export class StripeController {
       const { stripePriceId, quantity } = createCheckoutSessionDto;
       const { emailAddresses } = user;
 
-      const publicMetadata = getPublicMetadata(user);
       const email = emailAddresses?.[0]?.emailAddress;
 
       if (!email) {
@@ -115,16 +113,16 @@ export class StripeController {
       }
 
       let subscription = await this.subscriptionsService.findByOrganizationId(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          id: publicMetadata.organization,
+          id: user.organizationId,
         });
 
         if (!organization) {
-          return returnNotFound('Organization', publicMetadata.organization);
+          return returnNotFound('Organization', user.organizationId);
         }
 
         subscription = await this.subscriptionsService.createForOrganization(
@@ -147,7 +145,7 @@ export class StripeController {
       // local key) must be recreated on the active Genfeed account.
       let replacedStripeCustomerId: string | null = null;
       const customer = await this.customersService.provisionForOrganization(
-        publicMetadata.organization,
+        user.organizationId,
         async (currentStripeCustomerId) => {
           const liveCustomer = currentStripeCustomerId
             ? await this.stripeService.retrieveCustomer(currentStripeCustomerId)
@@ -157,11 +155,11 @@ export class StripeController {
           }
 
           const organization = await this.organizationsService.findOne({
-            id: publicMetadata.organization,
+            id: user.organizationId,
             isDeleted: false,
           });
           if (!organization) {
-            return returnNotFound('Organization', publicMetadata.organization);
+            return returnNotFound('Organization', user.organizationId);
           }
 
           replacedStripeCustomerId = currentStripeCustomerId;
@@ -187,7 +185,7 @@ export class StripeController {
         this.loggerService.warn(
           `${url} recreated missing Stripe customer for org checkout`,
           {
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             previousStripeCustomerId: replacedStripeCustomerId,
             stripeCustomerId,
           },
@@ -212,7 +210,7 @@ export class StripeController {
       await this.lifecycleEmailService.recordCheckoutStarted({
         checkoutSessionId: result.id,
         checkoutUrl: result.url,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: 'organization-checkout',
         userId: dbUser.id.toString(),
       });
@@ -239,9 +237,7 @@ export class StripeController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url);
 
-    const publicMetadata = getPublicMetadata(user);
-
-    if (!publicMetadata.organization) {
+    if (!user.organizationId) {
       return returnBadRequest({
         message: 'Organization is required',
         success: false,
@@ -275,16 +271,16 @@ export class StripeController {
       }
 
       let subscription = await this.subscriptionsService.findByOrganizationId(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          id: publicMetadata.organization,
+          id: user.organizationId,
         });
 
         if (!organization) {
-          return returnNotFound('Organization', publicMetadata.organization);
+          return returnNotFound('Organization', user.organizationId);
         }
 
         subscription = await this.subscriptionsService.createForOrganization(
@@ -294,7 +290,7 @@ export class StripeController {
         );
       }
       const stripeCustomerId = await this.resolveOrgStripeCustomerId(
-        publicMetadata.organization,
+        user.organizationId,
         subscription,
       );
       if (!stripeCustomerId) {
@@ -348,9 +344,7 @@ export class StripeController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url);
 
-    const publicMetadata = getPublicMetadata(user);
-
-    if (!publicMetadata.organization) {
+    if (!user.organizationId) {
       return returnNotFound('Organization', 'user');
     }
 
@@ -366,14 +360,14 @@ export class StripeController {
     try {
       // Find organization subscription
       const subscription = await this.subscriptionsService.findByOrganizationId(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       if (!subscription) {
-        return returnNotFound('Subscription', publicMetadata.organization);
+        return returnNotFound('Subscription', user.organizationId);
       }
       const stripeCustomerId = await this.resolveOrgStripeCustomerId(
-        publicMetadata.organization,
+        user.organizationId,
         subscription,
       );
       if (!stripeCustomerId) {

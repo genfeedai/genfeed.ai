@@ -81,7 +81,12 @@ export const mockRequest = (overrides: unknown = {}) => ({
   headers: {},
   params: {},
   query: {},
-  user: { email: 'test@example.com', id: 'user-id' },
+  user: {
+    email: 'test@example.com',
+    id: 'user-id',
+    isSuperAdmin: false,
+    userId: 'user-id',
+  },
   ...overrides,
 });
 
@@ -108,10 +113,9 @@ export const mockAuthProviderService = (): MockAuthMetadataService => ({
   getUser: vi.fn().mockResolvedValue({
     emailAddresses: [{ emailAddress: 'test@example.com' }],
     id: 'authProvider-user-id',
-    publicMetadata: {
-      organization: 'org-id',
-      user: 'user-id',
-    },
+    isSuperAdmin: false,
+    organizationId: 'org-id',
+    userId: 'user-id',
   }),
   updateUser: vi.fn().mockResolvedValue({}),
   updateUserPrivateMetadata: vi.fn().mockResolvedValue({}),

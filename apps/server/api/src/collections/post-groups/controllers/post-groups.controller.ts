@@ -6,7 +6,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -43,7 +42,7 @@ export class PostGroupsController {
     @CurrentUser() user: User,
     @Query() query: PostGroupsQueryDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.postGroupsService.list(organization, query);
     return serializeCollection(req, ReleaseGroupSerializer, data);
   }
@@ -61,7 +60,7 @@ export class PostGroupsController {
     @Body() body: unknown,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const data = await this.postGroupsService.create(
       metadata.organization,
       user.id,
@@ -81,7 +80,7 @@ export class PostGroupsController {
     @CurrentUser() user: User,
     @Body() body: unknown,
   ) {
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const postId =
       body && typeof body === 'object' && !Array.isArray(body)
         ? (body as Record<string, unknown>).postId
@@ -108,7 +107,7 @@ export class PostGroupsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.postGroupsService.getOne(organization, id);
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
@@ -127,7 +126,7 @@ export class PostGroupsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const organization = metadata.organization;
     const action =
       body && typeof body === 'object' && !Array.isArray(body)
@@ -207,7 +206,7 @@ export class PostGroupsController {
     @Param('targetId') targetId: string,
     @Body() body: unknown,
   ) {
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const action =
       body && typeof body === 'object' && !Array.isArray(body)
         ? (body as Record<string, unknown>).action
@@ -257,7 +256,7 @@ export class PostGroupsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.postGroupRecurrenceService.editFuture(
       organization,
       user.id,

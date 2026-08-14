@@ -9,7 +9,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   BadRequestException,
   Controller,
@@ -57,9 +56,8 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
 
     if (refresh === 'true') {
       await this.trendsService.refreshTrends(organizationId, brandId);
@@ -93,9 +91,8 @@ export class TrendsDiscoveryController {
     @Query('limit') limitParam?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
     const parsedLimit = Number.parseInt(limitParam ?? '30', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 30
@@ -139,9 +136,8 @@ export class TrendsDiscoveryController {
     @Query('includePaidCreative') includePaidCreativeParam?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
     const parsedLimit = Number.parseInt(limitParam ?? '30', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 30
@@ -183,9 +179,8 @@ export class TrendsDiscoveryController {
     @Query('types') typesParam?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
     const parsedLimit = Number.parseInt(limitParam ?? '12', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 12
@@ -210,9 +205,8 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('limit') limitParam?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata?.organization;
-    const brandId = publicMetadata?.brand;
+    const organizationId = user?.organization;
+    const brandId = user?.brand;
     const parsedLimit = Number.parseInt(limitParam ?? '20', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 20
@@ -245,10 +239,9 @@ export class TrendsDiscoveryController {
     @CurrentUser() user: User,
     @Query('platform') platform?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.trendsService.getCorpusFreshnessHealth({
-      isPlatformAdmin: publicMetadata?.isSuperAdmin === true,
-      organizationId: publicMetadata?.organization,
+      isPlatformAdmin: user?.isSuperAdmin === true,
+      organizationId: user?.organization,
       platform,
     });
   }

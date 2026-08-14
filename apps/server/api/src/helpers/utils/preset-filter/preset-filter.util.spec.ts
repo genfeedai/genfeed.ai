@@ -31,7 +31,7 @@ describe('PresetFilterUtil', () => {
   describe('canUserModifyPreset', () => {
     it('allows superadmin to modify any preset', () => {
       const canModify = PresetFilterUtil.canUserModifyPreset(
-        { publicMetadata: { isSuperAdmin: true } },
+        { isSuperAdmin: true },
         { organizationId: null },
       );
       expect(canModify).toBe(true);
@@ -39,7 +39,7 @@ describe('PresetFilterUtil', () => {
 
     it('blocks non-admin from modifying global presets', () => {
       const canModify = PresetFilterUtil.canUserModifyPreset(
-        { publicMetadata: { isSuperAdmin: false, organization: 'org1' } },
+        { isSuperAdmin: false, organizationId: 'org1' },
         { organizationId: null },
       );
       expect(canModify).toBe(false);
@@ -49,10 +49,8 @@ describe('PresetFilterUtil', () => {
       const orgId = '507f191e810c19729de860ee';
       const canModify = PresetFilterUtil.canUserModifyPreset(
         {
-          publicMetadata: {
-            isSuperAdmin: false,
-            organization: orgId,
-          },
+          isSuperAdmin: false,
+          organizationId: orgId,
         },
         { organizationId: orgId },
       );
@@ -67,7 +65,7 @@ describe('PresetFilterUtil', () => {
 
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brandId, label: 'My Preset' },
-        { publicMetadata: { isSuperAdmin: false, organization: orgId } },
+        { isSuperAdmin: false, organizationId: orgId },
       );
 
       expect(enriched.organizationId).toBe(orgId);
@@ -77,7 +75,7 @@ describe('PresetFilterUtil', () => {
     it('keeps null organization/brand for superadmin global presets', () => {
       const enriched = PresetFilterUtil.enrichPresetDto(
         { label: 'Global' },
-        { publicMetadata: { isSuperAdmin: true } },
+        { isSuperAdmin: true },
       );
 
       expect(enriched.organizationId).toBeNull();
@@ -89,7 +87,7 @@ describe('PresetFilterUtil', () => {
       const brandId = '507f191e810c19729de860ee';
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brandId, label: 'Org preset', organizationId: org },
-        { publicMetadata: { isSuperAdmin: true } },
+        { isSuperAdmin: true },
       );
 
       expect(enriched.organizationId).toBe(org);

@@ -21,11 +21,9 @@ describe('ThreadRunsController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: orgId,
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439014',
   };
 
   const mockRequest = {
@@ -103,7 +101,7 @@ describe('ThreadRunsController', () => {
       expect(result).toEqual({ data: [] });
     });
 
-    it('should pass the correct organizationId from publicMetadata', async () => {
+    it('should pass the correct organizationId from identity', async () => {
       agentRunsService.getByThread.mockResolvedValue([]);
 
       await controller.getThreadRuns(mockRequest, threadId, mockUser);

@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsCameraMovementsController } from '@api/collections/elements/camera-movements/controllers/camera-movements.controller';
 import { CreateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/create-camera-movement.dto';
 import { UpdateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/update-camera-movement.dto';
 import { ElementsCameraMovementsService } from '@api/collections/elements/camera-movements/services/camera-movements.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CameraMovementSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -48,12 +50,10 @@ describe('ElementsCameraMovementsController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      isSuperAdmin: true,
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    } as IAuthPublicMetadata,
+    brandId: 'cmbrand000000000000000001',
+    isSuperAdmin: true,
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
   const mockRequest = {
@@ -119,7 +119,7 @@ describe('ElementsCameraMovementsController', () => {
       const mockCreatedMovement = {
         id: 'cmcameramovement000000000001',
         ...createDto,
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       cameraMovementsService.create.mockResolvedValue(
@@ -148,7 +148,7 @@ describe('ElementsCameraMovementsController', () => {
         id,
         key: 'old-movement',
         label: 'Old Movement',
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       const mockUpdatedMovement = {
@@ -199,7 +199,7 @@ describe('ElementsCameraMovementsController', () => {
         id,
         key: 'delete-movement',
         label: 'Movement to Delete',
-        organizationId: mockSuperAdminUser.publicMetadata.organization,
+        organizationId: mockSuperAdminUser.organizationId,
       };
 
       cameraMovementsService.findOne.mockResolvedValue(mockMovement as never);

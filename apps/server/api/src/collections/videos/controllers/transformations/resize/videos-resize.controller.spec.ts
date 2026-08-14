@@ -64,11 +64,9 @@ const mockVideo = {
 
 const mockUser = {
   id: 'user_123',
-  publicMetadata: {
-    brand: brandId,
-    organization: organizationId,
-    user: userId,
-  },
+  brandId: brandId,
+  organizationId: organizationId,
+  userId: userId,
 } as unknown as User;
 
 const ingredientId = 'cmvideo0000000000000000002';

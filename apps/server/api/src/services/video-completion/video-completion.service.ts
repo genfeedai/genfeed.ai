@@ -353,7 +353,7 @@ export class VideoCompletionService implements OnModuleInit {
         id: editorRender.ingredientId,
         status: WebSocketEventStatus.COMPLETED,
       },
-      editorRender.authProviderUserId,
+      editorRender.userId,
       editorRender.room,
     );
   }
@@ -393,7 +393,7 @@ export class VideoCompletionService implements OnModuleInit {
     await this.notificationsPublisher.publishMediaFailed(
       WebSocketPaths.video(editorRender.ingredientId),
       EDITOR_RENDER_PUBLIC_MESSAGES[reason],
-      editorRender.authProviderUserId,
+      editorRender.userId,
       editorRender.room,
     );
   }

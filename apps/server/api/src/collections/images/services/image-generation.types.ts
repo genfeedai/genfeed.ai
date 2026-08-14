@@ -4,7 +4,6 @@ import type { buildPromptBrandingFromBrand } from '@api/collections/brands/utils
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 
 export type ImageGenerationProvider =
@@ -37,9 +36,6 @@ export type ImageGenerationSavedIngredient =
   ImageGenerationSaveDocumentsResult['ingredientData'];
 export type ImageGenerationSavedMetadata =
   ImageGenerationSaveDocumentsResult['metadataData'];
-export type ImageGenerationPublicMetadata = ReturnType<
-  typeof getPublicMetadata
->;
 
 export interface ImageGenerationContext {
   brand: ImageGenerationResolvedBrand;
@@ -59,7 +55,6 @@ export interface ImageGenerationContext {
     text?: string;
   };
   promptData: ImageGenerationResolvedPrompt;
-  publicMetadata: ImageGenerationPublicMetadata;
   referenceIds: string[];
   referenceImageUrl: string | null;
   referenceImageUrls: string[];

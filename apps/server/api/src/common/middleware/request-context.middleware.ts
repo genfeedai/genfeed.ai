@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  IAuthPublicMetadata,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   buildRcKey,
@@ -59,10 +56,9 @@ export class RequestContextMiddleware implements NestMiddleware {
       return next();
     }
 
-    const publicMetadata = user.publicMetadata as Partial<IAuthPublicMetadata>;
-    const userId = publicMetadata.user ?? '';
-    const organizationId = publicMetadata.organization ?? '';
-    const brandId = publicMetadata.brand ?? undefined;
+    const userId = user.userId || user.id || '';
+    const organizationId = user.organizationId ?? '';
+    const brandId = user.brandId ?? undefined;
 
     if (!userId || !organizationId) {
       return next();
@@ -93,12 +89,12 @@ export class RequestContextMiddleware implements NestMiddleware {
       const requestContext: IRequestContext = {
         brandId: brandId || undefined,
         hydratedAt: Date.now(),
-        isSuperAdmin: publicMetadata.isSuperAdmin === true,
+        isSuperAdmin: user.isSuperAdmin === true,
         organizationId,
         stripeSubscriptionStatus:
-          subscription?.status ?? publicMetadata.stripeSubscriptionStatus ?? '',
+          subscription?.status ?? user.stripeSubscriptionStatus ?? '',
         subscriptionTier:
-          orgSetting?.subscriptionTier ?? publicMetadata.subscriptionTier ?? '',
+          orgSetting?.subscriptionTier ?? user.subscriptionTier ?? '',
         userId,
       };
 

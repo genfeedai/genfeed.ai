@@ -9,7 +9,7 @@ export interface ManagedInferenceAuthMetadata {
 
 export interface ManagedInferenceRequestUser {
   id?: string;
-  publicMetadata?: ManagedInferenceAuthMetadata;
+  identity?: ManagedInferenceAuthMetadata;
 }
 
 export type ManagedInferenceAuthenticatedRequest = Omit<Request, 'user'> & {

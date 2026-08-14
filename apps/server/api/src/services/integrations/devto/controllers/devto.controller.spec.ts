@@ -10,13 +10,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f191e810c19729de860eb',
-    user: '507f191e810c19729de860ec',
-  })),
-}));
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -42,10 +35,8 @@ describe('DevtoController', () => {
   } as unknown as LoggerService;
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f191e810c19729de860eb',
-      user: '507f191e810c19729de860ec',
-    },
+    organizationId: '507f191e810c19729de860eb',
+    userId: '507f191e810c19729de860ec',
   } as unknown as User;
 
   const mockRequest = {} as unknown as Request;

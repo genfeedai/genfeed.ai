@@ -12,11 +12,9 @@ import type { Request } from 'express';
 describe('AgentRunsOperationsController', () => {
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439014',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439014',
   };
   const mockRequest = { originalUrl: '/api/runs', query: {} } as Request;
   const operationsService = {
@@ -76,7 +74,8 @@ describe('AgentRunsOperationsController', () => {
   it('allows organization-scoped callers to select a brand', async () => {
     const organizationUser: User = {
       ...mockUser,
-      publicMetadata: { ...mockUser.publicMetadata, brand: undefined },
+      ...mockUser,
+      brandId: undefined,
     };
     operationsService.retryRun.mockResolvedValue({ id: 'run1' });
 

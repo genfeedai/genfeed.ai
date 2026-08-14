@@ -22,10 +22,8 @@ describe('BotsController identity gates', () => {
   );
 
   const mockUser = {
-    publicMetadata: {
-      organization: organizationId,
-      user: userId,
-    },
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   describe('canUserModifyEntity', () => {
@@ -56,9 +54,7 @@ describe('BotsController identity gates', () => {
     });
 
     it('denies when caller and entity ids are both missing', () => {
-      const emptyUser = {
-        publicMetadata: {},
-      } as unknown as User;
+      const emptyUser = {} as unknown as User;
 
       expect(controller.canUserModifyEntity(emptyUser, {} as BotDocument)).toBe(
         false,
@@ -81,7 +77,8 @@ describe('BotsController identity gates', () => {
 
     it('fails closed when organization scope has no organization id', () => {
       const emptyUser = {
-        publicMetadata: { organization: '', user: userId },
+        organizationId: '',
+        userId: userId,
       } as unknown as User;
 
       expect(() =>

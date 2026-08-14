@@ -15,10 +15,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -154,10 +151,8 @@ export class CredentialsController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ): Promise<AccountHealthSummary[]> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.accountHealthService.listBrandHealth(
-      publicMetadata.organization,
+      user.organizationId,
       brandId,
     );
   }
@@ -173,10 +168,8 @@ export class CredentialsController {
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ): Promise<IPublishingProviderReadiness[]> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.credentialPublishingReadinessService.resolveForBrand(
-      publicMetadata.organization,
+      user.organizationId,
       brandId,
     );
   }
@@ -188,12 +181,10 @@ export class CredentialsController {
     @Query('surface') surface: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.accountPublishingContextService.resolve({
-      brandId: publicMetadata.brand,
+      brandId: user.brandId,
       credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       surface: toContentSurface(surface),
     });
   }
@@ -205,12 +196,10 @@ export class CredentialsController {
     @Body() dto: AssessAccountHealthDto,
     @CurrentUser() user: User,
   ): Promise<AccountHealthSummary> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.accountHealthService.assessCredentialHealth({
-      brandId: publicMetadata.brand,
+      brandId: user.brandId,
       credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       request: dto,
     });
   }
@@ -222,13 +211,11 @@ export class CredentialsController {
     @Body() dto: ManualAccountHealthOverrideDto,
     @CurrentUser() user: User,
   ): Promise<AccountHealthSummary> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.accountHealthService.confirmManualOverride({
       credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       request: dto,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
   }
 
@@ -244,18 +231,17 @@ export class CredentialsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     // Prefer brand/org query filters (collection style); keep user ownership as
     // the default so the list stays tenant-safe for members. Reject foreign org.
     const where: Record<string, unknown> = {
       isDeleted,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     };
     if (query.brandId || query.organizationId) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
         query,
-        publicMetadata,
+        user,
         getIsSuperAdmin(user, request),
       );
       if (scope.brandId) {
@@ -281,10 +267,9 @@ export class CredentialsController {
   async getMentions(
     @CurrentUser() user: User,
   ): Promise<{ mentions: CredentialMentionItem[] }> {
-    const publicMetadata = getPublicMetadata(user);
     const credentials = await this.credentialsService.find({
       isConnected: true,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     const seen = new Set<string>();
@@ -329,11 +314,9 @@ export class CredentialsController {
     @Param('credentialId') credentialId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!credential) {
@@ -400,12 +383,10 @@ export class CredentialsController {
     @Param('credentialId') credentialId: string,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       // Get the Instagram credential for this brand
       const credential = await this.credentialsService.findOne({
         id: credentialId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         platform: CredentialPlatform.INSTAGRAM,
       });
 
@@ -432,7 +413,7 @@ export class CredentialsController {
 
       const brand = await this.brandsService.findOne({
         id: brandId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
 
       if (!brand) {
@@ -441,7 +422,7 @@ export class CredentialsController {
 
       // Get all available handles from the Instagram service
       const pages = await this.instagramService.getInstagramPages(
-        publicMetadata.organization,
+        user.organizationId,
         brand.id.toString(),
       );
 
@@ -474,10 +455,9 @@ export class CredentialsController {
 
       if (errorCode === 190 || errorCode === 102) {
         // Find the credential and mark it as disconnected
-        const publicMetadata = getPublicMetadata(user);
         const credential = await this.credentialsService.findOne({
           id: credentialId,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           platform: CredentialPlatform.INSTAGRAM,
         });
 
@@ -509,11 +489,9 @@ export class CredentialsController {
     @Body() updateCredentialDto: UpdateCredentialDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!credential) {
@@ -581,7 +559,7 @@ export class CredentialsController {
     if (Object.values(externalProfile).some(Boolean)) {
       data = await this.credentialsService.updateExternalProfile(
         credential.id,
-        publicMetadata.organization,
+        user.organizationId,
         externalProfile,
       );
     }
@@ -598,12 +576,10 @@ export class CredentialsController {
     @CurrentUser() user: User,
     @Req() request: Request,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership before deletion
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!credential) {
@@ -628,11 +604,10 @@ export class CredentialsController {
     @Body() createTagDto: CreateTagDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.credentialsService.createAndAttachTag(
       credentialId,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
       createTagDto,
     );
 
@@ -645,12 +620,10 @@ export class CredentialsController {
     @Param('credentialId') credentialId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!credential) {
@@ -664,7 +637,7 @@ export class CredentialsController {
     }
 
     const organization = await this.organizationsService.findOne({
-      id: publicMetadata.organization,
+      id: user.organizationId,
     });
 
     if (!organization) {

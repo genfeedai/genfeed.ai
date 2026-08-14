@@ -4,7 +4,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { FileInputType } from '@genfeedai/enums';
@@ -50,9 +49,8 @@ export class OnboardingPreviewService {
       contentType: dto.contentType,
     });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-    const userId = publicMetadata.user?.toString();
+    const organizationId = user.organizationId?.toString();
+    const userId = (user.userId ?? user.id)?.toString();
 
     if (!organizationId || !userId) {
       throw new HttpException(

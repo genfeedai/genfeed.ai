@@ -142,23 +142,19 @@ export class TrainingsService extends BaseService<
    */
   async createTrainingWithSources(
     createDto: CreateTrainingDto,
-    publicMetadata: TrainingOwnerMetadata,
+    identity: TrainingOwnerMetadata,
   ): Promise<{
     sourceImages: TrainingSourceImage[];
     training: TrainingDocument;
   }> {
     const ownerIds = {
-      brandId: resolveEntityId(publicMetadata.brand) ?? null,
+      brandId: resolveEntityId(identity.brandId) ?? null,
       organizationId: requireRelationId(
-        publicMetadata.organization,
+        identity.organizationId,
         'organizationId',
         'Training owner',
       ),
-      userId: requireRelationId(
-        publicMetadata.user,
-        'userId',
-        'Training owner',
-      ),
+      userId: requireRelationId(identity.userId, 'userId', 'Training owner'),
     };
     const sources = createDto.sources || [];
 
@@ -291,23 +287,19 @@ export class TrainingsService extends BaseService<
    */
   async relaunchTrainingWithSources(
     existingTraining: TrainingDocument,
-    publicMetadata: TrainingOwnerMetadata,
+    identity: TrainingOwnerMetadata,
   ): Promise<{
     sourceImages: TrainingSourceImage[];
     training: TrainingDocument;
   }> {
     const ownerIds = {
-      brandId: resolveEntityId(publicMetadata.brand) ?? null,
+      brandId: resolveEntityId(identity.brandId) ?? null,
       organizationId: requireRelationId(
-        publicMetadata.organization,
+        identity.organizationId,
         'organizationId',
         'Training owner',
       ),
-      userId: requireRelationId(
-        publicMetadata.user,
-        'userId',
-        'Training owner',
-      ),
+      userId: requireRelationId(identity.userId, 'userId', 'Training owner'),
     };
     const sourceIds = Array.isArray(existingTraining.sources)
       ? existingTraining.sources.flatMap((source) => {

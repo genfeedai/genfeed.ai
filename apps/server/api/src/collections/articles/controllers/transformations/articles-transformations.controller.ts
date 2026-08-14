@@ -25,10 +25,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import {
@@ -88,13 +85,11 @@ export class ArticlesTransformationsController {
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return await this.articlesService.convertToTwitterThread(
       articleId,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.userId ?? user.id,
+      user.organizationId,
+      user.brandId,
     );
   }
 
@@ -110,13 +105,11 @@ export class ArticlesTransformationsController {
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return await this.articlesService.analyzeVirality(
       articleId,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.userId ?? user.id,
+      user.organizationId,
+      user.brandId,
     );
   }
 
@@ -137,14 +130,12 @@ export class ArticlesTransformationsController {
     @Body() dto: EditArticleWithAIDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const updatedArticle = await this.articlesService.enhance(
       articleId,
       dto,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.userId ?? user.id,
+      user.organizationId,
+      user.brandId,
     );
 
     return serializeSingle(request, this.serializer, updatedArticle);
@@ -164,7 +155,6 @@ export class ArticlesTransformationsController {
     @Body() dto: ScoreSeoDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const results = await this.articlesService.findAll(
       {
         where: {
@@ -184,7 +174,7 @@ export class ArticlesTransformationsController {
     const article = results.docs[0];
 
     if (
-      article.organizationId !== publicMetadata.organization.toString() &&
+      article.organizationId !== user.organizationId.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(ARTICLE_ENTITY_NAME, articleId);
@@ -192,7 +182,7 @@ export class ArticlesTransformationsController {
 
     await this.seoScorerService.scoreArticle(
       articleId,
-      publicMetadata.organization,
+      user.organizationId,
       dto.targetKeyword,
     );
 
@@ -227,14 +217,12 @@ export class ArticlesTransformationsController {
     @Body() dto: CreateRemixArticleDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       const remixArticle = await this.articlesService.createRemix(
         articleId,
-        publicMetadata.user,
-        publicMetadata.organization,
-        publicMetadata.brand,
+        user.userId ?? user.id,
+        user.organizationId,
+        user.brandId,
         {
           ...(dto.label && { label: `Remix: ${dto.label}` }),
           // instructions: dto.instructions,
@@ -266,13 +254,11 @@ export class ArticlesTransformationsController {
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const prompt = await this.articlesService.generatePromptFromArticle(
       articleId,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.userId ?? user.id,
+      user.organizationId,
+      user.brandId,
     );
 
     return { prompt };
@@ -285,14 +271,12 @@ export class ArticlesTransformationsController {
     @Body() body: { model?: string; width?: number; height?: number },
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Get the article
     const article = await this.articlesService.findOne({
       id: articleId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -304,13 +288,13 @@ export class ArticlesTransformationsController {
     const brand = article.brandId
       ? await this.brandsService.findOne({
           id: article.brandId,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
     const model = resolveGenerationDefaultModel<string>({
@@ -340,14 +324,12 @@ export class ArticlesTransformationsController {
     @Body() body: { model?: string; duration?: number },
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Get the article
     const article = await this.articlesService.findOne({
       id: articleId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -359,13 +341,13 @@ export class ArticlesTransformationsController {
     const brand = article.brandId
       ? await this.brandsService.findOne({
           id: article.brandId,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
     const model = resolveGenerationDefaultModel<string>({

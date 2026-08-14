@@ -36,9 +36,8 @@ export class TrainingAccessGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
-    const publicMetadata = user?.publicMetadata;
 
-    if (!user || !publicMetadata) {
+    if (!user) {
       this.loggerService.warn('TrainingAccessGuard: No user found in request');
       throw new HttpException(
         {
@@ -49,7 +48,7 @@ export class TrainingAccessGuard implements CanActivate {
       );
     }
 
-    if (publicMetadata.isApiKey === true) {
+    if (user.isApiKey === true) {
       return true;
     }
 

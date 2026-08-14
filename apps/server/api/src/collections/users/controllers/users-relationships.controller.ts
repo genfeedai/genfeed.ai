@@ -18,10 +18,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -80,7 +77,6 @@ export class UsersRelationshipsController {
     @Req() request: Request,
     @Query() query: BaseQueryDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -90,8 +86,8 @@ export class UsersRelationshipsController {
     let member: { brands?: string[] } | null = null;
     try {
       member = (await this.membersService.findOne({
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       })) as { brands?: string[] } | null;
     } catch (error: unknown) {
       this.loggerService.error(
@@ -109,7 +105,7 @@ export class UsersRelationshipsController {
           isDeleted,
           isSuperAdmin: getIsSuperAdmin(user, request),
           memberBrandIds: member?.brands,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         }),
       },
       options,
@@ -124,14 +120,13 @@ export class UsersRelationshipsController {
     summary: 'findMeSettings',
   })
   async findMeSettings(@Req() request: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
-      id: publicMetadata.user,
+      id: user.userId ?? user.id,
     });
     const settings = await this.findUserSettings(userData);
 
     if (!userData || !settings) {
-      return returnNotFound('Settings', publicMetadata.user);
+      return returnNotFound('Settings', user.userId ?? user.id);
     }
 
     return serializeSingle(request, SettingSerializer, settings);
@@ -148,19 +143,18 @@ export class UsersRelationshipsController {
     @CurrentUser() user: User,
     @Body() updateSettingDto: UpdateSettingDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
-      id: publicMetadata.user,
+      id: user.userId ?? user.id,
     });
     const settings = await this.findUserSettings(userData);
 
     if (!userData || !settings) {
-      return returnNotFound('Settings', publicMetadata.user);
+      return returnNotFound('Settings', user.userId ?? user.id);
     }
 
     const settingsId = getCanonicalId(settings);
     if (!settingsId) {
-      return returnNotFound('Settings', publicMetadata.user);
+      return returnNotFound('Settings', user.userId ?? user.id);
     }
 
     const data = await this.settingsService.patch(
@@ -170,7 +164,7 @@ export class UsersRelationshipsController {
 
     return data
       ? serializeSingle(request, SettingSerializer, data)
-      : returnNotFound(this.constructorName, publicMetadata.user);
+      : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
   @Get('me/organizations')
@@ -184,7 +178,6 @@ export class UsersRelationshipsController {
     @Req() request: Request,
     @Query() query: BaseQueryDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -195,7 +188,7 @@ export class UsersRelationshipsController {
         orderBy: handleQuerySort(query.sort),
         where: {
           isDeleted,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
         },
       },
       options,
@@ -214,10 +207,9 @@ export class UsersRelationshipsController {
     @CurrentUser() user: User,
     @Param('organizationId') organizationId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const organization = await this.organizationsService.findOne({
       id: organizationId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!organization) {
@@ -228,11 +220,11 @@ export class UsersRelationshipsController {
       isSelected: true,
     });
 
-    if (publicMetadata.user) {
-      await this.usersService.patch(publicMetadata.user, {
+    if (user.userId ?? user.id) {
+      await this.usersService.patch(user.userId ?? user.id, {
         lastUsedOrganizationId: String(data.id),
       });
-      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
+      await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
     }
 
     return serializeSingle(request, OrganizationSerializer, data);
@@ -249,23 +241,22 @@ export class UsersRelationshipsController {
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.brandsService.selectBrandForUser(
       brandId,
-      publicMetadata.user,
-      publicMetadata.organization,
+      user.userId ?? user.id,
+      user.organizationId,
     );
 
-    if (publicMetadata.user) {
-      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
+    if (user.userId ?? user.id) {
+      await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
     }
 
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
         isDeleted: false,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
       data.id,
     );

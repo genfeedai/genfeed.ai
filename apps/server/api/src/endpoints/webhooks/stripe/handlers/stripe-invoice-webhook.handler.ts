@@ -135,7 +135,7 @@ export class StripeInvoiceWebhookHandler {
         await this.supportService.markOnboardingComplete(dbUser);
 
         // isOnboardingCompleted is persisted on the User row above (epic
-        // #735, Phase C — no legacy auth provider publicMetadata write-back).
+        // #735, Phase C — no legacy auth provider identity write-back).
         await this.accessBootstrapCacheService.invalidateForUser(
           String(dbUser.id),
         );

@@ -4,7 +4,6 @@ import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-bo
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -46,7 +45,7 @@ export class MoodBoardsController {
       });
     }
 
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const data = await this.service.findOrCreateByBrand(
       brandId,
@@ -62,7 +61,7 @@ export class MoodBoardsController {
     @Param('id') id: string,
     @Body() dto: UpdateMoodBoardDto,
   ): Promise<JsonApiSingleResponse> {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const existing = await this.service.findOne(
       scopedWhere(organizationId, { id }),

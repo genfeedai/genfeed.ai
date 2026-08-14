@@ -16,7 +16,6 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -99,13 +98,11 @@ export class VideosUpscaleController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const publicMetadata = getPublicMetadata(user);
-
     const video = await this.videosService.findOne({
       id: videoId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -136,11 +133,11 @@ export class VideosUpscaleController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
-          brandId: video.brandId ?? publicMetadata.brand,
+          brandId: video.brandId ?? user.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           parentId: videoId,
           status: IngredientStatus.PROCESSING,
           transformations: [TransformationCategory.UPSCALED],
@@ -157,13 +154,13 @@ export class VideosUpscaleController {
       // Create activity for video upscale start
       const activity = await this.activitiesService.create(
         new ActivityEntity({
-          brandId: video.brandId ?? publicMetadata.brand,
+          brandId: video.brandId ?? user.brandId,
           entityId: ingredientData.id,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
           source: ActivitySource.VIDEO_UPSCALE,
-          userId: publicMetadata.user,
+          userId: user.userId ?? user.id,
           value: JSON.stringify({
             ingredientId: ingredientData.id.toString(),
             model,

@@ -2,19 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
-
-const mockGetPublicMetadata = getPublicMetadata as unknown as ReturnType<
-  typeof vi.fn
->;
 
 describe('SkillsController', () => {
   let controller: SkillsController;
@@ -29,15 +20,15 @@ describe('SkillsController', () => {
   };
 
   const mockReq = {} as Request;
-  const mockUser = {} as User;
+  const mockUser = {
+    id: 'user-1',
+    isSuperAdmin: false,
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as User;
 
   beforeEach(async () => {
     vi.resetAllMocks();
-
-    mockGetPublicMetadata.mockReturnValue({
-      organization: 'org-1',
-      user: 'user-1',
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SkillsController],

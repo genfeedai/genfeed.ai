@@ -1,8 +1,10 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ProjectsController } from '@api/collections/projects/controllers/projects.controller';
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -36,11 +38,9 @@ describe('ProjectsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: CALLER_ORG_ID,
-      user: '507f1f77bcf86cd799439011',
-    } as IAuthPublicMetadata,
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: CALLER_ORG_ID,
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockRequest = {

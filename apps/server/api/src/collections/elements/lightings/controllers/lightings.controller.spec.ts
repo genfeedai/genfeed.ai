@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLightingsController } from '@api/collections/elements/lightings/controllers/lightings.controller';
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';
 import { ElementsLightingsService } from '@api/collections/elements/lightings/services/lightings.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { LightingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -52,12 +54,10 @@ describe('ElementsLightingsController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: brandId,
-      isSuperAdmin: true,
-      organization: organizationId,
-      user: userId,
-    } as IAuthPublicMetadata,
+    brandId: brandId,
+    isSuperAdmin: true,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockRequest = {

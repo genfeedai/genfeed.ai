@@ -106,10 +106,8 @@ describe('TwitterController', () => {
     const brandId = 'test-object-id';
     const orgId = 'test-object-id';
     const mockUser = {
-      publicMetadata: {
-        organization: orgId.toString(),
-        user: 'test-object-id',
-      },
+      organizationId: orgId.toString(),
+      userId: 'test-object-id',
     };
     const mockRequest = {} as Request;
 

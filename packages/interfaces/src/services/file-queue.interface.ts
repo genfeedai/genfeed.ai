@@ -14,7 +14,6 @@ export interface IFileProcessingJob {
   type: string;
   ingredientId: string;
   userId: string;
-  authProviderUserId?: string;
   organizationId: string;
   room?: string;
   priority?: number;
@@ -90,7 +89,6 @@ export interface IYoutubeUploadData {
   credentialId: string;
   ingredientId: string;
   userId: string;
-  authProviderUserId?: string;
   organizationId: string;
   brandId: string;
   room?: string;

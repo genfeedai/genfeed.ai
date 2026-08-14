@@ -26,7 +26,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import {
@@ -124,7 +123,6 @@ export class AssetsOperationsController {
     @Body() generateAssetDto: GenerateAssetDto,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     if (generateAssetDto.parentType !== AssetParent.BRAND) {
       throw new ValidationException(
@@ -165,7 +163,7 @@ export class AssetsOperationsController {
       try {
         brand = await this.brandsService.findOne({
           id: brandIdToUse,
-          organizationId: publicMetadata.organization,
+          organizationId: user.organizationId,
         });
       } catch (error) {
         this.loggerService.error(`${url} - Failed to fetch brand`, error);
@@ -201,7 +199,7 @@ export class AssetsOperationsController {
         category,
         parentBrandId: parentId,
         parentType: AssetParent.BRAND,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       { isDeleted: true },
     );
@@ -210,7 +208,7 @@ export class AssetsOperationsController {
       category,
       parentId,
       parentType: generateAssetDto.parentType,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
@@ -230,7 +228,7 @@ export class AssetsOperationsController {
         style: 'natural',
         width,
       },
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     const generationId = await this.replicateService.generateTextToImage(
@@ -287,7 +285,6 @@ export class AssetsOperationsController {
     this.loggerService.log(`${url} started`, { category: uploadDto.category });
 
     const contentType = file.mimetype;
-    const publicMetadata = getPublicMetadata(user);
 
     try {
       const entityData = {
@@ -297,7 +294,7 @@ export class AssetsOperationsController {
             ? uploadDto.parentId
             : undefined,
         parentType: uploadDto.parentType,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       };
 
       this.loggerService.log(`${url} - Creating asset with data`, {
@@ -358,7 +355,7 @@ export class AssetsOperationsController {
         },
       );
 
-      const userId = publicMetadata.user;
+      const userId = user.userId ?? user.id;
       if (userId) {
         await this.websocketService.publishAssetStatus(
           assetData.id.toString(),
@@ -413,8 +410,6 @@ export class AssetsOperationsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const publicMetadata = getPublicMetadata(user);
-
     // Validate inputs
     const validatedIngredientId = InputValidationUtil.validateEntityId(
       createFromIngredientDto.ingredientId,
@@ -437,7 +432,7 @@ export class AssetsOperationsController {
     // Get ingredient with metadata
     const ingredient = await this.ingredientsService.findOne({
       id: validatedIngredientId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!ingredient) {
@@ -477,7 +472,7 @@ export class AssetsOperationsController {
       category: validatedCategory,
       parentId,
       parentType: AssetParent.BRAND,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     const destinationKey = `ingredients/${categoryToPlural(validatedCategory)}/${assetData.id}`;
@@ -528,7 +523,7 @@ export class AssetsOperationsController {
       }
     }
 
-    const userId = publicMetadata.user;
+    const userId = user.userId ?? user.id;
     if (userId) {
       await this.websocketService.publishAssetStatus(
         assetData.id.toString(),

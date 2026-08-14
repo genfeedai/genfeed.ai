@@ -468,7 +468,6 @@ describe('FilesController', () => {
   // ==========================================================================
   describe('processVideo', () => {
     const baseBody = {
-      authProviderUserId: 'authProvider_123',
       ingredientId: 'ingredient_123',
       organizationId: 'org_123',
       params: { height: 1080, width: 1920 },
@@ -880,7 +879,6 @@ describe('FilesController', () => {
   describe('processYoutube', () => {
     const baseBody = {
       brandId: 'brand_123',
-      authProviderUserId: 'authProvider_123',
       credential: {
         accessToken: 'access_token',
         clientId: 'client_id',

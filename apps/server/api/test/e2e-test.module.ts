@@ -91,19 +91,18 @@ export class MockBetterAuthGuard {
       params?: Record<string, string | undefined>;
       user?: {
         id: string;
-        publicMetadata: {
-          organization?: string;
-          user?: string;
-        };
+        userId?: string;
+        organizationId?: string;
+        brandId?: string;
+        isSuperAdmin?: boolean;
       };
     }>();
     const organizationId = request.params?.organizationId;
     request.user = {
       id: 'authProvider_e2e_test_user',
-      publicMetadata: {
-        organization: organizationId,
-        user: 'e2e-test-user',
-      },
+      isSuperAdmin: false,
+      organizationId,
+      userId: 'e2e-test-user',
     };
     return true;
   }

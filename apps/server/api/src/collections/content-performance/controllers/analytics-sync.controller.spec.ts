@@ -15,10 +15,8 @@ describe('AnalyticsSyncController', () => {
   let mockQueueService: { add: ReturnType<typeof vi.fn> };
 
   const mockUser = {
-    publicMetadata: {
-      organization: 'org-123',
-      userId: 'user-123',
-    },
+    organizationId: 'org-123',
+    userId: 'user-123',
   };
 
   beforeEach(async () => {

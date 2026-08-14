@@ -14,12 +14,6 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
       descriptor,
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: 'org_test123',
-  }),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(
     (req: unknown, _serializer: unknown, data: unknown) => ({
@@ -50,7 +44,7 @@ const makeRequest = () => ({
 
 const makeUser = (orgId = 'org_test123') => ({
   id: 'user_authProvider_abc',
-  publicMetadata: { organization: orgId },
+  organizationId: orgId,
 });
 
 const makeAnnouncement = () => ({

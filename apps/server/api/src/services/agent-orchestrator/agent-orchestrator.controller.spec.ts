@@ -14,13 +14,6 @@ const identity = vi.hoisted(() => ({
   organizationId: '507f191e810c19729de860ea',
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: 'brand-1',
-    organization: identity.organizationId,
-    user: identity.metadataUserId,
-  })),
-}));
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((e: unknown) => {
@@ -95,7 +88,8 @@ describe('AgentOrchestratorController', () => {
     it('should call orchestrator service with correct params', async () => {
       const user = {
         id: 'authProvider_123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -124,7 +118,8 @@ describe('AgentOrchestratorController', () => {
     it('uses the metadata organization and canonical database user for a scoped turn', async () => {
       const user = {
         id: 'authProvider_123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       const reference = {
         brandId: 'brand-1',
@@ -158,7 +153,8 @@ describe('AgentOrchestratorController', () => {
     it('should strip Bearer prefix from auth header', async () => {
       const user = {
         id: 'authProvider_456',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -180,10 +176,8 @@ describe('AgentOrchestratorController', () => {
     it('should trust the guard-resolved user id before calling chat', async () => {
       const user = {
         id: 'authProvider_789',
-        publicMetadata: {
-          organization: 'org',
-          user: identity.metadataUserId,
-        },
+        organizationId: 'org',
+        userId: identity.metadataUserId,
       } as unknown as User;
       service.chat.mockResolvedValue({} as never);
 
@@ -203,7 +197,8 @@ describe('AgentOrchestratorController', () => {
     it('should pass threadId through to service', async () => {
       const user = {
         id: 'authProvider_000',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -225,7 +220,8 @@ describe('AgentOrchestratorController', () => {
     it('re-authorizes social selectors before passing page context to the agent', async () => {
       const user = {
         id: 'authProvider_social',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -334,7 +330,8 @@ describe('AgentOrchestratorController', () => {
     it('drops client-supplied resolved social content without typed selectors', async () => {
       const user = {
         id: 'authProvider_forged_social',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -383,7 +380,8 @@ describe('AgentOrchestratorController', () => {
     it('accepts scoped Analytics and Research references after server authorization', async () => {
       const user = {
         id: 'authProvider_research',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       service.chat.mockResolvedValue({} as never);
       const analyticsQuery = {
@@ -438,7 +436,8 @@ describe('AgentOrchestratorController', () => {
     it('rejects Analytics query references outside the authenticated scope', async () => {
       const user = {
         id: 'authProvider_analytics_forged',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
 
       await expect(
@@ -481,7 +480,8 @@ describe('AgentOrchestratorController', () => {
     it('rejects Research selectors outside the authenticated brand', async () => {
       const user = {
         id: 'authProvider_research_forged',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
 
       await expect(
@@ -514,7 +514,8 @@ describe('AgentOrchestratorController', () => {
     it('preserves typed canonical artifact references for server authorization', async () => {
       const user = {
         id: 'authProvider_000',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -551,7 +552,8 @@ describe('AgentOrchestratorController', () => {
     it('starts a thread-scoped turn using the route thread id', async () => {
       const user = {
         id: 'authProvider_000',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -574,7 +576,8 @@ describe('AgentOrchestratorController', () => {
     it('rejects mismatched route and body thread ids', async () => {
       const user = {
         id: 'authProvider_000',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
 
       await expect(
@@ -593,7 +596,8 @@ describe('AgentOrchestratorController', () => {
     it('should return threadId from the streaming chat response', async () => {
       const user = {
         id: 'authProvider_222',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',
@@ -622,7 +626,8 @@ describe('AgentOrchestratorController', () => {
     it('starts a thread-scoped stream using the route thread id', async () => {
       const user = {
         id: 'authProvider_222',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
         id: '507f191e810c19729de860ea',

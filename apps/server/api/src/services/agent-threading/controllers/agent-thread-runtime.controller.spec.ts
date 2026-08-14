@@ -21,10 +21,8 @@ describe('Threading AgentThreadRuntimeController', () => {
   const threadId = 'thread_current';
   const mockUser = {
     id: 'authProvider_123',
-    publicMetadata: {
-      organization: organizationId,
-      user: userId,
-    },
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   let controller: AgentThreadRuntimeController;

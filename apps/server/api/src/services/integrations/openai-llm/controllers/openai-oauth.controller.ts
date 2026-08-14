@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import { ByokProvider } from '@genfeedai/enums';
@@ -32,12 +31,10 @@ export class OpenAiOAuthController {
    */
   @Post('connect')
   async connect(@CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       const url = this.openAiOAuthService.generateAuthUrl(
-        publicMetadata.organization,
-        publicMetadata.user,
+        user.organizationId,
+        user.userId ?? user.id,
       );
 
       return { data: { url } };
@@ -57,8 +54,6 @@ export class OpenAiOAuthController {
     @CurrentUser() user: User,
     @Body() body: { code: string; state: string },
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       const { code, state } = body;
 
@@ -73,7 +68,7 @@ export class OpenAiOAuthController {
         await this.openAiOAuthService.exchangeCodeForTokens(code, state);
 
       // Verify the org matches the authenticated user
-      if (organizationId !== publicMetadata.organization) {
+      if (organizationId !== user.organizationId) {
         throw new HttpException(
           {
             detail: 'Organization mismatch',

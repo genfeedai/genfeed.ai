@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsSoundsController } from '@api/collections/elements/sounds/controllers/sounds.controller';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { SoundCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -44,11 +46,9 @@ describe('ElementsSoundsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee'.toString(),
-      organization: 'c07f191e810c19729de860ee'.toString(),
-      user: 'c07f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: 'c07f191e810c19729de860ee'.toString(),
+    organizationId: 'c07f191e810c19729de860ee'.toString(),
+    userId: 'c07f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockRequest = {
@@ -154,7 +154,7 @@ describe('ElementsSoundsController', () => {
         isActive: true,
         isDefault: false,
         isDeleted: false,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         type: SoundCategory.MUSIC,
       };
 
@@ -182,7 +182,7 @@ describe('ElementsSoundsController', () => {
         isActive: true,
         isDefault: false,
         isDeleted: false,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         type: SoundCategory.MUSIC,
       };
 
@@ -213,7 +213,7 @@ describe('ElementsSoundsController', () => {
         key: 'old-sound',
         label: 'Old Sound',
         name: 'Old Sound',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         type: SoundCategory.MUSIC,
       };
 
@@ -269,7 +269,7 @@ describe('ElementsSoundsController', () => {
         key: 'sound-to-delete',
         label: 'Sound to Delete',
         name: 'Sound to Delete',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         type: SoundCategory.MUSIC,
       };
 

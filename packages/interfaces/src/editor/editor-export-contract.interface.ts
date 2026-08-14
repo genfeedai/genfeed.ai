@@ -76,13 +76,13 @@ export interface IEditorRenderOutputMetadata {
 }
 
 export interface IEditorRenderCorrelation {
-  authProviderUserId: string;
   cancelRequestedAt?: string;
   ingredientId: string;
   jobId: string;
   metadataId: string;
   projectId: string;
   room: string;
+  userId: string;
 }
 
 export interface IEditorRenderProvenance extends IEditorRenderJobParams {

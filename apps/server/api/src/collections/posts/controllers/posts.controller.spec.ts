@@ -13,15 +13,13 @@ import {
 } from '@genfeedai/enums';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
-const makeUser = (overrides: Partial<User['publicMetadata']> = {}): User =>
+const makeUser = (overrides: Partial<User> = {}): User =>
   ({
-    publicMetadata: {
-      organization: 'org-1',
-      brand: 'brand-1',
-      user: 'user-1',
-      role: 'member',
-      ...overrides,
-    },
+    organizationId: 'org-1',
+    brandId: 'brand-1',
+    userId: 'user-1',
+    role: 'member',
+    ...overrides,
   }) as unknown as User;
 
 describe('PostsController.buildFindAllQuery', () => {

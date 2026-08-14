@@ -9,11 +9,9 @@ import { vi } from 'vitest';
 
 function buildUser(): AuthenticatedUser {
   return {
-    publicMetadata: {
-      brand: 'brand-1',
-      organization: 'org-1',
-      user: 'user-1',
-    },
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
   } as unknown as AuthenticatedUser;
 }
 
@@ -97,9 +95,7 @@ describe('SocialInboxController sync enqueue', () => {
       { ingestYoutubeComments: vi.fn() } as unknown as SocialInboxService,
       { add } as unknown as QueueService,
     );
-    const anonymous = {
-      publicMetadata: {},
-    } as unknown as AuthenticatedUser;
+    const anonymous = {} as unknown as AuthenticatedUser;
 
     await expect(controller.syncYoutubeComments(anonymous, {})).rejects.toThrow(
       UnauthorizedException,

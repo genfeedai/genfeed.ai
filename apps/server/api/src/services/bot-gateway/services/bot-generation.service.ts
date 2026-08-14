@@ -30,11 +30,9 @@ interface GenerationResult {
 
 interface SyntheticUser {
   id: string;
-  publicMetadata: {
-    user: string;
-    brand: string;
-    organization: string;
-  };
+  userId: string;
+    brandId: string;
+    organizationId: string;;
 }
 
 @Injectable()
@@ -161,11 +159,9 @@ export class BotGenerationService {
       // Create synthetic user object for SharedService
       const syntheticUser: SyntheticUser = {
         id: resolvedUser.userId,
-        publicMetadata: {
-          brand: resolvedUser.brandId,
-          organization: resolvedUser.organizationId,
-          user: resolvedUser.userId,
-        },
+        brandId: resolvedUser.brandId,
+          organizationId: resolvedUser.organizationId,
+          userId: resolvedUser.userId,
       };
 
       // Create ingredient with PROCESSING status

@@ -98,11 +98,9 @@ describe('VideosController', () => {
 
   const mockUser = {
     id: 'authProvider_user_123',
-    publicMetadata: {
-      brand: mockBrandId.toString(),
-      organization: mockOrgId.toString(),
-      user: mockUserId.toString(),
-    },
+    brandId: mockBrandId.toString(),
+    organizationId: mockOrgId.toString(),
+    userId: mockUserId.toString(),
   } as unknown as User;
 
   const mockVideo = {
@@ -482,7 +480,8 @@ describe('VideosController', () => {
           query: { latest: 'true', limit: 10 },
           user: {
             id: mockUser.id,
-            publicMetadata: { brand, organization },
+            brand,
+            organization,
           },
         });
 
@@ -522,10 +521,10 @@ describe('VideosController', () => {
       // OR-branch and no isDefault branch (unlike the list route).
       const branch = aggregate.where.AND[0];
       expect(branch).toMatchObject({
-        brandId: mockUser.publicMetadata.brand,
-        organizationId: mockUser.publicMetadata.organization,
+        brandId: mockUser.brandId,
+        organizationId: mockUser.organizationId,
         trainingId: null,
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       });
       expect(branch).not.toHaveProperty('OR');
       expect(branch).not.toHaveProperty('status');
@@ -586,11 +585,9 @@ describe('VideosController', () => {
         };
       };
       expect(aggregate.where.AND[0]).toEqual({
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       });
-      expect(aggregate.where.AND[1]?.brandId).toBe(
-        mockUser.publicMetadata.brand,
-      );
+      expect(aggregate.where.AND[1]?.brandId).toBe(mockUser.brandId);
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
     });
@@ -746,7 +743,7 @@ describe('VideosController', () => {
           params: { videoId: mockVideoId.toString() },
           user: {
             id: mockUser.id,
-            publicMetadata: { organization },
+            organization,
           },
         });
 
@@ -766,7 +763,7 @@ describe('VideosController', () => {
             id: mockVideoId.toString(),
             category: 'VIDEO',
             isDeleted: false,
-            organizationId: mockUser.publicMetadata.organization,
+            organizationId: mockUser.organizationId,
           },
         },
         { pagination: false },
@@ -776,7 +773,7 @@ describe('VideosController', () => {
           id: mockVideoId.toString(),
           category: 'VIDEO',
           isDeleted: false,
-          organizationId: mockUser.publicMetadata.organization,
+          organizationId: mockUser.organizationId,
         },
         expect.any(Array),
       );
@@ -951,14 +948,14 @@ describe('VideosController', () => {
 
       expect(videosService.findOne).toHaveBeenCalledWith({
         id: mockVideoId.toString(),
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         category: 'VIDEO',
         isDeleted: false,
       });
       expect(videosService.remove).toHaveBeenCalledWith(mockVideoId.toString());
       expect(metadataService.removeByIngredient).toHaveBeenCalledWith(
         mockVideoId.toString(),
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toBeDefined();
     });

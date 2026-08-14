@@ -26,9 +26,8 @@ export class SubscriptionGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
-    const publicMetadata = user?.publicMetadata;
 
-    if (!user || !publicMetadata) {
+    if (!user) {
       this.loggerService.warn('SubscriptionGuard: No user found in request');
       throw new HttpException(
         {
@@ -39,7 +38,7 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
-    if (publicMetadata.isApiKey === true) {
+    if (user.isApiKey === true) {
       return true;
     }
 

@@ -10,11 +10,9 @@ function createMockUser(
   brand = 'brand-default',
 ): User {
   return {
-    publicMetadata: {
-      brand,
-      organization,
-      user: userId,
-    },
+    brand,
+    organization,
+    userId: userId,
   } as unknown as User;
 }
 
@@ -167,7 +165,7 @@ describe('BatchContentController', () => {
       );
     });
 
-    it('should extract organization from user publicMetadata', () => {
+    it('should extract organization from user identity', () => {
       const service = createMockBatchContentService();
       const controller = new BatchContentController(service);
       const user = createMockUser('my-org-id', 'user-1');

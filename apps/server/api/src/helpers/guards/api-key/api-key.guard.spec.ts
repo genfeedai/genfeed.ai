@@ -209,16 +209,15 @@ describe('ApiKeyAuthGuard', () => {
       const mutatedRequest = mockContext.switchToHttp().getRequest();
       expect(result).toBe(true);
       expect(mutatedRequest.user).toEqual({
+        actionOrigin: ActionOrigin.API,
+        apiKeyId: mockApiKey.id.toString(),
+        brandId: mockApiKey.organizationId.toString(),
         id: mockApiKey.userId.toString(),
-        publicMetadata: {
-          actionOrigin: ActionOrigin.API,
-          apiKeyId: mockApiKey.id.toString(),
-          brand: mockApiKey.organizationId.toString(),
-          isApiKey: true,
-          organization: mockApiKey.organizationId.toString(),
-          scopes: mockApiKey.scopes,
-          user: mockApiKey.userId.toString(),
-        },
+        isApiKey: true,
+        isSuperAdmin: false,
+        organizationId: mockApiKey.organizationId.toString(),
+        scopes: mockApiKey.scopes,
+        userId: mockApiKey.userId.toString(),
       });
       expect(apiKeysService.updateLastUsed).toHaveBeenCalledWith(
         mockApiKey.id.toString(),

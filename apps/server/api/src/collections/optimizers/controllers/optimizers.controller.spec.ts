@@ -25,10 +25,8 @@ describe('OptimizersController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockOptimizersService = {
@@ -111,7 +109,7 @@ describe('OptimizersController', () => {
 
       expect(service.analyzeContent).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
       );
@@ -139,7 +137,7 @@ describe('OptimizersController', () => {
 
       expect(service.optimizeContent).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
       );
@@ -166,7 +164,7 @@ describe('OptimizersController', () => {
 
       expect(service.suggestHashtags).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(result).toEqual(hashtags);
@@ -196,7 +194,7 @@ describe('OptimizersController', () => {
 
       expect(service.generateVariants).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(result).toEqual(variants);
@@ -227,7 +225,7 @@ describe('OptimizersController', () => {
       expect(service.getBestPostingTimes).toHaveBeenCalledWith(
         platform,
         timezone,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
       expect(result).toEqual(times);
@@ -253,7 +251,7 @@ describe('OptimizersController', () => {
       expect(service.getBestPostingTimes).toHaveBeenCalledWith(
         platform,
         'UTC',
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         expect.any(Function),
       );
     });
@@ -285,7 +283,7 @@ describe('OptimizersController', () => {
       );
 
       expect(service.getOptimizationHistory).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         20,
       );
@@ -298,7 +296,7 @@ describe('OptimizersController', () => {
       await controller.getOptimizationHistory(mockReq, undefined, mockUser);
 
       expect(service.getOptimizationHistory).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         mockUser.id,
         20,
       );

@@ -125,20 +125,17 @@ describe('Authentication E2E Tests', () => {
       // This test verifies the mock is working correctly
       const mockJwtPayload = {
         email: testUser.email,
-        publicMetadata: {
-          isOwner: true,
-          organization: testOrganization.id.toString(),
-          user: testUser.id.toString(),
-        },
+        organizationId: testOrganization.id.toString(),
+        userId: testUser.id.toString(),
         sub: testUser.id.toString(),
       };
 
       expect(mockJwtPayload.sub).toBe(testUser.id.toString());
-      expect(mockJwtPayload.publicMetadata.isOwner).toBe(true);
+      expect(mockJwtPayload.isOwner).toBe(true);
     });
 
     it('should verify public metadata structure', () => {
-      const publicMetadata = {
+      const identity = {
         email: testUser.email,
         isOwner: true,
         isSuperAdmin: false,
@@ -146,11 +143,11 @@ describe('Authentication E2E Tests', () => {
         user: testUser.id.toString(),
       };
 
-      expect(publicMetadata).toHaveProperty('organization');
-      expect(publicMetadata).toHaveProperty('user');
-      expect(publicMetadata).toHaveProperty('email');
-      expect(publicMetadata).toHaveProperty('isOwner');
-      expect(publicMetadata).toHaveProperty('isSuperAdmin');
+      expect(identity).toHaveProperty('organization');
+      expect(identity).toHaveProperty('user');
+      expect(identity).toHaveProperty('email');
+      expect(identity).toHaveProperty('isOwner');
+      expect(identity).toHaveProperty('isSuperAdmin');
     });
   });
 

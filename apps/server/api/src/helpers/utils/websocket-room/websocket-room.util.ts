@@ -1,21 +1,9 @@
 import { categoryToPlural, IngredientCategory } from '@genfeedai/enums';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 
-/**
- * Calculates the WebSocket user room identifier.
- * Falls back to dbUserId-based room if the compatibility ID is not available.
- */
-export function getUserRoom(
-  authProviderUserId?: string,
-  dbUserId?: string,
-): string | undefined {
-  if (authProviderUserId) {
-    return getUserRoomName(authProviderUserId);
-  }
-  if (dbUserId) {
-    return getUserRoomName(dbUserId);
-  }
-  return undefined;
+/** Calculates the WebSocket user room identifier. */
+export function getUserRoom(userId?: string): string | undefined {
+  return userId ? getUserRoomName(userId) : undefined;
 }
 
 /**
@@ -37,18 +25,12 @@ export function getCacheTag(category: IngredientCategory | string): string {
   return categoryToPlural(category);
 }
 
-/**
- * Validates that a room can be determined from either canonical ID.
- */
-export function validateRoomMatch(
-  authProviderUserId?: string,
-  dbUserId?: string,
-): { isValid: boolean; warning?: string } {
-  if (authProviderUserId) {
-    return { isValid: true };
-  }
-
-  if (dbUserId) {
+/** Validates that a room can be determined from the canonical user ID. */
+export function validateRoomMatch(userId?: string): {
+  isValid: boolean;
+  warning?: string;
+} {
+  if (userId) {
     return { isValid: true };
   }
 

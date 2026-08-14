@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
@@ -77,11 +76,9 @@ export class TiktokController {
 
     this.loggerService.log(url, createCredentialDto);
 
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -96,7 +93,7 @@ export class TiktokController {
 
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
-      publicMetadata.user,
+      user.userId ?? user.id,
       CredentialPlatform.TIKTOK,
       {
         isConnected: false,
@@ -268,16 +265,14 @@ export class TiktokController {
     @CurrentUser() user: User,
     @Param('credentialId') credentialId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     await this.tiktokAuthorizedSignalsService.refresh({
       credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: CredentialPlatform.TIKTOK,
     });
 

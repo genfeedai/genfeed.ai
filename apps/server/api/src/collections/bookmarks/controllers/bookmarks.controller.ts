@@ -7,7 +7,6 @@ import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -53,16 +52,14 @@ export class BookmarksController {
     @Body() createBookmarkDto: CreateBookmarkDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const bookmark = await this.bookmarksService.create({
       ...createBookmarkDto,
       brandId: createBookmarkDto.brandId
         ? String(createBookmarkDto.brandId)
-        : publicMetadata.brand,
-      organizationId: publicMetadata.organization,
+        : user.brandId,
+      organizationId: user.organizationId,
       savedAt: new Date(),
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     return serializeSingle(request, BookmarkSerializer, bookmark);
@@ -80,14 +77,13 @@ export class BookmarksController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // Build match conditions
     const matchConditions: BookmarkMatchConditions = {
       isDeleted,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
 
     // Filter by category
@@ -132,12 +128,10 @@ export class BookmarksController {
     @Param('bookmarkId') bookmarkId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const bookmark = await this.bookmarksService.findOne({
       id: bookmarkId,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     if (!bookmark) {
@@ -155,13 +149,11 @@ export class BookmarksController {
     @Body() updateBookmarkDto: UpdateBookmarkDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
       id: bookmarkId,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     if (!bookmark) {
@@ -185,13 +177,11 @@ export class BookmarksController {
     @Param('bookmarkId') bookmarkId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<{ message: string }>> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
       id: bookmarkId,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     if (!bookmark) {

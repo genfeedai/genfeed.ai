@@ -58,7 +58,7 @@ export class <Platform>Controller {
     @CurrentUser() user: User,
     @Req() req: Request,
   ): Promise<JsonApiSingleResponse> {
-    const { organizationId, brandId } = getPublicMetadata(user);
+    const { organizationId, brandId } = user;
     // Build auth URL with PKCE or state parameter
     // Return: serializeSingle(result, CredentialOAuthSerializer)
   }
@@ -68,7 +68,7 @@ export class <Platform>Controller {
     @Body() dto: CreateCredentialVerifyDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const { organizationId, brandId } = getPublicMetadata(user);
+    const { organizationId, brandId } = user;
     // Exchange code for tokens (PKCE flow handles this in verify, not a separate callback)
     // credentialsService.saveCredentials(brand, CredentialPlatform.X, fields)
     // Return: serializeSingle(credential, CredentialSerializer)
@@ -178,7 +178,7 @@ Both from `@genfeedai/serializers`.
 - Always use `CredentialPlatform` enum — never raw strings
 - Register platform in `platform.enum.ts` first
 - Use `HttpService` (NestJS Axios) in services, not raw `fetch`
-- Use `getPublicMetadata(user)` from `@api/helpers/utils/auth/auth.util`
+- Read `user.organizationId` / `user.brandId` / `user.userId` from `AuthenticatedUser`
 - Return serialized responses — never raw credential objects
 - Use `returnBadRequest`/`returnNotFound` helpers for errors in new integrations
 

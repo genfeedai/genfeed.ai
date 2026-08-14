@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
@@ -44,7 +43,8 @@ export class RestreamController {
     @CurrentUser() user: User,
     @Body('brandId') brandId: string,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const organizationId = requireRelationId(
       organization,
       'organization',
@@ -120,7 +120,8 @@ export class RestreamController {
       );
     }
 
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const organizationId = requireRelationId(
       organization,
       'organization',

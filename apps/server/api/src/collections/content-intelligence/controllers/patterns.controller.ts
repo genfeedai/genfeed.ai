@@ -3,7 +3,6 @@ import { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patt
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -87,8 +86,7 @@ export class PatternsController {
     @CurrentUser() user: User,
     @Query() query: PatternsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const organizationId = user.organizationId;
 
     const options = {
       customLabels,
@@ -160,10 +158,9 @@ export class PatternsController {
       ErrorResponse.notFound('ContentPattern', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.patternStoreService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!data) {
@@ -183,10 +180,9 @@ export class PatternsController {
       ErrorResponse.notFound('ContentPattern', id);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const pattern = await this.patternStoreService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!pattern) {

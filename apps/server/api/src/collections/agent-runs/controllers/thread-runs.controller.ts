@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {
   AgentRunSerializer,
@@ -35,12 +34,11 @@ export class ThreadRunsController {
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const runs = await this.agentRunsService.getByThread(
       threadId,
-      publicMetadata.organization,
+      user.organizationId,
       {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         cursor,
         limit: limit ? Number.parseInt(limit, 10) : undefined,
       },

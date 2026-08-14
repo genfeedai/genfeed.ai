@@ -153,7 +153,7 @@ describe('BetterAuthIdentityResolverService', () => {
   // active membership row whose organization can no longer be resolved (e.g.
   // soft-deleted org, orphaned member row) must not silently resolve to
   // `organizationId: undefined`. Downstream, every
-  // `{ organization: publicMetadata.organization } OR { userId: currentUser }`
+  // `{ organization: identity.organizationId } OR { userId: currentUser }`
   // list filter treats an `undefined` organization branch as a no-op entry
   // that BaseService.normalizeWhere drops from the OR array — collapsing the
   // query to "created by me only" and returning 200 OK with 0 results for

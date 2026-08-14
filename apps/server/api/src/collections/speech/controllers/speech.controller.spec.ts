@@ -12,13 +12,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { SpeechController } from '@api/collections/speech/controllers/speech.controller';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -33,12 +35,10 @@ describe('SpeechController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: '507f191e810c19729de860ee'.toString(),
+    isSuperAdmin: false,
+    organizationId: '507f191e810c19729de860ee'.toString(),
+    userId: '507f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockReq = {} as Request;

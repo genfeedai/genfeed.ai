@@ -75,11 +75,9 @@ describe('GifsController', () => {
   const mockRequest = {} as unknown as Request;
   const mockUser = {
     id: 'authProvider_user_1',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    },
+    brandId: 'cmbrand000000000000000001',
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
   const gifId = 'cmgif000000000000000000001';
 
@@ -201,7 +199,7 @@ describe('GifsController', () => {
                     expect.objectContaining({
                       OR: [
                         {
-                          organizationId: mockUser.publicMetadata.organization,
+                          organizationId: mockUser.organizationId,
                         },
                         { organizationId: null },
                       ],
@@ -225,7 +223,7 @@ describe('GifsController', () => {
           id: gifId,
           category: 'GIF',
           OR: [
-            { organizationId: mockUser.publicMetadata.organization },
+            { organizationId: mockUser.organizationId },
             { isDefault: true, organizationId: null },
           ],
         },
@@ -252,7 +250,7 @@ describe('GifsController', () => {
         expect.objectContaining({
           entityId: gifId,
           entityModel: 'Ingredient',
-          userId: mockUser.publicMetadata.user,
+          userId: mockUser.userId,
         }),
       );
     });
@@ -271,7 +269,7 @@ describe('GifsController', () => {
       const result = await controller.remove(mockRequest, gifId, mockUser);
       expect(gifsService.findOne).toHaveBeenCalledWith({
         id: gifId,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         category: 'GIF',
         isDeleted: false,
       });

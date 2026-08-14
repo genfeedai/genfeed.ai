@@ -56,15 +56,15 @@ describe('browser extension environment service', () => {
     ).toBe(true);
   });
 
-  it('keeps the legacy development host as an explicit compatibility allowlist entry', async () => {
+  it('does not treat the retired local.genfeed.ai host as an auth origin', async () => {
     const environment = await importEnvironmentService();
 
-    expect(environment.authCookieOrigins).toContain(
+    expect(environment.authCookieOrigins).not.toContain(
       'http://local.genfeed.ai:3000',
     );
     expect(
       environment.isGenfeedAuthUrl('http://local.genfeed.ai:3000/login'),
-    ).toBe(true);
+    ).toBe(false);
     expect(environment.isGenfeedAuthUrl('https://evil.example/login')).toBe(
       false,
     );

@@ -10,7 +10,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -50,7 +49,8 @@ export class ContextsController {
     @Body() dto: CreateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization, user: dbUserId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const dbUserId = user.userId ?? user.id;
     const data = await this.contextsService.create(dto, organization, dbUserId);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -67,7 +67,7 @@ export class ContextsController {
     @Query('isActive') isActive?: string,
     @Query('search') search?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const docs = await this.contextsService.findAll(organization, {
       category,
@@ -87,7 +87,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.findOne(contextId, organization);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -103,7 +103,7 @@ export class ContextsController {
     @Body() dto: UpdateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.update(
       contextId,
       dto,
@@ -121,7 +121,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.contextsService.remove(contextId, organization);
     return { message: 'Context base deleted successfully' };
   }
@@ -137,7 +137,7 @@ export class ContextsController {
     @Body() dto: AddEntryDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const data = await this.contextsService.addEntry(
       contextId,
       dto,
@@ -156,7 +156,7 @@ export class ContextsController {
     @Param('entryId') entryId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.contextsService.removeEntry(contextId, entryId, organization);
     return { message: 'Entry removed successfully' };
   }
@@ -171,8 +171,9 @@ export class ContextsController {
     @Body() dto: AutoCreateContextDto,
     @CurrentUser() user: User,
   ) {
-    // Pass the DB user ID (publicMetadata.user), not the legacy auth provider user ID (user.id).
-    const { organization, user: dbUserId } = getPublicMetadata(user);
+    // Pass the DB user ID (identity.userId), not the legacy auth provider user ID (user.id).
+    const organization = user.organizationId;
+    const dbUserId = user.userId ?? user.id;
     const data = await this.contextsService.autoCreateFromAccount(
       dto,
       organization,
@@ -191,7 +192,7 @@ export class ContextsController {
     @Body() dto: EnhancePromptDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return this.contextsService.enhancePrompt(dto, organization);
   }
 
@@ -201,7 +202,7 @@ export class ContextsController {
   @Post('query')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async queryContext(@Body() dto: QueryContextDto, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.contextsService.queryContext(dto, organization);
   }
 
@@ -214,7 +215,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.contextsService.getStats(contextId, organization);
   }
 }

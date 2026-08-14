@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { Timeframe } from '@genfeedai/enums';
 import { SubscriptionAttributionSerializer } from '@genfeedai/serializers';
@@ -30,10 +29,9 @@ export class SubscriptionAttributionsController {
     @Body() dto: TrackSubscriptionDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
     const data = await this.subscriptionAttributionsService.trackSubscription(
       dto,
-      organization,
+      user.organizationId,
     );
     return serializeSingle(req, SubscriptionAttributionSerializer, data);
   }
@@ -47,10 +45,9 @@ export class SubscriptionAttributionsController {
     @Param('contentId') contentId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
     return await this.subscriptionAttributionsService.getContentSubscriptionStats(
       contentId,
-      organization,
+      user.organizationId,
     );
   }
 
@@ -68,11 +65,10 @@ export class SubscriptionAttributionsController {
       | undefined,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
     return await this.subscriptionAttributionsService.getTopContentBySubscriptions(
       {
         limit: limit ? parseInt(limit, 10) : 10,
-        organizationId: organization,
+        organizationId: user.organizationId,
         period: period || Timeframe.D30,
       },
     );

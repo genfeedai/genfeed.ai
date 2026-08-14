@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -14,10 +13,6 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { GhostController } from './ghost.controller';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((x) => ({ error: x })),
@@ -71,11 +66,6 @@ describe('GhostController', () => {
     brandsService = module.get(BrandsService);
     credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
-
-    vi.mocked(getPublicMetadata).mockReturnValue({
-      organization: mockOrgId,
-      user: mockUserId,
-    } as ReturnType<typeof getPublicMetadata>);
   });
 
   afterEach(() => vi.clearAllMocks());

@@ -1,26 +1,7 @@
-import type {
-  AuthenticatedUser,
-  IAuthPublicMetadata,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { subscriptionStatusFromStripe } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
-
-const EMPTY_PUBLIC_METADATA: IAuthPublicMetadata = {
-  brand: '',
-  isSuperAdmin: false,
-  organization: '',
-  user: '',
-};
-
-export function getPublicMetadata(
-  user: AuthenticatedUser | null | undefined,
-): IAuthPublicMetadata {
-  return {
-    ...EMPTY_PUBLIC_METADATA,
-    ...(user?.publicMetadata ?? {}),
-  };
-}
 
 type ContextCarrier = Request & {
   context?: {
@@ -38,8 +19,7 @@ export function getIsSuperAdmin(
     return request.context.isSuperAdmin === true;
   }
 
-  const publicMetadata = getPublicMetadata(user);
-  return publicMetadata.isSuperAdmin === true;
+  return user?.isSuperAdmin === true;
 }
 
 /**
@@ -54,7 +34,7 @@ export function getStripeSubscriptionStatus(
   const raw =
     request?.context?.stripeSubscriptionStatus !== undefined
       ? request.context.stripeSubscriptionStatus
-      : (getPublicMetadata(user).stripeSubscriptionStatus ?? '');
+      : (user?.stripeSubscriptionStatus ?? '');
 
   if (!raw) {
     return '';
@@ -71,8 +51,7 @@ export function getSubscriptionTier(
     return request.context.subscriptionTier;
   }
 
-  const publicMetadata = getPublicMetadata(user);
-  return publicMetadata.subscriptionTier ?? '';
+  return user?.subscriptionTier ?? '';
 }
 
 /**
@@ -94,8 +73,9 @@ export interface ContextQueryDto {
 }
 
 /**
- * Extract request context (organizationId, brandId, userId) from user metadata and query params.
- * Query params take precedence over user metadata, allowing for admin override scenarios.
+ * Extract request context (organizationId, brandId, userId) from the
+ * authenticated user and query params.
+ * Query params take precedence over user identity, allowing for admin override scenarios.
  *
  * @param user - authenticated user object
  * @param query - Optional query DTO with organization, brand, user overrides
@@ -112,12 +92,9 @@ export function extractRequestContext(
   user: AuthenticatedUser,
   query?: ContextQueryDto,
 ): RequestContext {
-  const publicMetadata = getPublicMetadata(user);
-
-  const organizationId =
-    query?.organizationId || publicMetadata.organization?.toString() || '';
-  const brandId = query?.brandId || publicMetadata.brand?.toString() || '';
-  const userId = query?.userId || publicMetadata.user?.toString() || '';
+  const organizationId = query?.organizationId || user.organizationId || '';
+  const brandId = query?.brandId || user.brandId || '';
+  const userId = query?.userId || user.userId || user.id || '';
 
   return {
     brandId,

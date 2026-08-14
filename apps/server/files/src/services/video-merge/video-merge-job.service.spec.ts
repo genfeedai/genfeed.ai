@@ -7,15 +7,6 @@ import type { Job } from 'bullmq';
 const createJobData = (
   overrides: Partial<VideoJobData> = {},
 ): VideoJobData => ({
-  authProviderUserId: 'auth-user-123',
-  createdAt: new Date(),
-  id: 'merge-job-data-123',
-  ingredientId: 'ingredient-123',
-  metadata: { websocketUrl: 'ws://localhost', ...overrides.metadata },
-  organizationId: 'organization-123',
-  params: { sourceIds: ['source-1', 'source-2'], ...overrides.params },
-  room: 'user-room',
-  type: JOB_TYPES.MERGE_VIDEOS as JobType,
   userId: 'user-123',
   ...overrides,
 });
@@ -99,7 +90,7 @@ describe('VideoMergeJobService', () => {
         s3Key: 'videos/ingredient-123.mp4',
         url: 'https://cdn.example.com/videos/ingredient-123.mp4',
       },
-      data.authProviderUserId,
+      data.userId,
       data.room,
     );
     expect(redisService.publish).toHaveBeenCalledWith(
@@ -158,7 +149,7 @@ describe('VideoMergeJobService', () => {
         step: 'merging',
         stepProgress: 50,
       }),
-      data.authProviderUserId,
+      data.userId,
       data.room,
     );
     expect(result.outputPath).toBe('/tmp/merge-ingredient-123/resized.mp4');
@@ -196,7 +187,7 @@ describe('VideoMergeJobService', () => {
     expect(webSocketService.emitError).toHaveBeenCalledWith(
       data.metadata.websocketUrl,
       'Merge failed',
-      data.authProviderUserId,
+      data.userId,
       data.room,
     );
     expect(redisService.publish).toHaveBeenCalledWith(

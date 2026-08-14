@@ -20,7 +20,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -99,9 +98,8 @@ export class ClipProjectsController {
     projectId: string;
     status: string;
   }> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const orgId = user.organizationId;
+    const userId = user.userId ?? user.id;
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const resolvedIdentity =
@@ -193,9 +191,8 @@ export class ClipProjectsController {
     projectId: string;
     status: string;
   }> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const orgId = user.organizationId;
+    const userId = user.userId ?? user.id;
     const identity = await this.clipIdentityResolutionService.resolve({
       brandId: dto.brandId,
       organizationId: orgId,
@@ -246,11 +243,9 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const project = await this.clipProjectsService.findOne({
       id: projectId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!project) {
@@ -278,12 +273,10 @@ export class ClipProjectsController {
     @Param('highlightId') highlightId: string,
     @Body() dto: RewriteHighlightDto,
   ): Promise<{ rewrittenScript: string; originalScript: string }> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify the project belongs to the user's org
     const project = await this.clipProjectsService.findOne({
       id: projectId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!project) {
@@ -316,9 +309,8 @@ export class ClipProjectsController {
     reference?: ClipReferenceApplication;
     status: string;
   }> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
-    const userId = publicMetadata.user;
+    const orgId = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const {
       identity,
@@ -389,19 +381,17 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Body() createDto: CreateClipProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     if (createDto.brandId) {
       await this.clipIdentityResolutionService.resolve({
         brandId: createDto.brandId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
     }
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     return serializeSingle(request, ClipProjectSerializer, data);
@@ -414,8 +404,6 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -424,7 +412,7 @@ export class ClipProjectsController {
     const aggregate = {
       where: {
         isDeleted: false,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
@@ -443,11 +431,9 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.clipProjectsService.reconcileTerminalState(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     if (!data) {
@@ -465,11 +451,9 @@ export class ClipProjectsController {
     @Param('id') id: string,
     @Body() updateDto: UpdateClipProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const existing = await this.clipProjectsService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!existing) {

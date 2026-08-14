@@ -74,11 +74,9 @@ describe('ImagesController', () => {
   const mockRequest = {} as unknown as Request;
   const mockUser = {
     id: 'c07f1f77bcf86cd799439013',
-    publicMetadata: {
-      brand: 'c07f1f77bcf86cd799439012',
-      organization: 'c07f1f77bcf86cd799439011',
-      user: 'c07f1f77bcf86cd799439013',
-    },
+    brandId: 'c07f1f77bcf86cd799439012',
+    organizationId: 'c07f1f77bcf86cd799439011',
+    userId: 'c07f1f77bcf86cd799439013',
   } as unknown as User;
 
   const mockImage = {
@@ -164,20 +162,20 @@ describe('ImagesController', () => {
 
       const userBranch = orBranches[0].AND[0];
       expect(userBranch).toMatchObject({
-        brandId: mockUser.publicMetadata.brand,
-        organizationId: mockUser.publicMetadata.organization,
+        brandId: mockUser.brandId,
+        organizationId: mockUser.organizationId,
         trainingId: null,
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       });
       expect(userBranch).not.toHaveProperty('isDefault');
 
       const defaultBranch = orBranches[1].AND[0];
       expect(defaultBranch).toMatchObject({
         OR: [
-          { organizationId: mockUser.publicMetadata.organization },
+          { organizationId: mockUser.organizationId },
           { organizationId: null },
         ],
-        brandId: mockUser.publicMetadata.brand,
+        brandId: mockUser.brandId,
         isDefault: true,
       });
     });
@@ -208,7 +206,8 @@ describe('ImagesController', () => {
           query: { latest: 'true', limit: 10 },
           user: {
             id: mockUser.id,
-            publicMetadata: { brand, organization },
+            brand,
+            organization,
           },
         });
 
@@ -237,7 +236,7 @@ describe('ImagesController', () => {
       expect(aggregate.where.AND).toBeDefined();
       expect(aggregate.where.AND?.[0]?.OR?.[0]?.AND?.[0]).toEqual(
         expect.objectContaining({
-          organizationId: mockUser.publicMetadata.organization,
+          organizationId: mockUser.organizationId,
         }),
       );
       expect(serializeCollection).toHaveBeenCalledWith(
@@ -257,7 +256,7 @@ describe('ImagesController', () => {
           id: mockImage.id,
           category: 'IMAGE',
           OR: [
-            { organizationId: mockUser.publicMetadata.organization },
+            { organizationId: mockUser.organizationId },
             { isDefault: true, organizationId: null },
           ],
         },
@@ -286,7 +285,7 @@ describe('ImagesController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith({
         id: mockImage.id,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         category: 'IMAGE',
         isDeleted: false,
       });

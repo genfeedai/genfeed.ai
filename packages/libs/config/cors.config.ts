@@ -61,7 +61,7 @@ export function getGenfeedCorsOrigins(
   if (isDevelopment) {
     return [
       // Explicit fixed-port fallback for dev:debug / run-service without Portless.
-      /^http:\/\/(localhost|local\.genfeed\.ai|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/,
+      /^http:\/\/(localhost|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/,
 
       // Canonical Portless HTTPS contract. Portless may add a worktree prefix.
       /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/,

@@ -21,11 +21,9 @@ describe('VoiceCloneService', () => {
   const organizationId = '507f191e810c19729de860eb';
   const user = {
     id: 'auth-user-1',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ec',
-      organization: organizationId,
-      user: '507f191e810c19729de860ed',
-    },
+    brandId: '507f191e810c19729de860ec',
+    organizationId: organizationId,
+    userId: '507f191e810c19729de860ed',
   } as User;
   const request = {} as Request;
   let byok: { resolveApiKey: ReturnType<typeof vi.fn> };

@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsMoodsController } from '@api/collections/elements/moods/controllers/moods.controller';
 import { CreateElementMoodDto } from '@api/collections/elements/moods/dto/create-mood.dto';
 import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update-mood.dto';
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -51,11 +53,9 @@ describe('ElementsMoodsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    } as IAuthPublicMetadata,
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockRequest = {

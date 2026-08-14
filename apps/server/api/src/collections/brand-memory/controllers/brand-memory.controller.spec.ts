@@ -5,13 +5,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
-
 describe('BrandMemoryController', () => {
   let controller: BrandMemoryController;
 
@@ -22,10 +15,8 @@ describe('BrandMemoryController', () => {
   };
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   beforeEach(async () => {

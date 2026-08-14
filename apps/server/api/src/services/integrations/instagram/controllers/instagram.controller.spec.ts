@@ -108,10 +108,8 @@ describe('InstagramController', () => {
 
   describe('connect', () => {
     const mockUser = {
-      publicMetadata: {
-        organization: '507f191e810c19729de860eb',
-        user: '507f191e810c19729de860ec',
-      },
+      organizationId: '507f191e810c19729de860eb',
+      userId: '507f191e810c19729de860ec',
     } as unknown as User;
     const mockRequest = {
       headers: { host: 'localhost:3010' },

@@ -70,10 +70,8 @@ describe('PublishingSetupController', () => {
             body: {},
             params: {},
             user: {
-              publicMetadata: {
-                organization: ORGANIZATION_ID,
-                user: USER_ID,
-              },
+              organizationId: ORGANIZATION_ID,
+              userId: USER_ID,
             },
           }),
         }),

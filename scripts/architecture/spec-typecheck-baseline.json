@@ -137,14 +137,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/collections/api-keys/controllers/api-keys.controller.spec.ts",
-      "fingerprint": "022ee1be9ba6406c0f9e",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/api-keys/entities/api-key.entity.spec.ts",
@@ -257,14 +249,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 4,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "9588b856675a568a35c7",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/bookmarks/entities/bookmark.entity.spec.ts",
@@ -326,14 +310,6 @@
       "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
       "fingerprint": "1de7e7a71ff8260304c5",
       "message": "Property 'sort' is missing in type '{ isDeleted: false; limit: number; page: number; pagination: true; }' but required in type 'BaseQueryDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 9,
-      "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
-      "fingerprint": "9911f33d3dabf4fd4afb",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -489,14 +465,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 14,
-      "file": "apps/server/api/src/collections/contexts/controllers/contexts.controller.spec.ts",
-      "fingerprint": "da961c200cfd020bef31",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 2,
       "file": "apps/server/api/src/collections/credentials/controllers/credentials.controller.spec.ts",
@@ -569,27 +537,11 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/collections/elements/camera-movements/controllers/camera-movements.controller.spec.ts",
-      "fingerprint": "77e60b773e5564b96096",
-      "message": "'mockSuperAdminUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/elements/camera-movements/entities/camera-movement.entity.spec.ts",
       "fingerprint": "94674f31f5996c486a4c",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/cameras/controllers/cameras.controller.spec.ts",
-      "fingerprint": "e569dbaffbf94609deb1",
-      "message": "'mockSuperAdminUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -606,22 +558,6 @@
       "file": "apps/server/api/src/collections/elements/elements.controller.spec.ts",
       "fingerprint": "fe4bd3a3b5a127ce5009",
       "message": "Argument of type '{ blacklists: { _id: string; label: string; }[]; cameraMovements: { _id: string; label: string; }[]; cameras: { _id: string; label: string; }[]; lenses: { _id: string; label: string; }[]; lightings: { _id: string; label: string; }[]; moods: { ...; }[]; scenes: { ...; }[]; sounds: { ...; }[]; styles: { ...; }[]; }' is not assignable to parameter of type '{ blacklists: { description: string | null; label: string | null; category: string | null; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string; key: string | null; }[]; ... 7 more ...; styles: { ...; }[]; }'.   Types of property 'blacklists' are incompatible.     Type '{ _id: string; label: string; }[]' is not assignable to type '{ description: string | null; label: string | null; category: string | null; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string; key: string | null; }[]'.       Type '{ _id: string; label: string; }' is missing the following properties from type '{ description: string | null; label: string | null; category: string | null; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string; key: string | null; }': description, category, isDeleted, createdAt, and 4 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/elements.controller.spec.ts",
-      "fingerprint": "c881b7f86911404a4f23",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/collections/elements/lenses/controllers/lenses.controller.spec.ts",
-      "fingerprint": "c1ba3dfcd0fc1f9800f6",
-      "message": "'mockSuperAdminUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -649,27 +585,11 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 6,
-      "file": "apps/server/api/src/collections/elements/scenes/controllers/scenes.controller.spec.ts",
-      "fingerprint": "2f85917b3e50e7f05c3f",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/elements/scenes/entities/scene.entity.spec.ts",
       "fingerprint": "7252cbfab7cb58bb3396",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 4,
-      "file": "apps/server/api/src/collections/elements/sounds/controllers/sounds.controller.spec.ts",
-      "fingerprint": "05a5a7eb59da6499760d",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -889,14 +809,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 28,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "bc4876ccc8ba44db7af6",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/folders/entities/folder.entity.spec.ts",
@@ -926,22 +838,6 @@
       "file": "apps/server/api/src/collections/gifs/controllers/gifs.controller.spec.ts",
       "fingerprint": "0e1c9f92d751b3f85fa0",
       "message": "Property 'hasVoted' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 4,
-      "file": "apps/server/api/src/collections/gifs/controllers/gifs.controller.spec.ts",
-      "fingerprint": "816354ec9d7baa33c598",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 8,
-      "file": "apps/server/api/src/collections/images/controllers/images.controller.spec.ts",
-      "fingerprint": "3238c8d561353db5faea",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1329,14 +1225,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 8,
-      "file": "apps/server/api/src/collections/optimizers/controllers/optimizers.controller.spec.ts",
-      "fingerprint": "ee256b319026f7c3c9c8",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/organizations/controllers/organizations-members.controller.spec.ts",
@@ -1366,14 +1254,6 @@
       "file": "apps/server/api/src/collections/organizations/entities/organization.entity.spec.ts",
       "fingerprint": "fde1e443baebf6752197",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/collections/outreach-campaigns/controllers/outreach-campaigns.controller.spec.ts",
-      "fingerprint": "4dda0133326ed8f05775",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1497,14 +1377,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 10,
-      "file": "apps/server/api/src/collections/profiles/controllers/profiles.controller.spec.ts",
-      "fingerprint": "c717f41849c4ba8f7644",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 4,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
@@ -1609,27 +1481,11 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 7,
-      "file": "apps/server/api/src/collections/templates/controllers/templates.controller.spec.ts",
-      "fingerprint": "1c42da6befd08c9d96a3",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 3,
       "file": "apps/server/api/src/collections/tracked-links/controllers/tracked-links.controller.spec.ts",
       "fingerprint": "9805d19565f76c2219a6",
       "message": "Argument of type 'Response<any, Record<string, any>>' is not assignable to parameter of type 'Response'.   Type 'Response<any, Record<string, any>>' is missing the following properties from type 'Response': headers, ok, redirected, statusText, and 9 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 8,
-      "file": "apps/server/api/src/collections/tracked-links/controllers/tracked-links.controller.spec.ts",
-      "fingerprint": "472a258d036c8225eee6",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1641,27 +1497,11 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/collections/trainings/controllers/operations/trainings-operations.controller.spec.ts",
-      "fingerprint": "35e7bd987a6eec6cde64",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 2,
       "file": "apps/server/api/src/collections/trainings/controllers/trainings.controller.spec.ts",
       "fingerprint": "1e7673e4ed3064f0e729",
       "message": "Property 'id' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 9,
-      "file": "apps/server/api/src/collections/trainings/controllers/trainings.controller.spec.ts",
-      "fingerprint": "60508a081070f97a29de",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1689,14 +1529,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 7,
-      "file": "apps/server/api/src/collections/transcripts/controllers/transcripts.controller.spec.ts",
-      "fingerprint": "68c7cc8030473297eab7",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/transcripts/entities/transcript.entity.spec.ts",
@@ -1710,22 +1542,6 @@
       "file": "apps/server/api/src/collections/trends/controllers/trends.controller.spec.ts",
       "fingerprint": "39566a54fe06e45f84a2",
       "message": "Type '\"twitter\"' is not assignable to type 'Platform | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/controllers/trends.controller.spec.ts",
-      "fingerprint": "160b7703b208b41b62bf",
-      "message": "'adminUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 26,
-      "file": "apps/server/api/src/collections/trends/controllers/trends.controller.spec.ts",
-      "fingerprint": "25b613282f7fca569071",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1809,14 +1625,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/collections/videos/controllers/captions/videos-captions.controller.spec.ts",
-      "fingerprint": "41da56317bfdff023026",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 2,
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
@@ -1830,14 +1638,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
       "fingerprint": "e66b5ceb349863bd5336",
       "message": "Property 'category' is missing in type '{ ids: string[]; isCaptionsEnabled: false; isResizeEnabled: false; }' but required in type 'CreateMergedVideoDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
-      "fingerprint": "4a9ab75be7e694e524ae",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1878,14 +1678,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
       "fingerprint": "b6a38dbe77f0d57a1dfa",
       "message": "Object literal may only specify known properties, but 'folder' does not exist in type 'VideosQueryDto'. Did you mean to write 'folderId'?",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 9,
-      "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
-      "fingerprint": "f98119d5de713eb3c5ef",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1961,14 +1753,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-batch.controller.spec.ts",
-      "fingerprint": "cddeeebc4b851f7f69b0",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
@@ -2006,22 +1790,6 @@
       "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
       "fingerprint": "d89c53f4f10b1e3f2b29",
       "message": "Argument of type '{}' is not assignable to parameter of type 'WorkflowQueryDto'.   Type '{}' is missing the following properties from type 'WorkflowQueryDto': page, limit, pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 24,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
-      "fingerprint": "6ab6d371dee5595ce6b2",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 16,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-execution.controller.spec.ts",
-      "fingerprint": "5b25afcad5cbcc772b10",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -2785,14 +2553,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "af00bedea6f61a64f2bd",
-      "message": "Argument of type 'import(\"<root>/packages/libs/interfaces/auth-public-metadata.interface\").IAuthPublicMetadata' is not assignable to parameter of type 'import(\"<root>/apps/server/api/src/auth/interfaces/authenticated-user.interface\").IAuthPublicMetadata'.   Types of property 'organization' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
       "code": 18046,
       "count": 2,
       "file": "apps/server/api/src/helpers/utils/error-response/error-response.util.spec.ts",
@@ -3390,14 +3150,6 @@
       "file": "apps/server/api/src/services/integrations/facebook/controllers/facebook.controller.spec.ts",
       "fingerprint": "b9b696e8356af5cf2c8b",
       "message": "Argument of type '{ mediaType: string; mediaUrl: string; message: string; pageAccessToken: string; pageId: string; }' is not assignable to parameter of type '{ pageId: string; pageAccessToken: string; message: string; mediaUrl?: string | undefined; mediaType?: \"image\" | \"video\" | undefined; }'.   Types of property 'mediaType' are incompatible.     Type 'string' is not assignable to type '\"image\" | \"video\" | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/facebook/controllers/facebook.controller.spec.ts",
-      "fingerprint": "43c3b75137865aecef96",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -4177,22 +3929,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/shared/controllers/base-crud/base-crud.controller.spec.ts",
-      "fingerprint": "58e92f24ac4d4e4cbf94",
-      "message": "'user.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/shared/controllers/base-crud/base-crud.controller.spec.ts",
-      "fingerprint": "653d2dd4b1c9cd06658b",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 30,
       "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
@@ -4821,7 +4557,7 @@
       "count": 2,
       "file": "apps/server/files/src/controllers/files.controller.spec.ts",
       "fingerprint": "aadff4c639fb2719f502",
-      "message": "Argument of type '{ type: string; authProviderUserId: string; ingredientId: string; organizationId: string; params: { height: number; width: number; }; room: string; userId: string; }' is not assignable to parameter of type 'ProcessVideoRequestBody'.   Types of property 'type' are incompatible.     Type 'string' is not assignable to type 'JobType'.",
+      "message": "Argument of type '{ type: string; ingredientId: string; organizationId: string; params: { height: number; width: number; }; room: string; userId: string; }' is not assignable to parameter of type 'ProcessVideoRequestBody'.   Types of property 'type' are incompatible.     Type 'string' is not assignable to type 'JobType'.",
       "workspace": "files"
     },
     {

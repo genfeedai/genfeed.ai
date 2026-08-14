@@ -24,7 +24,8 @@ describe('MarketplaceInstallController', () => {
     installService.installToWorkspace.mockResolvedValue(installResult);
 
     const user = {
-      publicMetadata: { organization: 'org-1', user: 'user-1' },
+      organizationId: 'org-1',
+      userId: 'user-1',
     } as unknown as User;
 
     const response = await controller.install('listing-1', user);
@@ -40,7 +41,8 @@ describe('MarketplaceInstallController', () => {
   it('propagates errors thrown by the install service', async () => {
     installService.installToWorkspace.mockRejectedValue(new Error('boom'));
     const user = {
-      publicMetadata: { organization: 'org-1', user: 'user-1' },
+      organizationId: 'org-1',
+      userId: 'user-1',
     } as unknown as User;
 
     await expect(controller.install('listing-1', user)).rejects.toThrow('boom');

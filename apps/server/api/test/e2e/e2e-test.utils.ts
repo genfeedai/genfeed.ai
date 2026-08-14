@@ -20,7 +20,6 @@ import request from 'supertest';
  * Test user context for authenticated requests
  */
 export interface TestUserContext {
-  authProviderUserId: string;
   userId: string;
   organizationId: string;
   email: string;
@@ -34,12 +33,11 @@ export interface TestUserContext {
 export const createTestUserContext = (
   overrides: Partial<TestUserContext> = {},
 ): TestUserContext => ({
-  authProviderUserId: `authProvider_${generateIdString()}`,
   email: 'test@example.com',
   isOwner: true,
   isSuperAdmin: false,
   organizationId: generateIdString(),
-  userId: null,
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -147,7 +145,6 @@ export class E2ETestApp {
   private withAuth(req: request.Test): request.Test {
     return req
       .set('Authorization', `Bearer mock-jwt-token`)
-      .set('x-authProvider-user-id', this.userContext.authProviderUserId)
       .set('x-user-id', this.userContext.userId)
       .set('x-organization-id', this.userContext.organizationId);
   }

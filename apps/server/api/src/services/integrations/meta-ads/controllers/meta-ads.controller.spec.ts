@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
@@ -49,10 +42,8 @@ describe('MetaAdsController', () => {
   };
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439011',
-      user: '507f1f77bcf86cd799439013',
-    },
+    organizationId: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439013',
   } as unknown as User;
 
   const mockCredential = {

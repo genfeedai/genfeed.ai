@@ -82,23 +82,19 @@ describe('PostsOperationsController', () => {
 
   const mockUser = {
     id: 'user_authProvider_123',
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const apiKeyUser = (scopes: string[]): User =>
     ({
       id: mockUser.id,
-      publicMetadata: {
-        brand: brandId,
-        isApiKey: true,
-        organization: organizationId,
-        scopes,
-        user: userId,
-      },
+      brandId: brandId,
+      isApiKey: true,
+      organizationId: organizationId,
+      scopes,
+      userId: userId,
     }) as User;
 
   // Shaped like a Prisma row with canonical scalar foreign keys.

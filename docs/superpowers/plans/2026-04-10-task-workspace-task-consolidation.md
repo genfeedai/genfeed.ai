@@ -482,15 +482,17 @@ it('inbox query matches tasks with pending_approval reviewState', async () => {
 ```typescript
 @Get('inbox')
 async inbox(@Req() request: Request, @CurrentUser() user: User) {
-  const { organization, userId } = getPublicMetadata(user);
-  const tasks = await this.tasksService.getInbox(organization, userId);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const tasks = await this.tasksService.getInbox(organizationId, userId);
   return serializeCollection(request, TaskSerializer, { docs: tasks, totalDocs: tasks.length });
 }
 
 @Patch(':id/approve')
 async approve(@Req() request: Request, @CurrentUser() user: User, @Param('id') id: string) {
-  const { organization, userId } = getPublicMetadata(user);
-  const doc = await this.tasksService.approve(id, organization, userId);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const doc = await this.tasksService.approve(id, organizationId, userId);
   return serializeSingle(request, TaskSerializer, doc);
 }
 
@@ -499,8 +501,9 @@ async requestChanges(
   @Req() request: Request, @CurrentUser() user: User, @Param('id') id: string,
   @Body() body: { reason: string },
 ) {
-  const { organization, userId } = getPublicMetadata(user);
-  const doc = await this.tasksService.requestChanges(id, organization, userId, body.reason);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const doc = await this.tasksService.requestChanges(id, organizationId, userId, body.reason);
   return serializeSingle(request, TaskSerializer, doc);
 }
 
@@ -509,43 +512,46 @@ async dismiss(
   @Req() request: Request, @CurrentUser() user: User, @Param('id') id: string,
   @Body() body: { reason?: string },
 ) {
-  const { organization, userId } = getPublicMetadata(user);
-  const doc = await this.tasksService.dismiss(id, organization, userId, body.reason);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const doc = await this.tasksService.dismiss(id, organizationId, userId, body.reason);
   return serializeSingle(request, TaskSerializer, doc);
 }
 
 @Patch(':id/outputs/:outputId/keep')
 async keepOutput(@CurrentUser() user: User, @Param('id') id: string, @Param('outputId') outputId: string) {
-  const { organization } = getPublicMetadata(user);
-  await this.tasksService.keepOutput(id, outputId, organization);
+  const organizationId = user.organizationId;
+  await this.tasksService.keepOutput(id, outputId, organizationId);
 }
 
 @Patch(':id/outputs/:outputId/unkeep')
 async unkeepOutput(@CurrentUser() user: User, @Param('id') id: string, @Param('outputId') outputId: string) {
-  const { organization } = getPublicMetadata(user);
-  await this.tasksService.unkeepOutput(id, outputId, organization);
+  const organizationId = user.organizationId;
+  await this.tasksService.unkeepOutput(id, outputId, organizationId);
 }
 
 @Patch(':id/outputs/:outputId/trash')
 async trashOutput(@CurrentUser() user: User, @Param('id') id: string, @Param('outputId') outputId: string) {
-  const { organization } = getPublicMetadata(user);
-  await this.tasksService.trashOutput(id, outputId, organization);
+  const organizationId = user.organizationId;
+  await this.tasksService.trashOutput(id, outputId, organizationId);
 }
 
 @Post(':id/plan-thread')
 async openPlanThread(@Req() request: Request, @CurrentUser() user: User, @Param('id') id: string) {
-  const { organization, userId } = getPublicMetadata(user);
-  const result = await this.tasksService.ensurePlanningThread(id, organization, userId);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const result = await this.tasksService.ensurePlanningThread(id, organizationId, userId);
   return result;
 }
 
 @Post(':id/children')
 async createChildren(@Req() request: Request, @CurrentUser() user: User, @Param('id') id: string) {
-  const { organization, userId } = getPublicMetadata(user);
-  const tasks = await this.tasksService.createFollowUpTasks(id, organization, userId);
+  const organizationId = user.organizationId;
+  const userId = user.userId ?? user.id;
+  const tasks = await this.tasksService.createFollowUpTasks(id, organizationId, userId);
   if (this.taskQueueService) {
     await Promise.all(tasks.map(t => this.taskQueueService!.enqueue({
-      taskId: t._id.toString(), organizationId: organization, userId,
+      taskId: t._id.toString(), organizationId, userId,
       request: t.request ?? t.title, outputType: t.outputType,
       platforms: t.platforms, brandId: t.brand?.toString(),
     })));

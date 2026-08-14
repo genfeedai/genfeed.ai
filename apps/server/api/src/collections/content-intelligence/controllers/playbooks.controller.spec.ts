@@ -41,11 +41,9 @@ describe('PlaybooksController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockRequest = {

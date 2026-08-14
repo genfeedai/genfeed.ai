@@ -4,7 +4,6 @@ import { GenerateLaunchCopyDto } from '@api/collections/launch-copy/dto/generate
 import { LaunchCopyGeneratorService } from '@api/collections/launch-copy/services/launch-copy-generator.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -37,13 +36,12 @@ export class LaunchCopyController {
     @Body() dto: GenerateLaunchCopyDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, { brandId: dto.brandId, channel: dto.channel });
 
     const brand = await this.brandsService.findOne({
       id: dto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -55,7 +53,7 @@ export class LaunchCopyController {
 
     try {
       const result = await this.launchCopyGeneratorService.generate(
-        publicMetadata.organization,
+        user.organizationId,
         dto,
       );
 

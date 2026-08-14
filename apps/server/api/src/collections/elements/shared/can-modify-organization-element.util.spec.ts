@@ -7,10 +7,8 @@ function buildUser(
 ): AuthenticatedUser {
   return {
     id: 'user-1',
-    publicMetadata: {
-      isSuperAdmin,
-      organization,
-    },
+    isSuperAdmin,
+    organization,
   };
 }
 

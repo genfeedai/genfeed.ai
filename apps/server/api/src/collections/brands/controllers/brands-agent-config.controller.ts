@@ -19,10 +19,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
@@ -66,8 +63,7 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() updateAgentConfigDto: UpdateBrandAgentConfigDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
+    const organizationId = user.organizationId?.toString();
 
     if (!organizationId) {
       throw new HttpException(
@@ -186,9 +182,8 @@ export class BrandsAgentConfigController {
   ): Promise<JsonApiSingleResponse> {
     await this.verifyBrandAccess(id, user);
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-    const userId = publicMetadata.user?.toString();
+    const organizationId = user.organizationId?.toString();
+    const userId = (user.userId ?? user.id)?.toString();
 
     if (!organizationId || !userId) {
       throw new HttpException(
@@ -298,7 +293,7 @@ export class BrandsAgentConfigController {
   }
 
   private requireOrganizationId(user: User): string {
-    const organizationId = getPublicMetadata(user).organization?.toString();
+    const organizationId = user.organizationId?.toString();
 
     if (!organizationId) {
       throw new HttpException(
@@ -317,12 +312,11 @@ export class BrandsAgentConfigController {
     brandId: string,
     user: User,
   ): Promise<BrandDocument> {
-    const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: brandId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 

@@ -1,16 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { AgentMemoriesController } from './agent-memories.controller';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -58,11 +53,6 @@ describe('AgentMemoriesController', () => {
     controller = module.get(AgentMemoriesController);
     memoriesService = module.get(AgentMemoriesService);
     memoryCaptureService = module.get(AgentMemoryCaptureService);
-
-    vi.mocked(getPublicMetadata).mockReturnValue({
-      organization: ORG_ID,
-      user: USER_ID,
-    } as ReturnType<typeof getPublicMetadata>);
   });
 
   afterEach(() => vi.clearAllMocks());

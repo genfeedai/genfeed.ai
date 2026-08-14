@@ -10,7 +10,6 @@ import {
   getIsSuperAdmin,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { isCloudDeployment } from '@genfeedai/config';
 import { getUpgradeTierForLimit } from '@genfeedai/pricing';
 import {
@@ -41,7 +40,6 @@ export class MemberCreditsGuard implements CanActivate {
       return true;
     }
 
-    const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
     // Express 5 route params can be repeated, so a param reads as
     // `string | string[]`. Tenant lookups take a single id.
     const routeOrganizationId =
@@ -49,7 +47,7 @@ export class MemberCreditsGuard implements CanActivate {
     const organizationId =
       (Array.isArray(routeOrganizationId)
         ? routeOrganizationId[0]
-        : routeOrganizationId) || publicMetadata.organization;
+        : routeOrganizationId) || user.organizationId;
 
     const settings = await this.organizationSettingsService.findOne({
       organizationId: organizationId,

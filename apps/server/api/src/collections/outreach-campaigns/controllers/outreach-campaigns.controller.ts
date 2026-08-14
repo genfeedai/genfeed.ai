@@ -9,7 +9,6 @@ import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/serv
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
@@ -78,29 +77,27 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateOutreachCampaignDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.outreachCampaignsService.createScoped(createDto, {
-      brandId: publicMetadata.brand,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      brandId: user.brandId,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     return serializeSingle(request, OutreachCampaignSerializer, data);
   }
 
   public buildFindAllQuery(user: User, query: OutreachCampaignsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
 
     const organizationId =
-      query.organizationId || publicMetadata.organization?.toString();
+      query.organizationId || user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
 
-    const brandId = query.brandId || publicMetadata.brand?.toString();
+    const brandId = query.brandId || user.brandId?.toString();
     if (brandId) {
       match.brandId = brandId;
     }
@@ -134,11 +131,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
     );
 
     if (!campaign) {
@@ -152,21 +148,19 @@ export class OutreachCampaignsController extends BaseCRUDController<
     user: User,
     entity: OutreachCampaignDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
     // Scalar FK: the legacy `organization` alias is undefined unless the query
     // populated the relation, which would drop this ownership check entirely.
     const entityOrganizationId = entity.organizationId;
 
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization
+      user.organizationId &&
+      entityOrganizationId === user.organizationId
     ) {
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   /**
@@ -183,7 +177,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() updateDto: UpdateOutreachCampaignDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const hasNonStatusUpdates = Object.entries(updateDto).some(
       ([key, value]) => key !== 'status' && value !== undefined,
     );
@@ -197,8 +190,8 @@ export class OutreachCampaignsController extends BaseCRUDController<
     if (updateDto.status === CampaignStatus.ACTIVE) {
       const data = await this.outreachCampaignsService.start(
         id,
-        publicMetadata.organization,
-        publicMetadata.brand,
+        user.organizationId,
+        user.brandId,
       );
       return serializeSingle(request, OutreachCampaignSerializer, data);
     }
@@ -206,8 +199,8 @@ export class OutreachCampaignsController extends BaseCRUDController<
     if (updateDto.status === CampaignStatus.PAUSED) {
       const data = await this.outreachCampaignsService.pause(
         id,
-        publicMetadata.organization,
-        publicMetadata.brand,
+        user.organizationId,
+        user.brandId,
       );
       return serializeSingle(request, OutreachCampaignSerializer, data);
     }
@@ -215,8 +208,8 @@ export class OutreachCampaignsController extends BaseCRUDController<
     if (updateDto.status === CampaignStatus.COMPLETED) {
       const data = await this.outreachCampaignsService.complete(
         id,
-        publicMetadata.organization,
-        publicMetadata.brand,
+        user.organizationId,
+        user.brandId,
       );
       return serializeSingle(request, OutreachCampaignSerializer, data);
     }
@@ -237,11 +230,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: AddCampaignTargetsDto,
   ): Promise<{ added: number; skipped: number }> {
-    const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
     );
 
     if (!campaign) {
@@ -434,10 +426,9 @@ export class OutreachCampaignsController extends BaseCRUDController<
       failed: number;
     };
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const analytics = await this.outreachCampaignsService.getAnalytics(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
     const targetStats = await this.campaignTargetsService.getTargetStats(id);
 
@@ -457,11 +448,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<unknown[]> {
-    const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
     );
 
     if (!campaign) {
@@ -487,10 +477,9 @@ export class OutreachCampaignsController extends BaseCRUDController<
     added: number;
     targets: unknown[];
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     if (!campaign) {
@@ -541,10 +530,9 @@ export class OutreachCampaignsController extends BaseCRUDController<
     replyText: string;
     target: unknown;
   }> {
-    const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     if (!campaign) {

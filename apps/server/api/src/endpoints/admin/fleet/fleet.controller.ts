@@ -8,7 +8,6 @@ import {
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -50,7 +49,7 @@ export class AdminFleetController {
   @ApiOperation({ summary: 'List all fleet characters' })
   async listCharacters(@Req() request: Request, @CurrentUser() user: User) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const characters =
         await this.adminFleetService.getCharacters(organization);
       return serializeCollection(request, PersonaSerializer, {
@@ -78,7 +77,7 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const character = await this.adminFleetService.getCharacterBySlug(
         slug,
         organization,
@@ -97,7 +96,9 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const brand = user.brandId;
+      const dbUserId = user.userId ?? user.id;
       const userId = EntityIdUtil.validate(dbUserId, 'userId');
       const organizationId = EntityIdUtil.validate(
         organization,
@@ -126,7 +127,7 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const character = await this.adminFleetService.getCharacterBySlug(
         slug,
         organization,
@@ -149,7 +150,7 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const character = await this.adminFleetService.getCharacterBySlug(
         slug,
         organization,
@@ -179,7 +180,7 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const data = await this.adminFleetService.uploadDataset(
         organization,
         slug,
@@ -209,7 +210,8 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const dbUserId = user.userId ?? user.id;
       const data = await this.adminFleetService.ingestTrainingDataForCharacter(
         organization,
         dbUserId,
@@ -239,7 +241,8 @@ export class AdminFleetController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const organization = user.organizationId;
+      const dbUserId = user.userId ?? user.id;
       const data =
         await this.adminFleetService.ingestTrainingDataForAllEnabledCharacters(
           organization,

@@ -143,7 +143,8 @@ describe('Runs route ownership (registered route table)', () => {
     app.use((req: Request, _res: Response, next: NextFunction) => {
       (req as Request & { user: User }).user = {
         id: userId,
-        publicMetadata: { organization: orgId, user: userId },
+        organizationId: orgId,
+        userId: userId,
       } as unknown as User;
       next();
     });

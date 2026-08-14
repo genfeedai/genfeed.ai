@@ -7,7 +7,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -62,7 +61,7 @@ export class ImagesController {
   @Cache({
     keyGenerator: (req) =>
       req.query.latest === 'true'
-        ? `images:latest:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:brand:${(req.user?.publicMetadata?.brand as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
+        ? `images:latest:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
         : '',
     tags: ['images'],
     ttl: 300, // 5 minutes
@@ -76,7 +75,6 @@ export class ImagesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const publicMetadata = getPublicMetadata(user);
     const imageCategory = CategoryPrismaUtil.toIngredientCategory(
       IngredientCategory.IMAGE,
     );
@@ -86,7 +84,7 @@ export class ImagesController {
     // and capped at 50. Bypasses the standard list filters entirely.
     if (query.latest) {
       const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-      const latestBrand = publicMetadata.brand;
+      const latestBrand = user.brandId;
 
       const latestAggregate = {
         where: {
@@ -99,10 +97,10 @@ export class ImagesController {
                       brandId: latestBrand,
                       category: imageCategory,
                       isDeleted: latestIsDeleted,
-                      organizationId: publicMetadata.organization,
+                      organizationId: user.organizationId,
                       // Exclude training source images by default
                       trainingId: null,
-                      userId: publicMetadata.user,
+                      userId: user.userId ?? user.id,
                     },
                   ],
                 },
@@ -116,7 +114,7 @@ export class ImagesController {
                       isDeleted: latestIsDeleted,
                       OR: [
                         {
-                          organizationId: publicMetadata.organization,
+                          organizationId: user.organizationId,
                         },
                         { organizationId: null },
                       ],
@@ -154,7 +152,7 @@ export class ImagesController {
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
     const brandId = CollectionFilterUtil.buildBrandFilter(
       query.brandId,
-      publicMetadata,
+      user,
       'exists',
     );
 
@@ -187,7 +185,7 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    organizationId: publicMetadata.organization,
+                    organizationId: user.organizationId,
                     category: imageCategory,
                     isDeleted,
                     ...(query.isPublic === undefined && scope !== undefined
@@ -216,7 +214,7 @@ export class ImagesController {
                           isDeleted,
                           OR: [
                             {
-                              organizationId: publicMetadata.organization,
+                              organizationId: user.organizationId,
                             },
                             { organizationId: null },
                           ],
@@ -251,8 +249,6 @@ export class ImagesController {
     @Param('imageId') imageId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const aggregatedData: Record<string, unknown> = { evaluation: null };
 
     const data = await this.imagesService.findOne(
@@ -262,7 +258,7 @@ export class ImagesController {
           IngredientCategory.IMAGE,
         ),
         OR: [
-          { organizationId: publicMetadata.organization },
+          { organizationId: user.organizationId },
           { isDefault: true, organizationId: null },
         ],
       },
@@ -296,7 +292,7 @@ export class ImagesController {
     const vote = await this.votesService.findOne({
       entityId: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     mergedData.hasVoted = !!vote;
@@ -311,9 +307,8 @@ export class ImagesController {
     @Param('imageId') imageId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const image = await this.imagesService.findOne(
-      scopedWhere(publicMetadata.organization, {
+      scopedWhere(user.organizationId, {
         id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,

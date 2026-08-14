@@ -1,13 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { StreaksController } from './streaks.controller';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
 
 const ORG_ID = 'org-abc-123';
 const USER_ID = 'user-xyz-456';
@@ -43,11 +38,6 @@ describe('StreaksController', () => {
 
     controller = module.get(StreaksController);
     streaksService = module.get(StreaksService);
-
-    vi.mocked(getPublicMetadata).mockReturnValue({
-      organization: ORG_ID,
-      user: USER_ID,
-    } as ReturnType<typeof getPublicMetadata>);
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -60,11 +50,6 @@ describe('StreaksController', () => {
 
   describe('org access guard', () => {
     it('throws BadRequestException when organizationId does not match user metadata', async () => {
-      vi.mocked(getPublicMetadata).mockReturnValue({
-        organization: 'different-org',
-        user: USER_ID,
-      } as ReturnType<typeof getPublicMetadata>);
-
       await expect(
         controller.getMyStreak(ORG_ID, mockUser, mockRequest),
       ).rejects.toThrow(BadRequestException);
@@ -72,10 +57,6 @@ describe('StreaksController', () => {
 
     it('allows self-hosted request context to override mismatched legacy auth provider org metadata', async () => {
       streaksService.getStreakSummary.mockResolvedValue({} as never);
-      vi.mocked(getPublicMetadata).mockReturnValue({
-        organization: 'different-org',
-        user: 'different-user',
-      } as ReturnType<typeof getPublicMetadata>);
 
       await expect(
         controller.getMyStreak(ORG_ID, mockUser, mockRequestWithContext),
@@ -189,11 +170,6 @@ describe('StreaksController', () => {
     });
 
     it('throws when org id does not match', async () => {
-      vi.mocked(getPublicMetadata).mockReturnValue({
-        organization: 'other-org',
-        user: USER_ID,
-      } as ReturnType<typeof getPublicMetadata>);
-
       await expect(
         controller.patchMyStreak(ORG_ID, mockUser, mockRequest, {
           freeze: true,

@@ -12,7 +12,6 @@ import { RunsService } from '@api/collections/runs/services/runs.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -89,20 +88,18 @@ export class RunsController {
     organizationId: string;
     userId: string;
   } {
-    const publicMetadata = getPublicMetadata(user);
-
-    if (!publicMetadata?.organization || !publicMetadata?.user) {
+    if (!user?.organization || !user?.user) {
       throw new UnauthorizedException('Missing organization or user context');
     }
 
     const isApiKey = Boolean(
-      (publicMetadata as unknown as Record<string, unknown>)?.isApiKey,
+      (user as unknown as Record<string, unknown>)?.isApiKey,
     );
 
     return {
       authType: isApiKey ? RunAuthType.API_KEY : RunAuthType.BETTER_AUTH,
-      organizationId: String(publicMetadata.organization),
-      userId: String(publicMetadata.user),
+      organizationId: String(user.organizationId),
+      userId: String(user.userId ?? user.id),
     };
   }
 

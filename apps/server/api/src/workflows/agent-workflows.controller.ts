@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { RollbackAgentWorkflowDto } from '@api/workflows/dto/rollback-agent-workflow.dto';
@@ -22,10 +21,9 @@ export class AgentWorkflowsController {
     @Body() dto: CreateAgentWorkflowDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentWorkflowsService.createWorkflow(
-      publicMetadata.user,
-      publicMetadata.organization,
+      user.userId ?? user.id,
+      user.organizationId,
       dto,
     );
   }
@@ -36,10 +34,9 @@ export class AgentWorkflowsController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.agentWorkflowsService.getWorkflow(
       workflowId,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 
@@ -52,11 +49,10 @@ export class AgentWorkflowsController {
     @Body() dto: UpdateAgentWorkflowStateDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return {
       workflow: await this.agentWorkflowsService.transition(
         workflowId,
-        publicMetadata.organization,
+        user.organizationId,
         'agent',
         dto,
       ),
@@ -72,11 +68,10 @@ export class AgentWorkflowsController {
     @Body() dto: UpdateAgentWorkflowStateDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return {
       workflow: await this.agentWorkflowsService.approve(
         workflowId,
-        publicMetadata.organization,
+        user.organizationId,
         dto,
       ),
     };
@@ -91,11 +86,10 @@ export class AgentWorkflowsController {
     @Body() dto: RollbackAgentWorkflowDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return {
       workflow: await this.agentWorkflowsService.rollback(
         workflowId,
-        publicMetadata.organization,
+        user.organizationId,
         dto.targetPhase,
       ),
     };
@@ -107,11 +101,10 @@ export class AgentWorkflowsController {
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return {
       workflow: await this.agentWorkflowsService.forceAdvance(
         workflowId,
-        publicMetadata.organization,
+        user.organizationId,
       ),
     };
   }

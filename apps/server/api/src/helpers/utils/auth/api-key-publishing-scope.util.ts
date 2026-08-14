@@ -1,4 +1,4 @@
-import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   ApiKeyScope,
   PostStatus,
@@ -14,7 +14,7 @@ import { ForbiddenException } from '@nestjs/common';
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
 
 export type ApiKeyPublishingContext = Pick<
-  IAuthPublicMetadata,
+  AuthenticatedUser,
   'isApiKey' | 'scopes'
 >;
 

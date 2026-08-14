@@ -1,12 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { MemberRole } from '@genfeedai/enums';
 import {
@@ -45,8 +42,6 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    const publicMetadata: IAuthPublicMetadata = getPublicMetadata(user);
-
     // SUPERADMIN BYPASS: Platform-level superadmin has access to everything
     if (getIsSuperAdmin(user, req)) {
       return true;
@@ -76,7 +71,7 @@ export class RolesGuard implements CanActivate {
       : [];
 
     // Extract organization ID from the authenticated session first.
-    const organizationId = this.extractOrganizationId(req, publicMetadata);
+    const organizationId = this.extractOrganizationId(req, user);
 
     if (!organizationId) {
       // If no org context and no roles required, allow (e.g., platform-level endpoints)
@@ -93,7 +88,7 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    if (!isEntityId(publicMetadata.user)) {
+    if (!isEntityId(user.userId ?? user.id)) {
       throw new HttpException(
         {
           detail: 'User context is invalid',
@@ -108,7 +103,7 @@ export class RolesGuard implements CanActivate {
       {
         isActive: true,
         organizationId: organizationId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
       [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
     );
@@ -161,7 +156,7 @@ export class RolesGuard implements CanActivate {
 
   /**
    * Extract organization ID from request context
-   * Priority: publicMetadata > consistent explicit organizationId param/body
+   * Priority: user > consistent explicit organizationId param/body
    *
    * IMPORTANT: Only looks for :organizationId param specifically.
    * Generic :id params (brandId, postId, etc.) should NOT be treated as org IDs.
@@ -172,10 +167,10 @@ export class RolesGuard implements CanActivate {
    */
   private extractOrganizationId(
     req: Request,
-    publicMetadata: IAuthPublicMetadata,
+    user: AuthenticatedUser,
   ): string | null {
     const metadataOrganization = this.normalizeOrganizationId(
-      publicMetadata.organization,
+      user.organizationId,
     );
     const explicitOrganizationValues =
       this.extractExplicitOrganizationValues(req);

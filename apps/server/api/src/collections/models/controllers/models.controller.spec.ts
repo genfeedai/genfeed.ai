@@ -1,4 +1,7 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
 import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
@@ -6,7 +9,6 @@ import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dt
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -68,22 +70,18 @@ describe('ModelsController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee'.toString(),
-      isSuperAdmin: true,
-      organization: 'c07f191e810c19729de860ee'.toString(),
-      user: 'c07f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: 'c07f191e810c19729de860ee'.toString(),
+    isSuperAdmin: true,
+    organizationId: 'c07f191e810c19729de860ee'.toString(),
+    userId: 'c07f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockRegularUser = {
     id: 'user-456',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
-      organization: 'c07f191e810c19729de860ee'.toString(),
-      user: 'c07f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: 'c07f191e810c19729de860ee'.toString(),
+    isSuperAdmin: false,
+    organizationId: 'c07f191e810c19729de860ee'.toString(),
+    userId: 'c07f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockOrgId = 'c07f191e810c19729de860ee'.toString();
@@ -219,9 +217,7 @@ describe('ModelsController', () => {
     it('should return false when isSuperAdmin is undefined', () => {
       const userWithoutSuperAdmin = {
         id: 'user-789',
-        publicMetadata: {
-          user: 'c07f191e810c19729de860ee'.toString(),
-        },
+        userId: 'c07f191e810c19729de860ee'.toString(),
       } as unknown as User;
 
       const result = controller.canUserModifyEntity(userWithoutSuperAdmin);

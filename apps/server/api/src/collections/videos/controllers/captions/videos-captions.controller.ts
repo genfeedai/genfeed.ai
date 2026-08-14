@@ -14,7 +14,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -99,14 +98,12 @@ export class VideosCaptionsController {
     @Param('videoId') videoId: string,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify video exists and user has access
     const video = await this.videosService.findOne({
       id: videoId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -124,7 +121,7 @@ export class VideosCaptionsController {
       where: {
         ingredientId: videoId,
         isDeleted: false,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       orderBy: { createdAt: -1 },
     };
@@ -165,14 +162,13 @@ export class VideosCaptionsController {
       return returnNotFound('Caption', videoId);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: generateLabel(),
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         parentId: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
@@ -181,9 +177,8 @@ export class VideosCaptionsController {
     // Queue captions addition in files.genfeed service
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId: ingredientData.id.toString(),
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         params: {
           // @ts-expect-error TS2339
           captionContent: caption.content,
@@ -191,7 +186,7 @@ export class VideosCaptionsController {
         },
         room: getUserRoomName(user.id),
         type: 'add-captions',
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {

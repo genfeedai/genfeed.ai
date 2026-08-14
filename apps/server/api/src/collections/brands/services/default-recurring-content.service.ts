@@ -1,9 +1,9 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
-} from '@api/collections/cron-jobs/utils/cron-schedule.util';
-import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+} from '@api/collections/workflows/utils/cron-schedule.util';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
@@ -409,7 +409,7 @@ export class DefaultRecurringContentService {
           attempt < MAX_SERIALIZATION_RETRIES - 1
         ) {
           // Serialization failure from a genuine read/write conflict. Retry
-          // with a small backoff (mirrors cron-jobs.service.ts:~734 pattern).
+          // with a small backoff.
           // Do NOT silently treat this as "already created" — the workflow may
           // not exist yet.
           this.logger.debug(

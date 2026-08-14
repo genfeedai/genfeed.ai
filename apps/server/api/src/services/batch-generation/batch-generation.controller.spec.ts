@@ -6,13 +6,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: 'test-object-id',
-    user: 'test-object-id',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_, __, { docs }) => docs),
   serializeSingle: vi.fn((_, __, data) => data),
@@ -76,7 +69,8 @@ describe('BatchGenerationController', () => {
     it('should call service.createBatch', () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
       controller.createBatch(
         mockReq,
@@ -96,7 +90,8 @@ describe('BatchGenerationController', () => {
 
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
 
       const result = await controller.createManualReviewBatch(
@@ -118,7 +113,8 @@ describe('BatchGenerationController', () => {
       service.getBatches.mockResolvedValue({ items: [], total: 0 } as never);
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
       const result = await controller.getBatches(mockReq, {} as never, user);
       expect(service.getBatches).toHaveBeenCalled();
@@ -132,7 +128,8 @@ describe('BatchGenerationController', () => {
       service.getBatch.mockResolvedValue(batchDoc as never);
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
       const result = await controller.getBatch(mockReq, 'batch-1', user);
       expect(service.getBatch).toHaveBeenCalled();
@@ -144,7 +141,8 @@ describe('BatchGenerationController', () => {
     it('should delegate to service to start processing', async () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
       (service as Record<string, ReturnType<typeof vi.fn>>).processBatch = vi
         .fn()
@@ -159,7 +157,8 @@ describe('BatchGenerationController', () => {
     it('should delegate to service.updateBatch to cancel a batch', async () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
       (service as Record<string, ReturnType<typeof vi.fn>>).updateBatch = vi
         .fn()
@@ -207,7 +206,8 @@ describe('BatchGenerationController', () => {
 
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        organizationId: 'org',
+        userId: 'usr',
       } as never;
 
       await controller.itemAction(

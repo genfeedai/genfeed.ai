@@ -210,10 +210,8 @@ export class WebhooksService {
       ingredient as IngredientDocument,
     );
 
-    // 5. Resolve the canonical user identity and compatibility room fields.
-    const { dbUserId, authProviderUserId, userId, userRoom } = extractUserIds(
-      ingredient.userId,
-    );
+    // 5. Resolve the canonical user identity and websocket room.
+    const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
 
     // 6. Activity update
     if (dbUserId) {
@@ -233,7 +231,7 @@ export class WebhooksService {
     // 7. WebSocket publish
     const ingredientId = ingredient.id.toString();
     const websocketUrl = `/${categoryToPlural(input.categoryValue)}/${ingredientId}`;
-    const roomValidation = validateRoomMatch(authProviderUserId, dbUserId);
+    const roomValidation = validateRoomMatch(userId);
 
     if (!roomValidation.isValid && dbUserId) {
       this.loggerService.warn(`${logContext} ${roomValidation.warning}`, {
@@ -244,7 +242,6 @@ export class WebhooksService {
 
     if (userId) {
       this.loggerService.log(`${logContext} publishing WebSocket event`, {
-        authProviderUserId,
         dbUserId,
         ingredientId,
         userId,

@@ -358,7 +358,6 @@ Brand settings:
 Lab/internal:
 
 - `/:orgSlug/:brandSlug/lab/articles`
-- `/:orgSlug/:brandSlug/lab/cron-jobs`
 - `/:orgSlug/:brandSlug/lab/library-preview`
 - `/:orgSlug/:brandSlug/lab/twitter-engage`
 

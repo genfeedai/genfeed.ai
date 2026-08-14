@@ -173,7 +173,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'credit-transactions:CreditTransaction': [],
   'credential:Credential': ['accountHealth'],
-  'cron-run:CronRun': ['endedAt'],
   'distribution:Distribution': ['errorMessage', 'publishedAt'],
   'editor-project:EditorProject': ['name'],
   'fanvue-content:FanvueContent': [
@@ -542,7 +541,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'content-performance:ContentPerformance': [],
   'context-base:ContextBase': [],
   'context-entry:ContextEntry': [],
-  'cron-job:CronJob': [],
   'dashboard-layout:DashboardLayout': [],
   'evaluation:Evaluation': [],
   'font-family:FontFamilyRecord': [],

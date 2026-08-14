@@ -14,11 +14,9 @@ describe('VoiceLibraryService', () => {
   const organizationId = 'org-1';
   const user = {
     id: 'user-1',
-    publicMetadata: {
-      brand: brandId,
-      organization: organizationId,
-      user: 'canonical-user-1',
-    },
+    brandId: brandId,
+    organizationId: organizationId,
+    userId: 'canonical-user-1',
   } as User;
   let voicesService: { findAll: ReturnType<typeof vi.fn> };
   let service: VoiceLibraryService;

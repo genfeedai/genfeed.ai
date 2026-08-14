@@ -143,7 +143,7 @@ export class BetterAuthIdentityResolverService {
   ): Promise<string | undefined> {
     // DB-authoritative active org (epic #735, Phase C): prefer the user's
     // `lastUsedOrganizationId` (validated against live membership/ownership) so
-    // multi-org switching is honoured without any legacy auth provider publicMetadata.
+    // multi-org switching is honoured without any legacy auth provider identity.
     if (lastUsedOrganizationId) {
       const accessibleOrgId = await this.findAccessibleOrganizationId(
         lastUsedOrganizationId,

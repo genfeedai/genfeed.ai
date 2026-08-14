@@ -24,7 +24,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -101,14 +100,13 @@ export class PostsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const executionState =
       createPostDto.targetExecutionState ??
       (createPostDto.status
         ? mapLegacyPostStatusToTargetExecutionState(createPostDto.status)
         : TargetExecutionState.SCHEDULED);
     assertApiKeyPublishingScope(
-      publicMetadata,
+      user,
       executionState === TargetExecutionState.DRAFT
         ? 'draft'
         : executionState === TargetExecutionState.SCHEDULED
@@ -128,7 +126,7 @@ export class PostsController extends BaseCRUDController<
           postsService: this.postsService,
           quotaService: this.quotaService,
         },
-        publicMetadata,
+        user,
       });
 
       return serializeSingle(request, this.serializer, data);
@@ -174,7 +172,7 @@ export class PostsController extends BaseCRUDController<
         nextStatus === TargetExecutionState.SCHEDULED ||
         updateDto.scheduledDate !== undefined);
     assertApiKeyPublishingScope(
-      getPublicMetadata(user),
+      user,
       changesPublishState
         ? 'publish'
         : changesScheduleIntent
@@ -188,13 +186,9 @@ export class PostsController extends BaseCRUDController<
    * Includes ingredients array with metadata and credential lookups
    */
   public buildFindAllQuery(user: User, query: PostsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     const dateFilter: Record<string, unknown> = {};
     if (query.startDate || query.endDate) {
@@ -216,8 +210,7 @@ export class PostsController extends BaseCRUDController<
     }
 
     const matchFilter: Record<string, unknown> = {
-      ...(adminFilter ??
-        CollectionFilterUtil.buildOwnershipFilter(publicMetadata)),
+      ...(adminFilter ?? CollectionFilterUtil.buildOwnershipFilter(user)),
       isDeleted,
       ...dateFilter,
       // Only show parent posts (not children/replies)
@@ -229,7 +222,7 @@ export class PostsController extends BaseCRUDController<
     if (!adminFilter && (query.brandId || query.organizationId)) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
         query,
-        publicMetadata,
+        user,
         false,
       );
       if (scope.brandId) {
@@ -306,8 +299,6 @@ export class PostsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('postId') postId: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Build findAll query to fetch post with ingredients, credential, and evaluation
     const pipeline = {
       where: {
@@ -334,9 +325,7 @@ export class PostsController extends BaseCRUDController<
     const post = result.docs[0];
 
     // Check organization access
-    if (
-      post.organizationId.toString() !== publicMetadata.organization.toString()
-    ) {
+    if (post.organizationId.toString() !== user.organizationId.toString()) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',

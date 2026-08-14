@@ -15,7 +15,7 @@ describe('OrganizationsIntegrationsController', () => {
     update: ReturnType<typeof vi.fn>;
   };
   const mockUser = {
-    publicMetadata: { organization: 'org1' },
+    organizationId: 'org1',
   } as unknown as User;
 
   beforeEach(async () => {
