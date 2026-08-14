@@ -16,12 +16,20 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';
 const FIRST_UPLOAD_KEY = 'first-upload-platform-signal';
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
+const TWITTER_AUTHORIZED_STORAGE_KEY = 'twitterAuthorized';
+
+const AUTHORIZED_SNAPSHOT_STORAGE_KEYS = [
+  TIKTOK_AUTHORIZED_STORAGE_KEY,
+  TWITTER_AUTHORIZED_STORAGE_KEY,
+] as const;
 
 const TIKTOK_REQUIRED_WARMUP_SCOPES = [
   'user.info.basic',
   'user.info.profile',
   'video.list',
 ] as const;
+
+const TWITTER_REQUIRED_WARMUP_SCOPES = ['users.read', 'tweet.read'] as const;
 
 export const ENROLLMENT_UNIQUE_CONSTRAINT =
   'social_warmup_enrollments_org_credential_alive_key';
@@ -166,9 +174,44 @@ export function resolveSocialWarmupAccountAge(
   };
 }
 
+export function authorizedEvidenceFromWarmupSignals(
+  warmupSignals: unknown,
+): Array<Record<string, unknown>> {
+  const stored = readRecord(warmupSignals);
+  const items: Array<Record<string, unknown>> = [];
+
+  for (const storageKey of AUTHORIZED_SNAPSHOT_STORAGE_KEYS) {
+    const snapshot = readRecord(stored[storageKey]);
+    const evidence = Array.isArray(snapshot.evidence) ? snapshot.evidence : [];
+    for (const item of evidence) {
+      const record = readRecord(item);
+      if (typeof record.key === 'string') {
+        items.push(record);
+      }
+    }
+  }
+
+  return items;
+}
+
 export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
   const stored = readRecord(warmupSignals);
-  const snapshot = readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]);
+  return (
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[TIKTOK_AUTHORIZED_STORAGE_KEY]),
+      TIKTOK_REQUIRED_WARMUP_SCOPES,
+    ) ||
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[TWITTER_AUTHORIZED_STORAGE_KEY]),
+      TWITTER_REQUIRED_WARMUP_SCOPES,
+    )
+  );
+}
+
+function hasPartialAuthorizedSnapshot(
+  snapshot: Record<string, unknown>,
+  requiredScopes: readonly string[],
+): boolean {
   if (snapshot.state === 'partial') {
     return true;
   }
@@ -178,9 +221,7 @@ export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
     : [];
   if (
     grantedScopes.length > 0 &&
-    TIKTOK_REQUIRED_WARMUP_SCOPES.some(
-      (scope) => !grantedScopes.includes(scope),
-    )
+    requiredScopes.some((scope) => !grantedScopes.includes(scope))
   ) {
     return true;
   }

@@ -24,6 +24,7 @@ export * from './scheduler-analytics-collection.contract';
 export * from './scheduler-analytics-comparison.contract';
 export * from './social-warmup-blueprint.contract';
 export * from './tiktok-authorized-signals.contract';
+export * from './twitter-authorized-signals.contract';
 export * from './webhook-events.contract';
 export * from './webhook-events.shared';
 export * from './workflow-webhook-events.contract';

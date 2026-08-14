@@ -96,6 +96,39 @@ vi.mock('@services/organization/credentials.service', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock(
+  '@hooks/data/social/use-social-warmup-enrollment/use-social-warmup-enrollment',
+  () => ({
+    useSocialWarmupEnrollment: () => ({
+      completeItem: vi.fn(),
+      data: {
+        blueprintId: 'social-warmup.twitter',
+        blueprintVersion: 1,
+        completedItemIds: [],
+        credentialId: 'credential-1',
+        currentPhaseId: 'profile-and-topic-consumption',
+        hasPartialScopes: false,
+        id: 'enrollment-1',
+        isCredentialConnected: true,
+        signals: [],
+        startedAt: '2026-08-08T10:00:00.000Z',
+      },
+      enroll: vi.fn(),
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+      reopenItem: vi.fn(),
+    }),
+  }),
+);
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),

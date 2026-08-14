@@ -328,6 +328,30 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(winnerPromotion).toContain('contextsService.addEntry');
   });
 
+  it('ingests KnowledgeBase sources as chunked ContextEntry embeddings', () => {
+    const autoCreate = readRepo(
+      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
+    );
+    const ingest = readRepo(
+      'apps/server/api/src/collections/contexts/services/knowledge-source-ingest.service.ts',
+    );
+    const extract = readRepo(
+      'apps/server/api/src/collections/contexts/utils/extract-source-text.util.ts',
+    );
+    const processor = readRepo(
+      'apps/server/workers/src/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor.ts',
+    );
+    expect(autoCreate).toContain('chunkText');
+    expect(autoCreate).toContain('this.addEntry');
+    expect(ingest).toContain('extractSourceText');
+    expect(ingest).toContain('chunkText');
+    expect(ingest).toContain('scanForBackfill');
+    expect(extract).toContain('safeFetch');
+    expect(extract).toContain('UnsupportedKnowledgeSourceError');
+    expect(processor).toContain('KNOWLEDGE_SOURCE_INGEST_QUEUE');
+    expect(processor).toContain('KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME');
+  });
+
   it('registers platform-x harness pack from open-source ranking signals', () => {
     const xPack = readRepo('packages/harness/src/platforms/x-algorithm.ts');
     const harnessService = readRepo(

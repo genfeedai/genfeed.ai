@@ -20,6 +20,7 @@ export * from './credit-deduction-job.interface';
 export * from './email-digest-job.interface';
 export * from './heygen-poll-job.interface';
 export * from './insight-generation-job.interface';
+export * from './knowledge-source-ingest-job.interface';
 export * from './lifecycle-email-job.interface';
 export * from './pattern-extraction-job.interface';
 export * from './post-publish-job.interface';

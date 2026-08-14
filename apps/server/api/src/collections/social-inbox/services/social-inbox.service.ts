@@ -155,4 +155,32 @@ export class SocialInboxService {
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     return this.ingestionService.ingestInstagramDms(scope, options);
   }
+
+  ingestXComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestXComments(scope, options);
+  }
+
+  ingestXDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestXDms(scope, options);
+  }
+
+  ingestLinkedInComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestLinkedInComments(scope, options);
+  }
+
+  ingestLinkedInDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.ingestionService.ingestLinkedInDms(scope, options);
+  }
 }
