@@ -93,6 +93,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-deleted-audit-orphans.ts',
+    ],
+    name: 'Deleted audit orphans (#2665)',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-legacy-cron-jobs-surface.ts',
     ],
     name: 'Legacy cron-jobs product surface',

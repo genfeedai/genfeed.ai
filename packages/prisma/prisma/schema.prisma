@@ -658,7 +658,6 @@ model Organization {
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
-  contentSchedules              ContentSchedule[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -822,7 +821,6 @@ model Brand {
   agentStrategyReports       AgentStrategyReport[]
   workflows                  Workflow[]
   contentRuns                ContentRun[]
-  contentSchedules           ContentSchedule[]
   distributions              Distribution[]
   watchlists                 Watchlist[]
   presets                    Preset[]
@@ -2236,33 +2234,6 @@ model Schedule {
   @@map("schedules")
 }
 
-model ContentSchedule {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  config         Json         @default("{}")
-  // Schedule columns — service (createForBrand / markScheduleRan) and the
-  // workflow-backed scheduler read & write these as top-level fields; without
-  // them the scheduler crashed at runtime (Prisma rejects unknown args).
-  name           String?
-  cronExpression String?
-  timezone       String       @default("UTC")
-  isEnabled      Boolean      @default(true)
-  nextRunAt      DateTime?
-  lastRunAt      DateTime?
-  skillSlugs     String[]     @default([])
-  skillParams    Json         @default("{}")
-  isActive       Boolean      @default(true)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([isEnabled, nextRunAt])
-  @@index([organizationId, brandId])
-  @@map("content_schedules")
-}
 
 model Distribution {
   id             String       @id @default(cuid())

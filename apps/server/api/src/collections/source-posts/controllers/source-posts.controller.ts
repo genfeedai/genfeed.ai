@@ -1,8 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  SourcePostDraftActionDto,
-  SourcePostTwitterActionDto,
-} from '@api/collections/source-posts/dto/source-post-action.dto';
+import { SourcePostDraftActionDto } from '@api/collections/source-posts/dto/source-post-action.dto';
 import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-posts-query.dto';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -68,17 +65,5 @@ export class SourcePostsController {
   ) {
     const context = resolveRequiredBrandRequestContext(user, query);
     return this.sourcePostsService.createDraftFromPost(id, context, body);
-  }
-
-  @Post(':id/actions/twitter')
-  @HttpCode(HttpStatus.OK)
-  publishTwitterAction(
-    @CurrentUser() user: User,
-    @Query() query: BrandScopeQueryDto,
-    @Param('id') id: string,
-    @Body() body: SourcePostTwitterActionDto,
-  ) {
-    const context = resolveRequiredBrandRequestContext(user, query);
-    return this.sourcePostsService.publishTwitterAction(id, context, body);
   }
 }
