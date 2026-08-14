@@ -28,6 +28,7 @@ import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
 import {
   projectLegacyPostStatus,
+  resolveDefaultTargetExecutionState,
   resolvePostVisibility,
 } from '@api-types/contracts/scheduler.contract';
 import {
@@ -264,8 +265,10 @@ export class PostsService extends BaseService<
       }),
     };
 
-    const executionState =
-      dto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+    const executionState = resolveDefaultTargetExecutionState({
+      scheduledDate: dto.scheduledDate,
+      targetExecutionState: dto.targetExecutionState,
+    });
     const visibility = dto.visibility ?? PostVisibility.PUBLIC;
     prismaWriteData.targetExecutionState = executionState;
     prismaWriteData.visibility = visibility;

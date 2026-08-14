@@ -25,6 +25,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -219,8 +220,10 @@ export class PostsOperationsController {
     @Param('postId') postId: string,
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
-    const requestedExecutionState =
-      createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+    const requestedExecutionState = resolveDefaultTargetExecutionState({
+      scheduledDate: createPostDto.scheduledDate,
+      targetExecutionState: createPostDto.targetExecutionState,
+    });
     assertApiKeyPostStatusPublishingScope(user, requestedExecutionState);
     const parentId = postId;
     try {

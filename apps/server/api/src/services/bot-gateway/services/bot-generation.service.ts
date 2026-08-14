@@ -29,10 +29,10 @@ interface GenerationResult {
 }
 
 interface SyntheticUser {
-  id: string;
-  userId: string;
   brandId: string;
+  id: string;
   organizationId: string;
+  userId: string;
 }
 
 @Injectable()

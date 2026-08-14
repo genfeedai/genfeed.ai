@@ -1,9 +1,10 @@
+import { mapPostStatusToCanonicalWrite } from '@api-types/contracts/scheduler.contract';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   PageScope,
-  PostStatus,
-  PostVisibility,
-  TargetExecutionState,
+  type PostStatus,
+  type PostVisibility,
+  type TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   IPaginatedResponse,
@@ -49,34 +50,15 @@ export function mapPostsListStatusFilter(
   executionState?: TargetExecutionState;
   visibility?: PostVisibility;
 } {
-  switch (status) {
-    case PostStatus.DRAFT:
-      return { executionState: TargetExecutionState.DRAFT };
-    case PostStatus.SCHEDULED:
-      return { executionState: TargetExecutionState.SCHEDULED };
-    case PostStatus.FAILED:
-      return { executionState: TargetExecutionState.FAILED };
-    case PostStatus.PENDING:
-    case PostStatus.PROCESSING:
-      return { executionState: TargetExecutionState.PUBLISHING };
-    case PostStatus.PUBLIC:
-      return {
-        executionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.PUBLIC,
-      };
-    case PostStatus.PRIVATE:
-      return {
-        executionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.PRIVATE,
-      };
-    case PostStatus.UNLISTED:
-      return {
-        executionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.UNLISTED,
-      };
-    default:
-      return {};
+  const write = mapPostStatusToCanonicalWrite(status);
+  if (!write.targetExecutionState) {
+    return {};
   }
+
+  return {
+    executionState: write.targetExecutionState,
+    ...(write.visibility !== undefined ? { visibility: write.visibility } : {}),
+  };
 }
 
 function toPostsListResult(result: IPaginatedResponse<IPost>): PostsListResult {

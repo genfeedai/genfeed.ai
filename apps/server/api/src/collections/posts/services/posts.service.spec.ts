@@ -146,6 +146,51 @@ describe('PostsService batchSchedule', () => {
     expect(writeData).not.toHaveProperty('user');
   });
 
+  it('defaults omitted execution state to draft when no scheduled date is set', async () => {
+    const { post, service } = makeService();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        description: 'Untitled draft',
+        ingredients: [],
+        label: 'Untitled draft',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        userId: 'user-1',
+      },
+      [],
+    );
+
+    expect(post.create.mock.calls[0]?.[0].data).toMatchObject({
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+  });
+
+  it('defaults omitted execution state to scheduled when a date is set', async () => {
+    const { post, service } = makeService();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        description: 'Scheduled later',
+        ingredients: [],
+        label: 'Scheduled later',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        scheduledDate: new Date('2026-08-20T10:00:00.000Z'),
+        userId: 'user-1',
+      },
+      [],
+    );
+
+    expect(post.create.mock.calls[0]?.[0].data).toMatchObject({
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+  });
+
   it('creates threads from canonical inputs and owns the parentId linkage', async () => {
     const { post, service } = makeService();
     post.create

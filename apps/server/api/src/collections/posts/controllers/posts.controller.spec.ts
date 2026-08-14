@@ -241,6 +241,39 @@ describe('PostsController.create account-health warmup gate', () => {
     expect(credentialsService.findOne).not.toHaveBeenCalled();
   });
 
+  it('treats omitted execution state as draft when no scheduled date is set', async () => {
+    const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
+    const controller = new PostsController(
+      {} as never,
+      {} as never,
+      credentialsService as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { error: vi.fn(), log: vi.fn() } as never,
+    );
+
+    await expect(
+      controller.create(
+        request,
+        makeUser({
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+        }),
+        {
+          category: PostCategory.TEXT,
+          credentialId: 'credential-1',
+          description: 'Draft content',
+          ingredients: [],
+          label: 'Draft content',
+          tags: [],
+        },
+      ),
+    ).rejects.toBeDefined();
+    expect(credentialsService.findOne).toHaveBeenCalled();
+  });
+
   it('declares all dynamically resolved post creation scopes', () => {
     expect(
       Reflect.getMetadata(API_KEY_SCOPES_KEY, PostsController.prototype.create),

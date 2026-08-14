@@ -10,6 +10,7 @@ import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
+import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -76,8 +77,10 @@ export async function createPost({
   dependencies,
   identity,
 }: PostCreateParams): Promise<PostDocument> {
-  const requestedExecutionState =
-    createPostDto.targetExecutionState ?? TargetExecutionState.SCHEDULED;
+  const requestedExecutionState = resolveDefaultTargetExecutionState({
+    scheduledDate: createPostDto.scheduledDate,
+    targetExecutionState: createPostDto.targetExecutionState,
+  });
   const requestedVisibility = createPostDto.visibility ?? PostVisibility.PUBLIC;
   const credential = await dependencies.credentialsService.findOne({
     id: createPostDto.credentialId,

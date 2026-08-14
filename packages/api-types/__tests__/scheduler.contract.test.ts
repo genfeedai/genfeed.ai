@@ -5,10 +5,12 @@ import {
   deriveReleaseStatusProjectionFromTargets,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
+  mapPostStatusToCanonicalWrite,
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
   projectLegacyPostStatus,
   recurrenceInputSchema,
+  resolveDefaultTargetExecutionState,
   resolvePostVisibility,
   updateChannelTargetSchema,
   updateRecurrenceSeriesSchema,
@@ -516,6 +518,48 @@ describe('post status dual-API hard cut', () => {
         PostVisibility.PUBLIC,
       ),
     ).toBe(PostStatus.PROCESSING);
+  });
+
+  test('maps projected Post.status onto canonical write fields', () => {
+    expect(mapPostStatusToCanonicalWrite(PostStatus.DRAFT)).toEqual({
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.SCHEDULED)).toEqual({
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PUBLIC)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PRIVATE)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PRIVATE,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.UNLISTED)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.UNLISTED,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PROCESSING)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    });
+    expect(mapPostStatusToCanonicalWrite('bogus')).toEqual({});
+  });
+
+  test('defaults omitted execution state to draft unless a date is scheduled', () => {
+    expect(resolveDefaultTargetExecutionState({})).toBe(
+      TargetExecutionState.DRAFT,
+    );
+    expect(
+      resolveDefaultTargetExecutionState({
+        scheduledDate: '2026-08-14T10:00:00.000Z',
+      }),
+    ).toBe(TargetExecutionState.SCHEDULED);
+    expect(
+      resolveDefaultTargetExecutionState({
+        scheduledDate: '2026-08-14T10:00:00.000Z',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    ).toBe(TargetExecutionState.DRAFT);
   });
 
   test('filters execution state without a Post.status dual-read', () => {

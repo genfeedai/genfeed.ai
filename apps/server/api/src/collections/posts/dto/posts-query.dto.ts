@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CredentialPlatform,
@@ -15,6 +16,7 @@ import {
 } from 'class-validator';
 
 export class PostsQueryDto extends BaseQueryDto {
+  static readonly [FORBID_NON_WHITELISTED] = true;
   @ApiProperty({
     description:
       'Separate posts that have been published from work in progress',

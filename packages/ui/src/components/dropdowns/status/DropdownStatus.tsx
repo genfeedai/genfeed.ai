@@ -1,14 +1,13 @@
 'use client';
 
+import { mapPostStatusToCanonicalWrite } from '@api-types/contracts/scheduler.contract';
 import {
   ArticleStatus,
   ButtonVariant,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
-  PostVisibility,
   StatusDomain,
-  TargetExecutionState,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -80,32 +79,6 @@ const INGREDIENT_STATUS_OPTIONS = [
 ];
 
 const INGREDIENT_PROCESSING_OPTIONS = [IngredientStatus.FAILED];
-
-function buildPostStatusPatch(status: PostStatus) {
-  switch (status) {
-    case PostStatus.DRAFT:
-      return { targetExecutionState: TargetExecutionState.DRAFT };
-    case PostStatus.SCHEDULED:
-      return { targetExecutionState: TargetExecutionState.SCHEDULED };
-    case PostStatus.PUBLIC:
-      return {
-        targetExecutionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.PUBLIC,
-      };
-    case PostStatus.PRIVATE:
-      return {
-        targetExecutionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.PRIVATE,
-      };
-    case PostStatus.UNLISTED:
-      return {
-        targetExecutionState: TargetExecutionState.PUBLISHED,
-        visibility: PostVisibility.UNLISTED,
-      };
-    default:
-      throw new Error(`Unsupported editable post status: ${status}`);
-  }
-}
 
 function getStatusIcon(statusValue: string): React.ReactNode {
   const statusStr = statusValue.toString().toUpperCase();
@@ -236,7 +209,7 @@ export default function DropdownStatus({
         const service = await getPostsService();
         await service.patch(
           entity.id,
-          buildPostStatusPatch(newStatus as PostStatus),
+          mapPostStatusToCanonicalWrite(newStatus as PostStatus),
         );
 
         // Fetch complete post with all metadata

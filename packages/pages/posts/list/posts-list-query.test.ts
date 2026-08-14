@@ -1,4 +1,9 @@
-import { PageScope, PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  PageScope,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,
@@ -133,6 +138,48 @@ describe('posts list query helpers', () => {
       'org_123',
       expect.objectContaining({
         executionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    expect(findOrganizationPostsPage.mock.calls[0]?.[1]).not.toHaveProperty(
+      'status',
+    );
+  });
+
+  it('maps projected public status onto published execution and visibility', async () => {
+    const findOrganizationPostsPage = vi.fn().mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 12,
+      total: 0,
+      totalPages: 1,
+    });
+
+    await fetchPosts({
+      adminBrand: '',
+      adminOrg: '',
+      brandId: undefined,
+      currentPage: 1,
+      filterSearch: '',
+      filterSort: undefined,
+      filterStatus: PostStatus.PUBLIC,
+      getBrandsService: vi.fn(),
+      getOrganizationsService: vi.fn().mockResolvedValue({
+        findOrganizationPostsPage,
+      }),
+      getPostsService: vi.fn(),
+      organizationId: 'org_123',
+      platformFilter: undefined,
+      scope: PageScope.ORGANIZATION,
+      status: undefined,
+    } as never);
+
+    expect(findOrganizationPostsPage).toHaveBeenCalledWith(
+      'org_123',
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
       }),
     );
     expect(findOrganizationPostsPage.mock.calls[0]?.[1]).not.toHaveProperty(
