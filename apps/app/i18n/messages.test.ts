@@ -160,6 +160,10 @@ describe('loadMessages', () => {
       'Brand label',
     );
     expect(english.agent.settings.autoLabel).toBe('Auto');
+    expect(english.agent.generationActionCard.previewEditorAria).toBe(
+      'Full prompt',
+    );
+    expect(english.agent.generationActionCard.readFull).toBe('Read & edit');
     expect(english.pages.posts.list.loadError).toBe(
       'Posts could not be loaded. Refresh to try again.',
     );

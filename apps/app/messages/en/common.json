@@ -212,15 +212,6 @@
     "composerFollowUpQueue": {
       "queued": "Queued"
     },
-    "generationActionCard": {
-      "previewDescription": "Read and edit the full generation prompt",
-      "previewEditorAria": "Full prompt",
-      "previewTitle": "Prompt",
-      "readFull": "Read & edit",
-      "readFullAria": "Read and edit the full prompt",
-      "stop": "Stop",
-      "stopAria": "Stop generation"
-    },
     "onboardingComposerCard": {
       "description": "Paste a site or handle in the prompt, or type what you make. The first reply should be an image.",
       "title": "Tell the agent what you create"

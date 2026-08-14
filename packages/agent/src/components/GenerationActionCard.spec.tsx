@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -185,6 +187,15 @@ function createApiServiceMock(options?: {
 }
 
 describe('GenerationActionCard', () => {
+  it('resolves prompt editor copy through the host agent catalog', () => {
+    const source = readFileSync(
+      join(__dirname, 'GenerationActionCardControls.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("useTranslations('agent.generationActionCard')");
+    expect(source).not.toContain('const COPY =');
+  });
+
   beforeEach(() => {
     storeState.activeThreadId = 'thread-1';
     storeState.error = null;

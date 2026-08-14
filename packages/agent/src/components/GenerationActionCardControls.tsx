@@ -97,7 +97,7 @@ export function GenerationActionCardControls({
   onGenerate,
   onStop,
 }: GenerationActionCardControlsProps): ReactElement {
-  const translate = useTranslations('common.agent.generationActionCard');
+  const translate = useTranslations('agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const [isPromptPreviewOpen, setIsPromptPreviewOpen] = useState(false);
   // An empty catalog is indistinguishable from a failed fetch at the picker —
