@@ -23,7 +23,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -104,8 +103,6 @@ export class BatchInterpolationController {
     @Body() dto: BatchInterpolationDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Generate group ID to link all videos from this storyboard batch together.
     const groupId = randomUUID();
 
@@ -141,8 +138,8 @@ export class BatchInterpolationController {
 
     // Get brand for organization context
     const brand = await this.brandsService.findOne({
-      id: publicMetadata.brand,
-      organizationId: publicMetadata.organization,
+      id: user.brandId,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -254,12 +251,12 @@ export class BatchInterpolationController {
         // Create prompt record
         const promptData = await this.promptsService.create(
           new PromptEntity({
-            brandId: publicMetadata.brand,
+            brandId: user.brandId,
             category: PromptCategory.MODELS_PROMPT_VIDEO,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             original: promptText,
             status: PromptStatus.PROCESSING,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
           }),
         );
 
@@ -282,7 +279,7 @@ export class BatchInterpolationController {
             useTemplate: dto.useTemplate,
             width,
           },
-          publicMetadata.organization,
+          user.organizationId,
         );
 
         // Create video ingredient with groupId for batch tracking
@@ -314,9 +311,9 @@ export class BatchInterpolationController {
             entityId: ingredientData.id,
             entityModel: ActivityEntityModel.INGREDIENT,
             key: ActivityKey.VIDEO_PROCESSING,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             source: ActivitySource.VIDEO_GENERATION,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
             value: JSON.stringify({
               groupId,
               ingredientId,
@@ -369,8 +366,8 @@ export class BatchInterpolationController {
 
           if (creditsToDeduct > 0) {
             await this.creditsUtilsService.deductCreditsFromOrganization(
-              publicMetadata.organization,
-              publicMetadata.user,
+              user.organizationId,
+              user.userId ?? user.id,
               creditsToDeduct,
               `Interpolation video - ${dto.modelKey} (pair ${i + 1}/${pairs.length})`,
               ActivitySource.VIDEO_GENERATION,

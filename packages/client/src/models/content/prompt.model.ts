@@ -3,9 +3,9 @@ import type { AssetScope } from '@genfeedai/enums';
 import type { IIngredient, IPrompt, ITag } from '@genfeedai/interfaces';
 
 export class Prompt extends BaseEntity implements IPrompt {
-  public declare user: string;
-  public declare organization?: string;
-  public declare brand?: string;
+  public declare userId: string;
+  public declare organizationId?: string;
+  public declare brandId?: string;
   public declare category: string;
   public declare original: string;
   public declare enhanced: string;

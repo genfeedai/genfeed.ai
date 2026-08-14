@@ -8,13 +8,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: 'c07f1f77bcf86cd799439012',
-    user: 'c07f1f77bcf86cd799439011',
-  }),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi
     .fn()
@@ -49,7 +42,8 @@ describe('ContentEngineController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: { organization: orgId, user: userId },
+    organizationId: orgId,
+    userId: userId,
   } as unknown as User;
 
   const mockReq = {

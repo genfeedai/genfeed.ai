@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: 'org-1',
-    user: 'user-1',
-  }),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -44,7 +37,12 @@ describe('PostGroupsController', () => {
     resumeFuture: ReturnType<typeof vi.fn>;
   };
 
-  const user = { id: 'user-1' } as User;
+  const user = {
+    brandId: 'brand-1',
+    id: 'user-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as User;
   const req = {} as Request;
 
   beforeEach(async () => {
@@ -113,7 +111,10 @@ describe('PostGroupsController', () => {
       body,
       'same-request',
       undefined,
-      expect.objectContaining({ organization: 'org-1', user: 'user-1' }),
+      expect.objectContaining({
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
     );
   });
 
@@ -140,7 +141,10 @@ describe('PostGroupsController', () => {
       'group-1',
       'target-1',
       { timezone: 'UTC' },
-      expect.objectContaining({ organization: 'org-1', user: 'user-1' }),
+      expect.objectContaining({
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
     );
   });
 

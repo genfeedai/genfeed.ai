@@ -76,14 +76,13 @@ type ApiBenchmarkCliOptions = {
 type ApiBenchmarkHeaders = {
   Authorization: string;
   'x-brand-id': string;
-  'x-authProvider-user-id': string;
   'x-organization-id': string;
   'x-user-id': string;
 };
 
 type ApiBenchmarkUser = {
   id: string;
-  publicMetadata?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
 };
 
 type ApiBenchmarkHarness = {
@@ -155,7 +154,6 @@ type ApiBenchmarkRunResult = {
 
 type ApiBenchmarkSeedState = {
   brandId: string;
-  authProviderUserId: string;
   organizationId: string;
   userId: string;
 };
@@ -501,7 +499,6 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
     headers: {
       Authorization: 'Bearer benchmark-token',
       'x-brand-id': seedState.brandId,
-      'x-authProvider-user-id': seedState.authProviderUserId,
       'x-organization-id': seedState.organizationId,
       'x-user-id': seedState.userId,
     },
@@ -512,24 +509,18 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
 
 function createBenchmarkAuthMiddleware(): NestMiddleware['use'] {
   return (req, _res, next) => {
-    const authProviderUserId =
-      readHeaderValue(req.headers['x-authProvider-user-id']) ??
-      'authProvider-benchmark-user';
+    const userId = readHeaderValue(req.headers['x-user-id']) ?? '';
     const organizationId =
       readHeaderValue(req.headers['x-organization-id']) ?? '';
-    const userId = readHeaderValue(req.headers['x-user-id']) ?? '';
     const brandId = readHeaderValue(req.headers['x-brand-id']) ?? '';
 
     const currentUser = {
-      id: authProviderUserId,
-      publicMetadata: {
-        brand: brandId,
-        email: 'benchmark@example.com',
-        isOwner: true,
-        isSuperAdmin: false,
-        organization: organizationId,
-        user: userId,
-      },
+      id: userId || 'benchmark-user',
+      brandId: brandId,
+
+      isSuperAdmin: false,
+      organizationId: organizationId,
+      userId: userId,
     } as ApiBenchmarkUser;
 
     (req as typeof req & { user?: ApiBenchmarkUser }).user = currentUser;
@@ -642,7 +633,6 @@ async function seedBenchmarkData(
 
   return {
     brandId: String(brands[0]?.id ?? ''),
-    authProviderUserId: String(user.id),
     organizationId: String(organization.id),
     userId: String(user.id),
   };

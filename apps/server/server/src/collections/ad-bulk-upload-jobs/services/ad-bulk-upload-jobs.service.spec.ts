@@ -64,9 +64,9 @@ describe('AdBulkUploadJobsService', () => {
         },
       });
       expect(job.totalPermutations).toBe(4);
-      expect(job.organization).toBe('org-1');
-      expect(job.brand).toBe('brand-1');
-      expect(job.credential).toBe('cred-1');
+      expect(job.organizationId).toBe('org-1');
+      expect(job.brandId).toBe('brand-1');
+      expect(job.credentialId).toBe('cred-1');
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('created bulk upload job job-1'),
       );
@@ -108,8 +108,8 @@ describe('AdBulkUploadJobsService', () => {
           credentialId: undefined,
         }),
       });
-      expect(job.brand).toBeUndefined();
-      expect(job.credential).toBeUndefined();
+      expect(job.brandId).toBeNull();
+      expect(job.credentialId).toBeNull();
     });
 
     it('rejects a payload without a tenant id', async () => {

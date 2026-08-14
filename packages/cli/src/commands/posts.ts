@@ -14,7 +14,7 @@ postsCommand
   .command('list')
   .description('List posts')
   .option('--platform <platform>', 'Filter by platform (twitter, instagram, linkedin, tiktok)')
-  .option('--status <status>', 'Filter by status (draft, scheduled, published)')
+  .option('--execution-state <state>', 'Filter by execution state (draft, scheduled, published)')
   .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
@@ -23,9 +23,9 @@ postsCommand
 
       const spinner = ora('Fetching posts...').start();
       const posts = await listPosts({
+        executionState: options.executionState,
         limit: options.limit,
         platform: options.platform,
-        status: options.status,
       });
       spinner.stop();
 

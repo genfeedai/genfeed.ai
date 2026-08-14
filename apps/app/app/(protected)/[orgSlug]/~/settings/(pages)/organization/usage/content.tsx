@@ -481,7 +481,7 @@ export default function SettingsUsagePage() {
         </div>
 
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           className="h-9"
           onClick={refresh}

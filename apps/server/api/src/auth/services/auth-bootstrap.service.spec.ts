@@ -5,12 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mockGetIsSuperAdmin,
-  mockGetPublicMetadata,
   mockGetStripeSubscriptionStatus,
   mockGetSubscriptionTier,
 } = vi.hoisted(() => ({
   mockGetIsSuperAdmin: vi.fn(),
-  mockGetPublicMetadata: vi.fn(),
   mockGetStripeSubscriptionStatus: vi.fn(),
   mockGetSubscriptionTier: vi.fn(),
 }));
@@ -78,7 +76,6 @@ vi.mock('@api/common/services/access-bootstrap-cache.service', () => ({
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
-  getPublicMetadata: mockGetPublicMetadata,
   getStripeSubscriptionStatus: mockGetStripeSubscriptionStatus,
   getSubscriptionTier: mockGetSubscriptionTier,
 }));
@@ -174,10 +171,6 @@ describe('AuthBootstrapService', () => {
     usersService.findOne.mockResolvedValue(null);
 
     mockGetIsSuperAdmin.mockReturnValue(false);
-    mockGetPublicMetadata.mockImplementation(
-      (user: { publicMetadata?: Record<string, unknown> } | null) =>
-        user?.publicMetadata ?? {},
-    );
     mockGetStripeSubscriptionStatus.mockReturnValue('');
     mockGetSubscriptionTier.mockReturnValue('');
   });
@@ -207,7 +200,7 @@ describe('AuthBootstrapService', () => {
       context: { organizationId: 'org_1', userId: 'user_1' },
       user: {
         id: 'authProvider_1',
-        publicMetadata: { brand: 'brand_1' },
+        brandId: 'brand_1',
       },
     } as never);
 
@@ -249,7 +242,7 @@ describe('AuthBootstrapService', () => {
       context: { organizationId: 'org_1', userId: 'user_1' },
       user: {
         id: 'authProvider_1',
-        publicMetadata: { brand: 'brand_1' },
+        brandId: 'brand_1',
       },
     } as never);
 
@@ -328,11 +321,9 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_2',
-        publicMetadata: {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
+        brandId: brandId,
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never);
 
@@ -437,11 +428,9 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_plain',
-        publicMetadata: {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
+        brandId: brandId,
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never);
 
@@ -476,10 +465,8 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_3',
-        publicMetadata: {
-          organization: organizationId,
-          user: userId,
-        },
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never);
 
@@ -515,11 +502,9 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_4',
-        publicMetadata: {
-          brand: '',
-          organization: organizationId,
-          user: userId,
-        },
+        brandId: '',
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never);
 
@@ -579,11 +564,9 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_4',
-        publicMetadata: {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
+        brandId: brandId,
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never);
 
@@ -672,11 +655,9 @@ describe('AuthBootstrapService', () => {
       },
       user: {
         id: 'authProvider_4',
-        publicMetadata: {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
+        brandId: brandId,
+        organizationId: organizationId,
+        userId: userId,
       },
     } as never;
 

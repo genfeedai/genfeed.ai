@@ -7,7 +7,7 @@ export class ParsePromptDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: string;
+  readonly brandId?: string;
 
   @IsString()
   @ApiProperty({ required: true })

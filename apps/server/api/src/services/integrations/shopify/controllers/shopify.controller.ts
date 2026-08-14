@@ -4,7 +4,6 @@ import { CreateCredentialVerifyDto } from '@api/collections/credentials/dto/crea
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ConnectShopifyCredentialDto } from '@api/services/integrations/shopify/dto/connect-shopify-credential.dto';
 import {
@@ -43,7 +42,8 @@ export class ShopifyController {
     @CurrentUser() user: User,
     @Body() body: ConnectShopifyCredentialDto,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const brand = await this.brandsService.findOne({
       id: body.brandId,
       organizationId: organization,

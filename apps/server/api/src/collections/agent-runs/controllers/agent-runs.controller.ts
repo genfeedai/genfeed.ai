@@ -10,7 +10,6 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -68,7 +67,6 @@ export class AgentRunsController extends BaseCRUDController<
     createDto: Partial<CreateAgentRunDto>,
     user: User,
   ): CreateAgentRunDto {
-    const publicMetadata = getPublicMetadata(user);
     const dto = createDto as Record<string, unknown>;
 
     // Strip tenant/user scope supplied in the body; auth metadata is authoritative.
@@ -78,24 +76,23 @@ export class AgentRunsController extends BaseCRUDController<
 
     return {
       ...createDto,
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      ...(user.brandId ? { brandId: user.brandId } : {}),
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     } as CreateAgentRunDto;
   }
 
   public buildFindAllQuery(user: User, query: AgentRunsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: false,
     };
 
-    const organizationId = publicMetadata.organization?.toString();
+    const organizationId = user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
 
-    const brandId = publicMetadata.brand?.toString() ?? query.brandId;
+    const brandId = user.brandId?.toString() ?? query.brandId;
     if (brandId) {
       match.brandId = brandId;
     }
@@ -208,9 +205,7 @@ export class AgentRunsController extends BaseCRUDController<
   }
 
   public canUserModifyEntity(user: User, entity: AgentRunDocument): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
-    if (publicMetadata?.isSuperAdmin) {
+    if (user?.isSuperAdmin) {
       return true;
     }
 
@@ -220,18 +215,14 @@ export class AgentRunsController extends BaseCRUDController<
     const entityOrganizationId = entity.organizationId;
     const entityBrandId = entity.brandId ?? undefined;
 
-    if (
-      publicMetadata.brand &&
-      entityBrandId &&
-      entityBrandId !== publicMetadata.brand
-    ) {
+    if (user.brandId && entityBrandId && entityBrandId !== user.brandId) {
       return false;
     }
 
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization
+      user.organizationId &&
+      entityOrganizationId === user.organizationId
     ) {
       return true;
     }
@@ -249,11 +240,10 @@ export class AgentRunsController extends BaseCRUDController<
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const runs = await this.agentRunsService.getActiveRuns(
-      publicMetadata.organization,
+      user.organizationId,
       {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         cursor,
         limit: limit ? Number.parseInt(limit, 10) : undefined,
       },
@@ -273,11 +263,10 @@ export class AgentRunsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: AgentRunStatsQueryDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return await this.agentRunsService.getStats(
-      publicMetadata.organization,
+      user.organizationId,
       query,
-      publicMetadata.brand,
+      user.brandId,
     );
   }
 
@@ -305,11 +294,10 @@ export class AgentRunsController extends BaseCRUDController<
       throw new BadRequestException('At least one valid ID is required');
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const runs = await this.agentRunsService.getBatchWithContent(
       ids,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
     );
 
     return { runs };
@@ -325,12 +313,11 @@ export class AgentRunsController extends BaseCRUDController<
     @Param('id') id: string,
     @Query('brand') requestedBrandId?: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const brandId = publicMetadata.brand ?? requestedBrandId;
+    const brandId = user.brandId ?? requestedBrandId;
     const doc = await this.agentRunsService.findOne({
       id: id,
       ...(brandId ? { brandId: brandId } : {}),
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!doc) {
@@ -349,11 +336,10 @@ export class AgentRunsController extends BaseCRUDController<
   @ApiOperation({ summary: 'Get content produced by an agent run' })
   @ApiResponse({ description: 'Run content returned', status: 200 })
   async getRunContent(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
     const content = await this.agentRunsService.getRunContent(
       id,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
     );
 
     if (!content) {

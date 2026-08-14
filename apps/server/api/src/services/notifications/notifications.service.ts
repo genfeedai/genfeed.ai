@@ -289,16 +289,6 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  sendDiscordCard(card: IDiscordEmbed): Promise<void> {
-    return this.sendNotification({
-      action: 'send_card',
-      payload: {
-        card,
-      },
-      type: 'discord',
-    });
-  }
-
   sendChatbotMessage(
     sessionId: string,
     message: string,

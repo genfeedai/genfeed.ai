@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsScenesController } from '@api/collections/elements/scenes/controllers/scenes.controller';
 import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/create-scene.dto';
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';
 import { ElementsScenesService } from '@api/collections/elements/scenes/services/scenes.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -16,7 +18,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     isDeleted: false,
     limit: 20,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
@@ -48,11 +49,9 @@ describe('ElementsScenesController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    } as IAuthPublicMetadata,
+    brandId: 'cmbrand000000000000000001',
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
   const mockRequest = {
@@ -113,7 +112,7 @@ describe('ElementsScenesController', () => {
       const mockCreatedScene = {
         id: 'cmscene0000000000000000001',
         ...createDto,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       scenesService.create.mockResolvedValueOnce(
@@ -135,7 +134,7 @@ describe('ElementsScenesController', () => {
       const mockCreatedScene = {
         id: 'cmscene0000000000000000001',
         ...createDto,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       scenesService.create.mockResolvedValueOnce(
@@ -147,7 +146,7 @@ describe('ElementsScenesController', () => {
       const createCall = scenesService.create.mock.calls[0][0];
       expect(createCall).toHaveProperty(
         'organizationId',
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
     });
   });
@@ -163,7 +162,7 @@ describe('ElementsScenesController', () => {
         id: sceneId,
         key: 'old-scene',
         label: 'Old Scene',
-        organizationId: mockUser.publicMetadata.organization as string,
+        organizationId: mockUser.organizationId as string,
       };
 
       const mockUpdatedScene = {
@@ -211,7 +210,7 @@ describe('ElementsScenesController', () => {
         id: sceneId,
         key: 'scene-to-delete',
         label: 'Scene to Delete',
-        organizationId: mockUser.publicMetadata.organization as string,
+        organizationId: mockUser.organizationId as string,
       };
 
       scenesService.findOne.mockResolvedValueOnce(
@@ -292,7 +291,7 @@ describe('ElementsScenesController', () => {
       const mockScene = {
         id: sceneId,
         label: 'Scene 1',
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       scenesService.findOne.mockResolvedValueOnce(

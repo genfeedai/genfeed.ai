@@ -16,7 +16,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
@@ -92,7 +91,7 @@ export class SchedulesController {
     @Body() dto: GetOptimalTimeDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.assertOrganizationCreditsAvailable(
       organization,
       await this.getDefaultTextMinimumCredits(),
@@ -115,7 +114,7 @@ export class SchedulesController {
   @Post('bulk')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async bulkSchedule(@Body() dto: BulkScheduleDto, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     return await this.schedulesService.bulkSchedule(dto, organization, user.id);
   }
 
@@ -130,7 +129,7 @@ export class SchedulesController {
     @Query('start') start?: string,
     @Query('end') end?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const startDate = start || new Date().toISOString();
     const endDate =

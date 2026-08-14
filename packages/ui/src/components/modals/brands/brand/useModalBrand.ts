@@ -436,7 +436,7 @@ export function useModalBrand(
         new Prompt({
           category: PromptCategory.BRAND_DESCRIPTION,
           isSkipEnhancement: false,
-          organization: organizationId,
+          organizationId,
           original: form.getValues('text'),
           systemPromptKey: SystemPromptKey.BRAND,
           useRAG: true,
@@ -760,11 +760,7 @@ export function useModalBrand(
   );
 
   const performBrandRelocation = useCallback(
-    async (
-      destOrganizationId: string,
-      ackToken: string | null,
-      onAckRejected: () => void,
-    ) => {
+    async (destOrganizationId: string, onRelocationConflict: () => void) => {
       if (!overlayBrandId) {
         return;
       }
@@ -782,7 +778,6 @@ export function useModalBrand(
           {
             ...formData,
             organizationId: destOrganizationId,
-            ...(ackToken ? { relocationAck: ackToken } : {}),
           },
         );
 
@@ -824,9 +819,9 @@ export function useModalBrand(
         const status = getStructuredErrorStatus(relocationError);
         if (status === 409) {
           setError(
-            'The move impact changed since you last previewed it — please confirm the move again.',
+            "Couldn't complete the move because of a conflict in the destination organization. Please try again.",
           );
-          onAckRejected();
+          onRelocationConflict();
           return;
         }
         if (status === 403) {
@@ -896,7 +891,6 @@ export function useModalBrand(
         onConfirm: async () => {
           await performBrandRelocation(
             nextOrganizationId,
-            preview.ackToken,
             resetOrganizationSelection,
           );
         },

@@ -54,11 +54,9 @@ const mockVideo = {
 
 const mockUser = {
   id: 'user_123',
-  publicMetadata: {
-    brand: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
-  },
+  brandId: '507f1f77bcf86cd799439014',
+  organizationId: '507f1f77bcf86cd799439013',
+  userId: '507f1f77bcf86cd799439012',
 } as unknown as User;
 
 const ingredientId = '507f1f77bcf86cd799439017';
@@ -158,7 +156,6 @@ describe('VideosEffectsController', () => {
     );
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
-        authProviderUserId: 'user_123',
         room: 'user:user_123',
         userId: '507f1f77bcf86cd799439012',
       }),

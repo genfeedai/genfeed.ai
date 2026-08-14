@@ -26,15 +26,6 @@ export const BUTTON_VARIANT_CONFIG: Record<
   [ButtonVariant.UNSTYLED]: { shipVariant: 'default' },
 };
 
-const LEGACY_BUTTON_VARIANT_ALIASES: Record<string, CanonicalButtonVariant> = {
-  black: ButtonVariant.DEFAULT,
-  generate: ButtonVariant.DEFAULT,
-  outline: ButtonVariant.SECONDARY,
-  'outline-white': ButtonVariant.SECONDARY,
-  soft: ButtonVariant.SECONDARY,
-  white: ButtonVariant.DEFAULT,
-};
-
 export function resolveButtonVariant(
   variant?: ButtonVariant | null,
 ): CanonicalButtonVariant {
@@ -43,12 +34,9 @@ export function resolveButtonVariant(
   }
 
   const canonicalVariant = variant as CanonicalButtonVariant;
-  return (
-    LEGACY_BUTTON_VARIANT_ALIASES[variant] ??
-    (canonicalVariant in BUTTON_VARIANT_CONFIG
-      ? canonicalVariant
-      : ButtonVariant.DEFAULT)
-  );
+  return canonicalVariant in BUTTON_VARIANT_CONFIG
+    ? canonicalVariant
+    : ButtonVariant.DEFAULT;
 }
 
 export function getMappedButtonSize(size?: ButtonSize | null) {

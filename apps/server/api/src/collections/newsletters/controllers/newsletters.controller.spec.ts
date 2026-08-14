@@ -37,11 +37,10 @@ describe('NewslettersController', () => {
   };
 
   const mockUser = {
+    brandId: '507f1f77bcf86cd799439013',
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockReq = { headers: {}, url: '/newsletters' } as unknown as Request;
@@ -110,7 +109,7 @@ describe('NewslettersController', () => {
       expect(service.findAllScoped).toHaveBeenCalledWith(
         expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
         query,
-        expect.objectContaining({ limit: 10, page: 1, pagination: true }),
+        expect.objectContaining({ limit: 10, page: 1 }),
       );
     });
   });

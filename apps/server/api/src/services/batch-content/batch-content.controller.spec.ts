@@ -5,16 +5,15 @@ import type { CreateBatchContentDto } from '@api/services/batch-content/dto/crea
 import type { BatchStatus } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 
 function createMockUser(
-  organization: string,
+  organizationId: string,
   userId: string,
-  brand = 'brand-default',
+  brandId = 'brand-default',
 ): User {
   return {
-    publicMetadata: {
-      brand,
-      organization,
-      user: userId,
-    },
+    brandId,
+    id: `auth-provider-${userId}`,
+    organizationId,
+    userId,
   } as unknown as User;
 }
 
@@ -167,7 +166,7 @@ describe('BatchContentController', () => {
       );
     });
 
-    it('should extract organization from user publicMetadata', () => {
+    it('should extract organization from user identity', () => {
       const service = createMockBatchContentService();
       const controller = new BatchContentController(service);
       const user = createMockUser('my-org-id', 'user-1');

@@ -10,7 +10,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/enums';
@@ -102,17 +101,13 @@ export class ElementsLensesController extends BaseCRUDController<
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     return buildElementFindAllQuery({
       adminFilter,
       includeStateFilters: true,
       metadata: {
-        organization: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       query,
       searchableFields: ['label', 'description', 'key'],

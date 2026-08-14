@@ -12,7 +12,6 @@ const useAgentRunsMock = vi.fn();
 const runs: IAgentRun[] = [
   {
     completedAt: '2026-03-26T10:15:00.000Z',
-    conversation: undefined,
     createdAt: '2026-03-26T10:00:00.000Z',
     creditBudget: undefined,
     creditsUsed: 6,
@@ -40,7 +39,6 @@ const runs: IAgentRun[] = [
   },
   {
     completedAt: '2026-03-26T08:15:00.000Z',
-    conversation: undefined,
     createdAt: '2026-03-26T08:00:00.000Z',
     creditBudget: undefined,
     creditsUsed: 3,

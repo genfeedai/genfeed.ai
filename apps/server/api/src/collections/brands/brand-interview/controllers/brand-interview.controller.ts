@@ -3,7 +3,6 @@ import { SubmitBrandInterviewAnswerDto } from '@api/collections/brands/brand-int
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   IActiveBrandInterview,
   IBrandInterviewAnswerResult,
@@ -34,8 +33,7 @@ export class BrandInterviewController {
    * Extract org context or throw 403.
    */
   private requireOrganizationId(user: User): string {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization?.toString();
+    const orgId = user.organizationId?.toString();
 
     if (!orgId) {
       throw new HttpException(
@@ -61,8 +59,7 @@ export class BrandInterviewController {
     @CurrentUser() user: User,
   ): Promise<IBrandInterviewStartResult> {
     const organizationId = this.requireOrganizationId(user);
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user?.toString() ?? '';
+    const userId = (user.userId ?? user.id)?.toString() ?? '';
 
     return this.brandInterviewService.start(brandId, organizationId, userId);
   }
@@ -120,8 +117,7 @@ export class BrandInterviewController {
     @Body() dto: SubmitBrandInterviewAnswerDto,
   ): Promise<IBrandInterviewAnswerResult> {
     const organizationId = this.requireOrganizationId(user);
-    const publicMetadata = getPublicMetadata(user);
-    const userId = publicMetadata.user?.toString() ?? '';
+    const userId = (user.userId ?? user.id)?.toString() ?? '';
 
     return this.brandInterviewService.submitAnswer(
       interviewId,

@@ -5,10 +5,7 @@ import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
 import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -41,8 +38,6 @@ export class TagsController extends BaseCRUDController<
    * Override the base pipeline to load organization tags or defaults
    */
   public buildFindAllQuery(user: User, query: TagsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Build OR conditions: global items OR user's org items OR user's items.
     // Prefer explicit `organization` query (collection style) over session org,
     // but only when authorized for that tenant.
@@ -52,7 +47,7 @@ export class TagsController extends BaseCRUDController<
 
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
-      publicMetadata,
+      user,
       getIsSuperAdmin(user),
     );
     const organizationId = scope.organizationId;
@@ -63,8 +58,8 @@ export class TagsController extends BaseCRUDController<
       });
     }
 
-    if (publicMetadata.user) {
-      orConditions.push({ userId: publicMetadata.user });
+    if (user.userId ?? user.id) {
+      orConditions.push({ userId: user.userId ?? user.id });
     }
 
     const matchConditions: MatchConditions = {

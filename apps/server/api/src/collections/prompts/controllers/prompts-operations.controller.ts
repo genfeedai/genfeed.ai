@@ -29,7 +29,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import {
   returnNotFound,
@@ -126,15 +125,13 @@ export class PromptsOperationsController {
     @Body() createParsePromptDto: ParsePromptDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(createParsePromptDto.brand)) {
+    if (isEntityId(createParsePromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
-        id: createParsePromptDto.brand,
+        id: createParsePromptDto.brandId,
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
         ],
       });
       selectedBrand = brand ?? undefined;
@@ -165,7 +162,6 @@ export class PromptsOperationsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const chargedCredits =
       (
         request as Request & {
@@ -176,7 +172,7 @@ export class PromptsOperationsController {
       id: promptId,
     });
 
-    if (!prompt || prompt.userId !== publicMetadata.user) {
+    if (!prompt || prompt.userId !== (user.userId ?? user.id)) {
       return returnNotFound(this.constructorName, promptId);
     }
 
@@ -219,7 +215,7 @@ export class PromptsOperationsController {
         await this.templatesService.getRenderedPrompt(
           systemPromptKey,
           {},
-          publicMetadata.organization,
+          user.organizationId,
         );
         userPrompt = await this.templatesService.getRenderedPrompt(
           PromptTemplateKey.REMIX,
@@ -227,7 +223,7 @@ export class PromptsOperationsController {
             category: normalizedType,
             promptString,
           },
-          publicMetadata.organization,
+          user.organizationId,
         );
       } catch (error) {
         this.loggerService.warn('Template not found, using fallback', {
@@ -255,11 +251,11 @@ export class PromptsOperationsController {
     // Create activity for prompt remix start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: promptBrandId ?? publicMetadata.brand,
+        brandId: promptBrandId ?? user.brandId,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.PROMPT_REMIX,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           promptId: data.id.toString(),
           sourcePromptId: promptId,
@@ -290,7 +286,7 @@ export class PromptsOperationsController {
           systemPromptTemplate: systemPromptKey,
           temperature: 0.8,
         },
-        publicMetadata.organization,
+        user.organizationId,
       )
       .then(({ input }) =>
         this.replicateService.generateTextCompletionSync(
@@ -344,7 +340,7 @@ export class PromptsOperationsController {
           refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1); // Expire in 1 year
 
           await this.creditsUtilsService.refundOrganizationCredits(
-            publicMetadata.organization,
+            user.organizationId,
             chargedCredits,
             'prompt-remix-refund',
             'Remix prompt generation failed - credit refund',
@@ -353,14 +349,14 @@ export class PromptsOperationsController {
 
           this.loggerService.log('Credits refunded successfully', {
             amount: chargedCredits,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           });
         } catch (refundError: unknown) {
           this.loggerService.error('Failed to refund credits', {
             error: refundError,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           });
         }
 
@@ -390,12 +386,11 @@ export class PromptsOperationsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const prompt = await this.promptsService.findOne({
       id: promptId,
     });
 
-    if (!prompt || prompt.userId !== publicMetadata.user) {
+    if (!prompt || prompt.userId !== (user.userId ?? user.id)) {
       return returnNotFound(this.constructorName, promptId);
     }
 
@@ -418,11 +413,11 @@ export class PromptsOperationsController {
     // Create activity for prompt enhance start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: promptBrandId ?? publicMetadata.brand,
+        brandId: promptBrandId ?? user.brandId,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.PROMPT_ENHANCEMENT,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           promptId: promptId,
           type: 'enhance',
@@ -449,7 +444,7 @@ export class PromptsOperationsController {
           await this.templatesService.getRenderedPrompt(
             systemPromptKey,
             {},
-            publicMetadata.organization,
+            user.organizationId,
           );
         } catch (error) {
           this.loggerService.warn('Template not found, using fallback', {
@@ -478,7 +473,7 @@ export class PromptsOperationsController {
           systemPromptTemplate: systemPromptKey,
           temperature: 0.8,
         },
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       const result = await this.replicateService.generateTextCompletionSync(
@@ -590,8 +585,6 @@ export class PromptsOperationsController {
       timestamp: string;
     };
   }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const tone = createTweetReplyDto.tone || ReplyTone.FRIENDLY;
     const length = createTweetReplyDto.length || ReplyLength.MEDIUM;
 
@@ -610,7 +603,7 @@ export class PromptsOperationsController {
         tweetAuthor: createTweetReplyDto.tweetAuthor || '',
         tweetContent: createTweetReplyDto.tweetContent,
       },
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     try {
@@ -624,7 +617,7 @@ export class PromptsOperationsController {
           systemPromptTemplate: SystemPromptKey.TWEET_REPLY,
           temperature: 0.8,
         },
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       const result = await this.replicateService.generateTextCompletionSync(
@@ -636,11 +629,11 @@ export class PromptsOperationsController {
       const promptEntity = new PromptEntity({
         category: 'tweet-reply' as unknown as PromptCategory,
         enhanced: result,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original: createTweetReplyDto.tweetContent,
         scope: AssetScope.USER,
         status: PromptStatus.GENERATED,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       });
 
       await this.promptsService.create(promptEntity);

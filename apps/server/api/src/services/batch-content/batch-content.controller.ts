@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import { CreateBatchContentDto } from '@api/services/batch-content/dto/create-batch-content.dto';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
@@ -18,7 +17,8 @@ export class BatchContentController {
     @Body() dto: CreateBatchContentDto,
     @CurrentUser() user: User,
   ): Promise<{ batchId: string; status: string }> {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const { batchId } = await this.batchContentService.triggerBatch(
       {
@@ -44,7 +44,7 @@ export class BatchContentController {
     @Param('batchId') batchId: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     return this.batchContentService.getBatchStatus(
       batchId,

@@ -3,12 +3,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439012',
-  })),
-}));
-
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
@@ -26,7 +20,12 @@ describe('OrganizationsIntegrationsController', () => {
 
   const organizationId = '507f1f77bcf86cd799439012';
   const integrationId = '507f1f77bcf86cd799439011';
-  const mockUser = { id: 'user_authProvider_123' } as unknown as User;
+  const mockUser = {
+    brandId: '507f1f77bcf86cd799439013',
+    id: 'user_authProvider_123',
+    organizationId,
+    userId: '507f1f77bcf86cd799439014',
+  } as unknown as User;
 
   const mockIntegration = {
     _id: integrationId,

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
@@ -6,15 +7,8 @@ import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 
-type AuthWhoamiUser = {
+type AuthWhoamiUser = Partial<AuthenticatedUser> & {
   email?: string;
-  emailAddresses?: Array<{
-    emailAddress?: string;
-  }>;
-  firstName?: string;
-  id?: string;
-  lastName?: string;
-  publicMetadata?: Record<string, unknown>;
 };
 
 type AuthWhoamiRequest = {
@@ -38,29 +32,29 @@ export class AuthWhoamiController {
   @Get('whoami')
   async whoami(@Req() req: AuthWhoamiRequest) {
     const user = req.user;
-    const meta = user?.publicMetadata || {};
     const context = req.context;
-    const contextUserId = context?.userId ?? meta.user;
-    const contextOrganizationId = context?.organizationId ?? meta.organization;
+    const contextUserId = context?.userId ?? user?.userId ?? user?.id;
+    const contextOrganizationId =
+      context?.organizationId ?? user?.organizationId;
     const databaseUserId = EntityIdUtil.isValid(contextUserId)
       ? String(contextUserId)
       : '';
     const authUserId = user?.id || '';
 
     const role = await this.resolveOrganizationRole({
-      organization: contextOrganizationId,
-      user: contextUserId,
+      organizationId: contextOrganizationId,
+      userId: contextUserId,
     });
 
     return {
       data: {
-        isApiKey: meta.isApiKey || false,
+        isApiKey: user?.isApiKey || false,
         organization: {
-          id: meta.organization || '',
-          name: meta.organizationName || '',
+          id: user?.organizationId || '',
+          name: '',
         },
         role,
-        scopes: meta.scopes || ['*'],
+        scopes: user?.scopes || ['*'],
         user: {
           authUserId,
           email: user?.emailAddresses?.[0]?.emailAddress || user?.email || '',
@@ -81,11 +75,12 @@ export class AuthWhoamiController {
    * silently elevating. Never throws — identity introspection must not 500 on a
    * membership-lookup hiccup.
    */
-  private async resolveOrganizationRole(
-    meta: Record<string, unknown>,
-  ): Promise<string> {
-    const userId = meta.user;
-    const organizationId = meta.organization;
+  private async resolveOrganizationRole(identity: {
+    organizationId?: string;
+    userId?: string;
+  }): Promise<string> {
+    const userId = identity.userId;
+    const organizationId = identity.organizationId;
 
     if (!userId || !organizationId) {
       return '';

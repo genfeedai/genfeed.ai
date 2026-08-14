@@ -6,7 +6,7 @@
  *
  * @example
  * // Build scope OR conditions
- * const orConditions = PresetFilterUtil.buildScopeOrConditions(publicMetadata);
+ * const orConditions = PresetFilterUtil.buildScopeOrConditions(identity);
  *
  * // Check user permissions
  * const canModify = PresetFilterUtil.canUserModifyPreset(user, preset);
@@ -24,7 +24,7 @@ export class PresetFilterUtil {
    *
    * This method builds OR conditions that include all accessible presets.
    *
-   * @param publicMetadata - User metadata containing organization and user IDs
+   * @param identity - User metadata containing organization and user IDs
    * @returns Array of Prisma OR conditions
    *
    * @example
@@ -44,17 +44,17 @@ export class PresetFilterUtil {
    * //   { userId: '456' }
    * // ]
    */
-  static buildScopeOrConditions(publicMetadata: {
-    organization?: string;
-    user?: string;
+  static buildScopeOrConditions(identity: {
+    organizationId?: string;
+    userId?: string;
   }): Array<Record<string, unknown>> {
     const orConditions: Array<Record<string, unknown>> = [
       { organizationId: null },
     ];
 
-    if (publicMetadata.organization) {
+    if (identity.organizationId) {
       orConditions.push({
-        organizationId: publicMetadata.organization,
+        organizationId: identity.organizationId,
       });
     }
 
@@ -69,14 +69,14 @@ export class PresetFilterUtil {
    * - Regular users can only modify presets in their organization
    * - Global presets (null organization) can ONLY be modified by superadmins
    *
-   * @param user - User object with publicMetadata
+   * @param user - User object with identity
    * @param preset - Preset entity to check
    * @returns True if user can modify preset, false otherwise
    *
    * @example
    * // Superadmin modifying any preset
    * PresetFilterUtil.canUserModifyPreset(
-   *   { publicMetadata: { isSuperAdmin: true } },
+   *   { isSuperAdmin: true },
    *   { organizationId: null }
    * )
    * // Returns: true
@@ -84,7 +84,7 @@ export class PresetFilterUtil {
    * @example
    * // Regular user modifying global preset
    * PresetFilterUtil.canUserModifyPreset(
-   *   { publicMetadata: { isSuperAdmin: false, organization: '123' } },
+   *   { isSuperAdmin: false, organizationId: '123' },
    *   { organizationId: null }
    * )
    * // Returns: false
@@ -92,21 +92,19 @@ export class PresetFilterUtil {
    * @example
    * // Regular user modifying their org preset
    * PresetFilterUtil.canUserModifyPreset(
-   *   { publicMetadata: { isSuperAdmin: false, organization: '123' } },
+   *   { isSuperAdmin: false, organizationId: '123' },
    *   { organizationId: '123' }
    * )
    * // Returns: true
    */
   static canUserModifyPreset(
     user: {
-      publicMetadata?: {
-        isSuperAdmin?: boolean;
-        organization?: string;
-      };
+      isSuperAdmin?: boolean;
+      organizationId?: string;
     },
     preset: { organizationId?: string | null },
   ): boolean {
-    const { isSuperAdmin, organization } = user.publicMetadata ?? {};
+    const { isSuperAdmin, organizationId } = user;
 
     // Superadmins can modify any preset
     if (isSuperAdmin) {
@@ -120,7 +118,7 @@ export class PresetFilterUtil {
 
     // Check organization ownership for non-default presets
     const presetOrgId = preset.organizationId;
-    return presetOrgId === organization;
+    return presetOrgId === organizationId;
   }
 
   /**
@@ -131,14 +129,14 @@ export class PresetFilterUtil {
    * - Superadmins: Can create global, org-wide, or brand-specific presets
    *
    * @param createDto - Original create DTO
-   * @param user - User object with publicMetadata
+   * @param user - User object with identity
    * @returns Enriched DTO with proper organization/brand/user fields
    *
    * @example
    * // Regular user creating preset
    * PresetFilterUtil.enrichPresetDto(
    *   { label: 'My Preset', brandId: '123' },
-   *   { publicMetadata: { isSuperAdmin: false, organization: '456' } }
+   *   { isSuperAdmin: false, organizationId: '456' }
    * )
    * // Returns the API DTO with canonical ownership identifiers assigned.
    *
@@ -146,7 +144,7 @@ export class PresetFilterUtil {
    * // Superadmin creating global preset
    * PresetFilterUtil.enrichPresetDto(
    *   { label: 'Global Preset' },
-   *   { publicMetadata: { isSuperAdmin: true } }
+   *   { isSuperAdmin: true }
    * )
    * // Returns: { label: 'Global Preset', organizationId: null, brandId: null }
    *
@@ -154,26 +152,24 @@ export class PresetFilterUtil {
    * // Superadmin creating org-specific preset
    * PresetFilterUtil.enrichPresetDto(
    *   { label: 'Org Preset', organizationId: '456' },
-   *   { publicMetadata: { isSuperAdmin: true } }
+   *   { isSuperAdmin: true }
    * )
    * // Returns: { label: 'Org Preset', organizationId: '456', brandId: null }
    */
   static enrichPresetDto(
     createDto: Record<string, unknown>,
     user: {
-      publicMetadata?: {
-        isSuperAdmin?: boolean;
-        organization?: string;
-        brand?: string;
-      };
+      brandId?: string;
+      isSuperAdmin?: boolean;
+      organizationId?: string;
     },
   ): Record<string, unknown> {
-    const { isSuperAdmin, organization } = user.publicMetadata ?? {};
+    const { isSuperAdmin, organizationId } = user;
     const enriched: Record<string, unknown> = { ...createDto };
 
     // Non-root users always get their organization assigned
     if (!isSuperAdmin) {
-      enriched.organizationId = organization;
+      enriched.organizationId = organizationId;
     } else {
       // Superadmins can create:
       // 1. App-wide presets (no org, no brand)
@@ -192,7 +188,7 @@ export class PresetFilterUtil {
    * Creates the base match stage including three-tier scope filtering
    * and optional filters for category, isActive, isFavorite.
    *
-   * @param publicMetadata - User metadata
+   * @param identity - User metadata
    * @param query - Query params with optional filters
    * @param isDeleted - Whether to include deleted items
    * @returns Prisma where object
@@ -211,7 +207,7 @@ export class PresetFilterUtil {
    * // }
    */
   static buildBaseMatch(
-    publicMetadata: { organization?: string; user?: string },
+    identity: { organizationId?: string; userId?: string },
     query: {
       category?: string;
       isActive?: boolean;
@@ -237,7 +233,7 @@ export class PresetFilterUtil {
     }
 
     // Add three-tier scope filtering
-    matchStage.OR = PresetFilterUtil.buildScopeOrConditions(publicMetadata);
+    matchStage.OR = PresetFilterUtil.buildScopeOrConditions(identity);
 
     return matchStage;
   }

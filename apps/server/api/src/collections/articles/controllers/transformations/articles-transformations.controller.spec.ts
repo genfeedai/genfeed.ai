@@ -29,8 +29,10 @@ describe('ArticlesTransformationsController', () => {
   };
 
   const mockUser = {
+    brandId: mockPublicMetadata.brand,
     id: 'user_123',
-    publicMetadata: mockPublicMetadata,
+    organizationId: mockPublicMetadata.organization,
+    userId: mockPublicMetadata.user,
   } as unknown as User;
 
   const mockRequest = {

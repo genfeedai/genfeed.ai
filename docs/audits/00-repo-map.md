@@ -166,8 +166,7 @@ deduped issue.
 
 - **BullMQ queues: ~37 named queues** across 3 owners — `workers` (~30, central hub `apps/server/workers/src/queues/queues.module.ts`), `files` (5), `clips` (1). API registers producer-side modules per feature (`apps/server/api/src/queues/*`). Full name→producer→consumer table verified by direct read (see queue module files cited above).
 - **Static cron: 20 active `@Cron` sites** (grep-verified), all present in the hardcoded `PLATFORM_CRON_ALLOWLIST` of `scripts/architecture/check-platform-cron-boundary.ts` — the CI guard fails on any tenant-facing cron not migrated to workflows.
-- **Workflow scheduling** (`apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts`): per-workflow **in-process `cron` CronJobs** built from fields on the `Workflow` model (`schedule`, `isScheduleEnabled`, `timezone`), loaded on module init + reconciled hourly by an allowlisted `@Cron`. Workflow delay nodes use real BullMQ delayed jobs (`workflow-delay` queue, deterministic jobIds).
-- **Legacy cron-jobs subsystem** (`apps/server/api/src/collections/cron-jobs/`): mutations throw `GoneException` ("Legacy cron jobs are retired"); a per-minute dispatcher (`cron.dynamic-jobs.service.ts`) still executes un-migrated rows under Redis lock, excluding `workflow_migrated` ones.
+- **Workflow scheduling** (`apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts`): per-workflow **in-process `cron` CronJobs** built from fields on the `Workflow` model (`schedule`, `isScheduleEnabled`, `timezone`), loaded on module init + reconciled hourly by an allowlisted `@Cron`. Workflow delay nodes use real BullMQ delayed jobs (`workflow-delay` queue, deterministic jobIds). The leftover `cron-jobs` collection and dispatcher are deleted.
 - **Bull Board** exposes only the `default` queue (`apps/server/api/src/main.ts:256-268`) — the other ~36 queues are invisible in the UI.
 
 ---

@@ -93,9 +93,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     try {
       const service = await getArticlesService();
       const query: IQueryParams = {
-        brand: brandId,
+        brandId: brandId,
         limit: ITEMS_PER_PAGE,
-        organization: organizationId,
+        organizationId: organizationId,
         page: currentPage,
         status,
       };

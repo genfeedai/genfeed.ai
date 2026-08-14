@@ -44,11 +44,9 @@ describe('MCPController', () => {
     url: '/mcp/videos',
     user: {
       id: 'authProvider_user_123',
-      publicMetadata: {
-        brand: '507f1f77bcf86cd799439010',
-        organization: '507f1f77bcf86cd799439011',
-        user: '507f1f77bcf86cd799439012',
-      },
+      brandId: '507f1f77bcf86cd799439010',
+      organizationId: '507f1f77bcf86cd799439011',
+      userId: '507f1f77bcf86cd799439012',
     },
   } as unknown as Request;
 

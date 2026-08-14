@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: 'org-id',
-    user: 'user-id',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(
     (_req: unknown, _serializer: unknown, data: { docs: unknown[] }) =>
@@ -51,7 +44,12 @@ describe('GoogleSearchConsoleController', () => {
   };
 
   const request = {} as Request;
-  const user = { id: 'auth-user-id' } as never;
+  const user = {
+    brandId: 'brand-id',
+    id: 'auth-user-id',
+    organizationId: 'org-id',
+    userId: 'user-id',
+  } as never;
   const brand = {
     id: 'brand-id',
     organizationId: 'org-id',

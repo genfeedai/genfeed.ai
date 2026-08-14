@@ -10,9 +10,11 @@ const ALLOWED_FILES = new Set<string>([
 ]);
 
 const BANNED = [
-  'publicMetadata.isSuperAdmin',
-  'publicMetadata.subscriptionTier',
-  'publicMetadata.stripeSubscriptionStatus',
+  'publicMetadata',
+  'getPublicMetadata',
+  'user.isSuperAdmin',
+  'user.subscriptionTier',
+  'user.stripeSubscriptionStatus',
 ];
 
 function walk(dir: string): string[] {
@@ -65,7 +67,7 @@ for (const file of walk(ROOT)) {
 
 if (violations.length > 0) {
   console.error(
-    'RequestContext enforcement failed. Use req.context via helpers instead of direct publicMetadata access.',
+    'RequestContext enforcement failed. Use req.context via helpers instead of publicMetadata or direct identity field reads.',
   );
   for (const violation of violations) {
     console.error(`  - ${violation}`);

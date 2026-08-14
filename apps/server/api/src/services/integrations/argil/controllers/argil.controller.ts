@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ArgilService } from '@api/services/integrations/argil/services/argil.service';
 import { Controller, Get } from '@nestjs/common';
 
@@ -12,7 +11,7 @@ export class ArgilController {
 
   @Get('avatars')
   async getAvatars(@CurrentUser() user: User) {
-    const organizationId = getPublicMetadata(user).organization ?? '';
+    const organizationId = user.organizationId ?? '';
     const avatars = await this.argilService.getAvatars(organizationId);
     return {
       data: {
@@ -24,7 +23,7 @@ export class ArgilController {
 
   @Get('voices')
   async getVoices(@CurrentUser() user: User) {
-    const organizationId = getPublicMetadata(user).organization ?? '';
+    const organizationId = user.organizationId ?? '';
     const voices = await this.argilService.getVoices(organizationId);
     return {
       data: {
@@ -36,7 +35,7 @@ export class ArgilController {
 
   @Get('status')
   async getStatus(@CurrentUser() user: User) {
-    const organizationId = getPublicMetadata(user).organization ?? '';
+    const organizationId = user.organizationId ?? '';
     await this.argilService.getAvatars(organizationId);
     return {
       data: {

@@ -3,7 +3,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import 'reflect-metadata';
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
@@ -25,7 +28,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
@@ -69,12 +71,10 @@ describe('BrandsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'cmbrand000000000000000001',
-      isSuperAdmin: false,
-      organization: 'cmorganization000000000000001',
-      user: 'cmuser0000000000000000001',
-    } as IAuthPublicMetadata,
+    brandId: 'cmbrand000000000000000001',
+    isSuperAdmin: false,
+    organizationId: 'cmorganization000000000000001',
+    userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
   const mockBrand = {
@@ -382,7 +382,7 @@ describe('BrandsController', () => {
       updateDto,
       {
         isSuperAdmin: false,
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       },
     );
     expect(activitiesService.create).toHaveBeenCalledOnce();
@@ -409,7 +409,6 @@ describe('BrandsController', () => {
         isDeleted: false,
         limit: 10,
         page: 1,
-        pagination: true,
       };
 
       const result = await controller.findAll(mockRequest, mockUser, query);
@@ -429,10 +428,8 @@ describe('BrandsController', () => {
       } as BaseQueryDto;
       const superAdmin = {
         ...mockUser,
-        publicMetadata: {
-          ...(mockUser.publicMetadata as IAuthPublicMetadata),
-          isSuperAdmin: true,
-        },
+        ...mockUser,
+        isSuperAdmin: true,
       } as unknown as User;
 
       const result = controller.buildFindAllQuery(superAdmin, query);
@@ -445,8 +442,7 @@ describe('BrandsController', () => {
     });
 
     it('scopes members to owned brands or their session organization', () => {
-      const organizationId = (mockUser.publicMetadata as IAuthPublicMetadata)
-        .organization;
+      const organizationId = (mockUser as AuthenticatedUser).organizationId;
       const query = {
         isDeleted: false,
         organizationId,
@@ -457,10 +453,7 @@ describe('BrandsController', () => {
 
       expect(result.where).toEqual({
         isDeleted: false,
-        OR: [
-          { userId: (mockUser.publicMetadata as IAuthPublicMetadata).user },
-          { organizationId },
-        ],
+        OR: [{ userId: mockUser.userId }, { organizationId }],
       });
       expect(result.orderBy).toEqual({ label: 1 });
     });
@@ -650,10 +643,8 @@ describe('BrandsController', () => {
       const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
-        publicMetadata: {
-          ...(mockUser.publicMetadata as IAuthPublicMetadata),
-          organization: undefined,
-        },
+        ...mockUser,
+        organizationId: undefined,
       } as unknown as User;
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
@@ -711,14 +702,14 @@ describe('BrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
-          { userId: mockUser.publicMetadata.user },
-          { organizationId: mockUser.publicMetadata.organization },
+          { userId: mockUser.userId },
+          { organizationId: mockUser.organizationId },
         ],
         id: brandId,
       });
       expect(brandsService.applyBrandKitDraft).toHaveBeenCalledWith(
         brandId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         {
           fields: {
             description: {
@@ -740,10 +731,8 @@ describe('BrandsController', () => {
       const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
-        publicMetadata: {
-          ...(mockUser.publicMetadata as IAuthPublicMetadata),
-          organization: undefined,
-        },
+        ...mockUser,
+        organizationId: undefined,
       } as unknown as User;
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
@@ -812,14 +801,14 @@ describe('BrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
-          { userId: mockUser.publicMetadata.user },
-          { organizationId: mockUser.publicMetadata.organization },
+          { userId: mockUser.userId },
+          { organizationId: mockUser.organizationId },
         ],
         id: brandId,
       });
       expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
         brandId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         dto,
       );
       expect(serializeSingle).toHaveBeenCalledWith(
@@ -834,10 +823,8 @@ describe('BrandsController', () => {
       const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
-        publicMetadata: {
-          ...(mockUser.publicMetadata as IAuthPublicMetadata),
-          organization: undefined,
-        },
+        ...mockUser,
+        organizationId: undefined,
       } as unknown as User;
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
@@ -901,8 +888,8 @@ describe('BrandsController', () => {
 
       expect(brandsService.importBrandKitAssets).toHaveBeenCalledWith(
         brandId,
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.user,
+        mockUser.organizationId,
+        mockUser.userId,
         dto,
       );
       expect(serializeSingle).toHaveBeenCalledWith(

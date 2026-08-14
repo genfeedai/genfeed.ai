@@ -11,7 +11,6 @@ describe('extractUserIds', () => {
     const id = '507f191e810c19729de860ee';
     const result = extractUserIds(id);
     expect(result.dbUserId).toBe(id);
-    expect(result.authProviderUserId).toBe(id);
     expect(result.userId).toBe(id);
     expect(result.userRoom).toBe(`user:${id}`);
   });
@@ -20,7 +19,6 @@ describe('extractUserIds', () => {
     const id = '507f191e810c19729de860ee';
     const result = extractUserIds({ id });
     expect(result.dbUserId).toBe(id);
-    expect(result.authProviderUserId).toBe(id);
     expect(result.userId).toBe(id);
     expect(result.userRoom).toBe(`user:${id}`);
   });

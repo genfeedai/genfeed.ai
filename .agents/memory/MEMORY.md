@@ -121,6 +121,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_repo_audit_2026-07-28](project_repo_audit_2026-07-28.md) — full-repo audit map; remaining P1–P3 linked to existing GH issues (no new epic)
 - [project_platform_enum_usage](project_platform_enum_usage.md) — Platform/CredentialPlatform for ids; formatPlatformLabel/parsePlatform for display/aliases
+- [project_legacy_hard_cut](project_legacy_hard_cut.md) — leftover Clerk/Mongo/cron compat; hard-cut target state
 
 ## References
 

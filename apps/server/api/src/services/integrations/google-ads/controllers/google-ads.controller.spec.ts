@@ -10,13 +10,6 @@ import { GoogleAdsService } from '../services/google-ads.service';
 import { GoogleAdsOAuthService } from '../services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: 'test-object-id',
-    user: 'test-object-id',
-  })),
-}));
-
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((v: string) => `decrypted:${v}`),
@@ -25,10 +18,8 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 const mockUser = {
   id: 'user_abc',
-  publicMetadata: {
-    organization: 'test-object-id',
-    user: 'test-object-id',
-  },
+  organizationId: 'test-object-id',
+  userId: 'test-object-id',
 } as never;
 
 const ACCESS_TOKEN = 'decrypted:encrypted-token';

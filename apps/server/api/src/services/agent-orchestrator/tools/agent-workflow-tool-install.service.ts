@@ -1,7 +1,7 @@
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import type { SystemWorkflowCatalogListItem } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';

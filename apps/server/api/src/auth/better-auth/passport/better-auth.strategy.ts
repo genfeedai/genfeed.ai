@@ -44,20 +44,23 @@ export class BetterAuthStrategy extends PassportStrategy(
       throw new UnauthorizedException('Legacy user subject is not accepted');
     }
     const identity = await this.identityResolver.resolve(claims.sub);
+    if (!identity.userId || !identity.organizationId || !identity.brandId) {
+      throw new UnauthorizedException(
+        'Unable to resolve a complete account identity',
+      );
+    }
 
     return {
+      brandId: identity.brandId,
       emailAddresses: claims.email
         ? [{ emailAddress: claims.email, id: claims.sub }]
         : [],
       firstName: claims.name ?? null,
       id: claims.sub,
+      isSuperAdmin: identity.isSuperAdmin,
       lastName: null,
-      publicMetadata: {
-        brand: identity.brandId,
-        isSuperAdmin: identity.isSuperAdmin,
-        organization: identity.organizationId,
-        user: identity.userId,
-      },
+      organizationId: identity.organizationId,
+      userId: identity.userId,
     };
   }
 }

@@ -3,20 +3,11 @@ import { ContentRunsController } from '@api/collections/content-runs/controllers
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(),
-}));
-
-const mockGetPublicMetadata = getPublicMetadata as unknown as ReturnType<
-  typeof vi.fn
->;
 
 describe('ContentRunsController', () => {
   let controller: ContentRunsController;
@@ -32,15 +23,15 @@ describe('ContentRunsController', () => {
   };
 
   const mockReq = { headers: {}, url: '/' } as unknown as Request;
-  const mockUser = {} as User;
+  const mockUser = {
+    id: 'user-1',
+    isSuperAdmin: false,
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as User;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-
-    mockGetPublicMetadata.mockReturnValue({
-      organization: 'org-1',
-      user: 'user-1',
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContentRunsController],
@@ -158,13 +149,13 @@ describe('ContentRunsController', () => {
       expect(mockService.getRunById).toHaveBeenCalledWith('org-1', 'run-1');
     });
 
-    it('uses organization from user metadata', async () => {
-      mockGetPublicMetadata.mockReturnValue({
-        organization: 'org-different',
-      });
+    it('uses organization from the authenticated user', async () => {
       mockService.getRunById.mockResolvedValue({ id: 'run-1' });
 
-      await controller.getRun(mockReq, 'run-1', mockUser);
+      await controller.getRun(mockReq, 'run-1', {
+        ...mockUser,
+        organizationId: 'org-different',
+      });
 
       expect(mockService.getRunById).toHaveBeenCalledWith(
         'org-different',

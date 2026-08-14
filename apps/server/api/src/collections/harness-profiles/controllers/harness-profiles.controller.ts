@@ -6,7 +6,6 @@ import { HarnessProfilesService } from '@api/collections/harness-profiles/servic
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -51,7 +50,7 @@ export class HarnessProfilesController {
     @Query('brandId') brandId: string,
     @Query('isActive') isActive?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!brandId?.trim()) {
       throw new BadRequestException('brandId query parameter is required');
     }
@@ -72,7 +71,8 @@ export class HarnessProfilesController {
     @CurrentUser() user: User,
     @Body() dto: UpsertHarnessProfileDto,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const profile = await this.harnessProfilesService.create(
       dto,
       organization,
@@ -92,7 +92,7 @@ export class HarnessProfilesController {
     @CurrentUser() user: User,
     @Body() dto: PromoteWinnersDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     if (!dto.brandId?.trim()) {
       throw new BadRequestException('brandId is required');
     }
@@ -135,7 +135,7 @@ export class HarnessProfilesController {
     @Param('profileId') profileId: string,
     @Body() dto: UpdateHarnessProfileDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     const profile = await this.harnessProfilesService.update(
       profileId,
       dto,
@@ -151,7 +151,7 @@ export class HarnessProfilesController {
     @CurrentUser() user: User,
     @Param('profileId') profileId: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
     await this.harnessProfilesService.remove(profileId, organization);
     return { message: 'Harness profile deleted successfully' };
   }

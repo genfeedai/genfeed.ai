@@ -5,7 +5,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ClipProjectSerializer } from '@genfeedai/serializers';
@@ -48,10 +47,9 @@ export class ClipProjectReferenceFramesController {
     @Param('projectId') projectId: string,
     @Body() dto: SelectClipReferenceFrameDto,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.clipProjectsService.selectReferenceFrame(
       projectId,
-      publicMetadata.organization,
+      user.organizationId,
       dto.candidateId,
     );
 

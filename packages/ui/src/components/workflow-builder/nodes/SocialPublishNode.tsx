@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { ExternalLink, Share2 } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
@@ -147,12 +148,12 @@ function SocialPublishNodeComponent({
 
       {/* Description */}
       <div>
-        <label
+        <Label
           htmlFor={descriptionId}
           className="text-xs text-muted-foreground"
         >
           Description
-        </label>
+        </Label>
         <Textarea
           id={descriptionId}
           value={data.description}

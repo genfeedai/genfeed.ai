@@ -9,10 +9,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -71,18 +68,14 @@ export class ElementsBlacklistsController extends BaseCRUDController<
    * - Show all for superadmins
    */
   public buildFindAllQuery(user: User, query: BlacklistsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     // Build OR conditions for ownership: global items OR user's org items OR user's items
     const orConditions: MatchConditions[] = [];
 
-    if (publicMetadata.organization) {
+    if (user.organizationId) {
       orConditions.push({
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
     }
 
@@ -126,14 +119,13 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     createDto: CreateElementBlacklistDto,
     user: User,
   ): CreateElementBlacklistDto {
-    const publicMetadata = getPublicMetadata(user);
     const enriched: CreateElementBlacklistDto & { organizationId?: string } = {
       ...createDto,
     };
 
     // Add organization if not super admin
-    if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organizationId = publicMetadata.organization;
+    if (!getIsSuperAdmin(user) && user.organizationId) {
+      enriched.organizationId = user.organizationId;
     }
 
     // Do NOT add user field - Blacklist schema doesn't have it

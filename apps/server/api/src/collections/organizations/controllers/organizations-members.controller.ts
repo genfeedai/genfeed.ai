@@ -23,7 +23,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -225,9 +224,8 @@ export class OrganizationsMembersController {
     user: User,
     organization: { userId?: unknown },
   ): string {
-    const publicMetadata = getPublicMetadata(user);
     const userId =
-      this.toIdString(publicMetadata.user) ??
+      this.toIdString(user.userId ?? user.id) ??
       this.toIdString(organization.userId);
 
     if (!userId) {
@@ -244,9 +242,7 @@ export class OrganizationsMembersController {
   }
 
   private assertOrganizationScope(user: User, organizationId: string): void {
-    const callerOrganizationId = this.toIdString(
-      getPublicMetadata(user).organization,
-    );
+    const callerOrganizationId = this.toIdString(user.organizationId);
 
     if (!callerOrganizationId || callerOrganizationId !== organizationId) {
       throw new NotFoundException('Organization not found');

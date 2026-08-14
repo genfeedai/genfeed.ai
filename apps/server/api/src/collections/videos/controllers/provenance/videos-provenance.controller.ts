@@ -4,7 +4,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   IMediaProvenancePackage,
   IMediaWatermarkAttributionEvaluation,
@@ -32,11 +31,9 @@ export class VideosProvenanceController {
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
   ): Promise<{ data: IMediaProvenancePackage }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.videoProvenanceService.buildProvenance(videoId, {
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     });
 
     return { data };
@@ -48,14 +45,12 @@ export class VideosProvenanceController {
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
   ): Promise<{ data: IMediaWatermarkAttributionEvaluation }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data =
       await this.videoProvenanceService.buildWatermarkAttributionEvaluation(
         videoId,
         {
-          organizationId: publicMetadata.organization,
-          userId: publicMetadata.user,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
         },
       );
 

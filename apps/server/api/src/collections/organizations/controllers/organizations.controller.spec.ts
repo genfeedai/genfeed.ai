@@ -95,12 +95,10 @@ describe('OrganizationsController', () => {
   };
 
   const currentUser = {
-    publicMetadata: {
-      brand: 'brand_active',
-      isSuperAdmin: false,
-      organization: 'org_active',
-      user: 'user_1',
-    },
+    brandId: 'brand_active',
+    isSuperAdmin: false,
+    organizationId: 'org_active',
+    userId: 'user_1',
   } as unknown as User;
 
   beforeEach(async () => {
@@ -247,7 +245,7 @@ describe('OrganizationsController', () => {
       });
     });
 
-    it('marks only the active organization from publicMetadata', async () => {
+    it('marks only the active organization from identity', async () => {
       mockMembersService.find.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_active' },
         { id: 'member_2', isActive: true, organizationId: 'org_other' },
@@ -306,11 +304,9 @@ describe('OrganizationsController', () => {
       mockMembersService.find.mockResolvedValue([]);
 
       const result = await controller.findMine({
-        publicMetadata: {
-          brand: 'brand_active',
-          isSuperAdmin: false,
-          user: 'user_1',
-        },
+        brandId: 'brand_active',
+        isSuperAdmin: false,
+        userId: 'user_1',
       } as unknown as User);
 
       expect(result).toEqual([]);
@@ -547,10 +543,8 @@ describe('OrganizationsController', () => {
       mockMembersService.findOne.mockResolvedValue(null);
 
       const superAdminUser = {
-        publicMetadata: {
-          ...(currentUser.publicMetadata as Record<string, unknown>),
-          isSuperAdmin: true,
-        },
+        ...currentUser,
+        isSuperAdmin: true,
       } as unknown as User;
 
       const result = await readSlug(superAdminUser);

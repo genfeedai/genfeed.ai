@@ -1,5 +1,3 @@
-import type { LegacyCronJobExecutor } from '@api/collections/cron-jobs/legacy-cron-job-executor.token';
-import type { CronJobType } from '@api/collections/cron-jobs/schemas/cron-job.schema';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
@@ -25,7 +23,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
-    private readonly legacyCronJobExecutor?: LegacyCronJobExecutor,
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
   ) {}
 
@@ -38,7 +35,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerReplyPollingExecutors(engine);
     this.registerTrendNotificationExecutors(engine);
     this.registerLivestreamBotExecutors(engine);
-    this.registerLegacyCronJobExecutors(engine);
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
@@ -264,32 +260,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     });
   }
 
-  private registerLegacyCronJobExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('legacyCronJob', (node, _inputs, context) => {
-      if (!this.legacyCronJobExecutor) {
-        return this.legacyCronJobUnavailable(context, 'cron_jobs_unavailable');
-      }
-
-      const legacyCronJobId = this.helper.readConfigString(
-        node.config,
-        'legacyCronJobId',
-      );
-      const jobType = this.helper.readConfigString(node.config, 'jobType');
-      if (!legacyCronJobId || !this.isLegacyCronJobType(jobType)) {
-        return this.legacyCronJobUnavailable(
-          context,
-          'legacy_cron_job_config_invalid',
-        );
-      }
-
-      return this.legacyCronJobExecutor.executeMigratedLegacyCronJob({
-        legacyCronJobId,
-        organizationId: context.organizationId,
-        userId: context.userId,
-      });
-    });
-  }
-
   private async adAutomationUnavailable(
     action: string,
     context: ExecutionContext,
@@ -412,29 +382,6 @@ export class WorkflowAutomationExecutorRegistrarService {
       skipped: 1,
       status: 'skipped',
     };
-  }
-
-  private async legacyCronJobUnavailable(
-    context: ExecutionContext,
-    reason: string,
-  ) {
-    return {
-      action: 'legacyCronJob',
-      organizationId: context.organizationId,
-      reason,
-      skipped: 1,
-      status: 'skipped',
-    };
-  }
-
-  private isLegacyCronJobType(
-    jobType: string | undefined,
-  ): jobType is CronJobType {
-    return (
-      jobType === 'workflow_execution' ||
-      jobType === 'agent_strategy_execution' ||
-      jobType === 'newsletter_substack'
-    );
   }
 
   private isTrendNotificationCadence(

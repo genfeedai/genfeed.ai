@@ -13,11 +13,9 @@ describe('PersonasController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: 'b07f1f77bcf86cd799439013',
-      organization: 'o07f1f77bcf86cd799439012',
-      user: 'u07f1f77bcf86cd799439014',
-    },
+    brandId: 'b07f1f77bcf86cd799439013',
+    organizationId: 'o07f1f77bcf86cd799439012',
+    userId: 'u07f1f77bcf86cd799439014',
   };
 
   const mockServiceMethods = {

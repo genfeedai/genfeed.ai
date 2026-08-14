@@ -9,8 +9,8 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
-import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
 import type { OperationalQueueHealthSnapshot } from '@workers/monitoring/queue-health.types';
+import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 

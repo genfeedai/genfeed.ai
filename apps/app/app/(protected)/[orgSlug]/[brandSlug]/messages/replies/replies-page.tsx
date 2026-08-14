@@ -317,7 +317,7 @@ export default function RepliesPage() {
               disabled={isLoading}
               onClick={() => void loadInbox()}
               size={ButtonSize.SM}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <RefreshCw className="size-4" />
               {translate('actions.refresh')}
@@ -468,7 +468,7 @@ export default function RepliesPage() {
                     disabled={busyId === item.commentId}
                     onClick={() => void handleDraft(item)}
                     size={ButtonSize.SM}
-                    variant={ButtonVariant.OUTLINE}
+                    variant={ButtonVariant.SECONDARY}
                   >
                     {translate('actions.draft')}
                   </Button>

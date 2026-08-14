@@ -5,14 +5,12 @@ import {
   deriveReleaseStatusProjectionFromTargets,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
-  LEGACY_POST_SCHEDULE_FIELD_MAP,
-  mapLegacyPostStatusToReleaseStatus,
-  mapLegacyPostStatusToTargetExecutionState,
-  mapLegacyPostStatusToVisibility,
+  mapPostStatusToCanonicalWrite,
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
   projectLegacyPostStatus,
   recurrenceInputSchema,
+  resolveDefaultTargetExecutionState,
   resolvePostVisibility,
   updateChannelTargetSchema,
   updateRecurrenceSeriesSchema,
@@ -498,55 +496,13 @@ describe('terminal-state predicates', () => {
   });
 });
 
-describe('legacy Post schedule migration', () => {
-  test('field map relocates every legacy field under a namespaced path', () => {
-    for (const targetPath of Object.values(LEGACY_POST_SCHEDULE_FIELD_MAP)) {
-      expect(targetPath).toMatch(/^(release|target|recurrence)\./);
-    }
-  });
-
-  test('maps every PostStatus to a release status', () => {
-    for (const status of Object.values(PostStatus)) {
-      expect(
-        Object.values(ReleaseStatus).includes(
-          mapLegacyPostStatusToReleaseStatus(status),
-        ),
-      ).toBe(true);
-    }
-  });
-
-  test('published-visibility variants collapse to published', () => {
-    expect(mapLegacyPostStatusToReleaseStatus(PostStatus.PUBLIC)).toBe(
-      ReleaseStatus.PUBLISHED,
+describe('post status dual-API hard cut', () => {
+  test('resolves stored visibility and defaults unknown values to public', () => {
+    expect(resolvePostVisibility(PostVisibility.PRIVATE)).toBe(
+      PostVisibility.PRIVATE,
     );
-    expect(mapLegacyPostStatusToReleaseStatus(PostStatus.UNLISTED)).toBe(
-      ReleaseStatus.PUBLISHED,
-    );
-  });
-
-  test('target execution mapping never yields the aggregate-only state', () => {
-    for (const status of Object.values(PostStatus)) {
-      const state = mapLegacyPostStatusToTargetExecutionState(status);
-      expect(Object.values(TargetExecutionState).includes(state)).toBe(true);
-    }
-  });
-
-  test.each([
-    [PostStatus.PUBLIC, PostVisibility.PUBLIC],
-    [PostStatus.PRIVATE, PostVisibility.PRIVATE],
-    [PostStatus.UNLISTED, PostVisibility.UNLISTED],
-    [PostStatus.SCHEDULED, PostVisibility.PUBLIC],
-  ])('maps legacy %s into visibility %s', (status, visibility) => {
-    expect(mapLegacyPostStatusToVisibility(status)).toBe(visibility);
-  });
-
-  test('preserves an explicit visibility and falls back for legacy rows', () => {
-    expect(
-      resolvePostVisibility(PostVisibility.PRIVATE, PostStatus.PUBLIC),
-    ).toBe(PostVisibility.PRIVATE);
-    expect(resolvePostVisibility(null, PostStatus.UNLISTED)).toBe(
-      PostVisibility.UNLISTED,
-    );
+    expect(resolvePostVisibility(null)).toBe(PostVisibility.PUBLIC);
+    expect(resolvePostVisibility('bogus')).toBe(PostVisibility.PUBLIC);
   });
 
   test('projects compatibility status without coupling canonical writes', () => {
@@ -564,37 +520,67 @@ describe('legacy Post schedule migration', () => {
     ).toBe(PostStatus.PROCESSING);
   });
 
-  test('limits lifecycle compatibility reads to unclassified rows', () => {
+  test('maps projected Post.status onto canonical write fields', () => {
+    expect(mapPostStatusToCanonicalWrite(PostStatus.DRAFT)).toEqual({
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.SCHEDULED)).toEqual({
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PUBLIC)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PRIVATE)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PRIVATE,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.UNLISTED)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.UNLISTED,
+    });
+    expect(mapPostStatusToCanonicalWrite(PostStatus.PROCESSING)).toEqual({
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    });
+    expect(mapPostStatusToCanonicalWrite('bogus')).toEqual({});
+  });
+
+  test('defaults omitted execution state to draft unless a date is scheduled', () => {
+    expect(resolveDefaultTargetExecutionState({})).toBe(
+      TargetExecutionState.DRAFT,
+    );
+    expect(
+      resolveDefaultTargetExecutionState({
+        scheduledDate: '2026-08-14T10:00:00.000Z',
+      }),
+    ).toBe(TargetExecutionState.SCHEDULED);
+    expect(
+      resolveDefaultTargetExecutionState({
+        scheduledDate: '2026-08-14T10:00:00.000Z',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    ).toBe(TargetExecutionState.DRAFT);
+  });
+
+  test('filters execution state without a Post.status dual-read', () => {
     expect(
       postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
     ).toEqual({
-      OR: [
-        { targetExecutionState: { in: [TargetExecutionState.PUBLISHED] } },
-        {
-          status: {
-            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-          },
-          visibility: null,
-        },
-      ],
+      targetExecutionState: TargetExecutionState.PUBLISHED,
     });
+    expect(
+      JSON.stringify(
+        postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+      ),
+    ).not.toContain('"status"');
   });
 
-  test('limits visibility compatibility reads to unclassified rows', () => {
+  test('filters visibility without a Post.status dual-read', () => {
     expect(postVisibilityReadFilter(PostVisibility.PRIVATE)).toEqual({
-      OR: [
-        { visibility: PostVisibility.PRIVATE },
-        { status: { in: [PostStatus.PRIVATE] }, visibility: null },
-      ],
+      visibility: PostVisibility.PRIVATE,
     });
-  });
-
-  test('unknown status falls back to draft', () => {
-    expect(mapLegacyPostStatusToReleaseStatus('bogus')).toBe(
-      ReleaseStatus.DRAFT,
-    );
-    expect(mapLegacyPostStatusToTargetExecutionState('bogus')).toBe(
-      TargetExecutionState.DRAFT,
-    );
+    expect(
+      JSON.stringify(postVisibilityReadFilter(PostVisibility.PRIVATE)),
+    ).not.toContain('"status"');
   });
 });

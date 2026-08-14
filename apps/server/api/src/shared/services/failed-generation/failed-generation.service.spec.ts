@@ -273,8 +273,8 @@ describe('FailedGenerationService', () => {
         mockIngredientId,
         mockWebsocketUrl,
         {
-          organization: mockOrganizationId,
-          user: mockUserId,
+          organizationId: mockOrganizationId,
+          userId: mockUserId,
         },
         'test-room',
       );
@@ -304,8 +304,8 @@ describe('FailedGenerationService', () => {
         mockIngredientId,
         mockWebsocketUrl,
         {
-          organization: mockOrganizationId,
-          user: mockUserId,
+          organizationId: mockOrganizationId,
+          userId: mockUserId,
         },
         'test-room',
         'gen4_image_turbo requires at least one reference image',

@@ -4,7 +4,6 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -19,12 +18,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 // Mock legacy auth provider utilities
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn((user) => ({
-    organization: user.organizationId,
-    user: user.id,
-  })),
-}));
 
 describe('PresignedUploadService', () => {
   let service: PresignedUploadService;
@@ -130,11 +123,6 @@ describe('PresignedUploadService', () => {
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
     loggerService = module.get(LoggerService);
-
-    (getPublicMetadata as vi.Mock).mockImplementation((user) => ({
-      organization: user.organizationId,
-      user: user.id,
-    }));
 
     vi.clearAllMocks();
   });

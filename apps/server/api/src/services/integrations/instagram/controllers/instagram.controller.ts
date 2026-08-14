@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -94,11 +93,9 @@ export class InstagramController {
 
     this.loggerService.log(url, createCredentialDto);
 
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -110,7 +107,7 @@ export class InstagramController {
 
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
-      publicMetadata.user,
+      user.userId ?? user.id,
       CredentialPlatform.INSTAGRAM,
       {
         accessToken: undefined,

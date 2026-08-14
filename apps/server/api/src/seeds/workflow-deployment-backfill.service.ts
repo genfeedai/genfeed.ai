@@ -17,10 +17,6 @@ type BackfillOrganization = {
 type WorkflowDeploymentBackfillReport = {
   brandFailures: number;
   brandsProcessed: number;
-  legacyCronFailed: number;
-  legacyCronInvalid: number;
-  legacyCronMigrated: number;
-  legacyCronScanned: number;
   orgFailures: number;
   organizationsProcessed: number;
 };
@@ -155,65 +151,19 @@ export class WorkflowDeploymentBackfillService {
       },
     );
 
-    const { CronJobsService } = await import(
-      '@api/collections/cron-jobs/services/cron-jobs.service'
-    );
-    const cronJobsService = this.moduleRef.get(CronJobsService, {
-      strict: false,
-    });
-    let legacyCronReport = {
-      failed: 0,
-      invalid: 0,
-      migrated: 0,
-      scanned: 0,
-      skipped: 0,
-    };
-
-    try {
-      this.logProgress('Starting legacy cron workflow migration');
-      legacyCronReport = await cronJobsService.migrateLegacyJobsToWorkflows({
-        dryRun: false,
-      });
-      this.logProgress('Legacy cron workflow migration completed', {
-        failed: legacyCronReport.failed,
-        invalid: legacyCronReport.invalid,
-        migrated: legacyCronReport.migrated,
-        scanned: legacyCronReport.scanned,
-        skipped: legacyCronReport.skipped,
-      });
-    } catch (error: unknown) {
-      // Treat an unexpected throw the same way the org/brand loops above treat
-      // their failures: log it and count it as a hard failure so the final gate
-      // still fails the deploy closed, but with a structured report instead of
-      // an opaque task crash mid-migration.
-      legacyCronReport = {
-        ...legacyCronReport,
-        failed: legacyCronReport.failed + 1,
-      };
-      this.logger.error(
-        'Failed to migrate legacy cron jobs to workflows',
-        error,
-      );
-    }
-
     const report: WorkflowDeploymentBackfillReport = {
       brandFailures,
       brandsProcessed,
-      legacyCronFailed: legacyCronReport.failed,
-      legacyCronInvalid: legacyCronReport.invalid,
-      legacyCronMigrated: legacyCronReport.migrated,
-      legacyCronScanned: legacyCronReport.scanned,
       orgFailures,
       organizationsProcessed,
     };
 
     this.logProgress('Deployment workflow backfill completed', report);
 
-    const hardFailures =
-      report.orgFailures + report.brandFailures + report.legacyCronFailed;
+    const hardFailures = report.orgFailures + report.brandFailures;
     if (hardFailures > 0) {
       throw new Error(
-        `Deployment workflow backfill failed: orgFailures=${report.orgFailures}, brandFailures=${report.brandFailures}, legacyCronFailed=${report.legacyCronFailed}`,
+        `Deployment workflow backfill failed: orgFailures=${report.orgFailures}, brandFailures=${report.brandFailures}`,
       );
     }
 

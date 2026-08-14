@@ -18,6 +18,14 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/lib/analytics', () => ({
   ANALYTICS_EVENTS: {
     FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',

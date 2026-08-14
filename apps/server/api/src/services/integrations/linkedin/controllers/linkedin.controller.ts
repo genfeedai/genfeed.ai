@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnNotFound,
@@ -48,13 +47,12 @@ export class LinkedInController {
     @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -67,7 +65,7 @@ export class LinkedInController {
     try {
       const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.LINKEDIN,
         {
           isConnected: false,

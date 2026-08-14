@@ -79,7 +79,8 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     app.use((req: Request, _res: Response, next: NextFunction) => {
       (req as Request & { user: User }).user = {
         id: 'user-1',
-        publicMetadata: { organization: orgId, user: orgId },
+        organizationId: orgId,
+        userId: orgId,
       } as unknown as User;
       next();
     });

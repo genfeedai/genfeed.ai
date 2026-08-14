@@ -1,8 +1,10 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable } from '@nestjs/common';
@@ -26,7 +28,7 @@ class TestController extends BaseCRUDController<
       {
         match: {
           isDeleted: query.isDeleted ?? false,
-          userId: user.publicMetadata.user as string,
+          userId: user.userId as string,
         },
       },
     ];
@@ -58,21 +60,17 @@ describe('BaseCRUDController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: MOCK_BRAND_ID,
-      organization: MOCK_ORG_ID,
-      user: MOCK_USER_ID,
-    } as IAuthPublicMetadata,
+    brandId: MOCK_BRAND_ID,
+    organizationId: MOCK_ORG_ID,
+    userId: MOCK_USER_ID,
   } as unknown as User;
 
   const superAdminUser = {
     id: 'user-admin',
-    publicMetadata: {
-      brand: MOCK_BRAND_ID,
-      isSuperAdmin: true,
-      organization: MOCK_ORG_ID,
-      user: MOCK_USER_ID,
-    } as IAuthPublicMetadata,
+    brandId: MOCK_BRAND_ID,
+    isSuperAdmin: true,
+    organizationId: MOCK_ORG_ID,
+    userId: MOCK_USER_ID,
   } as unknown as User;
 
   const mockRequest = {
@@ -239,7 +237,7 @@ describe('BaseCRUDController', () => {
       const mockEntity = {
         id,
         name: 'Test Entity',
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       };
 
       service.findOne.mockResolvedValue(mockEntity);
@@ -330,7 +328,7 @@ describe('BaseCRUDController', () => {
         id: 'e07f1f77bcf86cd799439016',
         ...createDto,
         createdAt: new Date(),
-        userId: mockUser.publicMetadata.user,
+        userId: mockUser.userId,
       };
 
       service.create.mockResolvedValue(mockCreatedEntity);
@@ -353,7 +351,7 @@ describe('BaseCRUDController', () => {
       const mockCreatedEntity = {
         id: 'e07f1f77bcf86cd799439017',
         ...createDto,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
       };
 
       service.create.mockResolvedValue(mockCreatedEntity);
@@ -619,7 +617,7 @@ describe('BaseCRUDController', () => {
         organizationId: MOCK_ORG_ID,
       };
       const orglessUser = {
-        publicMetadata: { user: MOCK_USER_ID } as IAuthPublicMetadata,
+        userId: MOCK_USER_ID,
       } as unknown as User;
 
       expect(controller.canUserReadEntity(orglessUser, entity)).toBe(false);

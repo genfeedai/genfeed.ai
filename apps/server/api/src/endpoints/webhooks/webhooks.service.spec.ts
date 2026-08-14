@@ -159,7 +159,6 @@ describe('WebhooksService', () => {
         {
           provide: NotificationsService,
           useValue: {
-            sendDiscordCard: vi.fn(),
             sendIngredientNotification: vi.fn(),
           },
         },

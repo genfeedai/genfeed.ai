@@ -6,7 +6,6 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   BadRequestException,
   Body,
@@ -96,17 +95,11 @@ export class StreaksController {
     user: User,
     request: RequestWithContext,
   ): string {
-    const publicMetadata = getPublicMetadata(user);
-
-    return String(
-      request.context?.organizationId ?? publicMetadata.organization ?? '',
-    );
+    return String(request.context?.organizationId ?? user.organizationId ?? '');
   }
 
   private resolveUserId(user: User, request: RequestWithContext): string {
-    const publicMetadata = getPublicMetadata(user);
-
-    return String(request.context?.userId ?? publicMetadata.user ?? '');
+    return String(request.context?.userId ?? user.userId ?? user.id ?? '');
   }
 
   private assertUserOrgAccess(

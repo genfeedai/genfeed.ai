@@ -30,7 +30,6 @@ import {
 import type { Job } from 'bullmq';
 
 interface ProcessVideoRequestBody {
-  authProviderUserId?: string;
   id?: string;
   ingredientId: string;
   organizationId: string;
@@ -44,7 +43,6 @@ interface ProcessVideoRequestBody {
 }
 
 interface ProcessImageRequestBody {
-  authProviderUserId?: string;
   id?: string;
   ingredientId: string;
   organizationId: string;
@@ -58,7 +56,6 @@ interface ProcessImageRequestBody {
 }
 
 interface ProcessFileRequestBody {
-  authProviderUserId?: string;
   delay?: number;
   filePath?: string;
   id?: string;
@@ -75,7 +72,6 @@ interface ProcessFileRequestBody {
 }
 
 interface ProcessYoutubeRequestBody {
-  authProviderUserId?: string;
   brandId?: string;
   credential: YoutubeCredential;
   description: string;
@@ -114,7 +110,6 @@ export class FilesController {
   async processVideo(@Body() body: ProcessVideoRequestBody) {
     try {
       const jobData = {
-        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         id: body.id || `video-${Date.now()}`,
         ingredientId: body.ingredientId,
@@ -219,7 +214,6 @@ export class FilesController {
   async processImage(@Body() body: ProcessImageRequestBody) {
     try {
       const jobData = {
-        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         id: body.id || `image-${Date.now()}`,
         ingredientId: body.ingredientId,
@@ -279,7 +273,6 @@ export class FilesController {
   async processFile(@Body() body: ProcessFileRequestBody) {
     try {
       const jobData = {
-        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         delay: body.delay,
         filePath: body.filePath,
@@ -350,7 +343,6 @@ export class FilesController {
       const status = body.status || 'unlisted'; // Default to unlisted if no status provided
       const jobData = {
         brandId: body.brandId,
-        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         credential: body.credential,
         description: body.description,

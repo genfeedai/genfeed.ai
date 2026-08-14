@@ -10,7 +10,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -54,12 +53,10 @@ export class ContentPerformanceController {
     @Body() dto: CreateContentPerformanceDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.contentPerformanceService.createPerformance(
       dto,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
     );
 
     return serializeSingle(req, ContentPerformanceSerializer, data);
@@ -76,11 +73,9 @@ export class ContentPerformanceController {
     @Query() filters: QueryContentPerformanceDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const docs = await this.contentPerformanceService.queryPerformance(
       filters,
-      publicMetadata.organization,
+      user.organizationId,
     );
 
     return serializeCollection(req, ContentPerformanceSerializer, { docs });
@@ -93,12 +88,10 @@ export class ContentPerformanceController {
   @Post('import/csv')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importCsv(@Body() dto: ImportCsvDto, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.contentPerformanceService.importCsv(
       dto,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
     );
   }
 
@@ -113,12 +106,10 @@ export class ContentPerformanceController {
     @Body() dto: ImportManualDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.contentPerformanceService.importManual(
       dto,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
     );
 
     return serializeSingle(req, ContentPerformanceSerializer, data);
@@ -135,12 +126,10 @@ export class ContentPerformanceController {
     @Body() dto: ManualInputDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const docs = await this.contentPerformanceService.bulkManualImport(
       dto,
-      publicMetadata.organization,
-      publicMetadata.user,
+      user.organizationId,
+      user.userId ?? user.id,
     );
 
     return serializeCollection(req, ContentPerformanceSerializer, { docs });
@@ -158,10 +147,8 @@ export class ContentPerformanceController {
     @Query('limit') limit: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.attributionService.rankGenerationStrategies(
-      publicMetadata.organization,
+      user.organizationId,
       brandId,
       limit ? parseInt(limit, 10) || 20 : 20,
     );
@@ -177,10 +164,8 @@ export class ContentPerformanceController {
     @Param('generationId') generationId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const result = await this.attributionService.getAttributionByGenerationId(
-      publicMetadata.organization,
+      user.organizationId,
       generationId,
     );
 
@@ -201,10 +186,8 @@ export class ContentPerformanceController {
     @Param('generationId') generationId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.contentPerformanceService.aggregateByGenerationId(
-      publicMetadata.organization,
+      user.organizationId,
       generationId,
     );
   }
@@ -220,11 +203,9 @@ export class ContentPerformanceController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const record = await this.contentPerformanceService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!record) {
@@ -241,11 +222,9 @@ export class ContentPerformanceController {
   @Delete(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async delete(@Param('id') id: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
     const record = await this.contentPerformanceService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!record) {

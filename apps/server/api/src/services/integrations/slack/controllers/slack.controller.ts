@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -34,7 +33,8 @@ export class SlackController {
     @CurrentUser() user: User,
     @Body('brandId') brandId: string,
   ) {
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
 
     const brand = await this.brandsService.findOne({
       id: brandId,
@@ -82,7 +82,8 @@ export class SlackController {
       );
     }
 
-    const { organization, user: userId } = getPublicMetadata(user);
+    const organization = user.organizationId;
+    const userId = user.userId ?? user.id;
     const credential = await this.credentialsService.findPendingOAuthCredential(
       state,
       CredentialPlatform.SLACK,

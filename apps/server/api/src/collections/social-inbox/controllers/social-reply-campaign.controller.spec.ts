@@ -16,11 +16,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 const REQUEST = { originalUrl: '/message-campaigns' } as unknown as Request;
 
 const USER = {
-  publicMetadata: {
-    brand: 'brand-1',
-    organization: 'org-1',
-    user: 'user-1',
-  },
+  brandId: 'brand-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
 } as unknown as User;
 
 const SCOPE = {
@@ -153,7 +151,7 @@ describe('SocialReplyCampaignController', () => {
 
   describe('scope derivation', () => {
     it('rejects a session with no organization instead of querying unscoped', async () => {
-      const orgless = { publicMetadata: { user: 'user-1' } } as unknown as User;
+      const orgless = { userId: 'user-1' } as unknown as User;
 
       await expect(
         controller.list(REQUEST, orgless, {} as never),

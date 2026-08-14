@@ -21,9 +21,10 @@ Circular deps use `forwardRef(() => Module)`.
 self-hosted needs only `{ isDeleted: false }`.
 
 **Scheduling** — product-facing recurring automation is workflow-backed via
-`WorkflowSchedulerService` + workflow trigger records. Legacy `cron-jobs` is compatibility-only;
-add nothing new to it. Static `@Cron(...)` is reserved for reviewed platform/maintenance jobs and
-is guarded by `bun run check:cron-boundary`.
+`WorkflowSchedulerService` + workflow trigger records. The `cron-jobs` collection,
+dispatcher, and Prisma tables are gone. Static `@Cron(...)` is reserved for reviewed
+platform/maintenance jobs and is guarded by `bun run check:cron-boundary`.
+`bun run check:legacy-cron-surface` fails if the old collection returns.
 
 **Integrations** — `createServiceModule()`; `@Post('connect')` returns the auth URL,
 `@Post('verify')` exchanges the code. Credentials scoped

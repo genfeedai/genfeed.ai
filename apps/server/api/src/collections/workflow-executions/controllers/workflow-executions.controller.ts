@@ -11,7 +11,6 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -111,12 +110,11 @@ export class WorkflowExecutionsController {
     @Query('limit') limit?: string | number,
     @Query('offset') offset?: string | number,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const parsedLimit =
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
     const result = await this.workflowExecutionsService.findAll(
-      this.buildFindAllQuery(publicMetadata.organization, query),
+      this.buildFindAllQuery(user.organizationId, query),
       {
         customLabels,
         ...QueryDefaultsUtil.getPaginationDefaults({
@@ -140,10 +138,9 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Param('workflowId') workflowId: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.workflowExecutionsService.getExecutionStats(
       workflowId,
-      publicMetadata.organization,
+      user.organizationId,
     );
   }
 
@@ -157,10 +154,9 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
@@ -174,19 +170,18 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Body() dto: CreateWorkflowExecutionDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const scope = await this.workflowExecutionAuthorizationService.authorize({
       expectedContextVersion: dto.expectedContextVersion,
-      organizationId: publicMetadata.organization,
-      requestedBrandId: publicMetadata.brand || undefined,
+      organizationId: user.organizationId,
+      requestedBrandId: user.brandId || undefined,
       threadId: dto.threadId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
       workflowId: dto.workflowId,
     });
     const result = await this.workflowExecutorService.executeManualWorkflow(
       dto.workflowId,
-      publicMetadata.user,
-      publicMetadata.organization,
+      user.userId ?? user.id,
+      user.organizationId,
       dto.inputValues ?? {},
       dto.metadata,
       dto.trigger,
@@ -194,7 +189,7 @@ export class WorkflowExecutionsController {
     );
     const execution = await this.workflowExecutionsService.findOne({
       id: result.executionId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
@@ -211,11 +206,10 @@ export class WorkflowExecutionsController {
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     // Verify ownership first
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!execution) {

@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((data) => data),
   returnInternalServerError: vi.fn((msg) => msg),
@@ -31,7 +24,12 @@ describe('ThreadsController', () => {
   let threadsService: ThreadsService;
 
   const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    brandId: '507f1f77bcf86cd799439015',
+    id: 'auth-provider-user',
+    organizationId: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439013',
+  } as never;
 
   const mockBrandsService = { findOne: vi.fn() };
   const mockCredentialsService = {

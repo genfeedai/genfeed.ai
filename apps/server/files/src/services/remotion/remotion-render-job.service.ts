@@ -43,14 +43,7 @@ export class RemotionRenderJobService {
   ) {}
 
   async process(job: Job<VideoJobData>): Promise<EditorRenderResult> {
-    const {
-      authProviderUserId,
-      ingredientId,
-      metadata,
-      organizationId,
-      room,
-      userId,
-    } = job.data;
+    const { ingredientId, metadata, organizationId, room, userId } = job.data;
     const params = this.readParams(job.data);
     const tempPath = this.ffmpegService.getTempPath(
       'editor-render',
@@ -95,7 +88,7 @@ export class RemotionRenderJobService {
           this.webSocketService.emitProgress(
             metadata.websocketUrl,
             { percent },
-            authProviderUserId,
+            userId,
             room,
           );
         },
@@ -122,7 +115,7 @@ export class RemotionRenderJobService {
       this.webSocketService.emitSuccess(
         metadata.websocketUrl,
         { ingredientId, s3Key, url },
-        authProviderUserId,
+        userId,
         room,
       );
       await this.redisService
@@ -166,14 +159,7 @@ export class RemotionRenderJobService {
     job: Job<VideoJobData>,
     params: EditorRenderParams,
   ): Promise<never> {
-    const {
-      authProviderUserId,
-      ingredientId,
-      metadata,
-      organizationId,
-      room,
-      userId,
-    } = job.data;
+    const { ingredientId, metadata, organizationId, room, userId } = job.data;
     const classified = classifyEditorRenderError(error);
     const configuredAttempts = job.opts.attempts ?? 1;
     // BullMQ 5 increments attemptsMade in moveToFailed, after the processor
@@ -194,7 +180,7 @@ export class RemotionRenderJobService {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         classified.publicMessage,
-        authProviderUserId,
+        userId,
         room,
       );
       await this.redisService

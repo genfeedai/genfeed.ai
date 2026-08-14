@@ -1,11 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/websocket/websocket.util', () => ({
   WebSocketPaths: {
     video: vi.fn((id: string) => `/ws/videos/${id}`),
@@ -55,11 +47,9 @@ describe('VideosLipSyncController', () => {
 
   const mockUser = {
     id: 'user_authProvider_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439014',
-      organization: '507f1f77bcf86cd799439013',
-      user: '507f1f77bcf86cd799439012',
-    },
+    brandId: '507f1f77bcf86cd799439014',
+    organizationId: '507f1f77bcf86cd799439013',
+    userId: '507f1f77bcf86cd799439012',
   } as unknown as User;
 
   const mockImageIngredient = {

@@ -8,12 +8,7 @@ import {
 import type { Request } from 'express';
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
-const LOCAL_HOSTS = new Set([
-  ...LOOPBACK_HOSTS,
-  'genfeed.localhost',
-  // Temporary backwards-compatible development host.
-  'local.genfeed.ai',
-]);
+const LOCAL_HOSTS = new Set([...LOOPBACK_HOSTS, 'genfeed.localhost']);
 const LOCAL_DEVELOPMENT_HOST_SUFFIX = '.genfeed.localhost';
 
 @Injectable()

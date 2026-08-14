@@ -177,7 +177,7 @@ export function useArticleDetail({
       } else {
         const created = await service.post({
           ...payload,
-          organization: organizationId,
+          organizationId: organizationId,
         } as unknown as Partial<Article>);
         setArticle(created);
         initialFormRef.current = { ...form };

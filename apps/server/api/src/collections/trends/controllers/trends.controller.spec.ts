@@ -43,11 +43,9 @@ describe('TrendsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    brandId: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockReq = {} as Request;
@@ -128,8 +126,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getTrendsWithAccessControl).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         'twitter',
       );
       expect(result).toBeDefined();
@@ -157,8 +155,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.refreshTrends).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
       );
       expect(result).toBeDefined();
     });
@@ -181,8 +179,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getTrendsDiscovery).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         'twitter',
       );
       expect(result).toEqual({
@@ -208,8 +206,8 @@ describe('TrendsController', () => {
       await discoveryController.getTrendsDiscovery(mockUser, undefined, 'true');
 
       expect(trendsService.refreshTrends).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
       );
     });
   });
@@ -248,8 +246,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getTrendContent).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         {
           limit: 12,
           platform: 'twitter',
@@ -282,8 +280,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getTrendContent).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         expect.objectContaining({
           refresh: true,
         }),
@@ -335,8 +333,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getReferenceCorpus).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         {
           authorHandle: 'builder',
           includePaidCreative: undefined,
@@ -380,8 +378,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getReferenceCorpus).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         {
           authorHandle: undefined,
           includePaidCreative: true,
@@ -468,8 +466,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getPromptReferencePacks).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         {
           intent: 'organic_trend_discovery',
           limit: 8,
@@ -516,8 +514,8 @@ describe('TrendsController', () => {
       );
 
       expect(trendsService.getTopReferenceAccounts).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         {
           limit: 8,
           platform: 'twitter',
@@ -575,7 +573,7 @@ describe('TrendsController', () => {
 
       expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
         isPlatformAdmin: false,
-        organizationId: mockUser.publicMetadata.organization,
+        organizationId: mockUser.organizationId,
         platform: 'tiktok',
       });
       expect(result).toEqual(health);
@@ -591,17 +589,15 @@ describe('TrendsController', () => {
       });
       const adminUser = {
         id: 'admin_1',
-        publicMetadata: {
-          isSuperAdmin: true,
-          organization: '507f1f77bcf86cd799439012',
-        },
+        isSuperAdmin: true,
+        organizationId: '507f1f77bcf86cd799439012',
       } as unknown as User;
 
       await discoveryController.getCorpusFreshnessHealth(adminUser, undefined);
 
       expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
         isPlatformAdmin: true,
-        organizationId: adminUser.publicMetadata.organization,
+        organizationId: adminUser.organizationId,
         platform: undefined,
       });
     });
@@ -632,8 +628,8 @@ describe('TrendsController', () => {
       const result = await controller.getTrendIdeas(mockReq, mockUser, query);
 
       expect(trendsService.getTrends).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
         query.platform,
         {
           allowFetchIfMissing: false,
@@ -656,8 +652,8 @@ describe('TrendsController', () => {
       const result = await controller.refreshTrends(mockUser);
 
       expect(trendsService.refreshTrends).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
+        mockUser.organizationId,
+        mockUser.brandId,
       );
       expect(result).toEqual({
         count: 1,
@@ -690,7 +686,7 @@ describe('TrendsController', () => {
 
       expect(trendsService.getTrendSourceItems).toHaveBeenCalledWith(
         'trend-1',
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         3,
       );
       expect(result).toEqual({

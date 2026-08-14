@@ -7,7 +7,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -71,8 +70,6 @@ export class GifsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
-
     // Handle multiple status values (comma-separated)
     const status = QueryDefaultsUtil.parseStatusFilter(query.status);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
@@ -81,7 +78,7 @@ export class GifsController {
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
     const brandId = CollectionFilterUtil.buildBrandFilter(
       query.brandId,
-      publicMetadata,
+      user,
       'exists',
     );
 
@@ -102,7 +99,7 @@ export class GifsController {
               {
                 AND: [
                   {
-                    organizationId: publicMetadata.organization,
+                    organizationId: user.organizationId,
                     brandId,
                     category: CategoryPrismaUtil.toIngredientCategory(
                       IngredientCategory.GIF,
@@ -127,7 +124,7 @@ export class GifsController {
                     isDeleted,
                     OR: [
                       {
-                        organizationId: publicMetadata.organization,
+                        organizationId: user.organizationId,
                       },
                       { organizationId: null },
                     ],
@@ -159,8 +156,6 @@ export class GifsController {
     @Param('gifId') gifId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = await this.gifsService.findOne(
       {
         id: gifId,
@@ -168,7 +163,7 @@ export class GifsController {
           IngredientCategory.GIF,
         ),
         OR: [
-          { organizationId: publicMetadata.organization },
+          { organizationId: user.organizationId },
           { isDefault: true, organizationId: null },
         ],
       },
@@ -188,7 +183,7 @@ export class GifsController {
     const vote = await this.votesService.findOne({
       entityId: gifId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     data.hasVoted = !!vote;
@@ -203,9 +198,8 @@ export class GifsController {
     @Param('gifId') gifId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const gif = await this.gifsService.findOne(
-      scopedWhere(publicMetadata.organization, {
+      scopedWhere(user.organizationId, {
         id: gifId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.GIF,

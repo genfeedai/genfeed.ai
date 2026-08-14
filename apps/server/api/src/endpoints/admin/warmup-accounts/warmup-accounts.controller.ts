@@ -4,7 +4,6 @@ import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
 import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -89,7 +88,7 @@ export class WarmupAccountsController {
   }
 
   private getActorUserId(user: User): string {
-    const actorUserId = getPublicMetadata(user).user?.toString().trim();
+    const actorUserId = (user.userId ?? user.id)?.toString().trim();
 
     if (!actorUserId) {
       throw new BadRequestException(

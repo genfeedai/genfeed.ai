@@ -9,7 +9,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -64,13 +63,11 @@ export class CaptionsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
-
     // Build match conditions
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
 
     // Add language filter if provided
@@ -120,8 +117,6 @@ export class CaptionsController {
     @Body() createCaptionDto: CreateCaptionDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const ingredient: IngredientDocument | null =
       await this.ingredientsService.findOne({
         id: createCaptionDto.ingredientId,
@@ -178,8 +173,8 @@ export class CaptionsController {
       ingredientId: createCaptionDto.ingredientId,
       isDeleted: false,
       language: createCaptionDto.language,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
     const data: CaptionDocument =
       await this.captionsService.create(captionInput);

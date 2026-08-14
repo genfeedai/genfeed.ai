@@ -8,10 +8,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -106,18 +103,14 @@ export class ElementsSoundsController extends BaseCRUDController<
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     // Build OR conditions: global items OR user's org items OR user's items
     const orConditions: Record<string, unknown>[] = [];
 
-    if (publicMetadata.organization) {
+    if (user.organizationId) {
       orConditions.push({
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
     }
 
@@ -143,14 +136,13 @@ export class ElementsSoundsController extends BaseCRUDController<
     createDto: CreateElementSoundDto,
     user: User,
   ): CreateElementSoundDto {
-    const publicMetadata = getPublicMetadata(user);
     const enriched: CreateElementSoundDto & { organizationId?: string } = {
       ...createDto,
     };
 
     // Add organization if not super admin
-    if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organizationId = publicMetadata.organization;
+    if (!getIsSuperAdmin(user) && user.organizationId) {
+      enriched.organizationId = user.organizationId;
     }
 
     // Sounds don't have a user field

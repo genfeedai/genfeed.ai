@@ -29,10 +29,8 @@ describe('OnboardingPreviewService', () => {
 
   const user: User = {
     id: 'user-1',
-    publicMetadata: {
-      organization: 'org-1',
-      user: 'user-1',
-    },
+    organizationId: 'org-1',
+    userId: 'user-1',
   };
 
   beforeEach(() => {

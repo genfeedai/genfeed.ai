@@ -328,9 +328,10 @@ export abstract class BaseService<
   /**
    * Walk every page of a list endpoint and return the flattened rows.
    *
-   * HTTP list endpoints are always paginated server-side: `QueryDefaultsUtil`
-   * ignores a client `pagination=false` so no public endpoint can be talked
-   * into an unbounded `findMany`. A caller that genuinely needs the whole
+   * HTTP list endpoints are always paginated server-side: `BaseQueryDto` does
+   * not accept a `pagination` query flag, and `QueryDefaultsUtil` always
+   * returns `pagination: true` so no public endpoint can be talked into an
+   * unbounded `findMany`. A caller that genuinely needs the whole
    * collection therefore has to ask for the pages, which is what this does.
    *
    * Subclasses whose collection lives on a custom path (`me/brands`, a

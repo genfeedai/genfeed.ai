@@ -32,7 +32,6 @@ function createMockJob(name: string, data: FileJobData): Job<FileJobData> {
 
 function createJobData(overrides: Partial<FileJobData> = {}): FileJobData {
   return {
-    authProviderUserId: 'auth-user-1',
     createdAt: new Date(),
     id: 'job-data-1',
     ingredientId: 'ingredient-1',

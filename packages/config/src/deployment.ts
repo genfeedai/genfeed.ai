@@ -110,14 +110,6 @@ export function isHostedGenfeedCloud(): boolean {
   return isHostedGenfeedFromBrowser() || isHostedGenfeedFromEnv();
 }
 
-/**
- * @deprecated Prefer {@link isHostedGenfeedCloud}. Kept as an alias so older
- * call sites and the billing PR diff stay greppable.
- */
-export function isHostedGenfeedApi(): boolean {
-  return isHostedGenfeedCloud();
-}
-
 /** Resolve the backend deployment axis. Explicit flags win; domain is the safety net. */
 export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
   const serverFlag = readEnv('GENFEED_CLOUD')?.trim();

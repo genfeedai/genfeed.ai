@@ -58,10 +58,8 @@ describe('OrganizationsMembersController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439013',
-      user: '507f1f77bcf86cd799439012',
-    },
+    organizationId: '507f1f77bcf86cd799439013',
+    userId: '507f1f77bcf86cd799439012',
   } as unknown as User;
 
   const mockLoggerService = {

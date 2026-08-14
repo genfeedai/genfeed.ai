@@ -36,7 +36,7 @@ const DEFAULT_ALLOWED_HOSTS = [
   '127.0.0.1',
   '::1',
   playwrightApiHostname, // configured local dev API host (intercepted by page.route())
-  'local.genfeed.ai', // temporary backwards-compatible local host allowlist
+  'genfeed.localhost',
   'cdn.genfeed.ai',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
@@ -44,7 +44,7 @@ const DEFAULT_ALLOWED_HOSTS = [
 
 // PostHog (the only tracker) requires a build-time NEXT_PUBLIC_POSTHOG_KEY,
 // which E2E builds never set — no analytics hosts need allowlisting.
-const DEFAULT_ALLOWED_HOST_SUFFIXES: string[] = [];
+const DEFAULT_ALLOWED_HOST_SUFFIXES: string[] = ['.genfeed.localhost'];
 
 function isBypassUrl(url: string): boolean {
   return (

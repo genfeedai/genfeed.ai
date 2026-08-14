@@ -43,7 +43,6 @@ export class NewslettersController {
     const data = await this.newslettersService.findAllScoped(ctx, query, {
       limit: query.limit,
       page: query.page,
-      pagination: query.pagination,
     });
 
     return serializeCollection(request, NewsletterSerializer, {

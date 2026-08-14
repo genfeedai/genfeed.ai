@@ -84,11 +84,9 @@ const mockVideo = {
 
 const mockUser = {
   id: 'user_123',
-  publicMetadata: {
-    brand: 'c07f1f77bcf86cd799439014',
-    organization: 'c07f1f77bcf86cd799439013',
-    user: 'c07f1f77bcf86cd799439012',
-  },
+  brandId: 'c07f1f77bcf86cd799439014',
+  organizationId: 'c07f1f77bcf86cd799439013',
+  userId: 'c07f1f77bcf86cd799439012',
 } as unknown as User;
 
 const ingredientId = 'c07f1f77bcf86cd799439015';

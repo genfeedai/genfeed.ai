@@ -27,10 +27,12 @@ export class ActionOriginInterceptor implements NestInterceptor {
     const request = executionContext
       .switchToHttp()
       .getRequest<ActionOriginRequest>();
-    const metadata = request.user?.publicMetadata;
+    const metadata = request.user;
     const context = {
       ...(metadata?.apiKeyId ? { apiKeyId: metadata.apiKeyId } : {}),
-      ...(metadata?.user ? { actorUserId: metadata.user } : {}),
+      ...(metadata?.userId || metadata?.id
+        ? { actorUserId: metadata.userId || metadata.id }
+        : {}),
       origin: this.resolveOrigin(request, metadata),
     };
     const observable = next.handle();
@@ -49,7 +51,7 @@ export class ActionOriginInterceptor implements NestInterceptor {
 
   private resolveOrigin(
     request: ActionOriginRequest,
-    metadata: AuthenticatedUser['publicMetadata'],
+    metadata: AuthenticatedUser | undefined,
   ): ActionOrigin {
     if (this.hasTrustedMcpOriginProof(request)) {
       return ActionOrigin.MCP;

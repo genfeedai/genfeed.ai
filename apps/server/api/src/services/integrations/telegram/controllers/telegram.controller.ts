@@ -1,5 +1,5 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   type TelegramAuthData,
   TelegramService,
@@ -17,17 +17,15 @@ export class TelegramController {
    */
   @Post('verify')
   verify(
-    @CurrentUser() user: Record<string, unknown>,
+    @CurrentUser() user: AuthenticatedUser,
     @Body('organizationId') organizationId: string,
     @Body('brandId') brandId: string,
     @Body('authData') authData: TelegramAuthData,
   ) {
-    const publicMetadata = getPublicMetadata(user as never);
-
     return this.telegramService.verifyAndSaveAuth(
       organizationId,
       brandId,
-      publicMetadata.user,
+      user.userId ?? user.id,
       authData,
     );
   }

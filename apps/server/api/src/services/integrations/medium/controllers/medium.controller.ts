@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -56,13 +55,12 @@ export class MediumController {
     @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -75,7 +73,7 @@ export class MediumController {
     try {
       const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.MEDIUM,
         {
           isConnected: false,
@@ -186,7 +184,6 @@ export class MediumController {
     publishStatus: 'public' | 'draft' | 'unlisted' = 'public',
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, { articleId, brandId, publishStatus });
 
@@ -200,7 +197,7 @@ export class MediumController {
 
       const mediumPost = await this.mediumService.publishArticle(
         articleId,
-        publicMetadata.organization,
+        user.organizationId,
         brandId,
         publishStatus,
       );

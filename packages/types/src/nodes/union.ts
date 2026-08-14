@@ -29,10 +29,10 @@ import type {
 import type {
   AnimationNodeData,
   AnnotationNodeData,
+  DownloadNodeData,
   ImageCompareNodeData,
   ImageGridSplitNodeData,
   OutputGalleryNodeData,
-  OutputNodeData,
   ReframeNodeData,
   ResizeNodeData,
   SubtitleNodeData,
@@ -68,7 +68,7 @@ export type WorkflowNodeData =
   | SubtitleNodeData
   | OutputGalleryNodeData
   | ImageCompareNodeData
-  | OutputNodeData
+  | DownloadNodeData
   // Composition nodes
   | WorkflowInputNodeData
   | WorkflowOutputNodeData

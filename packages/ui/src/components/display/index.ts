@@ -5,7 +5,6 @@ export { default as BadgeQuota } from '@ui/display/badge-quota/BadgeQuota';
 export { default as ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 export { default as HtmlContent } from '@ui/display/html-content/HtmlContent';
 export { default as InsetSurface } from '@ui/display/inset-surface/InsetSurface';
-export { default as KeyMetric } from '@ui/display/key-metric/KeyMetric';
 export { default as Masonry } from '@ui/display/masonry/Masonry';
 export { default as PlatformBadge } from '@ui/display/platform-badge/PlatformBadge';
 export { default as SelectedAvatarPreview } from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';

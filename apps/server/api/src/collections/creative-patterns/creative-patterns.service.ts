@@ -61,17 +61,14 @@ export class CreativePatternsService {
       string,
       unknown
     >;
-    const organizationId =
-      this.readString(data.organizationId) ??
-      this.readString(data.organization);
+    const organizationId = this.readString(data.organizationId);
 
     if (!organizationId) {
       throw new Error('CreativePattern organizationId is required');
     }
 
     return {
-      brandId:
-        this.readString(data.brandId) ?? this.readString(data.brand) ?? null,
+      brandId: this.readString(data.brandId) ?? null,
       data: normalizedData,
       organizationId,
     };

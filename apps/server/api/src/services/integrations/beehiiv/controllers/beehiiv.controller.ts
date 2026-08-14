@@ -3,7 +3,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -50,7 +49,6 @@ export class BeehiivController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId: body.brandId });
 
-    const publicMetadata = getPublicMetadata(user);
     const apiKey = body.apiKey?.trim();
     const brandId = body.brandId?.trim();
     const publicationId = body.publicationId?.trim();
@@ -64,7 +62,7 @@ export class BeehiivController {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -101,7 +99,7 @@ export class BeehiivController {
       // Store credential with API key as accessToken
       const credential = await this.credentialsService.upsertForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.BEEHIIV,
         {
           accessToken: apiKey,
@@ -136,8 +134,6 @@ export class BeehiivController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!brandId) {
       return returnBadRequest({
         detail: 'Brand ID is required',
@@ -147,7 +143,7 @@ export class BeehiivController {
 
     try {
       const { apiKey } = await this.beehiivService.getDecryptedApiKey(
-        publicMetadata.organization?.toString() || '',
+        user.organizationId?.toString() || '',
         brandId,
       );
 
@@ -172,8 +168,6 @@ export class BeehiivController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId });
 
-    const publicMetadata = getPublicMetadata(user);
-
     if (!brandId) {
       return returnBadRequest({
         detail: 'Brand ID is required',
@@ -184,7 +178,7 @@ export class BeehiivController {
     try {
       const { apiKey, publicationId } =
         await this.beehiivService.getDecryptedApiKey(
-          publicMetadata.organization?.toString() || '',
+          user.organizationId?.toString() || '',
           brandId,
         );
 
@@ -216,12 +210,10 @@ export class BeehiivController {
       brandId: body.brandId,
     });
 
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       const { apiKey, publicationId } =
         await this.beehiivService.getDecryptedApiKey(
-          publicMetadata.organization?.toString() || '',
+          user.organizationId?.toString() || '',
           body.brandId,
         );
 

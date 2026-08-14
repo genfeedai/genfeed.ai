@@ -7,7 +7,6 @@ import {
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -43,12 +42,10 @@ export class BotActivitiesController {
     @Query() query: BotActivitiesQueryDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const { activities, total } =
       await this.botActivitiesService.findWithFilters(
-        publicMetadata.organization,
-        publicMetadata.brand,
+        user.organizationId,
+        user.brandId,
         query,
       );
 
@@ -72,12 +69,10 @@ export class BotActivitiesController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     const activity = await this.botActivitiesService.findOne({
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      ...(user.brandId ? { brandId: user.brandId } : {}),
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
     return serializeSingle(req, BotActivitySerializer, activity);
   }
@@ -97,11 +92,9 @@ export class BotActivitiesController {
     @Query('toDate') toDate: string,
     @CurrentUser() user: User,
   ): Promise<BotActivityStats> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.botActivitiesService.getStats(
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.organizationId,
+      user.brandId,
       replyBotConfigId,
       fromDate ? new Date(fromDate) : undefined,
       toDate ? new Date(toDate) : undefined,

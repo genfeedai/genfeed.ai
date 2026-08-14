@@ -65,6 +65,20 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "agentCampaign": {
+    "agentStrategies": "Agent Strategies",
+    "brief": "Brief",
+    "campaignLabel": "Campaign Label *",
+    "creditsAllocated": "Credits Allocated",
+    "endDate": "End Date (optional)",
+    "noAgentStrategies": "No agent strategies available. Create agents first.",
+    "startDate": "Start Date *",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "label": "Status"
+    }
+  },
   "workspaceInspector": {
     "chooseWorkflow": "Choose workflow",
     "fullManagement": "Full management remains available on this canonical route.",
@@ -350,6 +364,7 @@
     }
   },
   "livestreamBot": {
+    "contextTemplate": "Context-Aware Question Template",
     "contextSource": {
       "audioUrl": "Audio URL → speech-to-text",
       "description": "Streaming via Restream Studio: use Restream Chat for audience context. Host speech is not OBS — push captions/STT into Genfeed while the encoder feeds Restream.",
@@ -358,11 +373,41 @@
       "manual": "Manual paste / API",
       "restreamChat": "Restream Chat (multi-destination audience)"
     },
+    "hostPromptTemplate": "Scheduled Host Prompt Template",
+    "loading": "Loading livestream bot…",
+    "manualOverride": "Manual Override",
+    "message": "Message",
     "restreamAccount": {
       "autoDetect": "Auto-detect from brand (or none)",
       "description": "Connect Restream OAuth for unified multi-destination chat. Empty auto-binds the brand's connected RESTREAM credential at runtime.",
       "label": "Restream account"
-    }
+    },
+    "runtimeControls": "Runtime Controls",
+    "sendOneOffMessage": "Send One-Off Message",
+    "sessionStatus": "Session status",
+    "transcriptChunk": "Transcript Chunk",
+    "transcriptIngestion": "Transcript Ingestion"
+  },
+  "newsletterEditor": {
+    "content": "Newsletter content"
+  },
+  "outreachCampaign": {
+    "campaignName": "Campaign Name",
+    "context": "Context",
+    "credential": "Credential",
+    "ctaLink": "CTA Link",
+    "customInstructions": "Custom Instructions",
+    "description": "Description",
+    "dmTemplate": "DM Template",
+    "hashtags": "Hashtags (comma-separated)",
+    "keywords": "Keywords (comma-separated)",
+    "offer": "Offer",
+    "productContext": "Product Context",
+    "replyLength": "Reply Length",
+    "replyTone": "Reply Tone",
+    "subreddits": "Subreddits (comma-separated)",
+    "templateText": "Template Text",
+    "useAiGeneration": "Use AI Generation"
   },
   "postEditor": {
     "content": "Content",

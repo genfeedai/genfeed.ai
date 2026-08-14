@@ -9,7 +9,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
@@ -67,27 +66,26 @@ export class ClipProjectHandoffsController {
     @Param('projectId') projectId: string,
     @Param('clipResultId') clipResultId: string,
   ): Promise<ClipEditorHandoffResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const ownedProject = await this.resolveOwnedProject(
       projectId,
-      publicMetadata.organization,
+      user.organizationId,
     );
     await this.clipProjectsService.reconcileTerminalState(
       projectId,
-      publicMetadata.organization,
+      user.organizationId,
       ownedProject,
     );
 
     const clipResult = await this.resolveReadyClipResult({
       action: 'edit',
       clipResultId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       projectId,
     });
     const videoUrl = this.resolveClipVideoUrl(clipResult);
     const durationFrames = this.resolveClipDurationFrames(clipResult);
     const editorProject = await this.editorProjectsService.create({
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      ...(user.brandId ? { brandId: user.brandId } : {}),
       config: {
         clipHandoff: {
           clipProjectId: projectId,
@@ -105,7 +103,7 @@ export class ClipProjectHandoffsController {
         status: 'draft',
         totalDurationFrames: durationFrames,
       },
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       tracks: [
         {
           clips: [
@@ -130,7 +128,7 @@ export class ClipProjectHandoffsController {
           volume: 100,
         },
       ],
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     } as never);
     const editorProjectId = String(editorProject.id);
 
@@ -157,21 +155,20 @@ export class ClipProjectHandoffsController {
     @Param('projectId') projectId: string,
     @Param('clipResultId') clipResultId: string,
   ): Promise<ClipPublishHandoffResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const ownedProject = await this.resolveOwnedProject(
       projectId,
-      publicMetadata.organization,
+      user.organizationId,
     );
     await this.clipProjectsService.reconcileTerminalState(
       projectId,
-      publicMetadata.organization,
+      user.organizationId,
       ownedProject,
     );
 
     const clipResult = await this.resolveReadyClipResult({
       action: 'publish',
       clipResultId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       projectId,
     });
     const resolvedClipResultId = String(clipResult.id);

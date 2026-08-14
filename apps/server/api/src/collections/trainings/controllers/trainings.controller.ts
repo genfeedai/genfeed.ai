@@ -15,7 +15,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TrainingAccessGuard } from '@api/helpers/guards/training-access/training-access.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -102,19 +101,15 @@ export class TrainingsController extends BaseCRUDController<
    * Override buildFindAllQuery to support both user and organization filtering
    */
   public buildFindAllQuery(user: User, query: TrainingsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     // Build ownership OR conditions (used when adminFilter is null)
     const ownershipOr = [
-      { userId: publicMetadata.user },
-      { brandId: publicMetadata.brand },
+      { userId: user.userId ?? user.id },
+      { brandId: user.brandId },
       {
         brandId: null,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     ];
 
@@ -167,10 +162,9 @@ export class TrainingsController extends BaseCRUDController<
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.trainingsService.findOne({
       id: trainingId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!data) {
@@ -212,19 +206,18 @@ export class TrainingsController extends BaseCRUDController<
    * Override canUserModifyEntity to check both user and organization ownership
    */
   public canUserModifyEntity(user: User, entity: unknown): boolean {
-    const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
       userId?: string | null;
       organizationId?: string | null;
     };
 
     const entityUserId = entityRecord.userId;
-    if (entityUserId === publicMetadata.user) {
+    if (entityUserId === (user.userId ?? user.id)) {
       return true;
     }
 
     const entityOrgId = entityRecord.organizationId;
-    if (entityOrgId && entityOrgId === publicMetadata.organization) {
+    if (entityOrgId && entityOrgId === user.organizationId) {
       return true;
     }
 
@@ -252,13 +245,8 @@ export class TrainingsController extends BaseCRUDController<
     @Body() createDto: CreateTrainingDto,
   ): Promise<JsonApiSingleResponse> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-
       const { sourceImages, training } =
-        await this.trainingsService.createTrainingWithSources(
-          createDto,
-          publicMetadata,
-        );
+        await this.trainingsService.createTrainingWithSources(createDto, user);
 
       // Return training immediately to avoid timeout
       const response = serializeSingle(request, TrainingSerializer, training);

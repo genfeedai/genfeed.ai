@@ -6,14 +6,12 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockGetIsSuperAdmin, mockGetPublicMetadata } = vi.hoisted(() => ({
+const { mockGetIsSuperAdmin } = vi.hoisted(() => ({
   mockGetIsSuperAdmin: vi.fn(),
-  mockGetPublicMetadata: vi.fn(),
 }));
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
-  getPublicMetadata: mockGetPublicMetadata,
 }));
 
 vi.mock('@api/auth/better-auth/better-auth.service', () => ({
@@ -97,11 +95,9 @@ const makeUser = (): User =>
     emailAddresses: [{ emailAddress: 'desktop@example.com' }],
     firstName: 'Desktop',
     lastName: 'User',
-    publicMetadata: {
-      isSuperAdmin: false,
-      organization: organizationId,
-      user: userId,
-    },
+    isSuperAdmin: false,
+    organizationId: organizationId,
+    userId: userId,
   }) as unknown as User;
 
 const makeRequest = () => ({ context: {} }) as never;
@@ -204,10 +200,6 @@ describe('AuthDesktopService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetIsSuperAdmin.mockReturnValue(false);
-    mockGetPublicMetadata.mockReturnValue({
-      organization: organizationId,
-      user: userId,
-    });
   });
 
   it('stores the browser auth code without creating credentials early', async () => {

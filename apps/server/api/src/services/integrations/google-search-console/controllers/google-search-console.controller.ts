@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -67,10 +66,9 @@ export class GoogleSearchConsoleController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -85,7 +83,7 @@ export class GoogleSearchConsoleController {
 
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
-      publicMetadata.user,
+      user.userId ?? user.id,
       CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
       {
         isConnected: false,
@@ -115,13 +113,12 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const credential = await this.credentialsService.findPendingOAuthCredential(
       body.state,
       CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
       {
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -248,13 +245,12 @@ export class GoogleSearchConsoleController {
     user: User,
     brandId?: string,
   ): Promise<string> {
-    const publicMetadata = getPublicMetadata(user);
     const credential = await this.credentialsService.findOne({
       ...(brandId ? { brandId: brandId } : {}),
       isConnected: true,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!credential?.accessToken) {

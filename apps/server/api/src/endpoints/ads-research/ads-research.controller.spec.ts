@@ -4,13 +4,6 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
-
 describe('AdsResearchController', () => {
   let controller: AdsResearchController;
   let service: {
@@ -22,10 +15,8 @@ describe('AdsResearchController', () => {
   };
 
   const mockUser = {
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   beforeEach(async () => {

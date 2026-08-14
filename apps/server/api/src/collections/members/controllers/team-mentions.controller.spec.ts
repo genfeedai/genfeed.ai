@@ -2,13 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { TeamMentionsController } from '@api/collections/members/controllers/team-mentions.controller';
 
 describe('TeamMentionsController', () => {
-  const makeUser = (organization = 'org-1') =>
+  const makeUser = (organizationId = 'org-1') =>
     ({
-      publicMetadata: {
-        brand: 'brand-1',
-        organization,
-        user: 'user-1',
-      },
+      brandId: 'brand-1',
+      id: 'auth-provider-1',
+      organizationId,
+      userId: 'user-1',
     }) as unknown as User;
 
   it('returns mentions for the current organization', async () => {

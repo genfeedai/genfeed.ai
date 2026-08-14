@@ -1,22 +1,17 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   BaseIntegrationController,
   type OAuthUrlResult,
 } from '@api/shared/controllers/base-integration/base-integration.controller';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
-  }),
-}));
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
@@ -49,7 +44,7 @@ class TestIntegrationController extends BaseIntegrationController {
 
   protected async generateOAuthUrl(
     _brandId: string,
-    _publicMetadata: IAuthPublicMetadata,
+    _user: AuthenticatedUser,
   ): Promise<OAuthUrlResult> {
     return this.mockOAuthResult;
   }
@@ -124,7 +119,10 @@ describe('BaseIntegrationController', () => {
   };
 
   const mockUser = {
-    publicMetadata: { organization: orgId, user: userId },
+    id: userId,
+    isSuperAdmin: false,
+    organizationId: orgId,
+    userId: userId,
   } as unknown as User;
 
   beforeEach(() => {
