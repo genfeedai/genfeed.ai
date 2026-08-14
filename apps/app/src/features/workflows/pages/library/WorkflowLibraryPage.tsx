@@ -30,6 +30,9 @@ import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 import WorkflowCardDropdown from './WorkflowCardDropdown';
 import WorkflowCardPreview from './WorkflowCardPreview';
 
+const NEXT_RUN_PREFIX = ' · Next run ';
+const PAUSED_SUFFIX = ' · Paused';
+
 /**
  * Workflow Library - List of saved workflows with search, cards, and actions
  */
@@ -265,14 +268,14 @@ export default function WorkflowLibraryPage() {
                         {describeCadence(workflow.schedule)}
                         {workflow.isScheduleEnabled && workflow.nextRunAt ? (
                           <>
-                            {' · Next run '}
+                            {NEXT_RUN_PREFIX}
                             <ClientFormattedDate
                               format="relative"
                               value={workflow.nextRunAt}
                             />
                           </>
                         ) : workflow.isScheduleEnabled ? null : (
-                          ' · Paused'
+                          PAUSED_SUFFIX
                         )}
                       </span>
                     </div>

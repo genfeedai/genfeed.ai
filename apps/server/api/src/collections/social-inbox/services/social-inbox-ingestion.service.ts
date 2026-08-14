@@ -158,12 +158,14 @@ export class SocialInboxIngestionService {
     });
 
     if (previewAdvanced.count === 0) {
-      await this.prisma.socialConversation.update({
+      await this.prisma.socialConversation.updateMany({
         data: {
           unreadCount: { increment: 1 },
           updatedAt: new Date(),
         },
-        where: { id: conversation.id },
+        where: scopedWhere(input.organizationId, {
+          id: conversation.id,
+        }),
       });
     }
 

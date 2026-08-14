@@ -112,6 +112,8 @@ const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
 ];
 
+const IMPORTED_BADGE_LABEL = 'Imported';
+
 export default function FollowingPage() {
   const translate = useTranslations('common.following');
   const brandId = useBrandId();
@@ -595,7 +597,9 @@ function SourceRow({
           <span className="truncate">
             @{source.handle || source.displayName || 'source'}
           </span>
-          {isImportContainer ? <Badge variant="ghost">Imported</Badge> : null}
+          {isImportContainer ? (
+            <Badge variant="ghost">{IMPORTED_BADGE_LABEL}</Badge>
+          ) : null}
           {statusLabel ? (
             <Badge
               variant={

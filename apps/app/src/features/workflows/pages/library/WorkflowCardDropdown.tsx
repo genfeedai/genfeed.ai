@@ -5,6 +5,8 @@ import { Button } from '@ui/primitives/button';
 import { CalendarClock, Copy, EllipsisVertical, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+const SCHEDULE_ACTION_LABEL = 'Schedule';
+
 type WorkflowCardDropdownProps = {
   canDelete?: boolean;
   onDuplicate: () => void;
@@ -67,7 +69,7 @@ export default function WorkflowCardDropdown({
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
             >
               <CalendarClock className="size-4" />
-              Schedule
+              {SCHEDULE_ACTION_LABEL}
             </Button>
           ) : null}
           <Button

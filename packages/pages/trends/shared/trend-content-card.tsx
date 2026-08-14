@@ -45,6 +45,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
+const REMIX_ACTION_LABEL = 'Remix';
+
 function getViralityVariant(
   score: number,
 ): 'ghost' | 'info' | 'success' | 'warning' {
@@ -288,9 +290,9 @@ export default function TrendContentCard({
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
-              <Link href={remixHref}>
+              <Link aria-label={REMIX_ACTION_LABEL} href={remixHref}>
                 <Sparkles className="size-3.5" />
-                Remix
+                {REMIX_ACTION_LABEL}
               </Link>
             </Button>
           ) : null}

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
   useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({

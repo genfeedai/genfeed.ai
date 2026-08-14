@@ -243,7 +243,7 @@ describe('TrendQueryService', () => {
       expect(prisma.trend.updateMany).toHaveBeenCalledTimes(1);
       expect(prisma.trend.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: { in: ['prelaunch-1'] } },
+        where: { id: { in: ['prelaunch-1'] }, isDeleted: false },
       });
     });
 

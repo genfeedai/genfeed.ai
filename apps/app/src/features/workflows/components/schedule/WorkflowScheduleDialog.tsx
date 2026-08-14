@@ -54,6 +54,22 @@ function formatNextRun(nextRunAt?: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
 }
 
+const COPY = {
+  advancedCronHint:
+    'Advanced cron format. Prefer a preset unless you need something specific.',
+  cadence: 'Cadence',
+  cancel: 'Cancel',
+  customCadence: 'Custom…',
+  customSchedule: 'Custom schedule',
+  loading: 'Loading schedule…',
+  recurring: 'Recurring schedule',
+  recurringHint:
+    'Run this workflow automatically on the cadence and timezone below.',
+  remove: 'Remove schedule',
+  timezone: 'Timezone',
+  title: 'Schedule workflow',
+};
+
 /**
  * Set, edit, enable, disable, or remove the recurring schedule of a
  * user-owned workflow. Presets translate to canonical cron without exposing
@@ -211,7 +227,7 @@ export function WorkflowScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="size-4" />
-            Schedule workflow
+            {COPY.title}
           </DialogTitle>
           <DialogDescription>
             {workflowLabel
@@ -222,7 +238,7 @@ export function WorkflowScheduleDialog({
 
         {isLoading ? (
           <p className="animate-pulse py-4 text-sm text-muted-foreground">
-            Loading schedule…
+            {COPY.loading}
           </p>
         ) : (
           <div className="space-y-4">
@@ -236,11 +252,10 @@ export function WorkflowScheduleDialog({
             <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  Recurring schedule
+                  {COPY.recurring}
                 </p>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Run this workflow automatically on the cadence and timezone
-                  below.
+                  {COPY.recurringHint}
                 </p>
               </div>
               <Switch
@@ -257,7 +272,7 @@ export function WorkflowScheduleDialog({
                   className="block text-sm font-medium text-foreground"
                   htmlFor="workflow-schedule-cadence"
                 >
-                  Cadence
+                  {COPY.cadence}
                 </label>
                 <Select
                   disabled={isSaving}
@@ -287,7 +302,7 @@ export function WorkflowScheduleDialog({
                       </SelectItem>
                     ))}
                     <SelectItem value={CUSTOM_CADENCE_VALUE}>
-                      Custom…
+                      {COPY.customCadence}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -297,7 +312,7 @@ export function WorkflowScheduleDialog({
                       className="block text-xs font-medium text-muted-foreground"
                       htmlFor="workflow-schedule-custom-cron"
                     >
-                      Custom schedule
+                      {COPY.customSchedule}
                     </label>
                     <Input
                       aria-label="Custom schedule"
@@ -310,8 +325,7 @@ export function WorkflowScheduleDialog({
                       }
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Advanced cron format. Prefer a preset unless you need
-                      something specific.
+                      {COPY.advancedCronHint}
                     </p>
                   </div>
                 ) : null}
@@ -322,7 +336,7 @@ export function WorkflowScheduleDialog({
                   className="block text-sm font-medium text-foreground"
                   htmlFor="workflow-schedule-timezone"
                 >
-                  Timezone
+                  {COPY.timezone}
                 </label>
                 <Select
                   disabled={isSaving}
@@ -364,7 +378,7 @@ export function WorkflowScheduleDialog({
               withWrapper={false}
               onClick={() => void handleRemove()}
             >
-              Remove schedule
+              {COPY.remove}
             </Button>
           ) : (
             <span />
@@ -376,7 +390,7 @@ export function WorkflowScheduleDialog({
               withWrapper={false}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {COPY.cancel}
             </Button>
             <Button
               isDisabled={isSaving || isLoading}

@@ -48,6 +48,11 @@ const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
 ] as const;
 
+const POST_NOUN = 'post';
+const BY_AUTHOR_PREFIX = 'by @';
+const IMPORT_CHOICE_COPY =
+  'This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.';
+
 type SourceCandidate = {
   key: string;
   platform: SocialSourcePlatform;
@@ -443,18 +448,16 @@ export default function FollowSourceModal({
               <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                 {getPlatformIcon(postReference.platform, 'h-4 w-4')}
                 <span className="font-medium">
-                  {formatPlatformLabel(postReference.platform)} post
+                  {`${formatPlatformLabel(postReference.platform)} ${POST_NOUN}`}
                 </span>
                 {postReference.authorHandle ? (
                   <span className="text-foreground/60">
-                    by @{postReference.authorHandle}
+                    {`${BY_AUTHOR_PREFIX}${postReference.authorHandle}`}
                   </span>
                 ) : null}
               </div>
               <p className="text-xs leading-5 text-foreground/58">
-                This link points to one specific post. Import it as inspiration
-                with its metrics, or follow the whole account instead — nothing
-                happens until you choose.
+                {IMPORT_CHOICE_COPY}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button

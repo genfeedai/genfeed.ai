@@ -19,12 +19,12 @@ describe('InstagramService', () => {
   const credentialsMock = {
     findOne: vi.fn(),
     patch: vi.fn(),
-  } as CredentialsService;
+  } as unknown as CredentialsService;
 
   const httpServiceMock = {
     get: vi.fn(),
     post: vi.fn(),
-  } as HttpService;
+  } as unknown as HttpService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

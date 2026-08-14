@@ -357,10 +357,9 @@ export default function WorkflowDetailPageClient({
                         size={ButtonSize.SM}
                         onClick={() => setIsScheduleDialogOpen(true)}
                         icon={<CalendarClock className="size-4" />}
+                        label="Schedule"
                         tooltip="Set a recurring schedule"
-                      >
-                        Schedule
-                      </Button>
+                      />
                       <Button
                         variant={ButtonVariant.DEFAULT}
                         size={ButtonSize.SM}

@@ -1986,22 +1986,6 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
-      "fingerprint": "bd40048b488d31bb8d12",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
-      "fingerprint": "8a890d6ab4181864d5dd",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialConversation",
       "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-query.service.ts",
       "fingerprint": "5ed2f37dbc97950d2361",
       "method": "count",

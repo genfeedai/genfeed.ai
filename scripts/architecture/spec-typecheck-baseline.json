@@ -5025,14 +5025,6 @@
       "workspace": "files"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
-      "fingerprint": "98bd90d9c651fa916753",
-      "message": "Conversion of type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' to type 'ChildProcess' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' is missing the following properties from type 'ChildProcess': stdin, stdio, killed, connected, and 23 more.",
-      "workspace": "files"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/files/src/services/hook-remix/hook-remix.service.spec.ts",
