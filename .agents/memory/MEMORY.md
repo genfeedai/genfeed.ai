@@ -55,6 +55,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_overlay_menus_elevated_surface](feedback_overlay_menus_elevated_surface.md) — dropdowns and popovers use bg-secondary + shadow-dropdown, never elevated or canvas
 - [feedback_conversation_contrast](feedback_conversation_contrast.md) — void chrome stays dark; conversation type is AA white/gray; chroma comes from media
 - [feedback_generation_card_retry_after_failure](feedback_generation_card_retry_after_failure.md) — failed generate keeps Generate on the card; UI-action false is not Done
+- [feedback_ui_action_403_not_provider](feedback_ui_action_403_not_provider.md) — confirm-generate 403s are our API (allowlist/brand/org), not a provider block
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps

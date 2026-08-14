@@ -137,6 +137,20 @@ describe('ModelsGuard', () => {
     expect(result).toBe(true);
   });
 
+  it('accepts a cuid organization id for catalog models', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue({
+      category: ModelCategory.IMAGE,
+    });
+    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const ctx = createContext({ model: 'genfeed-ai/flux-dev' }, orgId);
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+      'genfeed-ai/flux-dev',
+      orgId,
+    );
+  });
+
   it('throws ForbiddenException when organizationId is missing', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,

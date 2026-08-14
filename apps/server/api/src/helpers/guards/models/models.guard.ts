@@ -4,6 +4,7 @@ import {
   isReplicateDestination,
   isReplicateVersionId,
 } from '@api/collections/models/utils/model-key.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ModelCategory } from '@genfeedai/enums';
 import {
   type CanActivate,
@@ -54,7 +55,10 @@ export class ModelsGuard implements CanActivate {
 
     const rawOrgId = request.context?.organizationId;
 
-    if (!rawOrgId || !/^[0-9a-f]{24}$/i.test(rawOrgId)) {
+    if (
+      !isEntityId(rawOrgId) &&
+      !(typeof rawOrgId === 'string' && /^[0-9a-f]{24}$/i.test(rawOrgId))
+    ) {
       throw new ForbiddenException('Organization context is required');
     }
 

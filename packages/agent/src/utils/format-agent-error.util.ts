@@ -114,6 +114,18 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Verify the provider API key, then retry.',
   },
   {
+    // Our confirm-generate hop returns JSON:API 403 (allowlist, brand, org).
+    // That is not Replicate/fal rejecting the account — keep it off the
+    // generic provider-403 rule below.
+    match: /Failed to respond to UI action:\s*403\b/i,
+    title: 'Action not allowed',
+    summary: 'The API refused this generate request.',
+    recovery:
+      'Switch to Auto or a model enabled for this workspace, then retry.',
+    includeRawDetail: true,
+    isConfigurationError: false,
+  },
+  {
     match: /403|forbidden/i,
     title: 'Provider access denied',
     summary: 'The model provider blocked this request.',

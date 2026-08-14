@@ -290,6 +290,34 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(JSON.stringify(error.getResponse())).not.toContain('Bearer');
   });
 
+  it('preserves a specific generate-media 403 detail', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error:
+          'Request failed with status code 403: Model not enabled for this organization',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.FORBIDDEN,
+    );
+
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'Model not enabled for this organization',
+        status: HttpStatus.FORBIDDEN,
+        title: 'Forbidden',
+      }),
+    );
+  });
+
   it('maps a forbidden generate-media failure to 403', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({

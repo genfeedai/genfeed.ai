@@ -56,6 +56,31 @@ describe('formatAgentError', () => {
     );
   });
 
+  it('maps thread UI-action 403s to our API refusal, not a provider block', () => {
+    // Confirm-generate hops through POST /v1/images. A 403 there is our
+    // allowlist / brand / org check — ErrorResponse.forbidden() — not Replicate
+    // rejecting the account. The generic /403|forbidden/ rule used to say
+    // "Provider access denied".
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Insufficient permissions',
+    );
+
+    expect(formatted.title).toBe('Action not allowed');
+    expect(formatted.summary).toMatch(/API refused/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+    expect(formatted.detail).toMatch(/Insufficient permissions/i);
+  });
+
+  it('keeps a specific UI-action 403 detail when the hop named the real reason', () => {
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - Model not enabled for this organization',
+    );
+
+    expect(formatted.title).toBe('Action not allowed');
+    expect(formatted.detail).toMatch(/Model not enabled/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+  });
+
   it('maps thread UI-action axios 500s to connection-interrupted, not provider outage', () => {
     // Confirm-generate waits on POST /v1/images through the same API. When that
     // hop 500s (proxy timeout, hung Replicate call, local reload) axios says
