@@ -20,6 +20,9 @@
     "slugPlaceholder": "brand-slug"
   },
   "generationActionCard": {
+    "generateAria": "Generate image",
+    "generateTooltip": "Generate",
+    "generateVideoAria": "Generate video",
     "previewDescription": "Read and edit the full generation prompt",
     "previewEditorAria": "Full prompt",
     "previewTitle": "Prompt",

@@ -154,7 +154,7 @@ export function GenerationActionCard({
           </div>
         ) : null
       ) : (
-        <div className="space-y-3 p-3">
+        <div className="space-y-2 p-3">
           <GenerationActionCardControls
             prompt={prompt}
             onPromptChange={setPrompt}

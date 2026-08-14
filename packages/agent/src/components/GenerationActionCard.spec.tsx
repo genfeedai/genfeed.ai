@@ -27,6 +27,9 @@ vi.mock('next-intl', () => ({
       readFullAria: 'Read and edit the full prompt',
       stop: 'Stop',
       stopAria: 'Stop generation',
+      generateAria: 'Generate image',
+      generateVideoAria: 'Generate video',
+      generateTooltip: 'Generate',
     })[key] ?? key,
 }));
 
@@ -281,6 +284,33 @@ describe('GenerationActionCard', () => {
     expect(source).toContain('ButtonDropdown');
     expect(source).toContain('name="outputs"');
     expect(source).not.toContain('id="gen-action-outputs"');
+    expect(source).toContain('ArrowUp');
+    expect(source).not.toContain('Play');
+    expect(source).not.toContain('Generate {isImage');
+  });
+
+  it('uses the prompt-bar send control and a single unlabeled toolbar row', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-prompt-bar-send',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    const send = await screen.findByRole('button', { name: 'Generate image' });
+    expect(send).toHaveAttribute('aria-label', 'Generate image');
+    expect(send).not.toHaveTextContent(/generate image/i);
+    expect(screen.queryByText('Model')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aspect Ratio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
   });
 
   beforeEach(() => {
