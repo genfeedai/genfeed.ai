@@ -88,8 +88,10 @@ describe('AgentOrchestratorService', () => {
       chatCompletion: vi.fn().mockResolvedValue({
         choices: [
           {
+            finish_reason: 'stop',
             message: {
               content: 'Hello there',
+              role: 'assistant',
             },
           },
         ],
@@ -112,7 +114,12 @@ describe('AgentOrchestratorService', () => {
             await onToken('streamed');
           }
           return {
-            choices: [{ message: { content: 'Hello streamed' } }],
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { content: 'Hello streamed', role: 'assistant' },
+              },
+            ],
             id: 'stream-completion-1',
             usage: {
               completion_tokens: 20,
@@ -2282,7 +2289,12 @@ describe('AgentOrchestratorService', () => {
           await onToken('streamed');
         }
         return {
-          choices: [{ message: { content: 'Hello streamed' } }],
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: { content: 'Hello streamed', role: 'assistant' },
+            },
+          ],
           id: 'cancelled-stream-completion-1',
           usage: {
             completion_tokens: 20,
