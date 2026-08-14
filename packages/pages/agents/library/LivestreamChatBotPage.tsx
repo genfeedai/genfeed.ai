@@ -5,10 +5,12 @@ import { ButtonVariant, Platform } from '@genfeedai/enums';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
+import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import LivestreamBotConfigCard from './LivestreamBotConfigCard';
@@ -26,6 +28,7 @@ interface LivestreamChatBotPageProps {
 export default function LivestreamChatBotPage({
   defaultPlatform,
 }: LivestreamChatBotPageProps) {
+  const translate = useTranslations('common.livestreamBot');
   const { brandId } = useBrand();
   const connectPlatform = usePlatformOAuthConnect({ brandId });
   const [isConnectingRestream, setIsConnectingRestream] = useState(false);
@@ -73,7 +76,7 @@ export default function LivestreamChatBotPage({
   if (isLoading) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Loading livestream bot…
+        {translate('loading')}
       </div>
     );
   }
@@ -115,9 +118,11 @@ export default function LivestreamChatBotPage({
         <Card className="p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Runtime Controls</h2>
+              <h2 className="text-lg font-semibold">
+                {translate('runtimeControls')}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Session status: {session?.status || 'stopped'}
+                {translate('sessionStatus')}: {session?.status || 'stopped'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -146,7 +151,7 @@ export default function LivestreamChatBotPage({
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             <div className="space-y-4">
-              <h3 className="font-medium">Manual Override</h3>
+              <h3 className="font-medium">{translate('manualOverride')}</h3>
               <Input
                 label="Current Topic"
                 value={manualTopic}
@@ -165,12 +170,22 @@ export default function LivestreamChatBotPage({
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-medium">Transcript Ingestion</h3>
-              <Textarea
-                label="Transcript Chunk"
-                value={transcriptChunk}
-                onChange={(event) => setTranscriptChunk(event.target.value)}
-              />
+              <h3 className="font-medium">
+                {translate('transcriptIngestion')}
+              </h3>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="transcript-chunk"
+                  className="text-sm font-medium text-foreground"
+                >
+                  {translate('transcriptChunk')}
+                </Label>
+                <Textarea
+                  id="transcript-chunk"
+                  value={transcriptChunk}
+                  onChange={(event) => setTranscriptChunk(event.target.value)}
+                />
+              </div>
               <Button
                 label="Process Transcript"
                 variant={ButtonVariant.SECONDARY}
@@ -179,7 +194,7 @@ export default function LivestreamChatBotPage({
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-medium">Send One-Off Message</h3>
+              <h3 className="font-medium">{translate('sendOneOffMessage')}</h3>
               <div className="flex gap-2">
                 <Button
                   label="YouTube"
@@ -200,12 +215,20 @@ export default function LivestreamChatBotPage({
                   onClick={() => setSelectedPlatform('twitch')}
                 />
               </div>
-              <Textarea
-                label="Message"
-                placeholder="Leave blank to let the bot generate the next prompt."
-                value={sendNowMessage}
-                onChange={(event) => setSendNowMessage(event.target.value)}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="send-now-message"
+                  className="text-sm font-medium text-foreground"
+                >
+                  {translate('message')}
+                </Label>
+                <Textarea
+                  id="send-now-message"
+                  placeholder="Leave blank to let the bot generate the next prompt."
+                  value={sendNowMessage}
+                  onChange={(event) => setSendNowMessage(event.target.value)}
+                />
+              </div>
               <Button
                 label="Send Now"
                 variant={ButtonVariant.DEFAULT}

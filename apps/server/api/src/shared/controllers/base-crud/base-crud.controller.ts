@@ -4,10 +4,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { EntityDocument } from '@api/helpers/types/common/common.types';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -307,11 +304,7 @@ export abstract class BaseCRUDController<
    * Child controllers can override this to customize the query
    */
   public buildFindAllQuery(user: User, query: QueryDto): PrismaFindAllInput {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     const matchFilter: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -320,7 +313,7 @@ export abstract class BaseCRUDController<
     if (adminFilter) {
       Object.assign(matchFilter, adminFilter);
     } else {
-      matchFilter.userId = publicMetadata.user;
+      matchFilter.userId = user.userId ?? user.id;
     }
 
     return {
@@ -358,17 +351,16 @@ export abstract class BaseCRUDController<
    * organizations, resolved by membership) MUST override this.
    */
   public canUserReadEntity(user: User, entity: T): boolean | Promise<boolean> {
-    const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as Record<string, unknown>;
 
     const entityOrganizationId = resolveScopeId(entityRecord.organizationId);
     if (entityOrganizationId) {
-      return entityOrganizationId === publicMetadata.organization;
+      return entityOrganizationId === user.organizationId;
     }
 
     const entityBrandId = resolveScopeId(entityRecord.brandId);
     if (entityBrandId) {
-      return entityBrandId === publicMetadata.brand;
+      return entityBrandId === user.brandId;
     }
 
     return true;
@@ -388,7 +380,6 @@ export abstract class BaseCRUDController<
    * organization.
    */
   public enrichCreateDto(createDto: Partial<CreateDto>, user: User): CreateDto {
-    const publicMetadata = getPublicMetadata(user);
     const dto = { ...(createDto as Record<string, unknown>) };
 
     delete dto.brand;
@@ -398,13 +389,13 @@ export abstract class BaseCRUDController<
     delete dto.userId;
 
     if (this.serviceSupportsField('brandId')) {
-      dto.brandId = dto.brandId ?? publicMetadata.brand;
+      dto.brandId = dto.brandId ?? user.brandId;
     }
     if (this.serviceSupportsField('organizationId')) {
-      dto.organizationId = publicMetadata.organization;
+      dto.organizationId = user.organizationId;
     }
     if (this.serviceSupportsField('userId')) {
-      dto.userId = publicMetadata.user;
+      dto.userId = user.userId ?? user.id;
     }
 
     return dto as CreateDto;
@@ -444,12 +435,10 @@ export abstract class BaseCRUDController<
    * Child controllers can override this for custom authorization logic
    */
   public canUserModifyEntity(user: User, entity: T): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
     // Default: user can only modify their own entities through the scalar FK.
     const entityRecord = entity as Record<string, unknown>;
     const entityUserId = resolveScopeId(entityRecord.userId);
-    return entityUserId === publicMetadata.user;
+    return entityUserId === (user.userId ?? user.id);
   }
 
   /**

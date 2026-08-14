@@ -3,7 +3,6 @@ import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/crea
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -35,7 +34,7 @@ export class ContentRunsController {
     @Query('skillSlug') skillSlug?: string,
     @Query('status') status?: ContentRunStatus,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const docs = await this.contentRunsService.listByBrand(
       organization,
@@ -54,7 +53,7 @@ export class ContentRunsController {
     @CurrentUser() user: User,
     @Body() body: CreateContentRunBriefDto,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.contentRunsService.createBriefRun(
       organization,
@@ -71,7 +70,7 @@ export class ContentRunsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.contentRunsService.getRunById(organization, id);
 
@@ -84,7 +83,7 @@ export class ContentRunsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const result = await this.recommendationsService.analyzeRun(
       organization,
@@ -100,7 +99,7 @@ export class ContentRunsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const organization = user.organizationId;
 
     const data = await this.contentRunsService.createRemixPack(
       organization,

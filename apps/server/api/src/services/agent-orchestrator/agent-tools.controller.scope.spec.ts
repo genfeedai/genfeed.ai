@@ -11,13 +11,11 @@ const request = {} as Request;
 const apiKeyUser = (scopes: string[]): User =>
   ({
     id: 'user-1',
-    publicMetadata: {
-      brand: 'brand-1',
-      isApiKey: true,
-      organization: 'org-1',
-      scopes,
-      user: 'user-1',
-    },
+    brandId: 'brand-1',
+    isApiKey: true,
+    organizationId: 'org-1',
+    scopes,
+    userId: 'user-1',
   }) as User;
 
 describe('AgentToolsController publishing scopes', () => {

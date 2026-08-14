@@ -6,7 +6,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -345,9 +344,8 @@ export class MetaAdsController {
    * Token is encrypted at rest and decrypted when retrieved.
    */
   private async getAccessTokenFromCredential(user: User): Promise<string> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization as string;
-    const userId = publicMetadata.user as string;
+    const organizationId = user.organizationId as string;
+    const userId = (user.userId ?? user.id) as string;
 
     const credential = await this.credentialsService.findOne({
       isConnected: true,

@@ -8,7 +8,6 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -71,8 +70,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     @Body() updateDto: UpdateAgentCampaignDto,
   ): Promise<JsonApiSingleResponse> {
     if (updateDto.status === 'active' || updateDto.status === 'paused') {
-      const publicMetadata = getPublicMetadata(user);
-      const organizationId = publicMetadata.organization?.toString();
+      const organizationId = user.organizationId?.toString();
 
       if (!organizationId) {
         throw new Error('Organization not found');
@@ -99,8 +97,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<IAgentCampaignStatusResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
+    const organizationId = user.organizationId?.toString();
 
     if (!organizationId) {
       throw new Error('Organization not found');
@@ -110,17 +107,16 @@ export class AgentCampaignsController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: AgentCampaignsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
 
-    const organizationId = publicMetadata.organization?.toString();
+    const organizationId = user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
 
-    const brandId = publicMetadata.brand?.toString();
+    const brandId = user.brandId?.toString();
     if (brandId) {
       match.brandId = brandId;
     }
@@ -139,25 +135,23 @@ export class AgentCampaignsController extends BaseCRUDController<
     user: User,
     entity: AgentCampaignDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
     // Scalar FK: the legacy `organization` alias is undefined unless the query
     // populated the relation, which would drop this ownership check entirely.
     const entityOrganizationId = entity.organizationId;
 
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization
+      user.organizationId &&
+      entityOrganizationId === user.organizationId
     ) {
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {
-    const { user: metadataUserId } = getPublicMetadata(user);
+    const metadataUserId = user.userId ?? user.id;
     if (metadataUserId) {
       return metadataUserId;
     }

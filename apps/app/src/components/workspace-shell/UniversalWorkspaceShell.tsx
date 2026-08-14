@@ -15,7 +15,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
@@ -23,7 +23,6 @@ import type {
 } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import {
   Drawer,
@@ -32,17 +31,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
-import {
-  ArrowLeft,
-  Columns2,
-  Eye,
-  LayoutGrid,
-  Maximize2,
-  MessageSquare,
-  Zap,
-} from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft, Columns2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -67,7 +56,6 @@ import {
 } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
-import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
 import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
 import {
   appendSearchParamsToHref,
@@ -77,6 +65,13 @@ import {
   OPEN_CONTEXT_TAB_EVENT,
   OPEN_CONVERSATION_TAB_EVENT,
 } from '@/lib/workspace/agent-composer-events';
+import {
+  canLaunchComposerCanvas,
+  canvasLaunchDispatchedResult,
+  canvasLaunchUnavailableResult,
+  resolveNamedComposerOverlay,
+  resolveTrustedComposerAction,
+} from '@/lib/workspace-shell/workspace-composer-action.util';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
@@ -96,8 +91,14 @@ import {
   captureWorkspaceShellScopeCorrection,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import {
+  resolveOverlayTelemetryUpdate,
+  resolveWorkspaceShellTransition,
+  shouldRestorePrimaryFocus,
+} from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
+import WorkspaceInspectorContent from './WorkspaceInspectorContent';
 import {
   useRegisterWorkspaceInspector,
   useWorkspaceInspector,
@@ -110,6 +111,7 @@ import {
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
+import type { WorkspaceInspectorTab } from './workspace-inspector-kind.util';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -130,8 +132,6 @@ const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms $
 // skills, autopilot) keep the generic inspector.
 const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<WorkspaceShellSurfaceKey> =
   new Set(['automate', 'automate-workflows-editor']);
-
-type WorkspaceInspectorTab = 'context' | 'conversation';
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -544,15 +544,13 @@ function UniversalWorkspaceShellContent({
   useEffect(() => {
     const previousState = previousStateRef.current;
     const previousPathname = previousPathnameRef.current;
-    const transition =
-      pendingTransitionRef.current ??
-      (previousState === null
-        ? 'initial_restore'
-        : previousState === 'canvas' &&
-            state === 'canvas' &&
-            previousPathname !== normalizedPathname
-          ? 'canvas_change'
-          : 'browser');
+    const transition = resolveWorkspaceShellTransition({
+      normalizedPathname,
+      pendingTransition: pendingTransitionRef.current,
+      previousPathname,
+      previousState,
+      state,
+    });
 
     captureWorkspaceShellTransition({
       fromState: previousState ?? state,
@@ -563,34 +561,37 @@ function UniversalWorkspaceShellContent({
     previousStateRef.current = state;
     pendingTransitionRef.current = null;
 
-    if (state === 'overlay' && overlayRegistration) {
-      activeOverlayTelemetryClassRef.current =
-        overlayRegistration.telemetryClass;
-      if (previousState !== 'overlay') {
-        overlayCompletedRef.current = false;
-      }
-    } else if (previousState === 'overlay') {
-      if (
-        activeOverlayTelemetryClassRef.current &&
-        !overlayCompletedRef.current
-      ) {
-        captureWorkspaceShellOverlayAbandonment(
-          activeOverlayTelemetryClassRef.current,
-        );
-      }
-      activeOverlayTelemetryClassRef.current = null;
-      overlayCompletedRef.current = false;
+    const overlayTelemetry = resolveOverlayTelemetryUpdate({
+      currentTelemetryClass: activeOverlayTelemetryClassRef.current,
+      isOverlayCompleted: overlayCompletedRef.current,
+      overlayTelemetryClass: overlayRegistration?.telemetryClass ?? null,
+      previousState,
+      state,
+    });
+    if (overlayTelemetry.abandonedTelemetryClass) {
+      captureWorkspaceShellOverlayAbandonment(
+        overlayTelemetry.abandonedTelemetryClass,
+      );
+    }
+    activeOverlayTelemetryClassRef.current =
+      overlayTelemetry.nextTelemetryClass;
+    overlayCompletedRef.current = overlayTelemetry.nextCompleted;
+
+    if (state === 'overlay') {
+      return;
     }
 
-    if (state !== 'overlay') {
-      isOwnedOverlayEntryRef.current = false;
-      const shouldRestoreOverlayTrigger =
-        previousState === 'overlay' && hasOverlayReturnFocusRef.current;
-      if (previousState !== null && !shouldRestoreOverlayTrigger) {
-        primaryRegionRef.current?.focus({ preventScroll: true });
-      }
-      hasOverlayReturnFocusRef.current = false;
+    isOwnedOverlayEntryRef.current = false;
+    if (
+      shouldRestorePrimaryFocus({
+        hasOverlayReturnFocus: hasOverlayReturnFocusRef.current,
+        previousState,
+        state,
+      })
+    ) {
+      primaryRegionRef.current?.focus({ preventScroll: true });
     }
+    hasOverlayReturnFocusRef.current = false;
   }, [normalizedPathname, overlayRegistration, state]);
 
   // Brand-scoped full agent surface — keeps the selected brand in the URL so
@@ -658,60 +659,28 @@ function UniversalWorkspaceShellContent({
     (
       invocation: ConversationComposerActionInvocation,
     ): ConversationComposerDispatchResult => {
-      const trustedAction = getConversationComposerAction(
-        invocation.action.name,
-      );
-      if (conversationScope.isConsequentiallyBlocked) {
-        return {
-          message:
-            'Synchronize the server-authoritative conversation scope before opening consequential actions. Your draft is unchanged.',
-          status: 'unauthorized',
-        };
-      }
-      if (
-        !trustedAction ||
-        trustedAction.route !== invocation.action.route ||
-        trustedAction.requiredScope !== invocation.action.requiredScope
-      ) {
-        return {
-          message:
-            'That action is not registered. Your draft and references are unchanged.',
-          status: 'unavailable',
-        };
+      const resolvedAction = resolveTrustedComposerAction({
+        invocation,
+        isConsequentiallyBlocked: conversationScope.isConsequentiallyBlocked,
+        trustedAction:
+          getConversationComposerAction(invocation.action.name) ?? undefined,
+      });
+      if (!resolvedAction.ok) {
+        return resolvedAction.result;
       }
 
-      // One rule for every slash action: brand selected → brand URL, else org.
-      // Special cases below are presentation (overlay vs canvas), not scope.
-      if (trustedAction.name === 'workflow') {
-        return handleOpenWorkflowPicker()
-          ? {
-              message:
-                'Opened the authorized workflow picker. Choose a workflow to attach it or open its focused editor.',
-              status: 'dispatched',
-            }
-          : {
-              message:
-                'The workflow picker is unavailable. Your draft and references are unchanged.',
-              status: 'unavailable',
-            };
-      }
-
-      if (trustedAction.name === 'remix') {
-        const didOpen = launchWorkspaceOverlay({
-          key: 'library-picker',
-          parameters: {},
-        });
-        return didOpen
-          ? {
-              message:
-                'Opened the authorized Library picker. Your draft and active thread are preserved.',
-              status: 'dispatched',
-            }
-          : {
-              message:
-                'The Library picker is unavailable. Your draft and references are unchanged.',
-              status: 'unavailable',
-            };
+      const trustedAction = resolvedAction.action;
+      const overlayResult = resolveNamedComposerOverlay({
+        actionName: trustedAction.name,
+        openLibraryPicker: () =>
+          launchWorkspaceOverlay({
+            key: 'library-picker',
+            parameters: {},
+          }),
+        openWorkflowPicker: handleOpenWorkflowPicker,
+      });
+      if (overlayResult) {
+        return overlayResult;
       }
 
       const destination = resolveConversationComposerDestinationHref({
@@ -726,23 +695,13 @@ function UniversalWorkspaceShellContent({
         destinationHref: destination,
         threadId: effectiveThreadId ?? activeThreadId,
       });
-      if (launch.history !== 'push' || launch.mode !== 'canvas') {
-        return {
-          message:
-            'That product surface is unavailable. Your draft and references are unchanged.',
-          status: 'unavailable',
-        };
+      if (!canLaunchComposerCanvas(launch)) {
+        return canvasLaunchUnavailableResult();
       }
 
       pendingTransitionRef.current = 'canvas_launch';
       push(launch.href);
-
-      return {
-        message: trustedAction.isConsequentialProposal
-          ? `Opened ${trustedAction.label}. Your draft is preserved; execution still requires the product's explicit typed confirmation and authorization.`
-          : `Opened ${trustedAction.label}. Your draft and references are preserved.`,
-        status: 'dispatched',
-      };
+      return canvasLaunchDispatchedResult(trustedAction);
     },
     [
       activeHref,
@@ -940,187 +899,40 @@ function UniversalWorkspaceShellContent({
     />
   );
 
-  // Rendered at two sites (desktop rail + mobile drawer), so this stays a
-  // function: only the desktop rail may own the agent portal target, otherwise
-  // the ref callback would race between two mounted copies.
-  const renderInspectorContent = (
-    agentPanelSlot: ReactNode = null,
-    conversationSlot: ReactNode = null,
-  ) => {
-    const isAgentOwned = agentPanelSlot !== null && hasAgentInspectorPanel;
-    const activeInspectorTab = conversationSlot ? inspectorTab : 'context';
-    const isInspectorComposerOwner =
-      conversationSlot !== null && state !== 'overlay';
-
-    return (
-      <Tabs
-        className="flex h-full min-h-0 flex-col bg-background"
-        onValueChange={(value) =>
-          setInspectorTab(value === 'conversation' ? 'conversation' : 'context')
-        }
-        value={activeInspectorTab}
-      >
-        {/* h-12 + border-b matches AppLayout topbar and sidebar header shell so
-            the chrome seam is one continuous line across the frame. */}
-        <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
-          {conversationSlot ? (
-            <TabsList className="h-8">
-              <TabsTrigger value="context">
-                {WORKSPACE_INSPECTOR_CHROME.contextTab}
-              </TabsTrigger>
-              <TabsTrigger value="conversation">
-                {WORKSPACE_INSPECTOR_CHROME.conversationTab}
-              </TabsTrigger>
-            </TabsList>
-          ) : (
-            <p className="truncate text-sm font-medium text-foreground">
-              {WORKSPACE_INSPECTOR_CHROME.title}
-            </p>
-          )}
-          {/* One chrome row only: expand lives here, not a second bar inside the
-            conversation panel. Collapse stays in the app topbar. */}
-          {conversationSlot && !isAgentRoute ? (
-            <Button
-              asChild
-              ariaLabel={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
-              className="size-8 shrink-0"
-              size={ButtonSize.ICON}
-              tooltip={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            >
-              <Link
-                href={fullConversationHref}
-                aria-label={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
-                title={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
-                onClick={() => {
-                  pendingTransitionRef.current = 'conversation_return';
-                }}
-              >
-                <Maximize2 className="size-3.5" aria-hidden="true" />
-              </Link>
-            </Button>
-          ) : null}
-        </div>
-
-        {/* Context leads, conversation follows — pane order matches the tab
-          order above so keyboard tab navigation and DOM order agree.
-          `forceMount` on both panes: switching tabs must not unmount the
-          conversation, or its prompt bar would vanish from the shell composer
-          and an in-flight run would lose its transcript. */}
-        <TabsContent
-          className={cn(
-            'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
-            // Product surface adapters render edge-to-edge (own section dividers).
-            // Non-product context keeps shell padding/gap chrome.
-            !productSurfaceAdapter && !isAgentOwned && 'gap-3 p-3',
-          )}
-          forceMount
-          value="context"
-        >
-          {/* Agent-projected panels only on /agent/* — never blank out product
-              surface context (review, studio, etc.) when the portal target exists. */}
-          {isAgentOwned && isAgentRoute ? agentPanelSlot : null}
-          {productSurfaceAdapter ? (
-            <div
-              className="flex min-h-0 min-w-0 flex-1 flex-col"
-              data-testid="product-surface-inspector"
-            >
-              {productSurfaceAdapter.renderInspector()}
-            </div>
-          ) : isAgentOwned && isAgentRoute ? null : isAgentRoute ? (
-            <p className="px-1 text-xs leading-5 text-muted-foreground">
-              {WORKSPACE_INSPECTOR_CHROME.emptyAgentBody}
-            </p>
-          ) : (
-            <>
-              {conversationScope.inspectorScope}
-              {isWorkflowInspectorSurface ? (
-                <WorkflowSurfaceInspector
-                  contextVersion={activeThread?.contextVersion}
-                  pathname={rawPathname}
-                  searchParams={new URLSearchParams(searchParamsString)}
-                  threadId={effectiveThreadId}
-                />
-              ) : effectiveSurfaceAdapter ? (
-                effectiveSurfaceAdapter.inspectorContent
-              ) : activeResearchSurfaceAdapter ? (
-                activeResearchSurfaceAdapter.inspectorContent
-              ) : resolvedSurfacePresentationAdapter ? (
-                resolvedSurfacePresentationAdapter.inspector
-              ) : resolvedWorkspaceSurfaceAdapter ? (
-                <div
-                  className="gen-shell-empty-state p-4"
-                  data-testid="workspace-surface-adapter-inspector"
-                >
-                  <p className="text-sm font-medium text-foreground">
-                    {resolvedWorkspaceSurfaceAdapter.registration.title}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    {resolvedWorkspaceSurfaceAdapter.registration.description}
-                  </p>
-                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                    Full management remains available on this canonical route.
-                  </p>
-                </div>
-              ) : (
-                <CardEmptyContent
-                  className="gen-shell-empty-state rounded-lg py-8"
-                  description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
-                  icon={LayoutGrid}
-                  label={`No ${inspectorBreadcrumbLabel} context yet`}
-                  size={CardEmptySize.SM}
-                />
-              )}
-              <Button
-                icon={<Zap className="size-4" />}
-                onClick={handleOpenWorkflowPicker}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              >
-                Choose workflow
-              </Button>
-              {effectiveSurfaceAdapter ||
-              resolvedSurfacePresentationAdapter ? null : (
-                <Button
-                  icon={<Eye className="size-4" />}
-                  onClick={handleOpenOverlay}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                >
-                  Open overlay preview
-                </Button>
-              )}
-              <Button
-                icon={<MessageSquare className="size-4" />}
-                onClick={handleReturnToConversation}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              >
-                Return to conversation
-              </Button>
-            </>
-          )}
-        </TabsContent>
-
-        {conversationSlot ? (
-          <TabsContent
-            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
-            forceMount
-            value="conversation"
-          >
-            {conversationSlot}
-            {isInspectorComposerOwner ? (
-              <div
-                className="shrink-0 p-2"
-                data-testid="workspace-inspector-composer-slot"
-                ref={setComposerPortalTarget}
-              />
-            ) : null}
-          </TabsContent>
-        ) : null}
-      </Tabs>
-    );
+  const inspectorSharedProps = {
+    actions: {
+      onOpenOverlay: handleOpenOverlay,
+      onOpenWorkflowPicker: handleOpenWorkflowPicker,
+      onReturnToConversation: handleReturnToConversation,
+      onSelectInspectorTab: (tab: WorkspaceInspectorTab) => {
+        setInspectorTab(tab);
+      },
+      onSetComposerPortalTarget: setComposerPortalTarget,
+      pendingTransitionRef,
+    },
+    adapters: {
+      effectiveSurfaceAdapter,
+      productSurfaceAdapter,
+      researchSurfaceAdapter: activeResearchSurfaceAdapter,
+      surfacePresentationAdapter: resolvedSurfacePresentationAdapter,
+      workspaceSurfaceAdapter: resolvedWorkspaceSurfaceAdapter,
+    },
+    chrome: {
+      hasAgentInspectorPanel,
+      inspectorBreadcrumbLabel,
+      inspectorScope: conversationScope.inspectorScope,
+      inspectorTab,
+    },
+    route: {
+      activeThreadContextVersion: activeThread?.contextVersion,
+      effectiveThreadId,
+      fullConversationHref,
+      isAgentRoute,
+      isOverlayState: state === 'overlay',
+      isWorkflowInspectorSurface,
+      rawPathname,
+      searchParamsString,
+    },
   };
 
   return (
@@ -1304,15 +1116,20 @@ function UniversalWorkspaceShellContent({
                   width: expandedInspectorWidth,
                 }}
               >
-                {renderInspectorContent(
-                  isInspectorOpen ? (
-                    <div
-                      className="flex min-h-0 flex-1 flex-col empty:hidden"
-                      ref={setAgentInspectorPortalTarget}
-                    />
-                  ) : null,
-                  isMobileInspectorOpen ? null : conversationInspectorSlot,
-                )}
+                <WorkspaceInspectorContent
+                  {...inspectorSharedProps}
+                  agentPanelSlot={
+                    isInspectorOpen ? (
+                      <div
+                        className="flex min-h-0 flex-1 flex-col empty:hidden"
+                        ref={setAgentInspectorPortalTarget}
+                      />
+                    ) : null
+                  }
+                  conversationSlot={
+                    isMobileInspectorOpen ? null : conversationInspectorSlot
+                  }
+                />
               </div>
             </aside>
           </div>
@@ -1331,7 +1148,11 @@ function UniversalWorkspaceShellContent({
                 </DrawerDescription>
               </DrawerHeader>
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                {renderInspectorContent(null, conversationInspectorSlot)}
+                <WorkspaceInspectorContent
+                  {...inspectorSharedProps}
+                  agentPanelSlot={null}
+                  conversationSlot={conversationInspectorSlot}
+                />
               </div>
             </DrawerContent>
           </Drawer>

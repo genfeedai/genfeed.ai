@@ -4,4 +4,5 @@ export * from './social-message.attributes';
 export * from './social-reply-campaign.attributes';
 export * from './social-reply-campaign-recipient.attributes';
 export * from './social-source.attributes';
+export * from './social-warmup-enrollment.attributes';
 export * from './source-post.attributes';

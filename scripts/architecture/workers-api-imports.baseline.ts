@@ -40,8 +40,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/credits/credits.module',
   '@api/collections/credits/services/credit-transactions.service',
   '@api/collections/credits/services/credits.utils.service',
-  '@api/collections/cron-jobs/cron-jobs.module',
-  '@api/collections/cron-jobs/services/cron-jobs.service',
   '@api/collections/ingredients/entities/ingredient.entity',
   '@api/collections/ingredients/ingredients.module',
   '@api/collections/ingredients/services/ingredients.service',

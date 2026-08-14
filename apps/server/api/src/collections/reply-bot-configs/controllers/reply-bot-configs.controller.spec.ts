@@ -1,11 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: 'brand-123',
-    organization: 'org-123',
-    user: 'user-123',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -28,7 +20,12 @@ describe('ReplyBotConfigsController', () => {
   let replyBotQueueService: ReplyBotQueueService;
   let replyBotOrchestratorService: ReplyBotOrchestratorService;
 
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    brandId: 'brand-123',
+    id: 'auth-provider-user',
+    organizationId: 'org-123',
+    userId: 'user-123',
+  } as never;
 
   const mockReplyBotConfigsService = {
     create: vi.fn(),

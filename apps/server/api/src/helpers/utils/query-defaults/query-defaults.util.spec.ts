@@ -11,36 +11,14 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should use provided values when pagination is enabled', () => {
-      const query = { limit: 50, page: 2, pagination: true };
+    it('should use provided page and limit values', () => {
+      const query = { limit: 50, page: 2 };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result).toEqual({
         limit: 50,
         page: 2,
         pagination: true,
       });
-    });
-
-    it('should enforce pagination when the client sends pagination=false', () => {
-      const query = { limit: 5, page: 3, pagination: false };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result).toEqual({
-        limit: 5,
-        page: 3,
-        pagination: true,
-      });
-    });
-
-    it('should enforce pagination for the string "false" from a raw query param', () => {
-      const query = { pagination: 'false' };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result.pagination).toBe(true);
-    });
-
-    it('should handle string "true" for pagination', () => {
-      const query = { pagination: 'true' };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result.pagination).toBe(true);
     });
 
     it('should coerce string limit and page values to numbers', () => {
@@ -101,33 +79,17 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should preserve provided values', () => {
+    it('should preserve provided page, limit, sort, and isDeleted values', () => {
       const query = {
         isDeleted: true,
         limit: 100,
         page: 3,
-        pagination: true,
-        sort: 'name',
-      };
-      const result = QueryDefaultsUtil.applyDefaults(query);
-      expect(result).toEqual(query);
-    });
-
-    it('should enforce pagination even when the client disables it', () => {
-      const query = {
-        isDeleted: true,
-        limit: 25,
-        page: 3,
-        pagination: false,
         sort: 'name',
       };
       const result = QueryDefaultsUtil.applyDefaults(query);
       expect(result).toEqual({
-        isDeleted: true,
-        limit: 25,
-        page: 3,
+        ...query,
         pagination: true,
-        sort: 'name',
       });
     });
 

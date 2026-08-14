@@ -269,11 +269,7 @@ export class ProcessorErrorHandler {
    */
   private extractUserId(context: ProcessorErrorContext): string | undefined {
     const jobData = context.job.data as Record<string, unknown>;
-    return (
-      (jobData.userId as string) ||
-      (jobData.authProviderUserId as string) ||
-      undefined
-    );
+    return (jobData.userId as string) || undefined;
   }
 }
 

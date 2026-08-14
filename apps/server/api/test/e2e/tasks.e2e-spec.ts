@@ -1,7 +1,4 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
-import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import {
   createTestOrganization,
   createTestUser,
@@ -27,25 +24,21 @@ class TestCurrentUserGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
       user?: {
+        brandId: string;
         id: string;
-        publicMetadata: {
-          organization: string;
-          user: string;
-        };
+        organizationId: string;
+        userId: string;
       };
     }>();
 
     request.user = {
-      id:
-        getHeaderValue(request.headers['x-authProvider-user-id']) ??
-        'authProvider_test_user',
-      publicMetadata: {
-        organization:
-          getHeaderValue(request.headers['x-organization-id']) ??
-          generateIdString(),
-        user:
-          getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
-      },
+      brandId: 'e2e-test-brand',
+      id: getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
+      organizationId:
+        getHeaderValue(request.headers['x-organization-id']) ??
+        generateIdString(),
+      userId:
+        getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
     };
 
     return true;
@@ -68,24 +61,19 @@ describe('Tasks E2E Tests', () => {
   let scopedTaskId: string;
 
   beforeAll(async () => {
-    const moduleConfig = await E2ETestModule.forRoot({
-      controllers: [TasksController],
+    const moduleConfig = await E2ETestModule.forTasks({
       providers: [
-        TasksService,
         {
           provide: APP_GUARD,
           useClass: TestCurrentUserGuard,
         },
         {
-          provide: TaskCountersService,
-          useValue: {
-            getNextNumber: vi.fn(),
-          },
-        },
-        {
           provide: OrganizationsService,
           useValue: {
-            findOne: vi.fn(),
+            findOne: vi.fn(async ({ id }: { id: string }) => ({
+              id,
+              isDeleted: false,
+            })),
           },
         },
       ],
@@ -149,7 +137,7 @@ describe('Tasks E2E Tests', () => {
         createdAt: new Date('2026-04-01T10:00:00.000Z'),
         identifier: 'GENA-20',
         isDeleted: false,
-        linkedEntities: [],
+        config: { linkedEntities: [] },
         organizationId: testOrganization.id,
         priority: 'high',
         status: 'todo',
@@ -162,7 +150,7 @@ describe('Tasks E2E Tests', () => {
         createdAt: new Date('2026-04-01T11:00:00.000Z'),
         identifier: 'GENA-99',
         isDeleted: false,
-        linkedEntities: [],
+        config: { linkedEntities: [] },
         organizationId: otherOrganization.id,
         priority: 'low',
         status: 'backlog',
@@ -180,7 +168,6 @@ describe('Tasks E2E Tests', () => {
     return request(app.getHttpServer())
       [method](url)
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   }

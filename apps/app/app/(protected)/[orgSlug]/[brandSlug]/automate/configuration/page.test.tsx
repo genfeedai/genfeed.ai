@@ -44,6 +44,14 @@ vi.mock('next/navigation', () => ({
   useParams: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('AgentConfigurationPage', () => {
   const fetchMock = vi.fn();
   const updateAgentConfig = vi.fn().mockResolvedValue(undefined);

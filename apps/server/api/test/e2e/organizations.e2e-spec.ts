@@ -211,7 +211,6 @@ describe('Organizations E2E Tests', () => {
   const authenticatedRequest = () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   };
@@ -541,7 +540,6 @@ describe('Organizations E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .get(`/v1/organizations/${testOrganization.id}/ingredients`)
         .set('Authorization', 'Bearer mock-jwt-token')
-        .set('x-authProvider-user-id', otherUser.id.toString())
         .set('x-user-id', otherUser.id.toString())
         .set('x-organization-id', testOrganization.id.toString());
 
@@ -571,7 +569,6 @@ describe('Organizations E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .get(`/v1/brands?organization=${testOrganization.id}`)
         .set('Authorization', 'Bearer mock-jwt-token')
-        .set('x-authProvider-user-id', memberUser.id.toString())
         .set('x-user-id', memberUser.id.toString())
         .set('x-organization-id', testOrganization.id.toString());
 

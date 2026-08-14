@@ -1,8 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 
 export interface OrganizationOwnedElement {
   organizationId?: string | null;
@@ -18,7 +15,5 @@ export function canModifyOrganizationElement(
   }
 
   const organizationId = entity.organizationId;
-  return Boolean(
-    organizationId && organizationId === getPublicMetadata(user).organization,
-  );
+  return Boolean(organizationId && organizationId === user.organizationId);
 }

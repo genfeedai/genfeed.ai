@@ -14,10 +14,7 @@ import {
   ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
   createArticlePreviewToken,
 } from '@api/helpers/utils/article-preview/article-preview-token.util';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -68,10 +65,9 @@ export class ArticlesController extends BaseCRUDController<
    * Uses ArticleFilterUtil for consistent filtering patterns
    */
   public buildFindAllQuery(user: User, query: ArticlesQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
-      publicMetadata,
+      user,
       getIsSuperAdmin(user),
     );
 
@@ -86,10 +82,10 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brandId: scope.brandId ?? publicMetadata.brand,
+        brandId: scope.brandId ?? user.brandId,
         isDeleted: query.isDeleted ?? false,
-        organizationId: scope.organizationId ?? publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: scope.organizationId ?? user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
   }
@@ -106,7 +102,6 @@ export class ArticlesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') articleId: string,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
     const isSuperAdmin = getIsSuperAdmin(user, request);
 
     // Scope the database read for regular users instead of hydrating another
@@ -116,7 +111,7 @@ export class ArticlesController extends BaseCRUDController<
         id: articleId,
         isDeleted: false,
         ...(!isSuperAdmin && {
-          organizationId: publicMetadata.organization.toString(),
+          organizationId: user.organizationId.toString(),
         }),
       },
     };
@@ -134,7 +129,7 @@ export class ArticlesController extends BaseCRUDController<
 
     // Check organization access
     if (
-      article.organizationId !== publicMetadata.organization.toString() &&
+      article.organizationId !== user.organizationId.toString() &&
       !isSuperAdmin
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
@@ -158,8 +153,6 @@ export class ArticlesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('articleId') articleId: string,
   ): Promise<{ expiresInSeconds: number; url: string }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const article = await this.articlesService.findOne({
       id: articleId,
     });
@@ -169,7 +162,7 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     if (
-      article.organizationId !== publicMetadata.organization.toString() &&
+      article.organizationId !== user.organizationId.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
@@ -212,8 +205,6 @@ export class ArticlesController extends BaseCRUDController<
     @Param('articleId') articleId: string,
     @Body() updateDto: UpdateArticleDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // A `restoreFromVersionId` in the patch body reverts the article to a prior
     // version (prompt snapshot). The restore path carries its own
     // ownership/version-exists guards; other update fields are ignored.
@@ -221,16 +212,16 @@ export class ArticlesController extends BaseCRUDController<
       ? await this.articlesService.restoreArticleVersion(
           articleId,
           updateDto.restoreFromVersionId,
-          publicMetadata.user,
-          publicMetadata.organization,
-          publicMetadata.brand,
+          user.userId ?? user.id,
+          user.organizationId,
+          user.brandId,
         )
       : await this.articlesService.update(
           articleId,
           updateDto,
-          publicMetadata.user,
-          publicMetadata.organization,
-          publicMetadata.brand,
+          user.userId ?? user.id,
+          user.organizationId,
+          user.brandId,
         );
 
     return serializeSingle(request, this.serializer, data);
@@ -242,13 +233,11 @@ export class ArticlesController extends BaseCRUDController<
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     return await this.articlesService.getArticleVersions(
       articleId,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
+      user.userId ?? user.id,
+      user.organizationId,
+      user.brandId,
     );
   }
 }

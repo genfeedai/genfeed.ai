@@ -18,7 +18,7 @@ describe('CollectionFilterUtil', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
           { brandId: brandA, organizationId: orgB },
-          { brand: brandA, isSuperAdmin: true, organization: orgA },
+          { brandId: brandA, isSuperAdmin: true, organizationId: orgA },
         ),
       ).toEqual({ brandId: brandA, organizationId: orgB });
     });
@@ -27,7 +27,7 @@ describe('CollectionFilterUtil', () => {
       const call = () =>
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
           { organizationId: orgB },
-          { brand: brandA, isSuperAdmin: false, organization: orgA },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
         );
 
       expect(call).toThrow(ForbiddenException);
@@ -47,7 +47,7 @@ describe('CollectionFilterUtil', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
           { brandId: '550e8400-e29b-41d4-a716-446655440004' },
-          { brand: brandA, isSuperAdmin: false, organization: orgA },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
         ),
       ).toEqual({
         brandId: '550e8400-e29b-41d4-a716-446655440004',
@@ -59,7 +59,7 @@ describe('CollectionFilterUtil', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
           { organizationId: orgA },
-          { brand: brandA, isSuperAdmin: false, organization: orgA },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
         ),
       ).toEqual({ organizationId: orgA });
     });
@@ -77,7 +77,7 @@ describe('CollectionFilterUtil', () => {
     it('falls back to user brand metadata by default', () => {
       const userBrand = '550e8400-e29b-41d4-a716-446655440003';
       const result = CollectionFilterUtil.buildBrandFilter(undefined, {
-        brand: userBrand,
+        brandId: userBrand,
       });
       expect(result).toEqual(expect.any(String));
       expect(result as string).toBe(userBrand);
@@ -152,8 +152,8 @@ describe('CollectionFilterUtil', () => {
 
     it('builds OR filter when user and organization exist', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter({
-        organization: organizationId,
-        user: userId,
+        organizationId,
+        userId,
       });
 
       expect(result).toHaveProperty('OR');
@@ -164,7 +164,7 @@ describe('CollectionFilterUtil', () => {
 
     it('returns single condition when only user provided', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter(
-        { user: userId },
+        { userId },
         { includeOrganization: false },
       );
       expect(result).toHaveProperty('userId');

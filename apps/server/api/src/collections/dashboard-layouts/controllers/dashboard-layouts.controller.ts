@@ -3,7 +3,6 @@ import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -60,7 +59,7 @@ export class DashboardLayoutsController {
       });
     }
 
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const data = await this.service.findForPage(
       brandId,
@@ -79,7 +78,7 @@ export class DashboardLayoutsController {
     @CurrentUser() user: User,
     @Body() dto: UpsertDashboardLayoutDto,
   ): Promise<JsonApiSingleResponse> {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const data = await this.service.upsertForPage(organizationId, dto);
     return serializeSingle(request, DashboardLayoutSerializer, data);
@@ -91,7 +90,7 @@ export class DashboardLayoutsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const data = await this.service.removeScoped(id, organizationId);
     return data

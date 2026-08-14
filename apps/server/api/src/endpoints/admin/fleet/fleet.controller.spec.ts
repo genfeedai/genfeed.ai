@@ -59,11 +59,9 @@ describe('AdminFleetController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      brand: 'brand_123',
-      organization: 'org_123',
-      user: 'user_123',
-    },
+    brandId: 'brand_123',
+    organizationId: 'org_123',
+    userId: 'user_123',
   } as unknown as User;
 
   const mockRequest = {

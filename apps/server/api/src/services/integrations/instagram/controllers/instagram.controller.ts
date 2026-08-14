@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -16,6 +15,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -32,11 +32,13 @@ import { firstValueFrom } from 'rxjs';
 interface InstagramShortLivedTokenResponse {
   access_token: string;
   expires_in?: number;
+  scope?: string;
 }
 
 interface InstagramLongLivedTokenResponse {
   access_token: string;
   expires_in?: number;
+  scope?: string;
 }
 
 @AutoSwagger()
@@ -91,11 +93,9 @@ export class InstagramController {
 
     this.loggerService.log(url, createCredentialDto);
 
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -107,7 +107,7 @@ export class InstagramController {
 
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
-      publicMetadata.user,
+      user.userId ?? user.id,
       CredentialPlatform.INSTAGRAM,
       {
         accessToken: undefined,
@@ -348,6 +348,7 @@ export class InstagramController {
       }
 
       const { access_token, expires_in } = longTokenRes.data || {};
+      const scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
 
       if (!access_token) {
         return returnBadRequest({
@@ -370,6 +371,7 @@ export class InstagramController {
           oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

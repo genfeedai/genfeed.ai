@@ -200,12 +200,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform pattern extraction maintenance.',
   },
   {
-    file: 'apps/server/workers/src/crons/dynamic-jobs/cron.dynamic-jobs.service.ts',
-    id: 'dynamic-jobs-dispatcher',
-    methodName: 'processDueDynamicJobs',
-    reason: 'Platform dynamic job dispatcher.',
-  },
-  {
     file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
     id: 'trends-global-refresh',
     methodName: 'refreshGlobalTrends',
@@ -275,7 +269,7 @@ export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [
     issue: 1091,
     methodName: 'checkScheduledWorkflows',
     reason:
-      'Legacy step-workflow executor. Deletion blocked on #1091 (BullMQ Job Schedulers) plus legacy cron-jobs sunset; config.trigger=SCHEDULED rows and ads-research drafts still depend on it.',
+      'Legacy step-workflow executor. Deletion blocked on #1091 (BullMQ Job Schedulers); config.trigger=SCHEDULED rows and ads-research drafts still depend on it.',
   },
 ];
 

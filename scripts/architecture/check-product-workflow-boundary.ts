@@ -156,23 +156,9 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'Manual social inbox reply/DM endpoints still dispatch directly while reply and DM actions move behind workflow execution.',
       systemWorkflowIds: ['reply-dm-automation'],
     },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/dynamic-jobs/cron.dynamic-jobs.service.ts',
-      id: 'legacy-dynamic-jobs-dispatcher',
-      issue: 1011,
-      reason:
-        'Legacy dynamic job dispatcher can still run non-workflow product jobs while old rows exist.',
-      systemWorkflowIds: ['legacy-cron-workflow-adapter'],
-    },
   ];
 
-const PRODUCT_CRON_PATH_SEGMENTS = [
-  '/content-pipeline/',
-  '/content-schedules/',
-  '/dynamic-jobs/',
-  '/posts/',
-];
+const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
 
 const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {

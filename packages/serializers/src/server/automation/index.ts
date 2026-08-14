@@ -5,8 +5,6 @@ export * from '@serializers/server/automation/agent-strategy.serializer';
 export * from '@serializers/server/automation/bot.serializer';
 export * from '@serializers/server/automation/bot-activity.serializer';
 export * from '@serializers/server/automation/brand-memory.serializer';
-export * from '@serializers/server/automation/cron-job.serializer';
-export * from '@serializers/server/automation/cron-run.serializer';
 export * from '@serializers/server/automation/livestream-bot-session.serializer';
 export * from '@serializers/server/automation/monitored-account.serializer';
 export * from '@serializers/server/automation/outreach-campaign.serializer';

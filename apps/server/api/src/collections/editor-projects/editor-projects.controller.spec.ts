@@ -49,11 +49,9 @@ const makeRequest = (): Request => ({}) as Request;
 const makeUser = () =>
   ({
     id: 'c07f191e810c19729de860ee',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee',
-      organization: 'c07f191e810c19729de860ee',
-      user: 'c07f191e810c19729de860ee',
-    },
+    brandId: 'c07f191e810c19729de860ee',
+    organizationId: 'c07f191e810c19729de860ee',
+    userId: 'c07f191e810c19729de860ee',
   }) as never;
 
 const makeProject = (overrides: Record<string, unknown> = {}) => ({

@@ -391,6 +391,16 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
+      // Weekly Coverage job (run 31367395806, 2026-08-10): 54.89% branches,
+      // 50.08% functions, 58.57% lines, 58.17% statements. Floor is ~2 points
+      // below that merged table so the suite can move a little without going
+      // back to being unmeasured.
+      thresholds: {
+        branches: 52,
+        functions: 48,
+        lines: 56,
+        statements: 56,
+      },
     },
     environment: 'jsdom',
     environmentOptions: {

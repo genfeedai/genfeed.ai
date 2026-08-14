@@ -44,4 +44,12 @@ describe('CI concurrency', () => {
     // each other's cache manifest, so these queue instead of cancelling.
     expect(workflow).toContain('cancel-in-progress: false');
   });
+
+  it('runs the executable-contract suite from the guards job', () => {
+    const workflow = readWorkflow('ci.yml');
+    const guardsJob =
+      workflow.split(/\n {2}guards:\n/)[1]?.split(/\n {2}format:\n/)[0] ?? '';
+
+    expect(guardsJob).toContain('bun run test:executable-contracts');
+  });
 });

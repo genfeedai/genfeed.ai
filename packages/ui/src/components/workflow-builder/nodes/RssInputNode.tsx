@@ -7,9 +7,9 @@ import type {
   RssInputNodeProps,
 } from '@genfeedai/props/workflow/nodes.props';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   ChevronLeft,
   ChevronRight,

@@ -56,7 +56,10 @@ describe('YoutubeUploadService', () => {
   const videoId = 'test-object-id';
 
   function createPost(
-    overrides: Partial<PostEntity> & { status?: PostStatus | string } = {},
+    overrides: Omit<Partial<PostEntity>, 'status' | 'visibility'> & {
+      status?: PostStatus | string;
+      visibility?: PostVisibility | string;
+    } = {},
   ): PostEntity {
     const fixture = {
       id: 'test-object-id',
@@ -65,6 +68,7 @@ describe('YoutubeUploadService', () => {
       scheduledDate: null,
       status: PostStatus.PUBLIC,
       tags: ['test-object-id'],
+      visibility: PostVisibility.PUBLIC,
       ...overrides,
     };
     return new PostEntity(fixture);
@@ -147,35 +151,35 @@ describe('YoutubeUploadService', () => {
   });
 
   it('should set privacy to PUBLIC for public posts', async () => {
-    const post = createPost({ status: PostStatus.PUBLIC });
+    const post = createPost({ visibility: PostVisibility.PUBLIC });
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
     const insertCall = mockVideosInsert.mock.calls[0][0];
     expect(insertCall.requestBody.status).toEqual({
-      privacyStatus: PostStatus.PUBLIC,
+      privacyStatus: PostVisibility.PUBLIC,
     });
   });
 
   it('should set privacy to PRIVATE for private posts', async () => {
-    const post = createPost({ status: PostStatus.PRIVATE });
+    const post = createPost({ visibility: PostVisibility.PRIVATE });
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
     const insertCall = mockVideosInsert.mock.calls[0][0];
     expect(insertCall.requestBody.status).toEqual({
-      privacyStatus: PostStatus.PRIVATE,
+      privacyStatus: PostVisibility.PRIVATE,
     });
   });
 
   it('should set privacy to UNLISTED for unlisted posts', async () => {
-    const post = createPost({ status: PostStatus.UNLISTED });
+    const post = createPost({ visibility: PostVisibility.UNLISTED });
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
     const insertCall = mockVideosInsert.mock.calls[0][0];
     expect(insertCall.requestBody.status).toEqual({
-      privacyStatus: PostStatus.UNLISTED,
+      privacyStatus: PostVisibility.UNLISTED,
     });
   });
 
@@ -210,8 +214,8 @@ describe('YoutubeUploadService', () => {
     });
   });
 
-  it('should default unknown legacy visibility to PUBLIC', async () => {
-    const post = createPost({ status: 'some-unknown-status' });
+  it('should default unknown visibility to PUBLIC', async () => {
+    const post = createPost({ visibility: 'some-unknown-visibility' });
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
@@ -282,9 +286,8 @@ describe('YoutubeUploadService', () => {
         unknown
       >;
 
-    it('prefers canonical visibility over legacy status and provider settings', async () => {
+    it('uses canonical visibility over provider settings', async () => {
       const post = createPost({
-        status: PostStatus.PUBLIC,
         visibility: PostVisibility.UNLISTED,
       });
 

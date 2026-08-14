@@ -10,7 +10,6 @@ import {
   IngredientStatus,
   Platform,
   PostRepurposeMode,
-  PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -123,7 +122,6 @@ describe('PostRepurposeService', () => {
           organizationId,
           originalPostId: postId,
           platform: Platform.TWITTER,
-          status: PostStatus.DRAFT,
           targetExecutionState: TargetExecutionState.DRAFT,
           userId,
         }),

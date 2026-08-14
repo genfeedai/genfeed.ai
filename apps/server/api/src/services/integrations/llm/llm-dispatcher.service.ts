@@ -1,5 +1,6 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
+import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
@@ -10,6 +11,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ByokProvider } from '@genfeedai/enums';
+import type { ILlmCompletionCallContext } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -36,6 +38,7 @@ export class LlmDispatcherService {
     private readonly openRouterService: OpenRouterService,
     private readonly byokService: ByokService,
     private readonly llmInstanceService: LlmInstanceService,
+    private readonly llmCompletionTelemetryService: LlmCompletionTelemetryService,
   ) {}
 
   /**
@@ -161,6 +164,7 @@ export class LlmDispatcherService {
   async chatCompletion(
     params: OpenRouterChatCompletionParams,
     organizationId?: string,
+    callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
     const { apiKeyOverride, provider } = await this.resolveRoute(
       params.model,
@@ -169,7 +173,14 @@ export class LlmDispatcherService {
 
     // Local vLLM — bypass BYOK, ensure instance is running, route directly
     if (provider === 'local') {
-      return this.callLocalProvider(params);
+      return this.dispatchWithTelemetry(
+        () => this.callLocalProvider(params),
+        params,
+        organizationId,
+        provider,
+        false,
+        callContext,
+      );
     }
 
     if (apiKeyOverride) {
@@ -183,7 +194,14 @@ export class LlmDispatcherService {
     );
 
     try {
-      return await this.callProvider(provider, params, apiKeyOverride);
+      return await this.dispatchWithTelemetry(
+        () => this.callProvider(provider, params, apiKeyOverride),
+        params,
+        organizationId,
+        provider,
+        Boolean(apiKeyOverride),
+        callContext,
+      );
     } catch (error: unknown) {
       // If we get a 401 with an OAuth token, try refreshing and retrying once
       if (
@@ -197,7 +215,14 @@ export class LlmDispatcherService {
           this.loggerService.log(
             `${this.constructorName}: Retrying after token refresh`,
           );
-          return this.callProvider(provider, params, refreshedKey);
+          return this.dispatchWithTelemetry(
+            () => this.callProvider(provider, params, refreshedKey),
+            params,
+            organizationId,
+            provider,
+            true,
+            callContext,
+          );
         }
       }
       throw error;
@@ -256,6 +281,7 @@ export class LlmDispatcherService {
     params: OpenRouterChatCompletionParams,
     organizationId?: string,
     onToken?: OpenRouterStreamTokenHandler,
+    callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
     const { apiKeyOverride, provider } = await this.resolveRoute(
       params.model,
@@ -263,7 +289,14 @@ export class LlmDispatcherService {
     );
 
     if (provider === 'local') {
-      return this.callLocalProviderStreaming(params, onToken);
+      return this.dispatchWithTelemetry(
+        () => this.callLocalProviderStreaming(params, onToken),
+        params,
+        organizationId,
+        provider,
+        false,
+        callContext,
+      );
     }
 
     if (apiKeyOverride) {
@@ -277,11 +310,14 @@ export class LlmDispatcherService {
     );
 
     try {
-      return await this.callProviderStreaming(
-        provider,
+      return await this.dispatchWithTelemetry(
+        () =>
+          this.callProviderStreaming(provider, params, apiKeyOverride, onToken),
         params,
-        apiKeyOverride,
-        onToken,
+        organizationId,
+        provider,
+        Boolean(apiKeyOverride),
+        callContext,
       );
     } catch (error: unknown) {
       if (
@@ -295,16 +331,56 @@ export class LlmDispatcherService {
           this.loggerService.log(
             `${this.constructorName}: Retrying stream after token refresh`,
           );
-          return this.callProviderStreaming(
-            provider,
+          return this.dispatchWithTelemetry(
+            () =>
+              this.callProviderStreaming(
+                provider,
+                params,
+                refreshedKey,
+                onToken,
+              ),
             params,
-            refreshedKey,
-            onToken,
+            organizationId,
+            provider,
+            true,
+            callContext,
           );
         }
       }
       throw error;
     }
+  }
+
+  private async dispatchWithTelemetry(
+    run: () => Promise<OpenRouterChatCompletionResponse>,
+    params: OpenRouterChatCompletionParams,
+    organizationId: string | undefined,
+    provider: LlmProvider,
+    isByok: boolean,
+    callContext?: ILlmCompletionCallContext,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const startedAt = Date.now();
+    const response = await run();
+    try {
+      await this.llmCompletionTelemetryService.recordCompletion({
+        completionTokens: response.usage?.completion_tokens ?? 0,
+        isByok,
+        latencyMs: Date.now() - startedAt,
+        model: response.model ?? params.model,
+        organizationId,
+        promptTokens: response.usage?.prompt_tokens ?? 0,
+        provider,
+        runId: callContext?.runId,
+        threadId: callContext?.threadId,
+        userId: callContext?.userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName}: completion telemetry failed`,
+        error,
+      );
+    }
+    return response;
   }
 
   private async callProvider(

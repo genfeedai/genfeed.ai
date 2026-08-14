@@ -3,7 +3,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -44,7 +43,6 @@ export class GhostController {
     @Body() body: GhostConnectPayload,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, {
       brandId: body.brandId,
@@ -60,7 +58,7 @@ export class GhostController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -80,7 +78,7 @@ export class GhostController {
       // Save or update the credential
       const credential = await this.credentialsService.upsertForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.GHOST,
         {
           accessToken: body.apiKey,

@@ -65,6 +65,7 @@ export const API_ENDPOINTS = {
   SCHEDULES: '/schedules',
   SERVICES: '/services',
   SOCIAL_SOURCES: '/social-sources',
+  SOCIAL_WARMUP_ENROLLMENTS: '/social-warmup-enrollments',
   SOURCE_POSTS: '/source-posts',
   SOUNDS: '/elements/sounds',
   STYLES: '/elements/styles',

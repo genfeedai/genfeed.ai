@@ -106,8 +106,8 @@ export class OAuthAuthorizeService {
       };
     }
 
-    const userId = user.publicMetadata?.user;
-    const organizationId = user.publicMetadata?.organization;
+    const userId = user.userId;
+    const organizationId = user.organizationId;
     if (!userId || !organizationId) {
       throw new UnauthorizedException('User identity is incomplete');
     }

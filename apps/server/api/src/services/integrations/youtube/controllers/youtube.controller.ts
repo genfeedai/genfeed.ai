@@ -7,11 +7,11 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -58,11 +58,9 @@ export class YoutubeController {
 
     this.loggerService.log(url, createCredentialDto);
 
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -78,7 +76,7 @@ export class YoutubeController {
     try {
       const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.YOUTUBE,
         { isConnected: false },
       );
@@ -190,6 +188,7 @@ export class YoutubeController {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: tokens.refresh_token || undefined, // Only save if present
+          ...buildGrantedScopesCredentialPatch(tokens.scope),
         },
       );
 

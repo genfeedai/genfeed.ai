@@ -14,8 +14,9 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 type ScopedRequest = Request & {
-  auth?: { publicMetadata?: { user?: string } };
+  auth?: { userId?: string };
   context?: { organizationId?: string; userId?: string };
+  user?: { id?: string; userId?: string };
 };
 
 @Injectable()
@@ -108,7 +109,10 @@ export class RateLimitGuard implements CanActivate {
 
     if (rateLimitOptions.scope === 'user') {
       const userId =
-        request.context?.userId || request.auth?.publicMetadata?.user;
+        request.context?.userId ||
+        request.user?.userId ||
+        request.user?.id ||
+        request.auth?.userId;
       if (userId) {
         parts.push('user', userId);
         return parts.join(':');

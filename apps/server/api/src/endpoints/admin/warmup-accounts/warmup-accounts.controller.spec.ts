@@ -7,16 +7,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WarmupAccountsController } from './warmup-accounts.controller';
 import { AdminWarmupAccountsService } from './warmup-accounts.service';
 
-const mockGetPublicMetadata = vi.fn();
-
 vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
   CurrentUser:
     () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
       descriptor,
-}));
-
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: () => mockGetPublicMetadata(),
 }));
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -49,7 +43,8 @@ const makeRequest = () => ({
 
 const makeUser = () => ({
   id: 'auth_provider_user_1',
-  publicMetadata: { user: 'db_user_1' },
+  isSuperAdmin: false,
+  userId: 'db_user_1',
 });
 
 const makeWarmupAccount = () => ({
@@ -79,7 +74,6 @@ describe('WarmupAccountsController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockGetPublicMetadata.mockReturnValue({ user: 'db_user_1' });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WarmupAccountsController],
@@ -130,8 +124,6 @@ describe('WarmupAccountsController', () => {
   });
 
   it('rejects create requests when local DB user id is missing', async () => {
-    mockGetPublicMetadata.mockReturnValue({ user: '' });
-
     await expect(
       controller.create(
         {
@@ -139,7 +131,7 @@ describe('WarmupAccountsController', () => {
           leadEmail: 'lead@example.com',
           organizationName: 'Acme Growth',
         },
-        makeUser() as never,
+        { id: '', userId: '' } as never,
         makeRequest() as never,
       ),
     ).rejects.toThrow('Local user id is required');

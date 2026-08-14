@@ -303,7 +303,7 @@ export function WorkflowScheduleDialog({
                       aria-label={translate('custom.title')}
                       disabled={isSaving}
                       id="workflow-schedule-custom-cron"
-                      placeholder="e.g. weekdays at 9am → 0 9 * * 1-5"
+                      placeholder={translate('custom.placeholder')}
                       value={cronExpression}
                       onChange={(event) =>
                         setCronExpression(event.target.value)

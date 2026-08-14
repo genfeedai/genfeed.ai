@@ -5,7 +5,6 @@ import {
 } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   AgentRunSerializer,
@@ -83,11 +82,10 @@ export class AgentRunsOperationsController {
     user: User,
     requestedBrandId?: string,
   ): AgentRunOperationScope {
-    const publicMetadata = getPublicMetadata(user);
     return {
-      brandId: publicMetadata.brand ?? requestedBrandId,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      brandId: user.brandId ?? requestedBrandId,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
   }
 }

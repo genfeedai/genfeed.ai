@@ -106,12 +106,12 @@ const coverageThresholds =
   isShardRun || isChangedCodeCoverageRun
     ? undefined
     : {
-        // Ratcheted below the latest merged report (52.38% branches, 67.28%
-        // functions, 63.89% lines/statements) so coverage can fluctuate slightly
-        // without returning to the obsolete 42/50 floors.
-        branches: 50,
-        functions: 65,
-        lines: 60,
+        // Ratcheted ~2 points below the 2026-08-10 merged report
+        // (run 31367395806: 56.54% branches, 71.48% functions, 68.04% lines,
+        // 68.05% statements). Shard and changed-code runs skip this block.
+        branches: 54,
+        functions: 69,
+        lines: 66,
         // Ratchet floor for integration code (current actual ~67.5% lines /
         // ~56% branches). Raise these toward 100 as integration test gaps fill.
         'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
@@ -121,7 +121,7 @@ const coverageThresholds =
             lines: 65,
             statements: 65,
           },
-        statements: 60,
+        statements: 66,
       };
 
 export default defineConfig({

@@ -1,9 +1,5 @@
-import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  ApiKeyScope,
-  PostStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
@@ -14,7 +10,7 @@ import { ForbiddenException } from '@nestjs/common';
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
 
 export type ApiKeyPublishingContext = Pick<
-  IAuthPublicMetadata,
+  AuthenticatedUser,
   'isApiKey' | 'scopes'
 >;
 
@@ -62,15 +58,14 @@ export function assertApiKeyPublishingScope(
 
 export function assertApiKeyPostStatusPublishingScope(
   context: ApiKeyPublishingContext,
-  status: PostStatus | TargetExecutionState | undefined,
+  executionState: TargetExecutionState | undefined,
 ): void {
   assertApiKeyPublishingScope(
     context,
-    status === PostStatus.DRAFT || status === TargetExecutionState.DRAFT
+    executionState === TargetExecutionState.DRAFT
       ? 'draft'
-      : status === undefined ||
-          status === PostStatus.SCHEDULED ||
-          status === TargetExecutionState.SCHEDULED
+      : executionState === undefined ||
+          executionState === TargetExecutionState.SCHEDULED
         ? 'schedule'
         : 'publish',
   );

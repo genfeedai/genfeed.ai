@@ -38,7 +38,7 @@ describe('OrganizationsService HTTP methods', () => {
 
       expect(http.get).toHaveBeenCalledWith(
         expect.stringContaining('/brands'),
-        { params: { organization: orgId, page: 2 } },
+        { params: { organizationId: orgId, page: 2 } },
       );
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('brand_1');
@@ -86,7 +86,7 @@ describe('OrganizationsService HTTP methods', () => {
       const result = await service.findOrganizationTags(orgId);
 
       expect(http.get).toHaveBeenCalledWith(expect.stringContaining('/tags'), {
-        params: { organization: orgId },
+        params: { organizationId: orgId },
       });
       expect(result[0].id).toBe('tag_1');
     });
@@ -107,7 +107,7 @@ describe('OrganizationsService HTTP methods', () => {
 
       expect(http.get).toHaveBeenCalledWith(
         expect.stringContaining('/activities'),
-        { params: { organization: orgId, page: 1 } },
+        { params: { organizationId: orgId, page: 1 } },
       );
       expect(setCurrentPage).toHaveBeenCalledWith(1);
       expect(result[0].id).toBe('activity_1');

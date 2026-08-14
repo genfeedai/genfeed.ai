@@ -374,20 +374,6 @@ enum AgentRunStatus {
   CANCELLED
 }
 
-enum CronJobStatus {
-  ACTIVE
-  PAUSED
-  COMPLETED
-  FAILED
-}
-
-enum CronRunStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-}
-
 enum BotStatus {
   ACTIVE
   PAUSED
@@ -440,6 +426,39 @@ enum WarmupAccountStatus {
   FAILED
   CLAIMED
   ARCHIVED
+}
+
+/// Guided social-account warm-up enrollment lifecycle (#2214). Distinct from
+/// admin `WarmupAccount` customer-lead provisioning.
+enum SocialWarmupEnrollmentState {
+  ENROLLED
+  IN_PROGRESS
+  PAUSED
+  GRADUATED
+  BLOCKED
+  DISCONNECTED
+}
+
+enum SocialWarmupEventAction {
+  COMPLETED
+  REOPENED
+}
+
+enum SocialWarmupSignalStatus {
+  AVAILABLE
+  EMPTY
+  STALE
+  UNAVAILABLE
+  PERMISSION_LIMITED
+  FAILED
+  MISSING
+  REVOKED
+}
+
+enum SocialWarmupSignalSource {
+  PLATFORM
+  GENFEED
+  USER
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -528,8 +547,6 @@ model User {
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
   workflowExecutions       WorkflowExecution[]
-  cronJobs                 CronJob[]
-  cronRuns                 CronRun[]
   bots                     Bot[]
   livestreamBotSessions    LivestreamBotSession[]
   botActivities            BotActivity[]
@@ -538,6 +555,8 @@ model User {
   socialSources            SocialSource[]
   sourcePosts              SourcePost[]
   listeningTopics          ListeningTopic[]
+  socialWarmupEnrollments  SocialWarmupEnrollment[]
+  socialWarmupEvents       SocialWarmupEvent[]
   votes                    Vote[]
   watchlists               Watchlist[]
   streaks                  Streak[]
@@ -579,7 +598,6 @@ model User {
 
 model Organization {
   id                         String                @id @default(cuid())
-  authProviderOrganizationId String?               @unique
   authProviderLogoUrl        String?
   userId                     String
   user                       User                  @relation(fields: [userId], references: [id])
@@ -638,8 +656,6 @@ model Organization {
   workflowExecutions            WorkflowExecution[]
   batchWorkflowJobs             BatchWorkflowJob[]
   contentRuns                   ContentRun[]
-  cronJobs                      CronJob[]
-  cronRuns                      CronRun[]
   bots                          Bot[]
   livestreamBotSessions         LivestreamBotSession[]
   botActivities                 BotActivity[]
@@ -650,10 +666,12 @@ model Organization {
   listeningTopics               ListeningTopic[]
   listeningTopicSources         ListeningTopicSource[]
   listeningEvidence             ListeningEvidence[]
+  socialWarmupEnrollments       SocialWarmupEnrollment[]
+  socialWarmupEvents            SocialWarmupEvent[]
+  socialWarmupSignals           SocialWarmupSignal[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
-  contentSchedules              ContentSchedule[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -694,6 +712,7 @@ model Organization {
   subscriptions                 Subscription[]
   creditBalances                CreditBalance[]
   creditTransactions            CreditTransaction[]
+  llmVendorCosts                LlmVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
   leads                         Lead[]                         @relation("lead_org")
@@ -816,7 +835,6 @@ model Brand {
   agentStrategyReports       AgentStrategyReport[]
   workflows                  Workflow[]
   contentRuns                ContentRun[]
-  contentSchedules           ContentSchedule[]
   distributions              Distribution[]
   watchlists                 Watchlist[]
   presets                    Preset[]
@@ -838,6 +856,9 @@ model Brand {
   listeningTopics            ListeningTopic[]
   listeningTopicSources      ListeningTopicSource[]
   listeningEvidence          ListeningEvidence[]
+  socialWarmupEnrollments    SocialWarmupEnrollment[]
+  socialWarmupEvents         SocialWarmupEvent[]
+  socialWarmupSignals        SocialWarmupSignal[]
   brandMemories              BrandMemory[]
   links                      Link[]
   trackedLinks               TrackedLink[]
@@ -1278,6 +1299,8 @@ model Credential {
   accessTokenExpiry               DateTime?
   refreshToken                    String?
   refreshTokenExpiry              DateTime?
+  grantedScopes                   String[]           @default([])
+  grantedScopesCapturedAt         DateTime?
   label                           String?
   description                     String?
   warmupState                     String             @default("not_started")
@@ -1307,11 +1330,93 @@ model Credential {
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
   personas            Persona[]            @relation("persona_credentials")
-  outreachCampaigns   OutreachCampaign[]
+  outreachCampaigns       OutreachCampaign[]
+  socialWarmupEnrollments SocialWarmupEnrollment[]
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
   @@map("credentials")
+}
+
+/// Pinned guided social-account warm-up enrollment. Distinct from admin
+/// `WarmupAccount` (customer lead warmup). Active uniqueness is the partial
+/// index `(organizationId, credentialId) WHERE isDeleted = false` in SQL.
+model SocialWarmupEnrollment {
+  id               String                       @id @default(cuid())
+  organizationId   String
+  organization     Organization                 @relation(fields: [organizationId], references: [id])
+  brandId          String
+  brand            Brand                        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  credentialId     String
+  credential       Credential                   @relation(fields: [credentialId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  blueprintId      String
+  blueprintVersion Int
+  startedAt        DateTime                     @default(now())
+  currentPhaseId   String
+  state            SocialWarmupEnrollmentState  @default(ENROLLED)
+  enrolledByUserId String
+  enrolledByUser   User                         @relation(fields: [enrolledByUserId], references: [id])
+  isDeleted        Boolean                      @default(false)
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  events  SocialWarmupEvent[]
+  signals SocialWarmupSignal[]
+
+  @@unique([id, organizationId, brandId], map: "social_warmup_enrollments_id_scope_key")
+  @@index([organizationId, brandId, credentialId, isDeleted], map: "social_warmup_enrollments_scope_credential_idx")
+  @@index([organizationId, brandId, isDeleted, state], map: "social_warmup_enrollments_scope_state_idx")
+  @@map("social_warmup_enrollments")
+}
+
+/// Append-only checklist audit. Provenance is the blueprint lowercase string
+/// (`user_confirmed` / `platform_verified` / `genfeed_observed`).
+model SocialWarmupEvent {
+  id             String                   @id @default(cuid())
+  organizationId String
+  organization   Organization             @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand                    @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  enrollmentId   String
+  enrollment     SocialWarmupEnrollment   @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  itemId         String
+  provenance     String
+  actorUserId    String
+  actorUser      User                     @relation(fields: [actorUserId], references: [id])
+  action         SocialWarmupEventAction
+  occurredAt     DateTime                 @default(now())
+  isDeleted      Boolean                  @default(false)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([organizationId, brandId, enrollmentId, occurredAt], map: "social_warmup_events_scope_enrollment_idx")
+  @@index([organizationId, enrollmentId, itemId, occurredAt], map: "social_warmup_events_item_idx")
+  @@map("social_warmup_events")
+}
+
+/// Platform / Genfeed / user signal snapshot. Secrets never belong in evidence.
+/// Active uniqueness is the partial index `(enrollmentId, key) WHERE isDeleted = false`.
+model SocialWarmupSignal {
+  id             String                    @id @default(cuid())
+  organizationId String
+  organization   Organization              @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand                     @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  enrollmentId   String
+  enrollment     SocialWarmupEnrollment    @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  key            String
+  observedAt     DateTime?
+  staleAt        DateTime?
+  status         SocialWarmupSignalStatus
+  source         SocialWarmupSignalSource
+  evidence       Json                      @default("{}")
+  isDeleted      Boolean                   @default(false)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@unique([id, organizationId, brandId], map: "social_warmup_signals_id_scope_key")
+  @@index([organizationId, brandId, enrollmentId, key, isDeleted], map: "social_warmup_signals_scope_key_idx")
+  @@map("social_warmup_signals")
 }
 
 model ApiKey {
@@ -2222,33 +2327,6 @@ model Schedule {
   @@map("schedules")
 }
 
-model ContentSchedule {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  config         Json         @default("{}")
-  // Schedule columns — service (createForBrand / markScheduleRan) and the
-  // workflow-backed scheduler read & write these as top-level fields; without
-  // them the scheduler crashed at runtime (Prisma rejects unknown args).
-  name           String?
-  cronExpression String?
-  timezone       String       @default("UTC")
-  isEnabled      Boolean      @default(true)
-  nextRunAt      DateTime?
-  lastRunAt      DateTime?
-  skillSlugs     String[]     @default([])
-  skillParams    Json         @default("{}")
-  isActive       Boolean      @default(true)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([isEnabled, nextRunAt])
-  @@index([organizationId, brandId])
-  @@map("content_schedules")
-}
 
 model Distribution {
   id             String       @id @default(cuid())
@@ -2419,6 +2497,31 @@ model CreditTransaction {
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@map("credit_transactions")
+}
+
+/// Per-completion LLM vendor cost (#2361). Micro-USD integers; BYOK rows
+/// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
+/// completion content.
+model LlmVendorCost {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  provider         String
+  model            String
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+  latencyMs        Int          @default(0)
+  vendorCostMicros Int          @default(0)
+  isByok           Boolean      @default(false)
+  threadId         String?
+  runId            String?
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
+  @@map("llm_vendor_costs")
 }
 
 model CustomerInstance {
@@ -3470,49 +3573,6 @@ model ContentRun {
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, status, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_status_created_at_idx")
   @@map("content_runs")
-}
-
-model CronJob {
-  id             String        @id @default(cuid())
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User          @relation(fields: [userId], references: [id])
-  label          String?
-  expression     String?
-  config         Json          @default("{}")
-  status         CronJobStatus @default(ACTIVE)
-  lastRunAt      DateTime?
-  nextRunAt      DateTime?
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  runs CronRun[]
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("cron_jobs")
-}
-
-model CronRun {
-  id             String        @id @default(cuid())
-  cronJobId      String
-  cronJob        CronJob       @relation(fields: [cronJobId], references: [id])
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User          @relation(fields: [userId], references: [id])
-  status         CronRunStatus @default(PENDING)
-  result         Json?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("cron_runs")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4827,6 +4887,8 @@ model ContextEntry {
   organization   Organization @relation(fields: [organizationId], references: [id])
   data           Json         @default("{}")
   embedding      Unsupported("vector(1024)")?
+  embeddingClaimedAt DateTime?
+  embeddingFailedAt  DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -4835,6 +4897,7 @@ model ContextEntry {
   // prefix remains the selective hot-path key; organizationId is applied in
   // the same query as a tenant-isolation guard.
   @@index([contextBaseId, isDeleted], map: "context_entries_context_base_deleted_idx")
+  @@index([organizationId, contextBaseId, isDeleted], map: "context_entries_org_base_deleted_idx")
   @@map("context_entries")
 }
 

@@ -41,7 +41,7 @@ describe('BetterAuthStrategy', () => {
     );
   });
 
-  it('verifies the token and shapes the resolved identity as publicMetadata', async () => {
+  it('verifies the token and shapes the resolved identity on the user', async () => {
     betterAuthService.verifyToken.mockResolvedValue({
       email: 'user@example.com',
       name: 'Ada',
@@ -60,15 +60,14 @@ describe('BetterAuthStrategy', () => {
     expect(identityResolver.resolve).toHaveBeenCalledWith('user_1');
     expect(result).toEqual(
       expect.objectContaining({
+        brandId: 'brand_1',
         id: 'user_1',
-        publicMetadata: {
-          brand: 'brand_1',
-          isSuperAdmin: true,
-          organization: 'org_1',
-          user: 'user_1',
-        },
+        isSuperAdmin: true,
+        organizationId: 'org_1',
+        userId: 'user_1',
       }),
     );
+    expect(result).not.toHaveProperty('publicMetadata');
   });
 
   it('rejects a legacy Mongo-shaped subject before identity resolution', async () => {
@@ -82,7 +81,7 @@ describe('BetterAuthStrategy', () => {
     expect(identityResolver.resolve).not.toHaveBeenCalled();
   });
 
-  it('passes a canonical cuid subject to identity resolution', async () => {
+  it('rejects a canonical subject with an incomplete account identity', async () => {
     const canonicalUserId = 'cm1234567890abcdefghijkl';
     betterAuthService.verifyToken.mockResolvedValue({
       sub: canonicalUserId,
@@ -94,7 +93,9 @@ describe('BetterAuthStrategy', () => {
       userId: canonicalUserId,
     });
 
-    await strategy.validate(requestWith('Bearer tok'));
+    await expect(strategy.validate(requestWith('Bearer tok'))).rejects.toThrow(
+      'Unable to resolve a complete account identity',
+    );
 
     expect(identityResolver.resolve).toHaveBeenCalledWith(canonicalUserId);
   });

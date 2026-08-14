@@ -46,11 +46,9 @@ describe('TasksController', () => {
 
   const mockUser = {
     id: 'user-1',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ef',
-      organization: organizationId,
-      user: userId,
-    },
+    brandId: '507f191e810c19729de860ef',
+    organizationId: organizationId,
+    userId: userId,
   } as unknown as User;
 
   const mockRequest = {

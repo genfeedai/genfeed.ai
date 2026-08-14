@@ -107,15 +107,4 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly organizationLabel?: string;
-
-  @IsOptional()
-  @IsString()
-  @ApiProperty({
-    description:
-      'Deprecated compatibility field from the former shared-workflow relocation ' +
-      'confirmation flow. Workflows are now scoped to one brand and move with it, so ' +
-      'the server ignores this value.',
-    required: false,
-  })
-  readonly relocationAck?: string;
 }

@@ -9,6 +9,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, DollarSign, Scale, Sparkles, Trophy, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -32,47 +33,33 @@ interface AgentSettingsProps {
 }
 
 interface PriorityOption {
-  key: GenerationPriority;
-  label: string;
-  description: string;
   icon: ReactElement;
+  key: GenerationPriority;
+  messageKey: 'balanced' | 'cost' | 'quality' | 'speed';
 }
 
 const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   {
-    description: 'Premium models, highest quality output',
     icon: <Trophy className="size-4" />,
     key: GenerationPriority.QUALITY,
-    label: 'Best Quality',
+    messageKey: 'quality',
   },
   {
-    description: 'Smart balance of quality, speed, and cost',
     icon: <Scale className="size-4" />,
     key: GenerationPriority.BALANCED,
-    label: 'Balanced',
+    messageKey: 'balanced',
   },
   {
-    description: 'Fastest generation, may use lighter models',
     icon: <Zap className="size-4" />,
     key: GenerationPriority.SPEED,
-    label: 'Fast',
+    messageKey: 'speed',
   },
   {
-    description: 'Cheapest models, saves credits',
     icon: <DollarSign className="size-4" />,
     key: GenerationPriority.COST,
-    label: 'Budget',
+    messageKey: 'cost',
   },
 ];
-
-/**
- * Held as data rather than inline JSX so the new selector copy stays one
- * translatable unit once shared packages gain a message catalog.
- */
-const DEFAULT_MODEL_COPY = {
-  autoDescription: 'Use the platform default model',
-  autoLabel: 'Auto',
-} as const;
 
 export function AgentSettings({
   initialSettings,
@@ -81,6 +68,7 @@ export function AgentSettings({
   isModelsLoading = false,
   onSave,
 }: AgentSettingsProps): ReactElement {
+  const translate = useTranslations('agent.settings');
   const [selectedModel, setSelectedModel] = useState(
     initialSettings.defaultModel,
   );
@@ -139,17 +127,16 @@ export function AgentSettings({
           className="rounded bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground"
           role="status"
         >
-          No model, persona, or generation priority overrides are saved yet.
-          These defaults become persisted only after you save.
+          {translate('defaultsBanner')}
         </p>
       )}
       {/* Generation Priority */}
       <section>
         <h3 className="mb-1 text-sm font-semibold text-foreground">
-          Generation Quality
+          {translate('generationQuality')}
         </h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Control how the agent selects models for image and video generation.
+          {translate('generationQualityHelp')}
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {GENERATION_PRIORITY_OPTIONS.map((option) => (
@@ -178,10 +165,10 @@ export function AgentSettings({
               </div>
               <div className="flex flex-1 flex-col gap-0.5">
                 <span className="text-sm font-medium text-foreground">
-                  {option.label}
+                  {translate(`priority.${option.messageKey}.label`)}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {option.description}
+                  {translate(`priority.${option.messageKey}.description`)}
                 </span>
               </div>
               {generationPriority === option.key && (
@@ -195,10 +182,10 @@ export function AgentSettings({
       {/* Default Model */}
       <section>
         <h3 className="mb-1 text-sm font-semibold text-foreground">
-          Default Model Override
+          {translate('defaultModel')}
         </h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Leave unset to use the platform default model for new threads.
+          {translate('defaultModelHelp')}
         </p>
         <div className="grid gap-2">
           <Button
@@ -215,10 +202,10 @@ export function AgentSettings({
           >
             <div className="flex flex-1 flex-col gap-0.5">
               <span className="text-sm font-medium text-foreground">
-                {DEFAULT_MODEL_COPY.autoLabel}
+                {translate('autoLabel')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {DEFAULT_MODEL_COPY.autoDescription}
+                {translate('autoDescription')}
               </span>
             </div>
             {selectedModel === '' ? (
@@ -226,11 +213,13 @@ export function AgentSettings({
             ) : null}
           </Button>
           {isModelsLoading ? (
-            <p className="text-xs text-muted-foreground">Loading models…</p>
+            <p className="text-xs text-muted-foreground">
+              {translate('loadingModels')}
+            </p>
           ) : null}
           {!isModelsLoading && models.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              No agent models in the registry. Seed the model catalog.
+              {translate('noModels')}
             </p>
           ) : null}
           {models.map((model) => {
@@ -270,7 +259,9 @@ export function AgentSettings({
                       'rounded-full px-2 py-0.5 text-[10px] font-bold',
                       COST_TIER_DISPLAY[model.costTier].colorClass,
                     )}
-                    title={`Cost tier ${COST_TIER_DISPLAY[model.costTier].symbol}`}
+                    title={translate('costTierTitle', {
+                      symbol: COST_TIER_DISPLAY[model.costTier].symbol,
+                    })}
                   >
                     {COST_TIER_DISPLAY[model.costTier].symbol}
                   </span>
@@ -286,17 +277,18 @@ export function AgentSettings({
 
       {/* Persona */}
       <section>
-        <h3 className="mb-1 text-sm font-semibold text-foreground">Persona</h3>
+        <h3 className="mb-1 text-sm font-semibold text-foreground">
+          {translate('persona')}
+        </h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Customize your agent's personality and instructions. Leave empty to
-          use the default.
+          {translate('personaHelp')}
         </p>
         <div className="relative">
           <Textarea
-            aria-label="Agent persona"
+            aria-label={translate('personaAria')}
             value={persona}
             onChange={handlePersonaChange}
-            placeholder="Customize your agent's personality and instructions..."
+            placeholder={translate('personaPlaceholder')}
             maxLength={5000}
             rows={6}
             className="resize-y border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
@@ -316,16 +308,16 @@ export function AgentSettings({
           isDisabled={isSaving}
           className="px-6"
         >
-          {isSaving ? 'Saving...' : 'Save Settings'}
+          {isSaving ? translate('saving') : translate('save')}
         </Button>
         {saveStatus === 'success' && (
           <span className="text-xs text-success" role="status">
-            Settings saved
+            {translate('saved')}
           </span>
         )}
         {saveStatus === 'error' && (
           <span className="text-xs text-destructive" role="alert">
-            Failed to save settings
+            {translate('saveFailed')}
           </span>
         )}
       </div>

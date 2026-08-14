@@ -29,13 +29,11 @@ const foreignMemberId = 'clm9z8y7x6w5v4u3t2s1r0qp';
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
     id: 'authProvider-user-1',
-    publicMetadata: {
-      brand: '',
-      isSuperAdmin: false,
-      organization: callerOrgId,
-      user: callerUserId,
-      ...overrides,
-    },
+    brandId: '',
+    isSuperAdmin: false,
+    organizationId: callerOrgId,
+    userId: callerUserId,
+    ...overrides,
   }) as unknown as User;
 
 const makeRequest = (): Request =>
@@ -126,7 +124,7 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     await expectNotFound(
       controller.findOne(
         makeRequest(),
-        makeUser({ organization: '' }),
+        makeUser({ organizationId: '' }),
         memberId,
       ),
     );

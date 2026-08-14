@@ -1,9 +1,11 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsController } from '@api/collections/elements/elements.controller';
 import { ElementsService } from '@api/collections/elements/elements.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -13,12 +15,10 @@ describe('ElementsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: '507f191e810c19729de860ee'.toString(),
+    isSuperAdmin: false,
+    organizationId: '507f191e810c19729de860ee'.toString(),
+    userId: '507f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockElements = {
@@ -80,7 +80,7 @@ describe('ElementsController', () => {
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(elementsService.findAllElements).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
     });
 

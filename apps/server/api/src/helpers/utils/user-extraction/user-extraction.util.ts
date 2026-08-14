@@ -13,8 +13,6 @@ export interface PopulatedUserDoc {
 export interface ExtractedUserIds {
   /** Database user ID as string */
   dbUserId?: string;
-  /** Compatibility queue field, now carrying the canonical database user ID. */
-  authProviderUserId?: string;
   /** Canonical user ID */
   userId?: string;
   /** WebSocket room identifier */
@@ -45,7 +43,6 @@ export function extractUserIds(
   }
 
   return {
-    authProviderUserId: dbUserId,
     dbUserId,
     userId: dbUserId,
     userRoom: getUserRoomName(dbUserId),

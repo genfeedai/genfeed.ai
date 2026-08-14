@@ -5,7 +5,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -70,10 +69,7 @@ export class AvatarsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<ProviderVoicesAttributes<HeyGenVoice>>> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const voices = await this.heygenService.getVoices(
-        publicMetadata.organization,
-      );
+      const voices = await this.heygenService.getVoices(user.organizationId);
 
       return {
         data: {
@@ -105,10 +101,7 @@ export class AvatarsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<ProviderAvatarsAttributes<HeyGenAvatar>>> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const avatars = await this.heygenService.getAvatars(
-        publicMetadata.organization,
-      );
+      const avatars = await this.heygenService.getAvatars(user.organizationId);
 
       return {
         data: {
@@ -140,10 +133,7 @@ export class AvatarsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<ProviderVoicesAttributes<HedraVoice>>> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const voices = await this.hedraService.getVoices(
-        publicMetadata.organization,
-      );
+      const voices = await this.hedraService.getVoices(user.organizationId);
 
       return {
         data: {
@@ -170,9 +160,8 @@ export class AvatarsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<ProviderVoicesAttributes<ElevenLabsVoice>>> {
     try {
-      const publicMetadata = getPublicMetadata(user);
       const voices = await this.elevenlabsService.getVoices(
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       return {
@@ -205,10 +194,7 @@ export class AvatarsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse<ProviderAvatarsAttributes<HedraAvatar>>> {
     try {
-      const publicMetadata = getPublicMetadata(user);
-      const avatars = await this.hedraService.getAvatars(
-        publicMetadata.organization,
-      );
+      const avatars = await this.hedraService.getAvatars(user.organizationId);
 
       return {
         data: {
@@ -245,14 +231,13 @@ export class AvatarsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const aggregate = {
       where: {
         category: IngredientCategory.AVATAR,
         isDeleted,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
       orderBy: handleQuerySort(query.sort),
     };

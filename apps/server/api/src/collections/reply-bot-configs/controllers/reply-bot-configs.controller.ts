@@ -14,7 +14,6 @@ import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/servi
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
@@ -67,22 +66,21 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: ReplyBotConfigsQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
 
     // Always filter by organization for multi-tenancy
     const organizationId =
-      query.organizationId || publicMetadata.organization?.toString();
+      query.organizationId || user.organizationId?.toString();
     if (organizationId) {
       match.organizationId = organizationId;
     }
 
     if (query.brandId) {
       match.brandId = query.brandId;
-    } else if (publicMetadata.brand) {
-      match.brandId = publicMetadata.brand;
+    } else if (user.brandId) {
+      match.brandId = user.brandId;
     }
 
     // Filter by type if provided
@@ -107,7 +105,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   }
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {
-    const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
       organizationId?: string | null;
       brandId?: string | null;
@@ -117,14 +114,14 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     const entityBrandId = entityRecord.brandId;
     if (
       entityOrganizationId &&
-      publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization &&
-      (!publicMetadata.brand || entityBrandId === publicMetadata.brand)
+      user.organizationId &&
+      entityOrganizationId === user.organizationId &&
+      (!user.brandId || entityBrandId === user.brandId)
     ) {
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return Boolean(user?.isSuperAdmin);
   }
 
   /**
@@ -139,12 +136,11 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: EnsureAuthorResponderDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.authorReplyLoopService.ensureAuthorResponder({
       brandId: body.brandId,
       credentialId: body.credentialId,
       isActive: body.isActive,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: body.platform,
       userId: user.id,
     });
@@ -161,11 +157,10 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: AuthorReplyInboxQueryDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.authorReplyLoopService.getInbox({
       brandId: query.brandId,
       hours: query.hours,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: query.platform,
     });
   }
@@ -177,14 +172,13 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: AuthorReplyDraftDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.authorReplyLoopService.draftReply({
       brandId: body.brandId,
       commentAuthor: body.commentAuthor,
       commentId: body.commentId,
       commentText: body.commentText,
       intent: body.intent,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       parentPostPreview: body.parentPostPreview,
       platform: body.platform,
       userId: user.id,
@@ -197,7 +191,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     summary: 'Send author reply and record closed-loop performance',
   })
   sendAuthorReply(@CurrentUser() user: User, @Body() body: AuthorReplySendDto) {
-    const publicMetadata = getPublicMetadata(user);
     return this.authorReplyLoopService.sendReply({
       brandId: body.brandId,
       commentAuthor: body.commentAuthor,
@@ -205,7 +198,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       commentId: body.commentId,
       commentText: body.commentText,
       intent: body.intent,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       parentPostId: body.parentPostId,
       parentPostPreview: body.parentPostPreview,
       platform: body.platform,
@@ -226,10 +219,9 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: SchedulePostWatchDto,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     return this.replyInboundQueueService.schedulePostWatch({
       brandId: body.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       platform: body.platform,
       postId: body.postId,
       postPreview: body.postPreview,
@@ -251,11 +243,9 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: { content: string; author: string },
   ): Promise<{ replyText: string; dmText?: string }> {
-    const publicMetadata = getPublicMetadata(user);
-
     return this.replyBotOrchestratorService.testReplyGeneration(
       id,
-      publicMetadata.organization,
+      user.organizationId,
       { author: body.author, content: body.content },
     );
   }
@@ -271,10 +261,8 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: { credentialId: string },
   ): Promise<{ jobId: string }> {
-    const publicMetadata = getPublicMetadata(user);
-
     const jobId = await this.replyBotQueueService.triggerPolling(
-      publicMetadata.organization,
+      user.organizationId,
       body.credentialId,
     );
 
@@ -308,11 +296,10 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const data = await this.replyBotConfigsService.findOne({
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      ...(user.brandId ? { brandId: user.brandId } : {}),
       id: id,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     return serializeSingle(request, ReplyBotConfigSerializer, data);

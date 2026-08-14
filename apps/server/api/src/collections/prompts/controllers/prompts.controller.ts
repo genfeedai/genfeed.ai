@@ -19,7 +19,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -135,7 +134,6 @@ export class PromptsController {
     @Body() createPromptDto: CreatePromptDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
     const chargedCredits =
       (
         request as Request & {
@@ -147,7 +145,7 @@ export class PromptsController {
     if (isEntityId(createPromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
         id: createPromptDto.brandId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
       selectedBrand = brand ?? undefined;
     }
@@ -164,9 +162,9 @@ export class PromptsController {
         ? createPromptDto.brandId
         : undefined,
       category: normalizedType,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
       status: PromptStatus.PROCESSING,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     } as CreatePromptDto;
 
     const data = await this.promptsService.create(enrichedDto, [
@@ -193,7 +191,7 @@ export class PromptsController {
 
     const systemPromptPromise = this._templatesService
       ? this._templatesService
-          .getRenderedPrompt(systemPromptKey, {}, publicMetadata.organization)
+          .getRenderedPrompt(systemPromptKey, {}, user.organizationId)
           .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
       : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
 
@@ -232,7 +230,7 @@ export class PromptsController {
           refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1); // Expire in 1 year
 
           await this.creditsUtilsService.refundOrganizationCredits(
-            publicMetadata.organization,
+            user.organizationId,
             chargedCredits,
             'prompt-creation-refund',
             'Prompt creation failed - credit refund',
@@ -241,14 +239,14 @@ export class PromptsController {
 
           this.loggerService.log('Credits refunded successfully', {
             amount: chargedCredits,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           });
         } catch (error: unknown) {
           this.loggerService.error('Failed to refund credits', {
             error,
-            organizationId: publicMetadata.organization,
-            userId: publicMetadata.user,
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
           });
         }
 
@@ -277,7 +275,6 @@ export class PromptsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const scope = query.scope || { not: null };
 
@@ -285,7 +282,7 @@ export class PromptsController {
     const match: Record<string, unknown> = {
       isDeleted,
       scope,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     };
 
     // Add brand filter if provided
@@ -312,12 +309,10 @@ export class PromptsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const data = (await this.promptsService.findOne(
       {
         id: promptId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
       [{ path: 'ingredients' }],
     )) as unknown as PromptWithIngredients | null;
@@ -327,7 +322,7 @@ export class PromptsController {
     // If prompt exists but has no ingredient, check if any ingredient references this prompt
     if (data && !data.ingredients?.length) {
       const ingredient = await this.ingredientsService.findOne({
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         promptId: promptId,
       });
 
@@ -349,14 +344,12 @@ export class PromptsController {
     @Body() updatePromptDto: UpdatePromptDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // Verify the prompt exists and belongs to the user
     const prompt = await this.promptsService.findOne({
       id: promptId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -382,11 +375,9 @@ export class PromptsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const prompt = await this.promptsService.findOne({
       id: promptId,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     if (!prompt) {
@@ -404,7 +395,7 @@ export class PromptsController {
     }
 
     const seller = await this.marketplaceApiClient.getSellerByUserId(
-      publicMetadata.user,
+      user.userId ?? user.id,
     );
 
     if (!seller) {
@@ -423,7 +414,7 @@ export class PromptsController {
 
     const listing = await this.marketplaceApiClient.createListing(
       seller._id.toString(),
-      publicMetadata.organization,
+      user.organizationId,
       {
         description: promptText,
         downloadData: {

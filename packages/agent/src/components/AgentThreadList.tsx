@@ -26,11 +26,6 @@ export type AgentThreadListProps = {
   brandId?: string | null;
   onNavigate?: (path: string) => void;
   searchAction?: ReactNode;
-  /**
-   * @deprecated No longer lifts actions into a parent slot. Header chrome is
-   * owned here so parent nav-panel identity stays stable (no remount loops).
-   */
-  onActionsChange?: (actions: ReactNode) => void;
   /** When true, render the Conversations label above search. */
   showTitle?: boolean;
 };

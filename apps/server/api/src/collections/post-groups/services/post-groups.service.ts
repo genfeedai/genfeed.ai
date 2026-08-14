@@ -279,12 +279,7 @@ export class PostGroupsService {
         scheduledDate: scheduledDate.toISOString(),
         settings: this.contractService.asRecord(target.targetSettings),
         timezone: target.timezone,
-        visibility:
-          target.visibility ??
-          this.contractService.toPostVisibility(
-            target.visibility,
-            target.status,
-          ),
+        visibility: this.contractService.toPostVisibility(target.visibility),
       };
       const credentials = await this.persistenceService.resolveCredentials(
         tx,
@@ -950,12 +945,7 @@ export class PostGroupsService {
           platform: target.platform,
           publishMode: 'publish_now',
           settings: this.contractService.asRecord(target.targetSettings),
-          visibility:
-            target.visibility ??
-            this.contractService.toPostVisibility(
-              target.visibility,
-              target.status,
-            ),
+          visibility: this.contractService.toPostVisibility(target.visibility),
         });
 
         if (!validation.valid) {

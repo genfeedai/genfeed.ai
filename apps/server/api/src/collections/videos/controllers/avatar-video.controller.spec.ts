@@ -1,11 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: 'c07f1f77bcf86cd799439015',
-    organization: 'c07f1f77bcf86cd799439011',
-    user: 'c07f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
@@ -19,7 +11,12 @@ describe('AvatarVideoController', () => {
   let controller: AvatarVideoController;
 
   const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    brandId: 'c07f1f77bcf86cd799439012',
+    id: 'auth-provider-user',
+    organizationId: 'c07f1f77bcf86cd799439011',
+    userId: 'user-123',
+  } as never;
   const mockAvatarVideoGenerationService = {
     generateAvatarVideo: vi.fn(),
   };

@@ -272,12 +272,16 @@ function TrendRemixPageContent() {
                   )}
                 </Badge>
               </div>
-              {result.meta.groupId ? (
+              {result.meta.creditCost != null || result.meta.groupId ? (
                 <p className="mt-1 text-sm text-foreground/55">
-                  {translate('sourcePostVariations.results.summary', {
-                    credits: result.meta.creditCost,
-                    group: result.meta.groupId.slice(0, 8),
-                  })}
+                  {result.meta.groupId
+                    ? translate('sourcePostVariations.results.summary', {
+                        credits: result.meta.creditCost,
+                        group: result.meta.groupId.slice(0, 8),
+                      })
+                    : translate('sourcePostVariations.results.creditsCharged', {
+                        credits: result.meta.creditCost,
+                      })}
                 </p>
               ) : null}
             </div>

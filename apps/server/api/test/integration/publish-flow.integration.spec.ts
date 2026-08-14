@@ -150,19 +150,19 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
 
     const createDto: CreateCredentialDto = {
       accessToken: plaintextApiKey,
-      accessTokenExpiry: new Date(),
+      accessTokenExpiry: new Date().toISOString(),
       accessTokenSecret: '',
-      brand: brandId,
+      brandId,
       externalHandle: 'https://test-ghost-blog.example.com',
       externalId: 'ghost-site-e2e',
       isConnected: true,
       oauthToken: '',
       oauthTokenSecret: '',
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.GHOST,
       refreshToken: '',
-      refreshTokenExpiry: new Date(),
-      user: userId,
+      refreshTokenExpiry: new Date().toISOString(),
+      userId,
     };
 
     const created = await credentialsService.create(createDto);

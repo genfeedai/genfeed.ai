@@ -23,7 +23,6 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -101,7 +100,7 @@ export class VideosController {
   @Get()
   @Cache({
     keyGenerator: (req) =>
-      `videos:list:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:brand:${(req.user?.publicMetadata?.brand as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+      `videos:list:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['videos'],
     ttl: 300, // 5 minutes
   })
@@ -111,8 +110,6 @@ export class VideosController {
     @CurrentUser() user: User,
     @Query() query: VideosQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     // `latest=true` shorthand for brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
@@ -120,7 +117,7 @@ export class VideosController {
     // status/scope/folder/parent/search.
     if (query.latest) {
       const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-      const latestBrand = publicMetadata.brand;
+      const latestBrand = user.brandId;
 
       const latestAggregate = {
         where: {
@@ -131,10 +128,10 @@ export class VideosController {
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
-              organizationId: publicMetadata.organization,
+              organizationId: user.organizationId,
               // Exclude training source videos by default
               trainingId: null,
-              userId: publicMetadata.user,
+              userId: user.userId ?? user.id,
             },
           ],
         },
@@ -164,7 +161,7 @@ export class VideosController {
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
     const brandId = CollectionFilterUtil.buildBrandFilter(
       query.brandId,
-      publicMetadata,
+      user,
       'user',
     );
 
@@ -192,7 +189,7 @@ export class VideosController {
     const aggregate = {
       where: {
         AND: [
-          { organizationId: publicMetadata.organization },
+          { organizationId: user.organizationId },
           {
             brandId,
             category: CategoryPrismaUtil.toIngredientCategory(
@@ -221,7 +218,7 @@ export class VideosController {
   @Get(':videoId')
   @Cache({
     keyGenerator: (req) =>
-      `video:${req.params?.videoId ?? 'unknown'}:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}`,
+      `video:${req.params?.videoId ?? 'unknown'}:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}`,
     tags: ['videos'],
     ttl: 900, // 15 minutes
   })
@@ -231,10 +228,8 @@ export class VideosController {
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
     const pipeline = {
-      where: scopedWhere(publicMetadata.organization, {
+      where: scopedWhere(user.organizationId, {
         id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
@@ -254,7 +249,7 @@ export class VideosController {
 
     // Populate relationships that aren't in aggregation
     const populatedData = await this.videosService.findOne(
-      scopedWhere(publicMetadata.organization, {
+      scopedWhere(user.organizationId, {
         id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
@@ -267,8 +262,8 @@ export class VideosController {
         PopulatePatterns.brandMinimal,
         PopulatePatterns.organizationMinimal,
         { path: 'captions' },
-        { path: 'votes' },
-        { path: 'posts' },
+        // Vote status is loaded via VotesService below. `votes` and `posts`
+        // are not Ingredient relations (`postIngredients` is the post link).
       ],
     );
 
@@ -287,7 +282,7 @@ export class VideosController {
     const vote = await this.votesService.findOne({
       entityId: videoId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      userId: publicMetadata.user,
+      userId: user.userId ?? user.id,
     });
 
     mergedData.hasVoted = !!vote;
@@ -304,10 +299,9 @@ export class VideosController {
     @Query('timeInSeconds') timeInSeconds?: number,
     @Query('width') width?: number,
   ): Promise<StreamableFile> {
-    const publicMetadata = getPublicMetadata(user);
     const video = await this.videosService.findOne({
       id: videoId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!video) {
@@ -373,11 +367,9 @@ export class VideosController {
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Find the video first to ensure it exists and belongs to the user or is part of the same organization
     const video = await this.videosService.findOne(
-      scopedWhere(publicMetadata.organization, {
+      scopedWhere(user.organizationId, {
         id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
@@ -395,7 +387,7 @@ export class VideosController {
     if (data) {
       await this.metadataService.removeByIngredient(
         canonicalVideoId,
-        publicMetadata.organization,
+        user.organizationId,
       );
     }
 

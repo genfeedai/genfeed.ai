@@ -1,11 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUser as User,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsCamerasController } from '@api/collections/elements/cameras/controllers/cameras.controller';
 import { CreateElementCameraDto } from '@api/collections/elements/cameras/dto/create-camera.dto';
 import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/update-camera.dto';
 import { ElementsCamerasService } from '@api/collections/elements/cameras/services/cameras.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -19,7 +21,6 @@ const createBaseQuery = (
     isDeleted: false,
     limit: 10,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
@@ -47,12 +48,10 @@ describe('ElementsCamerasController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    publicMetadata: {
-      brand: 'c07f191e810c19729de860ee'.toString(),
-      isSuperAdmin: true,
-      organization: 'c07f191e810c19729de860ee'.toString(),
-      user: 'c07f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
+    brandId: 'c07f191e810c19729de860ee'.toString(),
+    isSuperAdmin: true,
+    organizationId: 'c07f191e810c19729de860ee'.toString(),
+    userId: 'c07f191e810c19729de860ee'.toString(),
   } as unknown as User;
 
   const mockRequest = {
@@ -190,7 +189,7 @@ describe('ElementsCamerasController', () => {
         id: id,
         key: 'delete-camera',
         label: 'Camera to Delete',
-        userId: mockSuperAdminUser.publicMetadata.user as string,
+        userId: mockSuperAdminUser.userId as string,
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);

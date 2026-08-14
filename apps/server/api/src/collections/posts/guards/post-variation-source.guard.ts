@@ -3,7 +3,6 @@ import type {
   SourcePostVariationRequest,
 } from '@api/collections/posts/services/source-post-variation.types';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@genfeedai/server';
 import {
@@ -28,7 +27,7 @@ export class PostVariationSourceGuard implements CanActivate {
       throw new NotFoundException('Source post');
     }
 
-    const metadata = getPublicMetadata(user);
+    const metadata = user;
     const body = this.asRecord(request.body);
     const count = body.count ?? 3;
     if (
@@ -55,8 +54,8 @@ export class PostVariationSourceGuard implements CanActivate {
 
     request.resolvedPostVariationSource = await this.resolveSource(
       body,
-      metadata.organization,
-      metadata.brand,
+      metadata.organizationId,
+      metadata.brandId,
     );
     request.creditsOutputCount = count;
     return true;

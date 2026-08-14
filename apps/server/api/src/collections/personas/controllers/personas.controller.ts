@@ -7,7 +7,6 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PersonaSerializer } from '@genfeedai/serializers';
@@ -49,7 +48,7 @@ export class PersonasController extends BaseCRUDController<
     @Body() updateDto: UpdatePersonaDto,
   ) {
     if (updateDto.memberIds) {
-      const { organization } = getPublicMetadata(user);
+      const organization = user.organizationId;
       const personaId = EntityIdUtil.validate(id, 'personaId');
       const orgId = EntityIdUtil.validate(organization, 'organizationId');
       const memberIds = EntityIdUtil.validateMany(

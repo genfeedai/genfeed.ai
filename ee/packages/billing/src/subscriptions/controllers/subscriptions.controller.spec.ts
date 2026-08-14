@@ -19,13 +19,11 @@ describe('SubscriptionsController', () => {
   let creditsUtilsService: CreditsUtilsService;
 
   const mockUser: User = {
+    brandId: 'b07f1f77bcf86cd799439010',
     id: 'user_123',
     organizationId: 'o07f1f77bcf86cd799439012',
-    publicMetadata: {
-      organization: 'o07f1f77bcf86cd799439012',
-      user: 'u07f1f77bcf86cd799439011',
-    },
-  } as unknown as User;
+    userId: 'u07f1f77bcf86cd799439011',
+  };
 
   const mockSubscription = {
     cancelAtPeriodEnd: false,
@@ -145,7 +143,7 @@ describe('SubscriptionsController', () => {
       };
       const mockRequest = {
         context: {
-          organizationId: mockUser.publicMetadata.organization as string,
+          organizationId: mockUser.organizationId,
         },
       } as RequestWithContext;
 
@@ -160,7 +158,7 @@ describe('SubscriptionsController', () => {
       );
 
       expect(subscriptionsService.changeSubscriptionPlan).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
         changeData.newPriceId,
       );
       expect(result.success).toBe(true);
@@ -189,7 +187,7 @@ describe('SubscriptionsController', () => {
 
       expect(
         subscriptionsService.previewSubscriptionChange,
-      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization, dto.price);
+      ).toHaveBeenCalledWith(mockUser.organizationId, dto.price);
       expect(result.success).toBe(true);
       expect(result.data).toEqual(preview);
     });
@@ -198,7 +196,7 @@ describe('SubscriptionsController', () => {
   describe('getCreditsBreakdown', () => {
     it('should return credits breakdown with cycle metrics', async () => {
       const request = {
-        context: { organizationId: mockUser.publicMetadata.organization },
+        context: { organizationId: mockUser.organizationId },
       } as Request;
       const creditsData = {
         credits: [
@@ -230,7 +228,7 @@ describe('SubscriptionsController', () => {
 
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization);
+      ).toHaveBeenCalledWith(mockUser.organizationId);
       expect(
         mockCreditsUtilsService.getCycleRemainingMetrics,
       ).toHaveBeenCalled();
@@ -246,7 +244,7 @@ describe('SubscriptionsController', () => {
 
     it('should fallback to total-based percentage when cycle window is unavailable', async () => {
       const request = {
-        context: { organizationId: mockUser.publicMetadata.organization },
+        context: { organizationId: mockUser.organizationId },
       } as Request;
       const creditsData = {
         credits: [],
@@ -273,10 +271,8 @@ describe('SubscriptionsController', () => {
       } as Request;
       const userWithoutOrganization = {
         ...mockUser,
-        publicMetadata: {
-          user: 'u07f1f77bcf86cd799439011',
-        },
-      } as unknown as User;
+        organizationId: '',
+      };
       const creditsData = {
         credits: [],
         total: 0,

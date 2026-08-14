@@ -14,17 +14,6 @@ describe('button variants', () => {
     ]);
   });
 
-  it.each([
-    [ButtonVariant.BLACK, ButtonVariant.DEFAULT],
-    [ButtonVariant.GENERATE, ButtonVariant.DEFAULT],
-    [ButtonVariant.WHITE, ButtonVariant.DEFAULT],
-    [ButtonVariant.OUTLINE, ButtonVariant.SECONDARY],
-    [ButtonVariant.OUTLINE_WHITE, ButtonVariant.SECONDARY],
-    [ButtonVariant.SOFT, ButtonVariant.SECONDARY],
-  ])('normalizes the deprecated %s variant', (legacyVariant, expected) => {
-    expect(resolveButtonVariant(legacyVariant)).toBe(expected);
-  });
-
   it('falls back to default for an unknown runtime value', () => {
     expect(resolveButtonVariant('unknown' as ButtonVariant)).toBe(
       ButtonVariant.DEFAULT,

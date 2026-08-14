@@ -6,8 +6,8 @@ import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';
-import KeyMetric from '@ui/display/key-metric/KeyMetric';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import { Button } from '@ui/primitives/button';
 import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
@@ -97,16 +97,17 @@ export default function StreaksPage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <KeyMetric label="Current streak" value={currentStreak} />
-          <KeyMetric label="Longest streak" value={longestStreak} />
-          <KeyMetric label="Freezes" value={streakFreezes} />
-          <KeyMetric
+          <MetricCard label="Current streak" size="md" value={currentStreak} />
+          <MetricCard label="Longest streak" size="md" value={longestStreak} />
+          <MetricCard label="Freezes" size="md" value={streakFreezes} />
+          <MetricCard
             description={
               nextMilestone
                 ? `${nextMilestone.remaining} day${nextMilestone.remaining === 1 ? '' : 's'} remaining`
                 : 'All milestone tiers reached'
             }
             label="Next milestone"
+            size="md"
             value={nextMilestone ? `${nextMilestone.days}` : 'Done'}
           />
         </div>

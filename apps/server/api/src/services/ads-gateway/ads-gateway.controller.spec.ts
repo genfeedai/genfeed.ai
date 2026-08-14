@@ -46,10 +46,8 @@ describe('AdsGatewayController', () => {
 
   const mockUser = {
     id: 'user_authProvider_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439033',
-      user: '507f1f77bcf86cd799439044',
-    },
+    organizationId: '507f1f77bcf86cd799439033',
+    userId: '507f1f77bcf86cd799439044',
   } as unknown as User;
 
   const validCredentialId = '507f1f77bcf86cd799439011';

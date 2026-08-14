@@ -1,0 +1,151 @@
+import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
+const FULL_TIER_WORKFLOW = 'playwright-full-nightly.yml';
+const PRODUCTION_CONTROL_WORKFLOWS = [
+  'full-suite.yml',
+  'daily-production-deploy.yml',
+  'release.yml',
+  'docker-publish.yml',
+];
+
+function readWorkflow(fileName) {
+  return readFileSync(path.join(WORKFLOWS_DIRECTORY, fileName), 'utf8');
+}
+
+function jobBlock(workflow, jobId, fileName) {
+  const match = workflow.match(
+    new RegExp(`^ {2}${jobId}:\\n((?: {4}.*(?:\\n|$)|\\n)+)`, 'm'),
+  );
+  assert.ok(match, `${fileName} must define the ${jobId} job`);
+  return match[1];
+}
+
+test('Playwright full-tier nightly workflow exists as a standalone reporter', () => {
+  const filePath = path.join(WORKFLOWS_DIRECTORY, FULL_TIER_WORKFLOW);
+  assert.equal(
+    existsSync(filePath),
+    true,
+    `${FULL_TIER_WORKFLOW} must exist so the first scheduled run can record inventory`,
+  );
+
+  const workflow = readWorkflow(FULL_TIER_WORKFLOW);
+  assert.match(workflow, /^ {2}schedule:\n {4}- cron:/m);
+  assert.match(workflow, /^ {2}workflow_dispatch:\s*$/m);
+  assert.doesNotMatch(
+    workflow,
+    /^ {2}workflow_call:/m,
+    'the full tier must not be reusable by deploy callers',
+  );
+  assert.match(workflow, /node scripts\/playwright-e2e-tiers\.mjs/);
+  assert.match(workflow, /playwright-full-tier-summary/);
+  assert.match(workflow, /playwright-report-full-merged/);
+  assert.match(workflow, /playwright-full-traces/);
+  assert.match(workflow, /playwright-full-screenshots/);
+  assert.match(workflow, /nightly-playwright-full-failure-reporter\.mjs/);
+  assert.match(workflow, /NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL/);
+});
+
+test('full-suite.yml and daily-production-deploy.yml do not depend on the reporting-only full tier', () => {
+  for (const fileName of PRODUCTION_CONTROL_WORKFLOWS) {
+    const filePath = path.join(WORKFLOWS_DIRECTORY, fileName);
+    if (!existsSync(filePath)) {
+      continue;
+    }
+
+    const workflow = readFileSync(filePath, 'utf8');
+    assert.doesNotMatch(
+      workflow,
+      /playwright-full-nightly/,
+      `${fileName} must not uses/needs the reporting-only Playwright full tier`,
+    );
+  }
+});
+
+test('no workflow other than the nightly full tier calls playwright-full-nightly.yml', () => {
+  const callers = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) => fileName !== FULL_TIER_WORKFLOW)
+    .filter((fileName) =>
+      /uses:\s*\.\/\.github\/workflows\/playwright-full-nightly\.yml|needs:.*playwright-full-nightly/.test(
+        readWorkflow(fileName),
+      ),
+    );
+
+  assert.deepEqual(
+    callers,
+    [],
+    'deploy and PR workflows must not uses/needs the reporting-only full tier',
+  );
+});
+
+test('e2e.yml core and authed jobs remain the production deploy gates', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+  const frontend = jobBlock(workflow, 'e2e-frontend', 'e2e.yml');
+  const authed = jobBlock(workflow, 'e2e-frontend-authed', 'e2e.yml');
+
+  assert.match(gate, /needs: \[e2e-route-coverage, e2e-frontend, e2e-api\]/);
+  assert.doesNotMatch(gate, /playwright-full|e2e-frontend-full|test:e2e:full/);
+  assert.match(frontend, /bun run test:e2e:sharded -- --reporter=blob/);
+  assert.doesNotMatch(frontend, /test:e2e:full|playwright-e2e-tiers/);
+  assert.match(authed, /bun run test:e2e:authed/);
+  assert.match(
+    authed,
+    /continue-on-error: \$\{\{ github\.event_name != 'schedule' \}\}/,
+    'authed job must stay non-gating on the deploy path',
+  );
+});
+
+test('canonical e2e tier contract documents core, authed, and full', () => {
+  const doc = readFileSync(
+    path.join(REPOSITORY_ROOT, 'docs', 'e2e-tiers.md'),
+    'utf8',
+  );
+  const packageJson = JSON.parse(
+    readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
+  );
+  const apiPackageJson = JSON.parse(
+    readFileSync(
+      path.join(REPOSITORY_ROOT, 'apps', 'server', 'api', 'package.json'),
+      'utf8',
+    ),
+  );
+
+  for (const tier of ['core', 'authed', 'full']) {
+    assert.match(doc, new RegExp(`\`${tier}\``));
+  }
+  assert.match(doc, /test:e2e:core/);
+  assert.match(doc, /test:e2e:authed/);
+  assert.match(doc, /test:e2e:full/);
+  assert.match(doc, /apps\/server\/api/);
+  assert.equal(
+    packageJson.scripts['test:e2e:core'].includes('--project=app-core'),
+    true,
+  );
+  assert.equal(
+    packageJson.scripts['test:e2e:authed'].includes('--project=app-authed'),
+    true,
+  );
+  assert.equal(
+    packageJson.scripts['test:e2e:full'],
+    'node scripts/playwright-e2e-tiers.mjs',
+  );
+  assert.equal(apiPackageJson.scripts['test:e2e:core'] !== undefined, true);
+  assert.equal(apiPackageJson.scripts['test:e2e:full'] !== undefined, true);
+});
+
+test('CI workflow contracts run the Playwright full-tier tests', () => {
+  const ci = readWorkflow('ci.yml');
+  assert.match(ci, /scripts\/ci\/playwright-full-nightly\.test\.mjs/);
+  assert.match(ci, /scripts\/playwright-e2e-tiers\.test\.mjs/);
+  assert.match(
+    ci,
+    /scripts\/ci\/nightly-playwright-full-failure-reporter\.test\.mjs/,
+  );
+});

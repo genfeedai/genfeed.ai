@@ -19,10 +19,8 @@ describe('ContextsController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as User;
 
   const mockContext = {
@@ -104,8 +102,8 @@ describe('ContextsController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         createDto,
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.user,
+        mockUser.organizationId,
+        mockUser.userId,
       );
     });
   });
@@ -117,14 +115,11 @@ describe('ContextsController', () => {
 
       await controller.findAll(mockReq, mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        {
-          category: undefined,
-          isActive: undefined,
-          search: undefined,
-        },
-      );
+      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+        category: undefined,
+        isActive: undefined,
+        search: undefined,
+      });
     });
 
     it('should filter by category', async () => {
@@ -132,14 +127,11 @@ describe('ContextsController', () => {
 
       await controller.findAll(mockReq, mockUser, 'general');
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        {
-          category: 'general',
-          isActive: undefined,
-          search: undefined,
-        },
-      );
+      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
+        category: 'general',
+        isActive: undefined,
+        search: undefined,
+      });
     });
   });
 
@@ -150,10 +142,7 @@ describe('ContextsController', () => {
 
       await controller.findOne(mockReq, id, mockUser);
 
-      expect(service.findOne).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.findOne).toHaveBeenCalledWith(id, mockUser.organizationId);
     });
   });
 
@@ -172,7 +161,7 @@ describe('ContextsController', () => {
       expect(service.update).toHaveBeenCalledWith(
         id,
         updateDto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
     });
   });
@@ -184,10 +173,7 @@ describe('ContextsController', () => {
 
       const result = await controller.remove(id, mockUser);
 
-      expect(service.remove).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
+      expect(service.remove).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual({ message: 'Context base deleted successfully' });
     });
   });
@@ -211,7 +197,7 @@ describe('ContextsController', () => {
       expect(service.addEntry).toHaveBeenCalledWith(
         id,
         addEntryDto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
     });
   });
@@ -227,7 +213,7 @@ describe('ContextsController', () => {
       expect(service.removeEntry).toHaveBeenCalledWith(
         id,
         entryId,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual({ message: 'Entry removed successfully' });
     });
@@ -248,8 +234,8 @@ describe('ContextsController', () => {
 
       expect(service.autoCreateFromAccount).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.user,
+        mockUser.organizationId,
+        mockUser.userId,
       );
     });
   });
@@ -277,7 +263,7 @@ describe('ContextsController', () => {
 
       expect(service.enhancePrompt).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(retrievedContext);
     });
@@ -300,7 +286,7 @@ describe('ContextsController', () => {
 
       expect(service.queryContext).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(queryResult);
     });
@@ -321,7 +307,7 @@ describe('ContextsController', () => {
 
       expect(service.getStats).toHaveBeenCalledWith(
         id,
-        mockUser.publicMetadata.organization,
+        mockUser.organizationId,
       );
       expect(result).toEqual(stats);
     });

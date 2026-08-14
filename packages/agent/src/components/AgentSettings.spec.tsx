@@ -3,6 +3,8 @@ import { GenerationPriority } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const SETTINGS_MODELS = [
@@ -25,6 +27,12 @@ describe('AgentSettings', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('resolves selector copy through the host agent catalog', () => {
+    const source = readFileSync(join(__dirname, 'AgentSettings.tsx'), 'utf8');
+    expect(source).toContain("useTranslations('agent.settings')");
+    expect(source).not.toContain('DEFAULT_MODEL_COPY');
   });
 
   it('hydrates controls from authoritative settings', () => {

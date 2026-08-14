@@ -72,16 +72,15 @@ export const mockAuthRequest = (overrides: MockRequestOverrides = {}) => ({
     authorization: 'Bearer test-token',
   },
   params: {},
-  publicMetadata: {
-    email: 'test@example.com',
-    isOwner: true,
-    organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
-    user: 'test-id-' + Math.random().toString(36).slice(2, 9),
-  },
+  organizationId: 'test-id-' + Math.random().toString(36).slice(2, 9),
+  userId: 'test-id-' + Math.random().toString(36).slice(2, 9),
   query: {},
   user: {
     email: 'test@example.com',
     id: 'user-id',
+    isSuperAdmin: false,
+    organizationId: 'org-id',
+    userId: 'user-id',
   },
   ...overrides,
 });

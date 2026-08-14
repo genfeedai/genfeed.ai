@@ -6,7 +6,7 @@ Accepted
 
 ## Last Updated
 
-2026-06-29
+2026-08-14
 
 ## Decision
 
@@ -34,27 +34,13 @@ Raw cron jobs are not a primary product abstraction.
 
 ## Current Repo State
 
-The repo currently contains two scheduling models:
+Scheduling is workflow-canonical:
 
 - workflow-native scheduling via `WorkflowSchedulerService`
-- a legacy `cron-jobs` subsystem retained for compatibility reads, migration,
-  and workflow-adapter execution of migrated rows
-
-The strategic path is workflow scheduling.
-
-The `cron-jobs` subsystem should be treated as legacy because:
-
-- it duplicates workflow scheduling concerns
-- it exposes raw cron infrastructure as a product surface
-- it creates a second execution model for recurring automation
-- `processDueJobs()` is not the preferred scheduler path for new product work
-
-The legacy product surface is retired:
-
-- `/lab/cron-jobs` redirects to workflow scheduling
-- `POST`/`PATCH`/pause/resume/delete/run-now cron-job API routes return `410`
-- SDK mutation methods fail before making HTTP calls
-- new product code must not create legacy cron rows or call legacy mutation APIs
+- the leftover `cron-jobs` collection, worker dispatcher, `legacyCronJob` node,
+  SDK, and Prisma `cron_jobs` / `cron_runs` tables are deleted
+- `/lab/cron-jobs` permanently redirects to `APP_ROUTES.AUTOMATE.WORKFLOWS`
+- `bun run check:legacy-cron-surface` fails if the old collection returns
 
 Recent migrations made this concrete for campaign orchestration, ad sync and
 optimization, agent autopilot, analytics sync, content production, reply
@@ -84,7 +70,6 @@ Ad insights aggregation is explicitly classified as platform scheduling:
 
 - keep system `@Cron(...)` jobs for platform responsibilities
 - keep webhook and manual workflow triggers as first-class trigger types
-- keep temporary legacy compatibility where migration is not complete
 
 ### Not allowed going forward
 

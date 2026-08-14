@@ -38,7 +38,8 @@ describe('PinterestController', () => {
     }),
   };
   const user = {
-    publicMetadata: { organization: 'organization-id', user: 'user-id' },
+    organizationId: 'organization-id',
+    userId: 'user-id',
   } as unknown as User;
 
   beforeEach(async () => {

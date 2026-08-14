@@ -211,7 +211,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await deductCore();
 
       // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider publicMetadata write-back).
+      // Phase C — no legacy auth provider identity write-back).
       const defaultBrand = await this.prisma.brand.findFirst({
         select: { id: true },
         where: scopedWhere(organizationId, {}),
@@ -369,7 +369,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider publicMetadata write-back).
+      // Phase C — no legacy auth provider identity write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newBalance,
@@ -462,7 +462,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await refundCore();
 
       // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider publicMetadata write-back).
+      // Phase C — no legacy auth provider identity write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newBalance,
@@ -685,7 +685,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider publicMetadata write-back).
+      // Phase C — no legacy auth provider identity write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newCreditAmount,
@@ -767,7 +767,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await removeAllCore();
 
       // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider publicMetadata write-back). The subscription lookup
+      // Phase C — no legacy auth provider identity write-back). The subscription lookup
       // is retained for the activity event below.
       const subscription = await this.prisma.subscription.findFirst({
         select: { id: true, userId: true },

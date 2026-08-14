@@ -23,7 +23,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -135,14 +134,13 @@ export class VideosRelationshipsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const aggregate = {
       where: {
         ingredients: { some: { id: videoId } },
         isDeleted,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
       orderBy: handleQuerySort(query.sort),
     };
@@ -171,7 +169,6 @@ export class VideosRelationshipsController {
 
     const isCaptionsEnabled = createMergedVideoDto.isCaptionsEnabled || false;
     const isResizeEnabled = createMergedVideoDto.isResizeEnabled || false;
-    const publicMetadata = getPublicMetadata(user);
 
     const options = {
       customLabels,
@@ -187,7 +184,7 @@ export class VideosRelationshipsController {
         status: {
           in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
         },
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
     };
 
@@ -208,11 +205,11 @@ export class VideosRelationshipsController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         order: 1,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         sourceIds: parentIds,
         status: IngredientStatus.PROCESSING,
       });
@@ -223,13 +220,13 @@ export class VideosRelationshipsController {
     // Create activity to track merge progress
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: publicMetadata.brand,
+        brandId: user.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         source: ActivitySource.WEB,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify({
           frameCount: ingredientIds.length,
           ingredientId,
@@ -243,9 +240,8 @@ export class VideosRelationshipsController {
     // Queue merge videos operation
     this.fileQueueService
       .processVideo({
-        authProviderUserId: user.id,
         ingredientId,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         params: {
           isMuteVideoAudio: createMergedVideoDto.isMuteVideoAudio,
           music: createMergedVideoDto.music
@@ -264,7 +260,7 @@ export class VideosRelationshipsController {
         },
         room: getUserRoomName(user.id),
         type: JOB_TYPES.MERGE_VIDEOS,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         websocketUrl: websocketURL,
       })
       .then(async (job) => {
@@ -278,9 +274,8 @@ export class VideosRelationshipsController {
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
           const portraitJob = await this.fileQueueService.processVideo({
-            authProviderUserId: user.id,
             ingredientId,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             params: {
               height: 1920,
               inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
@@ -288,7 +283,7 @@ export class VideosRelationshipsController {
             },
             room: getUserRoomName(user.id),
             type: JOB_TYPES.CONVERT_TO_PORTRAIT,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
             websocketUrl: `/videos/${ingredientId}`,
           });
           const result = await this.fileQueueService.waitForJob(
@@ -317,23 +312,22 @@ export class VideosRelationshipsController {
               ingredientId: ingredientData.id,
               isDeleted: false,
               language: CaptionLanguage.EN,
-              organizationId: publicMetadata.organization,
-              userId: publicMetadata.user,
+              organizationId: user.organizationId,
+              userId: user.userId ?? user.id,
             };
             const caption = await this.captionsService.create(captionInput);
 
             // Queue captions addition in files.genfeed service
             const captionsJob = await this.fileQueueService.processVideo({
-              authProviderUserId: user.id,
               ingredientId,
-              organizationId: publicMetadata.organization,
+              organizationId: user.organizationId,
               params: {
                 captionContent: caption.content,
                 inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
               },
               room: getUserRoomName(user.id),
               type: 'add-captions',
-              userId: publicMetadata.user,
+              userId: user.userId ?? user.id,
               websocketUrl: `/videos/${ingredientId}`,
             });
 

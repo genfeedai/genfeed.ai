@@ -51,6 +51,11 @@ describe('routes.constant', () => {
     expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
   });
 
+  it('keeps the retired cron-jobs lab path compatibility-only', () => {
+    expect(LEGACY_APP_ROUTES.LAB_CRON_JOBS).toBe('/lab/cron-jobs');
+    expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');
+  });
+
   it('builds canonical Publish editor paths without a kind query param', () => {
     // Kind lives on the entity (which table the id hits), not the URL.
     expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');

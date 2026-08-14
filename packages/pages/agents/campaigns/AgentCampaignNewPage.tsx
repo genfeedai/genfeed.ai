@@ -8,11 +8,11 @@ import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strat
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -20,7 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { LayoutDashboard } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
@@ -45,6 +47,7 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function AgentCampaignNewPage() {
+  const translate = useTranslations('common.agentCampaign');
   const router = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -129,7 +132,7 @@ export default function AgentCampaignNewPage() {
             htmlFor="agent-campaign-label"
             className="text-sm font-medium text-foreground"
           >
-            Campaign Label *
+            {translate('campaignLabel')}
           </label>
           <Input
             id="agent-campaign-label"
@@ -140,16 +143,26 @@ export default function AgentCampaignNewPage() {
           />
         </div>
 
-        <Textarea
-          label="Brief"
-          value={form.brief}
-          onChange={(e) => handleChange('brief', e.target.value)}
-          placeholder="Describe the campaign goals and context..."
-          rows={3}
-        />
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="agent-campaign-brief"
+            className="text-sm font-medium text-foreground"
+          >
+            {translate('brief')}
+          </Label>
+          <Textarea
+            id="agent-campaign-brief"
+            value={form.brief}
+            onChange={(e) => handleChange('brief', e.target.value)}
+            placeholder="Describe the campaign goals and context..."
+            rows={3}
+          />
+        </div>
 
         <div className="space-y-1.5">
-          <span className="text-sm font-medium text-foreground">Status</span>
+          <span className="text-sm font-medium text-foreground">
+            {translate('status.label')}
+          </span>
           <Select
             value={form.status}
             onValueChange={(value) =>
@@ -160,8 +173,10 @@ export default function AgentCampaignNewPage() {
               <SelectValue placeholder="Select a status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">{translate('status.draft')}</SelectItem>
+              <SelectItem value="active">
+                {translate('status.active')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -172,7 +187,7 @@ export default function AgentCampaignNewPage() {
               htmlFor="agent-campaign-start-date"
               className="text-sm font-medium text-foreground"
             >
-              Start Date *
+              {translate('startDate')}
             </label>
             <Input
               id="agent-campaign-start-date"
@@ -187,7 +202,7 @@ export default function AgentCampaignNewPage() {
               htmlFor="agent-campaign-end-date"
               className="text-sm font-medium text-foreground"
             >
-              End Date (optional)
+              {translate('endDate')}
             </label>
             <Input
               id="agent-campaign-end-date"
@@ -203,7 +218,7 @@ export default function AgentCampaignNewPage() {
             htmlFor="agent-campaign-credits"
             className="text-sm font-medium text-foreground"
           >
-            Credits Allocated
+            {translate('creditsAllocated')}
           </label>
           <Input
             id="agent-campaign-credits"
@@ -217,11 +232,11 @@ export default function AgentCampaignNewPage() {
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Agent Strategies
+            {translate('agentStrategies')}
           </p>
           {strategies.length === 0 ? (
             <p className="text-sm text-foreground/50">
-              No agent strategies available. Create agents first.
+              {translate('noAgentStrategies')}
             </p>
           ) : (
             <div className="space-y-2 rounded border border-input p-3">

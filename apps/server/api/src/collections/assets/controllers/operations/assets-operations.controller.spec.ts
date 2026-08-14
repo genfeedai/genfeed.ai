@@ -58,11 +58,9 @@ describe('AssetsOperationsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    publicMetadata: {
-      brand: mockBrandId.toString(),
-      organization: mockOrgId.toString(),
-      user: mockUserId.toString(),
-    },
+    brandId: mockBrandId.toString(),
+    organizationId: mockOrgId.toString(),
+    userId: mockUserId.toString(),
   } as unknown as User;
 
   const mockRequest = {
@@ -265,10 +263,8 @@ describe('AssetsOperationsController', () => {
     it('should reject a non-brand parent type', async () => {
       const userWithoutBrand = {
         id: 'user_456',
-        publicMetadata: {
-          organization: mockOrgId.toString(),
-          user: mockUserId.toString(),
-        },
+        organizationId: mockOrgId.toString(),
+        userId: mockUserId.toString(),
       } as unknown as User;
 
       const generateDto: GenerateAssetDto = {

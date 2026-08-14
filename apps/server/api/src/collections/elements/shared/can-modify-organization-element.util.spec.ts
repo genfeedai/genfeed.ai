@@ -2,15 +2,15 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { canModifyOrganizationElement } from './can-modify-organization-element.util';
 
 function buildUser(
-  organization: string,
+  organizationId: string,
   isSuperAdmin = false,
 ): AuthenticatedUser {
   return {
+    brandId: 'brand-1',
     id: 'user-1',
-    publicMetadata: {
-      isSuperAdmin,
-      organization,
-    },
+    isSuperAdmin,
+    organizationId,
+    userId: 'user-1',
   };
 }
 

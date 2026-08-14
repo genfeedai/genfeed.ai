@@ -1,9 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ConnectCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -59,7 +58,7 @@ export interface OAuthVerifyResult {
  *     super(brandsService, credentialsService, loggerService, YoutubeController.name);
  *   }
  *
- *   protected async generateOAuthUrl(brandId: string, publicMetadata: IAuthPublicMetadata): Promise<OAuthUrlResult> {
+ *   protected async generateOAuthUrl(brandId: string, user: AuthenticatedUser): Promise<OAuthUrlResult> {
  *     const authUrl = this.youtubeService.generateAuthUrl({ ... });
  *     return { url: authUrl };
  *   }
@@ -120,12 +119,12 @@ export abstract class BaseIntegrationController {
    * Must be implemented by subclasses
    *
    * @param brandId - The brand ID to connect
-   * @param publicMetadata - User's public metadata
+   * @param user - Authenticated user
    * @returns OAuth URL and optional tokens
    */
   protected abstract generateOAuthUrl(
     brandId: string,
-    publicMetadata: IAuthPublicMetadata,
+    user: AuthenticatedUser,
   ): Promise<OAuthUrlResult>;
 
   /**
@@ -211,8 +210,6 @@ export abstract class BaseIntegrationController {
     const url = this.getLogUrl('connect');
     this.loggerService.log(url, createCredentialDto);
 
-    const publicMetadata = getPublicMetadata(user);
-
     try {
       if (!createCredentialDto.brandId) {
         throw new HttpException(
@@ -226,11 +223,11 @@ export abstract class BaseIntegrationController {
 
       const brand = await this.validateBrand(
         createCredentialDto.brandId,
-        publicMetadata.organization,
+        user.organizationId,
       );
 
       // Generate OAuth URL
-      const oauthResult = await this.generateOAuthUrl(brand.id, publicMetadata);
+      const oauthResult = await this.generateOAuthUrl(brand.id, user);
 
       // Before anything is persisted: a platform whose provider-app config is
       // missing builds an authorize URL carrying `undefined` credentials. Left
@@ -243,7 +240,7 @@ export abstract class BaseIntegrationController {
       if (oauthResult.oauthToken || oauthResult.oauthTokenSecret) {
         await this.credentialsService.upsertForBrand(
           brand,
-          publicMetadata.user,
+          user.userId ?? user.id,
           this.platform,
           {
             isConnected: false,
@@ -252,7 +249,7 @@ export abstract class BaseIntegrationController {
           },
         );
       } else {
-        await this.getOrCreateCredential(brand, publicMetadata.user);
+        await this.getOrCreateCredential(brand, user.userId ?? user.id);
       }
 
       return oauthResult;

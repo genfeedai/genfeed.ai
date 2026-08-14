@@ -202,7 +202,6 @@ describe('raw-cut clip pipeline integration', () => {
       queuedClipCount: 1,
     });
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(1, {
-      authProviderUserId: undefined,
       id: 'raw-cut-trim-clip-result-1',
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,
@@ -242,7 +241,6 @@ describe('raw-cut clip pipeline integration', () => {
     });
 
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(2, {
-      authProviderUserId: undefined,
       id: 'raw-cut-caption-clip-result-1',
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,

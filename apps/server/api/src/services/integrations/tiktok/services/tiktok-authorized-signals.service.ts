@@ -1,5 +1,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -260,6 +261,7 @@ export class TiktokAuthorizedSignalsService {
     private readonly loggerService: LoggerService,
     private readonly prisma: PrismaService,
     private readonly tiktokService: TiktokService,
+    private readonly socialWarmupEnrollmentsService: SocialWarmupEnrollmentsService,
   ) {}
 
   async refresh(
@@ -1175,7 +1177,7 @@ export class TiktokAuthorizedSignalsService {
 
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
-    credential: CredentialDocument,
+    credential: Pick<CredentialDocument, 'warmupSignals'>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): string[] {
     const stored = readRecord(credential.warmupSignals);
@@ -1232,6 +1234,14 @@ export class TiktokAuthorizedSignalsService {
         [TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
       },
     );
+    if (credential.brandId) {
+      await this.socialWarmupEnrollmentsService.syncTikTokAuthorizedSnapshot({
+        brandId: credential.brandId,
+        credentialId: credential.id,
+        organizationId,
+        snapshot,
+      });
+    }
     await this.cacheService.set(cacheKey, snapshot, {
       tags: [
         CACHE_TAGS.TIKTOK_AUTHORIZED_SIGNALS,

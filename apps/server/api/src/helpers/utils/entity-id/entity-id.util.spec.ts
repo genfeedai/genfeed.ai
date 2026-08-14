@@ -1,6 +1,5 @@
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import type { IAuthPublicMetadata } from '@libs/interfaces/auth-public-metadata.interface';
 
 describe('EntityIdUtil', () => {
   const userId = '550e8400-e29b-41d4-a716-446655440001';
@@ -135,15 +134,12 @@ describe('EntityIdUtil', () => {
   describe('enrichWithUserContext', () => {
     it('should enrich DTO with user and organization', () => {
       const dto = { name: 'Test' };
-      const publicMetadata = {
-        organization: organizationId,
-        user: userId,
+      const user = {
+        organizationId,
+        userId,
       };
 
-      const result = EntityIdUtil.enrichWithUserContext(
-        dto,
-        publicMetadata as IAuthPublicMetadata,
-      );
+      const result = EntityIdUtil.enrichWithUserContext(dto, user);
 
       expect(result.name).toBe('Test');
       expect(result.userId).toEqual(expect.any(String));
@@ -152,14 +148,11 @@ describe('EntityIdUtil', () => {
 
     it('should enrich DTO without organization', () => {
       const dto = { name: 'Test' };
-      const publicMetadata = {
-        user: userId,
+      const user = {
+        userId,
       };
 
-      const result = EntityIdUtil.enrichWithUserContext(
-        dto,
-        publicMetadata as IAuthPublicMetadata,
-      );
+      const result = EntityIdUtil.enrichWithUserContext(dto, user);
 
       expect(result.userId).toEqual(expect.any(String));
       expect(result.organizationId).toBeUndefined();
@@ -167,10 +160,9 @@ describe('EntityIdUtil', () => {
 
     it('should throw error for missing user context', () => {
       const dto = { name: 'Test' };
-      const publicMetadata = {} as IAuthPublicMetadata;
 
       expect(() =>
-        EntityIdUtil.enrichWithUserContext(dto, publicMetadata),
+        EntityIdUtil.enrichWithUserContext(dto, { id: '', userId: '' }),
       ).toThrow(ValidationException);
     });
   });

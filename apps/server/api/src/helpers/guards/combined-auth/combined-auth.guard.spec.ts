@@ -216,12 +216,11 @@ describe('CombinedAuthGuard', () => {
     expect(result).toBe(true);
     expect(mockRequest.user).toEqual(
       expect.objectContaining({
-        id: 'local-admin',
-        publicMetadata: expect.objectContaining({
-          brand: 'brand_1',
-          organization: 'org_1',
-          user: 'user_1',
-        }),
+        brandId: 'brand_1',
+        id: 'user_1',
+        isSuperAdmin: true,
+        organizationId: 'org_1',
+        userId: 'user_1',
       }),
     );
   });
@@ -255,7 +254,10 @@ describe('CombinedAuthGuard', () => {
     expect(result).toBe(true);
     expect(mockRequest.user).toEqual(
       expect.objectContaining({
-        id: 'local-admin',
+        brandId: 'brand_1',
+        id: 'user_1',
+        organizationId: 'org_1',
+        userId: 'user_1',
       }),
     );
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();

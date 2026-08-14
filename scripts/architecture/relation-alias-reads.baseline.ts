@@ -1,22 +1,9 @@
 /**
- * Ratchet baseline for check-relation-alias-reads.ts.
+ * Relation-alias reads are banned. Empty map: any identity-key / coercion /
+ * filter-value / identity-comparison hit fails the guard.
  *
- * Per-file counts of pre-existing relation-alias reads, captured 2026-07-24.
- * Counts may ONLY go down — the guard fails on a file that gains one, and also
- * on a file that drops below its entry, so whoever fixes a site prunes the
- * number in the same PR. Regenerate with:
- *
- *   bun run check:relation-alias-reads --update-baseline
- *
- * When this map is empty, delete it and flip the guard to a plain ban.
- *
- * Every entry is a real instance of the defect fixed in #2033, not a false
- * positive — the backlog is large because the hazard is systemic, not because
- * the guard is noisy.
+ * @see .agents/memory/rules/prisma_legacy_alias_fields.md
  */
 
-export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
-  'packages/hooks/pages/use-article-detail/use-article-detail.ts': 1,
-  'packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.ts': 1,
-  'packages/services/organization/organizations.service.ts': 3,
-};
+export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> =
+  {};

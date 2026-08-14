@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const dnsLookupMock = vi.hoisted(() => vi.fn());
 const httpRequestMock = vi.hoisted(() => vi.fn());
+const httpsRequestMock = vi.hoisted(() => vi.fn());
 
 vi.mock('node:dns/promises', () => ({
   lookup: dnsLookupMock,
@@ -13,6 +14,11 @@ vi.mock('node:dns/promises', () => ({
 vi.mock('node:http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:http')>();
   return { ...actual, request: httpRequestMock };
+});
+
+vi.mock('node:https', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:https')>();
+  return { ...actual, request: httpsRequestMock };
 });
 
 import {
@@ -50,6 +56,7 @@ describe('destination guard', () => {
   afterEach(() => {
     dnsLookupMock.mockReset();
     httpRequestMock.mockReset();
+    httpsRequestMock.mockReset();
   });
 
   it.each([
@@ -472,5 +479,364 @@ describe('destination guard', () => {
 
     expect(response.status).toBe(204);
     expect(response.body).toBeNull();
+  });
+
+  it('accepts an already-parsed URL instance', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    await expect(
+      resolveSafeDestination(new URL('https://public.example/asset')),
+    ).resolves.toMatchObject({
+      address: '93.184.216.34',
+      family: 4,
+    });
+  });
+
+  it('fails closed when the private-network allowlist is empty', async () => {
+    await expect(
+      resolveSafeDestination('http://10.0.0.5/train', {
+        allowedOrigins: [],
+        allowPrivateNetwork: true,
+      }),
+    ).rejects.toThrow('require an explicit origin allowlist');
+  });
+
+  it('rejects a pinned lookup for an unexpected hostname', async () => {
+    expect.assertions(2);
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset');
+
+    const requestOptions = httpRequestMock.mock.calls[0]?.[1] as {
+      agent?: {
+        options?: {
+          lookup?: (
+            hostname: string,
+            options: LookupOptions,
+            callback: (
+              error: Error | null,
+              address: string | LookupAddress[],
+              family?: number,
+            ) => void,
+          ) => void;
+        };
+      };
+    };
+
+    requestOptions.agent?.options?.lookup?.(
+      'evil.example',
+      {},
+      (error, address) => {
+        expect(error).toBeInstanceOf(DestinationGuardError);
+        expect(address).toBe('');
+      },
+    );
+  });
+
+  it('strips hop-by-hop credentials on a cross-origin redirect', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: ['location', 'http://cdn.example/next'],
+            statusCode: 302,
+            statusMessage: 'Found',
+          });
+          callback(response);
+          return request;
+        },
+      )
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: [],
+            statusCode: 200,
+            statusMessage: 'OK',
+          });
+          callback(response);
+          return request;
+        },
+      );
+
+    await safeFetch('http://public.example/start', {
+      headers: {
+        authorization: 'Bearer secret',
+        cookie: 'session=1',
+        'proxy-authorization': 'Basic abc',
+      },
+    });
+
+    expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.not.objectContaining({
+        authorization: expect.anything(),
+        cookie: expect.anything(),
+        'proxy-authorization': expect.anything(),
+      }),
+    });
+  });
+
+  it('converts a 301 POST redirect into a bodyless GET', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: ['location', 'http://public.example/next'],
+            statusCode: 301,
+            statusMessage: 'Moved Permanently',
+          });
+          callback(response);
+          return request;
+        },
+      )
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: [],
+            statusCode: 200,
+            statusMessage: 'OK',
+          });
+          callback(response);
+          return request;
+        },
+      );
+
+    await safeFetch('http://public.example/start', {
+      body: 'payload',
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      method: 'GET',
+    });
+    expect(httpRequestMock.mock.calls[1]?.[1]).not.toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': expect.anything(),
+      }),
+    });
+    const followOnRequest = httpRequestMock.mock.results[1]?.value as
+      | { end?: ReturnType<typeof vi.fn> }
+      | undefined;
+    expect(followOnRequest?.end).toHaveBeenCalledWith(undefined);
+  });
+
+  it('preserves method and body across a 307 redirect', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: ['location', 'http://public.example/next'],
+            statusCode: 307,
+            statusMessage: 'Temporary Redirect',
+          });
+          callback(response);
+          return request;
+        },
+      )
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: [],
+            statusCode: 200,
+            statusMessage: 'OK',
+          });
+          callback(response);
+          return request;
+        },
+      );
+
+    await safeFetch('http://public.example/start', {
+      body: 'payload',
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': '7',
+      }),
+      method: 'POST',
+    });
+    const followOnRequest = httpRequestMock.mock.results[1]?.value as
+      | { end?: ReturnType<typeof vi.fn> }
+      | undefined;
+    expect(followOnRequest?.end).toHaveBeenCalledWith('payload');
+  });
+
+  it('returns a bodyless response for HEAD requests', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    const response = await safeFetch('http://public.example/asset', {
+      method: 'HEAD',
+    });
+
+    expect(response.body).toBeNull();
+  });
+
+  it('serializes a Blob without a content type', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset', {
+      body: new Blob(['hello']),
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': '5',
+      }),
+    });
+    const serializedHeaders = httpRequestMock.mock.calls[0]?.[1] as
+      | { headers: Record<string, string> }
+      | undefined;
+    expect(serializedHeaders?.headers['content-type']).toBeUndefined();
+  });
+
+  it('does not overwrite an explicit content-type header', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset', {
+      body: new URLSearchParams({ key: 'value' }),
+      headers: { 'content-type': 'text/plain' },
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-type': 'text/plain',
+      }),
+    });
+  });
+
+  it('connects HTTPS destinations through the HTTPS request path', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpsRequestMock.mockImplementation(
+      (
+        _url: URL,
+        _options: unknown,
+        callback: (response: Readable) => void,
+      ) => {
+        const request = new EventEmitter() as EventEmitter & {
+          end: (body?: unknown) => void;
+        };
+        request.end = vi.fn();
+        const response = Readable.from([]);
+        Object.assign(response, {
+          rawHeaders: [],
+          statusCode: 200,
+          statusMessage: 'OK',
+        });
+        callback(response);
+        return request;
+      },
+    );
+
+    await expect(
+      safeFetch('https://public.example/asset'),
+    ).resolves.toBeInstanceOf(Response);
+    expect(httpsRequestMock).toHaveBeenCalledTimes(1);
+    expect(httpRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a connection error from the pinned request', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock.mockImplementation(() => {
+      const request = new EventEmitter() as EventEmitter & {
+        end: (body?: unknown) => void;
+      };
+      request.end = () => {
+        request.emit('error', new Error('ECONNRESET'));
+      };
+      return request;
+    });
+
+    await expect(safeFetch('http://public.example/asset')).rejects.toThrow(
+      'ECONNRESET',
+    );
+  });
+
+  it('defaults a missing status code to 500', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock.mockImplementation(
+      (
+        _url: URL,
+        _options: unknown,
+        callback: (response: Readable) => void,
+      ) => {
+        const request = new EventEmitter() as EventEmitter & {
+          end: (body?: unknown) => void;
+        };
+        request.end = vi.fn();
+        const response = Readable.from([]);
+        Object.assign(response, {
+          rawHeaders: [],
+          statusMessage: 'Unknown',
+        });
+        callback(response);
+        return request;
+      },
+    );
+
+    const response = await safeFetch('http://public.example/asset');
+    expect(response.status).toBe(500);
   });
 });

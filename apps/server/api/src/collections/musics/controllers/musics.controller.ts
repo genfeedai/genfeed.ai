@@ -7,10 +7,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -169,12 +166,10 @@ export class MusicsController {
    * Override buildFindAllQuery to add music-specific filtering
    */
   public buildFindAllQuery(user: User, query: MusicQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Use CollectionFilterUtil for common filtering patterns
     const brandId = CollectionFilterUtil.buildBrandFilter(
       query.brandId,
-      publicMetadata,
+      user,
       'user',
     );
 
@@ -222,13 +217,13 @@ export class MusicsController {
             ),
             isDeleted: query.isDeleted ?? false,
             ...metadataFilter,
-            organizationId: publicMetadata.organization,
+            organizationId: user.organizationId,
             status,
-            userId: publicMetadata.user,
+            userId: user.userId ?? user.id,
           },
           {
             OR: [
-              { organizationId: publicMetadata.organization },
+              { organizationId: user.organizationId },
               { organizationId: null },
             ],
             category: CategoryPrismaUtil.toIngredientCategory(
@@ -249,12 +244,10 @@ export class MusicsController {
   }
 
   public buildFindOneQuery(user: User, id: string): Record<string, unknown> {
-    const publicMetadata = getPublicMetadata(user);
-
     return {
       id,
       OR: [
-        { organizationId: publicMetadata.organization },
+        { organizationId: user.organizationId },
         { isDefault: true, organizationId: null },
       ],
       category: CategoryPrismaUtil.toIngredientCategory(
@@ -265,12 +258,11 @@ export class MusicsController {
   }
 
   public canUserModifyEntity(user: User, entity: MusicDocument): boolean {
-    const publicMetadata = getPublicMetadata(user);
     const music = entity as unknown as Record<string, unknown>;
 
     return (
-      music.organizationId === publicMetadata.organization &&
-      music.userId === publicMetadata.user
+      music.organizationId === user.organizationId &&
+      music.userId === (user.userId ?? user.id)
     );
   }
 
@@ -278,13 +270,11 @@ export class MusicsController {
     updateDto: UpdateMusicDto,
     user: User,
   ): UpdateMusicDto {
-    const publicMetadata = getPublicMetadata(user);
-
     return {
       ...updateDto,
-      brandId: updateDto.brandId ?? publicMetadata.brand,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
+      brandId: updateDto.brandId ?? user.brandId,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
     };
   }
 }

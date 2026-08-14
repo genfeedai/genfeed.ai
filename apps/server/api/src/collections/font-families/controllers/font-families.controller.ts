@@ -12,7 +12,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { FontFamilySerializer } from '@genfeedai/serializers';
@@ -116,14 +115,12 @@ export class FontFamiliesController extends BaseCRUDController<
    * Load items with: (no org) OR (user's org)
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-
     // Build OR conditions: global items OR user's org items
     const orConditions: Record<string, unknown>[] = [{ organizationId: null }];
 
-    if (publicMetadata.organization) {
+    if (user.organizationId) {
       orConditions.push({
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       });
     }
 

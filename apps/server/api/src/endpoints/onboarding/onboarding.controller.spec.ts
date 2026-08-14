@@ -19,9 +19,7 @@ describe('OnboardingController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    publicMetadata: {
-      organization: 'org_123',
-    },
+    organizationId: 'org_123',
   } as unknown as User;
 
   beforeEach(async () => {

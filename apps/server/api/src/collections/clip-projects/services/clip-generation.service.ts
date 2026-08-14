@@ -59,7 +59,6 @@ export interface ClipGenerationInput {
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
   transcriptSegments?: TranscriptSegment[];
-  authProviderUserId?: string;
   room?: string;
 }
 
@@ -222,7 +221,6 @@ export class ClipGenerationService {
       sourceVideoS3Key,
       sourceVideoUrl,
       transcriptSegments = [],
-      authProviderUserId,
       room,
     } = input;
 
@@ -241,7 +239,6 @@ export class ClipGenerationService {
         const providerJobId = getRawCutTrimJobId(clipResultId);
 
         await this.clipResultsService.patch(clipResultId, {
-          authProviderUserId,
           captionSrt,
           providerJobId,
           providerName: RAW_CUT_PROVIDER_NAME,
@@ -252,7 +249,6 @@ export class ClipGenerationService {
         });
 
         const dispatch = await this.rawCutClipService.dispatchClip({
-          authProviderUserId,
           captionSrt,
           clipResultId,
           endTime: highlight.end_time,

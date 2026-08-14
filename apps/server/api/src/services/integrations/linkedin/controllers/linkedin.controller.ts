@@ -7,7 +7,6 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnNotFound,
@@ -19,6 +18,7 @@ import {
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -47,13 +47,12 @@ export class LinkedInController {
     @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      organizationId: publicMetadata.organization,
+      organizationId: user.organizationId,
     });
 
     if (!brand) {
@@ -66,7 +65,7 @@ export class LinkedInController {
     try {
       const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
-        publicMetadata.user,
+        user.userId ?? user.id,
         CredentialPlatform.LINKEDIN,
         {
           isConnected: false,
@@ -125,7 +124,7 @@ export class LinkedInController {
       const { organizationId } = existingCredential;
 
       // Exchange code for access token
-      const { accessToken, expiresIn } =
+      const { accessToken, expiresIn, scope } =
         await this.linkedInService.exchangeAuthCodeForAccessToken(code);
 
       if (!accessToken) {
@@ -152,6 +151,7 @@ export class LinkedInController {
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
           oauthState: null,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

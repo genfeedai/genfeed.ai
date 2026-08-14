@@ -76,8 +76,8 @@ const SCHEDULABLE_TARGET_STATES = new Set<string>([
 export class PostGroupContractService {
   private readonly logger = new Logger(PostGroupContractService.name);
 
-  toPostVisibility(visibility: string | null, legacyStatus: string) {
-    return resolvePostVisibility(visibility, legacyStatus);
+  toPostVisibility(visibility: string | null) {
+    return resolvePostVisibility(visibility);
   }
 
   parseCreateInput(
@@ -507,7 +507,7 @@ export class PostGroupContractService {
       retryCount: target.retryCount,
       scheduledAt: this.toIso(target.scheduledDate),
       settings: this.asRecord(target.targetSettings),
-      visibility: resolvePostVisibility(target.visibility, target.status),
+      visibility: resolvePostVisibility(target.visibility),
       source: this.toTargetSource(target),
       timezone: target.timezone,
       updatedAt: target.updatedAt.toISOString(),

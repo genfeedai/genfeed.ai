@@ -11,7 +11,6 @@ export * from '@serializers/server/content/content-performance.serializer';
 export * from '@serializers/server/content/content-plan.serializer';
 export * from '@serializers/server/content/content-plan-item.serializer';
 export * from '@serializers/server/content/content-run.serializer';
-export * from '@serializers/server/content/content-schedule.serializer';
 export * from '@serializers/server/content/content-skill.serializer';
 export * from '@serializers/server/content/context-base.serializer';
 export * from '@serializers/server/content/context-entry.serializer';

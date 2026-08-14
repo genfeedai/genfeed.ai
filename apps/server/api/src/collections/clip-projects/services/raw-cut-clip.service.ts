@@ -27,7 +27,6 @@ export interface RawCutDispatchInput {
   captionSrt: string;
   organizationId: string;
   userId: string;
-  authProviderUserId?: string;
   room?: string;
   websocketUrl?: string;
 }
@@ -69,7 +68,6 @@ export class RawCutClipService {
       captionSrt,
       organizationId,
       userId,
-      authProviderUserId,
       room,
       websocketUrl,
     } = input;
@@ -95,7 +93,6 @@ export class RawCutClipService {
     const duration = endTime - startTime;
 
     const response = await this.fileQueueService.processVideo({
-      authProviderUserId,
       id: getRawCutTrimJobId(clipResultId),
       ingredientId: clipResultId,
       organizationId,

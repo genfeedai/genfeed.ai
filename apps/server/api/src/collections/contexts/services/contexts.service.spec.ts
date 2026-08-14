@@ -105,7 +105,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     expect(contextBase.findFirst).toHaveBeenCalledWith({
       where: { id: 'ctx-1', isDeleted: false, organizationId: 'org-1' },
     });
-    expect(result).toMatchObject({ id: 'ctx-1', organization: 'org-1' });
+    expect(result).toMatchObject({ id: 'ctx-1', organizationId: 'org-1' });
   });
 
   it('findOne: wrong-organization access 404s', async () => {

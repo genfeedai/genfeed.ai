@@ -137,6 +137,18 @@ function formatHealthDetail(summary: AccountHealthSummary): string {
     return summary.holdReason ?? 'Scheduled publishing is held for warmup.';
   }
 
+  if (summary.signals.accountAgeStatus === 'STALE') {
+    return 'Platform account-age evidence is stale. Reconnect to refresh readiness checks.';
+  }
+
+  if (summary.signals.accountAgeStatus === 'FAILED') {
+    return 'Platform account-age check failed. Missing or stale evidence is tracked separately.';
+  }
+
+  if (summary.signals.accountAgeStatus === 'MISSING') {
+    return `${summary.signals.publishedPosts} published post${summary.signals.publishedPosts === 1 ? '' : 's'}. Native social-account age is not yet verified by the platform.`;
+  }
+
   return `${summary.signals.publishedPosts} published post${summary.signals.publishedPosts === 1 ? '' : 's'} across ${summary.signals.connectedDays} connected day${summary.signals.connectedDays === 1 ? '' : 's'}.`;
 }
 

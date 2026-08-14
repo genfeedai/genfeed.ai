@@ -1,4 +1,4 @@
-import { lstatSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const repoRoot = process.cwd();
@@ -13,6 +13,14 @@ const ignoredDirectories = new Set([
 ]);
 const sourceFilePattern = /\.(ts|tsx)$/;
 const testFilePattern = /(?:\.test|\.spec)\.tsx?$/;
+const redirectSourceFiles = new Set([
+  'apps/app/next.config.ts',
+  'packages/constants/src/routes.constant.ts',
+]);
+const legacyCollectionDir = join(
+  repoRoot,
+  'apps/server/api/src/collections/cron-jobs',
+);
 const legacySdkImport = '@services/automation/cron-jobs.service';
 const legacyServerImport = 'collections/cron-jobs/services/cron-jobs.service';
 const legacyMutationCallPattern =
@@ -58,6 +66,14 @@ for (const root of roots) {
 
 const violations: Violation[] = [];
 
+if (existsSync(legacyCollectionDir)) {
+  violations.push({
+    file: 'apps/server/api/src/collections/cron-jobs',
+    message:
+      'Legacy cron-jobs collection must not exist. Scheduling is workflow-canonical.',
+  });
+}
+
 for (const file of files) {
   const relativeFile = relative(repoRoot, file);
   const source = readFileSync(file, 'utf8');
@@ -67,7 +83,10 @@ for (const file of files) {
     continue;
   }
 
-  if (legacyLabRoutePattern.test(source)) {
+  if (
+    legacyLabRoutePattern.test(source) &&
+    !redirectSourceFiles.has(relativeFile)
+  ) {
     violations.push({
       file: relativeFile,
       message:

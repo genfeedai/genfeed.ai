@@ -1,6 +1,6 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
 /**
  * Utility class for entity id validation and normalization.
@@ -111,18 +111,19 @@ export class EntityIdUtil {
    */
   static enrichWithUserContext(
     dto: Record<string, unknown>,
-    publicMetadata: IAuthPublicMetadata,
+    user: Pick<AuthenticatedUser, 'userId' | 'organizationId' | 'id'>,
   ): Record<string, unknown> {
-    if (!publicMetadata?.user) {
+    const userId = user.userId || user.id;
+    if (!userId) {
       throw new ValidationException('User context is required');
     }
 
     return {
       ...dto,
-      organizationId: publicMetadata.organization
-        ? EntityIdUtil.validate(publicMetadata.organization, 'organization')
+      organizationId: user.organizationId
+        ? EntityIdUtil.validate(user.organizationId, 'organizationId')
         : undefined,
-      userId: EntityIdUtil.validate(publicMetadata.user, 'user'),
+      userId: EntityIdUtil.validate(userId, 'userId'),
     };
   }
 

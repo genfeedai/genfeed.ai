@@ -78,6 +78,7 @@ describe('TwitterController', () => {
       },
       expiresIn: 7200,
       refreshToken: 'oauth2-refresh-token',
+      scope: 'tweet.read tweet.write users.read',
     });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -105,10 +106,8 @@ describe('TwitterController', () => {
     const brandId = 'test-object-id';
     const orgId = 'test-object-id';
     const mockUser = {
-      publicMetadata: {
-        organization: orgId.toString(),
-        user: 'test-object-id',
-      },
+      organizationId: orgId.toString(),
+      userId: 'test-object-id',
     };
     const mockRequest = {} as Request;
 
@@ -201,6 +200,8 @@ describe('TwitterController', () => {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'oauth2-refresh-token',
+          grantedScopes: ['tweet.read', 'tweet.write', 'users.read'],
+          grantedScopesCapturedAt: expect.any(Date),
         }),
       );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(

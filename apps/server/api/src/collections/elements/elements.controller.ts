@@ -5,7 +5,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {
   BlacklistSerializer,
@@ -34,7 +33,7 @@ export class ElementsController {
   @SetMetadata('skipRoles', true)
   @Cache({
     keyGenerator: (req) =>
-      `elements:list:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}`,
+      `elements:list:${(req.user?.organizationId as string | undefined) ?? 'global'}`,
     // Tags match the BaseService collection names so element writes
     // (create/patch/remove) bust this response automatically.
     tags: [
@@ -57,7 +56,7 @@ export class ElementsController {
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllElements(@Req() req: Request, @CurrentUser() user: User) {
-    const { organization: organizationId } = getPublicMetadata(user);
+    const organizationId = user.organizationId;
 
     const elements = await this.elementsService.findAllElements(organizationId);
 

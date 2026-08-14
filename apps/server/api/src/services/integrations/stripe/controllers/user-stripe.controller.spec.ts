@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   const actual =
     await importOriginal<

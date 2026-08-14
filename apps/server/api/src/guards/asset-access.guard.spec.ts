@@ -35,12 +35,10 @@ describe('AssetAccessGuard', () => {
   function createContext(params: {
     assetId?: string;
     user?: {
+      brandId?: string;
       id: string;
-      publicMetadata?: {
-        user?: string;
-        organization?: string;
-        brand?: string;
-      };
+      organizationId?: string;
+      userId?: string;
     };
   }) {
     return {
@@ -69,7 +67,7 @@ describe('AssetAccessGuard', () => {
         createContext({
           user: {
             id: 'jwt-sub',
-            publicMetadata: { user: 'user_db_1' },
+            userId: 'user_db_1',
           },
         }),
       ),
@@ -88,7 +86,7 @@ describe('AssetAccessGuard', () => {
         createContext({
           user: {
             id: 'jwt-sub',
-            publicMetadata: { user: 'someone-else' },
+            userId: 'someone-else',
           },
         }),
       ),

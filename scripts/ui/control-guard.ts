@@ -64,8 +64,6 @@ export const ALLOWLIST = {
   primitiveWrapperSegments: [
     '/primitives/',
     '/buttons/base/',
-    '/inputs/input/',
-    '/inputs/textarea/',
     '/editors/',
     '/forms/inputs/',
     '/forms/selectors/',
@@ -218,10 +216,7 @@ function inScope(rel: string, scope: Scope): boolean {
 const RAW_BUTTON_PATTERN = /<button(\s|>)/g;
 const STYLED_ANCHOR_PATTERN =
   /<(a|Link)\b[\s\S]*?className="([^"]+)"[\s\S]*?>/g;
-const LEGACY_IMPORT_PATTERNS = [
-  /@ui\/inputs\/input\/Input/g,
-  /@ui\/inputs\/select\/Select/g,
-];
+const LEGACY_IMPORT_PATTERNS = [/@ui\/inputs\//g];
 const RAW_INPUT_PATTERN = /<input\b[\s\S]*?>/g;
 const RAW_SELECT_PATTERN = /<select\b[\s\S]*?>/g;
 const RAW_HTML_ELEMENT_PATTERN =

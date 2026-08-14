@@ -78,7 +78,7 @@ export class ImageProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         getErrorMessage(error),
-        job.data.authProviderUserId,
+        job.data.userId,
         job.data.room,
       );
       throw error;
@@ -111,7 +111,7 @@ export class ImageProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         getErrorMessage(error),
-        job.data.authProviderUserId,
+        job.data.userId,
         job.data.room,
       );
       throw error;
@@ -142,7 +142,7 @@ export class ImageProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         getErrorMessage(error),
-        job.data.authProviderUserId,
+        job.data.userId,
         job.data.room,
       );
       throw error;
@@ -170,7 +170,7 @@ export class ImageProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         getErrorMessage(error),
-        job.data.authProviderUserId,
+        job.data.userId,
         job.data.room,
       );
       throw error;
@@ -219,7 +219,7 @@ export class ImageProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         getErrorMessage(error),
-        job.data.authProviderUserId,
+        job.data.userId,
         job.data.room,
       );
       throw error;
@@ -263,7 +263,7 @@ export class ImageProcessor extends WorkerHost {
     outputPath: string,
     result?: Pick<JobResult, 'height' | 'size' | 'width'>,
   ): Promise<JobResult> {
-    const { metadata, authProviderUserId, room } = job.data;
+    const { metadata, userId, room } = job.data;
     const jobResult: JobResult = {
       outputPath,
       success: true,
@@ -273,7 +273,7 @@ export class ImageProcessor extends WorkerHost {
     await this.webSocketService.emitSuccess(
       metadata.websocketUrl,
       jobResult,
-      authProviderUserId,
+      userId,
       room,
     );
 
@@ -284,13 +284,13 @@ export class ImageProcessor extends WorkerHost {
     job: Job<ImageJobData>,
     message: string,
   ): Promise<JobResult> {
-    const { metadata, authProviderUserId, room } = job.data;
+    const { metadata, userId, room } = job.data;
 
     this.logger.warn(message);
     await this.webSocketService.emitError(
       metadata.websocketUrl,
       message,
-      authProviderUserId,
+      userId,
       room,
     );
 

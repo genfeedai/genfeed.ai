@@ -7,7 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('VercelWebhookService', () => {
   let service: VercelWebhookService;
   const notificationsService = {
-    sendDiscordCard: vi.fn(),
     sendVercelNotification: vi.fn(),
   };
 

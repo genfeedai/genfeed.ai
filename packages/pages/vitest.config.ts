@@ -63,6 +63,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(packageSrc('api-types'), '$1'),
+      },
+      {
         find: 'server-only',
         replacement: path.resolve(appRoot, './tests/server-only.stub.ts'),
       },

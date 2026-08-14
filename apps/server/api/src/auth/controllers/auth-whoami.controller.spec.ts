@@ -56,13 +56,10 @@ describe('AuthWhoamiController', () => {
         firstName: 'John',
         id: 'auth_user_123',
         lastName: 'Doe',
-        publicMetadata: {
-          isApiKey: false,
-          organization: 'org_abc',
-          organizationName: 'Test Org',
-          scopes: ['read', 'write'],
-          user: databaseUserId,
-        },
+        isApiKey: false,
+        organizationId: 'org_abc',
+        scopes: ['read', 'write'],
+        userId: databaseUserId,
       });
 
       const result = await controller.whoami(req);
@@ -72,7 +69,7 @@ describe('AuthWhoamiController', () => {
           isApiKey: false,
           organization: {
             id: 'org_abc',
-            name: 'Test Org',
+            name: '',
           },
           role: 'admin',
           scopes: ['read', 'write'],
@@ -92,7 +89,8 @@ describe('AuthWhoamiController', () => {
       const result = await controller.whoami(
         buildReq({
           id: 'auth_user_123',
-          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+          organizationId: 'org_abc',
+          userId: 'user_1',
         }),
       );
 
@@ -112,7 +110,8 @@ describe('AuthWhoamiController', () => {
 
       const result = await controller.whoami(
         buildReq({
-          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+          organizationId: 'org_abc',
+          userId: 'user_1',
         }),
       );
 
@@ -120,9 +119,7 @@ describe('AuthWhoamiController', () => {
     });
 
     it('skips the lookup and returns empty role when org or user is missing', async () => {
-      const result = await controller.whoami(
-        buildReq({ publicMetadata: { user: 'user_1' } }),
-      );
+      const result = await controller.whoami(buildReq({ userId: 'user_1' }));
 
       expect(mockMembersService.findOne).not.toHaveBeenCalled();
       expect(result.data.role).toBe('');
@@ -133,7 +130,8 @@ describe('AuthWhoamiController', () => {
 
       const result = await controller.whoami(
         buildReq({
-          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+          organizationId: 'org_abc',
+          userId: 'user_1',
         }),
       );
 
@@ -152,13 +150,10 @@ describe('AuthWhoamiController', () => {
       const req = buildReq({
         email: 'api@example.com',
         id: 'apikey_123',
-        publicMetadata: {
-          isApiKey: true,
-          organization: 'org_def',
-          organizationName: 'API Org',
-          scopes: ['generate'],
-          user: 'user_789',
-        },
+        isApiKey: true,
+        organizationId: 'org_def',
+        scopes: ['generate'],
+        userId: 'user_789',
       });
 
       const result = await controller.whoami(req);
@@ -176,11 +171,9 @@ describe('AuthWhoamiController', () => {
       const result = await controller.whoami(
         buildReq({
           id: 'apikey_123',
-          publicMetadata: {
-            isApiKey: true,
-            organization: 'org_def',
-            user: 'user_789',
-          },
+          isApiKey: true,
+          organizationId: 'org_def',
+          userId: 'user_789',
         }),
       );
 
@@ -194,7 +187,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.role).toBe('admin');
     });
 
-    it('should handle missing publicMetadata gracefully', async () => {
+    it('should handle missing identity gracefully', async () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         firstName: 'Test',
@@ -214,9 +207,7 @@ describe('AuthWhoamiController', () => {
       const req = buildReq({
         firstName: 'Test',
         id: 'user_123',
-        publicMetadata: {
-          user: 'user_123',
-        },
+        userId: 'user_123',
       });
 
       const result = await controller.whoami(req);
@@ -229,9 +220,7 @@ describe('AuthWhoamiController', () => {
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         firstName: 'Solo',
         id: 'user_123',
-        publicMetadata: {
-          user: 'user_123',
-        },
+        userId: 'user_123',
       });
 
       const result = await controller.whoami(req);
@@ -243,9 +232,7 @@ describe('AuthWhoamiController', () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         id: 'user_123',
-        publicMetadata: {
-          user: 'user_123',
-        },
+        userId: 'user_123',
       });
 
       const result = await controller.whoami(req);
@@ -259,9 +246,7 @@ describe('AuthWhoamiController', () => {
         emailAddresses: [],
         firstName: 'Fallback',
         id: 'user_123',
-        publicMetadata: {
-          user: 'user_123',
-        },
+        userId: 'user_123',
       });
 
       const result = await controller.whoami(req);
@@ -269,10 +254,9 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.email).toBe('fallback@example.com');
     });
 
-    it('should keep the database user id empty when publicMetadata.user is missing', async () => {
+    it('should keep the database user id empty when userId is not a valid entity id', async () => {
       const req = buildReq({
         id: 'auth_user_id',
-        publicMetadata: {},
       });
 
       const result = await controller.whoami(req);
@@ -308,9 +292,7 @@ describe('AuthWhoamiController', () => {
     it('should return an empty database user id for an unsupported legacy id', async () => {
       const req = buildReq({
         id: 'auth_user_id',
-        publicMetadata: {
-          user: 'user_123',
-        },
+        userId: 'user_123',
       });
 
       const result = await controller.whoami(req);
@@ -324,7 +306,6 @@ describe('AuthWhoamiController', () => {
         emailAddresses: [],
         firstName: 'John',
         lastName: 'Doe  ',
-        publicMetadata: {},
       });
 
       const result = await controller.whoami(req);
@@ -337,7 +318,6 @@ describe('AuthWhoamiController', () => {
         emailAddresses: [],
         firstName: 'Alice',
         lastName: '',
-        publicMetadata: {},
       });
 
       const result = await controller.whoami(req);
@@ -348,9 +328,7 @@ describe('AuthWhoamiController', () => {
     it('should return default scopes as ["*"] when not provided', async () => {
       const req = buildReq({
         id: 'user_123',
-        publicMetadata: {
-          organization: 'org_123',
-        },
+        organizationId: 'org_123',
       });
 
       const result = await controller.whoami(req);

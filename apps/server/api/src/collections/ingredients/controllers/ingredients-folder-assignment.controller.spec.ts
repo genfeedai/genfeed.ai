@@ -28,11 +28,9 @@ const folderId = '507f191e810c19729de86005';
 
 const mockUser = {
   id: userId,
-  publicMetadata: {
-    brand: brandId,
-    organization: organizationId,
-    user: userId,
-  },
+  brandId: brandId,
+  organizationId: organizationId,
+  userId: userId,
 } as unknown as User;
 
 const mockRequest = {

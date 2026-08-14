@@ -13,9 +13,21 @@ import type {
   ResolvedVideoGenerationRequest,
   VideoGenerationContext,
 } from '@api/collections/videos/services/video-generation.types';
+import {
+  brandPromptLabel,
+  emptyStyleToNull,
+  optionalBrandString,
+  pickVideoModelPreference,
+} from '@api/collections/videos/services/video-generation-model.util';
+import {
+  hasStoredPromptId,
+  requireVideoPromptInput,
+  resolveInlinePromptText,
+  resolveStoredPromptText,
+} from '@api/collections/videos/services/video-generation-prompt.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
@@ -36,6 +48,19 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+
+export const MISSING_PROMPT_ID_DETAIL =
+  'Prompt resolution requires a prompt ID';
+
+export function createMissingPromptIdException(): HttpException {
+  return new HttpException(
+    {
+      detail: MISSING_PROMPT_ID_DETAIL,
+      title: 'Prompt validation failed',
+    },
+    HttpStatus.BAD_REQUEST,
+  );
+}
 
 @Injectable()
 export class VideoGenerationPreparationService {
@@ -58,8 +83,7 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto,
     request: Request,
   ): Promise<ResolvedVideoGenerationRequest> {
-    const publicMetadata = getPublicMetadata(user);
-    if (!createVideoDto.promptId && !createVideoDto.text) {
+    if (!requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -70,8 +94,8 @@ export class VideoGenerationPreparationService {
     }
 
     const brand = await this.brandsService.findOne({
-      id: createVideoDto.brandId || publicMetadata.brand,
-      organizationId: publicMetadata.organization,
+      id: createVideoDto.brandId || user.brandId,
+      organizationId: user.organizationId,
     });
     if (!brand) {
       throw new HttpException(
@@ -88,7 +112,7 @@ export class VideoGenerationPreparationService {
       : [];
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
       },
     );
     const model = await this.resolveVideoModel(
@@ -98,7 +122,7 @@ export class VideoGenerationPreparationService {
       referenceIds,
     );
     const validationOrgId =
-      publicMetadata.organization || request.context?.organizationId;
+      user.organizationId || request.context?.organizationId;
     if (validationOrgId) {
       await this.modelRegistrationService.validateModelForOrg(
         model,
@@ -110,7 +134,6 @@ export class VideoGenerationPreparationService {
       brand,
       createVideoDto,
       model,
-      publicMetadata,
       referenceIds,
       request,
       user,
@@ -120,17 +143,12 @@ export class VideoGenerationPreparationService {
   async prepare(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<VideoGenerationContext> {
-    const {
-      brand,
-      createVideoDto,
-      model,
-      publicMetadata,
-      referenceIds,
-      request,
-      user,
-    } = resolved;
-    const width = createVideoDto.width || 1920;
-    const height = createVideoDto.height || 1080;
+    const { brand, createVideoDto, model, referenceIds, request, user } =
+      resolved;
+    const { height, width } = resolveGenerationDimensions(
+      createVideoDto.width,
+      createVideoDto.height,
+    );
     const { endFrameUrl, referenceImageUrls } =
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
@@ -144,11 +162,11 @@ export class VideoGenerationPreparationService {
         audioUrl: createVideoDto.audioUrl,
         blacklist: createVideoDto.blacklist,
         brand: {
-          description: brand.description ?? undefined,
-          label: brand.label ?? 'Brand',
-          primaryColor: brand.primaryColor ?? undefined,
-          secondaryColor: brand.secondaryColor ?? undefined,
-          text: brand.text ?? undefined,
+          description: optionalBrandString(brand.description),
+          label: brandPromptLabel(brand.label),
+          primaryColor: optionalBrandString(brand.primaryColor),
+          secondaryColor: optionalBrandString(brand.secondaryColor),
+          text: optionalBrandString(brand.text),
         },
         branding: buildPromptBrandingFromBrand(brand),
         brandingMode: createVideoDto.brandingMode,
@@ -180,7 +198,7 @@ export class VideoGenerationPreparationService {
         useTemplate: createVideoDto.useTemplate,
         width,
       },
-      publicMetadata.organization,
+      user.organizationId,
     );
     const promptInput = promptParams as PromptInput;
     const promptData = await this.promptsService.create(
@@ -190,14 +208,14 @@ export class VideoGenerationPreparationService {
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
-        organizationId: publicMetadata.organization,
+        organizationId: user.organizationId,
         original: promptText,
         scene: createVideoDto.scene,
         sounds: createVideoDto.sounds,
         speech: createVideoDto.speech,
         status: PromptStatus.PROCESSING,
         style: createVideoDto.style,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     );
     const { metadataData, ingredientData } =
@@ -226,7 +244,7 @@ export class VideoGenerationPreparationService {
         scope: createVideoDto.scope,
         sourceIds: referenceIds,
         status: IngredientStatus.PROCESSING,
-        style: createVideoDto.style === '' ? null : createVideoDto.style,
+        style: emptyStyleToNull(createVideoDto.style),
         tagIds: createVideoDto.tags,
         templateVersion,
         width,
@@ -273,17 +291,24 @@ export class VideoGenerationPreparationService {
   private async resolvePromptText(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<string> {
-    if (!resolved.createVideoDto.promptId) {
-      return resolved.createVideoDto.text || '';
+    const promptId = resolved.createVideoDto.promptId;
+    const inlineText = resolveInlinePromptText(
+      promptId,
+      resolved.createVideoDto.text,
+    );
+    if (inlineText !== undefined) {
+      return inlineText;
+    }
+    if (!promptId) {
+      throw createMissingPromptIdException();
     }
     const validationOrgId =
-      resolved.publicMetadata.organization ||
-      resolved.request.context?.organizationId;
+      resolved.user.organizationId || resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
-      id: resolved.createVideoDto.promptId.toString(),
+      id: promptId.toString(),
       ...(validationOrgId ? { organizationId: validationOrgId } : {}),
     });
-    if (!prompt?.id) {
+    if (!hasStoredPromptId(prompt)) {
       throw new HttpException(
         {
           detail: 'The referenced prompt could not be found',
@@ -292,7 +317,7 @@ export class VideoGenerationPreparationService {
         HttpStatus.NOT_FOUND,
       );
     }
-    return prompt.enhanced || prompt.original || '';
+    return resolveStoredPromptText(prompt);
   }
 
   private async resolveVideoModel(
@@ -326,20 +351,17 @@ export class VideoGenerationPreparationService {
       return recommendation.selectedModel as string;
     }
 
+    const isImageToVideo = isImageToVideoRequest({
+      endFrame: createVideoDto.endFrame,
+      references: referenceIds,
+    });
     return resolveGenerationDefaultModel<string>({
-      brandDefault: (isImageToVideoRequest({
-        endFrame: createVideoDto.endFrame,
-        references: referenceIds,
-      })
-        ? brand.defaultImageToVideoModel
-        : brand.defaultVideoModel) as string | undefined,
+      brandDefault: pickVideoModelPreference(isImageToVideo, brand),
       explicit: createVideoDto.model as string | undefined,
-      organizationDefault: (isImageToVideoRequest({
-        endFrame: createVideoDto.endFrame,
-        references: referenceIds,
-      })
-        ? organizationSettings?.defaultImageToVideoModel
-        : organizationSettings?.defaultVideoModel) as string | undefined,
+      organizationDefault: pickVideoModelPreference(
+        isImageToVideo,
+        organizationSettings,
+      ),
       systemDefault: (await this.routerService.getDefaultModel(
         ModelCategory.VIDEO,
       )) as string,

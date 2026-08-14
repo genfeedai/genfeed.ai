@@ -36,12 +36,10 @@ function createMockDeps() {
 
 function createMockUser(userId: string) {
   return {
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee',
-      isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee',
-      user: userId,
-    },
+    brandId: '507f191e810c19729de860ee',
+    isSuperAdmin: false,
+    organizationId: '507f191e810c19729de860ee',
+    userId: userId,
   } as never;
 }
 

@@ -171,62 +171,51 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
   }
 });
 
-test('enforces the content-automation boundary guards on every pull request', () => {
-  // #1011 requires CI to block new hard-coded content cron/action/publish
-  // paths. These guards shipped in #1034 but stopped running when #2127 dropped
-  // the check:architecture aggregate from this job, and nothing caught the
-  // loss — a guard that exists only as a package.json script enforces nothing.
+test('enforces executable contracts through the aggregate suite', () => {
+  // #1011 still requires CI to block new hard-coded content cron/action/publish
+  // paths. Those scanners, Bull Board parity, and relation-alias ratchets run
+  // from `test:executable-contracts` so a dead rule is deleted with its test.
   const workflow = readWorkflow('ci.yml');
   const guards = jobBlock(workflow, 'guards', 'ci.yml');
+  const packageJson = JSON.parse(
+    readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
+  );
+  const script = packageJson.scripts['test:executable-contracts'];
+  const contracts = readFileSync(
+    path.join(REPOSITORY_ROOT, 'scripts/ci/executable-contracts.test.ts'),
+    'utf8',
+  );
 
-  for (const script of [
+  assert.match(
+    guards,
+    /^ {8}run: bun run test:executable-contracts$/m,
+    'the guards job must run the executable-contracts test script',
+  );
+  assert.match(
+    script,
+    /scripts\/ci\/vitest\.config\.ts/,
+    'test:executable-contracts must run the CI vitest suite',
+  );
+  assert.match(
+    script,
+    /scripts\/architecture\/vitest\.config\.ts/,
+    'test:executable-contracts must run architecture checker tests',
+  );
+
+  for (const token of [
     'check:cron-boundary',
     'check:legacy-cron-surface',
     'check:product-workflow-boundary',
-  ]) {
-    assert.match(
-      guards,
-      new RegExp(`^ {8}run: bun run ${script}$`, 'm'),
-      `the guards job must run ${script}`,
-    );
-  }
-});
-
-test('enforces Bull Board queue parity on every pull request', () => {
-  const workflow = readWorkflow('ci.yml');
-  const guards = jobBlock(workflow, 'guards', 'ci.yml');
-
-  assert.match(
-    guards,
-    /^ {8}run: bun run check:bull-board-parity$/m,
-    'the guards job must run the Bull Board queue parity contract',
-  );
-  assert.match(
-    guards,
-    /check-bull-board-queue-parity\.test\.ts/,
-    'the guards job must run Bull Board queue parity regression tests',
-  );
-});
-
-test('enforces relation alias read and write guards on every pull request', () => {
-  const workflow = readWorkflow('ci.yml');
-  const guards = jobBlock(workflow, 'guards', 'ci.yml');
-
-  for (const script of [
+    'check:bull-board-parity',
     'check:relation-alias-reads',
     'check:relation-alias-writes',
   ]) {
     assert.match(
-      guards,
-      new RegExp(`^ {8}run: bun run ${script}$`, 'm'),
-      `the guards job must run ${script}`,
+      contracts,
+      new RegExp(`'${token}'`),
+      `executable-contracts.test.ts must still invoke ${token}`,
     );
   }
-  assert.match(
-    guards,
-    /check-relation-alias-reads\.test\.ts/,
-    'the guards job must run relation-alias-read inventory tests, not only the floor reporter',
-  );
 });
 
 // The curated action catalog decides whether a product action is exposed on

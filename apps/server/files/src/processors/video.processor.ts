@@ -162,14 +162,14 @@ export class VideoProcessor extends WorkerHost {
    */
   private createProgressCallback(
     websocketUrl: string,
-    authProviderUserId?: string,
+    userId?: string,
     room?: string,
   ): (progress: FFmpegProgress) => void {
     return (progress) => {
       this.webSocketService.emitProgress(
         websocketUrl,
         this.convertToJobProgress(progress),
-        authProviderUserId,
+        userId,
         room,
       );
     };
@@ -184,7 +184,7 @@ export class VideoProcessor extends WorkerHost {
     s3Folder: string,
     contentType: string,
     websocketUrl: string,
-    authProviderUserId?: string,
+    userId?: string,
     room?: string,
   ): Promise<{ s3Key: string; url: string }> {
     const s3Key = this.s3Service.generateS3Key(s3Folder, ingredientId);
@@ -194,7 +194,7 @@ export class VideoProcessor extends WorkerHost {
     this.webSocketService.emitSuccess(
       websocketUrl,
       { ingredientId, s3Key, url },
-      authProviderUserId,
+      userId,
       room,
     );
 
@@ -202,15 +202,8 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleResize(job: Job<VideoJobData>): Promise<JobResult> {
-    const {
-      ingredientId,
-      params,
-      metadata,
-      userId,
-      organizationId,
-      authProviderUserId,
-      room,
-    } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing resize job for ${ingredientId}`);
 
     try {
@@ -225,11 +218,7 @@ export class VideoProcessor extends WorkerHost {
         outputPath,
         params.width || 1080,
         params.height || 1920,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key, url } = await this.uploadAndEmitSuccess(
@@ -238,7 +227,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -264,7 +253,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       await this.publishVideoCompletion(
@@ -284,8 +273,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleAddCaptions(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing captions job for ${ingredientId}`);
 
     try {
@@ -301,11 +289,7 @@ export class VideoProcessor extends WorkerHost {
         inputPath,
         outputPath,
         captionsPath,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key, url } = await this.uploadAndEmitSuccess(
@@ -314,7 +298,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -348,7 +332,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       if (isRawCutJob(job) && isFinalAttempt(job)) {
@@ -369,8 +353,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleVideoToGif(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing GIF conversion for ${ingredientId}`);
 
     try {
@@ -384,11 +367,7 @@ export class VideoProcessor extends WorkerHost {
         inputPath,
         outputPath,
         { fps: params.fps, width: params.width },
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key } = await this.uploadAndEmitSuccess(
@@ -397,7 +376,7 @@ export class VideoProcessor extends WorkerHost {
         'gifs',
         'image/gif',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -409,7 +388,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -417,8 +396,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleReverse(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing reverse job for ${ingredientId}`);
 
     try {
@@ -431,11 +409,7 @@ export class VideoProcessor extends WorkerHost {
       await this.ffmpegService.reverseVideo(
         inputPath,
         outputPath,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key } = await this.uploadAndEmitSuccess(
@@ -444,7 +418,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -456,7 +430,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -464,8 +438,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleMirror(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing mirror job for ${ingredientId}`);
 
     try {
@@ -478,11 +451,7 @@ export class VideoProcessor extends WorkerHost {
       await this.ffmpegService.mirrorVideo(
         inputPath,
         outputPath,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key } = await this.uploadAndEmitSuccess(
@@ -491,7 +460,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -503,7 +472,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -511,15 +480,8 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleTrim(job: Job<VideoJobData>): Promise<JobResult> {
-    const {
-      ingredientId,
-      params,
-      metadata,
-      userId,
-      organizationId,
-      authProviderUserId,
-      room,
-    } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing trim for ${ingredientId}`);
 
     try {
@@ -542,11 +504,7 @@ export class VideoProcessor extends WorkerHost {
         outputPath,
         startTime,
         duration,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
@@ -575,7 +533,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -588,15 +546,8 @@ export class VideoProcessor extends WorkerHost {
    * so downstream clip pipelines can consume the result directly.
    */
   async handleClipTrim(job: Job<VideoJobData>): Promise<JobResult> {
-    const {
-      ingredientId,
-      params,
-      metadata,
-      userId,
-      organizationId,
-      authProviderUserId,
-      room,
-    } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing clip trim for ${ingredientId}`);
 
     try {
@@ -618,11 +569,7 @@ export class VideoProcessor extends WorkerHost {
         outputPath,
         startTime,
         duration,
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
@@ -661,7 +608,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       if (isRawCutJob(job) && isFinalAttempt(job)) {
@@ -682,8 +629,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleTextOverlay(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing text overlay for ${ingredientId}`);
 
     try {
@@ -698,11 +644,7 @@ export class VideoProcessor extends WorkerHost {
         outputPath,
         params.text || '',
         { position: params.position || 'bottom' },
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key } = await this.uploadAndEmitSuccess(
@@ -711,7 +653,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -723,7 +665,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -731,8 +673,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handlePortraitConversion(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing portrait conversion for ${ingredientId}`);
 
     try {
@@ -746,11 +687,7 @@ export class VideoProcessor extends WorkerHost {
         inputPath,
         outputPath,
         { height: params.height || 1920, width: params.width || 1080 },
-        this.createProgressCallback(
-          metadata.websocketUrl,
-          authProviderUserId,
-          room,
-        ),
+        this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
       const { s3Key } = await this.uploadAndEmitSuccess(
@@ -759,7 +696,7 @@ export class VideoProcessor extends WorkerHost {
         'videos',
         'video/mp4',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -771,7 +708,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;
@@ -779,8 +716,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleVideoToAudio(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, authProviderUserId, room } =
-      job.data;
+    const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing video-to-audio conversion for ${ingredientId}`);
 
     try {
@@ -802,7 +738,7 @@ export class VideoProcessor extends WorkerHost {
         'audio',
         'audio/mpeg',
         metadata.websocketUrl,
-        authProviderUserId,
+        userId,
         room,
       );
 
@@ -814,7 +750,7 @@ export class VideoProcessor extends WorkerHost {
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
-        authProviderUserId,
+        userId,
         room,
       );
       throw error;

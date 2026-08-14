@@ -33,7 +33,10 @@ export interface RequestWithBody {
   route?: { path?: string };
   user?: {
     id: string;
-    publicMetadata?: Record<string, unknown>;
+    userId?: string;
+    organizationId?: string;
+    brandId?: string;
+    isSuperAdmin?: boolean;
   };
 }
 

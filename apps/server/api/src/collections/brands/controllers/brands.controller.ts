@@ -24,10 +24,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -247,14 +244,9 @@ export class BrandsController extends BaseCRUDController<
 
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
 
-    // No org change requested → default CRUD patch. Drop any stray consent token so it
-    // never reaches a column-level update (it is only meaningful on a relocation).
+    // No org change requested → default CRUD patch.
     if (!requestedOrgId) {
-      const { relocationAck: _omitAck, ...restWithoutAck } = rest as Record<
-        string,
-        unknown
-      >;
-      return super.patch(request, user, id, restWithoutAck as UpdateBrandDto);
+      return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
     const existing = (await this.brandsService.findOne({ id: id })) as
@@ -268,23 +260,20 @@ export class BrandsController extends BaseCRUDController<
     }
 
     // Same org → not a relocation; apply the remaining fields via the default patch.
-    // Strip both the org trigger and the consent token — neither is a Brand column, so
-    // a retry that lands here after the move already committed would otherwise try to
-    // persist `relocationAck` and be rejected by Prisma.
+    // Strip the org trigger — it is not a Brand column, so a retry that lands here
+    // after the move already committed would otherwise try to persist it.
     if (existing.organizationId === requestedOrgId) {
-      const {
-        organizationId: _omitOrg,
-        relocationAck: _omitAck,
-        ...fields
-      } = rest as Record<string, unknown>;
+      const { organizationId: _omitOrg, ...fields } = rest as Record<
+        string,
+        unknown
+      >;
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const { brand: moved, summary } =
       await this.brandsService.relocateToOrganization(id, updateDto, {
         isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       });
 
     await this.activitiesService.create(
@@ -293,7 +282,7 @@ export class BrandsController extends BaseCRUDController<
         key: ActivityKey.BRAND_RELOCATED,
         organizationId: requestedOrgId,
         source: ActivitySource.BRAND_RELOCATION,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
         value: JSON.stringify(summary),
       }),
     );
@@ -311,8 +300,6 @@ export class BrandsController extends BaseCRUDController<
   /**
    * Preview the impact of relocating a brand to another organization: which
    * brand-owned resources move with it, and how many members lose access.
-   * `sharedWorkflows` and `ackToken` remain in the response for compatibility and
-   * are always 0/null now that workflows are scoped to one brand.
    */
   @Get(':id/relocation-preview')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -328,13 +315,12 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const preview = await this.brandsService.previewRelocation(
       id,
       organizationId,
       {
         isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       },
     );
 
@@ -382,13 +368,11 @@ export class BrandsController extends BaseCRUDController<
     brandId: string,
     user: User,
   ): Promise<BrandDocument> {
-    const publicMetadata = getPublicMetadata(user);
-
     const brand = await this.brandsService.findOne({
       id: brandId,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
     });
 
@@ -434,11 +418,7 @@ export class BrandsController extends BaseCRUDController<
    * (or active) organization via `GET /brands?organization=`.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const publicMetadata = getPublicMetadata(user);
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(
-      publicMetadata,
-      query,
-    );
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     const isDeleted = query.isDeleted ?? false;
 
@@ -452,13 +432,13 @@ export class BrandsController extends BaseCRUDController<
     // Members may only filter by their session organization (or omit the param).
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
-      publicMetadata,
+      user,
       false,
     );
-    const organizationId = scope.organizationId ?? publicMetadata.organization;
+    const organizationId = scope.organizationId ?? user.organizationId;
 
     const orConditions: Record<string, unknown>[] = [
-      { userId: publicMetadata.user },
+      { userId: user.userId ?? user.id },
     ];
     if (organizationId) {
       orConditions.push({ organizationId });
@@ -509,12 +489,11 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOneBySlug({
       slug,
       OR: [
-        { userId: publicMetadata.user },
-        { organizationId: publicMetadata.organization },
+        { userId: user.userId ?? user.id },
+        { organizationId: user.organizationId },
       ],
       isDeleted: false,
     });

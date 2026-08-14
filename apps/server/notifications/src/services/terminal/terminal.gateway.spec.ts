@@ -225,7 +225,7 @@ describe('TerminalGateway', () => {
     });
   });
 
-  it('keeps the legacy development origin as an explicit compatibility allowlist entry', async () => {
+  it('rejects the retired local.genfeed.ai origin', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
     const socket = createSocket(
@@ -235,9 +235,10 @@ describe('TerminalGateway', () => {
 
     await gateway.handleConnection(socket);
 
-    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
-      socketId: 'socket-1',
+    expect(socket.emit).toHaveBeenCalledWith('terminal:error', {
+      message: 'Local terminal only accepts localhost origins.',
     });
+    expect(socket.disconnect).toHaveBeenCalledWith(true);
   });
 
   it('emits terminal:sessions in response to terminal:list', async () => {

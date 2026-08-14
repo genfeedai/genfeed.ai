@@ -4,18 +4,14 @@ import type { LinksQueryDto } from '@api/collections/links/dto/links-query.dto';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 const member = {
-  publicMetadata: {
-    brand: 'brand-1',
-    organization: 'org-1',
-    user: 'user-1',
-  },
+  brandId: 'brand-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
 } as unknown as User;
 
 const superAdmin = {
-  publicMetadata: {
-    isSuperAdmin: true,
-    user: 'admin-1',
-  },
+  isSuperAdmin: true,
+  userId: 'admin-1',
 } as unknown as User;
 
 describe('LinksController.buildFindAllQuery', () => {

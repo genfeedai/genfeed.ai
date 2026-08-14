@@ -33,7 +33,8 @@ describe('UsersController', () => {
 
   const mockUser = {
     id: 'user_subject_123',
-    publicMetadata: { organization: orgId, user: userId },
+    organizationId: orgId,
+    userId: userId,
   } as never;
 
   const mockRequest = {

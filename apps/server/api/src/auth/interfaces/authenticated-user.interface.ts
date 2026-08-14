@@ -9,29 +9,23 @@ export interface IAuthenticatedEmailAddress {
   } | null;
 }
 
-export interface IAuthPublicMetadata {
-  user: string;
-  organization: string;
-  brand: string;
+export interface AuthenticatedUser {
+  id: string;
+  userId: string;
+  organizationId: string;
+  brandId: string;
+  isSuperAdmin?: boolean;
   apiKeyId?: string;
   actionOrigin?: ActionOrigin;
   scopes?: string[];
-
   stripeSubscriptionId?: string;
   stripeSubscriptionStatus?: string;
   subscriptionTier?: string;
-
   isApiKey?: boolean;
-  isSuperAdmin: boolean;
-}
-
-export interface AuthenticatedUser {
-  id: string;
   emailAddresses?: IAuthenticatedEmailAddress[];
   firstName?: string | null;
   lastName?: string | null;
   primaryEmailAddressId?: string | null;
-  publicMetadata?: Partial<IAuthPublicMetadata>;
 }
 
 export interface AuthenticatedRequest {

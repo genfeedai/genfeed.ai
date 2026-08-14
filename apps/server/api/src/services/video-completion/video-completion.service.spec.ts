@@ -171,7 +171,7 @@ describe('VideoCompletionService', () => {
   describe('handleVideoCompletion', () => {
     it('atomically completes an editor render from its durable event', async () => {
       const editorRender = {
-        authProviderUserId: 'auth-user',
+        userId: 'auth-user',
         ingredientId: mockIngredientId,
         jobId: 'job-123',
         metadataId: 'metadata-123',
@@ -220,7 +220,7 @@ describe('VideoCompletionService', () => {
 
     it('marks a late output failed when cancellation wins the project CAS', async () => {
       const editorRender = {
-        authProviderUserId: 'auth-user',
+        userId: 'auth-user',
         ingredientId: mockIngredientId,
         jobId: 'job-123',
         metadataId: 'metadata-123',
@@ -264,7 +264,7 @@ describe('VideoCompletionService', () => {
 
     it('keeps generated output retryable when completion persistence fails transiently', async () => {
       const editorRender = {
-        authProviderUserId: 'auth-user',
+        userId: 'auth-user',
         ingredientId: mockIngredientId,
         jobId: 'job-123',
         metadataId: 'metadata-123',
@@ -316,7 +316,7 @@ describe('VideoCompletionService', () => {
         .calls[0][1];
       await subscribeCallback({
         editorRender: {
-          authProviderUserId: 'auth-user',
+          userId: 'auth-user',
           ingredientId: mockIngredientId,
           jobId: 'job-123',
           metadataId: 'metadata-123',
@@ -647,12 +647,12 @@ describe('VideoCompletionService', () => {
 
   it('reconciles a completed editor render after a missed Redis event', async () => {
     const editorRender = {
-      authProviderUserId: 'auth-user',
       ingredientId: mockIngredientId,
       jobId: 'job-123',
       metadataId: 'metadata-123',
       projectId: 'project-123',
       room: 'user-auth-user',
+      userId: 'auth-user',
     };
     const output = {
       durationFrames: 300,
@@ -747,12 +747,12 @@ describe('VideoCompletionService', () => {
 
   it('cancels and terminally classifies a stale active render', async () => {
     const editorRender = {
-      authProviderUserId: 'auth-user',
       ingredientId: mockIngredientId,
       jobId: 'job-123',
       metadataId: 'metadata-123',
       projectId: 'project-123',
       room: 'user-auth-user',
+      userId: 'auth-user',
     };
     editorProjectsService.findRenderingProjects.mockResolvedValue([
       { id: 'project-123', organizationId: mockOrganizationId },
@@ -778,12 +778,12 @@ describe('VideoCompletionService', () => {
 
   it('leaves a stale render retryable when cancellation loses a race', async () => {
     const editorRender = {
-      authProviderUserId: 'auth-user',
       ingredientId: mockIngredientId,
       jobId: 'job-123',
       metadataId: 'metadata-123',
       projectId: 'project-123',
       room: 'user-auth-user',
+      userId: 'auth-user',
     };
     editorProjectsService.findRenderingProjects.mockResolvedValue([
       { id: 'project-123', organizationId: mockOrganizationId },

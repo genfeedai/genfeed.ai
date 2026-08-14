@@ -210,7 +210,7 @@ describe('NotificationsService', () => {
       (mockPublisher.publish as vi.Mock).mockRejectedValueOnce(error);
 
       const event: NotificationEvent = {
-        action: 'send_card',
+        action: 'send_message',
         payload: {},
         type: 'discord',
       };
@@ -246,7 +246,7 @@ describe('NotificationsService', () => {
       await service.onModuleDestroy();
 
       const event: NotificationEvent = {
-        action: 'send_card',
+        action: 'send_message',
         payload: {},
         type: 'discord',
       };
@@ -259,7 +259,7 @@ describe('NotificationsService', () => {
           'skipped notification publish because Redis publisher is unavailable',
         ),
         expect.objectContaining({
-          action: 'send_card',
+          action: 'send_message',
           type: 'discord',
         }),
       );
@@ -349,26 +349,6 @@ describe('NotificationsService', () => {
       const publishedData = JSON.parse(publishCall[1]);
 
       expect(publishedData.payload.from).toBeUndefined();
-    });
-  });
-
-  describe('sendDiscordCard', () => {
-    it('should send discord card', async () => {
-      const card = {
-        color: '#00ff00',
-        description: 'Test Description',
-        title: 'Test Card',
-      };
-
-      await service.sendDiscordCard(card);
-
-      expect(mockPublisher.publish).toHaveBeenCalled();
-      const publishCall = (mockPublisher.publish as vi.Mock).mock.calls[0];
-      const publishedData = JSON.parse(publishCall[1]);
-
-      expect(publishedData.type).toBe('discord');
-      expect(publishedData.action).toBe('send_card');
-      expect(publishedData.payload.card).toEqual(card);
     });
   });
 

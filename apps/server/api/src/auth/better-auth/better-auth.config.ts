@@ -1,4 +1,12 @@
-import type { IBetterAuthSocialProviderConfig } from './better-auth.types';
+import type {
+  IBetterAuthEnvValues,
+  IBetterAuthRuntimeConfig,
+  IBetterAuthSocialProviderConfig,
+} from './better-auth.types';
+
+/** Boot error when Better Auth is enabled but the signing secret is absent. */
+export const BETTER_AUTH_SECRET_REQUIRED_MESSAGE =
+  'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true';
 
 /**
  * Pure config helpers shared by the Better Auth module (instance construction)
@@ -42,14 +50,12 @@ export function parseCommaSeparated(value: string | undefined): string[] {
  * routes: `*.localhost` resolves to loopback in every modern browser/OS
  * (RFC 6761) with NO `/etc/hosts` entry, and gives this project its own cookie
  * jar so its session/JWT never collides with another project on plain
- * `localhost`. `local.genfeed.ai` (needs an `/etc/hosts` entry) is kept for
- * back-compat during migration; plain `localhost` also works.
+ * `localhost`. Plain `localhost` also works.
  */
 const LOCAL_DEV_TRUSTED_ORIGINS = [
   'https://*.genfeed.localhost',
   'http://genfeed.localhost:*',
   'http://localhost:*',
-  'http://local.genfeed.ai:*',
 ] as const;
 
 /**
@@ -68,7 +74,7 @@ export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
  * config and never hits a spurious `INVALID_ORIGIN` when accessed via canonical
- * Portless HTTPS, `genfeed.localhost`, `localhost`, or `local.genfeed.ai`.
+ * Portless HTTPS, `genfeed.localhost`, or `localhost`.
  * Real deployments (production/staging) get the configured list plus the one
  * fixed desktop-shell loopback origin; general loopback hosts stay dev-only.
  */
@@ -127,4 +133,45 @@ export function resolveSocialProviderConfig(
     return { clientId: clientId.trim(), clientSecret: clientSecret.trim() };
   }
   return undefined;
+}
+
+/**
+ * Resolve Better Auth boot options from ConfigService-backed env values.
+ * Fails closed when the signing secret is missing so an enabled deployment
+ * cannot boot into a silently broken auth path.
+ */
+export function resolveBetterAuthRuntimeConfig(
+  env: IBetterAuthEnvValues,
+): IBetterAuthRuntimeConfig {
+  const secret = env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
+  }
+
+  return {
+    apiKey: env.BETTER_AUTH_API_KEY,
+    baseURL: resolveBetterAuthBaseUrl(env.BETTER_AUTH_URL, env.PORT),
+    cookieDomain: resolveCookieDomain(env.BETTER_AUTH_COOKIE_DOMAIN),
+    experimentalJoins: resolveExperimentalJoins(
+      env.BETTER_AUTH_EXPERIMENTAL_JOINS,
+    ),
+    github: resolveSocialProviderConfig(
+      env.GITHUB_CLIENT_ID,
+      env.GITHUB_CLIENT_SECRET,
+    ),
+    google: resolveSocialProviderConfig(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+    ),
+    ipAddressHeaders: parseCommaSeparated(env.BETTER_AUTH_IP_HEADERS),
+    requireEmailVerification: resolveBooleanFlag(
+      env.BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION,
+      false,
+    ),
+    secret,
+    trustedOrigins: resolveTrustedOrigins(
+      env.BETTER_AUTH_TRUSTED_ORIGINS,
+      env.NODE_ENV,
+    ),
+  };
 }

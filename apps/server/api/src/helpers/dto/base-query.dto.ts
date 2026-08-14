@@ -45,36 +45,6 @@ export class BaseQueryDto {
   limit: number = 10;
 
   @ApiProperty({
-    default: true,
-    description:
-      'Accepted for backward compatibility only — server-side pagination is always enforced on HTTP list endpoints (see QueryDefaultsUtil), so `pagination=false` has no effect.',
-    required: false,
-  })
-  @IsOptional()
-  @ValidateIf((o) => o.pagination !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return false;
-    }
-
-    return Boolean(value);
-  })
-  @IsBoolean()
-  pagination: boolean = true;
-
-  @ApiProperty({
     default: false,
     description: 'Filter by deleted status',
     required: false,

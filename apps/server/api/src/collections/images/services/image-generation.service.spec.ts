@@ -44,14 +44,12 @@ const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
 const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
 const SINGLE_OUTPUT_MODEL = MODEL_KEYS.LEONARDOAI;
 
-const buildUser = (organization: string = ORG): User =>
+const buildUser = (organizationId: string = ORG): User =>
   ({
     id: 'auth-user-1',
-    publicMetadata: {
-      brand: 'brand-from-token',
-      organization,
-      user: 'user-1',
-    },
+    brandId: 'brand-from-token',
+    organizationId,
+    userId: 'user-1',
   }) as unknown as User;
 
 const buildRequest = (

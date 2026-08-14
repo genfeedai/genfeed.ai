@@ -39,7 +39,8 @@ describe('CredentialsController', () => {
 
   const mockUser = {
     id: 'authProvider_user_123',
-    publicMetadata: { organization: orgId, user: userId },
+    organizationId: orgId,
+    userId: userId,
   } as never;
 
   const mockRequest = {
@@ -283,11 +284,9 @@ describe('CredentialsController', () => {
     it('resolves account publishing context for the current brand and organization', async () => {
       const user = {
         ...mockUser,
-        publicMetadata: {
-          brand: 'brand-1',
-          organization: orgId,
-          user: userId,
-        },
+        brandId: 'brand-1',
+        organizationId: orgId,
+        userId: userId,
       } as never;
 
       const result = await controller.getPublishingContext(
@@ -309,11 +308,9 @@ describe('CredentialsController', () => {
   describe('account health', () => {
     const user = {
       ...mockUser,
-      publicMetadata: {
-        brand: 'brand-1',
-        organization: orgId,
-        user: userId,
-      },
+      brandId: 'brand-1',
+      organizationId: orgId,
+      userId: userId,
     } as never;
 
     it('lists account health for a brand', async () => {

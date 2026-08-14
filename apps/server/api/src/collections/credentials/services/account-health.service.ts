@@ -1,9 +1,16 @@
+import {
+  hasPartialSocialWarmupScopes,
+  reconnectForCredential,
+  resolveSocialWarmupAccountAge,
+  socialWarmupSignalRecordFromStorage,
+} from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
   AccountHealthOverride,
+  AccountHealthReconnect,
   AccountHealthRiskLevel,
   AccountHealthSignals,
   AccountHealthSummary,
@@ -332,7 +339,7 @@ export class AccountHealthService {
     overrides: Partial<AccountHealthSignals> | undefined,
   ): Promise<AccountHealthSignals> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
-    const [publishedPosts, recentFailures] = await Promise.all([
+    const [publishedPosts, recentFailures, enrollment] = await Promise.all([
       this.prisma.post.count({
         where: scopedWhere(organizationId, {
           credentialId: credential.id,
@@ -346,12 +353,25 @@ export class AccountHealthService {
           ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
         }),
       }),
+      this.prisma.socialWarmupEnrollment.findFirst({
+        include: {
+          signals: {
+            where: { isDeleted: false },
+          },
+        },
+        where: scopedWhere(organizationId, {
+          ...(credential.brandId ? { brandId: credential.brandId } : {}),
+          credentialId: credential.id,
+        }),
+      }),
     ]);
 
-    const createdAt = credential.createdAt ?? new Date();
-    const connectedDays = Math.max(
-      0,
-      Math.floor((Date.now() - createdAt.getTime()) / MS_PER_DAY),
+    const accountAge = resolveSocialWarmupAccountAge(
+      enrollment?.signals.map(socialWarmupSignalRecordFromStorage) ?? [],
+    );
+    const connectedDays = readNumber(
+      overrides?.connectedDays,
+      accountAge.accountAgeDays ?? 0,
     );
     const profileSignals = [
       credential.externalHandle,
@@ -361,7 +381,10 @@ export class AccountHealthService {
     ].filter((value) => readString(value)).length;
 
     return {
-      connectedDays: readNumber(overrides?.connectedDays, connectedDays),
+      accountAgeDays: accountAge.accountAgeDays,
+      accountAgeSource: accountAge.accountAgeSource,
+      accountAgeStatus: accountAge.accountAgeStatus,
+      connectedDays,
       profileSignals: readNumber(overrides?.profileSignals, profileSignals),
       publishedPosts: readNumber(overrides?.publishedPosts, publishedPosts),
       recentFailures: readNumber(overrides?.recentFailures, recentFailures),
@@ -413,6 +436,7 @@ export class AccountHealthService {
     const state = this.resolveState(credential, signals, thresholds, score);
     const riskLevel = this.resolveRiskLevel(state, score);
     const override = this.buildOverride(credential, now);
+    const reconnect = this.buildReconnect(credential);
     const holdPublishing =
       !override.isActive &&
       (state === 'not_started' || state === 'warming' || state === 'risky');
@@ -429,6 +453,7 @@ export class AccountHealthService {
       label: this.getCredentialLabel(credential),
       override,
       platform,
+      reconnect,
       riskLevel,
       score,
       signals,
@@ -491,6 +516,20 @@ export class AccountHealthService {
       isActive: isOverrideActive(credential, now),
       reason: readString(credential.warmupOverrideReason),
     };
+  }
+
+  private buildReconnect(
+    credential: Pick<
+      Credential,
+      'id' | 'isConnected' | 'platform' | 'warmupSignals'
+    >,
+  ): AccountHealthReconnect | undefined {
+    return reconnectForCredential({
+      credentialId: credential.id,
+      hasPartialScopes: hasPartialSocialWarmupScopes(credential.warmupSignals),
+      isConnected: credential.isConnected,
+      platform: credential.platform,
+    });
   }
 
   private getCredentialLabel(credential: Credential): string {

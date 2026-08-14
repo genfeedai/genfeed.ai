@@ -185,7 +185,7 @@ jobs:
   guards:
     name: Executable Contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -197,6 +197,8 @@ jobs:
         with:
           bun-version: '1.3.14'
           cache-turbo: 'false'
+      - name: Run executable contracts
+        run: bun run test:executable-contracts
       # The executable form of "new hard-coded content automation is blocked in
       # CI" (#1011 FR8/FR9, success criterion 6). These three shipped in #1034
       # but ran nowhere: the check:architecture aggregate that carried them was
@@ -289,7 +291,7 @@ jobs:
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contracts
-        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs scripts/ci/vercel-bun.test.mjs
+        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/dispatch-hosted-saas.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/nightly-playwright-full-failure-reporter.test.mjs scripts/ci/playwright-full-nightly.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs scripts/ci/vercel-bun.test.mjs scripts/playwright-e2e-tiers.test.mjs
       - name: Coverage Workspace Contract
         run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
@@ -453,8 +455,9 @@ jobs:
     timeout-minutes: 10
     needs: trust
     # Plan before allocating test runners. Vitest supplies the exact affected
-    # app/API files; Turbo supplies affected workspace tasks. Validation
-    # machinery and root dependency changes escalate to the full sharded path.
+    # app/API files; Turbo supplies affected workspace tasks. Lockfile, turbo,
+    # vitest config, bun-setup, and the planner itself escalate to the full
+    # sharded path. Editing ci.yml, package.json scripts, or docs does not.
     if: needs.trust.outputs.is-trusted == 'true'
     outputs:
       app: ${{ steps.plan.outputs.app }}

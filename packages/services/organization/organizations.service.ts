@@ -91,7 +91,7 @@ export class OrganizationsService extends BaseService<Organization> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.BRANDS}`,
-        { params: { ...query, organization: id } },
+        { params: { ...query, organizationId: id } },
       )
       .then((res) => {
         const document = res.data;
@@ -129,7 +129,7 @@ export class OrganizationsService extends BaseService<Organization> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TAGS}`,
-        { params: { ...query, organization: id } },
+        { params: { ...query, organizationId: id } },
       )
       .then((res) => {
         const tags = this.extractCollection<Partial<Tag>>(res.data);
@@ -301,7 +301,7 @@ export class OrganizationsService extends BaseService<Organization> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
-        { params: { ...query, organization: id } },
+        { params: { ...query, organizationId: id } },
       )
       .then((res) => {
         const document = res.data;

@@ -82,14 +82,24 @@ describe('control-guard detection', () => {
   });
 
   it('flags legacy @ui/inputs form imports as required', () => {
-    const file = write(
+    const inputFile = write(
       'apps/app/legacy.tsx',
       'import { Input } from "@ui/inputs/input/Input";\nexport default function G(){return <div />;}',
     );
-    const violation = detectViolations([file], rootDir).find(
-      (v) => v.category === 'legacy-import',
+    const textareaFile = write(
+      'apps/app/legacy-textarea.tsx',
+      'import Textarea from "@ui/inputs/textarea/Textarea";\nexport default function T(){return <div />;}',
     );
-    expect(violation?.severity).toBe('required');
+    expect(
+      detectViolations([inputFile], rootDir).find(
+        (v) => v.category === 'legacy-import',
+      )?.severity,
+    ).toBe('required');
+    expect(
+      detectViolations([textareaFile], rootDir).find(
+        (v) => v.category === 'legacy-import',
+      )?.severity,
+    ).toBe('required');
   });
 
   it('flags banned wrapper imports in plain .ts files', () => {

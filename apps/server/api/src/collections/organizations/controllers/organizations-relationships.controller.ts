@@ -30,10 +30,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -94,17 +91,15 @@ export class OrganizationsRelationshipsController {
     organizationId: string,
     user: User,
   ): Promise<void> {
-    const publicMetadata = getPublicMetadata(user);
-
     const [member, isOwner] = await Promise.all([
       this.membersService.findOne({
         isActive: true,
         organizationId: organizationId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
       this.organizationsService.findOne({
         id: organizationId,
-        userId: publicMetadata.user,
+        userId: user.userId ?? user.id,
       }),
     ]);
 

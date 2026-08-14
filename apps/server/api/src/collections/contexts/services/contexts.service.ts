@@ -12,6 +12,11 @@ import type {
   ContextEntrySimilarityRow,
 } from '@api/collections/contexts/schemas/context-entry.schema';
 import {
+  buildEmbeddingFailureQuery,
+  buildEmptyContentFailQuery,
+  buildPendingEmbeddingClaimQuery,
+} from '@api/collections/contexts/utils/context-embedding-claim-query.util';
+import {
   buildContextSimilarityQuery,
   serializeContextEmbedding,
 } from '@api/collections/contexts/utils/context-similarity-query.util';
@@ -35,20 +40,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
-/** Max pending rows lazily re-embedded inline per retrieval request. */
-const EMBEDDING_REBUILD_BATCH_LIMIT = 50;
-
 @Injectable()
 export class ContextsService {
-  /**
-   * Entry ids whose lazy re-embedding failed in this process run. A
-   * permanently failing row (e.g. malformed content the provider rejects)
-   * would otherwise retry on every retrieval request forever. Process-local by
-   * design: a restart retries everything once. A queue-based backfill with
-   * durable retry state is the deeper fix (noted as future work).
-   */
-  private readonly failedEmbeddingEntryIds = new Set<string>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
@@ -84,62 +77,27 @@ export class ContextsService {
     return this.isPlainObject(value) ? { ...value } : {};
   }
 
-  private normalizeContextBase(contextBase: {
-    id: string;
-    organizationId: string;
-    createdById?: string | null;
-    sourceBrandId?: string | null;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextBase {
+  private normalizeContextBase(contextBase: ContextBase): ContextBase {
     return {
       ...contextBase,
       ...this.getDataRecord(contextBase.data),
-      createdBy: contextBase.createdById ?? undefined,
-      organization: contextBase.organizationId,
-      sourceBrand: contextBase.sourceBrandId ?? undefined,
-    } as ContextBase;
+    };
   }
 
-  private normalizeContextBases(
-    contextBases: Array<{
-      id: string;
-      organizationId: string;
-      createdById?: string | null;
-      sourceBrandId?: string | null;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextBase[] {
+  private normalizeContextBases(contextBases: ContextBase[]): ContextBase[] {
     return contextBases.map((contextBase) =>
       this.normalizeContextBase(contextBase),
     );
   }
 
-  private normalizeContextEntry(entry: {
-    id: string;
-    contextBaseId: string;
-    organizationId: string;
-    data?: unknown;
-    [key: string]: unknown;
-  }): ContextEntry {
+  private normalizeContextEntry(entry: ContextEntry): ContextEntry {
     return {
       ...entry,
       ...this.getDataRecord(entry.data),
-      contextBase: entry.contextBaseId,
-      organization: entry.organizationId,
-    } as ContextEntry;
+    };
   }
 
-  private normalizeContextEntries(
-    entries: Array<{
-      id: string;
-      contextBaseId: string;
-      organizationId: string;
-      data?: unknown;
-      [key: string]: unknown;
-    }>,
-  ): ContextEntry[] {
+  private normalizeContextEntries(entries: ContextEntry[]): ContextEntry[] {
     return entries.map((entry) => this.normalizeContextEntry(entry));
   }
 
@@ -787,14 +745,12 @@ export class ContextsService {
   ): Promise<ContextEntrySimilarityResult[]> {
     await this.rebuildMissingEntryEmbeddings(organizationId, contextBaseIds);
 
-    const rows = await this.prisma.$queryRaw<ContextEntrySimilarityRow[]>(
-      buildContextSimilarityQuery(
-        organizationId,
-        contextBaseIds,
-        queryEmbedding,
-        limit,
-        minSimilarity,
-      ),
+    const rows = await this.querySimilarEntries(
+      organizationId,
+      contextBaseIds,
+      queryEmbedding,
+      limit,
+      minSimilarity,
     );
 
     return rows.flatMap((row) =>
@@ -815,34 +771,29 @@ export class ContextsService {
   }
 
   /**
-   * Lazy inline backfill on the retrieval hot path. Bounded per request: at
-   * most EMBEDDING_REBUILD_BATCH_LIMIT pending rows (oldest first), and rows
-   * that already failed in this process run are excluded so a permanently
-   * failing entry cannot retry on every request. A queue-based backfill off
-   * the request path is the deeper follow-up.
+   * Lazy inline backfill on the retrieval hot path (#2457).
+   *
+   * Empty-content rows are marked failed in SQL so they never re-enter the
+   * sweep. Pending rows are claimed with FOR UPDATE SKIP LOCKED so concurrent
+   * retrievals cannot duplicate provider work. Provider failures persist
+   * embeddingFailedAt. A queue-based off-request backfill remains the deeper
+   * follow-up for large lag.
    */
   private async rebuildMissingEntryEmbeddings(
     organizationId: string,
     contextBaseIds: string[],
   ): Promise<void> {
-    const failedIds = [...this.failedEmbeddingEntryIds];
-    const rows = await this.prisma.$queryRaw<
-      ContextEntryPendingEmbeddingRow[]
-    >(Prisma.sql`
-      SELECT "id", "data"->>'content' AS "content"
-      FROM "context_entries"
-      WHERE "organizationId" = ${organizationId}
-        AND "isDeleted" = false
-        AND "contextBaseId" IN (${Prisma.join(contextBaseIds)})
-        AND "embedding" IS NULL
-        ${
-          failedIds.length > 0
-            ? Prisma.sql`AND "id" NOT IN (${Prisma.join(failedIds)})`
-            : Prisma.empty
-        }
-      ORDER BY "createdAt" ASC
-      LIMIT ${EMBEDDING_REBUILD_BATCH_LIMIT}
-    `);
+    if (contextBaseIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.$executeRaw(
+      buildEmptyContentFailQuery(organizationId, contextBaseIds),
+    );
+
+    const rows = await this.prisma.$queryRaw<ContextEntryPendingEmbeddingRow[]>(
+      buildPendingEmbeddingClaimQuery(organizationId, contextBaseIds),
+    );
 
     if (rows.length === 0) {
       return;
@@ -855,8 +806,9 @@ export class ContextsService {
 
     for (const row of rows) {
       if (!row.content) {
-        // No content can ever embed — exclude it from future sweeps too.
-        this.failedEmbeddingEntryIds.add(row.id);
+        await this.prisma.$executeRaw(
+          buildEmbeddingFailureQuery(row.id, organizationId),
+        );
         continue;
       }
 
@@ -865,7 +817,9 @@ export class ContextsService {
         await this.writeEntryEmbedding(row.id, organizationId, embedding);
         rebuiltCount += 1;
       } catch (error: unknown) {
-        this.failedEmbeddingEntryIds.add(row.id);
+        await this.prisma.$executeRaw(
+          buildEmbeddingFailureQuery(row.id, organizationId),
+        );
         this.logger.error('Failed to lazily re-embed context entry', {
           contextEntryId: row.id,
           error,
@@ -882,6 +836,40 @@ export class ContextsService {
     }
   }
 
+  /**
+   * Small-tenant HNSW recall: iterative_scan keeps scanning after the org
+   * filter removes candidates. `set_config(..., is_local := true)` only lasts
+   * for this transaction, so it must share a transaction with the similarity
+   * query. Older pgvector without the GUC is a no-op.
+   */
+  private async querySimilarEntries(
+    organizationId: string,
+    contextBaseIds: string[],
+    queryEmbedding: number[],
+    limit: number,
+    minSimilarity: number,
+  ): Promise<ContextEntrySimilarityRow[]> {
+    return this.prisma.$transaction(async (tx) => {
+      try {
+        await tx.$executeRaw(
+          Prisma.sql`SELECT set_config('hnsw.iterative_scan', 'relaxed_order', true)`,
+        );
+      } catch (error: unknown) {
+        this.logger.debug('hnsw.iterative_scan unavailable', { error });
+      }
+
+      return tx.$queryRaw<ContextEntrySimilarityRow[]>(
+        buildContextSimilarityQuery(
+          organizationId,
+          contextBaseIds,
+          queryEmbedding,
+          limit,
+          minSimilarity,
+        ),
+      );
+    });
+  }
+
   private async writeEntryEmbedding(
     entryId: string,
     organizationId: string,
@@ -890,7 +878,8 @@ export class ContextsService {
     const serializedEmbedding = serializeContextEmbedding(embedding);
     const updatedCount = await this.prisma.$executeRaw(Prisma.sql`
       UPDATE "context_entries"
-      SET "embedding" = ${serializedEmbedding}::vector
+      SET "embedding" = ${serializedEmbedding}::vector,
+          "embeddingClaimedAt" = NULL
       WHERE "id" = ${entryId}
         AND "organizationId" = ${organizationId}
         AND "isDeleted" = false

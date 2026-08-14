@@ -79,24 +79,15 @@ export class AdBulkUploadJobsService {
 
     return {
       ...(record as unknown as AdBulkUploadJobDocument),
-      brand: typeof record.brandId === 'string' ? record.brandId : undefined,
       completedPermutations:
         typeof merged.completedPermutations === 'number'
           ? merged.completedPermutations
           : 0,
-      credential:
-        typeof record.credentialId === 'string'
-          ? record.credentialId
-          : undefined,
       data,
       failedPermutations:
         typeof merged.failedPermutations === 'number'
           ? merged.failedPermutations
           : 0,
-      organization:
-        typeof record.organizationId === 'string'
-          ? record.organizationId
-          : undefined,
       status: isBulkUploadStatus(merged.status) ? merged.status : 'pending',
       totalPermutations:
         typeof merged.totalPermutations === 'number'

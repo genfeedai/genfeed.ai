@@ -396,15 +396,6 @@ describe('NotificationHandlerService', () => {
       });
     });
 
-    it('warns on deprecated send_card action', async () => {
-      await emit('send_card', {});
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('deprecated send_card action'),
-        expect.any(Object),
-      );
-    });
-
     it('warns on unknown discord actions', async () => {
       await emit('mystery', {});
 

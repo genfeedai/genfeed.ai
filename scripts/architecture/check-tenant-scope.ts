@@ -34,6 +34,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import {
+  discoverTenantModels,
+  TENANT_QUERY_OPERATION_SET,
+  type TenantModel,
+} from '../../packages/libs/prisma/discover-tenant-models';
+
+export { discoverTenantModels, type TenantModel };
 
 const DEFAULT_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
 const DEFAULT_BASELINE_PATH = 'scripts/architecture/tenant-scope-baseline.json';
@@ -66,22 +73,7 @@ const TENANT_SCOPE_FINDING_REASONS = new Set<TenantScopeFindingReason>([
   'unresolved-where',
 ]);
 
-const PRISMA_WHERE_METHODS = new Set([
-  'aggregate',
-  'count',
-  'delete',
-  'deleteMany',
-  'findFirst',
-  'findFirstOrThrow',
-  'findMany',
-  'findUnique',
-  'findUniqueOrThrow',
-  'groupBy',
-  'update',
-  'updateMany',
-  'updateManyAndReturn',
-  'upsert',
-]);
+const PRISMA_WHERE_METHODS = TENANT_QUERY_OPERATION_SET;
 
 const SCOPED_WHERE_MODULE_PATTERNS = [
   /^@genfeedai\/server$/u,
@@ -121,11 +113,6 @@ const ASSIGNMENT_OPERATOR_KINDS = new Set<ts.SyntaxKind>([
   ts.SyntaxKind.QuestionQuestionEqualsToken,
   ts.SyntaxKind.SlashEqualsToken,
 ]);
-
-export type TenantModel = {
-  delegate: string;
-  model: string;
-};
 
 export type TenantScopeFindingReason =
   | 'missing-is-deleted'
@@ -229,42 +216,6 @@ function compareText(left: string, right: string): number {
 
 function resolveFromRoot(rootDir: string, filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.resolve(rootDir, filePath);
-}
-
-function lowerFirst(value: string): string {
-  return value.length === 0
-    ? value
-    : `${value[0]?.toLowerCase()}${value.slice(1)}`;
-}
-
-export function discoverTenantModels(schema: string): TenantModel[] {
-  const tenantModels: TenantModel[] = [];
-  const modelPattern =
-    /^[ \t]*model\s+([A-Za-z_]\w*)\s+\{([\s\S]*?)^[ \t]*\}/gmu;
-
-  for (const match of schema.matchAll(modelPattern)) {
-    const [, model, body] = match;
-
-    if (
-      !model ||
-      !body ||
-      !/^\s*organizationId\s+\S+/mu.test(body) ||
-      !/^\s*isDeleted\s+\S+/mu.test(body)
-    ) {
-      continue;
-    }
-
-    tenantModels.push({
-      delegate: lowerFirst(model),
-      model,
-    });
-  }
-
-  return tenantModels.sort(
-    (left, right) =>
-      compareText(left.delegate, right.delegate) ||
-      compareText(left.model, right.model),
-  );
 }
 
 function unwrapExpression(expression: ts.Expression): ts.Expression {

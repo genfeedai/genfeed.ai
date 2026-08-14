@@ -22,10 +22,8 @@ function makeUser(): User {
     firstName: 'Genfeed',
     lastName: 'Founder',
     id: 'auth-user',
-    publicMetadata: {
-      organization: 'org-1',
-      user: 'user-1',
-    },
+    organizationId: 'org-1',
+    userId: 'user-1',
   };
 }
 
