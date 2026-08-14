@@ -8,6 +8,7 @@ import {
   LEGACY_APP_ROUTES,
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
+import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
 import { describe, expect, it } from 'vitest';
 import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
@@ -59,6 +60,36 @@ describe('app next.config', () => {
       expect(isAllowed('evil.example.com')).toBe(false);
       expect(isAllowed('genfeed.localhost.evil.com')).toBe(false);
     });
+  });
+
+  it('allows Portless local file hosts for next/image', () => {
+    // LibrarySourcePreview feeds ingredient URLs from the files service into
+    // next/image. Next's default loader throws unconfigured-host unless the
+    // hostname matches images.remotePatterns via this exact matcher.
+    const remotePatterns = config.images?.remotePatterns ?? [];
+    const domains = config.images?.domains ?? [];
+    const isAllowed = (href: string) =>
+      hasRemoteMatch(domains, remotePatterns, new URL(href));
+
+    expect(
+      isAllowed(
+        'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+      ),
+    ).toBe(true);
+    expect(
+      isAllowed(
+        'https://qa-local-2026-08-13.files.genfeed.localhost/local/ingredients/images/x',
+      ),
+    ).toBe(true);
+    expect(
+      isAllowed('https://files.genfeed.ai/local/ingredients/images/x'),
+    ).toBe(true);
+    expect(
+      isAllowed('https://evil.example.com/local/ingredients/images/x'),
+    ).toBe(false);
+    expect(isAllowed('https://files.genfeed.localhost.evil.com/local/x')).toBe(
+      false,
+    );
   });
 
   it('allows current social-provider avatars without retaining Clerk hosts', () => {

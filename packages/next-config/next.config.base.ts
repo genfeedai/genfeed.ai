@@ -62,6 +62,11 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     images: {
       remotePatterns: [
         { hostname: '*.genfeed.ai' },
+        // Portless serves ingredients from files.genfeed.localhost. Linked
+        // worktrees prefix that host (`qa-local.files.genfeed.localhost`), so
+        // `**` is required the same way allowedDevOrigins uses it. `*` alone
+        // would still miss those deeper labels for some matchers.
+        { hostname: '**.genfeed.localhost' },
         { hostname: '*.cloudfront.net' },
         { hostname: '*.amazonaws.com' },
         { hostname: 'avatars.githubusercontent.com' },
