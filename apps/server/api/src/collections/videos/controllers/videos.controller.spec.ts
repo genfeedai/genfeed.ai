@@ -464,7 +464,6 @@ describe('VideosController', () => {
       latest: true,
       limit: 10,
       page: 1,
-      pagination: true,
       sort: 'createdAt: -1',
     } as unknown as VideosQueryDto;
 
@@ -479,9 +478,9 @@ describe('VideosController', () => {
         cacheConfig.keyGenerator({
           query: { latest: 'true', limit: 10 },
           user: {
+            brandId: brand,
             id: mockUser.id,
-            brand,
-            organization,
+            organizationId: organization,
           },
         });
 
@@ -554,7 +553,6 @@ describe('VideosController', () => {
       isDeleted: false,
       limit: 10,
       page: 1,
-      pagination: true,
       sort: 'createdAt: -1',
     };
 
@@ -743,7 +741,7 @@ describe('VideosController', () => {
           params: { videoId: mockVideoId.toString() },
           user: {
             id: mockUser.id,
-            organization,
+            organizationId: organization,
           },
         });
 
@@ -1391,7 +1389,6 @@ describe('VideosController', () => {
           isDeleted: false,
           limit: 10,
           page: 1,
-          pagination: true,
           sort: 'createdAt: -1',
         }),
       ).rejects.toThrow('Database error');

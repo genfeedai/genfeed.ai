@@ -194,9 +194,7 @@ export default function LivestreamChatBotPage({
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-medium">
-                {translate('sendOneOffMessage')}
-              </h3>
+              <h3 className="font-medium">{translate('sendOneOffMessage')}</h3>
               <div className="flex gap-2">
                 <Button
                   label="YouTube"

@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({

@@ -35,12 +35,10 @@ describe('AssetAccessGuard', () => {
   function createContext(params: {
     assetId?: string;
     user?: {
+      brandId?: string;
       id: string;
-      identity?: {
-        user?: string;
-        organization?: string;
-        brand?: string;
-      };
+      organizationId?: string;
+      userId?: string;
     };
   }) {
     return {

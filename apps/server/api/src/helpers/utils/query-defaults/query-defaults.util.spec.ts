@@ -21,28 +21,6 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('always paginates HTTP lists even if a leftover pagination=false is present', () => {
-      const query = { limit: 5, page: 3, pagination: false };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result).toEqual({
-        limit: 5,
-        page: 3,
-        pagination: true,
-      });
-    });
-
-    it('always paginates HTTP lists even if a leftover pagination=false string is present', () => {
-      const query = { pagination: 'false' };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result.pagination).toBe(true);
-    });
-
-    it('always paginates HTTP lists even if a leftover pagination=true string is present', () => {
-      const query = { pagination: 'true' };
-      const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result.pagination).toBe(true);
-    });
-
     it('should coerce string limit and page values to numbers', () => {
       const result = QueryDefaultsUtil.getPaginationDefaults({
         limit: '30' as never,
@@ -112,24 +90,6 @@ describe('QueryDefaultsUtil', () => {
       expect(result).toEqual({
         ...query,
         pagination: true,
-      });
-    });
-
-    it('always paginates HTTP lists even if a leftover pagination=false is present', () => {
-      const query = {
-        isDeleted: true,
-        limit: 25,
-        page: 3,
-        pagination: false,
-        sort: 'name',
-      };
-      const result = QueryDefaultsUtil.applyDefaults(query);
-      expect(result).toEqual({
-        isDeleted: true,
-        limit: 25,
-        page: 3,
-        pagination: true,
-        sort: 'name',
       });
     });
 

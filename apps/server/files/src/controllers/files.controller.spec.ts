@@ -647,10 +647,10 @@ describe('FilesController', () => {
     it('should throw error for unknown video type', async () => {
       const body = { ...baseBody, type: 'unknown-type' };
 
-      await expect(controller.processVideo(body)).rejects.toThrow(
+      await expect(controller.processVideo(body as never)).rejects.toThrow(
         HttpException,
       );
-      await expect(controller.processVideo(body)).rejects.toThrow(
+      await expect(controller.processVideo(body as never)).rejects.toThrow(
         'Unknown video processing type',
       );
     });

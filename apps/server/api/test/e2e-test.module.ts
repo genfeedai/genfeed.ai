@@ -94,7 +94,6 @@ export class MockBetterAuthGuard {
         id: string;
         userId: string;
         organizationId: string;
-        brandId?: string;
         isSuperAdmin?: boolean;
       };
     }>();

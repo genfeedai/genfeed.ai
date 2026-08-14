@@ -302,12 +302,12 @@ export const createTestCredential = (
   externalId: `ext-${Date.now()}`,
   isConnected: true,
   isDeleted: false,
-  organizationId: null,
+  organizationId: generateIdString(),
   platform: 'YOUTUBE' as const,
   refreshToken: 'mock-refresh-token',
   accessTokenExpiry: new Date(Date.now() + 3600000),
   updatedAt: new Date(),
-  userId: null,
+  userId: generateIdString(),
   ...overrides,
 });
 

@@ -56,7 +56,10 @@ describe('YoutubeUploadService', () => {
   const videoId = 'test-object-id';
 
   function createPost(
-    overrides: Partial<PostEntity> & { status?: PostStatus | string } = {},
+    overrides: Partial<PostEntity> & {
+      status?: PostStatus | string;
+      visibility?: PostVisibility | string;
+    } = {},
   ): PostEntity {
     const fixture = {
       id: 'test-object-id',

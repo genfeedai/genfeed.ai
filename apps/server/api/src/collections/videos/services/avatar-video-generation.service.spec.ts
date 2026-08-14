@@ -135,7 +135,7 @@ describe('AvatarVideoGenerationService', () => {
       expect.objectContaining({
         externalVoiceId: 'brand-elevenlabs-voice',
       }),
-      context.user.organizationId,
+      context.organizationId,
       'Write the launch announcement',
     );
   });
@@ -182,7 +182,7 @@ describe('AvatarVideoGenerationService', () => {
       expect.objectContaining({
         externalVoiceId: 'org-heygen-voice',
       }),
-      context.user.organizationId,
+      context.organizationId,
       'Create the founder update',
     );
   });

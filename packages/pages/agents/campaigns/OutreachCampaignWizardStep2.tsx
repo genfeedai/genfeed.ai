@@ -118,7 +118,7 @@ export default function OutreachCampaignWizardStep2({
               htmlFor="campaign-wizard-keywords"
               className="text-sm font-medium text-foreground"
             >
-            {translate('keywords')}
+              {translate('keywords')}
             </label>
             <Input
               id="campaign-wizard-keywords"
@@ -133,7 +133,7 @@ export default function OutreachCampaignWizardStep2({
               htmlFor="campaign-wizard-hashtags"
               className="text-sm font-medium text-foreground"
             >
-            {translate('hashtags')}
+              {translate('hashtags')}
             </label>
             <Input
               id="campaign-wizard-hashtags"
@@ -149,7 +149,7 @@ export default function OutreachCampaignWizardStep2({
                 htmlFor="campaign-wizard-subreddits"
                 className="text-sm font-medium text-foreground"
               >
-            {translate('subreddits')}
+                {translate('subreddits')}
               </label>
               <Input
                 id="campaign-wizard-subreddits"
