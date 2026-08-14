@@ -61,9 +61,7 @@ describe('BrandsService relocation facade', () => {
 
   it('delegates relocation preview unchanged', async () => {
     const preview = {
-      ackToken: null,
       counts: {
-        sharedWorkflows: 0,
         soleBrandWorkflows: 1,
         staleMembers: 0,
       },

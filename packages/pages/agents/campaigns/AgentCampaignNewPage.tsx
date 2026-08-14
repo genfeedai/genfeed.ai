@@ -8,11 +8,11 @@ import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strat
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
@@ -140,13 +141,21 @@ export default function AgentCampaignNewPage() {
           />
         </div>
 
-        <Textarea
-          label="Brief"
-          value={form.brief}
-          onChange={(e) => handleChange('brief', e.target.value)}
-          placeholder="Describe the campaign goals and context..."
-          rows={3}
-        />
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="agent-campaign-brief"
+            className="text-sm font-medium text-foreground"
+          >
+            Brief
+          </Label>
+          <Textarea
+            id="agent-campaign-brief"
+            value={form.brief}
+            onChange={(e) => handleChange('brief', e.target.value)}
+            placeholder="Describe the campaign goals and context..."
+            rows={3}
+          />
+        </div>
 
         <div className="space-y-1.5">
           <span className="text-sm font-medium text-foreground">Status</span>

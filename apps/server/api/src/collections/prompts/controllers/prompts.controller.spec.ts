@@ -54,7 +54,6 @@ describe('PromptsController', () => {
     isDeleted: false,
     limit: 10,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
   } satisfies PromptQueryDto;
 

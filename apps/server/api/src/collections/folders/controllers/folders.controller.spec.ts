@@ -624,7 +624,6 @@ describe('FoldersController', () => {
         isDeleted: false,
         limit: 10,
         page: 1,
-        pagination: true,
       };
 
       const result = await controller.findAll(mockRequest, mockUser, query);

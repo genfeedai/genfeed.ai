@@ -614,7 +614,6 @@ model User {
 
 model Organization {
   id                         String                @id @default(cuid())
-  authProviderOrganizationId String?               @unique
   authProviderLogoUrl        String?
   userId                     String
   user                       User                  @relation(fields: [userId], references: [id])

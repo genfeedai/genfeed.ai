@@ -51,12 +51,11 @@ Before writing any file:
 
 **File:** `packages/prisma/prisma/schema.prisma`
 
-Append model block. Always include `mongoId String? @unique` (migration compat).
+Append model block. Use scalar foreign keys (`userId`, `organizationId`, `brandId`). Never add `mongoId` or Clerk/auth-provider id columns.
 
 ```prisma
 model <EntityName> {
   id             String       @id @default(cuid())
-  mongoId        String?      @unique
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   organizationId String

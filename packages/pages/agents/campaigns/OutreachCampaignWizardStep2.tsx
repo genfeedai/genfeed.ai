@@ -1,8 +1,8 @@
 'use client';
 
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 
 interface Credential {
   id: string;
@@ -70,13 +71,21 @@ export default function OutreachCampaignWizardStep2({
         />
       </div>
 
-      <Textarea
-        label="Description"
-        placeholder="Brief description of the campaign goals"
-        value={description}
-        onChange={(e) => onDescriptionChange(e.target.value)}
-        rows={3}
-      />
+      <div className="space-y-1.5">
+        <Label
+          htmlFor="campaign-wizard-description"
+          className="text-sm font-medium text-foreground"
+        >
+          Description
+        </Label>
+        <Textarea
+          id="campaign-wizard-description"
+          placeholder="Brief description of the campaign goals"
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+          rows={3}
+        />
+      </div>
 
       <div className="space-y-1.5">
         <label

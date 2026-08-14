@@ -129,9 +129,9 @@ export class PromptsOperationsController {
     const publicMetadata = getPublicMetadata(user);
 
     let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(createParsePromptDto.brand)) {
+    if (isEntityId(createParsePromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
-        id: createParsePromptDto.brand,
+        id: createParsePromptDto.brandId,
         OR: [
           { userId: publicMetadata.user },
           { organizationId: publicMetadata.organization },

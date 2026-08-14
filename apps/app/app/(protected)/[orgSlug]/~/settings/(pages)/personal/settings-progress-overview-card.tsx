@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
-import KeyMetric from '@ui/display/key-metric/KeyMetric';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -75,16 +75,22 @@ export default function SettingsProgressOverviewCard({
       }
     >
       <div className="grid gap-3 md:grid-cols-4">
-        <KeyMetric label="Setup" value={`${completedCount}/${totalCount}`} />
-        <KeyMetric
+        <MetricCard
+          label="Setup"
+          size="md"
+          value={`${completedCount}/${totalCount}`}
+        />
+        <MetricCard
           label="Current streak"
+          size="md"
           value={isLoading ? '...' : currentStreak}
         />
-        <KeyMetric
+        <MetricCard
           label="Longest streak"
+          size="md"
           value={isLoading ? '...' : longestStreak}
         />
-        <KeyMetric
+        <MetricCard
           description={
             isLoading
               ? 'Loading streak'
@@ -93,6 +99,7 @@ export default function SettingsProgressOverviewCard({
                 : 'All milestone tiers reached'
           }
           label="Next milestone"
+          size="md"
           value={
             isLoading ? '...' : nextMilestone ? nextMilestone.days : 'Done'
           }

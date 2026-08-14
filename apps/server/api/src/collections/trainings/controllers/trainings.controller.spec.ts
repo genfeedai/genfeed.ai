@@ -24,7 +24,6 @@ const createTrainingsQuery = (
     isDeleted: false,
     limit: 20,
     page: 1,
-    pagination: true,
     ...partial,
   }) as TrainingsQueryDto;
 

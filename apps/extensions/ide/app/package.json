@@ -118,11 +118,6 @@
         "title": "Genfeed: Set API Key"
       },
       {
-        "command": "genfeed.generateImage",
-        "icon": "$(sparkle)",
-        "title": "Genfeed: Generate Image (Legacy)"
-      },
-      {
         "command": "genfeed.publishContent",
         "icon": "$(megaphone)",
         "title": "Genfeed: Run Publish Content (Alias)"

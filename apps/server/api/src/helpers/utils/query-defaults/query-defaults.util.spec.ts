@@ -11,8 +11,8 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should use provided values when pagination is enabled', () => {
-      const query = { limit: 50, page: 2, pagination: true };
+    it('should use provided page and limit values', () => {
+      const query = { limit: 50, page: 2 };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result).toEqual({
         limit: 50,
@@ -21,7 +21,7 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should enforce pagination when the client sends pagination=false', () => {
+    it('always paginates HTTP lists even if a leftover pagination=false is present', () => {
       const query = { limit: 5, page: 3, pagination: false };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result).toEqual({
@@ -31,13 +31,13 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should enforce pagination for the string "false" from a raw query param', () => {
+    it('always paginates HTTP lists even if a leftover pagination=false string is present', () => {
       const query = { pagination: 'false' };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result.pagination).toBe(true);
     });
 
-    it('should handle string "true" for pagination', () => {
+    it('always paginates HTTP lists even if a leftover pagination=true string is present', () => {
       const query = { pagination: 'true' };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result.pagination).toBe(true);
@@ -101,19 +101,21 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should preserve provided values', () => {
+    it('should preserve provided page, limit, sort, and isDeleted values', () => {
       const query = {
         isDeleted: true,
         limit: 100,
         page: 3,
-        pagination: true,
         sort: 'name',
       };
       const result = QueryDefaultsUtil.applyDefaults(query);
-      expect(result).toEqual(query);
+      expect(result).toEqual({
+        ...query,
+        pagination: true,
+      });
     });
 
-    it('should enforce pagination even when the client disables it', () => {
+    it('always paginates HTTP lists even if a leftover pagination=false is present', () => {
       const query = {
         isDeleted: true,
         limit: 25,

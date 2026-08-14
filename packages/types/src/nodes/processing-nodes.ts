@@ -291,6 +291,3 @@ export interface DownloadNodeData extends BaseNodeData {
   // Output name for saving
   outputName: string;
 }
-
-/** @deprecated Use DownloadNodeData instead */
-export type OutputNodeData = DownloadNodeData;

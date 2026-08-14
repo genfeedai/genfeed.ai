@@ -15,7 +15,4 @@ export type HarnessProfileData = Omit<
 
 export interface HarnessProfileDocument
   extends PrismaProfile,
-    HarnessProfileData {
-  organization?: string;
-  createdBy?: string | null;
-}
+    HarnessProfileData {}

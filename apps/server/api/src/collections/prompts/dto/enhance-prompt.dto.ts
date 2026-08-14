@@ -7,12 +7,12 @@ export class EnhancePromptDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly organization?: string;
+  readonly organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: string;
+  readonly brandId?: string;
 
   @IsString()
   @ApiProperty({ required: true })

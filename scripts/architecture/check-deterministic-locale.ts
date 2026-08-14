@@ -301,16 +301,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
-    'packages/pages/agents/tasks/CronJobRunHistory.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'packages/pages/agents/tasks/CronJobsList.tsx',
-    'to-locale-string',
-    2,
-  ),
-  legacyUiAllowance(
     'packages/pages/analytics/overview/analytics-overview-leaderboards.tsx',
     'to-locale-string',
     4,

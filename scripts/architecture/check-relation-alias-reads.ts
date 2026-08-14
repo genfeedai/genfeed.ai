@@ -850,8 +850,8 @@ function main(): void {
   if (regressions.length === 0 && stale.length === 0) {
     console.log(
       `check:relation-alias-reads — ${filesScanned} files scanned against ` +
-        `${aliasCount} schema relation aliases; ${violations.length} baselined ` +
-        'violation(s), no new ones.',
+        `${aliasCount} schema relation aliases; ${violations.length} violation(s). ` +
+        'Relation-alias reads are banned.',
     );
     return;
   }

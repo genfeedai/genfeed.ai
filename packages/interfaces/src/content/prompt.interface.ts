@@ -17,9 +17,9 @@ import type {
 } from '../index';
 
 export interface IPrompt extends IBaseEntity {
-  user: string;
-  organization?: string;
-  brand?: string;
+  userId: string;
+  organizationId?: string;
+  brandId?: string;
   category: string;
   original: string;
   enhanced: string;

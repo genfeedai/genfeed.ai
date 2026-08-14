@@ -27,10 +27,10 @@ vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   QueryDefaultsUtil: {
     getIsDeletedDefault: vi.fn((val: boolean) => val ?? false),
     getPaginationDefaults: vi.fn(
-      (query: { limit?: number; page?: number; pagination?: boolean }) => ({
+      (query: { limit?: number; page?: number }) => ({
         limit: query?.limit ?? 10,
         page: query?.page ?? 1,
-        pagination: query?.pagination ?? true,
+        pagination: true,
       }),
     ),
     parseStatusFilter: vi.fn(
@@ -154,10 +154,9 @@ describe('GifsController', () => {
       );
     });
 
-    it('should support collapsed "latest" queries via sort/limit/pagination params', async () => {
+    it('should support collapsed "latest" queries via sort/limit params while staying paginated', async () => {
       const query = {
         limit: 10,
-        pagination: false,
         sort: 'createdAt: -1',
       } as unknown as Parameters<typeof controller.findAll>[2];
       await controller.findAll(mockRequest, mockUser, query);
@@ -166,7 +165,7 @@ describe('GifsController', () => {
           orderBy: { createdAt: -1 },
           where: expect.any(Object),
         }),
-        expect.objectContaining({ limit: 10, pagination: false }),
+        expect.objectContaining({ limit: 10, pagination: true }),
       );
     });
 

@@ -247,14 +247,9 @@ export class BrandsController extends BaseCRUDController<
 
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
 
-    // No org change requested → default CRUD patch. Drop any stray consent token so it
-    // never reaches a column-level update (it is only meaningful on a relocation).
+    // No org change requested → default CRUD patch.
     if (!requestedOrgId) {
-      const { relocationAck: _omitAck, ...restWithoutAck } = rest as Record<
-        string,
-        unknown
-      >;
-      return super.patch(request, user, id, restWithoutAck as UpdateBrandDto);
+      return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
     const existing = (await this.brandsService.findOne({ id: id })) as
@@ -268,15 +263,13 @@ export class BrandsController extends BaseCRUDController<
     }
 
     // Same org → not a relocation; apply the remaining fields via the default patch.
-    // Strip both the org trigger and the consent token — neither is a Brand column, so
-    // a retry that lands here after the move already committed would otherwise try to
-    // persist `relocationAck` and be rejected by Prisma.
+    // Strip the org trigger — it is not a Brand column, so a retry that lands here
+    // after the move already committed would otherwise try to persist it.
     if (existing.organizationId === requestedOrgId) {
-      const {
-        organizationId: _omitOrg,
-        relocationAck: _omitAck,
-        ...fields
-      } = rest as Record<string, unknown>;
+      const { organizationId: _omitOrg, ...fields } = rest as Record<
+        string,
+        unknown
+      >;
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
@@ -311,8 +304,6 @@ export class BrandsController extends BaseCRUDController<
   /**
    * Preview the impact of relocating a brand to another organization: which
    * brand-owned resources move with it, and how many members lose access.
-   * `sharedWorkflows` and `ackToken` remain in the response for compatibility and
-   * are always 0/null now that workflows are scoped to one brand.
    */
   @Get(':id/relocation-preview')
   @LogMethod({ logEnd: false, logError: true, logStart: true })

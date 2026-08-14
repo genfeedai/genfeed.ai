@@ -255,13 +255,6 @@ export class NotificationHandlerService implements OnModuleInit {
         break;
       }
 
-      case 'send_card':
-        this.logger.warn(
-          'Received deprecated send_card action - use ingredient_notification instead',
-          this.context,
-        );
-        break;
-
       default:
         this.logger.warn(`Unknown Discord action: ${action}`, this.context);
     }

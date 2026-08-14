@@ -736,7 +736,6 @@ export class BrandsService extends BaseService<
     brandId: string,
     updateBrandDto: Partial<UpdateBrandDto> & {
       organizationId?: string;
-      relocationAck?: string;
     },
     actingUser: { userId: string; isSuperAdmin: boolean },
   ): Promise<BrandRelocationResult> {

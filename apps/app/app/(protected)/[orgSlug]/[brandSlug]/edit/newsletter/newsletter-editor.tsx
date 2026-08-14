@@ -2,9 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { NewsletterEditorProps } from '@props/content/artifact-editor.props';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
+import { Textarea } from '@ui/primitives/textarea';
 import { Archive, CircleCheck, Sparkles } from 'lucide-react';
 
 type NewsletterEditorActionsProps = Pick<
@@ -119,12 +120,20 @@ export default function NewsletterEditor({
         />
       </div>
 
-      <Textarea
-        label="Newsletter content"
-        rows={22}
-        value={editorState.content}
-        onChange={(event) => onEditorChange({ content: event.target.value })}
-      />
+      <div className="space-y-1.5">
+        <Label
+          htmlFor="newsletter-content"
+          className="text-sm font-medium text-foreground"
+        >
+          Newsletter content
+        </Label>
+        <Textarea
+          id="newsletter-content"
+          rows={22}
+          value={editorState.content}
+          onChange={(event) => onEditorChange({ content: event.target.value })}
+        />
+      </div>
     </div>
   );
 }

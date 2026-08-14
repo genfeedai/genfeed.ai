@@ -205,7 +205,6 @@ describe('ApiKeysController', () => {
         isDeleted: false,
         limit: 10,
         page: 1,
-        pagination: true,
         sort: 'createdAt: -1',
       };
 
@@ -229,7 +228,6 @@ describe('ApiKeysController', () => {
         label: 'Test',
         limit: 10,
         page: 1,
-        pagination: true,
         sort: 'createdAt: -1',
       } as unknown as BaseQueryDto;
 
@@ -253,7 +251,6 @@ describe('ApiKeysController', () => {
         isDeleted: false,
         limit: 100,
         page: 1,
-        pagination: true,
         search: 'mcp',
         sort: 'createdAt: -1',
       } as unknown as BaseQueryDto;

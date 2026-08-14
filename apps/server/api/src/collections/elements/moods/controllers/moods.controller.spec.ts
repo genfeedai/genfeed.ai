@@ -15,7 +15,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     isDeleted: false,
     limit: 20,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;

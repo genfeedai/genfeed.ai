@@ -543,9 +543,6 @@ export class BrandsService extends BaseService<Brand> {
    * the updated brand AND the relocation summary
    * (`workflowsMoved`, `workflowsClonedActive`, `workflowsClonedPaused`,
    * `membersSevered`, `schedulingPending`).
-   *
-   * `relocationAck` is still accepted for older clients but current workflow
-   * relocation no longer needs clone/disconnect acknowledgement.
    */
   public async relocateBrand(
     id: string,

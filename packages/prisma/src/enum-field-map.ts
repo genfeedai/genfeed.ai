@@ -2972,7 +2972,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'accountType',
       'authProviderLogoUrl',
-      'authProviderOrganizationId',
       'category',
       'createdAt',
       'id',

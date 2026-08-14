@@ -71,26 +71,30 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/inputs/textarea/Textarea', () => ({
-  default: ({
-    label,
+vi.mock('@ui/primitives/label', () => ({
+  Label: ({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) => (
+    <label htmlFor={htmlFor}>{children}</label>
+  ),
+}));
+
+vi.mock('@ui/primitives/textarea', () => ({
+  Textarea: ({
+    id,
     onChange,
     value,
   }: {
-    label: string;
-    onChange: (event: { target: { value: string } }) => void;
-    value: string;
+    id?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    value?: string;
   }) => (
-    <label>
-      <span>{label}</span>
-      <textarea
-        aria-label={label}
-        onChange={(event) =>
-          onChange({ target: { value: event.target.value } })
-        }
-        value={value}
-      />
-    </label>
+    <textarea
+      aria-label={id}
+      id={id}
+      onChange={(event) =>
+        onChange?.({ target: { value: event.target.value } })
+      }
+      value={value}
+    />
   ),
 }));
 

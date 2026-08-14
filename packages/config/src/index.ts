@@ -10,7 +10,6 @@ export {
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
-  isHostedGenfeedApi,
   isHostedGenfeedCloud,
   isHostedGenfeedFromBrowser,
   isHostedGenfeedFromEnv,

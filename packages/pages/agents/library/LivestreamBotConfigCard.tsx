@@ -6,10 +6,10 @@ import {
   LivestreamTranscriptSource,
 } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
 type LivestreamFormState = {
@@ -234,20 +235,36 @@ export default function LivestreamBotConfigCard({
           value={form.linkUrl}
           onChange={(event) => onFormChange({ linkUrl: event.target.value })}
         />
-        <Textarea
-          label="Scheduled Host Prompt Template"
-          value={form.hostPromptTemplate}
-          onChange={(event) =>
-            onFormChange({ hostPromptTemplate: event.target.value })
-          }
-        />
-        <Textarea
-          label="Context-Aware Question Template"
-          value={form.contextTemplate}
-          onChange={(event) =>
-            onFormChange({ contextTemplate: event.target.value })
-          }
-        />
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="host-prompt-template"
+            className="text-sm font-medium text-foreground"
+          >
+            Scheduled Host Prompt Template
+          </Label>
+          <Textarea
+            id="host-prompt-template"
+            value={form.hostPromptTemplate}
+            onChange={(event) =>
+              onFormChange({ hostPromptTemplate: event.target.value })
+            }
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="context-template"
+            className="text-sm font-medium text-foreground"
+          >
+            Context-Aware Question Template
+          </Label>
+          <Textarea
+            id="context-template"
+            value={form.contextTemplate}
+            onChange={(event) =>
+              onFormChange({ contextTemplate: event.target.value })
+            }
+          />
+        </div>
       </div>
 
       <div className="mt-6 flex justify-end">

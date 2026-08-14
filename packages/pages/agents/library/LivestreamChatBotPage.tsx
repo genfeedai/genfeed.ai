@@ -5,10 +5,11 @@ import { ButtonVariant, Platform } from '@genfeedai/enums';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
+import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import LivestreamBotConfigCard from './LivestreamBotConfigCard';
@@ -166,11 +167,19 @@ export default function LivestreamChatBotPage({
 
             <div className="space-y-4">
               <h3 className="font-medium">Transcript Ingestion</h3>
-              <Textarea
-                label="Transcript Chunk"
-                value={transcriptChunk}
-                onChange={(event) => setTranscriptChunk(event.target.value)}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="transcript-chunk"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Transcript Chunk
+                </Label>
+                <Textarea
+                  id="transcript-chunk"
+                  value={transcriptChunk}
+                  onChange={(event) => setTranscriptChunk(event.target.value)}
+                />
+              </div>
               <Button
                 label="Process Transcript"
                 variant={ButtonVariant.SECONDARY}
@@ -200,12 +209,20 @@ export default function LivestreamChatBotPage({
                   onClick={() => setSelectedPlatform('twitch')}
                 />
               </div>
-              <Textarea
-                label="Message"
-                placeholder="Leave blank to let the bot generate the next prompt."
-                value={sendNowMessage}
-                onChange={(event) => setSendNowMessage(event.target.value)}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="send-now-message"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Message
+                </Label>
+                <Textarea
+                  id="send-now-message"
+                  placeholder="Leave blank to let the bot generate the next prompt."
+                  value={sendNowMessage}
+                  onChange={(event) => setSendNowMessage(event.target.value)}
+                />
+              </div>
               <Button
                 label="Send Now"
                 variant={ButtonVariant.DEFAULT}

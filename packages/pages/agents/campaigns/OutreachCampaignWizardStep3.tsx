@@ -1,9 +1,9 @@
 'use client';
 
 import { CampaignType, ReplyLength, ReplyTone } from '@genfeedai/enums';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 
 const toneOptions = Object.values(ReplyTone).map((tone) => ({
   label: tone.charAt(0).toUpperCase() + tone.slice(1).replace('_', ' '),
@@ -106,13 +107,21 @@ export default function OutreachCampaignWizardStep3({
 
           {dmUseAiGeneration ? (
             <>
-              <Textarea
-                label="Product Context"
-                placeholder="What are you selling? Describe your product..."
-                value={dmContext}
-                onChange={(e) => onDmContextChange(e.target.value)}
-                rows={3}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="campaign-wizard-dm-context"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Product Context
+                </Label>
+                <Textarea
+                  id="campaign-wizard-dm-context"
+                  placeholder="What are you selling? Describe your product..."
+                  value={dmContext}
+                  onChange={(e) => onDmContextChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
               <div className="space-y-1.5">
                 <label
@@ -144,22 +153,38 @@ export default function OutreachCampaignWizardStep3({
                 />
               </div>
 
-              <Textarea
-                label="Custom Instructions"
-                placeholder="Keep it casual, mention the free trial..."
-                value={dmCustomInstructions}
-                onChange={(e) => onDmCustomInstructionsChange(e.target.value)}
-                rows={3}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="campaign-wizard-dm-custom-instructions"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Custom Instructions
+                </Label>
+                <Textarea
+                  id="campaign-wizard-dm-custom-instructions"
+                  placeholder="Keep it casual, mention the free trial..."
+                  value={dmCustomInstructions}
+                  onChange={(e) => onDmCustomInstructionsChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
             </>
           ) : (
-            <Textarea
-              label="DM Template"
-              placeholder="Hey {{username}}! {{offer}} — check it out: {{cta}}"
-              value={dmTemplateText}
-              onChange={(e) => onDmTemplateTextChange(e.target.value)}
-              rows={4}
-            />
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="campaign-wizard-dm-template"
+                className="text-sm font-medium text-foreground"
+              >
+                DM Template
+              </Label>
+              <Textarea
+                id="campaign-wizard-dm-template"
+                placeholder="Hey {{username}}! {{offer}} — check it out: {{cta}}"
+                value={dmTemplateText}
+                onChange={(e) => onDmTemplateTextChange(e.target.value)}
+                rows={4}
+              />
+            </div>
           )}
         </>
       ) : (
@@ -233,21 +258,37 @@ export default function OutreachCampaignWizardStep3({
                 </Select>
               </div>
 
-              <Textarea
-                label="Custom Instructions"
-                placeholder="Always mention our product name..."
-                value={customInstructions}
-                onChange={(e) => onCustomInstructionsChange(e.target.value)}
-                rows={3}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="campaign-wizard-custom-instructions"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Custom Instructions
+                </Label>
+                <Textarea
+                  id="campaign-wizard-custom-instructions"
+                  placeholder="Always mention our product name..."
+                  value={customInstructions}
+                  onChange={(e) => onCustomInstructionsChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
-              <Textarea
-                label="Context"
-                placeholder="We are a SaaS startup that helps..."
-                value={context}
-                onChange={(e) => onContextChange(e.target.value)}
-                rows={3}
-              />
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="campaign-wizard-context"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Context
+                </Label>
+                <Textarea
+                  id="campaign-wizard-context"
+                  placeholder="We are a SaaS startup that helps..."
+                  value={context}
+                  onChange={(e) => onContextChange(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
               <div className="space-y-1.5">
                 <label
@@ -265,13 +306,21 @@ export default function OutreachCampaignWizardStep3({
               </div>
             </>
           ) : (
-            <Textarea
-              label="Template Text"
-              placeholder="Your reply template here..."
-              value={templateText}
-              onChange={(e) => onTemplateTextChange(e.target.value)}
-              rows={4}
-            />
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="campaign-wizard-template-text"
+                className="text-sm font-medium text-foreground"
+              >
+                Template Text
+              </Label>
+              <Textarea
+                id="campaign-wizard-template-text"
+                placeholder="Your reply template here..."
+                value={templateText}
+                onChange={(e) => onTemplateTextChange(e.target.value)}
+                rows={4}
+              />
+            </div>
           )}
         </>
       )}

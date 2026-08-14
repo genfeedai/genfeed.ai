@@ -247,7 +247,7 @@ export function useModelsList({
     [isAdminScope, defaultModelsData],
   );
 
-  // Transform default models to StatsCards format (admin only)
+  // Transform default models to MetricCard tiles (admin only)
   const defaultModelCards = useMemo(
     () => (isAdminScope ? buildDefaultModelCards(defaultModels, category) : []),
     [isAdminScope, category, defaultModels],

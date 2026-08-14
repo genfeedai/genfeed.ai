@@ -39,12 +39,11 @@ describe('BookmarksController', () => {
     userId: mockUserId,
   };
 
-  /** `BaseQueryDto` declares page/limit/pagination/isDeleted/sort as required. */
+  /** `BaseQueryDto` declares page/limit/isDeleted/sort as required. */
   const baseQuery: BookmarksQueryDto = {
     isDeleted: false,
     limit: 10,
     page: 1,
-    pagination: true,
     sort: 'createdAt: -1',
   };
 
