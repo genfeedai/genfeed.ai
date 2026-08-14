@@ -486,6 +486,12 @@ describe('app next.config', () => {
     });
   });
 
+  it('opts out of Next rewriting CLAUDE.md and AGENTS.md', () => {
+    // next 16.3+ upserts a managed agent-rules block into the Next project
+    // root on `next dev`. That is apps/app here, not the monorepo root.
+    expect(config.agentRules).toBe(false);
+  });
+
   it('hoists next-intl to the turbopack root without remapping package exports', () => {
     // bun isolates next-intl under apps/app unless the root workspace lists it.
     // turbopack.root is the repo root, so workspace packages (agent/pages)

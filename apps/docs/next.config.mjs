@@ -10,6 +10,7 @@ const withNextra = nextra({
 });
 
 export default withNextra({
+  agentRules: false,
   headers: async () => [
     {
       headers: [

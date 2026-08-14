@@ -19,5 +19,3 @@ the draft PR unreviewable and loses the work if the checkout moves.
   menus, etc.).
 - Do not wait for "the lane is done" to commit. Push/PR policy is separate.
 - Never include `.env*`.
-- Do commit `apps/app/CLAUDE.md` when `next dev` adds the agent-rules
-  block. Leaving it out only re-dirties the tree on the next dev start.

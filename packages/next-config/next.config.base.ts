@@ -16,6 +16,10 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
 
   const isProduction = process.env.NODE_ENV === 'production';
   const config: NextConfig = {
+    // next 16.3+ writes a managed agent-rules block into CLAUDE.md / AGENTS.md
+    // at the Next project root on `next dev`. Our agent rules live in
+    // `.agents/memory/` and root CLAUDE.md — do not let Next mutate them.
+    agentRules: false,
     // `**` (not `*`) is required: Next matches these patterns label-by-label
     // (next/dist/server/app-render/csrf-protection.js), so `*` consumes exactly
     // one label. Portless prefixes linked worktrees with the branch name, giving
