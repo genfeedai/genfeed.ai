@@ -2,11 +2,7 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { describe, expect, it } from 'vitest';
 
-class WidgetEntity extends BaseEntity {
-  label?: string;
-  ownerId?: string;
-  parent?: { id: string } | string;
-}
+class WidgetEntity extends BaseEntity {}
 
 describe('EntityFactory', () => {
   it('creates single entities, batches, and default-merged instances', () => {

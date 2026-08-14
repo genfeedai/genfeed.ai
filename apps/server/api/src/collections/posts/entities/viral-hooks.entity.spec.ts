@@ -43,7 +43,7 @@ describe('ViralHookPlatformMetricsEntity', () => {
         platform: 'tiktok',
         views: 1000,
         viralScore: 72,
-      }),
+      } as Partial<ViralHookPlatformMetricsEntity>),
     ).toMatchObject({ platform: 'tiktok', views: 1000, viralScore: 72 });
   });
 });
@@ -52,9 +52,13 @@ describe('ViralHookVideoEntity', () => {
   it('hydrates nested hooks and platform metrics', () => {
     const video = new ViralHookVideoEntity({
       creator: 'ada',
-      hooks: [{ description: 'hook', type: 'narrative' }],
+      hooks: [
+        { description: 'hook', type: 'narrative' } as Partial<ViralHookEntity>,
+      ],
       id: 'v1',
-      platforms: [{ platform: 'x', views: 12 }],
+      platforms: [
+        { platform: 'x', views: 12 } as Partial<ViralHookPlatformMetricsEntity>,
+      ],
       title: 'Launch',
     });
 
@@ -81,7 +85,7 @@ describe('ViralHookAnalysisEntity', () => {
         hookEffectiveness: [{ avgEffectiveness: 1, count: 2, type: 'visual' }],
         topHooks: ['cold open'],
         totalVideos: 3,
-      }),
+      } as Partial<ViralHookAnalysisEntity>),
     ).toMatchObject({
       topHooks: ['cold open'],
       totalVideos: 3,
@@ -92,8 +96,8 @@ describe('ViralHookAnalysisEntity', () => {
 describe('ViralHookSummaryEntity', () => {
   it('wraps videos and analysis in entity instances', () => {
     const summary = new ViralHookSummaryEntity({
-      analysis: { totalVideos: 1 },
-      videos: [{ id: 'v1', title: 'One' }],
+      analysis: { totalVideos: 1 } as Partial<ViralHookAnalysisEntity>,
+      videos: [{ id: 'v1', title: 'One' } as Partial<ViralHookVideoEntity>],
     });
 
     expect(summary.videos[0]).toBeInstanceOf(ViralHookVideoEntity);

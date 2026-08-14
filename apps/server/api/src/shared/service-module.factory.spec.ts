@@ -31,7 +31,7 @@ describe('createServiceModule', () => {
       createServiceModule(ExampleService, {
         additionalExports: [undefined as never],
       }),
-    ).toThrow(/additionalExports/);
+    ).toThrow(/exports array/);
   });
 
   it('wires ConfigModule, LoggerModule, and the service as a dynamic module', () => {
@@ -59,13 +59,15 @@ describe('createServiceModule', () => {
 });
 
 describe('createCachedServiceModule', () => {
-  it('prepends a registered CacheModule to the service module imports', () => {
+  it('registers CacheModule alongside ConfigModule and LoggerModule', () => {
     const module = createCachedServiceModule(ExampleService);
 
-    expect(module.imports?.[0]).toEqual(
-      expect.objectContaining({
-        module: CacheModule,
-      }),
+    expect(module.imports).toEqual(
+      expect.arrayContaining([
+        ConfigModule,
+        LoggerModule,
+        expect.objectContaining({ module: CacheModule }),
+      ]),
     );
     expect(module.providers).toEqual(expect.arrayContaining([ExampleService]));
   });

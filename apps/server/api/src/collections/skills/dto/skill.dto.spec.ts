@@ -17,6 +17,7 @@ const validPayload = {
   description: 'Draft short posts',
   modalities: ['text'],
   name: 'Short post',
+  requiredProviders: [],
   slug: 'short-post',
   workflowStage: 'creation',
 };

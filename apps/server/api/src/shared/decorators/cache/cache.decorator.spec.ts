@@ -9,6 +9,8 @@ import { describe, expect, it, vi } from 'vitest';
 describe('Cacheable', () => {
   it('falls back to the original method when no cache service is injected', async () => {
     class Example {
+      [key: string]: unknown;
+
       @Cacheable()
       async load(id: string) {
         return `fresh:${id}`;
@@ -28,6 +30,7 @@ describe('Cacheable', () => {
     };
 
     class Example {
+      [key: string]: unknown;
       cacheService = cacheService;
 
       @Cacheable({ keyPrefix: 'widgets', tags: ['w'], ttl: 30 })
@@ -48,6 +51,7 @@ describe('Cacheable', () => {
     };
 
     class Example {
+      [key: string]: unknown;
       cacheService = cacheService;
       calls = 0;
 
@@ -77,6 +81,7 @@ describe('CacheInvalidate', () => {
     };
 
     class Example {
+      [key: string]: unknown;
       cacheService = cacheService;
 
       @CacheInvalidate(['widgets'])
@@ -91,6 +96,8 @@ describe('CacheInvalidate', () => {
 
   it('skips invalidation when tags are empty or no cache service exists', async () => {
     class WithoutCache {
+      [key: string]: unknown;
+
       @CacheInvalidate(['widgets'])
       async save() {
         return 'plain';
@@ -98,6 +105,7 @@ describe('CacheInvalidate', () => {
     }
 
     class EmptyTags {
+      [key: string]: unknown;
       cacheService = { invalidateByTags: vi.fn() };
 
       @CacheInvalidate([])
