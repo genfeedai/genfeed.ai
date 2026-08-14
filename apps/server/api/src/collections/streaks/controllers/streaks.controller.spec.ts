@@ -180,9 +180,14 @@ describe('StreaksController', () => {
 
     it('throws when org id does not match', async () => {
       await expect(
-        controller.patchMyStreak(ORG_ID, mockUser, mockRequest, {
-          freeze: true,
-        }),
+        controller.patchMyStreak(
+          ORG_ID,
+          { ...mockUser, organizationId: 'other-org' },
+          mockRequest,
+          {
+            freeze: true,
+          },
+        ),
       ).rejects.toThrow(BadRequestException);
       expect(streaksService.useFreeze).not.toHaveBeenCalled();
     });
