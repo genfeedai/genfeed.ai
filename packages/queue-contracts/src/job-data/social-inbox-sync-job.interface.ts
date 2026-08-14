@@ -1,7 +1,11 @@
 import type { Platform, SocialConversationType } from '@genfeedai/enums';
 
 /** Platforms whose inbox can be swept by the shared sync job. */
-export type SocialInboxSyncPlatform = Platform.INSTAGRAM | Platform.YOUTUBE;
+export type SocialInboxSyncPlatform =
+  | Platform.INSTAGRAM
+  | Platform.LINKEDIN
+  | Platform.TWITTER
+  | Platform.YOUTUBE;
 
 /** Inbox surfaces a sweep can target. */
 export type SocialInboxSyncConversationType =

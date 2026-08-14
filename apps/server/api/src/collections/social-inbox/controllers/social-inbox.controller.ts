@@ -134,6 +134,75 @@ export class SocialInboxController {
     );
   }
 
+  @Post('x/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent X mentions and replies',
+  })
+  async syncXComments(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.TWITTER,
+      SocialConversationType.COMMENT,
+    );
+  }
+
+  @Post('x/dms/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent X direct messages',
+  })
+  async syncXDms(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.TWITTER,
+      SocialConversationType.DM,
+    );
+  }
+
+  @Post('linkedin/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent LinkedIn comments',
+  })
+  async syncLinkedInComments(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.LINKEDIN,
+      SocialConversationType.COMMENT,
+    );
+  }
+
+  @Post('linkedin/dms/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary:
+      'Enqueue a background sync of LinkedIn DMs when the connected account permits it',
+  })
+  async syncLinkedInDms(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.LINKEDIN,
+      SocialConversationType.DM,
+    );
+  }
+
   @Get(':conversationId')
   @ApiOperation({ summary: 'Inspect one social conversation' })
   async getConversation(

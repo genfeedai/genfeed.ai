@@ -16,9 +16,12 @@ import type {
   InboundSocialMessageInput,
   SocialInboxScope,
 } from '@api/collections/social-inbox/services/social-inbox.types';
+import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -34,6 +37,30 @@ import { Injectable, Optional } from '@nestjs/common';
 
 const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isProviderRateLimit(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+
+  const status = error.status ?? error.code ?? error.statusCode;
+  if (status === 429 || status === '429') {
+    return true;
+  }
+
+  const message =
+    typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  return (
+    message.includes('429') ||
+    message.includes('rate limit') ||
+    message.includes('too many requests') ||
+    isRecord(error.rateLimit)
+  );
+}
+
 type WorkflowTriggerClaim = {
   attemptedAt: Date;
   jobId: string;
@@ -45,6 +72,8 @@ export class SocialInboxIngestionService {
     private readonly prisma: PrismaService,
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
+    private readonly twitterService: TwitterService,
+    private readonly linkedInService: LinkedInService,
     private readonly realtimeService: SocialInboxRealtimeService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
@@ -484,6 +513,400 @@ export class SocialInboxIngestionService {
   }
 
   /**
+   * Mentions of the connected X account plus replies on the brand's published
+   * posts. Both land as comment conversations so they show on the existing
+   * Comments surface.
+   */
+  async ingestXComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const limit = boundLimit(options.limit ?? 25);
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.TWITTER,
+      options.credentialId,
+    );
+    const counts = { conversationsCreated: 0, messagesCreated: 0 };
+
+    for (const credential of credentials) {
+      const brandId = credential.brandId;
+      if (!brandId) {
+        continue;
+      }
+
+      const mentionCursor = await this.findLatestExternalMessageId({
+        credentialId: credential.id,
+        messageType: SocialMessageType.COMMENT,
+        organizationId: scope.organizationId,
+        platform: Platform.TWITTER,
+        postId: null,
+      });
+      const mentions = await this.pollProvider(
+        Platform.TWITTER,
+        mentionCursor,
+        () =>
+          this.twitterService.listMentions(scope.organizationId, brandId, {
+            limit,
+            sinceId: mentionCursor,
+          }),
+      );
+
+      await this.ingestBatch(
+        mentions.map((mention) => ({
+          input: {
+            accountExternalId: credential.externalId ?? undefined,
+            accountHandle:
+              credential.externalHandle ?? credential.username ?? undefined,
+            accountName:
+              credential.externalName ?? credential.label ?? undefined,
+            body: mention.text,
+            brandId,
+            conversationType: SocialConversationType.COMMENT,
+            createdAt: mention.createdAt,
+            credentialId: credential.id,
+            externalConversationId: mention.conversationId,
+            externalMessageId: mention.tweetId,
+            externalParentId: mention.tweetId,
+            externalParentMessageId: mention.inReplyToId ?? undefined,
+            externalThreadId: mention.conversationId,
+            organizationId: scope.organizationId,
+            participantAvatarUrl: mention.authorAvatarUrl,
+            participantExternalId: mention.authorId,
+            participantHandle: mention.authorUsername,
+            participantName: mention.authorName ?? mention.authorUsername,
+            platform: Platform.TWITTER,
+            sourceContentId: mention.conversationId,
+            sourceContentType: 'tweet',
+            sourceContentUrl: mention.authorUsername
+              ? `https://x.com/${mention.authorUsername}/status/${mention.tweetId}`
+              : `https://x.com/i/status/${mention.tweetId}`,
+            userId: credential.userId ?? scope.userId,
+          },
+          messageId: mention.tweetId,
+          threadId: mention.conversationId,
+        })),
+        scope.organizationId,
+        Platform.TWITTER,
+        counts,
+      );
+
+      const posts = await this.prisma.post.findMany({
+        orderBy: { publishedAt: 'desc' },
+        take: 20,
+        where: scopedWhere(scope.organizationId, {
+          brandId,
+          credentialId: credential.id,
+          externalId: { not: null },
+          platform: Platform.TWITTER,
+          status: { in: [PostStatus.PUBLIC] },
+        }),
+      });
+
+      for (const post of posts) {
+        const replyCursor = await this.findLatestExternalMessageId({
+          credentialId: credential.id,
+          messageType: SocialMessageType.COMMENT,
+          organizationId: scope.organizationId,
+          platform: Platform.TWITTER,
+          postId: post.id,
+        });
+        const replies = await this.pollProvider(
+          Platform.TWITTER,
+          replyCursor,
+          () =>
+            this.twitterService.listPostReplies(
+              scope.organizationId,
+              brandId,
+              String(post.externalId),
+              { limit, sinceId: replyCursor },
+            ),
+        );
+
+        await this.ingestBatch(
+          replies.map((reply) => ({
+            input: {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: reply.text,
+              brandId: post.brandId,
+              conversationType: SocialConversationType.COMMENT,
+              createdAt: reply.createdAt,
+              credentialId: credential.id,
+              externalConversationId: reply.conversationId,
+              externalMessageId: reply.tweetId,
+              externalParentId: reply.tweetId,
+              externalParentMessageId: reply.inReplyToId ?? undefined,
+              externalThreadId: reply.conversationId,
+              organizationId: scope.organizationId,
+              participantAvatarUrl: reply.authorAvatarUrl,
+              participantExternalId: reply.authorId,
+              participantHandle: reply.authorUsername,
+              participantName: reply.authorName ?? reply.authorUsername,
+              platform: Platform.TWITTER,
+              postId: post.id,
+              sourceContentId: String(post.externalId),
+              sourceContentTitle: post.label ?? post.description.slice(0, 120),
+              sourceContentType: 'tweet',
+              sourceContentUrl:
+                post.url ?? `https://x.com/i/status/${post.externalId}`,
+              userId: credential.userId ?? scope.userId,
+            },
+            messageId: reply.tweetId,
+            threadId: reply.conversationId,
+          })),
+          scope.organizationId,
+          Platform.TWITTER,
+          counts,
+        );
+      }
+    }
+
+    return counts;
+  }
+
+  async ingestXDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const limit = boundLimit(options.limit ?? 25);
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.TWITTER,
+      options.credentialId,
+    );
+    const counts = { conversationsCreated: 0, messagesCreated: 0 };
+
+    for (const credential of credentials) {
+      const brandId = credential.brandId;
+      if (!brandId) {
+        continue;
+      }
+
+      const cursor = await this.findLatestExternalMessageId({
+        credentialId: credential.id,
+        messageType: SocialMessageType.DM,
+        organizationId: scope.organizationId,
+        platform: Platform.TWITTER,
+      });
+      const threads = await this.pollProvider(Platform.TWITTER, cursor, () =>
+        this.twitterService.listDirectMessages(scope.organizationId, brandId, {
+          limit,
+        }),
+      );
+
+      for (const thread of threads) {
+        const orderedMessages = [...thread.messages].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        );
+
+        await this.ingestBatch(
+          orderedMessages.map((message) => ({
+            input: {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: message.text,
+              brandId,
+              conversationType: SocialConversationType.DM,
+              createdAt: message.createdAt,
+              credentialId: credential.id,
+              externalConversationId: thread.conversationId,
+              externalMessageId: message.messageId,
+              externalThreadId: thread.conversationId,
+              organizationId: scope.organizationId,
+              participantExternalId:
+                message.senderId ?? thread.participantExternalId,
+              participantHandle:
+                message.senderUsername ?? thread.participantUsername,
+              participantName: message.senderName ?? thread.participantName,
+              platform: Platform.TWITTER,
+              userId: credential.userId ?? scope.userId,
+            },
+            messageId: message.messageId,
+            threadId: thread.conversationId,
+          })),
+          scope.organizationId,
+          Platform.TWITTER,
+          counts,
+        );
+      }
+    }
+
+    return counts;
+  }
+
+  async ingestLinkedInComments(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const limit = boundLimit(options.limit ?? 25);
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.LINKEDIN,
+      options.credentialId,
+    );
+    const counts = { conversationsCreated: 0, messagesCreated: 0 };
+
+    for (const credential of credentials) {
+      const brandId = credential.brandId;
+      if (!brandId) {
+        continue;
+      }
+
+      const posts = await this.prisma.post.findMany({
+        orderBy: { publishedAt: 'desc' },
+        take: 20,
+        where: scopedWhere(scope.organizationId, {
+          brandId,
+          credentialId: credential.id,
+          externalId: { not: null },
+          platform: Platform.LINKEDIN,
+          status: { in: [PostStatus.PUBLIC] },
+        }),
+      });
+
+      for (const post of posts) {
+        const start = await this.countExistingMessages({
+          organizationId: scope.organizationId,
+          platform: Platform.LINKEDIN,
+          postId: post.id,
+        });
+        const comments = await this.pollProvider(
+          Platform.LINKEDIN,
+          String(start),
+          () =>
+            this.linkedInService.listPostComments(
+              scope.organizationId,
+              brandId,
+              String(post.externalId),
+              { limit, start },
+            ),
+        );
+
+        await this.ingestBatch(
+          comments.map((comment) => ({
+            input: {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: comment.text,
+              brandId: post.brandId,
+              conversationType: SocialConversationType.COMMENT,
+              createdAt: comment.createdAt,
+              credentialId: credential.id,
+              externalConversationId: comment.threadId,
+              externalMessageId: comment.commentId,
+              externalParentId: comment.commentId,
+              externalThreadId: comment.threadId,
+              organizationId: scope.organizationId,
+              participantExternalId: comment.authorExternalId,
+              participantName: comment.authorName ?? comment.authorExternalId,
+              platform: Platform.LINKEDIN,
+              postId: post.id,
+              sourceContentId: String(post.externalId),
+              sourceContentTitle: post.label ?? post.description.slice(0, 120),
+              sourceContentType: 'post',
+              sourceContentUrl: post.url ?? undefined,
+              userId: credential.userId ?? scope.userId,
+            },
+            messageId: comment.commentId,
+            threadId: comment.threadId,
+          })),
+          scope.organizationId,
+          Platform.LINKEDIN,
+          counts,
+        );
+      }
+    }
+
+    return counts;
+  }
+
+  /**
+   * LinkedIn DMs only ingest when the connected-account grant includes a
+   * mailbox scope. The standard `w_member_social` path is not permitted.
+   */
+  async ingestLinkedInDms(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    const credentials = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.LINKEDIN,
+      options.credentialId,
+    );
+    const counts = { conversationsCreated: 0, messagesCreated: 0 };
+
+    for (const credential of credentials) {
+      const brandId = credential.brandId;
+      if (!brandId) {
+        continue;
+      }
+
+      const listing = await this.pollProvider(
+        Platform.LINKEDIN,
+        undefined,
+        () =>
+          this.linkedInService.listDirectMessages(
+            scope.organizationId,
+            brandId,
+          ),
+      );
+
+      if (!listing.isPermitted) {
+        continue;
+      }
+
+      for (const thread of listing.threads) {
+        const orderedMessages = [...thread.messages].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        );
+
+        await this.ingestBatch(
+          orderedMessages.map((message) => ({
+            input: {
+              accountExternalId: credential.externalId ?? undefined,
+              accountHandle:
+                credential.externalHandle ?? credential.username ?? undefined,
+              accountName:
+                credential.externalName ?? credential.label ?? undefined,
+              body: message.text,
+              brandId,
+              conversationType: SocialConversationType.DM,
+              createdAt: message.createdAt,
+              credentialId: credential.id,
+              externalConversationId: thread.conversationId,
+              externalMessageId: message.messageId,
+              externalThreadId: thread.conversationId,
+              organizationId: scope.organizationId,
+              participantExternalId:
+                message.senderExternalId ?? thread.participantExternalId,
+              participantName: message.senderName ?? thread.participantName,
+              platform: Platform.LINKEDIN,
+              userId: credential.userId ?? scope.userId,
+            },
+            messageId: message.messageId,
+            threadId: thread.conversationId,
+          })),
+          scope.organizationId,
+          Platform.LINKEDIN,
+          counts,
+        );
+      }
+    }
+
+    return counts;
+  }
+
+  /**
    * Batched dedup lookup for one sync batch: one findMany per entity keyed by
    * the external ids, replacing the per-item findFirst pair. Org scoping
    * ({ organizationId, isDeleted: false }) is preserved. Returns the rows that
@@ -562,6 +985,102 @@ export class SocialInboxIngestionService {
     }
 
     await this.ingestInboundMessage(input);
+  }
+
+  private async ingestBatch(
+    items: Array<{
+      input: InboundSocialMessageInput;
+      messageId: string;
+      threadId: string;
+    }>,
+    organizationId: string,
+    platform: string,
+    counts: { conversationsCreated: number; messagesCreated: number },
+  ): Promise<void> {
+    if (items.length === 0) {
+      return;
+    }
+
+    const existing = await this.findExistingExternalIds(
+      organizationId,
+      platform,
+      items.map((item) => item.threadId),
+      items.map((item) => item.messageId),
+    );
+
+    for (const item of items) {
+      const isNewConversation = !existing.conversationIds.has(item.threadId);
+      const isNewMessage = !existing.messageIds.has(item.messageId);
+
+      await this.ingestSyncedMessage(
+        item.input,
+        existing.messagesByExternalId.get(item.messageId),
+        existing.conversationsByExternalId.get(item.threadId),
+      );
+
+      if (isNewMessage) {
+        counts.messagesCreated++;
+        existing.messageIds.add(item.messageId);
+      }
+      if (isNewConversation) {
+        counts.conversationsCreated++;
+        existing.conversationIds.add(item.threadId);
+      }
+    }
+  }
+
+  private async pollProvider<T>(
+    platform: string,
+    cursor: string | undefined,
+    list: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await list();
+    } catch (error: unknown) {
+      throw new SocialInboxProviderError(
+        error instanceof Error ? error.message : String(error),
+        {
+          cursor,
+          isRateLimited: isProviderRateLimit(error),
+          platform,
+        },
+      );
+    }
+  }
+
+  private async findLatestExternalMessageId(query: {
+    organizationId: string;
+    platform: string;
+    credentialId: string;
+    messageType: string;
+    postId?: string | null;
+  }): Promise<string | undefined> {
+    const latest = await this.prisma.socialMessage.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { externalMessageId: true },
+      where: scopedWhere(query.organizationId, {
+        credentialId: query.credentialId,
+        messageType: query.messageType,
+        platform: query.platform,
+        ...(query.postId === undefined ? {} : { postId: query.postId }),
+        externalMessageId: { not: null },
+      }),
+    });
+
+    return latest?.externalMessageId ?? undefined;
+  }
+
+  private async countExistingMessages(query: {
+    organizationId: string;
+    platform: string;
+    postId: string;
+  }): Promise<number> {
+    return this.prisma.socialMessage.count({
+      where: scopedWhere(query.organizationId, {
+        platform: query.platform,
+        postId: query.postId,
+      }),
+    });
   }
 
   private async findConnectedCredentials(

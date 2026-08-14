@@ -9,7 +9,12 @@ import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
 
-const SUPPORTED_PLATFORMS = new Set(['youtube', 'instagram']);
+const SUPPORTED_PLATFORMS = new Set([
+  'instagram',
+  'linkedin',
+  'twitter',
+  'youtube',
+]);
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 
@@ -20,6 +25,8 @@ const MAX_PAGE_SIZE = 100;
 const DM_POST_REPLY_REASON =
   'Direct message threads have no post or comment to reply on';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
+const LINKEDIN_DM_REASON =
+  'LinkedIn messaging is not available on the connected account';
 
 export function normalizePlatform(platform: string): string {
   return platform.trim().toLowerCase();
@@ -114,6 +121,50 @@ export function getAvailability(params: {
         ? undefined
         : 'YouTube reply requires a parent comment id',
       sendDmReason: YOUTUBE_DM_REASON,
+    };
+  }
+
+  if (params.platform === Platform.LINKEDIN) {
+    if (isDirectMessage) {
+      return {
+        canPostReply: false,
+        canSendDm: false,
+        postReplyReason: DM_POST_REPLY_REASON,
+        sendDmReason: LINKEDIN_DM_REASON,
+      };
+    }
+
+    return {
+      canPostReply: Boolean(params.externalParentId),
+      canSendDm: false,
+      postReplyReason: params.externalParentId
+        ? undefined
+        : 'LinkedIn reply requires a comment id',
+      sendDmReason: LINKEDIN_DM_REASON,
+    };
+  }
+
+  if (params.platform === Platform.TWITTER) {
+    if (isDirectMessage) {
+      return {
+        canPostReply: false,
+        canSendDm: Boolean(params.participantExternalId),
+        postReplyReason: DM_POST_REPLY_REASON,
+        sendDmReason: params.participantExternalId
+          ? undefined
+          : 'X DM requires the participant recipient id',
+      };
+    }
+
+    return {
+      canPostReply: Boolean(params.externalParentId),
+      canSendDm: Boolean(params.participantExternalId),
+      postReplyReason: params.externalParentId
+        ? undefined
+        : 'X reply requires a tweet id',
+      sendDmReason: params.participantExternalId
+        ? undefined
+        : 'X DM requires the participant recipient id',
     };
   }
 

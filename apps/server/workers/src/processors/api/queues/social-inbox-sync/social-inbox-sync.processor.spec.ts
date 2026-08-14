@@ -12,6 +12,10 @@ describe('SocialInboxSyncProcessor', () => {
   let mockSocialInboxService: {
     ingestInstagramComments: ReturnType<typeof vi.fn>;
     ingestInstagramDms: ReturnType<typeof vi.fn>;
+    ingestLinkedInComments: ReturnType<typeof vi.fn>;
+    ingestLinkedInDms: ReturnType<typeof vi.fn>;
+    ingestXComments: ReturnType<typeof vi.fn>;
+    ingestXDms: ReturnType<typeof vi.fn>;
     ingestYoutubeComments: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
@@ -30,6 +34,22 @@ describe('SocialInboxSyncProcessor', () => {
       ingestInstagramDms: vi.fn().mockResolvedValue({
         conversationsCreated: 4,
         messagesCreated: 7,
+      }),
+      ingestLinkedInComments: vi.fn().mockResolvedValue({
+        conversationsCreated: 6,
+        messagesCreated: 9,
+      }),
+      ingestLinkedInDms: vi.fn().mockResolvedValue({
+        conversationsCreated: 0,
+        messagesCreated: 0,
+      }),
+      ingestXComments: vi.fn().mockResolvedValue({
+        conversationsCreated: 3,
+        messagesCreated: 8,
+      }),
+      ingestXDms: vi.fn().mockResolvedValue({
+        conversationsCreated: 2,
+        messagesCreated: 4,
       }),
       ingestYoutubeComments: vi.fn().mockResolvedValue({
         conversationsCreated: 2,
@@ -124,6 +144,65 @@ describe('SocialInboxSyncProcessor', () => {
       mockSocialInboxService.ingestInstagramComments,
     ).not.toHaveBeenCalled();
     expect(result).toEqual({ conversationsCreated: 4, messagesCreated: 7 });
+  });
+
+  it('routes an X comment job to mentions and replies', async () => {
+    const mockJob = {
+      data: {
+        conversationType: SocialConversationType.COMMENT,
+        organizationId: 'org-1',
+        platform: Platform.TWITTER,
+      },
+      updateProgress: vi.fn(),
+    };
+
+    const result = await processor.process(
+      mockJob as unknown as Job<SocialInboxSyncJobData>,
+    );
+
+    expect(mockSocialInboxService.ingestXComments).toHaveBeenCalledTimes(1);
+    expect(mockSocialInboxService.ingestYoutubeComments).not.toHaveBeenCalled();
+    expect(result).toEqual({ conversationsCreated: 3, messagesCreated: 8 });
+  });
+
+  it('routes an X DM job to the X DM sweep', async () => {
+    const mockJob = {
+      data: {
+        conversationType: SocialConversationType.DM,
+        organizationId: 'org-1',
+        platform: Platform.TWITTER,
+      },
+      updateProgress: vi.fn(),
+    };
+
+    await processor.process(mockJob as unknown as Job<SocialInboxSyncJobData>);
+
+    expect(mockSocialInboxService.ingestXDms).toHaveBeenCalledTimes(1);
+    expect(mockSocialInboxService.ingestXComments).not.toHaveBeenCalled();
+  });
+
+  it('routes LinkedIn comment and DM jobs to their sweeps', async () => {
+    await processor.process({
+      data: {
+        conversationType: SocialConversationType.COMMENT,
+        organizationId: 'org-1',
+        platform: Platform.LINKEDIN,
+      },
+      updateProgress: vi.fn(),
+    } as unknown as Job<SocialInboxSyncJobData>);
+    await processor.process({
+      data: {
+        conversationType: SocialConversationType.DM,
+        organizationId: 'org-1',
+        platform: Platform.LINKEDIN,
+      },
+      updateProgress: vi.fn(),
+    } as unknown as Job<SocialInboxSyncJobData>);
+
+    expect(mockSocialInboxService.ingestLinkedInComments).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(mockSocialInboxService.ingestLinkedInDms).toHaveBeenCalledTimes(1);
   });
 
   it('propagates ingestion failures so BullMQ can retry', async () => {
