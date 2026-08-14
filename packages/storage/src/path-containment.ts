@@ -35,26 +35,43 @@ export function assertSafeSegment(
  * Resolve a candidate and assert that it remains equal to or below a fixed
  * filesystem root.
  */
+function assertConfiguredRoot(
+  rootDir: unknown,
+  createError: SecurityErrorFactory,
+): asserts rootDir is string {
+  if (!rootDir || typeof rootDir !== 'string') {
+    throw createError('Containment root is not configured');
+  }
+}
+
+function assertCandidatePath(
+  candidatePath: unknown,
+  createError: SecurityErrorFactory,
+): asserts candidatePath is string {
+  if (!candidatePath || typeof candidatePath !== 'string') {
+    throw createError('File path is required and must be a string');
+  }
+}
+
+function isPathWithinRoot(resolvedRoot: string, resolved: string): boolean {
+  return (
+    resolved === resolvedRoot ||
+    resolved.startsWith(`${resolvedRoot}${path.sep}`)
+  );
+}
+
 export function resolveContainedPath(
   rootDir: string,
   candidatePath: string,
   createError: SecurityErrorFactory,
 ): string {
-  if (!rootDir || typeof rootDir !== 'string') {
-    throw createError('Containment root is not configured');
-  }
-
-  if (!candidatePath || typeof candidatePath !== 'string') {
-    throw createError('File path is required and must be a string');
-  }
+  assertConfiguredRoot(rootDir, createError);
+  assertCandidatePath(candidatePath, createError);
 
   const resolvedRoot = path.resolve(rootDir);
   const resolved = path.resolve(resolvedRoot, candidatePath);
 
-  if (
-    resolved !== resolvedRoot &&
-    !resolved.startsWith(`${resolvedRoot}${path.sep}`)
-  ) {
+  if (!isPathWithinRoot(resolvedRoot, resolved)) {
     throw createError(`File path must stay within ${resolvedRoot}`);
   }
 
@@ -129,34 +146,73 @@ export async function resolveContainedPathWithoutSymlinks(
   return containedPath;
 }
 
+function assertNonEmptyString(
+  value: unknown,
+  name: string,
+  createError: SecurityErrorFactory,
+): asserts value is string {
+  if (!value || typeof value !== 'string') {
+    throw createError(`${name} is required and must be a string`);
+  }
+}
+
+function assertRelativePosixKey(
+  value: string,
+  name: string,
+  createError: SecurityErrorFactory,
+): void {
+  if (value.startsWith('/') || value.includes('\\') || value.includes('\0')) {
+    throw createError(`${name} must be a relative POSIX object key`);
+  }
+}
+
+function hasInvalidObjectKeySegment(segment: string): boolean {
+  return segment === '' || segment === '.' || segment === '..';
+}
+
+function normalizeObjectKey(
+  value: string,
+  allowTrailingSlash: boolean,
+): string {
+  return allowTrailingSlash && value.endsWith('/') ? value.slice(0, -1) : value;
+}
+
+function assertObjectKeySegments(
+  value: string,
+  normalized: string,
+  name: string,
+  allowTrailingSlash: boolean,
+  createError: SecurityErrorFactory,
+): void {
+  if (!normalized) {
+    throw createError(`${name} contains an invalid path segment`);
+  }
+
+  if (!allowTrailingSlash && value.endsWith('/')) {
+    throw createError(`${name} contains an invalid path segment`);
+  }
+
+  if (normalized.split('/').some(hasInvalidObjectKeySegment)) {
+    throw createError(`${name} contains an invalid path segment`);
+  }
+}
+
 function validateObjectKey(
   value: string,
   name: string,
   createError: SecurityErrorFactory,
   allowTrailingSlash: boolean,
 ): string {
-  if (!value || typeof value !== 'string') {
-    throw createError(`${name} is required and must be a string`);
-  }
-
-  if (value.startsWith('/') || value.includes('\\') || value.includes('\0')) {
-    throw createError(`${name} must be a relative POSIX object key`);
-  }
-
-  const normalized =
-    allowTrailingSlash && value.endsWith('/') ? value.slice(0, -1) : value;
-  const segments = normalized.split('/');
-
-  if (
-    !normalized ||
-    (!allowTrailingSlash && value.endsWith('/')) ||
-    segments.some(
-      (segment) => segment === '' || segment === '.' || segment === '..',
-    )
-  ) {
-    throw createError(`${name} contains an invalid path segment`);
-  }
-
+  assertNonEmptyString(value, name, createError);
+  assertRelativePosixKey(value, name, createError);
+  const normalized = normalizeObjectKey(value, allowTrailingSlash);
+  assertObjectKeySegments(
+    value,
+    normalized,
+    name,
+    allowTrailingSlash,
+    createError,
+  );
   return normalized;
 }
 

@@ -1,8 +1,24 @@
-interface WordSpan {
+import {
+  isAsciiDigitCode,
+  isAsciiWordCharacter,
+} from '@api/shared/utils/string/linear-string.util';
+
+type WordSpan = {
   end: number;
   start: number;
   value: string;
-}
+};
+
+type StyleWordIndexes = {
+  nextStyleIndex: Int32Array;
+  notesEndByStyleIndex: Int32Array;
+};
+
+type TopicBoundary = {
+  crossedUnsupportedLineBreak: boolean;
+  cursor: number;
+  wordIndex: number;
+};
 
 const RECURRING_PLATFORMS = new Set([
   'facebook',
@@ -23,29 +39,14 @@ const RECURRING_ASSETS = new Set([
   'videos',
 ]);
 const BATCH_TOPIC_TERMINATORS = ['for', 'on', 'this', 'next', 'over'];
-
-function isAsciiWordCharacter(character: string): boolean {
-  const code = character.charCodeAt(0);
-
-  return (
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    code === 95 ||
-    (code >= 97 && code <= 122)
-  );
-}
+const LINE_TERMINATORS = new Set(['\n', '\r', '\u2028', '\u2029']);
 
 function isWhitespace(character: string): boolean {
   return character.trim().length === 0;
 }
 
 function isLineTerminator(character: string): boolean {
-  return (
-    character === '\n' ||
-    character === '\r' ||
-    character === '\u2028' ||
-    character === '\u2029'
-  );
+  return LINE_TERMINATORS.has(character);
 }
 
 function buildLineTerminatorPrefix(value: string): Uint32Array {
@@ -84,21 +85,35 @@ function containsOnlyWhitespace(
   return true;
 }
 
+function skipNonWordCharacters(value: string, cursor: number): number {
+  while (cursor < value.length && !isAsciiWordCharacter(value[cursor])) {
+    cursor += 1;
+  }
+
+  return cursor;
+}
+
+function readWordEnd(value: string, start: number): number {
+  let cursor = start;
+  while (cursor < value.length && isAsciiWordCharacter(value[cursor])) {
+    cursor += 1;
+  }
+
+  return cursor;
+}
+
 function collectWordSpans(value: string): WordSpan[] {
   const words: WordSpan[] = [];
   let cursor = 0;
 
   while (cursor < value.length) {
-    if (!isAsciiWordCharacter(value[cursor])) {
-      cursor += 1;
-      continue;
+    cursor = skipNonWordCharacters(value, cursor);
+    if (cursor >= value.length) {
+      break;
     }
 
     const start = cursor;
-    while (cursor < value.length && isAsciiWordCharacter(value[cursor])) {
-      cursor += 1;
-    }
-
+    cursor = readWordEnd(value, start);
     words.push({
       end: cursor,
       start,
@@ -109,13 +124,26 @@ function collectWordSpans(value: string): WordSpan[] {
   return words;
 }
 
+function isSpacedStyleWord(content: string, word: WordSpan): boolean {
+  return (
+    word.value === 'style' &&
+    word.start > 0 &&
+    isWhitespace(content[word.start - 1])
+  );
+}
+
+function trimTrailingWhitespace(content: string, end: number): number {
+  while (end > 0 && isWhitespace(content[end - 1])) {
+    end -= 1;
+  }
+
+  return end;
+}
+
 function buildStyleWordIndexes(
   content: string,
   words: WordSpan[],
-): {
-  nextStyleIndex: Int32Array;
-  notesEndByStyleIndex: Int32Array;
-} {
+): StyleWordIndexes {
   const nextStyleIndex = new Int32Array(words.length + 1);
   const notesEndByStyleIndex = new Int32Array(words.length);
   nextStyleIndex.fill(-1);
@@ -124,16 +152,8 @@ function buildStyleWordIndexes(
 
   for (let index = words.length - 1; index >= 0; index -= 1) {
     const word = words[index];
-    if (
-      word.value === 'style' &&
-      word.start > 0 &&
-      isWhitespace(content[word.start - 1])
-    ) {
-      let notesEnd = word.start;
-      while (notesEnd > 0 && isWhitespace(content[notesEnd - 1])) {
-        notesEnd -= 1;
-      }
-      notesEndByStyleIndex[index] = notesEnd;
+    if (isSpacedStyleWord(content, word)) {
+      notesEndByStyleIndex[index] = trimTrailingWhitespace(content, word.start);
       nextIndex = index;
     }
 
@@ -149,13 +169,36 @@ function isOneOrTwoDigits(value: string): boolean {
   }
 
   for (const character of value) {
-    const code = character.charCodeAt(0);
-    if (code < 48 || code > 57) {
+    if (!isAsciiDigitCode(character.charCodeAt(0))) {
       return false;
     }
   }
 
   return true;
+}
+
+function skipOptionalPlatformAsset(
+  content: string,
+  words: WordSpan[],
+  assetIndex: number,
+): number | undefined {
+  if (!RECURRING_PLATFORMS.has(words[assetIndex].value)) {
+    return assetIndex;
+  }
+
+  const nextIndex = assetIndex + 1;
+  if (
+    nextIndex >= words.length ||
+    !containsOnlyWhitespace(
+      content,
+      words[assetIndex].end,
+      words[nextIndex].start,
+    )
+  ) {
+    return undefined;
+  }
+
+  return nextIndex;
 }
 
 export function extractRecurringContentCount(
@@ -169,33 +212,67 @@ export function extractRecurringContentCount(
       continue;
     }
 
-    let assetIndex = index + 1;
     if (
-      !containsOnlyWhitespace(content, countWord.end, words[assetIndex].start)
+      !containsOnlyWhitespace(content, countWord.end, words[index + 1].start)
     ) {
       continue;
     }
 
-    if (RECURRING_PLATFORMS.has(words[assetIndex].value)) {
-      assetIndex += 1;
-      if (
-        assetIndex >= words.length ||
-        !containsOnlyWhitespace(
-          content,
-          words[assetIndex - 1].end,
-          words[assetIndex].start,
-        )
-      ) {
-        continue;
-      }
-    }
-
-    if (RECURRING_ASSETS.has(words[assetIndex].value)) {
+    const assetIndex = skipOptionalPlatformAsset(content, words, index + 1);
+    if (
+      assetIndex !== undefined &&
+      RECURRING_ASSETS.has(words[assetIndex].value)
+    ) {
       return Number.parseInt(countWord.value, 10);
     }
   }
 
   return undefined;
+}
+
+function isStylePreposition(value: string): boolean {
+  return value === 'in' || value === 'with';
+}
+
+function isStyleArticle(value: string): boolean {
+  return value === 'a' || value === 'an';
+}
+
+function isStyleCue(
+  content: string,
+  preposition: WordSpan,
+  article: WordSpan,
+  nextWord: WordSpan,
+): boolean {
+  return (
+    isStylePreposition(preposition.value) &&
+    isStyleArticle(article.value) &&
+    containsOnlyWhitespace(content, preposition.end, article.start) &&
+    containsOnlyWhitespace(content, article.end, nextWord.start)
+  );
+}
+
+function resolveStyleNotesEnd(
+  nextStyleIndex: Int32Array,
+  notesEndByStyleIndex: Int32Array,
+  startWordIndex: number,
+  notesStart: number,
+): number | undefined {
+  let styleIndex = nextStyleIndex[startWordIndex];
+  if (styleIndex < 0) {
+    return undefined;
+  }
+
+  let notesEnd = notesEndByStyleIndex[styleIndex];
+  if (notesEnd <= notesStart) {
+    styleIndex = nextStyleIndex[styleIndex + 1];
+    if (styleIndex < 0) {
+      return undefined;
+    }
+    notesEnd = notesEndByStyleIndex[styleIndex];
+  }
+
+  return notesEnd > notesStart ? notesEnd : undefined;
 }
 
 export function extractStyleNotes(content: string): string | undefined {
@@ -209,36 +286,27 @@ export function extractStyleNotes(content: string): string | undefined {
   for (let index = 0; index < words.length - 2; index += 1) {
     const preposition = words[index];
     const article = words[index + 1];
-    if (
-      (preposition.value !== 'in' && preposition.value !== 'with') ||
-      (article.value !== 'a' && article.value !== 'an') ||
-      !containsOnlyWhitespace(content, preposition.end, article.start) ||
-      !containsOnlyWhitespace(content, article.end, words[index + 2].start)
-    ) {
+    const nextWord = words[index + 2];
+    if (!isStyleCue(content, preposition, article, nextWord)) {
       continue;
     }
 
-    const contentStart = article.end;
-    const notesStart = words[index + 2].start;
-    let styleIndex = nextStyleIndex[index + 2];
-    if (styleIndex < 0) {
-      return undefined;
-    }
-
-    let notesEnd = notesEndByStyleIndex[styleIndex];
-    if (notesEnd <= notesStart) {
-      styleIndex = nextStyleIndex[styleIndex + 1];
-      if (styleIndex < 0) {
-        continue;
+    const notesStart = nextWord.start;
+    const notesEnd = resolveStyleNotesEnd(
+      nextStyleIndex,
+      notesEndByStyleIndex,
+      index + 2,
+      notesStart,
+    );
+    if (notesEnd === undefined) {
+      if (nextStyleIndex[index + 2] < 0) {
+        return undefined;
       }
-      notesEnd = notesEndByStyleIndex[styleIndex];
+      continue;
     }
 
-    if (
-      notesEnd > notesStart &&
-      !containsLineTerminator(lineTerminatorPrefix, notesStart, notesEnd)
-    ) {
-      return content.slice(contentStart, notesEnd).trim();
+    if (!containsLineTerminator(lineTerminatorPrefix, notesStart, notesEnd)) {
+      return content.slice(article.end, notesEnd).trim();
     }
   }
 
@@ -256,6 +324,140 @@ function startsWithTerminator(value: string, start: number): boolean {
   });
 }
 
+function skipWhitespace(value: string, start: number): number {
+  let cursor = start;
+  while (cursor < value.length && isWhitespace(value[cursor])) {
+    cursor += 1;
+  }
+
+  return cursor;
+}
+
+function isSentencePunctuation(character: string): boolean {
+  return character === '.' || character === '!' || character === '?';
+}
+
+function isAboutWord(word: WordSpan, contentLength: number): boolean {
+  return word.value === 'about' && word.end < contentLength;
+}
+
+function findTopicStart(
+  normalizedContent: string,
+  aboutEnd: number,
+): number | undefined {
+  const topicStart = skipWhitespace(normalizedContent, aboutEnd);
+  if (topicStart === aboutEnd) {
+    return undefined;
+  }
+
+  return topicStart;
+}
+
+function skipWordsBefore(
+  words: WordSpan[],
+  wordIndex: number,
+  limit: number,
+): number {
+  while (wordIndex + 1 < words.length && words[wordIndex + 1].start < limit) {
+    wordIndex += 1;
+  }
+
+  return wordIndex;
+}
+
+function completedTopic(
+  originalContent: string,
+  topicStart: number,
+  boundary: TopicBoundary,
+): string | undefined {
+  if (boundary.crossedUnsupportedLineBreak) {
+    return undefined;
+  }
+
+  const topic = originalContent.slice(topicStart, boundary.cursor).trim();
+  return topic || undefined;
+}
+
+function resolveWhitespaceGap(
+  normalizedContent: string,
+  lineTerminatorPrefix: Uint32Array,
+  words: WordSpan[],
+  cursor: number,
+  wordIndex: number,
+):
+  | { kind: 'stop'; boundary: TopicBoundary }
+  | { kind: 'continue'; cursor: number } {
+  const nextWordStart = skipWhitespace(normalizedContent, cursor);
+  if (startsWithTerminator(normalizedContent, nextWordStart)) {
+    return {
+      kind: 'stop',
+      boundary: {
+        crossedUnsupportedLineBreak: false,
+        cursor,
+        wordIndex,
+      },
+    };
+  }
+
+  if (containsLineTerminator(lineTerminatorPrefix, cursor, nextWordStart)) {
+    return {
+      kind: 'stop',
+      boundary: {
+        crossedUnsupportedLineBreak: true,
+        cursor,
+        wordIndex: skipWordsBefore(words, wordIndex, nextWordStart),
+      },
+    };
+  }
+
+  return { kind: 'continue', cursor: nextWordStart };
+}
+
+function scanTopicBoundary(
+  normalizedContent: string,
+  lineTerminatorPrefix: Uint32Array,
+  words: WordSpan[],
+  topicStart: number,
+  wordIndex: number,
+): TopicBoundary {
+  let cursor = topicStart;
+
+  while (cursor < normalizedContent.length) {
+    const character = normalizedContent[cursor];
+    if (isSentencePunctuation(character)) {
+      return {
+        crossedUnsupportedLineBreak: false,
+        cursor,
+        wordIndex,
+      };
+    }
+
+    if (!isWhitespace(character)) {
+      cursor += 1;
+      continue;
+    }
+
+    const gap = resolveWhitespaceGap(
+      normalizedContent,
+      lineTerminatorPrefix,
+      words,
+      cursor,
+      wordIndex,
+    );
+    if (gap.kind === 'stop') {
+      return gap.boundary;
+    }
+
+    cursor = gap.cursor;
+  }
+
+  return {
+    crossedUnsupportedLineBreak: false,
+    cursor,
+    wordIndex,
+  };
+}
+
 export function extractBatchTopic(
   originalContent: string,
   normalizedContent: string,
@@ -265,68 +467,25 @@ export function extractBatchTopic(
 
   for (let wordIndex = 0; wordIndex < words.length; wordIndex += 1) {
     const word = words[wordIndex];
-    if (word.value !== 'about' || word.end >= normalizedContent.length) {
+    if (!isAboutWord(word, normalizedContent.length)) {
       continue;
     }
 
-    let topicStart = word.end;
-    while (
-      topicStart < normalizedContent.length &&
-      isWhitespace(normalizedContent[topicStart])
-    ) {
-      topicStart += 1;
-    }
-
-    if (topicStart === word.end) {
+    const topicStart = findTopicStart(normalizedContent, word.end);
+    if (topicStart === undefined) {
       continue;
     }
 
-    let cursor = topicStart;
-    let crossedUnsupportedLineBreak = false;
-    while (cursor < normalizedContent.length) {
-      const character = normalizedContent[cursor];
-      if (character === '.' || character === '!' || character === '?') {
-        break;
-      }
+    const boundary = scanTopicBoundary(
+      normalizedContent,
+      lineTerminatorPrefix,
+      words,
+      topicStart,
+      wordIndex,
+    );
+    wordIndex = boundary.wordIndex;
 
-      if (isWhitespace(character)) {
-        let nextWordStart = cursor;
-        while (
-          nextWordStart < normalizedContent.length &&
-          isWhitespace(normalizedContent[nextWordStart])
-        ) {
-          nextWordStart += 1;
-        }
-
-        if (startsWithTerminator(normalizedContent, nextWordStart)) {
-          break;
-        }
-
-        if (
-          containsLineTerminator(lineTerminatorPrefix, cursor, nextWordStart)
-        ) {
-          crossedUnsupportedLineBreak = true;
-          while (
-            wordIndex + 1 < words.length &&
-            words[wordIndex + 1].start < nextWordStart
-          ) {
-            wordIndex += 1;
-          }
-          break;
-        }
-
-        cursor = nextWordStart;
-        continue;
-      }
-
-      cursor += 1;
-    }
-
-    if (crossedUnsupportedLineBreak) {
-      continue;
-    }
-
-    const topic = originalContent.slice(topicStart, cursor).trim();
+    const topic = completedTopic(originalContent, topicStart, boundary);
     if (topic) {
       return topic;
     }
