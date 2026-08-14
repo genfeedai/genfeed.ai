@@ -8,6 +8,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mock, Mocked } from 'vitest';
 
@@ -51,6 +52,19 @@ type MockSharpInstance = {
   toBuffer: Mock;
   webp: Mock;
 };
+
+function axiosResponse(
+  data: Buffer,
+  headers: Record<string, string> = {},
+): AxiosResponse<Buffer> {
+  return {
+    config: {} as AxiosResponse<Buffer>['config'],
+    data,
+    headers,
+    status: 200,
+    statusText: 'OK',
+  };
+}
 
 describe('UploadService', () => {
   let service: UploadService;
@@ -303,10 +317,11 @@ describe('UploadService', () => {
   describe('uploadToS3 - URL source', () => {
     it('should download and upload file from URL', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('downloaded-content'),
-          headers: { 'content-type': 'image/jpeg' },
-        }),
+        of(
+          axiosResponse(Buffer.from('downloaded-content'), {
+            'content-type': 'image/jpeg',
+          }),
+        ),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -372,10 +387,7 @@ describe('UploadService', () => {
 
     it('should infer content type from URL extension', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('video-content'),
-          headers: {},
-        }),
+        of(axiosResponse(Buffer.from('video-content'))),
       );
 
       // Need to setup tmp dir mock
@@ -392,10 +404,11 @@ describe('UploadService', () => {
 
     it('keeps the response content type for a gif and extracts dimensions', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('gif-content'),
-          headers: { 'content-type': 'image/gif' },
-        }),
+        of(
+          axiosResponse(Buffer.from('gif-content'), {
+            'content-type': 'image/gif',
+          }),
+        ),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -415,10 +428,11 @@ describe('UploadService', () => {
 
     it('keeps the response content type for an extension-less webm URL', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('webm-content'),
-          headers: { 'content-type': 'video/webm' },
-        }),
+        of(
+          axiosResponse(Buffer.from('webm-content'), {
+            'content-type': 'video/webm',
+          }),
+        ),
       );
 
       const result = await service.uploadToS3('test-key', 'videos', {
@@ -438,10 +452,11 @@ describe('UploadService', () => {
 
     it('removes the spooled download when preparation fails', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('video-content'),
-          headers: { 'content-type': 'video/mp4' },
-        }),
+        of(
+          axiosResponse(Buffer.from('video-content'), {
+            'content-type': 'video/mp4',
+          }),
+        ),
       );
       mockFfmpegService.getVideoMetadata.mockRejectedValue(
         new Error('ffprobe failed'),
@@ -462,10 +477,7 @@ describe('UploadService', () => {
 
     it('should handle ZIP files from URL', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('zip-content'),
-          headers: {},
-        }),
+        of(axiosResponse(Buffer.from('zip-content'))),
       );
 
       const result = await service.uploadToS3('test-key', 'archives', {

@@ -84,7 +84,7 @@ describe('ThreadsService (coverage)', () => {
     service = module.get<ThreadsService>(ThreadsService);
     credentialsService = service[
       'credentialsService'
-    ] as typeof credentialsService;
+    ] as unknown as typeof credentialsService;
     httpService = service['httpService'] as typeof httpService;
     loggerService = service['loggerService'] as typeof loggerService;
   });

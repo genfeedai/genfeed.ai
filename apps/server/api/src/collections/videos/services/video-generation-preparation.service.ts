@@ -288,18 +288,22 @@ export class VideoGenerationPreparationService {
   private async resolvePromptText(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<string> {
+    const promptId = resolved.createVideoDto.promptId;
     const inlineText = resolveInlinePromptText(
-      resolved.createVideoDto.promptId,
+      promptId,
       resolved.createVideoDto.text,
     );
     if (inlineText !== undefined) {
       return inlineText;
     }
+    if (!promptId) {
+      throw new Error('Prompt resolution requires a prompt ID');
+    }
     const validationOrgId =
       resolved.publicMetadata.organization ||
       resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
-      id: resolved.createVideoDto.promptId.toString(),
+      id: promptId.toString(),
       ...(validationOrgId ? { organizationId: validationOrgId } : {}),
     });
     if (!hasStoredPromptId(prompt)) {

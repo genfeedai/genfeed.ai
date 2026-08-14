@@ -11,7 +11,12 @@ import {
   mapTikTokSource,
   mapTikTokStatus,
   reconnectForCredential,
+  type StoredSocialWarmupEventRecord,
+  type StoredSocialWarmupSignalRecord,
   safeSignalEvidence,
+  socialWarmupEnrollmentStateFromStorage,
+  socialWarmupEventRecordFromStorage,
+  socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -29,8 +34,6 @@ import {
   SocialWarmupSignalStatus,
 } from '@genfeedai/enums';
 import type {
-  ISocialWarmupEventRecord,
-  ISocialWarmupSignalRecord,
   SocialWarmupEventProvenance,
   SocialWarmupScope,
   SyncSocialWarmupPlatformSnapshotInput,
@@ -372,13 +375,13 @@ export class SocialWarmupEnrollmentsService {
       credentialId: string;
       currentPhaseId: string;
       enrolledByUserId: string;
-      events?: ISocialWarmupEventRecord[];
+      events?: StoredSocialWarmupEventRecord[];
       id: string;
       isDeleted?: boolean;
       organizationId: string;
-      signals?: ISocialWarmupSignalRecord[];
+      signals?: StoredSocialWarmupSignalRecord[];
       startedAt: Date;
-      state: SocialWarmupEnrollmentState;
+      state: string;
       updatedAt?: Date;
     },
     credential:
@@ -390,13 +393,15 @@ export class SocialWarmupEnrollmentsService {
         }
       | undefined,
   ): Promise<SocialWarmupEnrollmentDocument> {
-    const events = enrollment.events ?? [];
-    const signals = enrollment.signals ?? [];
+    const events =
+      enrollment.events?.map(socialWarmupEventRecordFromStorage) ?? [];
+    const signals =
+      enrollment.signals?.map(socialWarmupSignalRecordFromStorage) ?? [];
     const isConnected = credential?.isConnected !== false;
     const hasPartialScopes = hasPartialSocialWarmupScopes(
       credential?.warmupSignals,
     );
-    let state = enrollment.state;
+    let state = socialWarmupEnrollmentStateFromStorage(enrollment.state);
 
     if (credential && !credential.isConnected) {
       state = SocialWarmupEnrollmentState.DISCONNECTED;
@@ -456,7 +461,7 @@ export class SocialWarmupEnrollmentsService {
 
   private signalCreatesFromCredential(credential: {
     warmupSignals: unknown;
-  }): Prisma.SocialWarmupSignalCreateWithoutEnrollmentInput[] {
+  }): Prisma.SocialWarmupSignalUncheckedCreateWithoutEnrollmentInput[] {
     const stored =
       credential.warmupSignals &&
       typeof credential.warmupSignals === 'object' &&
@@ -483,12 +488,14 @@ export class SocialWarmupEnrollmentsService {
       }
       return [
         {
-          evidence: safeSignalEvidence({
-            fieldAvailability: record.fieldAvailability,
-            reason: record.reason,
-            scope: record.scope,
-            value: record.value,
-          }),
+          evidence: toPrismaJson(
+            safeSignalEvidence({
+              fieldAvailability: record.fieldAvailability,
+              reason: record.reason,
+              scope: record.scope,
+              value: record.value,
+            }),
+          ),
           key,
           observedAt:
             typeof record.observedAt === 'string'
@@ -536,7 +543,7 @@ export class SocialWarmupEnrollmentsService {
     if (existing) {
       await this.prisma.socialWarmupSignal.update({
         data: {
-          evidence,
+          evidence: toPrismaJson(evidence),
           observedAt,
           source: params.source,
           staleAt,
@@ -555,7 +562,7 @@ export class SocialWarmupEnrollmentsService {
         data: {
           brandId: params.brandId,
           enrollmentId: params.enrollmentId,
-          evidence,
+          evidence: toPrismaJson(evidence),
           key: params.key,
           observedAt,
           organizationId: params.organizationId,
@@ -582,7 +589,11 @@ function findBlueprintItem(
       return step;
     }
   }
-  return blueprint.graduationRules.find((rule) => rule.id === itemId);
+  return blueprint.graduation.rules.find((rule) => rule.id === itemId);
+}
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
 function resolvePhaseAfterEvent(

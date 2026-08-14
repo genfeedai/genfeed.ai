@@ -5,8 +5,12 @@ import {
   mapTikTokStatus,
   resolveSocialWarmupAccountAge,
   safeSignalEvidence,
+  socialWarmupEnrollmentStateFromStorage,
+  socialWarmupEventRecordFromStorage,
+  socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import {
+  SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
@@ -14,6 +18,32 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('social-warmup-enrollment helpers', () => {
+  it('normalizes Prisma storage strings at the public enum boundary', () => {
+    expect(socialWarmupEnrollmentStateFromStorage('IN_PROGRESS')).toBe(
+      SocialWarmupEnrollmentState.IN_PROGRESS,
+    );
+    expect(
+      socialWarmupEventRecordFromStorage({
+        action: 'COMPLETED',
+        itemId: 'native-profile-complete',
+        occurredAt: new Date('2026-08-14T00:00:00.000Z'),
+      }).action,
+    ).toBe(SocialWarmupEventAction.COMPLETED);
+    expect(
+      socialWarmupSignalRecordFromStorage({
+        key: 'native-account-age',
+        source: 'GENFEED',
+        status: 'AVAILABLE',
+      }),
+    ).toMatchObject({
+      source: SocialWarmupSignalSource.GENFEED,
+      status: SocialWarmupSignalStatus.AVAILABLE,
+    });
+    expect(() => socialWarmupEnrollmentStateFromStorage('UNKNOWN')).toThrow(
+      'Unsupported social warm-up enrollment state',
+    );
+  });
+
   it('keeps the latest complete/reopen outcome per checklist item', () => {
     expect(
       completedItemIdsFromEvents([

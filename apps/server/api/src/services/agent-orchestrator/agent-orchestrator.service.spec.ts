@@ -112,6 +112,7 @@ describe('AgentOrchestratorService', () => {
           }
           return {
             choices: [{ message: { content: 'Hello streamed' } }],
+            id: 'stream-completion-1',
             usage: {
               completion_tokens: 20,
               prompt_tokens: 20,

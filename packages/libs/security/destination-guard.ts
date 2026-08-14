@@ -236,7 +236,7 @@ function assertResolvedAddresses(
   addresses: readonly LookupAddress[],
   hostname: string,
   allowPrivateNetwork: boolean,
-): LookupAddress {
+): LookupAddress & { family: 4 | 6 } {
   if (addresses.length === 0) {
     throw new DestinationGuardError(
       `Destination hostname did not resolve: ${hostname}`,

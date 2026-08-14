@@ -304,7 +304,7 @@ describe('PinterestPublisherService', () => {
   describe('publish', () => {
     beforeEach(() => {
       credentialsService.findOne.mockResolvedValue(
-        mockCredential as unknown as CredentialEntity,
+        mockCredential as unknown as CredentialDocument,
       );
     });
 
@@ -451,7 +451,7 @@ describe('PinterestPublisherService', () => {
         credentialsService.findOne.mockResolvedValue({
           ...mockCredential,
           accessToken: null,
-        } as unknown as CredentialEntity);
+        } as unknown as CredentialDocument);
 
         const result = await service.publish(context);
 
@@ -506,7 +506,7 @@ describe('PinterestPublisherService', () => {
 
       const result = service.buildPostUrl(
         externalId,
-        mockCredential as unknown as CredentialEntity,
+        mockCredential as unknown as CredentialDocument,
       );
 
       expect(result).toBe(`https://www.pinterest.com/pin/${externalId}`);
@@ -516,7 +516,7 @@ describe('PinterestPublisherService', () => {
   describe('logging', () => {
     beforeEach(() => {
       credentialsService.findOne.mockResolvedValue(
-        mockCredential as unknown as CredentialEntity,
+        mockCredential as unknown as CredentialDocument,
       );
     });
 

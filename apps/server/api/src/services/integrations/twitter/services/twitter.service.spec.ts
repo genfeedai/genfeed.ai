@@ -14,6 +14,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { mockModel } from '@api/helpers/mocks/model.mock';
@@ -118,7 +119,9 @@ describe('TwitterService', () => {
 
   describe('getTrends', () => {
     it('fetches trending topics', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue(undefined);
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        {} as unknown as CredentialDocument,
+      );
 
       const trendsMock = vi
         .fn()
@@ -144,7 +147,7 @@ describe('TwitterService', () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue({
         accessToken: 'a',
         refreshToken: 'r',
-      });
+      } as unknown as CredentialDocument);
 
       mockSendDm.mockResolvedValue({});
 
