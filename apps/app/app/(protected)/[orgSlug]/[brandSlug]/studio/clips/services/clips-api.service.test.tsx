@@ -208,4 +208,34 @@ describe('ClipsApiService', () => {
       }),
     );
   });
+
+  it('retries Library linking without generating a new clip', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          clipResultId: 'clip-1',
+          ingredientId: 'ingredient-1',
+          status: 'linked',
+        }),
+        { status: 200 },
+      ),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-library-link'),
+    );
+
+    await expect(
+      service.retryLibraryLink('clip-project-1', 'clip-1'),
+    ).resolves.toEqual({
+      clipResultId: 'clip-1',
+      ingredientId: 'ingredient-1',
+      status: 'linked',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/clip-project-1/results/clip-1/library-link',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+  });
 });

@@ -1,4 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -28,6 +29,14 @@ function createMockDeps() {
     findOne: vi.fn(),
   };
 
+  const clipLibraryLinkService = {
+    linkReadyClip: vi.fn().mockResolvedValue({
+      clipResultId: 'clip-1',
+      ingredientId: 'ingredient-1',
+      status: 'linked',
+    }),
+  };
+
   const clipProjectsService = {
     patch: vi.fn(),
     reconcileTerminalState: vi.fn(),
@@ -48,6 +57,7 @@ function createMockDeps() {
   };
 
   return {
+    clipLibraryLinkService,
     clipProjectsService,
     clipResultsService,
     ingredientsService,
@@ -68,6 +78,10 @@ describe('HeygenWebhookService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeygenWebhookService,
+        {
+          provide: ClipLibraryLinkService,
+          useValue: deps.clipLibraryLinkService,
+        },
         { provide: ClipProjectsService, useValue: deps.clipProjectsService },
         { provide: ClipResultsService, useValue: deps.clipResultsService },
         { provide: IngredientsService, useValue: deps.ingredientsService },
@@ -298,6 +312,7 @@ describe('HeygenWebhookService', () => {
 
     deps.clipResultsService.findOne.mockResolvedValue({
       id: clipResultId,
+      organizationId: 'org-1',
       projectId,
     });
     deps.clipResultsService.findByProject.mockResolvedValue([
@@ -314,9 +329,13 @@ describe('HeygenWebhookService', () => {
       status: 'completed',
       videoUrl: 'https://cdn.heygen.com/clip.mp4',
     });
+    expect(deps.clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipResultId,
+      organizationId: 'org-1',
+    });
     expect(
       deps.clipProjectsService.reconcileTerminalState,
-    ).toHaveBeenCalledWith(projectId, undefined);
+    ).toHaveBeenCalledWith(projectId, 'org-1');
   });
 
   it('should fail the parent project when the final clip fails', async () => {

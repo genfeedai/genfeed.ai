@@ -1,5 +1,6 @@
 import {
   CLIP_RESULT_STATUSES,
+  type ClipLibraryLinkStatus,
   type ClipReadinessContract,
   type ClipReferenceProvenance,
   type ClipResultMode,
@@ -40,6 +41,9 @@ export interface ClipResultDocument extends ClipResultRecord {
   room?: string | null;
   sourceVideoS3Key?: string | null;
   sourceVideoUrl?: string | null;
+  ingredientId?: string | null;
+  libraryLinkStatus?: ClipLibraryLinkStatus | string | null;
+  libraryLinkError?: string | null;
   [key: string]: unknown;
 }
 

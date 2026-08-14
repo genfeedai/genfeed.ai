@@ -1,6 +1,7 @@
 import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argil.service';
 
 describe('ArgilWebhookService', () => {
+  const clipLibraryLinkService = { linkReadyClip: vi.fn() };
   const clipProjectsService = { reconcileTerminalState: vi.fn() };
   const clipResultsService = {
     findOne: vi.fn(),
@@ -20,7 +21,13 @@ describe('ArgilWebhookService', () => {
       status: 'processing',
     });
     clipResultsService.transitionProviderTerminal.mockResolvedValue(true);
+    clipLibraryLinkService.linkReadyClip.mockResolvedValue({
+      clipResultId: 'clip-1',
+      ingredientId: 'ingredient-1',
+      status: 'linked',
+    });
     service = new ArgilWebhookService(
+      clipLibraryLinkService as never,
       clipProjectsService as never,
       clipResultsService as never,
       loggerService as never,
@@ -43,6 +50,10 @@ describe('ArgilWebhookService', () => {
       providerName: 'argil',
       status: 'completed',
       videoUrl: 'https://cdn.argil.ai/video-1.mp4',
+    });
+    expect(clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipResultId: 'clip-1',
+      organizationId: 'org-1',
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
@@ -69,6 +80,10 @@ describe('ArgilWebhookService', () => {
       event: 'VIDEO_GENERATION_SUCCESS',
     });
 
+    expect(clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipResultId: 'clip-1',
+      organizationId: 'org-1',
+    });
     expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
   });
 

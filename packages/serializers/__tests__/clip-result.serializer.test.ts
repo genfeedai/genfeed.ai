@@ -89,4 +89,19 @@ describe('ClipResultSerializer — raw-cut contract', () => {
       JSON.stringify(output.data.attributes.referenceProvenance),
     ).not.toMatch(/https?:\/\/|apiKey|providerResponse/);
   });
+
+  it('exposes the canonical Library ingredient link without signed media secrets', () => {
+    const output = ClipResultSerializer.serialize({
+      id: 'ckclipresult00000000000004',
+      ingredientId: 'ckingredient00000000000001',
+      libraryLinkError: null,
+      libraryLinkStatus: 'linked',
+    }) as SerializedResource;
+
+    expect(output.data.attributes).toMatchObject({
+      ingredientId: 'ckingredient00000000000001',
+      libraryLinkStatus: 'linked',
+    });
+    expect(output.data.attributes.libraryLinkError).toBeUndefined();
+  });
 });

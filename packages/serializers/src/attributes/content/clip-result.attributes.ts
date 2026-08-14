@@ -27,4 +27,7 @@ export const clipResultAttributes = createEntityAttributes([
   'providerJobId',
   'providerName',
   'referenceProvenance',
+  'ingredientId',
+  'libraryLinkStatus',
+  'libraryLinkError',
 ]);

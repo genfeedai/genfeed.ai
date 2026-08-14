@@ -55,17 +55,23 @@ describe('ClipResultCard', () => {
       payload: {
         assets: [
           {
-            assetId: 'clip-1',
+            assetId: 'ingredient-1',
             mediaUrl: 'https://cdn.example.com/video.mp4',
             mimeType: 'video/mp4',
           },
         ],
         metadata: {
           clipResultId: 'clip-1',
+          ingredientId: 'ingredient-1',
           summary: 'Clip summary for publish handoff',
           title: 'My Great Clip',
         },
       },
+    }),
+    retryLibraryLink: vi.fn().mockResolvedValue({
+      clipResultId: 'clip-1',
+      ingredientId: 'ingredient-1',
+      status: 'linked',
     }),
   };
 
@@ -282,6 +288,49 @@ describe('ClipResultCard', () => {
     expect(screen.getByText('#startup')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.queryByText('#viral')).not.toBeInTheDocument();
+  });
+
+  it('shows an In Library badge when the clip is linked', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          ingredientId: 'ingredient-1',
+          libraryLinkStatus: 'linked',
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/video.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getByText('In Library')).toBeInTheDocument();
+    expect(screen.queryByText('Retry Library link')).not.toBeInTheDocument();
+  });
+
+  it('retries Library linking without treating the clip as a new render', async () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          libraryLinkError: 'Library write failed',
+          libraryLinkStatus: 'failed',
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/video.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Retry Library link'));
+
+    await waitFor(() =>
+      expect(clipsService.retryLibraryLink).toHaveBeenCalledWith(
+        'project-1',
+        'clip-1',
+      ),
+    );
+    expect(await screen.findByText('In Library')).toBeInTheDocument();
   });
 
   it('should show failed state message when clip failed', () => {

@@ -1,6 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import {
+  type ClipLibraryLinkResult,
+  ClipLibraryLinkService,
+} from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
@@ -47,6 +51,7 @@ interface ClipPublishHandoffResponse {
 export class ClipProjectHandoffsController {
   constructor(
     readonly _loggerService: LoggerService,
+    private readonly clipLibraryLinkService: ClipLibraryLinkService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly editorProjectsService: EditorProjectsService,
@@ -83,6 +88,7 @@ export class ClipProjectHandoffsController {
       projectId,
     });
     const videoUrl = this.resolveClipVideoUrl(clipResult);
+    const ingredientId = this.requireLinkedIngredientId(clipResult);
     const durationFrames = this.resolveClipDurationFrames(clipResult);
     const editorProject = await this.editorProjectsService.create({
       ...(user.brandId ? { brandId: user.brandId } : {}),
@@ -90,6 +96,7 @@ export class ClipProjectHandoffsController {
         clipHandoff: {
           clipProjectId: projectId,
           clipResultId: String(clipResult.id),
+          ingredientId,
           source: 'clip-result',
         },
         name: `${this.readString(clipResult.title) ?? 'Clip'} edit`,
@@ -111,7 +118,7 @@ export class ClipProjectHandoffsController {
               durationFrames,
               effects: [],
               id: uuidv4(),
-              ingredientId: String(clipResult.id),
+              ingredientId,
               ingredientUrl: videoUrl,
               sourceEndFrame: durationFrames,
               sourceStartFrame: 0,
@@ -172,13 +179,14 @@ export class ClipProjectHandoffsController {
       projectId,
     });
     const resolvedClipResultId = String(clipResult.id);
+    const ingredientId = this.requireLinkedIngredientId(clipResult);
     const videoUrl = this.resolveClipVideoUrl(clipResult);
     const payload = await this.publishHandoffService.preparePublishHandoff(
       projectId,
-      [resolvedClipResultId],
+      [ingredientId],
       {
         assets: {
-          [resolvedClipResultId]: {
+          [ingredientId]: {
             caption: this.readString(clipResult.summary) ?? undefined,
             mediaUrl: videoUrl,
             mimeType: 'video/mp4',
@@ -186,6 +194,7 @@ export class ClipProjectHandoffsController {
         },
         metadata: {
           clipResultId: resolvedClipResultId,
+          ingredientId,
           summary: this.readString(clipResult.summary),
           title: this.readString(clipResult.title),
         },
@@ -197,6 +206,43 @@ export class ClipProjectHandoffsController {
       clipResultId: resolvedClipResultId,
       payload,
     };
+  }
+
+  @Post(':projectId/results/:clipResultId/library-link')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    description:
+      'Retry Library linking for a ready clip without re-rendering or rebilling.',
+    summary: 'Retry Library link for a ready clip result',
+  })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async retryLibraryLink(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Param('clipResultId') clipResultId: string,
+  ): Promise<ClipLibraryLinkResult> {
+    await this.resolveOwnedProject(projectId, user.organizationId);
+    const clipResult =
+      await this.clipResultsService.findProjectResultForHandoff({
+        clipResultId,
+        organizationId: user.organizationId,
+        projectId,
+      });
+
+    if (!clipResult) {
+      throw new NotFoundException('ClipResult', clipResultId);
+    }
+
+    if (this.readString(clipResult.status) !== 'completed') {
+      throw new BadRequestException(
+        `ClipResult ${clipResultId} is not ready for Library linking.`,
+      );
+    }
+
+    return this.clipLibraryLinkService.linkReadyClip({
+      clipResultId: String(clipResult.id),
+      organizationId: user.organizationId,
+    });
   }
 
   private async resolveOwnedProject(
@@ -257,6 +303,16 @@ export class ClipProjectHandoffsController {
     }
 
     return this.readString(clipResult.status) === 'completed';
+  }
+
+  private requireLinkedIngredientId(clipResult: ClipResultDocument): string {
+    const ingredientId = this.readString(clipResult.ingredientId);
+    if (!ingredientId) {
+      throw new BadRequestException(
+        'Clip result is not linked to a Library asset. Retry Library linking first.',
+      );
+    }
+    return ingredientId;
   }
 
   private resolveClipVideoUrl(clipResult: ClipResultDocument): string {

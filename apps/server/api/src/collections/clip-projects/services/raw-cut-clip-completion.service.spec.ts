@@ -1,4 +1,5 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import type { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -37,6 +38,9 @@ function makeClip(
 
 describe('RawCutClipCompletionService', () => {
   let service: RawCutClipCompletionService;
+  let clipLibraryLinkService: {
+    linkReadyClip: ReturnType<typeof vi.fn>;
+  };
   let clipProjectsService: {
     reconcileTerminalState: ReturnType<typeof vi.fn>;
   };
@@ -57,6 +61,13 @@ describe('RawCutClipCompletionService', () => {
   };
 
   beforeEach(() => {
+    clipLibraryLinkService = {
+      linkReadyClip: vi.fn().mockResolvedValue({
+        clipResultId: 'clip-1',
+        ingredientId: 'ingredient-1',
+        status: 'linked',
+      }),
+    };
     clipProjectsService = {
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
@@ -84,6 +95,7 @@ describe('RawCutClipCompletionService', () => {
     };
 
     service = new RawCutClipCompletionService(
+      clipLibraryLinkService as unknown as ClipLibraryLinkService,
       clipProjectsService as unknown as ClipProjectsService,
       clipResultsService as unknown as ClipResultsService,
       fileQueueService as unknown as FileQueueService,
@@ -164,6 +176,47 @@ describe('RawCutClipCompletionService', () => {
     });
     expect(clipResultsService.patch).toHaveBeenNthCalledWith(2, 'clip-1', {
       isProjectReconciliationPending: false,
+    });
+    expect(clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipResultId: 'clip-1',
+      organizationId: 'org-1',
+    });
+    expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
+      'project-1',
+      'org-1',
+    );
+  });
+
+  it('keeps a ready clip when Library linking fails', async () => {
+    clipResultsService.findOne.mockResolvedValue(
+      makeClip({
+        providerJobId: 'raw-cut-caption-clip-1',
+        status: 'captioning',
+      }),
+    );
+    clipLibraryLinkService.linkReadyClip.mockResolvedValue({
+      clipResultId: 'clip-1',
+      error: 'Library write failed',
+      status: 'failed',
+    });
+
+    await service.handleCompletion({
+      ingredientId: 'clip-1',
+      organizationId: 'org-1',
+      result: {
+        jobId: 'raw-cut-caption-clip-1',
+        jobType: 'add-captions',
+        s3Key: 'videos/clip-1.mp4',
+        url: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+      },
+      status: Status.COMPLETED,
+    });
+
+    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
+      captionedVideoS3Key: 'videos/clip-1.mp4',
+      captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+      isProjectReconciliationPending: true,
+      status: 'completed',
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
