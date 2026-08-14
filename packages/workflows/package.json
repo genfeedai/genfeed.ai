@@ -25,7 +25,7 @@
     "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@xyflow/react": "12.11.2",
+    "@xyflow/react": "12.11.3",
     "jsdom": "29.1.1",
     "react": "19.2.8",
     "react-compare-slider": "4.0.0",
@@ -35,7 +35,7 @@
     "typescript": "6.0.3",
     "vitest": "4.1.10",
     "zundo": "2.3.0",
-    "zustand": "5.0.14"
+    "zustand": "5.0.15"
   },
   "exports": {
     ".": {

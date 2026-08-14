@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -6,7 +9,12 @@ import {
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { describe, expect, it } from 'vitest';
+import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
+import appPackage from './package.json' with { type: 'json' };
+
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(appDir, '../..');
 
 describe('app next.config', () => {
   it('advertises the public agent catalog without indexing the app', async () => {
@@ -476,6 +484,22 @@ describe('app next.config', () => {
         '../../packages/workflows/src/nodes/index.ts',
       '@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts',
     });
+  });
+
+  it('hoists next-intl to the turbopack root without remapping package exports', () => {
+    // bun isolates next-intl under apps/app unless the root workspace lists it.
+    // turbopack.root is the repo root, so workspace packages (agent/pages)
+    // fail with "Can't resolve 'next-intl'" when it is missing there.
+    // A resolveAlias to a filesystem path also fails: it bypasses next-intl's
+    // react-server / react-client exports.
+    expect(config.turbopack?.root).toBe(repoRoot);
+    expect(rootPackage.dependencies['next-intl']).toBe(
+      appPackage.dependencies['next-intl'],
+    );
+    expect(
+      existsSync(path.join(repoRoot, 'node_modules/next-intl/package.json')),
+    ).toBe(true);
+    expect(config.turbopack?.resolveAlias?.['next-intl']).toBeUndefined();
   });
 
   it('exposes a non-empty build id that generateBuildId agrees with', async () => {
