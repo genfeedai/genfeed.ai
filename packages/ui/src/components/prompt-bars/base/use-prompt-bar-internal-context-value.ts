@@ -31,6 +31,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+import type { StudioGenerationMeter } from '@genfeedai/props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {
   GalleryModalOptions,
@@ -147,6 +148,7 @@ type UsePromptBarInternalContextValueParams = {
   isGenerateDisabled: boolean;
   previousPrompt: string | null;
   selectedModelCost: number;
+  generationMeter: StudioGenerationMeter | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;
   avatars?: DropdownFieldOption[];
@@ -264,6 +266,7 @@ export function usePromptBarInternalContextValue(
       isGenerateDisabled: p.isGenerateDisabled,
       previousPrompt: p.previousPrompt,
       selectedModelCost: p.selectedModelCost,
+      generationMeter: p.generationMeter,
       activeGenerations: p.activeGenerations,
       generateLabel: p.generateLabel,
       avatars: p.avatars,
@@ -375,6 +378,7 @@ export function usePromptBarInternalContextValue(
       p.isGenerateDisabled,
       p.previousPrompt,
       p.selectedModelCost,
+      p.generationMeter,
       p.activeGenerations,
       p.generateLabel,
       p.avatars,
