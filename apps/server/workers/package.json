@@ -46,6 +46,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage",
     "test:cron": "vitest run --config vitest.cron.config.ts",
+    "test:cron:cov": "vitest run --config vitest.cron.config.ts --coverage",
     "test:cron:watch": "vitest --config vitest.cron.config.ts",
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts",

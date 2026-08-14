@@ -2,10 +2,17 @@ import { PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModalPostRemix from '@ui/modals/content/remix/ModalPostRemix';
+
+const closeModal = vi.fn();
+
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
+  closeModal: (...args: unknown[]) => closeModal(...args),
+}));
 
 vi.mock('@ui/modals/modal/Modal', () => ({
   __esModule: true,
@@ -30,12 +37,14 @@ vi.mock('@ui/primitives/button', () => ({
     label,
     children,
     onClick,
+    isDisabled,
     ...props
   }: PropsWithChildren<{
     label?: string;
     onClick?: () => void;
+    isDisabled?: boolean;
   }>) => (
-    <button type="button" onClick={onClick} {...props}>
+    <button type="button" onClick={onClick} disabled={isDisabled} {...props}>
       {label || children}
     </button>
   ),
@@ -44,7 +53,19 @@ vi.mock('@ui/primitives/button', () => ({
 
 vi.mock('@ui/editors/LazyRichTextEditor', () => ({
   __esModule: true,
-  default: () => <div data-testid="rich-text-editor" />,
+  default: ({
+    value,
+    onChange,
+  }: {
+    value?: string;
+    onChange?: (value: string) => void;
+  }) => (
+    <textarea
+      data-testid="rich-text-editor"
+      value={value}
+      onChange={(event) => onChange?.(event.target.value)}
+    />
+  ),
 }));
 
 vi.mock('@ui/primitives/field', () => ({
@@ -56,8 +77,38 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
-  Input: () => <input data-testid="form-input" />,
-  default: () => <input data-testid="form-input" />,
+  Input: ({
+    value,
+    onChange,
+    name,
+  }: {
+    value?: string;
+    name?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+  }) => (
+    <input
+      data-testid="form-input"
+      name={name}
+      value={value}
+      onChange={onChange}
+    />
+  ),
+  default: ({
+    value,
+    onChange,
+    name,
+  }: {
+    value?: string;
+    name?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+  }) => (
+    <input
+      data-testid="form-input"
+      name={name}
+      value={value}
+      onChange={onChange}
+    />
+  ),
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
@@ -85,11 +136,48 @@ describe('ModalPostRemix', () => {
     expect(screen.getByTestId('modal')).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    // TODO: Add interaction tests
+  it('submits the remix label and description, then closes', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+
+    render(
+      <ModalPostRemix post={post} onSubmit={onSubmit} onClose={onClose} />,
+    );
+
+    expect(
+      screen.getByText(/Original post has 200 views - 10 likes/),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByTestId('form-input'));
+    await user.type(screen.getByTestId('form-input'), 'Night remix');
+    await user.clear(screen.getByTestId('rich-text-editor'));
+    await user.type(screen.getByTestId('rich-text-editor'), 'New caption');
+    await user.click(screen.getByRole('button', { name: 'Create Remix' }));
+
+    expect(onSubmit).toHaveBeenCalledWith('New caption', 'Night remix');
+    expect(closeModal).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('should apply correct styles and classes', () => {
-    // TODO: Add style tests
+  it('does not submit a blank description and cancel only closes', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+
+    render(
+      <ModalPostRemix
+        post={{ ...post, description: '', status: PostStatus.DRAFT }}
+        onSubmit={onSubmit}
+        onClose={onClose}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Create Remix' })).toBeDisabled();
+    expect(screen.queryByText(/Original post has/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 });

@@ -270,6 +270,13 @@ jobs:
       # `--no-verify` or an unstaged file walks straight past.
       - name: UI Guards (raw controls, primitives, nav sinks)
         run: bun run check:ui-guards
+      # #2687: a green suite says nothing about files no config collected.
+      # Notifications excludes, a pages `*.test.ts` allowlist, and a files
+      # `.test.ts` next to a `*.spec.ts` include all shipped this way.
+      - name: Test Collection Guard
+        run: bun run check:test-collection
+      - name: Test Collection Guard Tests
+        run: node --test scripts/architecture/check-test-collection.test.mjs
       - name: Design System Contracts
         run: bun run design:check
       # Temporarily disabled while desktop is not an active delivery surface.

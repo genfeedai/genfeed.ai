@@ -273,17 +273,18 @@ export default defineConfig({
         'src/**/*.module.ts',
         'src/main.ts',
         'src/instrument.ts',
+        // Cron sources are measured by vitest.cron.config.ts (`test:cron:cov`).
+        // Counting them here understated this config's own surface (#2687).
+        'src/crons/**',
       ],
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      // Floors for THIS config only. `test.exclude` keeps `src/crons/**/*.spec.ts`
-      // out of this run (they need cross-service integrations and run via
-      // `bun run test:cron`), but `coverage.include` still counts `src/crons/**`
-      // sources — so these numbers understate the surface this config tests.
-      // The non-cron surface measures ~94% lines / ~90% functions. Cron code is
-      // not coverage-gated anywhere: vitest.cron.config.ts has no coverage block.
+      // Floors for the non-cron workers surface only. Cron specs stay on
+      // `bun run test:cron` / `test:cron:cov` because they pull cross-service
+      // integrations. Raise toward the measured ~94/90 once a coverage run
+      // confirms the new include set; do not lower these without an issue.
       thresholds: { branches: 35, functions: 49, lines: 40, statements: 40 },
     },
     environment: 'node',

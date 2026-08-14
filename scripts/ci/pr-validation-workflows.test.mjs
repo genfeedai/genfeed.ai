@@ -208,6 +208,25 @@ test('enforces Bull Board queue parity on every pull request', () => {
   );
 });
 
+test('enforces the test-collection guard on every pull request', () => {
+  // #2687: a green suite does not cover files no config collected. The
+  // script-only form of this contract would go dark the same way #1011's
+  // automation-boundary guards did after #2127.
+  const workflow = readWorkflow('ci.yml');
+  const guards = jobBlock(workflow, 'guards', 'ci.yml');
+
+  assert.match(
+    guards,
+    /^ {8}run: bun run check:test-collection$/m,
+    'the guards job must run the test-collection contract',
+  );
+  assert.match(
+    guards,
+    /check-test-collection\.test\.mjs/,
+    'the guards job must run test-collection regression tests',
+  );
+});
+
 test('enforces relation alias read and write guards on every pull request', () => {
   const workflow = readWorkflow('ci.yml');
   const guards = jobBlock(workflow, 'guards', 'ci.yml');

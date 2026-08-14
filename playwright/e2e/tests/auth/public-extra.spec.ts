@@ -13,7 +13,14 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 test.describe('Public Routes (Unauthenticated)', () => {
   test.setTimeout(60_000);
 
-  const routes = ['/sign-up', '/request-access'];
+  const routes = [
+    '/sign-up',
+    '/request-access',
+    '/forgot-password',
+    '/reset-password',
+    '/agent-auth/claim',
+    '/oauth/consent',
+  ];
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ unauthenticatedPage }) => {
@@ -37,6 +44,32 @@ test.describe('Public Routes (Unauthenticated)', () => {
     });
     await tryClick(unauthenticatedPage, 'button');
     await expect(unauthenticatedPage.locator('body')).toBeVisible();
+  });
+
+  test('forgot-password stays interactive', async ({ unauthenticatedPage }) => {
+    await assertRouteRenders(unauthenticatedPage, '/forgot-password', {
+      allowRedirectToLogin: true,
+    });
+    await tryClick(unauthenticatedPage, 'button');
+    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+  });
+
+  test('agent-auth claim stays interactive', async ({
+    unauthenticatedPage,
+  }) => {
+    await assertRouteRenders(unauthenticatedPage, '/agent-auth/claim', {
+      allowRedirectToLogin: true,
+    });
+    await tryClick(unauthenticatedPage, 'button');
+    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+  });
+});
+
+test.describe('Connect (Authenticated)', () => {
+  test.setTimeout(60_000);
+
+  test('renders /connect', async ({ authenticatedPage }) => {
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.CONNECT);
   });
 });
 
