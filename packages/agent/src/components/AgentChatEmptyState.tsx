@@ -6,7 +6,6 @@ import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollo
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -39,7 +38,6 @@ type AgentChatEmptyStateProps = {
   isWideLayout: boolean;
   /** Compact rail layout for the workspace inspector drawer. */
   variant?: 'default' | 'inspector';
-  contextUsage?: ConversationContextUsage | null;
   onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
   onRemoveFollowUp?: (id: string) => void;
   onSend: (
@@ -82,7 +80,6 @@ export function AgentChatEmptyState({
   isRunActive,
   isWideLayout,
   variant = 'default',
-  contextUsage = null,
   onMoveFollowUp,
   onSend,
   onSendFollowUpNow,
@@ -176,7 +173,6 @@ export function AgentChatEmptyState({
                 apiService={apiService}
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
-                contextUsage={contextUsage}
                 disabled={isReadOnly}
                 dragHandlers={dragHandlers}
                 dragState={dragState}

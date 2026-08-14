@@ -188,22 +188,12 @@ describe('AgentChatInput', () => {
     expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
   });
 
-  it('renders the context usage meter', () => {
-    render(
-      <AgentChatInput
-        contextUsage={{
-          label: '12k / 128k',
-          ratio: 0.1,
-          usedTokens: 12_400,
-          windowTokens: 128_000,
-        }}
-        onSend={vi.fn()}
-      />,
-    );
+  it('does not render a context usage meter', () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
 
-    expect(screen.getByTestId('composer-context-usage')).toHaveTextContent(
-      '12k / 128k',
-    );
+    expect(
+      screen.queryByTestId('composer-context-usage'),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps plan mode out and exposes the compact attachment control', () => {

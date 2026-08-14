@@ -1,7 +1,5 @@
-import { ComposerContextUsageIndicator } from '@genfeedai/agent/components/ComposerContextUsageIndicator';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import {
   ButtonSize,
   ButtonVariant,
@@ -39,7 +37,6 @@ import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
   creditsAvailable?: number | null;
-  contextUsage?: ConversationContextUsage | null;
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
@@ -79,7 +76,6 @@ function AgentChatInputToolbarInner({
   isUploading,
   models,
   creditsAvailable = null,
-  contextUsage = null,
   onAddFiles,
   onInsertReference,
   onModelChange,
@@ -360,9 +356,6 @@ function AgentChatInputToolbarInner({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {contextUsage ? (
-          <ComposerContextUsageIndicator usage={contextUsage} />
-        ) : null}
       </div>
 
       {/* Trailing: stop (replaces mic) + optional queue send */}

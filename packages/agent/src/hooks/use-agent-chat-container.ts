@@ -35,7 +35,6 @@ import {
   composeTimelineWithStream,
   deriveHistoricalTimeline,
 } from '@genfeedai/agent/utils/derive-timeline';
-import { estimateConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import type {
   AttachmentItem,
@@ -547,15 +546,6 @@ export function useAgentChatContainer({
     [flushFollowUp, followUpQueue, handleStopRun],
   );
 
-  const contextUsage = useMemo(
-    () =>
-      estimateConversationContextUsage([
-        ...messages.map((message) => message.content),
-        streamState.streamingContent,
-      ]),
-    [messages, streamState.streamingContent],
-  );
-
   const handleSubmitInputRequest = useCallback(
     async (answer: string) => {
       const normalizedAnswer = answer.trim();
@@ -984,7 +974,6 @@ export function useAgentChatContainer({
     handleStopRun,
     sendFollowUpNow,
     followUpQueue,
-    contextUsage,
     handleSubmitInputRequest,
     handleUiAction,
     handleApprovePlan,

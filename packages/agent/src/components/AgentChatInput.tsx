@@ -5,7 +5,6 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -66,7 +65,6 @@ interface AgentChatInputProps {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  contextUsage?: ConversationContextUsage | null;
   willQueueFollowUp?: boolean;
 }
 
@@ -106,7 +104,6 @@ export function AgentChatInput({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
-  contextUsage = null,
   willQueueFollowUp = false,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
@@ -213,7 +210,6 @@ export function AgentChatInput({
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
             creditsAvailable={creditsAvailable}
-            contextUsage={contextUsage}
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}

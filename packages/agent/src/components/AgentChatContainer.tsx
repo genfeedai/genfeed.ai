@@ -493,7 +493,6 @@ export function AgentChatContainer({
             variant={
               composerShell?.placement === 'inspector' ? 'inspector' : 'default'
             }
-            contextUsage={container.contextUsage}
             onMoveFollowUp={container.followUpQueue.move}
             onRemoveFollowUp={container.followUpQueue.remove}
             onSend={sendConversationMessage}
@@ -591,7 +590,6 @@ export function AgentChatContainer({
               isComposerUnavailable={
                 isLoadingThread || stableSocketConnectionState !== 'connected'
               }
-              contextUsage={container.contextUsage}
               followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}
               isRunActive={container.isRunActive}

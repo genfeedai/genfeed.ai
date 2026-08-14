@@ -34,9 +34,6 @@ line can scroll above the card.
 While a turn is actually in flight (`isBusy`), the composer stays editable.
 Enter queues a follow-up above the bar (`ComposerFollowUpQueue`); "Send now"
 stops the current run. Queue only on `isBusy`, not leftover `activeRunStatus`.
-The composer toolbar shows a compact context-usage meter
-(`estimateConversationContextUsage`).
-
 Studio generate Stop is a real cancel: abort the `waitForCompletion` request,
 persist the provider job id before polling, `POST /ingredients/:id/cancellations`
 cancels Replicate when possible, and webhooks skip finalize if the ingredient

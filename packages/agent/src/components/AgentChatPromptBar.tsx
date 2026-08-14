@@ -17,7 +17,6 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { ConversationContextUsage } from '@genfeedai/agent/utils/estimate-conversation-context.util';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -35,7 +34,6 @@ type AgentChatPromptBarProps = {
   activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
-  contextUsage?: ConversationContextUsage | null;
   followUps?: readonly ComposerFollowUp[];
   isBusy: boolean;
   isComposerUnavailable?: boolean;
@@ -86,7 +84,6 @@ export function AgentChatPromptBar({
   activeGenerationAction,
   apiService,
   layoutMode,
-  contextUsage = null,
   followUps = [],
   isBusy,
   isComposerUnavailable = false,
@@ -196,7 +193,6 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        contextUsage={contextUsage}
         disabled={
           isReadOnly ||
           isComposerUnavailable ||
