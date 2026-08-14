@@ -1,5 +1,13 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type {
+  ImageGenerationCompletionPlan,
+  ImageGenerationContext,
+  ImageGenerationProviderResult,
+  ImageGenerationSaveDocumentsResult,
+  ImageGenerationSavedIngredient,
+  PreparedImageGenerationProvider,
+} from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';

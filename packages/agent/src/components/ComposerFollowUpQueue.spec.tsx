@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => (key === 'queued' ? 'Queued' : key),
+}));
+
 describe('ComposerFollowUpQueue', () => {
   it('renders queued prompts and can send one now', async () => {
     const user = userEvent.setup();

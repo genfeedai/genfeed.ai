@@ -35,6 +35,7 @@ import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { CalendarClock, Play } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
@@ -77,6 +78,7 @@ export default function WorkflowDetailPageClient({
   workflowId,
   initialExecutionId,
 }: WorkflowDetailPageClientProps) {
+  const translate = useTranslations('common.automation.workflows');
   const [activeExecutionId, setActiveExecutionId] = useState<string | null>(
     null,
   );
@@ -294,7 +296,7 @@ export default function WorkflowDetailPageClient({
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-pulse text-[var(--muted-foreground)]">
-          Loading editor…
+          {translate('detail.loadingEditor')}
         </div>
       </div>
     );
@@ -357,9 +359,9 @@ export default function WorkflowDetailPageClient({
                         size={ButtonSize.SM}
                         onClick={() => setIsScheduleDialogOpen(true)}
                         icon={<CalendarClock className="size-4" />}
-                        tooltip="Set a recurring schedule"
+                        tooltip={translate('actions.scheduleTooltip')}
                       >
-                        Schedule
+                        {translate('actions.schedule')}
                       </Button>
                       <Button
                         variant={ButtonVariant.DEFAULT}
@@ -368,7 +370,9 @@ export default function WorkflowDetailPageClient({
                         disabled={isRunning}
                         icon={<Play className="size-4" />}
                       >
-                        {isRunning ? 'Running…' : 'Run'}
+                        {isRunning
+                          ? translate('actions.running')
+                          : translate('actions.run')}
                       </Button>
                       {lifecycle === WorkflowLifecycle.DRAFT && (
                         <Button
@@ -376,7 +380,7 @@ export default function WorkflowDetailPageClient({
                           size={ButtonSize.SM}
                           onClick={handlePublish}
                         >
-                          Publish
+                          {translate('actions.publish')}
                         </Button>
                       )}
                       {lifecycle !== WorkflowLifecycle.ARCHIVED && (
@@ -386,7 +390,7 @@ export default function WorkflowDetailPageClient({
                           onClick={handleArchive}
                           className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
                         >
-                          Archive
+                          {translate('actions.archive')}
                         </Button>
                       )}
                     </div>

@@ -3524,14 +3524,6 @@
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/instagram/services/instagram.service.spec.ts",
-      "fingerprint": "3eb21b110d7dfb9ba226",
-      "message": "Conversion of type '{ findOne: Mock<Procedure>; patch: Mock<Procedure>; }' to type 'CredentialsService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ findOne: Mock<Procedure>; patch: Mock<Procedure>; }' is missing the following properties from type 'CredentialsService': prisma, logger, cryptoService, filesClientService, and 43 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/instagram/services/instagram.service.spec.ts",
       "fingerprint": "f38ef5692c6e05e24dfe",
       "message": "Conversion of type '{ get: Mock<Procedure>; post: Mock<Procedure>; }' to type 'HttpService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ get: Mock<Procedure>; post: Mock<Procedure>; }' is missing the following properties from type 'HttpService': instance, request, delete, head, and 7 more.",
       "workspace": "api"
@@ -5022,14 +5014,6 @@
       "file": "apps/server/files/src/queues/youtube-queue.service.spec.ts",
       "fingerprint": "795d9fe0378d8044e679",
       "message": "Object literal may only specify known properties, but 'credentialId' does not exist in type 'YoutubeJobData'. Did you mean to write 'credential'?",
-      "workspace": "files"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
-      "fingerprint": "98bd90d9c651fa916753",
-      "message": "Conversion of type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' to type 'ChildProcess' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<EventMap<{ [x: string]: {}; }>>; stdout: EventEmitter<EventMap<...>>; }' is missing the following properties from type 'ChildProcess': stdin, stdio, killed, connected, and 23 more.",
       "workspace": "files"
     },
     {

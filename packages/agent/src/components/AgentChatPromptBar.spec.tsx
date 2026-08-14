@@ -4,6 +4,10 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: () => <div data-testid="chat-input" />,
 }));

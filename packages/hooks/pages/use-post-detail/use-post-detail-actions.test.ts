@@ -110,7 +110,7 @@ describe('usePostDetailActions', () => {
     mockPublishNow.mockResolvedValue({ id: 'group-1' });
     mockGetReleaseGroupsService.mockResolvedValue({
       ensureFromPost: mockEnsureFromPost,
-      publishNow: mockPublishNow,
+      publishTargetNow: mockPublishNow,
       scheduleTarget: mockScheduleTarget,
     });
   });
@@ -206,7 +206,7 @@ describe('usePostDetailActions', () => {
       );
     });
 
-    it('publishes now through the same scheduleTarget path', async () => {
+    it('publishes now through the dedicated server-clock path', async () => {
       const { result } = renderHook(() =>
         usePostDetailActions({
           ...baseProps,
@@ -219,12 +219,8 @@ describe('usePostDetailActions', () => {
       });
 
       expect(mockEnsureFromPost).not.toHaveBeenCalled();
-      expect(mockPublishNow).not.toHaveBeenCalled();
-      expect(mockScheduleTarget).toHaveBeenCalledWith(
-        'group-9',
-        'post-1',
-        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
-      );
+      expect(mockPublishNow).toHaveBeenCalledWith('group-9', 'post-1');
+      expect(mockScheduleTarget).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Publishing now',
       );

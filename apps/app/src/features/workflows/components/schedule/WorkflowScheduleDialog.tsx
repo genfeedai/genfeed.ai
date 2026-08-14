@@ -23,6 +23,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { CalendarClock, TriangleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -66,6 +67,7 @@ export function WorkflowScheduleDialog({
   onSaved,
   workflowId,
 }: WorkflowScheduleDialogProps) {
+  const translate = useTranslations('common.automation.workflows.schedule');
   const getService = useAuthedService(createWorkflowApiService);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,7 +119,7 @@ export function WorkflowScheduleDialog({
             workflowId,
           });
           setError(
-            extractScheduleErrorMessage(cause, 'Failed to load the workflow'),
+            extractScheduleErrorMessage(cause, translate('errors.load')),
           );
         }
       } finally {
@@ -129,7 +131,7 @@ export function WorkflowScheduleDialog({
 
     void load();
     return () => controller.abort();
-  }, [getService, isOpen, workflowId]);
+  }, [getService, isOpen, translate, workflowId]);
 
   const cadenceSelectValue = isCustomCadence
     ? CUSTOM_CADENCE_VALUE
@@ -145,7 +147,7 @@ export function WorkflowScheduleDialog({
   const handleSave = useCallback(async () => {
     const trimmedCron = cronExpression.trim();
     if (!trimmedCron) {
-      setError('Pick a cadence before saving the schedule.');
+      setError(translate('errors.cadenceRequired'));
       return;
     }
 
@@ -162,9 +164,7 @@ export function WorkflowScheduleDialog({
       onOpenChange(false);
     } catch (cause) {
       logger.error('Failed to save workflow schedule', { cause, workflowId });
-      setError(
-        extractScheduleErrorMessage(cause, 'Failed to save the schedule'),
-      );
+      setError(extractScheduleErrorMessage(cause, translate('errors.save')));
     } finally {
       setIsSaving(false);
     }
@@ -175,6 +175,7 @@ export function WorkflowScheduleDialog({
     onOpenChange,
     onSaved,
     timezone,
+    translate,
     workflowId,
   ]);
 
@@ -194,13 +195,11 @@ export function WorkflowScheduleDialog({
         cause,
         workflowId,
       });
-      setError(
-        extractScheduleErrorMessage(cause, 'Failed to remove the schedule'),
-      );
+      setError(extractScheduleErrorMessage(cause, translate('errors.remove')));
     } finally {
       setIsSaving(false);
     }
-  }, [getService, onOpenChange, onSaved, workflowId]);
+  }, [getService, onOpenChange, onSaved, translate, workflowId]);
 
   const cadenceSummary = describeCadence(cronExpression);
   const nextRunLabel = formatNextRun(nextRunAt);
@@ -211,18 +210,18 @@ export function WorkflowScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="size-4" />
-            Schedule workflow
+            {translate('title')}
           </DialogTitle>
           <DialogDescription>
             {workflowLabel
-              ? `Run "${workflowLabel}" automatically on a recurring cadence.`
-              : 'Run this workflow automatically on a recurring cadence.'}
+              ? translate('descriptionNamed', { workflow: workflowLabel })
+              : translate('description')}
           </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
           <p className="animate-pulse py-4 text-sm text-muted-foreground">
-            Loading schedule…
+            {translate('loading')}
           </p>
         ) : (
           <div className="space-y-4">
@@ -236,15 +235,14 @@ export function WorkflowScheduleDialog({
             <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  Recurring schedule
+                  {translate('recurring.title')}
                 </p>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Run this workflow automatically on the cadence and timezone
-                  below.
+                  {translate('recurring.description')}
                 </p>
               </div>
               <Switch
-                aria-label="Recurring schedule"
+                aria-label={translate('recurring.title')}
                 className="mt-0.5 shrink-0"
                 checked={isEnabled}
                 onCheckedChange={setIsEnabled}
@@ -257,7 +255,7 @@ export function WorkflowScheduleDialog({
                   className="block text-sm font-medium text-foreground"
                   htmlFor="workflow-schedule-cadence"
                 >
-                  Cadence
+                  {translate('cadence.label')}
                 </label>
                 <Select
                   disabled={isSaving}
@@ -275,10 +273,12 @@ export function WorkflowScheduleDialog({
                   }}
                 >
                   <SelectTrigger
-                    aria-label="Cadence"
+                    aria-label={translate('cadence.label')}
                     id="workflow-schedule-cadence"
                   >
-                    <SelectValue placeholder="Choose when to run" />
+                    <SelectValue
+                      placeholder={translate('cadence.placeholder')}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {WORKFLOW_SCHEDULE_PRESETS.map((preset) => (
@@ -287,7 +287,7 @@ export function WorkflowScheduleDialog({
                       </SelectItem>
                     ))}
                     <SelectItem value={CUSTOM_CADENCE_VALUE}>
-                      Custom…
+                      {translate('cadence.custom')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -297,10 +297,10 @@ export function WorkflowScheduleDialog({
                       className="block text-xs font-medium text-muted-foreground"
                       htmlFor="workflow-schedule-custom-cron"
                     >
-                      Custom schedule
+                      {translate('custom.title')}
                     </label>
                     <Input
-                      aria-label="Custom schedule"
+                      aria-label={translate('custom.title')}
                       disabled={isSaving}
                       id="workflow-schedule-custom-cron"
                       placeholder="e.g. weekdays at 9am → 0 9 * * 1-5"
@@ -310,8 +310,7 @@ export function WorkflowScheduleDialog({
                       }
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Advanced cron format. Prefer a preset unless you need
-                      something specific.
+                      {translate('custom.description')}
                     </p>
                   </div>
                 ) : null}
@@ -322,7 +321,7 @@ export function WorkflowScheduleDialog({
                   className="block text-sm font-medium text-foreground"
                   htmlFor="workflow-schedule-timezone"
                 >
-                  Timezone
+                  {translate('timezone.label')}
                 </label>
                 <Select
                   disabled={isSaving}
@@ -330,10 +329,12 @@ export function WorkflowScheduleDialog({
                   onValueChange={setTimezone}
                 >
                   <SelectTrigger
-                    aria-label="Timezone"
+                    aria-label={translate('timezone.label')}
                     id="workflow-schedule-timezone"
                   >
-                    <SelectValue placeholder="Select timezone" />
+                    <SelectValue
+                      placeholder={translate('timezone.placeholder')}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {timezoneOptions.map((entry) => (
@@ -348,9 +349,11 @@ export function WorkflowScheduleDialog({
 
             {cadenceSummary ? (
               <p className="text-xs text-muted-foreground">
-                {isEnabled ? 'Runs' : 'Paused'} · {cadenceSummary} ·{' '}
-                {timezone || 'UTC'}
-                {nextRunLabel ? ` · Next run ${nextRunLabel}` : ''}
+                {isEnabled ? translate('runs') : translate('paused')} ·{' '}
+                {cadenceSummary} · {timezone || 'UTC'}
+                {nextRunLabel
+                  ? ` · ${translate('nextRun', { nextRun: nextRunLabel })}`
+                  : ''}
               </p>
             ) : null}
           </div>
@@ -364,7 +367,7 @@ export function WorkflowScheduleDialog({
               withWrapper={false}
               onClick={() => void handleRemove()}
             >
-              Remove schedule
+              {translate('actions.remove')}
             </Button>
           ) : (
             <span />
@@ -376,14 +379,16 @@ export function WorkflowScheduleDialog({
               withWrapper={false}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {translate('actions.cancel')}
             </Button>
             <Button
               isDisabled={isSaving || isLoading}
               withWrapper={false}
               onClick={() => void handleSave()}
             >
-              {isSaving ? 'Saving…' : 'Save schedule'}
+              {isSaving
+                ? translate('actions.saving')
+                : translate('actions.save')}
             </Button>
           </div>
         </DialogFooter>

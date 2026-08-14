@@ -439,7 +439,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'vote:Vote': ['entity'],
   'watchlist:Watchlist': [],
-  'workflow:Workflow': ['cloudSync', 'key', 'tasks'],
+  'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
     'attentionState',
     'lastActivityAt',

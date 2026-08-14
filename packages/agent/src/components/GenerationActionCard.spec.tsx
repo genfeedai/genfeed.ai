@@ -5,6 +5,14 @@ import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      stop: 'Stop',
+      stopAria: 'Stop generation',
+    })[key] ?? key,
+}));
+
 vi.mock('@helpers/generation-controls.helper', async (importOriginal) => {
   const actual =
     await importOriginal<
