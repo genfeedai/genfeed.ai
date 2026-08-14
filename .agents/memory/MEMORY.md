@@ -45,6 +45,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, real Studio Stop
 - [feedback_no_composer_context_meter](feedback_no_composer_context_meter.md) — no token / context-window meter on the agent composer
 - [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — All view lists collapsed families; no second provider accordion
+- [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card Auto/model pick persists across refresh
 - [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — first-login /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org

@@ -137,7 +137,13 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   ),
 }));
 
+import {
+  clearPreferredAgentChatModel,
+  writePreferredAgentChatModel,
+  writePreferredAgentChatPriority,
+} from '@genfeedai/agent/stores/agent-preferred-model.store';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { GenerationActionCard } from './GenerationActionCard';
 
 function createModel(
@@ -207,6 +213,7 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.onPrioritizeChange = undefined;
     capturedModelSelectorPopoverProps.prioritize = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
+    clearPreferredAgentChatModel();
   });
 
   it('keeps the prompt field compact and opens an editable full prompt', async () => {
@@ -433,6 +440,94 @@ describe('GenerationActionCard', () => {
         'Auto · Fastest',
       );
     });
+  });
+
+  it('restores Auto · Lowest Cost after a remount from the preferred store', async () => {
+    const imageModel = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+    const action = {
+      generationParams: {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        prompt: 'SCENE: Professional boxing ring.',
+      },
+      generationType: 'image' as const,
+      id: 'action-priority-persist',
+      title: 'Generate Image',
+      type: 'generation_action_card' as const,
+    };
+    const apiService = createApiServiceMock({ models: [imageModel] });
+
+    const first = render(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.onPrioritizeChange).toBeTypeOf(
+        'function',
+      );
+    });
+
+    capturedModelSelectorPopoverProps.onPrioritizeChange?.(RouterPriority.COST);
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+
+    first.unmount();
+
+    render(<GenerationActionCard action={action} apiService={apiService} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+    expect(capturedModelSelectorPopoverProps.values).toEqual([
+      AUTO_MODEL_OPTION_VALUE,
+    ]);
+    expect(capturedModelSelectorPopoverProps.prioritize).toBe(
+      RouterPriority.COST,
+    );
+  });
+
+  it('hydrates Auto priority from the preferred store even when the action pinned a model', async () => {
+    writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
+    writePreferredAgentChatPriority(RouterPriority.COST);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+            prompt: 'SCENE: Professional boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-priority-hydrate',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
+        'Auto · Lowest Cost',
+      );
+    });
+    expect(capturedModelSelectorPopoverProps.values).toEqual([
+      AUTO_MODEL_OPTION_VALUE,
+    ]);
   });
 
   it('allows leaving auto mode without forcing auto back on', async () => {

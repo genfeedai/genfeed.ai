@@ -8,13 +8,24 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  readPreferredAgentChatModel,
+  readPreferredAgentChatPriority,
+  writePreferredAgentChatModel,
+  writePreferredAgentChatPriority,
+} from '@genfeedai/agent/stores/agent-preferred-model.store';
+import { isAutoAgentModel } from '@genfeedai/agent/utils/agent-auto-model.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
   buildAgentGenerationRequestBody,
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  type RouterPriority,
+  toRouterPriority,
+} from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,
@@ -72,12 +83,19 @@ export function useGenerationActionCard({
 }: UseGenerationActionCardParams) {
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
+  const preferredModel = readPreferredAgentChatModel();
+  const preferredPriority = readPreferredAgentChatPriority();
+  const actionPriority = toRouterPriority(initParams?.prioritize);
+  const shouldStartInAutoMode =
+    isAutoAgentModel(preferredModel) || !initParams?.model;
 
   const [prompt, setPrompt] = useState(() =>
     formatStructuredPrompt(initParams?.prompt ?? ''),
   );
-  const [modelKey, setModelKey] = useState(initParams?.model ?? '');
-  const [isAutoMode, setIsAutoMode] = useState(() => !initParams?.model);
+  const [modelKey, setModelKey] = useState(() =>
+    shouldStartInAutoMode ? '' : (initParams?.model ?? ''),
+  );
+  const [isAutoMode, setIsAutoMode] = useState(shouldStartInAutoMode);
   const [aspectRatio, setAspectRatio] = useState(
     initParams?.aspectRatio ?? '1:1',
   );
@@ -87,7 +105,7 @@ export function useGenerationActionCard({
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prioritize, setPrioritize] = useState<RouterPriority>(
-    DEFAULT_AGENT_GENERATION_PRIORITY,
+    preferredPriority ?? actionPriority ?? DEFAULT_AGENT_GENERATION_PRIORITY,
   );
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -370,6 +388,14 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [resultId]);
 
+  const handlePrioritizeChange = useCallback((next: RouterPriority) => {
+    setPrioritize(next);
+    writePreferredAgentChatPriority(next);
+    setIsAutoMode(true);
+    setModelKey('');
+    writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
+  }, []);
+
   const handleModelChange = useCallback((_name: string, values: string[]) => {
     const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
     const manualValues = values.filter(
@@ -380,11 +406,15 @@ export function useGenerationActionCard({
     if (hasAutoOption && manualValues.length === 0) {
       setIsAutoMode(true);
       setModelKey('');
+      writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
       return;
     }
 
     setIsAutoMode(false);
     setModelKey(nextModelKey);
+    if (nextModelKey) {
+      writePreferredAgentChatModel(nextModelKey);
+    }
   }, []);
 
   const handleAspectRatioChange = useCallback(
@@ -410,7 +440,7 @@ export function useGenerationActionCard({
     resultId,
     error,
     prioritize,
-    setPrioritize,
+    setPrioritize: handlePrioritizeChange,
     models,
     modelsLoading,
     modelsError,
