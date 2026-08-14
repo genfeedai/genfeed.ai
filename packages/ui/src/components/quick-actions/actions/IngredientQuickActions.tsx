@@ -251,9 +251,10 @@ export default function IngredientQuickActions(
   // Shell radius comes from BORDER_WHITE_30 (rounded-lg) — square buttons in a
   // pill shell was exactly the mismatch the quick-action sweep removed.
   const sharedShellClassName = cn(
-    BG_BLUR,
-    BORDER_WHITE_30,
-    'quick-actions-wrapper p-1 transition-all duration-300',
+    isMasonryCompact
+      ? 'rounded-lg bg-secondary/80 p-0.5 shadow-dropdown'
+      : cn(BG_BLUR, BORDER_WHITE_30, 'p-1'),
+    'quick-actions-wrapper transition-all duration-300',
   );
 
   return (
@@ -278,7 +279,9 @@ export default function IngredientQuickActions(
         {primaryActions.map((action) => (
           <QuickActionButton
             key={action.id}
-            action={action}
+            action={
+              isMasonryCompact ? { ...action, variant: undefined } : action
+            }
             size={size}
             showLabel={false}
             onClick={handleActionClick}

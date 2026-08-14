@@ -202,6 +202,9 @@ describe('MasonryImage', () => {
     expect(
       screen.getByTestId('asset-media-fallback-img-123'),
     ).toHaveTextContent('Preview unavailable');
+    expect(screen.getByTestId('asset-media-fallback-img-123')).toHaveClass(
+      'bg-secondary/90',
+    );
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',
       'https://assets.test.com/placeholders/portrait.jpg',
