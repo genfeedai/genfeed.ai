@@ -18,6 +18,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      '@genfeedai/config/deployment': path.resolve(
+        pkgDir,
+        '../config/src/deployment.ts',
+      ),
       '@genfeedai/config': path.resolve(pkgDir, '../config/src/index.ts'),
       '@genfeedai/storage/path-containment': path.resolve(
         pkgDir,

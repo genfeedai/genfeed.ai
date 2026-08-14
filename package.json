@@ -81,6 +81,7 @@
     "check:route-shadowing": "bun run scripts/architecture/check-route-shadowing.ts",
     "check:spec-typecheck": "bun run scripts/architecture/check-spec-typecheck.ts",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
+    "check:cross-org-unsafe": "bun run scripts/architecture/check-cross-org-unsafe.ts",
     "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",

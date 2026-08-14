@@ -118,6 +118,10 @@ const checks = [
     name: 'Controller route shadowing',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-cross-org-unsafe.ts'],
+    name: 'Cross-org unsafe hatch ratchet',
+  },
+  {
     command: [
       'bun',
       'run',

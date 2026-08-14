@@ -3,6 +3,7 @@ import {
   envFlag,
   getClientSurface,
   getDeployment,
+  getDeploymentFromReader,
   hasAgentFirstOnboarding,
   hostnameFromUrl,
   isCloudDeployment,
@@ -224,4 +225,22 @@ describe('deployment axes', () => {
       expect(hasAgentFirstOnboarding()).toBe(expected);
     },
   );
+});
+
+describe('getDeploymentFromReader', () => {
+  it('reads CLOUD from a ConfigService-style getter without process.env', () => {
+    const env: Record<string, string | undefined> = { GENFEED_CLOUD: '1' };
+    expect(getDeploymentFromReader((key) => env[key])).toBe('cloud');
+  });
+
+  it('falls back to hosted public URLs from the reader', () => {
+    const env: Record<string, string | undefined> = {
+      GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai',
+    };
+    expect(getDeploymentFromReader((key) => env[key])).toBe('cloud');
+  });
+
+  it('returns self-hosted when the reader has no cloud signal', () => {
+    expect(getDeploymentFromReader(() => undefined)).toBe('self-hosted');
+  });
 });
