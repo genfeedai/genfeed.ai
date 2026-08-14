@@ -3,9 +3,19 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  applyHighResolutionVideoMultiplier,
+  calculateDynamicVideoCost,
+  commitDeferredCredits,
+  isDeferredCreditsRequest,
+  resolveGenerationDimensions,
+  resolveModelCreditCost,
+  scaleCreditsForNonBatchOutputs,
+  videoOutputCount,
+} from '@api/helpers/utils/credits/generation-credit-cost.util';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { PricingType } from '@genfeedai/enums';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class VideoGenerationCreditsService {
@@ -22,40 +32,19 @@ export class VideoGenerationCreditsService {
   ): Promise<void> {
     const reqWithCredits = request as unknown as {
       creditsConfig?: {
-        deferred?: boolean;
         amount?: number;
+        deferred?: boolean;
         modelKey?: string;
       };
     };
-    if (!reqWithCredits.creditsConfig?.deferred) {
+    if (!isDeferredCreditsRequest(reqWithCredits)) {
       return;
     }
 
-    const resolvedModelDoc = await this.modelsService.findOne({
-      key: baseModelKey(model),
-    });
-    let requiredCredits = resolvedModelDoc
-      ? this.calculateDynamicVideoCost(
-          resolvedModelDoc,
-          createVideoDto.width || 1920,
-          createVideoDto.height || 1080,
-          createVideoDto.duration || 0,
-        )
-      : 5;
-
-    if (
-      createVideoDto.resolution === 'high' ||
-      createVideoDto.resolution === '1080p'
-    ) {
-      requiredCredits *= 2;
-    }
-    const requestedOutputs = createVideoDto.outputs || 1;
-    const isBatchSupported =
-      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
-    if (!isBatchSupported && requestedOutputs > 1) {
-      requiredCredits *= requestedOutputs;
-    }
-
+    const requiredCredits = await this.resolveRequiredCredits(
+      createVideoDto,
+      model,
+    );
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
@@ -66,52 +55,41 @@ export class VideoGenerationCreditsService {
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organization,
         );
-      throw new HttpException(
-        {
-          detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-          title: 'Insufficient credits',
-        },
-        HttpStatus.PAYMENT_REQUIRED,
-      );
+      throw createInsufficientCreditsException(requiredCredits, balance);
     }
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount: requiredCredits,
-      deferred: false,
-      modelKey: model,
-    };
+    commitDeferredCredits(reqWithCredits, requiredCredits, model);
   }
 
-  private calculateDynamicVideoCost(
-    model: {
-      cost?: number | null;
-      pricingType?: string | null;
-      costPerUnit?: number | null;
-      minCost?: number | null;
-    },
-    width: number,
-    height: number,
-    duration: number,
-  ): number {
-    const pricingType = model.pricingType || PricingType.FLAT;
-    let baseCost = model.cost || 0;
+  private async resolveRequiredCredits(
+    createVideoDto: CreateVideoDto,
+    model: string,
+  ): Promise<number> {
+    const resolvedModelDoc = await this.modelsService.findOne({
+      key: baseModelKey(model),
+    });
+    const { height, width } = resolveGenerationDimensions(
+      createVideoDto.width,
+      createVideoDto.height,
+    );
+    const baseCost = resolveModelCreditCost(resolvedModelDoc, (modelDoc) =>
+      calculateDynamicVideoCost(
+        modelDoc,
+        width,
+        height,
+        createVideoDto.duration || 0,
+      ),
+    );
+    const resolutionAdjusted = applyHighResolutionVideoMultiplier(
+      baseCost,
+      createVideoDto.resolution,
+    );
+    const isBatchSupported =
+      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
 
-    if (
-      pricingType === PricingType.PER_MEGAPIXEL &&
-      width &&
-      height &&
-      model.costPerUnit
-    ) {
-      baseCost = Math.ceil(((width * height) / 1_000_000) * model.costPerUnit);
-    } else if (
-      pricingType === PricingType.PER_SECOND &&
-      duration &&
-      model.costPerUnit
-    ) {
-      baseCost = Math.ceil(duration * model.costPerUnit);
-    }
-
-    const minCost = model.minCost || 0;
-    return minCost > 0 && baseCost < minCost ? minCost : baseCost;
+    return scaleCreditsForNonBatchOutputs(
+      resolutionAdjusted,
+      videoOutputCount(createVideoDto.outputs),
+      isBatchSupported,
+    );
   }
 }

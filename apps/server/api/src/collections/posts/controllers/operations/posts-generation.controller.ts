@@ -1,4 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  createPostsGenerationHttpException,
+  generationFailureMessage,
+  invalidThreadCountMessage,
+  isAccountThreadFormat,
+  isOwnedPost,
+  isTwitterPlatform,
+  postAccessBlockReason,
+} from '@api/collections/posts/controllers/operations/posts-generation.helpers';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -13,7 +22,6 @@ import { PostVariationService } from '@api/collections/posts/services/post-varia
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -21,6 +29,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -176,24 +185,15 @@ export class PostsGenerationController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    if (dto.format === 'thread' && dto.count < 2) {
-      throw new HttpException(
-        {
-          detail: 'Thread generation requires at least two posts',
-          title: 'Invalid thread count',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    if (dto.format === 'thread' && dto.count > 25) {
-      throw new HttpException(
-        {
-          detail: 'Thread generation supports at most 25 posts',
-          title: 'Invalid thread count',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
+    if (isAccountThreadFormat(dto.format)) {
+      const invalidCount = invalidThreadCountMessage(dto.count);
+      if (invalidCount) {
+        throw createPostsGenerationHttpException(
+          invalidCount.detail,
+          invalidCount.title,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
     try {
@@ -214,9 +214,10 @@ export class PostsGenerationController {
       this.logger.error('Failed to generate account content', error);
       throw new HttpException(
         {
-          detail:
-            (error as Error)?.message ||
+          detail: generationFailureMessage(
+            error,
             'An error occurred while generating account content',
+          ),
           title: 'Failed to generate account content',
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -251,21 +252,17 @@ export class PostsGenerationController {
     ]);
 
     if (!originalPost) {
-      throw new HttpException(
-        {
-          detail: 'The specified post does not exist',
-          title: 'Post not found',
-        },
+      throw createPostsGenerationHttpException(
+        'The specified post does not exist',
+        'Post not found',
         HttpStatus.NOT_FOUND,
       );
     }
 
-    if (originalPost.organizationId !== publicMetadata.organization) {
-      throw new HttpException(
-        {
-          detail: 'You do not have access to this post',
-          title: 'Access denied',
-        },
+    if (!isOwnedPost(originalPost, publicMetadata.organization)) {
+      throw createPostsGenerationHttpException(
+        'You do not have access to this post',
+        'Access denied',
         HttpStatus.FORBIDDEN,
       );
     }
@@ -278,22 +275,17 @@ export class PostsGenerationController {
     );
 
     if (existingChildren > 0) {
-      throw new HttpException(
-        {
-          detail:
-            'This post already has thread children. Cannot expand further.',
-          title: 'Already a thread',
-        },
+      throw createPostsGenerationHttpException(
+        'This post already has thread children. Cannot expand further.',
+        'Already a thread',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    if (parsePlatform(originalPost.platform) !== CredentialPlatform.TWITTER) {
-      throw new HttpException(
-        {
-          detail: 'Thread expansion is only available for Twitter/X posts',
-          title: 'Platform not supported',
-        },
+    if (!isTwitterPlatform(originalPost.platform)) {
+      throw createPostsGenerationHttpException(
+        'Thread expansion is only available for Twitter/X posts',
+        'Platform not supported',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -364,23 +356,16 @@ export class PostsGenerationController {
       PopulatePatterns.credentialMinimal,
     ]);
 
-    if (!post) {
-      throw new HttpException(
-        {
-          detail: 'Post not found',
-          title: `Post ${postId} not found`,
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (post.organizationId !== publicMetadata.organization) {
-      throw new HttpException(
-        {
-          detail: 'You do not have access to this post',
-          title: 'Access denied',
-        },
-        HttpStatus.FORBIDDEN,
+    const enhanceAccess = postAccessBlockReason(
+      post,
+      publicMetadata.organization,
+      postId,
+    );
+    if (enhanceAccess) {
+      throw createPostsGenerationHttpException(
+        enhanceAccess.detail,
+        enhanceAccess.title,
+        enhanceAccess.status,
       );
     }
 
@@ -397,15 +382,13 @@ export class PostsGenerationController {
 
       return serializeSingle(request, this.serializer, updatedPost);
     } catch (error: unknown) {
-      const errorMessage = (error as Error)?.message || 'Unknown error';
+      const errorMessage = generationFailureMessage(error, 'Unknown error');
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(`Post enhancement failed: ${errorMessage}`, errorStack);
-      throw new HttpException(
-        {
-          detail: errorMessage || 'Failed to enhance post content',
-          title: 'Enhancement failed',
-        },
+      throw createPostsGenerationHttpException(
+        errorMessage || 'Failed to enhance post content',
+        'Enhancement failed',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -433,23 +416,16 @@ export class PostsGenerationController {
       PopulatePatterns.credentialMinimal,
     ]);
 
-    if (!post) {
-      throw new HttpException(
-        {
-          detail: 'Post not found',
-          title: `Post ${postId} not found`,
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (post.organizationId !== publicMetadata.organization) {
-      throw new HttpException(
-        {
-          detail: 'You do not have access to this post',
-          title: 'Access denied',
-        },
-        HttpStatus.FORBIDDEN,
+    const seoAccess = postAccessBlockReason(
+      post,
+      publicMetadata.organization,
+      postId,
+    );
+    if (seoAccess) {
+      throw createPostsGenerationHttpException(
+        seoAccess.detail,
+        seoAccess.title,
+        seoAccess.status,
       );
     }
 
@@ -488,13 +464,11 @@ export class PostsGenerationController {
         publicMetadata,
       );
     } catch (error: unknown) {
-      const errorMessage = (error as Error)?.message || 'Unknown error';
+      const errorMessage = generationFailureMessage(error, 'Unknown error');
       this.logger.error(`Hook generation failed: ${errorMessage}`);
-      throw new HttpException(
-        {
-          detail: errorMessage || 'Failed to generate hook variations',
-          title: 'Hook generation failed',
-        },
+      throw createPostsGenerationHttpException(
+        errorMessage || 'Failed to generate hook variations',
+        'Hook generation failed',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

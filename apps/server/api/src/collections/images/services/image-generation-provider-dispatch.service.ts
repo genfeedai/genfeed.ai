@@ -8,6 +8,17 @@ import type {
   ImageGenerationSavedIngredient,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import {
+  resolveImageDispatchExecutePath,
+  shouldFailAdditionalActivity,
+  shouldTrackSequentialOutputInResponse,
+} from '@api/collections/images/services/image-generation-dispatch-path.util';
+import {
+  isProcessingIngredient,
+  missingOutputUrlMessage,
+  optionalUploadString,
+  shouldFinalizeExternalOutput,
+} from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
@@ -139,16 +150,18 @@ export class ImageGenerationProviderDispatchService {
     provider: PreparedImageGenerationProvider,
     pollIds: string[],
   ): Promise<unknown> {
-    if (provider.completionKind === 'inline') {
+    const path = resolveImageDispatchExecutePath({
+      completionKind: provider.completionKind,
+      outputStrategy: provider.outputStrategy,
+      outputs: context.outputs,
+    });
+    if (path === 'inline') {
       return this.executeInline(context, provider);
     }
-    if (context.outputs <= 1) {
-      return this.executeSingle(context, provider);
-    }
-    if (provider.outputStrategy === 'batch') {
+    if (path === 'batch') {
       return this.executeBatch(context, provider, pollIds);
     }
-    if (provider.outputStrategy === 'sequential') {
+    if (path === 'sequential') {
       return this.executeSequential(context, provider, pollIds);
     }
     return this.executeSingle(context, provider);
@@ -389,7 +402,7 @@ export class ImageGenerationProviderDispatchService {
           documents.ingredientData.id,
         );
       } catch (activityError: unknown) {
-        if (provider.additionalActivityFailure === 'fail') {
+        if (shouldFailAdditionalActivity(provider.additionalActivityFailure)) {
           throw activityError;
         }
         this.loggerService.error(
@@ -399,7 +412,11 @@ export class ImageGenerationProviderDispatchService {
       }
 
       const id = documents.ingredientData.id.toString();
-      if (provider.trackAdditionalOutputsInResponse) {
+      if (
+        shouldTrackSequentialOutputInResponse(
+          provider.trackAdditionalOutputsInResponse,
+        )
+      ) {
         context.pendingIngredientIds.push(id);
       } else {
         pollIds.push(id);
@@ -469,20 +486,18 @@ export class ImageGenerationProviderDispatchService {
     result: ImageGenerationProviderResult,
     outputIndex = 0,
   ): Promise<void> {
-    if (result.kind !== 'external-id' || !result.outputUrls) {
+    if (!shouldFinalizeExternalOutput(result)) {
       return;
     }
 
     const current = await this.imagesService.findOne({ id: ingredientId });
-    if (!current || current.status !== IngredientStatus.PROCESSING) {
+    if (!isProcessingIngredient(current)) {
       return;
     }
 
-    const outputUrl = result.outputUrls[outputIndex];
+    const outputUrl = result.outputUrls?.[outputIndex];
     if (!outputUrl) {
-      throw new Error(
-        `Image provider returned no output URL at index ${outputIndex}`,
-      );
+      throw new Error(missingOutputUrlMessage(outputIndex));
     }
 
     const id = ingredientId.toString();
@@ -502,13 +517,9 @@ export class ImageGenerationProviderDispatchService {
         }),
       ),
       this.imagesService.patch(ingredientId, {
-        cdnUrl:
-          typeof uploadMeta.publicUrl === 'string'
-            ? uploadMeta.publicUrl
-            : undefined,
+        cdnUrl: optionalUploadString(uploadMeta.publicUrl),
         promptId: context.promptData.id,
-        s3Key:
-          typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
+        s3Key: optionalUploadString(uploadMeta.s3Key),
         status: IngredientStatus.GENERATED,
       }),
       this.websocketService.publishVideoComplete(
@@ -521,12 +532,8 @@ export class ImageGenerationProviderDispatchService {
 
     await this.emitGenerationCompleted(context, ingredientId, {
       mimeType: null,
-      storageKey:
-        typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
-      url:
-        typeof uploadMeta.publicUrl === 'string'
-          ? uploadMeta.publicUrl
-          : outputUrl,
+      storageKey: optionalUploadString(uploadMeta.s3Key) ?? null,
+      url: optionalUploadString(uploadMeta.publicUrl) ?? outputUrl,
     });
   }
 

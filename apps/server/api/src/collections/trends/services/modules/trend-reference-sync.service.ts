@@ -3,6 +3,7 @@ import type {
   SyncTrendReferenceInput,
   TrendReferenceRecordData,
 } from '@api/collections/trends/services/trend-reference-corpus.types';
+import { getTrendEngagementTotal } from '@api/collections/trends/utils/trend-engagement.util';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-source-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -72,7 +73,7 @@ export class TrendReferenceSyncService {
         platform: sourceItem.platform,
       },
     });
-    const engagementTotal = this.getEngagementTotal(sourceItem.metrics);
+    const engagementTotal = getTrendEngagementTotal(sourceItem.metrics);
     const now = new Date();
     const referenceId = matchedReference
       ? await this.updateReference({
@@ -301,15 +302,6 @@ export class TrendReferenceSyncService {
       value:
         input.sourceItem.sourceClassification ?? input.existingClassification,
     });
-  }
-
-  private getEngagementTotal(metrics?: TrendSourceItem['metrics']): number {
-    return (
-      (metrics?.comments || 0) +
-      (metrics?.likes || 0) +
-      (metrics?.shares || 0) +
-      (metrics?.views || 0)
-    );
   }
 
   private normalizeSourceUrl(url: string): string {
