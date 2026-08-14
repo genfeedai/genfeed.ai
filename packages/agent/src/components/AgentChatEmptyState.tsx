@@ -33,6 +33,7 @@ type AgentChatEmptyStateProps = {
   isAttachmentUploading: boolean;
   isBusy: boolean;
   isComposerVisible: boolean;
+  composerBanner?: ReactNode;
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
@@ -76,6 +77,7 @@ export function AgentChatEmptyState({
   isAttachmentUploading,
   isBusy,
   isComposerVisible,
+  composerBanner,
   isReadOnly,
   isRunActive,
   isWideLayout,
@@ -109,6 +111,13 @@ export function AgentChatEmptyState({
         onSendNow={onSendFollowUpNow}
         queue={followUps}
       />
+    ) : null;
+  const composerTopContent =
+    composerBanner || followUpQueue ? (
+      <>
+        {composerBanner}
+        {followUpQueue}
+      </>
     ) : null;
 
   if (isInspector) {
@@ -159,7 +168,7 @@ export function AgentChatEmptyState({
               className="w-full"
               layoutMode="inflow"
               maxWidth="full"
-              topContent={followUpQueue}
+              topContent={composerTopContent}
               zIndex={60}
             >
               <AgentChatInput

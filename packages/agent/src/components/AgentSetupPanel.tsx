@@ -1,18 +1,17 @@
 'use client';
 
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
-import { OAUTH_CONNECT_PLATFORMS } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
-import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 interface AgentSetupPanelProps {
   brand: Brand | undefined | null;
@@ -92,7 +91,7 @@ function ConnectedAccountChip({
  * Right-pane setup-progress panel shown in the agent workspace while the active
  * brand is not fully onboarded. Surfaces brand-context completeness and
  * social-channel connection status, and lets the user connect channels via the
- * same OAuth flow the workspace already uses.
+ * same OAuth dropdown the workspace already uses.
  */
 export function AgentSetupPanel({
   brand,
@@ -101,46 +100,12 @@ export function AgentSetupPanel({
   connectedPlatformsCount,
   onOAuthConnect,
 }: AgentSetupPanelProps): ReactElement {
-  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
-    null,
-  );
-
   const connectedPlatforms = useMemo(
     () =>
       new Set(connectedConnections.map((connection) => connection.platform)),
     [connectedConnections],
   );
 
-  const unconnectedPlatforms = useMemo(
-    () =>
-      OAUTH_CONNECT_PLATFORMS.filter(
-        (item) => !connectedPlatforms.has(item.platform),
-      ),
-    [connectedPlatforms],
-  );
-
-  function handleConnect(platform: string): void {
-    if (!onOAuthConnect) {
-      return;
-    }
-
-    setConnectingPlatform(platform);
-    // `onOAuthConnect` typically navigates the current window to the provider,
-    // so this component usually unmounts before settling. Reset in `finally` so
-    // the buttons re-enable if navigation is aborted, the handler rejects, or it
-    // throws synchronously.
-    void (async () => {
-      try {
-        await onOAuthConnect(platform);
-      } catch {
-        // The OAuth flow surfaces its own errors; just re-enable the buttons.
-      } finally {
-        setConnectingPlatform(null);
-      }
-    })();
-  }
-
-  const canConnect = Boolean(onOAuthConnect);
   const hasConnections = connectedPlatformsCount > 0;
 
   return (
@@ -193,32 +158,17 @@ export function AgentSetupPanel({
             </div>
           )}
 
-          {canConnect && unconnectedPlatforms.length > 0 ? (
-            <div className="border-t border-white/[0.06] pt-2.5">
-              <p className="mb-2 text-[10px] text-foreground/30">
-                {hasConnections
-                  ? 'Connect more channels'
-                  : 'Connect a channel to publish'}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {unconnectedPlatforms.map(({ Icon, ...item }) => (
-                  <Button
-                    // Meta Ads + Facebook (and YT Ads + Google Ads) share a
-                    // CredentialPlatform — connectId is the unique tile key.
-                    key={item.connectId ?? item.platform}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    onClick={() => handleConnect(item.platform)}
-                    isLoading={connectingPlatform === item.platform}
-                    isDisabled={connectingPlatform !== null}
-                  >
-                    <Icon className={`mr-1.5 size-3.5 ${item.iconClassName}`} />
-                    {item.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <AgentOAuthConnectMenu
+            contentAlign="start"
+            excludePlatforms={connectedPlatforms}
+            onOAuthConnect={onOAuthConnect}
+            triggerClassName="w-full justify-center"
+            triggerLabel={
+              hasConnections ? 'Connect more channels' : 'Connect a channel'
+            }
+            triggerSize={ButtonSize.SM}
+            triggerVariant={ButtonVariant.SECONDARY}
+          />
         </Card>
       </div>
     </section>
