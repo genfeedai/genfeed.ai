@@ -14,3 +14,4 @@ type: feedback
 2. Do not restore `check:architecture` as a CI job, and do not wire individual `check:*` scripts into `ci.yml`.
 3. When a contract is obsolete, delete the test. Do not leave a disabled YAML comment.
 4. `check:*` package.json scripts may remain for local/pre-commit use; they are not CI job names.
+5. Changing `.github/workflows/ci.yml`, root `package.json` scripts, docs, or `scripts/ci` tests must not force the full app/API shard matrix. That escalation is only for lockfile, turbo, vitest config, bun-setup, and the test planner itself.

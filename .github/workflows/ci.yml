@@ -354,8 +354,9 @@ jobs:
     timeout-minutes: 10
     needs: trust
     # Plan before allocating test runners. Vitest supplies the exact affected
-    # app/API files; Turbo supplies affected workspace tasks. Validation
-    # machinery and root dependency changes escalate to the full sharded path.
+    # app/API files; Turbo supplies affected workspace tasks. Lockfile, turbo,
+    # vitest config, bun-setup, and the planner itself escalate to the full
+    # sharded path. Editing ci.yml, package.json scripts, or docs does not.
     if: needs.trust.outputs.is-trusted == 'true'
     outputs:
       app: ${{ steps.plan.outputs.app }}
