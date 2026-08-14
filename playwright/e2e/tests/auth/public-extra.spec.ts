@@ -5,9 +5,9 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 /**
  * Public + Managed-Credits Route Coverage
  *
- * Covers the unauthenticated public routes (/sign-up, /request-access) and the
- * authenticated managed-credits success screen. Public routes should render
- * without bouncing to login; allowRedirectToLogin keeps the checks resilient.
+ * Covers the unauthenticated public routes and the authenticated
+ * managed-credits success screen. Public routes must render without bouncing
+ * to login. Retired routes that now gate get their own redirect assertion.
  */
 
 test.describe('Public Routes (Unauthenticated)', () => {
@@ -15,7 +15,6 @@ test.describe('Public Routes (Unauthenticated)', () => {
 
   const routes = [
     '/sign-up',
-    '/request-access',
     '/forgot-password',
     '/reset-password',
     '/agent-auth/claim',
@@ -24,44 +23,67 @@ test.describe('Public Routes (Unauthenticated)', () => {
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ unauthenticatedPage }) => {
-      await assertRouteRenders(unauthenticatedPage, route, {
-        allowRedirectToLogin: true,
-      });
+      await assertRouteRenders(unauthenticatedPage, route);
     });
   }
 
-  test('sign-up stays interactive', async ({ unauthenticatedPage }) => {
-    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.SIGN_UP, {
-      allowRedirectToLogin: true,
+  test('retired request-access redirects to login', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto('/request-access', {
+      waitUntil: 'domcontentloaded',
     });
-    await tryClick(unauthenticatedPage, 'button');
-    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+    await expect(unauthenticatedPage).toHaveURL(/\/login/);
+    expect(unauthenticatedPage.url()).toContain(
+      encodeURIComponent('/request-access'),
+    );
   });
 
-  test('request-access stays interactive', async ({ unauthenticatedPage }) => {
-    await assertRouteRenders(unauthenticatedPage, '/request-access', {
-      allowRedirectToLogin: true,
+  test('sign-up stays interactive', async ({ unauthenticatedPage }) => {
+    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.SIGN_UP);
+    const magicLink = unauthenticatedPage.getByRole('link', {
+      name: 'Magic Link',
     });
-    await tryClick(unauthenticatedPage, 'button');
-    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+    await expect(magicLink).toBeVisible();
+    await magicLink.click();
+    await expect(unauthenticatedPage).not.toHaveURL(/\/login/);
+    await expect(
+      unauthenticatedPage.getByText(/sign up with a magic link/i),
+    ).toBeVisible();
   });
 
   test('forgot-password stays interactive', async ({ unauthenticatedPage }) => {
-    await assertRouteRenders(unauthenticatedPage, '/forgot-password', {
-      allowRedirectToLogin: true,
+    await assertRouteRenders(unauthenticatedPage, '/forgot-password');
+    await unauthenticatedPage.getByLabel('Email').fill('qa@example.com');
+    const sendLink = unauthenticatedPage.getByRole('button', {
+      name: 'Send link',
     });
-    await tryClick(unauthenticatedPage, 'button');
-    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+    await expect(sendLink).toBeEnabled();
+    await sendLink.click();
+    await expect(unauthenticatedPage).not.toHaveURL(/\/login/);
+    expect(new URL(unauthenticatedPage.url()).pathname).toBe(
+      '/forgot-password',
+    );
+    await expect(
+      unauthenticatedPage.getByText(/check your email|reset your password/i),
+    ).toBeVisible();
   });
 
   test('agent-auth claim stays interactive', async ({
     unauthenticatedPage,
   }) => {
-    await assertRouteRenders(unauthenticatedPage, '/agent-auth/claim', {
-      allowRedirectToLogin: true,
+    const claimAttemptToken = 'a'.repeat(32);
+    const claimPath = `/agent-auth/claim?claim_attempt_token=${claimAttemptToken}`;
+    await assertRouteRenders(unauthenticatedPage, claimPath);
+    const signIn = unauthenticatedPage.getByRole('link', {
+      name: 'Sign in to continue',
     });
-    await tryClick(unauthenticatedPage, 'button');
-    await expect(unauthenticatedPage.locator('body')).toBeVisible();
+    await expect(signIn).toBeVisible();
+    await signIn.click();
+    await expect(unauthenticatedPage).toHaveURL(/\/login/);
+    expect(unauthenticatedPage.url()).toContain(
+      encodeURIComponent(`/agent-auth/claim?claim_attempt_token=`),
+    );
   });
 });
 
@@ -90,7 +112,8 @@ test.describe('Managed Credits (Authenticated)', () => {
       authenticatedPage,
       APP_ROUTES.MANAGED_CREDITS_SUCCESS,
     );
-    await tryClick(authenticatedPage, 'a');
+    const clicked = await tryClick(authenticatedPage, 'a');
+    expect(clicked).toBe(true);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 });

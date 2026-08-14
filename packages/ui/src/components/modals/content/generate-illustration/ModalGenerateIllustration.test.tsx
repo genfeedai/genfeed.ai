@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModalGenerateIllustration from '@ui/modals/content/generate-illustration/ModalGenerateIllustration';
+import { Button } from '@ui/primitives/button';
 
 const handleGenerate = vi.fn();
 const handleClose = vi.fn();
@@ -72,21 +73,17 @@ vi.mock('./IllustrationActions', () => ({
     <div data-testid="illustration-actions">
       {generatedImageId ? (
         <>
-          <button type="button" onClick={onTryAgain}>
-            Try Again
-          </button>
-          <button type="button" onClick={onConfirmImage}>
-            Use This Image
-          </button>
+          <Button type="button" label="Try Again" onClick={onTryAgain} />
+          <Button
+            type="button"
+            label="Use This Image"
+            onClick={onConfirmImage}
+          />
         </>
       ) : (
         <>
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" onClick={onGenerate}>
-            Generate
-          </button>
+          <Button type="button" label="Cancel" onClick={onClose} />
+          <Button type="button" label="Generate" onClick={onGenerate} />
         </>
       )}
     </div>
@@ -132,7 +129,9 @@ describe('ModalGenerateIllustration', () => {
     expect(screen.getByTestId('illustration-prompt')).toHaveTextContent(
       'test prompt',
     );
-    expect(screen.queryByTestId('illustration-preview')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('illustration-preview'),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Generate' }));
     expect(handleGenerate).toHaveBeenCalledTimes(1);

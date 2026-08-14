@@ -1,45 +1,9 @@
 import { VideoEaseCurve } from '@genfeedai/enums';
-import type { ChangeEvent } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import EaseCurveSelector from '@ui/storyboard/EaseCurveSelector';
-
-vi.mock('@ui/primitives/dropdown-field', () => ({
-  default: ({
-    label,
-    value,
-    isDisabled,
-    options,
-    onChange,
-    className,
-  }: {
-    label?: string;
-    value?: string;
-    isDisabled?: boolean;
-    className?: string;
-    options: Array<{ key: string; label: string }>;
-    onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  }) => (
-    <label className={className}>
-      {label}
-      <select
-        aria-label={label}
-        disabled={isDisabled}
-        value={value ?? ''}
-        onChange={onChange}
-      >
-        <option value="">none</option>
-        {options.map((option) => (
-          <option key={option.key} value={option.key}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  ),
-}));
 
 describe('EaseCurveSelector', () => {
   it('should render without crashing', () => {
@@ -60,14 +24,17 @@ describe('EaseCurveSelector', () => {
       />,
     );
 
-    await user.selectOptions(
-      screen.getByLabelText('Ease Curve'),
+    await user.click(screen.getByRole('button', { name: 'Ease In-Out Cubic' }));
+    await user.click(screen.getByRole('button', { name: /Ease In-Out Sine/i }));
+    expect(onChange).toHaveBeenNthCalledWith(
+      1,
       VideoEaseCurve.EASE_IN_OUT_SINE,
     );
-    expect(onChange).toHaveBeenCalledWith(VideoEaseCurve.EASE_IN_OUT_SINE);
 
-    await user.selectOptions(screen.getByLabelText('Ease Curve'), '');
-    expect(onChange).toHaveBeenCalledWith(undefined);
+    await user.click(screen.getByRole('button', { name: 'Ease In-Out Cubic' }));
+    await user.click(screen.getByRole('button', { name: /None/i }));
+    expect(onChange).toHaveBeenNthCalledWith(2, undefined);
+    expect(onChange).toHaveBeenCalledTimes(2);
   });
 
   it('should apply correct styles and classes', () => {
@@ -80,7 +47,8 @@ describe('EaseCurveSelector', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Transition ease')).toBeDisabled();
-    expect(screen.getByText('Transition ease')).toHaveClass('w-64');
+    const trigger = screen.getByRole('button', { name: 'Transition ease' });
+    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveClass('w-64');
   });
 });

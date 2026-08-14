@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   collectorMatches,
+  DEFAULT_VITEST_INCLUDES,
+  extractVitestProjectGlobs,
   extractVitestTestGlobs,
   findUncollectedTestFiles,
   globToRegExp,
@@ -43,7 +45,10 @@ describe('test collection guard', () => {
       matchGlob('src/card.test.tsx', 'src/**/*.test.{ts,tsx}'),
       true,
     );
-    assert.equal(matchGlob('src/card.spec.ts', 'src/**/*.test.{ts,tsx}'), false);
+    assert.equal(
+      matchGlob('src/card.spec.ts', 'src/**/*.test.{ts,tsx}'),
+      false,
+    );
     assert.equal(globToRegExp('a/**/b').test('a/b'), true);
   });
 
@@ -76,10 +81,59 @@ export default defineConfig({
 
     assert.ok(globs.includes.includes('**/*.test.ts'));
     assert.ok(globs.includes.includes('**/*.spec.ts'));
+    for (const pattern of [
+      '**/*.test.mts',
+      '**/*.test.cts',
+      '**/*.test.js',
+      '**/*.test.jsx',
+      '**/*.test.mjs',
+      '**/*.test.cjs',
+      '**/*.spec.mts',
+      '**/*.spec.cts',
+      '**/*.spec.jsx',
+      '**/*.spec.mjs',
+      '**/*.spec.cjs',
+    ]) {
+      assert.ok(
+        globs.includes.includes(pattern),
+        `fallback include must cover ${pattern}`,
+      );
+    }
+    assert.equal(globs.includes.includes('**/*.e2e-spec.ts'), false);
+  });
+
+  it('reads workspace project globs from a variable list', () => {
+    assert.deepEqual(
+      extractVitestProjectGlobs(`
+const testProjects = [
+  'apps/server/*/vitest.config.ts',
+  'apps/server/api/vitest.config.e2e.ts',
+];
+
+export default defineConfig({
+  test: {
+    projects: testProjects,
+  },
+});
+`),
+      [
+        'apps/server/*/vitest.config.ts',
+        'apps/server/api/vitest.config.e2e.ts',
+      ],
+    );
+  });
+
+  it('keeps e2e-spec out of the Vitest default include fallback', () => {
+    assert.equal(DEFAULT_VITEST_INCLUDES.includes('**/*.e2e-spec.ts'), false);
+    assert.ok(DEFAULT_VITEST_INCLUDES.includes('**/*.spec.mts'));
+    assert.ok(DEFAULT_VITEST_INCLUDES.includes('**/*.test.cjs'));
   });
 
   it('flags a .spec.ts next to a *.test.ts-only include', () => {
     const rootDir = fixture({
+      'packages/pages/package.json': JSON.stringify({
+        scripts: { test: 'vitest run --config vitest.config.ts' },
+      }),
       'packages/pages/vitest.config.ts': `
 export default defineConfig({
   test: {
@@ -98,6 +152,12 @@ export default defineConfig({
 
   it('treats a second config in the same workspace as a collector', () => {
     const rootDir = fixture({
+      'apps/server/workers/package.json': JSON.stringify({
+        scripts: {
+          test: 'vitest run --config vitest.config.ts',
+          'test:cron': 'vitest run --config vitest.cron.config.ts',
+        },
+      }),
       'apps/server/workers/vitest.config.ts': `
 export default defineConfig({
   test: {
@@ -122,8 +182,39 @@ export default defineConfig({
     assert.deepEqual(findUncollectedTestFiles(rootDir), []);
   });
 
+  it('leaves tests uncollected when their Vitest config is unused', () => {
+    const rootDir = fixture({
+      'packages/pages/package.json': JSON.stringify({
+        scripts: { test: 'vitest run --config vitest.config.ts' },
+      }),
+      'packages/pages/vitest.config.ts': `
+export default defineConfig({
+  test: {
+    include: ['**/*.test.ts'],
+  },
+});
+`,
+      'packages/pages/vitest.orphan.config.ts': `
+export default defineConfig({
+  test: {
+    include: ['legacy/**/*.spec.ts'],
+  },
+});
+`,
+      'packages/pages/research/url.test.ts': "import { it } from 'vitest';",
+      'packages/pages/legacy/old.spec.ts': "import { it } from 'vitest';",
+    });
+
+    assert.deepEqual(findUncollectedTestFiles(rootDir), [
+      { collectors: [], file: 'packages/pages/legacy/old.spec.ts' },
+    ]);
+  });
+
   it('does not treat coverage exclude as a test exclude', () => {
     const rootDir = fixture({
+      'apps/server/files/package.json': JSON.stringify({
+        scripts: { test: 'vitest run --config vitest.config.ts' },
+      }),
       'apps/server/files/vitest.config.ts': `
 export default defineConfig({
   test: {

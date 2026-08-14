@@ -3,10 +3,11 @@ import type { IPost } from '@genfeedai/interfaces';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PropsWithChildren } from 'react';
+import type { ChangeEvent, PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModalPostRemix from '@ui/modals/content/remix/ModalPostRemix';
+import { Textarea } from '@ui/primitives/textarea';
 
 const closeModal = vi.fn();
 
@@ -31,26 +32,6 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/button', () => ({
-  __esModule: true,
-  Button: ({
-    label,
-    children,
-    onClick,
-    isDisabled,
-    ...props
-  }: PropsWithChildren<{
-    label?: string;
-    onClick?: () => void;
-    isDisabled?: boolean;
-  }>) => (
-    <button type="button" onClick={onClick} disabled={isDisabled} {...props}>
-      {label || children}
-    </button>
-  ),
-  buttonVariants: () => '',
-}));
-
 vi.mock('@ui/editors/LazyRichTextEditor', () => ({
   __esModule: true,
   default: ({
@@ -60,53 +41,12 @@ vi.mock('@ui/editors/LazyRichTextEditor', () => ({
     value?: string;
     onChange?: (value: string) => void;
   }) => (
-    <textarea
+    <Textarea
       data-testid="rich-text-editor"
       value={value}
-      onChange={(event) => onChange?.(event.target.value)}
-    />
-  ),
-}));
-
-vi.mock('@ui/primitives/field', () => ({
-  __esModule: true,
-  default: ({ children }: PropsWithChildren) => (
-    <div data-testid="form-control">{children}</div>
-  ),
-}));
-
-vi.mock('@ui/primitives/input', () => ({
-  __esModule: true,
-  Input: ({
-    value,
-    onChange,
-    name,
-  }: {
-    value?: string;
-    name?: string;
-    onChange?: (event: { target: { value: string } }) => void;
-  }) => (
-    <input
-      data-testid="form-input"
-      name={name}
-      value={value}
-      onChange={onChange}
-    />
-  ),
-  default: ({
-    value,
-    onChange,
-    name,
-  }: {
-    value?: string;
-    name?: string;
-    onChange?: (event: { target: { value: string } }) => void;
-  }) => (
-    <input
-      data-testid="form-input"
-      name={name}
-      value={value}
-      onChange={onChange}
+      onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+        onChange?.(event.target.value)
+      }
     />
   ),
 }));
@@ -149,8 +89,8 @@ describe('ModalPostRemix', () => {
       screen.getByText(/Original post has 200 views - 10 likes/),
     ).toBeInTheDocument();
 
-    await user.clear(screen.getByTestId('form-input'));
-    await user.type(screen.getByTestId('form-input'), 'Night remix');
+    await user.clear(screen.getByLabelText('Label'));
+    await user.type(screen.getByLabelText('Label'), 'Night remix');
     await user.clear(screen.getByTestId('rich-text-editor'));
     await user.type(screen.getByTestId('rich-text-editor'), 'New caption');
     await user.click(screen.getByRole('button', { name: 'Create Remix' }));

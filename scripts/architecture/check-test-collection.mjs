@@ -26,8 +26,7 @@ import { fileURLToPath } from 'node:url';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
-const TEST_FILE_PATTERN =
-  /\.(?:test|spec|e2e-spec|e2e\.test)\.[cm]?[jt]sx?$/;
+const TEST_FILE_PATTERN = /\.(?:test|spec|e2e-spec|e2e\.test)\.[cm]?[jt]sx?$/;
 
 const IGNORE_DIRECTORY_NAMES = new Set([
   '.git',
@@ -43,9 +42,16 @@ const IGNORE_DIRECTORY_NAMES = new Set([
   'test-results',
 ]);
 
-const VITEST_CONFIG_PATTERN = /^vitest(?:\.[a-z0-9-]+)?\.config\.[cm]?[jt]s$/;
+const VITEST_CONFIG_PATTERN =
+  /^vitest(?:\.[a-z0-9-]+)?\.config(?:\.[a-z0-9-]+)?\.[cm]?[jt]s$/;
 
-const DEFAULT_VITEST_INCLUDES = [
+/**
+ * Vitest 4 default include, expanded so the source parser does not need
+ * extglob. `*.e2e-spec` is a Nest convention, not a Vitest default.
+ *
+ * @type {string[]}
+ */
+export const DEFAULT_VITEST_INCLUDES = [
   '**/*.test.ts',
   '**/*.test.tsx',
   '**/*.test.mts',
@@ -56,9 +62,17 @@ const DEFAULT_VITEST_INCLUDES = [
   '**/*.test.cjs',
   '**/*.spec.ts',
   '**/*.spec.tsx',
+  '**/*.spec.mts',
+  '**/*.spec.cts',
   '**/*.spec.js',
-  '**/*.e2e-spec.ts',
+  '**/*.spec.jsx',
+  '**/*.spec.mjs',
+  '**/*.spec.cjs',
 ];
+
+const DEFAULT_VITEST_CONFIG_PATTERN = /^vitest\.config\.[cm]?[jt]s$/;
+const VITEST_CONFIG_FLAG_PATTERN = /--config(?:=|\s+)['"]?([^\s'"]+)['"]?/g;
+const PACKAGE_JSON_NAME = 'package.json';
 
 /**
  * Reviewed extras that are not Vitest configs. Each entry is a collector the
@@ -97,7 +111,14 @@ export const STATIC_COLLECTORS = [
  *
  * @type {Array<{ file: string, reason: string, trackingIssue: number }>}
  */
-export const TEST_COLLECTION_ALLOWLIST = [];
+export const TEST_COLLECTION_ALLOWLIST = [
+  {
+    file: 'apps/server/mcp/test/app.e2e-spec.ts',
+    reason:
+      'Nest e2e scaffold is not in the mcp Vitest include; test:e2e reuses the unit config.',
+    trackingIssue: 2687,
+  },
+];
 
 const TEST_COLLECTION_ALLOWLIST_FILES = new Set(
   TEST_COLLECTION_ALLOWLIST.map((entry) => entry.file),
@@ -237,8 +258,12 @@ export function extractVitestTestGlobs(source) {
   while (match) {
     const block = readBalancedBlock(source, match.index + match[0].length - 1);
     const withoutCoverage = stripNamedObjectBlock(block, 'coverage');
-    const includeMatch = withoutCoverage.match(/\binclude\s*:\s*\[([\s\S]*?)\]/);
-    const excludeMatch = withoutCoverage.match(/\bexclude\s*:\s*\[([\s\S]*?)\]/);
+    const includeMatch = withoutCoverage.match(
+      /\binclude\s*:\s*\[([\s\S]*?)\]/,
+    );
+    const excludeMatch = withoutCoverage.match(
+      /\bexclude\s*:\s*\[([\s\S]*?)\]/,
+    );
 
     if (includeMatch) {
       includes.push(...readQuotedStrings(includeMatch[1]));
@@ -370,20 +395,218 @@ export function collectorMatches(collector, file) {
 }
 
 /**
+ * @param {string} source
+ * @returns {string[]}
+ */
+const VITEST_PROJECT_PATH_PATTERN =
+  /vitest(?:\.[a-z0-9*-]+)?\.config(?:\.[a-z0-9-]+)?\.[cm]?[jt]s$/;
+
+export function extractVitestProjectGlobs(source) {
+  const inline = source.match(/\bprojects\s*:\s*\[([\s\S]*?)\]/);
+  if (inline) {
+    return readQuotedStrings(inline[1]);
+  }
+
+  if (!/\bprojects\s*:/.test(source)) {
+    return [];
+  }
+
+  return readQuotedStrings(source).filter((value) =>
+    VITEST_PROJECT_PATH_PATTERN.test(value),
+  );
+}
+
+/**
+ * @param {string} rootDir
+ * @param {string} relativeDirectory
+ * @param {(name: string) => boolean} isMatch
+ * @returns {string[]}
+ */
+function listFilesByName(rootDir, relativeDirectory, isMatch) {
+  const files = [];
+
+  /**
+   * @param {string} directory
+   * @param {string} relative
+   */
+  function walk(directory, relative) {
+    let entries;
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const nextRelative = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (IGNORE_DIRECTORY_NAMES.has(entry.name)) continue;
+        walk(path.join(directory, entry.name), nextRelative);
+        continue;
+      }
+      if (entry.isFile() && isMatch(entry.name)) {
+        files.push(nextRelative);
+      }
+    }
+  }
+
+  walk(
+    relativeDirectory ? path.join(rootDir, relativeDirectory) : rootDir,
+    relativeDirectory,
+  );
+  return files.sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * @param {string} rootDir
+ * @returns {Array<{ cwd: string, text: string }>}
+ */
+export function listExecutableRunnerCommands(rootDir) {
+  const records = [];
+
+  for (const file of listFilesByName(
+    rootDir,
+    '',
+    (name) => name === PACKAGE_JSON_NAME,
+  )) {
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(path.join(rootDir, file), 'utf8'));
+    } catch {
+      continue;
+    }
+
+    const cwd = path.posix.dirname(file.replaceAll('\\', '/'));
+    for (const text of Object.values(pkg.scripts ?? {})) {
+      if (typeof text === 'string' && text.length > 0) {
+        records.push({ cwd: cwd === '.' ? '' : cwd, text });
+      }
+    }
+  }
+
+  for (const file of listFilesByName(rootDir, '.github/workflows', (name) =>
+    /\.ya?ml$/.test(name),
+  )) {
+    records.push({
+      cwd: '',
+      text: readFileSync(path.join(rootDir, file), 'utf8'),
+    });
+  }
+
+  return records;
+}
+
+/**
+ * @param {{ cwd: string, text: string }} record
+ * @returns {string[]}
+ */
+export function resolveCommandConfigPaths(record) {
+  const paths = new Set();
+  let cwd = record.cwd;
+
+  for (const segment of record.text.split(/\n|&&|;/)) {
+    const cdMatch = segment.match(/^\s*cd\s+(\S+)/);
+    if (cdMatch) {
+      cwd = path.posix.normalize(
+        path.posix.join(record.cwd || '.', cdMatch[1]),
+      );
+      if (cwd === '.') cwd = '';
+    }
+
+    VITEST_CONFIG_FLAG_PATTERN.lastIndex = 0;
+    let match = VITEST_CONFIG_FLAG_PATTERN.exec(segment);
+    while (match) {
+      const resolved = path.posix.normalize(
+        path.posix.join(cwd || '.', match[1]),
+      );
+      paths.add(resolved === '.' ? match[1] : resolved);
+      match = VITEST_CONFIG_FLAG_PATTERN.exec(segment);
+    }
+  }
+
+  return [...paths];
+}
+
+/**
+ * @param {string} rootDir
+ * @param {string[]} configFiles
+ * @returns {Set<string>}
+ */
+export function listReferencedVitestConfigFiles(rootDir, configFiles) {
+  const referenced = new Set();
+  const configSet = new Set(configFiles);
+
+  for (const record of listExecutableRunnerCommands(rootDir)) {
+    for (const configPath of resolveCommandConfigPaths(record)) {
+      if (configSet.has(configPath)) {
+        referenced.add(configPath);
+      }
+    }
+
+    if (/\bvitest\b/.test(record.text) && !/--config\b/.test(record.text)) {
+      for (const configFile of configFiles) {
+        const directory = path.posix.dirname(configFile);
+        const basename = path.posix.basename(configFile);
+        const packageDir = record.cwd === '' ? '.' : record.cwd;
+        if (
+          directory === packageDir &&
+          DEFAULT_VITEST_CONFIG_PATTERN.test(basename)
+        ) {
+          referenced.add(configFile);
+        }
+      }
+    }
+  }
+
+  const pending = [...referenced];
+  while (pending.length > 0) {
+    const configFile = pending.pop();
+    if (!configFile) continue;
+    let source;
+    try {
+      source = readFileSync(path.join(rootDir, configFile), 'utf8');
+    } catch {
+      continue;
+    }
+
+    const configDir = path.posix.dirname(configFile);
+    for (const pattern of extractVitestProjectGlobs(source)) {
+      const resolvedPattern = path.posix.normalize(
+        path.posix.join(configDir === '.' ? '' : configDir, pattern),
+      );
+      for (const candidate of configFiles) {
+        if (referenced.has(candidate)) continue;
+        if (matchGlob(candidate, resolvedPattern)) {
+          referenced.add(candidate);
+          pending.push(candidate);
+        }
+      }
+    }
+  }
+
+  return referenced;
+}
+
+/**
  * @param {string} rootDir
  * @returns {Array<{ id: string, root: string, includes: string[], excludes?: string[] }>}
  */
 export function loadVitestCollectors(rootDir) {
-  return listVitestConfigFiles(rootDir).map((configFile) => {
-    const source = readFileSync(path.join(rootDir, configFile), 'utf8');
-    const globs = extractVitestTestGlobs(source);
-    return {
-      id: configFile,
-      root: path.posix.dirname(configFile.replaceAll('\\', '/')),
-      includes: globs.includes,
-      excludes: globs.excludes,
-    };
-  });
+  const configFiles = listVitestConfigFiles(rootDir);
+  const referenced = listReferencedVitestConfigFiles(rootDir, configFiles);
+
+  return configFiles
+    .filter((configFile) => referenced.has(configFile))
+    .map((configFile) => {
+      const source = readFileSync(path.join(rootDir, configFile), 'utf8');
+      const globs = extractVitestTestGlobs(source);
+      return {
+        id: configFile,
+        root: path.posix.dirname(configFile.replaceAll('\\', '/')),
+        includes: globs.includes,
+        excludes: globs.excludes,
+      };
+    });
 }
 
 /**
@@ -391,10 +614,7 @@ export function loadVitestCollectors(rootDir) {
  * @returns {{ file: string, collectors: string[] }[]}
  */
 export function findUncollectedTestFiles(rootDir = REPOSITORY_ROOT) {
-  const collectors = [
-    ...loadVitestCollectors(rootDir),
-    ...STATIC_COLLECTORS,
-  ];
+  const collectors = [...loadVitestCollectors(rootDir), ...STATIC_COLLECTORS];
   const files = listTestFiles(rootDir);
 
   return files
