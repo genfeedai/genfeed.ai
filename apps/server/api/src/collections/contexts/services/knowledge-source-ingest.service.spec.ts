@@ -143,7 +143,11 @@ describe('KnowledgeSourceIngestService', () => {
             ],
           }),
         }),
-        where: { id: 'ctx-1' },
+        where: {
+          id: 'ctx-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });
@@ -204,6 +208,11 @@ describe('KnowledgeSourceIngestService', () => {
             ],
           }),
         }),
+        where: {
+          id: 'ctx-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });

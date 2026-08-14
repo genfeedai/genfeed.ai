@@ -15,6 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Maximize2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
@@ -33,6 +34,7 @@ function MoodBoardCanvasInner({
   onClose,
   isTruncated,
 }: MoodBoardCanvasProps): React.JSX.Element {
+  const translate = useTranslations('common.moodboard');
   const { fitView } = useReactFlow();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -69,14 +71,14 @@ function MoodBoardCanvasInner({
           >
             {isTruncated ? (
               <span className="px-2 text-xs text-foreground/55">
-                First {assets.length}
+                {translate('first', { count: assets.length })}
               </span>
             ) : null}
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              ariaLabel="Fit board"
-              tooltip="Fit"
+              ariaLabel={translate('fitBoard')}
+              tooltip={translate('fit')}
               withWrapper={false}
               className="size-7"
               icon={<Maximize2 className="size-3.5" />}
@@ -85,8 +87,8 @@ function MoodBoardCanvasInner({
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              ariaLabel="Close moodboard"
-              tooltip="Close"
+              ariaLabel={translate('closeMoodboard')}
+              tooltip={translate('close')}
               withWrapper={false}
               className="size-7"
               icon={<X className="size-3.5" />}

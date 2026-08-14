@@ -3329,14 +3329,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/instagram/services/instagram.service.spec.ts",
-      "fingerprint": "f38ef5692c6e05e24dfe",
-      "message": "Conversion of type '{ get: Mock<Procedure>; post: Mock<Procedure>; }' to type 'HttpService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ get: Mock<Procedure>; post: Mock<Procedure>; }' is missing the following properties from type 'HttpService': instance, request, delete, head, and 7 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
