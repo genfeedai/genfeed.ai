@@ -70,7 +70,7 @@ describe('PromptBarContainer', () => {
 
     expect(getByText('banner')).toBeInTheDocument();
     expect(getByText('content')).toBeInTheDocument();
-    const inner = container.querySelector('[data-layout-mode] > div');
+    const inner = container.querySelector('[data-composer-stack]');
     expect(inner?.firstElementChild).toHaveTextContent('banner');
   });
 
@@ -81,7 +81,7 @@ describe('PromptBarContainer', () => {
       </PromptBarContainer>,
     );
 
-    const inner = container.querySelector('[data-layout-mode] > div');
+    const inner = container.querySelector('[data-composer-stack]');
     expect(inner?.className).toContain('gap-0');
     expect(inner?.className).not.toContain('gap-2');
 
@@ -91,6 +91,21 @@ describe('PromptBarContainer', () => {
     expect(topStack).toHaveTextContent('banner');
   });
 
+  it('paints an opaque background block so transcript text cannot pass under the dock', () => {
+    const { container } = render(
+      <PromptBarContainer>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const block = container.querySelector('[data-composer-bg-block]');
+    expect(block).toBeInTheDocument();
+    expect(block).toHaveAttribute('aria-hidden', 'true');
+    expect(block).toHaveClass('bg-background');
+    expect(block).toHaveClass('absolute');
+    expect(block).toHaveClass('inset-0');
+  });
+
   it('should render an optional top fade scrim when requested', () => {
     const { container } = render(
       <PromptBarContainer showTopFade>
@@ -98,7 +113,9 @@ describe('PromptBarContainer', () => {
       </PromptBarContainer>,
     );
 
-    const fade = container.querySelector('[aria-hidden="true"]');
+    const fade = container.querySelector(
+      '[aria-hidden="true"]:not([data-composer-bg-block])',
+    );
     expect(fade).toBeInTheDocument();
     expect(fade?.className).toContain('bottom-full');
     expect(fade?.className).toContain('bg-gradient-to-t');

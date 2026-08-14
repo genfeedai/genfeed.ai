@@ -103,6 +103,11 @@ export default function PromptBarContainer({
         zIndex,
       }}
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-background"
+        data-composer-bg-block=""
+      />
       {showTopFade ? (
         <div
           aria-hidden="true"
@@ -117,7 +122,10 @@ export default function PromptBarContainer({
           )}
         />
       ) : null}
-      <div className={cn(innerClassName, topContent && 'flex flex-col gap-0')}>
+      <div
+        className={cn(innerClassName, topContent && 'flex flex-col gap-0')}
+        data-composer-stack=""
+      >
         {topContent ? (
           <div className="relative z-10 w-full" data-composer-top-stack="">
             {topContent}
