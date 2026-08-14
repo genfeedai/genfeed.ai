@@ -52,6 +52,7 @@ import { Effect } from 'effect';
 
 const ORG_ID = 'c7a123456789012345678901';
 const USER_ID = 'c7a123456789012345678902';
+const LLM_CALL_CONTEXT = { organizationId: ORG_ID, userId: USER_ID };
 const CONVERSATION_ID = 'c7a123456789012345678903';
 const RUN_ID = 'c7a123456789012345678904';
 
@@ -87,11 +88,14 @@ describe('AgentOrchestratorService', () => {
       chatCompletion: vi.fn().mockResolvedValue({
         choices: [
           {
+            finish_reason: 'stop',
             message: {
               content: 'Hello there',
+              role: 'assistant',
             },
           },
         ],
+        id: 'chat-completion-1',
         usage: {
           completion_tokens: 20,
           prompt_tokens: 20,
@@ -110,7 +114,13 @@ describe('AgentOrchestratorService', () => {
             await onToken('streamed');
           }
           return {
-            choices: [{ message: { content: 'Hello streamed' } }],
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { content: 'Hello streamed', role: 'assistant' },
+              },
+            ],
+            id: 'stream-completion-1',
             usage: {
               completion_tokens: 20,
               prompt_tokens: 20,
@@ -942,6 +952,7 @@ describe('AgentOrchestratorService', () => {
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({ model: DEFAULT_AGENT_CHAT_MODEL_KEY }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(result.message.metadata).toEqual(
       expect.objectContaining({
@@ -992,6 +1003,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1075,6 +1087,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
@@ -1198,6 +1211,7 @@ describe('AgentOrchestratorService', () => {
         plugins: [{ id: 'web' }],
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1226,6 +1240,7 @@ describe('AgentOrchestratorService', () => {
         plugins: [{ id: 'web' }],
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(result.message.metadata).toEqual(
       expect.objectContaining({
@@ -1307,6 +1322,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(result.message.metadata).toMatchObject({
       memoryInfluence: {
@@ -1454,6 +1470,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1482,6 +1499,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1676,6 +1694,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1743,6 +1762,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 
@@ -1973,6 +1993,7 @@ describe('AgentOrchestratorService', () => {
         model: 'anthropic/claude-opus-5',
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
       'prepare_generation',
@@ -2064,6 +2085,7 @@ describe('AgentOrchestratorService', () => {
         model: 'deepseek/deepseek-v4-flash-0731',
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
       'prepare_generation',
@@ -2267,7 +2289,13 @@ describe('AgentOrchestratorService', () => {
           await onToken('streamed');
         }
         return {
-          choices: [{ message: { content: 'Hello streamed' } }],
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: { content: 'Hello streamed', role: 'assistant' },
+            },
+          ],
+          id: 'cancelled-stream-completion-1',
           usage: {
             completion_tokens: 20,
             prompt_tokens: 20,
@@ -4634,6 +4662,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+      LLM_CALL_CONTEXT,
     );
   });
 

@@ -55,6 +55,14 @@ const agentApiService = {
   updateThreadContextEffect,
 } as never;
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/agent', () => ({
   ConversationComposerShellProvider: ({
     artifactReferences,

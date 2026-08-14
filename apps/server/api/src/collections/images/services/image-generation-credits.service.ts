@@ -83,7 +83,7 @@ export class ImageGenerationCreditsService {
       baseCost,
       requestedOutputCount(createImageDto.outputs),
       doesImageProviderFanOutPerOutput(
-        this.providerRegistry.providerFor(model),
+        this.providerRegistry.providerFor(model) ?? undefined,
         isBatchSupported,
       ),
     );

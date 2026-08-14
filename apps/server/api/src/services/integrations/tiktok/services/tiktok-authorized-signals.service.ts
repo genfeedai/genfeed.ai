@@ -1177,7 +1177,7 @@ export class TiktokAuthorizedSignalsService {
 
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
-    credential: CredentialDocument,
+    credential: Pick<CredentialDocument, 'warmupSignals'>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): string[] {
     const stored = readRecord(credential.warmupSignals);

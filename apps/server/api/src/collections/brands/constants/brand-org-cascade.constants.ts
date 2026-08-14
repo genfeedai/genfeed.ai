@@ -103,6 +103,24 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'socialWarmupEnrollment',
+    table: 'social_warmup_enrollments',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'socialWarmupEvent',
+    table: 'social_warmup_events',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'socialWarmupSignal',
+    table: 'social_warmup_signals',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'ingredient',
     table: 'ingredients',
     brandField: 'brandId',
@@ -165,12 +183,6 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
     delegate: 'schedule',
     table: 'schedules',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
-  {
-    delegate: 'contentSchedule',
-    table: 'content_schedules',
     brandField: 'brandId',
     orgField: 'organizationId',
   },

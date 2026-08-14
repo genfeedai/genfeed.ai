@@ -75,14 +75,15 @@ export class VideoGenerationCompletionService {
   }
 
   private startBackgroundMusic(context: VideoGenerationContext): void {
-    if (!shouldStartBackgroundMusic(context.createVideoDto.backgroundMusic)) {
+    const backgroundMusic = context.createVideoDto.backgroundMusic;
+    if (!backgroundMusic || !shouldStartBackgroundMusic(backgroundMusic)) {
       return;
     }
     const ingredientId = context.ingredientData.id.toString();
     this.videoMusicOrchestrationService
       .orchestrateVideoWithMusic(
         ingredientId,
-        context.createVideoDto.backgroundMusic,
+        backgroundMusic,
         resolveBackgroundMusicDuration(context.createVideoDto.duration),
         resolveBackgroundMusicVolume(context.createVideoDto.musicVolume),
         context.createVideoDto.muteVideoAudio ?? false,

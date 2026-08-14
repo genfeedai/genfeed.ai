@@ -1,4 +1,5 @@
 import {
+  SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
@@ -27,6 +28,92 @@ export const ENROLLMENT_UNIQUE_CONSTRAINT =
 
 export const SIGNAL_UNIQUE_CONSTRAINT =
   'social_warmup_signals_enrollment_key_alive_key';
+
+export type StoredSocialWarmupEventRecord = Omit<
+  ISocialWarmupEventRecord,
+  'action'
+> & {
+  action: string;
+};
+
+export type StoredSocialWarmupSignalRecord = Omit<
+  ISocialWarmupSignalRecord,
+  'source' | 'status'
+> & {
+  source: string;
+  status: string;
+};
+
+export function socialWarmupEnrollmentStateFromStorage(
+  state: string,
+): SocialWarmupEnrollmentState {
+  const storedState = Object.values(SocialWarmupEnrollmentState).find(
+    (candidate) => candidate === state,
+  );
+  if (!storedState) {
+    throw new Error(`Unsupported social warm-up enrollment state: ${state}`);
+  }
+  return storedState;
+}
+
+export function socialWarmupEventRecordFromStorage(
+  event: StoredSocialWarmupEventRecord,
+): ISocialWarmupEventRecord {
+  return {
+    ...event,
+    action: socialWarmupEventActionFromStorage(event.action),
+  };
+}
+
+export function socialWarmupSignalRecordFromStorage(
+  signal: StoredSocialWarmupSignalRecord,
+): ISocialWarmupSignalRecord {
+  return {
+    ...signal,
+    source: socialWarmupSignalSourceFromStorage(signal.source),
+    status: socialWarmupSignalStatusFromStorage(signal.status),
+  };
+}
+
+function socialWarmupEventActionFromStorage(
+  action: string,
+): SocialWarmupEventAction {
+  switch (action) {
+    case SocialWarmupEventAction.COMPLETED:
+      return SocialWarmupEventAction.COMPLETED;
+    case SocialWarmupEventAction.REOPENED:
+      return SocialWarmupEventAction.REOPENED;
+    default:
+      throw new Error(`Unsupported social warm-up event action: ${action}`);
+  }
+}
+
+function socialWarmupSignalSourceFromStorage(
+  source: string,
+): SocialWarmupSignalSource {
+  switch (source) {
+    case SocialWarmupSignalSource.PLATFORM:
+      return SocialWarmupSignalSource.PLATFORM;
+    case SocialWarmupSignalSource.GENFEED:
+      return SocialWarmupSignalSource.GENFEED;
+    case SocialWarmupSignalSource.USER:
+      return SocialWarmupSignalSource.USER;
+    default:
+      throw new Error(`Unsupported social warm-up signal source: ${source}`);
+  }
+}
+
+function socialWarmupSignalStatusFromStorage(
+  status: string,
+): SocialWarmupSignalStatus {
+  const storedStatus = Object.values(SocialWarmupSignalStatus).find(
+    (candidate) => candidate === status,
+  );
+  if (!storedStatus) {
+    throw new Error(`Unsupported social warm-up signal status: ${status}`);
+  }
+  return storedStatus;
+}
 
 export function isEnrollmentUniqueViolation(error: unknown): boolean {
   return isNamedUniqueViolation(error, ENROLLMENT_UNIQUE_CONSTRAINT, [

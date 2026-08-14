@@ -2,6 +2,7 @@ import {
   hasPartialSocialWarmupScopes,
   reconnectForCredential,
   resolveSocialWarmupAccountAge,
+  socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -365,7 +366,9 @@ export class AccountHealthService {
       }),
     ]);
 
-    const accountAge = resolveSocialWarmupAccountAge(enrollment?.signals ?? []);
+    const accountAge = resolveSocialWarmupAccountAge(
+      enrollment?.signals.map(socialWarmupSignalRecordFromStorage) ?? [],
+    );
     const connectedDays = readNumber(
       overrides?.connectedDays,
       accountAge.accountAgeDays ?? 0,
