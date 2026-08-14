@@ -57,9 +57,7 @@ describe('pagination-transform.util', () => {
   });
 
   it('keeps caller-supplied page, limit, and custom labels', () => {
-    expect(
-      getDefaultPaginationOptions(3, 5, { docs: 'items' }),
-    ).toEqual({
+    expect(getDefaultPaginationOptions(3, 5, { docs: 'items' })).toEqual({
       customLabels: { docs: 'items' },
       limit: 5,
       page: 3,

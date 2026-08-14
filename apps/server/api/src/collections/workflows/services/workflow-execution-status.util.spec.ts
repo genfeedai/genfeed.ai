@@ -4,8 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 describe('mapEngineNodeStatus', () => {
   it('maps engine labels onto Prisma execution statuses', () => {
-    expect(mapEngineNodeStatus('pending')).toBe(WorkflowExecutionStatus.PENDING);
-    expect(mapEngineNodeStatus('RUNNING')).toBe(WorkflowExecutionStatus.RUNNING);
+    expect(mapEngineNodeStatus('pending')).toBe(
+      WorkflowExecutionStatus.PENDING,
+    );
+    expect(mapEngineNodeStatus('RUNNING')).toBe(
+      WorkflowExecutionStatus.RUNNING,
+    );
     expect(mapEngineNodeStatus('processing')).toBe(
       WorkflowExecutionStatus.RUNNING,
     );
@@ -22,6 +26,8 @@ describe('mapEngineNodeStatus', () => {
     expect(mapEngineNodeStatus('canceled')).toBe(
       WorkflowExecutionStatus.CANCELLED,
     );
-    expect(mapEngineNodeStatus('unknown')).toBe(WorkflowExecutionStatus.PENDING);
+    expect(mapEngineNodeStatus('unknown')).toBe(
+      WorkflowExecutionStatus.PENDING,
+    );
   });
 });

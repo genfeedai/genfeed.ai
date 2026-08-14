@@ -2,36 +2,13 @@ import type * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMobileAuth } from '@/contexts/auth-context';
+import {
+  getNotificationRoute,
+  type NotificationData,
+} from '@/hooks/get-notification-route';
 import { notificationsService } from '@/services/notifications.service';
 
-interface NotificationData {
-  type?: string;
-  contentId?: string;
-  approvalId?: string;
-}
-
-type NotificationRoute =
-  | { path: `/ingredient/${string}` }
-  | { path: '/analytics' }
-  | { path: `/approval/${string}` }
-  | { path: '/approvals' }
-  | null;
-
-export function getNotificationRoute(data: NotificationData): NotificationRoute {
-  switch (data.type) {
-    case 'content_ready':
-      return data.contentId ? { path: `/ingredient/${data.contentId}` } : null;
-    case 'analytics_update':
-      return { path: '/analytics' };
-    case 'approval_request':
-    case 'approval_reminder':
-      return data.approvalId ? { path: `/approval/${data.approvalId}` } : null;
-    case 'approval_decision':
-      return { path: '/approvals' };
-    default:
-      return null;
-  }
-}
+export { getNotificationRoute } from '@/hooks/get-notification-route';
 
 export function useNotifications() {
   const { getToken, isSignedIn } = useMobileAuth();

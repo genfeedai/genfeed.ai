@@ -29,7 +29,11 @@ describe('text-pricing.util', () => {
 
   it('returns flat cost unless the model is per-token', () => {
     expect(
-      calculateEstimatedTextCredits({ cost: 7, pricingType: 'flat' }, 'hi', 'ok'),
+      calculateEstimatedTextCredits(
+        { cost: 7, pricingType: 'flat' },
+        'hi',
+        'ok',
+      ),
     ).toBe(7);
 
     expect(

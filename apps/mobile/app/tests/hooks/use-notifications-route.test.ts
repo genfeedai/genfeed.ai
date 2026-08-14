@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getNotificationRoute } from '@/hooks/use-notifications';
+import { getNotificationRoute } from '@/hooks/get-notification-route';
 
 describe('getNotificationRoute', () => {
   it('routes content-ready notifications to the ingredient when an id is present', () => {

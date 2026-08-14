@@ -38,6 +38,16 @@ last_verified: 2026-08-14
   pagination, content-plan data, text pricing, wrapError, cron timezone,
   onboarding error mapping, campaign scope, workflow status, asset
   parent, reply-bot platform, telegram args)
+- Second API wave: populate builder, Cacheable/CacheInvalidate,
+  service/entity/controller factories, service-module factory,
+  recurrence + model-key validators, PlanLimitExceeded, viral-hooks
+  entities, cron-job payload validator, and 0% DTO files
+  (create-agent-strategy, skill, apify-trend). Deleted the orphan
+  klingai-prompt.builder spec (source already gone).
+- Do not invent new `coverage.thresholds` numbers until the next
+  merged weekly Coverage report.
+- Format follow-up for the first util-spec wave; mobile notification
+  route helper extracted so the unit test does not import Expo hooks.
 
 ## After this PR
 
