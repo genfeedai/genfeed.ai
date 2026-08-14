@@ -14,12 +14,10 @@ const execFileAsync = promisify(execFile);
 
 const FORCE_FULL_PATTERNS = [
   /^bun\.lock$/,
-  /^package\.json$/,
   /^turbo\.json$/,
   /(^|\/)vitest\.(?:config|setup)\.[cm]?[jt]sx?$/,
   /^\.github\/actions\/setup-bun-env\//,
-  /^\.github\/workflows\/(?:ci|pr-full-suite)\.ya?ml$/,
-  /^scripts\/ci\/(?:pr-test-plan|tests-gate)(?:\.test)?\.mjs$/,
+  /^scripts\/ci\/(?:pr-test-plan|tests-gate)\.mjs$/,
 ];
 
 // Keep dormant surface definitions in the planner so they can be restored

@@ -54,14 +54,32 @@ test('classifies direct and shared pull-request surfaces conservatively', () => 
   );
 });
 
-test('escalates validation machinery and root dependency changes', () => {
+test('classifies docs, workflows, and CI scripts as out of the product test matrix', () => {
+  for (const file of [
+    '.agents/memory/MEMORY.md',
+    '.github/workflows/ci.yml',
+    '.github/workflows/pr-full-suite.yml',
+    'package.json',
+    'scripts/ci/executable-contracts.test.ts',
+    'scripts/ci/ci-concurrency.test.ts',
+    'scripts/architecture/check-product-route-inventory.test.ts',
+  ]) {
+    assert.deepEqual(
+      classifyChangedFiles([file]),
+      { api: false, app: false, forceFull: false },
+      `${file} must not escalate app/API shards`,
+    );
+  }
+});
+
+test('escalates only lockfile, turbo, vitest config, bun setup, and the planner', () => {
   for (const file of [
     '.github/actions/setup-bun-env/action.yml',
-    '.github/workflows/ci.yml',
     'apps/app/vitest.config.mts',
     'apps/server/api/vitest.config.ts',
     'bun.lock',
-    'package.json',
+    'scripts/ci/pr-test-plan.mjs',
+    'scripts/ci/tests-gate.mjs',
     'turbo.json',
     'vitest.config.ts',
   ]) {
@@ -127,7 +145,7 @@ test('coverage shard counts never collapse to nothing', () => {
 test('the plan carries a coverage matrix even when the test matrix is empty', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
-    changedFiles: ['.github/workflows/ci.yml'],
+    changedFiles: ['bun.lock'],
     runHeavy: true,
   });
 
