@@ -8,8 +8,8 @@ type: feedback
 
 A failed generate (provider 401, invalid model, etc.) must leave the
 **Generate Image/Video** control on the card. Do not mark the card Done, do
-not collapse it, and do not leave the error only on the sticky composer stack
-that covers the button.
+not auto-collapse it, and do not leave the error only on the sticky composer
+stack that covers the button. Manual collapse after failure is allowed.
 
 `handleAgentUiAction` returns `false` and writes `setError(...)` instead of
 throwing. The generation card must treat `outcome === false` as failure, copy

@@ -13,4 +13,6 @@ type: feedback
 1. Keep the dock in `PromptBarContainer` (`data-composer-top-stack`, `w-full`, `gap-0`).
 2. Do not wrap composer-top cards in `pb-2` / `mb-2`.
 3. Generation cards on the bar use `w-[95%] mx-auto` and a square bottom (`rounded-t-xl rounded-b-none`) so they touch the composer.
-4. Keep the generate form open while a run is in flight. Manual collapse is fine; error/idle expand.
+4. Keep the generate form open while a run is in flight. A new error or idle
+   state expands once so the operator sees it. Manual collapse always works
+   after that, including on a failed card.

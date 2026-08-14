@@ -93,10 +93,9 @@ export function GenerationActionCard({
   });
 
   // The card sits on the composer. Keep the generate form open so the dock
-  // is not a header sliver; operators can still collapse it by hand.
-  // Error always expands so Generate stays reachable.
+  // is not a header sliver. A new error or idle state expands once so the
+  // operator sees it; they can still collapse the card by hand after that.
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isEffectivelyCollapsed = isCollapsed && status !== 'error';
 
   useEffect(() => {
     if (status === 'error' || status === 'idle') {
@@ -129,13 +128,13 @@ export function GenerationActionCard({
       <GenerationActionCardHeader
         Icon={Icon}
         title={action.title}
-        isCollapsed={isEffectivelyCollapsed}
+        isCollapsed={isCollapsed}
         statusLabel={statusLabelFor(status)}
         onStop={status === 'generating' ? handleStop : undefined}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
-      {isEffectivelyCollapsed ? (
+      {isCollapsed ? (
         status === 'done' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel

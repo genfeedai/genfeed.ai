@@ -1044,6 +1044,53 @@ describe('GenerationActionCard', () => {
     );
   });
 
+  it('lets the operator collapse a failed generation card by hand', async () => {
+    storeState.error =
+      'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
+    const onUiAction = vi.fn().mockResolvedValue(false);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Cinematic launch-day moment at a coastal spaceport.',
+          },
+          generationType: 'image',
+          id: 'action-collapse-after-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+    expect(
+      await screen.findByText(/provider authentication failed/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Collapse generation card' }),
+    );
+
+    expect(
+      screen.queryByText(/provider authentication failed/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Prompt' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /generate image/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand generation card' }),
+    ).toBeInTheDocument();
+  });
+
   it('routes composer generation through the persisted thread UI action', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
 
