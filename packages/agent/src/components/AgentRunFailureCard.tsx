@@ -2,6 +2,7 @@
 
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Check, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
@@ -53,7 +54,9 @@ export function AgentRunFailureCard({
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(buildAgentRunFailureCopyText(error));
+      await ClipboardService.getInstance().copyToClipboard(
+        buildAgentRunFailureCopyText(error),
+      );
       setIsCopied(true);
       window.setTimeout(() => setIsCopied(false), 1500);
     } catch {

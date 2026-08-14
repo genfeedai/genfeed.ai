@@ -8,6 +8,7 @@ import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-c
 import { isGenericRunLifecycleEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
@@ -76,7 +77,9 @@ export function AgentComposerStatusStack({
       return;
     }
     try {
-      await navigator.clipboard.writeText(buildAgentRunFailureCopyText(error));
+      await ClipboardService.getInstance().copyToClipboard(
+        buildAgentRunFailureCopyText(error),
+      );
       setIsErrorCopied(true);
       window.setTimeout(() => setIsErrorCopied(false), 1500);
     } catch {

@@ -8,7 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { ImagePlus, Paintbrush, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
 
-import { AgentErrorMessage } from './AgentErrorMessage';
+import { AgentRunFailureCard } from './AgentRunFailureCard';
 import { GenerationActionCardQualityBadge } from './GenerationActionCardQualityBadge';
 
 type CardStatus = 'idle' | 'generating' | 'done' | 'error';
@@ -53,17 +53,10 @@ export function GenerationActionCardStatusPanel({
 
   if (status === 'error') {
     return (
-      <div className="space-y-2">
-        <AgentErrorMessage message={error ?? 'Generation failed'} />
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          onClick={onRetry}
-          className="w-full"
-        >
-          <RefreshCw className="size-4" />
-          Try Again
-        </Button>
-      </div>
+      <AgentRunFailureCard
+        className="mb-0"
+        error={error ?? 'Generation failed'}
+      />
     );
   }
 

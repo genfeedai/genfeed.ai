@@ -66,6 +66,7 @@ export type AgentChatContainerThreadViewProps = {
   composerTranscriptPaddingPx: number;
   pendingInputRequest: AgentInputRequest | null;
   pendingUiActions: AgentUiAction[];
+  hasDockedGenerationCard?: boolean;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   scrollToBottom: () => void;
   shouldShowInputRequestOverlay: boolean;
@@ -111,6 +112,7 @@ export function AgentChatContainerThreadView({
   composerTranscriptPaddingPx,
   pendingInputRequest,
   pendingUiActions,
+  hasDockedGenerationCard = false,
   scrollContainerRef,
   scrollToBottom,
   shouldShowInputRequestOverlay,
@@ -189,6 +191,7 @@ export function AgentChatContainerThreadView({
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onIngredientSelect}
             onUiAction={onUiAction}
+            hasDockedGenerationCard={hasDockedGenerationCard}
             // Docked composer status owns busy chrome — hide pure Thinking rows.
             suppressThinkingPlaceholder={padBottomForComposer}
           />

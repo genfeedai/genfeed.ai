@@ -7,6 +7,16 @@ import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { copyToClipboard } = vi.hoisted(() => ({
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard }),
+  },
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     ({
@@ -878,13 +888,16 @@ describe('GenerationActionCard', () => {
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', true);
     expect(storeState.setThreadUiBusy).toHaveBeenCalledWith('thread-1', false);
 
-    // Primary Generate control must stay available after failure — the sticky
-    // composer error stack often covers the bottom Try Again row.
+    // Primary Generate control must stay available after failure. The card
+    // owns the error — do not add a second Try Again under it.
     expect(
       screen.getByRole('button', { name: /generate image/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /try again/i }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+    fireEvent.click(screen.getByRole('button', { name: /generate image/i }));
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
@@ -983,7 +996,22 @@ describe('GenerationActionCard', () => {
     expect(
       screen.getByRole('button', { name: /generate image/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /try again/i }),
+    ).not.toBeInTheDocument();
     expect(storeState.setError).toHaveBeenCalledWith(null);
+
+    copyToClipboard.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
+    await waitFor(() => {
+      expect(copyToClipboard).toHaveBeenCalled();
+    });
+    expect(String(copyToClipboard.mock.calls[0]?.[0])).toContain(
+      '## Agent run failure',
+    );
+    expect(String(copyToClipboard.mock.calls[0]?.[0])).toContain(
+      'Failed to respond to UI action: 401',
+    );
   });
 
   it('routes composer generation through the persisted thread UI action', async () => {

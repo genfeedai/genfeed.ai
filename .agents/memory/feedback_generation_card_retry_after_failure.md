@@ -14,7 +14,11 @@ that covers the button.
 `handleAgentUiAction` returns `false` and writes `setError(...)` instead of
 throwing. The generation card must treat `outcome === false` as failure, copy
 that error onto the card, set `status` to `error`, and clear the composer
-error so Generate stays clickable.
+error so Generate stays clickable. Do not also pin `AgentRunFailureCard`
+in the conversation timeline while the generation card is docked — one
+complete alert on the card is enough. The card uses `AgentRunFailureCard`
+(title / summary / detail / recovery + full diagnostic copy), not the
+flattened `AgentErrorMessage` plus a second Try Again.
 
 **Why:** Composer generation goes through `confirm_generate_media`. Treating a
 false UI-action result as success hid Generate after auth failures and showed

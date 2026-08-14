@@ -544,6 +544,7 @@ export function AgentChatContainer({
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
+            hasDockedGenerationCard={Boolean(pendingGenerationAction)}
             scrollContainerRef={container.scrollContainerRef}
             scrollToBottom={container.scrollToBottom}
             shouldShowInputRequestOverlay={
