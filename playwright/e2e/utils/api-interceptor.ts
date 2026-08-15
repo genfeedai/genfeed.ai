@@ -441,17 +441,6 @@ function isCollectionResourceRequest(url: string, resource: string): boolean {
   }
 }
 
-function isV1ResourceRequest(url: string, resource: string): boolean {
-  try {
-    const { pathname } = new URL(url);
-    return (
-      pathname === `/v1/${resource}` || pathname.startsWith(`/v1/${resource}/`)
-    );
-  } catch {
-    return false;
-  }
-}
-
 async function _handleAuthRoutes(route: Route): Promise<void> {
   const url = route.request().url();
 
@@ -1434,15 +1423,34 @@ export async function setupApiMocks(
   const PROD_API = '**/api.genfeed.ai';
   const PROD_API_V1 = '**/api.genfeed.ai/v1';
 
-  // Register broad local fallback first so later specific mocks win. This keeps
-  // route smoke tests from leaking to a real local API when a page asks for a
-  // low-risk collection that does not need bespoke fixture data.
+  // Register broad fallbacks FIRST so later specific mocks win. Nightly E2E
+  // builds bake NEXT_PUBLIC_API_ENDPOINT=https://api.genfeed.ai/v1 — the
+  // production-host catch-all must sit below routeApi() or it shadows every
+  // resource handler and pages deserialize the wrong JSON:API shape.
   const fallbackCollectionHandler = async (r: Route): Promise<void> => {
     const url = r.request().url();
 
-    if (url.includes('/v1/health')) {
+    if (url.includes('/v1/health') || /\/health(?:\?|$)/.test(url)) {
       await r.fulfill({
         body: JSON.stringify({ status: 'ok' }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+
+    if (url.includes('/system/db-mode')) {
+      await r.fulfill({
+        body: JSON.stringify({ mode: 'development' }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+
+    if (url.includes('/mentions')) {
+      await r.fulfill({
+        body: JSON.stringify({ mentions: [] }),
         contentType: 'application/json',
         status: 200,
       });
@@ -1460,6 +1468,8 @@ export async function setupApiMocks(
     createPlaywrightApiRoutePattern(),
     fallbackCollectionHandler,
   );
+  await page.route('**/api.genfeed.ai/v1/**', fallbackCollectionHandler);
+  await page.route('**/api.genfeed.ai/**', fallbackCollectionHandler);
 
   const routeApi = async (
     pathPattern: string,
@@ -1610,6 +1620,14 @@ export async function setupApiMocks(
 
   await routeApi('/settings/**', handleSettingsRoutes);
 
+  await routeApi('/system/db-mode**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({ mode: 'development' }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await page.route(/api\.genfeed\.ai\/v1\/health(?:\?.*)?$/, async (r) => {
     await r.fulfill({
       body: JSON.stringify({ status: 'ok' }),
@@ -1626,204 +1644,6 @@ export async function setupApiMocks(
   await page.route(/local\.genfeed\.ai:3010\/v1\/health/, async (r) => {
     await r.fulfill({
       body: JSON.stringify({ status: 'ok' }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  // Support the production host when callers include the explicit /v1 prefix.
-  // Many app services build URLs from NEXT_PUBLIC_API_ENDPOINT, which already
-  // contains /v1 in local/e2e mode.
-  await page.route('**/api.genfeed.ai/v1/**', async (r) => {
-    const url = r.request().url();
-
-    if (url.includes('/v1/health')) {
-      await r.fulfill({
-        body: JSON.stringify({ status: 'ok' }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/users/me/brands')) {
-      await handleUserMeBrandsRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/users/me/organizations')) {
-      await handleUserMeOrganizationsRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/brands')) {
-      await handleBrandsRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/tasks')) {
-      await handleTasksRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/users/')) {
-      await handleUserMeRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/threads')) {
-      await r.fulfill({
-        body: JSON.stringify(
-          wrapCollectionInJsonApi([], 'threads', 'mock-thread'),
-        ),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/runs/active')) {
-      await r.fulfill({
-        body: JSON.stringify(wrapCollectionInJsonApi([], 'runs', 'mock-run')),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/credentials/mentions')) {
-      await r.fulfill({
-        body: JSON.stringify({ mentions: [] }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/agent/credits')) {
-      await r.fulfill({
-        body: JSON.stringify({ balance: 500, modelCosts: {} }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/auth/bootstrap')) {
-      await r.fulfill({
-        body: JSON.stringify(buildProtectedAppBootstrapPayload()),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/onboarding/')) {
-      await handleOnboardingRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/trends')) {
-      await handleTrendsRoute(r);
-      return;
-    }
-
-    if (url.includes('/v1/brands/') && url.includes('/activities')) {
-      await r.fulfill({
-        body: JSON.stringify(
-          wrapCollectionInJsonApi([], 'activities', 'mock-brand-activity'),
-        ),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'videos')) {
-      await handleVideoRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'images')) {
-      await handleImageRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'musics')) {
-      await handleMusicRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'avatars')) {
-      await handleAvatarRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'prompts')) {
-      await handlePromptRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'trainings')) {
-      await handleTrainingRoutes(r);
-      return;
-    }
-
-    if (isV1ResourceRequest(url, 'folders')) {
-      await r.fulfill({
-        body: JSON.stringify(wrapCollectionInJsonApi([], 'folders', 'folder')),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/organizations/')) {
-      await handleOrganizationRoutes(r);
-      return;
-    }
-
-    if (
-      url.includes('/v1/billing/') ||
-      url.includes('/v1/subscriptions/') ||
-      url.includes('/v1/credits/') ||
-      url.includes('/v1/payments/')
-    ) {
-      await handleBillingRoutes(r);
-      return;
-    }
-
-    if (url.includes('/v1/analytics/') || url.includes('/v1/activities/')) {
-      await handleAnalyticsRoutes(r);
-      return;
-    }
-
-    if (url.includes('/v1/settings/')) {
-      await handleSettingsRoutes(r);
-      return;
-    }
-
-    // Mention endpoints speak { mentions: [] }, not JSON:API — the generic
-    // { data: [] } fallback made json.mentions undefined, which crashed the
-    // composer's ContentLibraryPicker at render.
-    if (url.includes('/mentions')) {
-      await r.fulfill({
-        body: JSON.stringify({ mentions: [] }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    // Default to a VALID empty JSON:API collection. The old
-    // `{ mock: true }` body had no `data` key, so every service that
-    // deserializes a collection threw 'Invalid JSON:API document' — five of
-    // those at once (prompt bar) crashed /automate/* to the error boundary.
-    await r.fulfill({
-      body: JSON.stringify({
-        data: [],
-        meta: { totalCount: 0, unhandledV1Route: url },
-      }),
       contentType: 'application/json',
       status: 200,
     });

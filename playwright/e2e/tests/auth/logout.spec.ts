@@ -21,7 +21,7 @@ test.describe('Logout Flow', () => {
     }) => {
       await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
-      await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
+      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
       await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
     });
 
@@ -30,7 +30,7 @@ test.describe('Logout Flow', () => {
     }) => {
       await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
-      await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
+      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
       await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
     });
 
@@ -159,7 +159,7 @@ test.describe('Logout Flow', () => {
     }) => {
       await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
-      await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
+      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
     });
 
     test('should show confirmation message on successful logout', async ({

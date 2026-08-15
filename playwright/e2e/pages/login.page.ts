@@ -19,6 +19,8 @@ export class LoginPage {
   readonly passwordInput: Locator;
   readonly continueButton: Locator;
   readonly signInButton: Locator;
+  readonly magicLinkButton: Locator;
+  readonly passwordModeButton: Locator;
 
   // Logo and branding
   readonly logo: Locator;
@@ -54,6 +56,10 @@ export class LoginPage {
     this.signInButton = page.locator(
       'button:has-text("Sign in"), button:has-text("Log in")',
     );
+    this.magicLinkButton = page.getByRole('link', { name: /magic link/i });
+    this.passwordModeButton = page.getByRole('link', {
+      name: /email\s*\/\s*password/i,
+    });
 
     // Logo
     this.logo = page.locator('img[alt*="Genfeed"], img[alt*="logo"]');
@@ -89,13 +95,39 @@ export class LoginPage {
   async waitForPageLoad(): Promise<void> {
     await this.page.waitForLoadState('domcontentloaded');
 
-    // Wait for either Better Auth component or custom login form
+    // Chooser is the default login mode — email only appears after Magic Link
+    // or Email / Password. Treat any of those as "page loaded".
     await Promise.race([
       this.betterAuthContainer.waitFor({ state: 'visible', timeout: 10000 }),
       this.emailInput.waitFor({ state: 'visible', timeout: 10000 }),
+      this.passwordModeButton.waitFor({ state: 'visible', timeout: 10000 }),
+      this.magicLinkButton.waitFor({ state: 'visible', timeout: 10000 }),
+      this.page
+        .getByRole('heading', { name: /welcome back/i })
+        .waitFor({ state: 'visible', timeout: 10000 }),
     ]).catch(() => {
       // Page might redirect if already authenticated
     });
+  }
+
+  /**
+   * Open the email form when the chooser is showing.
+   */
+  async ensureEmailForm(): Promise<void> {
+    if (await this.emailInput.isVisible().catch(() => false)) {
+      return;
+    }
+
+    if (await this.passwordModeButton.isVisible().catch(() => false)) {
+      await this.passwordModeButton.click();
+      await this.emailInput.waitFor({ state: 'visible', timeout: 10000 });
+      return;
+    }
+
+    if (await this.magicLinkButton.isVisible().catch(() => false)) {
+      await this.magicLinkButton.click();
+      await this.emailInput.waitFor({ state: 'visible', timeout: 10000 });
+    }
   }
 
   /**
@@ -108,14 +140,21 @@ export class LoginPage {
     const hasBetterAuthComponent = await this.betterAuthContainer
       .isVisible()
       .catch(() => false);
+    const hasChooser = await this.passwordModeButton
+      .or(this.magicLinkButton)
+      .isVisible()
+      .catch(() => false);
 
-    return hasLoginPath && (hasEmailInput || hasBetterAuthComponent);
+    return (
+      hasLoginPath && (hasEmailInput || hasBetterAuthComponent || hasChooser)
+    );
   }
 
   /**
    * Fill the email field
    */
   async fillEmail(email: string): Promise<void> {
+    await this.ensureEmailForm();
     await this.emailInput.fill(email);
   }
 

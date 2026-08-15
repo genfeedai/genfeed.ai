@@ -28,8 +28,11 @@ test.describe('Library Landing', () => {
 
     await expect(authenticatedPage).toHaveURL(/library\/overview/);
     await expect(
-      authenticatedPage.getByTestId('library-landing-title'),
-    ).toHaveText('Library');
+      authenticatedPage.getByTestId('library-landing'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Library' }),
+    ).toBeVisible();
     await expect(
       authenticatedPage.getByTestId('organization-switcher-trigger'),
     ).toBeVisible();

@@ -27,6 +27,7 @@ describe('ProductionDataBanner', () => {
       writable: true,
     });
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('shows banner when db-mode is production on localhost', async () => {
@@ -79,6 +80,19 @@ describe('ProductionDataBanner', () => {
 
     // Even if the endpoint returns production, banner should not show on non-localhost
     expect(screen.queryByTestId('production-data-banner')).toBeNull();
+  });
+
+  it('does not fetch db-mode during Playwright runs', async () => {
+    vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', 'true');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    render(<ProductionDataBanner />);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('production-data-banner')).toBeNull();
+    vi.unstubAllEnvs();
   });
 
   it('does not show banner when endpoint returns error', async () => {

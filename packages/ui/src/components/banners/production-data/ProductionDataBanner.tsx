@@ -21,7 +21,7 @@ export default function ProductionDataBanner() {
   const [isProductionData, setIsProductionData] = useState(false);
 
   useEffect(() => {
-    if (!isLocalhost()) {
+    if (!isLocalhost() || process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true') {
       return;
     }
 
