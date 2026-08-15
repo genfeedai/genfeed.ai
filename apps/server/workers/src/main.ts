@@ -82,6 +82,14 @@ async function startHealthServer(
 }
 
 async function main() {
+  // Hermetic release gate: the static AppModule import above has already
+  // evaluated the complete compiled workers graph. Exit before Nest connects
+  // to Redis/Postgres so CI can detect bundle TDZ/circular-import failures
+  // without production infrastructure.
+  if (process.env.BOOT_CHECK === '1') {
+    process.exit(0);
+  }
+
   const app = await NestFactory.createApplicationContext(AppModule, {
     abortOnError: false,
     logger: ['error'],
