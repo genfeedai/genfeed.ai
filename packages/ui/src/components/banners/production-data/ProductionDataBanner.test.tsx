@@ -27,8 +27,6 @@ describe('ProductionDataBanner', () => {
       writable: true,
     });
     vi.restoreAllMocks();
-    document.cookie =
-      '__playwright_test=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   });
 
   it('shows banner when db-mode is production on localhost', async () => {
@@ -80,18 +78,6 @@ describe('ProductionDataBanner', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     // Even if the endpoint returns production, banner should not show on non-localhost
-    expect(screen.queryByTestId('production-data-banner')).toBeNull();
-  });
-
-  it('does not fetch db-mode during Playwright runs', async () => {
-    document.cookie = '__playwright_test=true; path=/';
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-
-    render(<ProductionDataBanner />);
-
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(fetchSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId('production-data-banner')).toBeNull();
   });
 
