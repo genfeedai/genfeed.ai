@@ -21,9 +21,10 @@ env:
 
 jobs:
   # Release-cut boot gate — builds the COMPILED api and workers bundles and
-  # loads their full provider graphs with BOOT_CHECK=1, which exits 0 BEFORE
-  # NestFactory/config (no env, DB, or Redis needed). Kept out of normal PR CI
-  # so pull requests stay fast, but still runs before Docker release verification.
+  # loads their compiled module graphs with BOOT_CHECK=1, which exits before
+  # NestFactory connects to external services (no live DB or Redis). Kept out of
+  # normal PR CI so pull requests stay fast, but still runs before Docker release
+  # verification.
   api-boot-check:
     name: Server Bundle Boot Check
     runs-on: ubuntu-latest
@@ -122,34 +123,23 @@ jobs:
               done
             '
 
-      - name: Boot-check EE/SaaS api bundle (#574 circular-dep regression guard)
+      - name: Boot-check EE/SaaS server bundles (#574 circular-dep regression guard)
         run: |
-          echo "Booting the EE/SaaS api bundle to prove the module graph initializes..."
-          # The bundle-exists check above never RUNS the bundle. The EE billing
-          # decouple (#563) introduced an ESM eval-time circular dependency that
-          # crashed api on boot with a TDZ ("Cannot access 'userSubscriptions'
-          # before initialization") — invisible to typecheck/lint/vitest (which
-          # resolve @billing-providers to the OSS stub) and to the self-hosted E2E
-          # (community image). This boots the actual EE bundle that prod runs.
-          docker run --rm -e NODE_ENV=production ${{ env.IMAGE_NAME }}:test \
-            sh -c '
-              set +e
-              # It will fail shortly after on missing PORT/DB/Redis env — that is
-              # EXPECTED and proves the module graph (DI container) initialized.
-              OUT=$(timeout 40 node apps/server/dist/apps/api/main.js 2>&1)
-              echo "----- boot output (tail) -----"
-              echo "$OUT" | tail -n 60
-              echo "------------------------------"
-              if echo "$OUT" | grep -qiE "Cannot access .* before initialization|ReferenceError"; then
-                echo "❌ #574 regression: EE api bundle crashed at module init (circular-dep TDZ)"
-                exit 1
-              fi
-              if [ -z "$OUT" ]; then
-                echo "❌ EE api bundle produced no output — cannot confirm module init"
-                exit 1
-              fi
-              echo "✅ EE api bundle initialized past the module graph (no TDZ)"
-            '
+          # The bundle-exists check above never RUNS the bundles. Load both
+          # compiled entrypoints from the actual EE image with minimal config;
+          # BOOT_CHECK exits after module evaluation and before Nest connects to
+          # Postgres/Redis. This catches TDZ/circular-import crashes in the same
+          # production artifacts that the release deploys.
+          for service in api workers; do
+            echo "Boot-checking EE/SaaS ${service} bundle..."
+            docker run --rm \
+              -e NODE_ENV=production \
+              -e PORT=3001 \
+              -e DATABASE_URL=postgresql://localhost/boot_check \
+              -e BOOT_CHECK=1 \
+              ${{ env.IMAGE_NAME }}:test \
+              node "apps/server/dist/apps/${service}/main.js"
+          done
 
       - name: Build summary
         if: success()
@@ -157,5 +147,5 @@ jobs:
           {
             echo "## ✅ Build Verification Passed"
             echo ""
-            echo "Docker image built + all 11 bundles verified; EE api bundle booted past module init (#574 guard)."
+            echo "Docker image built + all 11 bundles verified; EE api and workers bundles loaded without module-init errors (#574 guard)."
           } >> "$GITHUB_STEP_SUMMARY"
