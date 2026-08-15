@@ -1,12 +1,12 @@
-import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/cron.pattern-extraction.service';
+import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
 
 describe('CronPatternExtractionService', () => {
   let service: CronPatternExtractionService;
-  let queueService: {
-    add: ReturnType<typeof vi.fn>;
+  let patternExtractionQueueService: {
+    enqueueScan: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -14,8 +14,8 @@ describe('CronPatternExtractionService', () => {
   };
 
   beforeEach(async () => {
-    queueService = {
-      add: vi.fn().mockResolvedValue(undefined),
+    patternExtractionQueueService = {
+      enqueueScan: vi.fn().mockResolvedValue(undefined),
     };
     loggerService = {
       error: vi.fn(),
@@ -25,7 +25,10 @@ describe('CronPatternExtractionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronPatternExtractionService,
-        { provide: QueueService, useValue: queueService },
+        {
+          provide: PatternExtractionQueueService,
+          useValue: patternExtractionQueueService,
+        },
         { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();
@@ -43,23 +46,8 @@ describe('CronPatternExtractionService', () => {
     it('should enqueue one scan that derives every platform', async () => {
       await service.computeDailyPatterns();
 
-      expect(queueService.add).toHaveBeenCalledTimes(1);
-      expect(queueService.add).toHaveBeenCalledWith(
-        'pattern-extraction',
-        {},
-        expect.objectContaining({ attempts: 2 }),
-      );
-    });
-
-    it('should enqueue the scan with exponential backoff config', async () => {
-      await service.computeDailyPatterns();
-
-      expect(queueService.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({
-          backoff: { delay: 10000, type: 'exponential' },
-        }),
+      expect(patternExtractionQueueService.enqueueScan).toHaveBeenCalledTimes(
+        1,
       );
     });
 
@@ -69,9 +57,9 @@ describe('CronPatternExtractionService', () => {
       expect(loggerService.log).toHaveBeenCalledTimes(2);
     });
 
-    it('should log error and not throw when queueService.add fails', async () => {
+    it('should log error and not throw when enqueueScan fails', async () => {
       const err = new Error('Queue connection failed');
-      queueService.add.mockRejectedValue(err);
+      patternExtractionQueueService.enqueueScan.mockRejectedValue(err);
 
       await expect(service.computeDailyPatterns()).resolves.toBeUndefined();
 
@@ -82,7 +70,9 @@ describe('CronPatternExtractionService', () => {
     });
 
     it('should handle unknown error type in catch block', async () => {
-      queueService.add.mockRejectedValue('string error');
+      patternExtractionQueueService.enqueueScan.mockRejectedValue(
+        'string error',
+      );
 
       await expect(service.computeDailyPatterns()).resolves.toBeUndefined();
       expect(loggerService.error).toHaveBeenCalled();

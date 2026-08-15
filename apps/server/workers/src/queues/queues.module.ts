@@ -70,6 +70,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
+import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
 
 @Module({
   exports: [
@@ -80,6 +81,7 @@ import { ConfigService } from '@workers/config/config.service';
     PostPublishQueueService,
     BatchGenerationQueueService,
     ReplyInboundQueueService,
+    PatternExtractionQueueService,
   ],
   imports: [
     LoggerModule,
@@ -503,6 +505,7 @@ import { ConfigService } from '@workers/config/config.service';
     BatchGenerationQueueService,
     // Schedule 24h reply post-watch series after successful X publish.
     ReplyInboundQueueService,
+    PatternExtractionQueueService,
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,

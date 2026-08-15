@@ -281,7 +281,9 @@ RUN echo "Checking build outputs..." && \
         echo "❌ $svc bundle suspiciously small (${SIZE} bytes)" && exit 1; \
       fi; \
       echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
-    done
+    done && \
+    test -s apps/server/dist/apps/workers-pattern-extraction-repair/main.js && \
+    echo "✅ workers-pattern-extraction-repair bundle"
 
 # Execute the compiled seed entrypoint without touching a database. This proves
 # the production bundle contains its launch data and actually reaches its CLI

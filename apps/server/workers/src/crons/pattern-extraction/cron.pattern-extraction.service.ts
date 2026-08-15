@@ -1,21 +1,16 @@
-import { QueueService } from '@api/queues/core/queue.service';
-import {
-  PATTERN_EXTRACTION_QUEUE,
-  type PatternExtractionJobData,
-} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
 
 @Injectable()
 export class CronPatternExtractionService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = PATTERN_EXTRACTION_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly queueService: QueueService,
+    private readonly patternExtractionQueueService: PatternExtractionQueueService,
   ) {}
 
   @Cron('0 2 * * *') // 2 AM daily
@@ -24,12 +19,7 @@ export class CronPatternExtractionService {
     this.logger.log(`${url} started`);
 
     try {
-      const jobData: PatternExtractionJobData = {};
-
-      await this.queueService.add(this.QUEUE_NAME, jobData, {
-        attempts: 2,
-        backoff: { delay: 10000, type: 'exponential' },
-      });
+      await this.patternExtractionQueueService.enqueueScan();
 
       this.logger.log(`${url} enqueued 1 pattern extraction scan`);
     } catch (error: unknown) {

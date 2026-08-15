@@ -70,7 +70,7 @@ export class QueueService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  add<T = Record<string, unknown>>(
+  async add<T = Record<string, unknown>>(
     queueName: string,
     data: T,
     options?: JobsOptions,
@@ -129,6 +129,8 @@ export class QueueService {
 
   private getQueue(queueName: string): Queue {
     switch (queueName) {
+      case DEFAULT_QUEUE:
+        return this.defaultQueue;
       case ANALYTICS_TWITTER_QUEUE:
         return this.analyticsTwitterQueue;
       case ANALYTICS_YOUTUBE_QUEUE:
@@ -160,7 +162,7 @@ export class QueueService {
       case SOCIAL_REPLY_CAMPAIGN_QUEUE:
         return this.socialReplyCampaignQueue;
       default:
-        return this.defaultQueue;
+        throw new Error(`Unsupported queue: ${queueName}`);
     }
   }
 

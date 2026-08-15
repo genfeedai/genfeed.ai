@@ -128,29 +128,27 @@ describe('QueueService', () => {
   });
 
   describe('add', () => {
-    it('should add a job to the queue', async () => {
-      const jobName = 'process-video';
+    it('should add a job to the explicitly selected default queue', async () => {
       const jobData = { userId: '456', videoId: '123' };
       const options = { priority: 1 };
 
       queue.add.mockResolvedValue(mockJob);
 
-      const result = await service.add(jobName, jobData, options);
+      const result = await service.add(DEFAULT_QUEUE, jobData, options);
 
       expect(result).toBe(mockJob);
-      expect(queue.add).toHaveBeenCalledWith(jobName, jobData, options);
+      expect(queue.add).toHaveBeenCalledWith(DEFAULT_QUEUE, jobData, options);
     });
 
     it('should add a job without options', async () => {
-      const jobName = 'process-image';
       const jobData = { imageId: '789' };
 
       queue.add.mockResolvedValue(mockJob);
 
-      const result = await service.add(jobName, jobData);
+      const result = await service.add(DEFAULT_QUEUE, jobData);
 
       expect(result).toBe(mockJob);
-      expect(queue.add).toHaveBeenCalledWith(jobName, jobData, undefined);
+      expect(queue.add).toHaveBeenCalledWith(DEFAULT_QUEUE, jobData, undefined);
     });
 
     it('should handle errors when adding job', async () => {
@@ -158,7 +156,15 @@ describe('QueueService', () => {
 
       queue.add.mockRejectedValue(error);
 
-      await expect(service.add('test-job', {})).rejects.toThrow(error);
+      await expect(service.add(DEFAULT_QUEUE, {})).rejects.toThrow(error);
+    });
+
+    it('should reject unknown queues instead of routing them to default', async () => {
+      await expect(service.add('unknown-queue', {})).rejects.toThrow(
+        'Unsupported queue: unknown-queue',
+      );
+
+      expect(queue.add).not.toHaveBeenCalled();
     });
   });
 
