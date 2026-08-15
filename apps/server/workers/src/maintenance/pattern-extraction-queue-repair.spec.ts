@@ -77,6 +77,22 @@ describe('pattern extraction queue repair', () => {
     });
   });
 
+  it('keeps stranded jobs when the replacement scan cannot be enqueued', async () => {
+    const strandedJob = job(PATTERN_EXTRACTION_QUEUE);
+    const defaultQueue = {
+      getWaiting: vi.fn().mockResolvedValue([strandedJob]),
+    };
+    const producer = {
+      enqueueScan: vi.fn().mockRejectedValue(new Error('enqueue failed')),
+    };
+
+    await expect(
+      repairPatternExtractionQueue(defaultQueue, producer, { dryRun: false }),
+    ).rejects.toThrow('enqueue failed');
+
+    expect(strandedJob.remove).not.toHaveBeenCalled();
+  });
+
   it('does not enqueue a scan when no stranded jobs were found', async () => {
     const defaultQueue = { getWaiting: vi.fn().mockResolvedValue([]) };
     const producer = { enqueueScan: vi.fn() };

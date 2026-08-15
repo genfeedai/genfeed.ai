@@ -38,6 +38,8 @@ describe('PatternExtractionQueueService', () => {
       expect.objectContaining({
         attempts: 2,
         backoff: { delay: 10000, type: 'exponential' },
+        removeOnComplete: 100,
+        removeOnFail: 50,
       }),
     );
   });

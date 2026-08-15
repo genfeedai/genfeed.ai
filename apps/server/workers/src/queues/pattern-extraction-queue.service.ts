@@ -23,6 +23,8 @@ export class PatternExtractionQueueService {
         attempts: 2,
         backoff: { delay: 10000, type: 'exponential' },
         jobId: `pattern-extraction-${utcDate}`,
+        removeOnComplete: 100,
+        removeOnFail: 50,
       },
     );
   }
