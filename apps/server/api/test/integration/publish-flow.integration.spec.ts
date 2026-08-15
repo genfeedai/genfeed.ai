@@ -13,8 +13,9 @@
  *     directly against a real, seeded draft `Post` row, with only the
  *     outbound `GhostService` (the Ghost Admin API client) DI-mocked. The
  *     resulting `Post` state transition is then applied via the REAL
- *     `PostsService.patch()`, mirroring the exact shape
- *     `CronPostsService`'s success path uses, and read back from Postgres.
+ *     `PostsService.patch()`, mirroring `CronPostsService`'s success path
+ *     (`targetExecutionState: published` + visibility, not leftover
+ *     `Post.status`), and read back from Postgres.
  */
 
 // Allow skipping this file when the Prisma DB is not available
@@ -62,6 +63,8 @@ import {
 import {
   CredentialPlatform,
   PostStatus,
+  PostVisibility,
+  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -223,6 +226,8 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
         organizationId,
         platform: 'ghost',
         status: 'draft',
+        targetExecutionState: TargetExecutionState.DRAFT,
+        visibility: PostVisibility.PUBLIC,
         userId,
       },
     ]);
@@ -267,21 +272,30 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
     expect(result.success).toBe(true);
     expect(result.externalId).toBe('ghost-post-external-id');
 
-    // Mirrors CronPostsService's confirmed success-path state transition —
+    // Mirrors CronPostsService persistPublishState on immediate success —
     // driven here directly, without the cron/queue orchestration layer.
+    // PostsService.patch ignores leftover `status`; canonical write is
+    // targetExecutionState + visibility (#2642).
     await postsService.patch(postId, {
       externalId: result.externalId,
       externalShortcode: result.externalShortcode ?? undefined,
       publicationDate: new Date(),
-      status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
     });
 
     const publishedPost = await prisma.post.findFirst({
       where: { id: postId },
     });
 
-    expect(publishedPost?.status).toBe(PostStatus.PUBLIC);
+    expect(publishedPost?.targetExecutionState).toBe(
+      TargetExecutionState.PUBLISHED,
+    );
+    expect(publishedPost?.visibility).toBe(PostVisibility.PUBLIC);
     expect(publishedPost?.externalId).toBe('ghost-post-external-id');
     expect(publishedPost?.publicationDate).toBeInstanceOf(Date);
+
+    const projected = await postsService.findOne({ id: postId });
+    expect(projected?.status).toBe(PostStatus.PUBLIC);
   });
 });
