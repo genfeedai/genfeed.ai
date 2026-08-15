@@ -25,7 +25,7 @@ describe('pattern extraction queue repair', () => {
     const defaultQueue = {
       getWaiting: vi.fn().mockResolvedValue([strandedJob, unrelatedJob]),
     };
-    const producer = { enqueueScan: vi.fn() };
+    const producer = { enqueueOneOffScan: vi.fn() };
 
     const report = await repairPatternExtractionQueue(defaultQueue, producer, {
       dryRun: true,
@@ -34,7 +34,7 @@ describe('pattern extraction queue repair', () => {
     expect(defaultQueue.getWaiting).toHaveBeenCalledWith(0, -1);
     expect(strandedJob.remove).not.toHaveBeenCalled();
     expect(unrelatedJob.remove).not.toHaveBeenCalled();
-    expect(producer.enqueueScan).not.toHaveBeenCalled();
+    expect(producer.enqueueOneOffScan).not.toHaveBeenCalled();
     expect(report).toEqual({
       dryRun: true,
       enqueued: false,
@@ -56,7 +56,7 @@ describe('pattern extraction queue repair', () => {
       getWaiting: vi.fn().mockResolvedValue([strandedJob, unrelatedJob]),
     };
     const producer = {
-      enqueueScan: vi.fn().mockImplementation(async () => {
+      enqueueOneOffScan: vi.fn().mockImplementation(async () => {
         operations.push('enqueue');
       }),
     };
@@ -67,7 +67,7 @@ describe('pattern extraction queue repair', () => {
 
     expect(strandedJob.remove).toHaveBeenCalledTimes(1);
     expect(unrelatedJob.remove).not.toHaveBeenCalled();
-    expect(producer.enqueueScan).toHaveBeenCalledTimes(1);
+    expect(producer.enqueueOneOffScan).toHaveBeenCalledTimes(1);
     expect(operations).toEqual(['enqueue', 'remove']);
     expect(report).toEqual({
       dryRun: false,
@@ -83,7 +83,7 @@ describe('pattern extraction queue repair', () => {
       getWaiting: vi.fn().mockResolvedValue([strandedJob]),
     };
     const producer = {
-      enqueueScan: vi.fn().mockRejectedValue(new Error('enqueue failed')),
+      enqueueOneOffScan: vi.fn().mockRejectedValue(new Error('enqueue failed')),
     };
 
     await expect(
@@ -95,13 +95,13 @@ describe('pattern extraction queue repair', () => {
 
   it('does not enqueue a scan when no stranded jobs were found', async () => {
     const defaultQueue = { getWaiting: vi.fn().mockResolvedValue([]) };
-    const producer = { enqueueScan: vi.fn() };
+    const producer = { enqueueOneOffScan: vi.fn() };
 
     const report = await repairPatternExtractionQueue(defaultQueue, producer, {
       dryRun: false,
     });
 
-    expect(producer.enqueueScan).not.toHaveBeenCalled();
+    expect(producer.enqueueOneOffScan).not.toHaveBeenCalled();
     expect(report.enqueued).toBe(false);
   });
 });

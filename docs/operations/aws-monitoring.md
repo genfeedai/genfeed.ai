@@ -38,8 +38,10 @@ After reviewing the report, apply the repair:
 bun --filter @genfeedai/workers repair:pattern-extraction
 ```
 
-Live mode first enqueues one fresh, daily-deduplicated scan on
-`pattern-extraction`, then removes only those exact waiting jobs from `default`.
+Live mode first enqueues one fresh, one-off scan on `pattern-extraction`, then
+removes only those exact waiting jobs from `default`. The one-off job deliberately
+bypasses the cron's daily deduplication so a retained failed daily job cannot be
+mistaken for a successful replacement.
 Run the dry-run again and confirm `matched` is zero. Then verify the waiting
 count and oldest-waiting age return below their CloudWatch thresholds.
 

@@ -17,7 +17,7 @@ interface DefaultQueueReader {
 }
 
 interface PatternExtractionProducer {
-  enqueueScan(): Promise<void>;
+  enqueueOneOffScan(): Promise<void>;
 }
 
 export function parsePatternExtractionRepairArgs(
@@ -65,7 +65,7 @@ export async function repairPatternExtractionQueue(
   }
 
   if (strandedJobs.length > 0) {
-    await producer.enqueueScan();
+    await producer.enqueueOneOffScan();
   }
 
   await Promise.all(strandedJobs.map((job) => job.remove()));

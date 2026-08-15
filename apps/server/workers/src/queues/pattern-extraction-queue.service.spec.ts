@@ -62,4 +62,11 @@ describe('PatternExtractionQueueService', () => {
       vi.useRealTimers();
     }
   });
+
+  it('allows one-off scans without daily deduplication', async () => {
+    await service.enqueueOneOffScan();
+
+    const options = vi.mocked(patternExtractionQueue.add).mock.calls[0]?.[2];
+    expect(options).not.toHaveProperty('jobId');
+  });
 });
