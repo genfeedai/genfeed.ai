@@ -238,6 +238,21 @@
       "root": "workers",
       "sourceRoot": "workers/src",
       "type": "application"
+    },
+    "workers-pattern-extraction-repair": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "workers/pattern-extraction-repair.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "workers/tsconfig.app.json"
+      },
+      "entryFile": "maintenance/pattern-extraction-queue-repair.entrypoint",
+      "root": "workers",
+      "sourceRoot": "workers/src",
+      "type": "application"
     }
   },
   "root": ".",
