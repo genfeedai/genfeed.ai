@@ -29,9 +29,6 @@
  * keep the same three named exports with the same fragment shape.
  */
 
-import { CreditsModule } from '@api/collections/credits/credits.module';
-import { CustomersModule } from '@api/collections/customers/customers.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import type { BillingProviderFragment } from '@api/common/subscriptions/billing.providers.oss';
 import { OssSubscriptionAttributionsService } from '@api/common/subscriptions/oss-subscription-attributions.service';
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
@@ -95,18 +92,31 @@ export const subscriptions: BillingProviderFragment = {
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
   imports: [
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CustomersModule),
-    forwardRef(() => OrganizationsModule),
-    // StripeModule is resolved lazily (NOT a top-level import) to break an ESM
-    // eval-time circular dependency that crashes the EE/SaaS bundle on boot:
-    //   billing.providers.ee → stripe.module → user-subscriptions.module
-    //   → @Module(userSubscriptions) reads this file's exports before its body
-    //   has run → TDZ "Cannot access 'userSubscriptions' before initialization".
-    // A lazy require defers stripe.module's evaluation to DI-resolution time,
-    // after this module body has fully initialized. See issue #574.
-    // Do NOT convert back to a top-level `import { StripeModule }` — it
-    // reintroduces the boot crash (community/OSS bundle is unaffected either way).
+    // Every API Nest module is resolved lazily here. This fragment is itself
+    // imported by the API's billing collection modules, so any eager module
+    // import can re-enter `@billing-providers` before these fragment exports
+    // initialize. The API bundle happened to tolerate the existing graph, but
+    // the workers bundle exposed the TDZ through its batch/agent import order.
+    // Keep these as explicit static-string require() calls so webpack includes
+    // the modules while Nest resolves them only after this file initializes.
+    forwardRef(
+      () =>
+        (
+          require('@api/collections/credits/credits.module') as typeof import('@api/collections/credits/credits.module')
+        ).CreditsModule,
+    ),
+    forwardRef(
+      () =>
+        (
+          require('@api/collections/customers/customers.module') as typeof import('@api/collections/customers/customers.module')
+        ).CustomersModule,
+    ),
+    forwardRef(
+      () =>
+        (
+          require('@api/collections/organizations/organizations.module') as typeof import('@api/collections/organizations/organizations.module')
+        ).OrganizationsModule,
+    ),
     forwardRef(
       () =>
         (
