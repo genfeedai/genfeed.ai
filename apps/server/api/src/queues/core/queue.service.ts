@@ -70,7 +70,7 @@ export class QueueService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  add<T = Record<string, unknown>>(
+  async add<T = Record<string, unknown>>(
     queueName: string,
     data: T,
     options?: JobsOptions,

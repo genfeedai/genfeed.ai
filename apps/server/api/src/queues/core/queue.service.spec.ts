@@ -159,8 +159,8 @@ describe('QueueService', () => {
       await expect(service.add(DEFAULT_QUEUE, {})).rejects.toThrow(error);
     });
 
-    it('should reject unknown queues instead of routing them to default', () => {
-      expect(() => service.add('unknown-queue', {})).toThrow(
+    it('should reject unknown queues instead of routing them to default', async () => {
+      await expect(service.add('unknown-queue', {})).rejects.toThrow(
         'Unsupported queue: unknown-queue',
       );
 
