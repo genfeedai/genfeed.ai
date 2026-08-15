@@ -20,12 +20,12 @@ env:
   IMAGE_NAME: genfeed-server-verify
 
 jobs:
-  # Release-cut boot gate — builds the COMPILED api bundle and loads its full
-  # provider graph with BOOT_CHECK=1, which exits 0 BEFORE NestFactory/config
-  # (no env, DB, or Redis needed). Kept out of normal PR CI so pull requests stay
-  # fast, but still runs before Docker release verification.
+  # Release-cut boot gate — builds the COMPILED api and workers bundles and
+  # loads their full provider graphs with BOOT_CHECK=1, which exits 0 BEFORE
+  # NestFactory/config (no env, DB, or Redis needed). Kept out of normal PR CI
+  # so pull requests stay fast, but still runs before Docker release verification.
   api-boot-check:
-    name: API Boot Check
+    name: Server Bundle Boot Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -38,13 +38,15 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
-      - name: Build api (compiled bundle)
-        # The api package emits to apps/server/dist, outside apps/server/api.
+      - name: Build api and workers (compiled bundles)
+        # Both packages emit to apps/server/dist, outside their package roots.
         # Force a real build so a Turbo cache-hit replay cannot skip restoring
-        # the compiled bundle this boot check loads.
-        run: bunx turbo run build --filter=@genfeedai/api --force
-      - name: Boot check — compiled graph must load
-        run: BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
+        # the compiled bundles this boot check loads.
+        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/workers --force
+      - name: Boot check — compiled graphs must load
+        run: |
+          BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
+          BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/workers/main.js
 
   build-and-boot:
     name: Build & Boot Check
