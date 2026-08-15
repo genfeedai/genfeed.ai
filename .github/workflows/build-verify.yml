@@ -46,7 +46,11 @@ jobs:
       - name: Boot check — compiled graphs must load
         run: |
           BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
-          BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/workers/main.js
+          NODE_ENV=production \
+            PORT=3001 \
+            DATABASE_URL=postgresql://localhost/boot_check \
+            BOOT_CHECK=1 \
+            timeout 120 node apps/server/dist/apps/workers/main.js
 
   build-and-boot:
     name: Build & Boot Check
