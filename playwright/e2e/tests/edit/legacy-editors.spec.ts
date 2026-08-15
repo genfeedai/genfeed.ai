@@ -7,13 +7,15 @@ import { assertRouteRenders } from '../../utils/route-assertions';
  * New operator navigation uses `/publish/posts/{id}`; these routes stay
  * reachable for existing deep links.
  */
+const ORG_BRAND = '/test-org/brand-1';
+
 test.describe('Legacy editors', () => {
   test.setTimeout(60_000);
 
   test('renders /edit/article/:id', async ({ authenticatedPage }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${APP_ROUTES.EDIT.ARTICLE}/mock-id`,
+      `${ORG_BRAND}${APP_ROUTES.EDIT.ARTICLE}/mock-id`,
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
@@ -21,7 +23,7 @@ test.describe('Legacy editors', () => {
   test('renders /edit/newsletter/:id', async ({ authenticatedPage }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${APP_ROUTES.EDIT.NEWSLETTER}/mock-id`,
+      `${ORG_BRAND}${APP_ROUTES.EDIT.NEWSLETTER}/mock-id`,
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });

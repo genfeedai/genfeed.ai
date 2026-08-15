@@ -59,7 +59,11 @@ import {
   createTestDatabaseHelper,
   E2ETestModule,
 } from '@api-test/e2e-test.module';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -172,7 +176,9 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
     });
 
     expect(persisted).not.toBeNull();
-    expect(persisted?.platform).toBe(CredentialPlatform.GHOST);
+    expect(persisted?.platform).toBe(
+      toPrismaCredentialPlatform(CredentialPlatform.GHOST),
+    );
     expect(persisted?.organizationId).toBe(organizationId);
     expect(persisted?.isDeleted).toBe(false);
     expect(persisted?.accessToken).toBeTruthy();
@@ -202,7 +208,7 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
         isConnected: true,
         isDeleted: false,
         organizationId,
-        platform: CredentialPlatform.GHOST,
+        platform: toPrismaCredentialPlatform(CredentialPlatform.GHOST),
         userId,
       },
     ]);

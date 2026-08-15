@@ -58,20 +58,9 @@ test.describe('Login Page', () => {
 
       await loginPage.goto();
       await loginPage.waitForBetterAuthReady();
+      await loginPage.ensureEmailForm();
 
-      const emailVisible = await loginPage.emailInput
-        .isVisible()
-        .catch(() => false);
-
-      // If Better Auth loaded, email input should be visible
-      if (!emailVisible) {
-        // Better Auth might still be loading — wait and retry
-        await unauthenticatedPage.waitForTimeout(2000);
-        const retryVisible = await loginPage.emailInput
-          .isVisible()
-          .catch(() => false);
-        expect(retryVisible).toBe(true);
-      }
+      await expect(loginPage.emailInput).toBeVisible();
     });
 
     test('should validate empty email submission', async ({
@@ -98,6 +87,7 @@ test.describe('Login Page', () => {
 
       await loginPage.goto();
       await loginPage.waitForBetterAuthReady();
+      await loginPage.ensureEmailForm();
 
       const canFillEmail = await loginPage.emailInput
         .isVisible()
@@ -125,6 +115,7 @@ test.describe('Login Page', () => {
 
       await authenticatedPage.goto(APP_ROUTES.LOGIN);
       await loginPage.waitForPageLoad();
+      await loginPage.ensureEmailForm();
 
       await expect(authenticatedPage).toHaveURL(/\/login/);
       await loginPage.assertLogoVisible();
@@ -179,6 +170,7 @@ test.describe('Login Page', () => {
 
       await loginPage.goto();
       await loginPage.waitForBetterAuthReady();
+      await loginPage.ensureEmailForm();
 
       const hasForgotLink = await loginPage.forgotPasswordLink
         .isVisible()
@@ -246,6 +238,7 @@ test.describe('Login Page', () => {
 
       await loginPage.goto();
       await loginPage.waitForBetterAuthReady();
+      await loginPage.ensureEmailForm();
 
       const emailInput = loginPage.emailInput;
       const isVisible = await emailInput.isVisible().catch(() => false);

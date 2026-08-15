@@ -85,6 +85,7 @@ jobs:
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
           E2E_EXPECT_TIMEOUT_MS: "15000"
           E2E_RETRIES: "0"
           E2E_SHARD_INDEX: ${{ matrix.shard }}

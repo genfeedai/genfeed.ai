@@ -17,11 +17,23 @@ function isLocalhost(): boolean {
   );
 }
 
+function isPlaywrightRun(): boolean {
+  if (process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true') {
+    return true;
+  }
+
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  return document.cookie.includes('__playwright_test=true');
+}
+
 export default function ProductionDataBanner() {
   const [isProductionData, setIsProductionData] = useState(false);
 
   useEffect(() => {
-    if (!isLocalhost()) {
+    if (!isLocalhost() || isPlaywrightRun()) {
       return;
     }
 

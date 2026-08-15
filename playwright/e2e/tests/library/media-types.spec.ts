@@ -111,8 +111,11 @@ test.describe('Library Media Types', () => {
 
       await expect(authenticatedPage).toHaveURL(/overview/);
       await expect(
-        authenticatedPage.getByTestId('library-landing-title'),
-      ).toHaveText('Library');
+        authenticatedPage.getByTestId('library-landing'),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', { name: 'Library' }),
+      ).toBeVisible();
       await expect(
         authenticatedPage.getByTestId('organization-switcher-trigger'),
       ).toBeVisible();

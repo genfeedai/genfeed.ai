@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from '@playwright/test';
+import type { BrowserContext, Page, Route } from '@playwright/test';
 import {
   generateMockOrganization,
   generateMockUser,
@@ -33,9 +33,10 @@ import { test as base } from './coverage.fixture';
  *    host (api.genfeed.ai) and the local dev host (genfeed.localhost:3010).
  *
  * Route ordering note: Playwright checks routes in REVERSE registration order
- * (last-registered = highest priority). setupBetterAuthMocks() must therefore be
- * called AFTER setupApiMocks() so its more-specific local `/v1/auth/*` patterns
- * take precedence over the generic catch-all in setupApiMocks.
+ * (last-registered = highest priority). setupApiMocks() registers production-
+ * host fallbacks first, then specific resource handlers. setupBetterAuthMocks()
+ * must run AFTER that so `/v1/auth/get-session` and `/v1/auth/token` beat both
+ * the fallback and any resource glob.
  *
  * @module auth.fixture
  */
@@ -283,52 +284,42 @@ async function setupBetterAuthMocks(
   // catch-all. Getting this order wrong makes the catch-all shadow the session
   // mock, useSession() resolves signed-out, and protected shells spin forever.
 
-  // Lowest priority: anything under /v1/auth/* the client touches but we do not
-  // explicitly mock (e.g. sign-out) returns an inert empty payload.
-  await page.route('**/v1/auth/**', async (route) => {
-    // /v1/auth/bootstrap is a Genfeed API endpoint (NOT a Better Auth client
-    // call) mocked by setupApiMocks. setupBetterAuthMocks runs AFTER it, so this
-    // catch-all would otherwise shadow it — fall through so the real bootstrap
-    // payload (and thus accessState) loads instead of {data:null}.
-    // Match on pathname, not the raw URL, so an unrelated auth call whose query
-    // string happens to contain "/auth/bootstrap" (e.g. a callbackURL) does not
-    // wrongly fall through to the real bootstrap handler.
-    const { pathname } = new URL(route.request().url());
-    if (pathname.endsWith('/auth/bootstrap')) {
-      await route.fallback();
-      return;
-    }
+  // Do not catch-all `/v1/auth/**` with `{data: null}`. That body is invalid
+  // JSON:API; deserializeCollection throws "expected collection data" and
+  // every protected shell that also talks to Better Auth plugin routes
+  // (organization, sign-out) collapses. Unknown auth paths fall through to
+  // setupApiMocks (empty JSON:API collection / bootstrap). Register host-
+  // prefixed patterns last so they beat the production-host fallback.
+
+  const fulfillJson = async (route: Route, body: unknown): Promise<void> => {
     await route.fulfill({
-      body: JSON.stringify({ data: null }),
+      body: JSON.stringify(body),
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
 
   await page.route('**/v1/auth/jwks**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({ keys: [] }),
-      contentType: 'application/json',
-      status: 200,
-    });
+    await fulfillJson(route, { keys: [] });
+  });
+  await page.route('**/api.genfeed.ai/v1/auth/jwks**', async (route) => {
+    await fulfillJson(route, { keys: [] });
   });
 
   await page.route('**/v1/auth/token**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({ token: `mock-jwt-${session.sessionId}` }),
-      contentType: 'application/json',
-      status: 200,
-    });
+    await fulfillJson(route, { token: `mock-jwt-${session.sessionId}` });
+  });
+  await page.route('**/api.genfeed.ai/v1/auth/token**', async (route) => {
+    await fulfillJson(route, { token: `mock-jwt-${session.sessionId}` });
   });
 
   // Highest priority: Better Auth's client fetches GET /v1/auth/get-session
-  // (NOT /v1/auth/session). This must win over the catch-all above.
+  // (NOT /v1/auth/session).
   await page.route('**/v1/auth/get-session**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(sessionPayload),
-      contentType: 'application/json',
-      status: 200,
-    });
+    await fulfillJson(route, sessionPayload);
+  });
+  await page.route('**/api.genfeed.ai/v1/auth/get-session**', async (route) => {
+    await fulfillJson(route, sessionPayload);
   });
 }
 
@@ -415,10 +406,30 @@ export const test = base.extend<AuthFixtures>({
     const networkGuard = await setupStrictNetworkGuard(page);
     await setupApiMocks(page);
 
-    // Return unauthenticated state from Better Auth
-    await page.route('**/v1/auth/get-session**', async (route) => {
+    const unauthenticatedSession = { session: null, user: null };
+    const fulfillUnauthenticated = async (route: Route): Promise<void> => {
       await route.fulfill({
-        body: JSON.stringify({ session: null, user: null }),
+        body: JSON.stringify(unauthenticatedSession),
+        contentType: 'application/json',
+        status: 200,
+      });
+    };
+
+    await page.route('**/v1/auth/get-session**', fulfillUnauthenticated);
+    await page.route(
+      '**/api.genfeed.ai/v1/auth/get-session**',
+      fulfillUnauthenticated,
+    );
+    await page.route('**/v1/auth/token**', async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({ token: null }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+    await page.route('**/api.genfeed.ai/v1/auth/token**', async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({ token: null }),
         contentType: 'application/json',
         status: 200,
       });
@@ -468,11 +479,14 @@ export async function simulateLogout(page: Page): Promise<void> {
 }
 
 export async function simulateSessionExpiry(page: Page): Promise<void> {
-  await page.route('**/v1/auth/get-session**', async (route) => {
+  const fulfillExpired = async (route: Route): Promise<void> => {
     await route.fulfill({
       body: JSON.stringify({ session: null, user: null }),
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
+
+  await page.route('**/v1/auth/get-session**', fulfillExpired);
+  await page.route('**/api.genfeed.ai/v1/auth/get-session**', fulfillExpired);
 }

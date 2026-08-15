@@ -71,6 +71,7 @@ import {
   createMockReplicateService,
   createMockStripeService,
 } from '@api-test/mocks/external-services.mocks';
+import { toPrismaCredentialPlatform } from '@genfeedai/enums';
 // Service tokens for dependency injection
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -500,6 +501,13 @@ export class TestDatabaseHelper {
     if (delegateName === 'member') {
       data.roleId ??= 'member';
       await this.ensureRole(String(data.roleId));
+    }
+
+    if (delegateName === 'credential' && typeof data.platform === 'string') {
+      const prismaPlatform = toPrismaCredentialPlatform(data.platform);
+      if (prismaPlatform) {
+        data.platform = prismaPlatform;
+      }
     }
 
     return data;

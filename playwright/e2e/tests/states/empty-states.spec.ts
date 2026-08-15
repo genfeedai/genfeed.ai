@@ -136,7 +136,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/workflows**');
-    const route = '/automate/workflows';
+    const route = `${ORG_BRAND}/automate/workflows`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -146,7 +146,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/executions**');
-    const route = '/automate/workflows/executions';
+    const route = `${ORG_BRAND}/automate/workflows/executions`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
