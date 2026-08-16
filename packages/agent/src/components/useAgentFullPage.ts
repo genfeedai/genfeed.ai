@@ -427,6 +427,18 @@ export function useAgentFullPage({
     }
     setIsLoadingThread(!hasVisibleConversation);
 
+    // First prompt on `/agent/new`: `sendMessage` creates the thread, the store
+    // starts streaming it, then the URL catches up and this effect runs for
+    // that same thread. The client already owns the live turn — a messages or
+    // snapshot page fetched now predates the assistant reply and would reset
+    // the stream (text, work events, pending generation card) and replace the
+    // transcript with a stale page. Read at effect time: the stream slice must
+    // never be a dependency of the switch effect.
+    const liveState = useAgentChatStore.getState();
+    const hasLiveLocalRun =
+      shouldPreserveVisibleThread &&
+      (liveState.stream.isStreaming || liveState.activeRunId !== null);
+
     let hasReportedLoadFailure = false;
     const reportLoadFailure = (error: unknown) => {
       if (controller.signal.aborted || hasReportedLoadFailure) {
@@ -484,9 +496,14 @@ export function useAgentFullPage({
         return;
       }
 
-      const existingFlight = conversationHydrationFlights.get(threadId);
+      // A hover prefetch of this thread is just as stale as a fresh fetch would
+      // be while the client owns the live run — ignore it too.
+      const existingFlight = hasLiveLocalRun
+        ? undefined
+        : conversationHydrationFlights.get(threadId);
       const plan = planThreadSwitchFetches({
         hasInFlightHydration: Boolean(existingFlight),
+        hasLiveLocalRun,
         isCacheFresh: isThreadDataFresh,
       });
 

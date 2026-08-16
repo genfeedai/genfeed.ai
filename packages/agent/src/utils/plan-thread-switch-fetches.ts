@@ -14,13 +14,23 @@ export interface ThreadSwitchFetchPlan {
 
 export function planThreadSwitchFetches(input: {
   hasInFlightHydration: boolean;
+  /**
+   * The visible thread already owns a live client-side run (streaming or an
+   * active run id) — the first prompt on `/agent/new` lands here when the URL
+   * catches up to the thread the store already created. The socket stream is
+   * the source of truth for that turn; a messages/snapshot page fetched now
+   * would predate it and blank the transcript and the pending generation card.
+   */
+  hasLiveLocalRun?: boolean;
   isCacheFresh: boolean;
 }): ThreadSwitchFetchPlan {
+  const shouldHydrate = !input.hasInFlightHydration && !input.hasLiveLocalRun;
+
   // Prefetch never loads the thread record. A stale cache still needs it even
   // when messages+snapshot are already in flight from a hover.
   return {
-    shouldFetchMessages: !input.hasInFlightHydration,
-    shouldFetchSnapshot: !input.isCacheFresh && !input.hasInFlightHydration,
+    shouldFetchMessages: shouldHydrate,
+    shouldFetchSnapshot: !input.isCacheFresh && shouldHydrate,
     shouldFetchThread: !input.isCacheFresh,
   };
 }
