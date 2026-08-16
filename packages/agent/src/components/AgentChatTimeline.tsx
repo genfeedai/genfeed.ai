@@ -16,7 +16,7 @@ import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { groupTimelineTurns } from '@genfeedai/agent/utils/group-timeline-turns.util';
-import type { ReactElement, RefObject } from 'react';
+import { type ReactElement, type RefObject, useMemo } from 'react';
 
 type AgentChatTimelineProps = {
   timeline: TimelineEntry[];
@@ -143,7 +143,9 @@ export function AgentChatTimeline({
     }
   };
 
-  const turns = groupTimelineTurns(timeline);
+  // `timeline` only changes identity when history or the stream row changes;
+  // hooks below the turn grouping (highlight, busy flags) must not re-walk it.
+  const turns = useMemo(() => groupTimelineTurns(timeline), [timeline]);
 
   return (
     <>

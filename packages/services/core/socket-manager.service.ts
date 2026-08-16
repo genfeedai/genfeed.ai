@@ -149,8 +149,10 @@ export class SocketManager {
     event: string,
     handler: ISocketEventHandler<T>,
   ): () => void {
-    // Log subscription details for debugging
-    logger.info(`WSS subscribing to event: ${event}`, {
+    // Debug-level: this and the per-event log below sit on the streaming hot
+    // path (every token chunk crosses here) and must not format payloads at
+    // info level in production.
+    logger.debug(`WSS subscribing to event: ${event}`, {
       isConnected: this.isConnected(),
       listenersCount: this.listeners.length,
       socketId: this.socketService.socket?.id,
@@ -158,7 +160,7 @@ export class SocketManager {
 
     // Wrap handler with logging
     const wrappedHandler: ISocketEventHandler<T> = (data: T) => {
-      logger.info(`WSS ${event}`, data);
+      logger.debug(`WSS ${event}`, data);
       handler(data);
     };
 

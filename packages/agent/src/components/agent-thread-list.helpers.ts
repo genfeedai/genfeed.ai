@@ -4,6 +4,11 @@ import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 
 export const AGENT_REFRESH_CONVERSATIONS_EVENT = 'agent:threads:refresh';
+/**
+ * Refresh requests arrive in bursts (send + stream finalize + reconnect fire
+ * within the same tick); the list coalesces them into one fetch.
+ */
+export const AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS = 150;
 
 export type AgentThreadListFilter = 'all' | 'needs-you' | 'working' | 'pinned';
 

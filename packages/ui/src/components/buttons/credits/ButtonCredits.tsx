@@ -53,10 +53,12 @@ export default function ButtonCredits({
 
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
   refreshBreakdownRef.current = refreshCreditsBreakdown;
-  const { subscribe, unsubscribe } = useSocketManager();
+  const { isReady: isSocketReady, subscribe, unsubscribe } = useSocketManager();
 
   useEffect(() => {
-    if (organizationId) {
+    // `subscribe` is a silent no-op until the socket manager exists — wait for
+    // it or the button never receives live balance updates.
+    if (organizationId && isSocketReady) {
       const organizationEvent = `/organizations/${organizationId}`;
       const creditsEvent = `/credits/${organizationId}`;
 
@@ -84,7 +86,7 @@ export default function ButtonCredits({
         unsubscribe(creditsEvent, creditsHandler);
       };
     }
-  }, [organizationId, subscribe, unsubscribe]);
+  }, [isSocketReady, organizationId, subscribe, unsubscribe]);
 
   const findOrganizationBalance = useCallback(async () => {
     if (!organizationId) {

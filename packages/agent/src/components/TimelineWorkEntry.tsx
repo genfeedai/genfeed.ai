@@ -9,7 +9,7 @@ import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-erro
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useState } from 'react';
+import { memo, type ReactElement, useState } from 'react';
 
 interface TimelineWorkEntryProps {
   event: EnrichedWorkEvent;
@@ -84,7 +84,7 @@ function getEventLabel(event: EnrichedWorkEvent): string {
   return event.label;
 }
 
-export function TimelineWorkEntry({
+function TimelineWorkEntryInner({
   event,
   stopActiveAnimation = false,
 }: TimelineWorkEntryProps): ReactElement {
@@ -156,3 +156,7 @@ export function TimelineWorkEntry({
     </div>
   );
 }
+
+// Work-event objects are stable across renders unless their content changes,
+// so settled steps skip re-rendering while a sibling step is still live.
+export const TimelineWorkEntry = memo(TimelineWorkEntryInner);
