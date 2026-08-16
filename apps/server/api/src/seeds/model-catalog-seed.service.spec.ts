@@ -163,6 +163,35 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
+  it('demotes the previous category default before upserting a new one', async () => {
+    const events: Array<{ category?: string; key?: string; op: string }> = [];
+    prisma.model.updateMany.mockImplementation(
+      async (args: { where?: { category?: string } }) => {
+        events.push({ category: args.where?.category, op: 'updateMany' });
+        return { count: 1 };
+      },
+    );
+    prisma.model.upsert.mockImplementation(
+      async (args: { where: { key: string } }) => {
+        events.push({ key: args.where.key, op: 'upsert' });
+        return { id: 'model' };
+      },
+    );
+
+    await service.reconcileCatalog(getModelCatalogForDeployment(false));
+
+    const videoDemote = events.findIndex(
+      (event) => event.op === 'updateMany' && event.category === 'video',
+    );
+    const videoUpsert = events.findIndex(
+      (event) =>
+        event.op === 'upsert' && event.key === LOWEST_COST_VIDEO_MODEL_KEY,
+    );
+
+    expect(videoDemote).toBeGreaterThanOrEqual(0);
+    expect(videoUpsert).toBeGreaterThan(videoDemote);
+  });
+
   it('promotes the lowest-cost video default when seeding the local catalog', async () => {
     const localCatalog = getModelCatalogForDeployment(false);
 

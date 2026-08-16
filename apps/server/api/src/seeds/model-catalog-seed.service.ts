@@ -152,16 +152,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.isDefault ? { isActive: true, isDefault: true } : {}),
     };
 
-    // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
-    await this.prisma.model.upsert({
-      create: createData,
-      update: updateData,
-      where: { key: entry.key },
-    });
-
-    // Exactly one default per category: when the catalog promotes a default,
-    // demote any other live default in that category so the router cannot
-    // pick a stale discovery row (e.g. an old Veo default after Seedance 2.5).
+    // Exactly one default per category (`models_global_default_category_key`).
+    // Demote the previous default *before* upserting, or promoting a new key
+    // (local/e2e cheapest defaults) hits the unique index.
     if (entry.isDefault) {
       // tenant-scope-ignore: platform registry has no organizationId
       await this.prisma.model.updateMany({
@@ -174,5 +167,12 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         },
       });
     }
+
+    // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
+    await this.prisma.model.upsert({
+      create: createData,
+      update: updateData,
+      where: { key: entry.key },
+    });
   }
 }
