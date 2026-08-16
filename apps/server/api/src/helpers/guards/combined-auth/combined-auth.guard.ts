@@ -1,5 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  RequestContextMiddleware,
+  type RequestWithContext,
+} from '@api/common/middleware/request-context.middleware';
 import { REQUIRES_CLOUD_AUTH_KEY } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -52,6 +56,7 @@ export class CombinedAuthGuard implements CanActivate {
     private prisma: PrismaService,
     private logger: LoggerService,
     private betterAuthGuard: BetterAuthGuard,
+    private requestContextMiddleware: RequestContextMiddleware,
   ) {}
 
   private resolveBearerToken(
@@ -77,11 +82,44 @@ export class CombinedAuthGuard implements CanActivate {
     context: ExecutionContext,
     token: string | undefined,
   ): Promise<boolean> {
-    if (token?.startsWith('gf_')) {
-      return this.apiKeyAuthGuard.canActivate(context);
+    const isAllowed = token?.startsWith('gf_')
+      ? await this.apiKeyAuthGuard.canActivate(context)
+      : await this.resolveGuardResult(
+          this.betterAuthGuard.canActivate(context),
+        );
+
+    if (isAllowed) {
+      await this.hydrateRequestContext(context);
     }
 
-    return this.resolveGuardResult(this.betterAuthGuard.canActivate(context));
+    return isAllowed;
+  }
+
+  /**
+   * `RequestContextMiddleware` runs before this guard, i.e. before
+   * `request.user` exists for token-authenticated requests, so `req.context`
+   * has to be hydrated here — once the identity is known — for downstream
+   * guards (`ModelsGuard`, `SubscriptionGuard`, `SuperAdminGuard`, feature
+   * flags, rate limits) to see the workspace, tier, and super-admin flag.
+   */
+  private async hydrateRequestContext(
+    context: ExecutionContext,
+  ): Promise<void> {
+    const request = context.switchToHttp().getRequest<RequestWithContext>();
+
+    if (!request.user || request.context) {
+      return;
+    }
+
+    try {
+      await this.requestContextMiddleware.hydrate(request);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Request context hydration failed after authentication',
+        error,
+        this.context,
+      );
+    }
   }
 
   private async injectLocalIdentity(request: {

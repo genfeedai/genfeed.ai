@@ -151,6 +151,36 @@ describe('ModelsGuard', () => {
     );
   });
 
+  it('reads the organization from request.user when request.context was never hydrated', async () => {
+    // Better Auth sessions: RequestContextMiddleware runs before the auth
+    // guard, so req.context is absent and only req.user carries the org.
+    vi.spyOn(reflector, 'get').mockReturnValue({
+      category: ModelCategory.IMAGE,
+    });
+    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const req: Record<string, unknown> = {
+      body: { model: 'stable-diffusion' },
+      selectedModel: undefined,
+      user: {
+        brandId: 'brand_1',
+        id: 'user_1',
+        organizationId: orgId,
+        userId: 'user_1',
+      },
+    };
+    const ctx = {
+      getClass: vi.fn(),
+      getHandler: vi.fn(),
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+      'stable-diffusion',
+      orgId,
+    );
+  });
+
   it('throws ForbiddenException when organizationId is missing', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,

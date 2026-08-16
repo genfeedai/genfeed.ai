@@ -152,6 +152,34 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it('hydrate() is callable outside the middleware chain and is idempotent', async () => {
+    // CombinedAuthGuard re-runs hydration once request.user is known — the
+    // Express middleware itself runs before any Nest guard sets the user.
+    const publisher = buildPublisher();
+    redisService.getPublisher.mockReturnValue(publisher);
+
+    middleware = new RequestContextMiddleware(
+      redisService as unknown as RedisService,
+      buildLogger(),
+      buildOrgSettingsService('pro') as never,
+      buildSubscriptionsService('active') as never,
+      {} as never,
+    );
+
+    const req = { user: buildUser() } as never;
+
+    await middleware.hydrate(req);
+    const firstContext = (req as { context: unknown }).context;
+    expect(firstContext).toMatchObject({
+      organizationId: 'org_1',
+      subscriptionTier: 'pro',
+    });
+
+    await middleware.hydrate(req);
+    expect((req as { context: unknown }).context).toBe(firstContext);
+    expect(publisher.setex).toHaveBeenCalledOnce();
+  });
+
   it('cache miss → hydrates subscriptionTier + stripeSubscriptionStatus from DB', async () => {
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
