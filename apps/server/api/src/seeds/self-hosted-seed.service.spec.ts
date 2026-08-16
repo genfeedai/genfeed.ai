@@ -1,4 +1,9 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+} from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 
@@ -17,7 +22,15 @@ describe('SelfHostedSeedService', () => {
   const organizationId = 'org_default';
   const userId = 'user_owner';
   let prisma: {
+    brand: {
+      findMany: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
     organization: { findFirst: ReturnType<typeof vi.fn> };
+    organizationSetting: {
+      findFirst: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
     member: {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
@@ -29,6 +42,16 @@ describe('SelfHostedSeedService', () => {
 
   beforeEach(() => {
     prisma = {
+      brand: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            defaultImageModel: null,
+            defaultVideoModel: null,
+            id: 'brand_default',
+          },
+        ]),
+        update: vi.fn(),
+      },
       member: {
         create: vi.fn().mockResolvedValue({ id: 'member_owner' }),
         findFirst: vi.fn().mockResolvedValue(null),
@@ -39,6 +62,15 @@ describe('SelfHostedSeedService', () => {
           id: organizationId,
           userId,
         }),
+      },
+      organizationSetting: {
+        findFirst: vi.fn().mockResolvedValue({
+          defaultImageModel: null,
+          defaultModel: null,
+          defaultVideoModel: null,
+          id: 'setting_default',
+        }),
+        update: vi.fn(),
       },
       role: {
         upsert: vi.fn().mockResolvedValue({
@@ -109,5 +141,55 @@ describe('SelfHostedSeedService', () => {
       where: { id: 'member_owner' },
     });
     expect(prisma.member.create).not.toHaveBeenCalled();
+  });
+
+  it('fills empty org and brand model defaults with the lowest-cost keys', async () => {
+    prisma.member.findFirst.mockResolvedValue({
+      id: 'member_owner',
+      isActive: true,
+    });
+
+    await service.onApplicationBootstrap();
+
+    expect(prisma.organizationSetting.update).toHaveBeenCalledWith({
+      data: {
+        defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
+        defaultModel: LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+        defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
+      },
+      where: { id: 'setting_default' },
+    });
+    expect(prisma.brand.update).toHaveBeenCalledWith({
+      data: {
+        defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
+        defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
+      },
+      where: { id: 'brand_default' },
+    });
+  });
+
+  it('does not overwrite operator-chosen org or brand models', async () => {
+    prisma.member.findFirst.mockResolvedValue({
+      id: 'member_owner',
+      isActive: true,
+    });
+    prisma.organizationSetting.findFirst.mockResolvedValue({
+      defaultImageModel: 'google/nano-banana',
+      defaultModel: 'google/gemini-2.5-flash-lite',
+      defaultVideoModel: 'bytedance/seedance-2.5',
+      id: 'setting_default',
+    });
+    prisma.brand.findMany.mockResolvedValue([
+      {
+        defaultImageModel: 'google/nano-banana',
+        defaultVideoModel: 'bytedance/seedance-2.5',
+        id: 'brand_default',
+      },
+    ]);
+
+    await service.onApplicationBootstrap();
+
+    expect(prisma.organizationSetting.update).not.toHaveBeenCalled();
+    expect(prisma.brand.update).not.toHaveBeenCalled();
   });
 });

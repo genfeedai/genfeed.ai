@@ -36,7 +36,8 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { isCloudDeployment } from '@genfeedai/config';
+import { LOWEST_COST_IMAGE_MODEL_KEY, MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   AssetCategory,
@@ -171,9 +172,10 @@ export class AssetsOperationsController {
       }
     }
 
-    const selectedModel = this.configService.isProduction
-      ? MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA
-      : MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST;
+    const selectedModel =
+      this.configService.isProduction && isCloudDeployment()
+        ? MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA
+        : LOWEST_COST_IMAGE_MODEL_KEY;
 
     // Build enhanced prompt using brand information
     let enhancedPrompt = text;

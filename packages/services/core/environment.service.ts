@@ -1,5 +1,10 @@
 import { isCloudDeployment } from '@genfeedai/config/deployment';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+  MODEL_KEYS,
+  shouldUseLowestCostModelDefaults,
+} from '@genfeedai/constants';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
 const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
@@ -239,13 +244,21 @@ export const EnvironmentService = {
   },
 
   get MODELS_DEFAULT(): { image: string; video: string } {
+    if (
+      shouldUseLowestCostModelDefaults({
+        isCloud: isCloudDeployment(),
+        nodeEnv: process.env.NODE_ENV,
+      })
+    ) {
+      return {
+        image: LOWEST_COST_IMAGE_MODEL_KEY,
+        video: LOWEST_COST_VIDEO_MODEL_KEY,
+      };
+    }
+
     return {
-      image: this.isDevelopment
-        ? MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3
-        : DEFAULT_IMAGE_MODEL,
-      video: this.isDevelopment
-        ? MODEL_KEYS.REPLICATE_GOOGLE_VEO_2
-        : DEFAULT_VIDEO_MODEL,
+      image: DEFAULT_IMAGE_MODEL,
+      video: DEFAULT_VIDEO_MODEL,
     };
   },
 

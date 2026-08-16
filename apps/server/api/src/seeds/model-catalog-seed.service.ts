@@ -7,13 +7,24 @@
  * provider survive every subsequent boot.
  */
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
+  getModelCatalogForDeployment,
   type ModelCatalogSeedEntry,
-  UNIFIED_MODEL_CATALOG,
+  shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+
+function resolveSeedCatalog(): readonly ModelCatalogSeedEntry[] {
+  return getModelCatalogForDeployment(
+    !shouldUseLowestCostModelDefaults({
+      isCloud: isCloudDeployment(),
+      nodeEnv: process.env.NODE_ENV,
+    }),
+  );
+}
 
 @Injectable()
 export class ModelCatalogSeedService implements OnApplicationBootstrap {
@@ -36,10 +47,12 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     }
   }
 
-  async reconcileCatalog(): Promise<number> {
+  async reconcileCatalog(
+    catalog: readonly ModelCatalogSeedEntry[] = resolveSeedCatalog(),
+  ): Promise<number> {
     let upserted = 0;
 
-    for (const entry of UNIFIED_MODEL_CATALOG) {
+    for (const entry of catalog) {
       await this.upsertEntry(entry);
       upserted += 1;
     }

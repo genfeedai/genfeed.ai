@@ -9,6 +9,11 @@
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import {
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+} from '@genfeedai/constants';
 import { MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
@@ -35,6 +40,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     if (existingOrg) {
       await this.ensureOwnerMembership(existingOrg.id, existingOrg.userId);
+      await this.ensureLowestCostDefaultModels(existingOrg.id);
       this.logger.log(
         'Default workspace already exists — seed reconciliation complete',
         this.context,
@@ -67,6 +73,9 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     await this.prisma.organizationSetting.create({
       data: {
+        defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
+        defaultModel: LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+        defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
         isFirstLogin: false,
         organizationId: org.id,
       },
@@ -75,6 +84,8 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     await this.prisma.brand.create({
       data: {
         backgroundColor: 'transparent',
+        defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
+        defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
         description: 'Default brand for self-hosted instance',
         isDefault: true,
         isSelected: true,
@@ -95,6 +106,66 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
       this.context,
     );
+  }
+
+  /**
+   * Fill empty org/brand model defaults with the cheapest curated keys.
+   * Does not overwrite an operator-chosen model.
+   */
+  private async ensureLowestCostDefaultModels(
+    organizationId: string,
+  ): Promise<void> {
+    const setting = await this.prisma.organizationSetting.findFirst({
+      where: { organizationId },
+    });
+
+    if (setting) {
+      const settingPatch = {
+        ...(setting.defaultImageModel
+          ? {}
+          : { defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY }),
+        ...(setting.defaultModel
+          ? {}
+          : { defaultModel: LOWEST_COST_AGENT_CHAT_MODEL_KEY }),
+        ...(setting.defaultVideoModel
+          ? {}
+          : { defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY }),
+      };
+
+      if (Object.keys(settingPatch).length > 0) {
+        await this.prisma.organizationSetting.update({
+          data: settingPatch,
+          where: { id: setting.id },
+        });
+      }
+    }
+
+    const brands = await this.prisma.brand.findMany({
+      select: {
+        defaultImageModel: true,
+        defaultVideoModel: true,
+        id: true,
+      },
+      where: { isDeleted: false, organizationId },
+    });
+
+    for (const brand of brands) {
+      if (brand.defaultImageModel && brand.defaultVideoModel) {
+        continue;
+      }
+
+      await this.prisma.brand.update({
+        data: {
+          ...(brand.defaultImageModel
+            ? {}
+            : { defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY }),
+          ...(brand.defaultVideoModel
+            ? {}
+            : { defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY }),
+        },
+        where: { id: brand.id },
+      });
+    }
   }
 
   private async ensureOwnerMembership(

@@ -739,7 +739,7 @@ describe('RouterService', () => {
 
         const defaultModel = createMockModel({
           category: ModelCategory.IMAGE,
-          key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+          key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         });
 
         modelsService.findOne.mockResolvedValue(defaultModel);
@@ -752,7 +752,7 @@ describe('RouterService', () => {
         const result = await service.selectModel(options);
 
         expect(result.selectedModel).toBe(
-          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+          MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         );
         expect(result.reason).toContain('Default model');
         expect(loggerService.warn).toHaveBeenCalled();
@@ -979,7 +979,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE);
 
-      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL);
       expect(loggerService.error).toHaveBeenCalled();
     });
 
@@ -988,7 +988,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO);
 
-      expect(result).toBe(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO);
     });
 
     it('should return fallback for TEXT category when the registry is empty', async () => {

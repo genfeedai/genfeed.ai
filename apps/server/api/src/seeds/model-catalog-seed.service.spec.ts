@@ -1,5 +1,9 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { UNIFIED_MODEL_CATALOG } from '@genfeedai/constants';
+import {
+  getModelCatalogForDeployment,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+  UNIFIED_MODEL_CATALOG,
+} from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 import { ModelCatalogSeedService } from './model-catalog-seed.service';
@@ -50,7 +54,7 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('upserts one registry row per catalog entry, keyed by model key', async () => {
-    const upserted = await service.reconcileCatalog();
+    const upserted = await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     expect(upserted).toBe(UNIFIED_MODEL_CATALOG.length);
     expect(prisma.model.upsert).toHaveBeenCalledTimes(
@@ -63,11 +67,11 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('is idempotent — a second run issues the same upserts', async () => {
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
     const first = upsertCalls();
 
     prisma.model.upsert.mockClear();
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     expect(upsertCalls()).toEqual(first);
   });
@@ -76,7 +80,7 @@ describe('ModelCatalogSeedService', () => {
     const unpriced = UNIFIED_MODEL_CATALOG.find((entry) => entry.cost === 0);
     expect(unpriced).toBeDefined();
 
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     const call = callForKey(unpriced?.key ?? '');
     expect(call?.update).not.toHaveProperty('cost');
@@ -87,7 +91,7 @@ describe('ModelCatalogSeedService', () => {
     const nonDefault = UNIFIED_MODEL_CATALOG.find((entry) => !entry.isDefault);
     expect(nonDefault).toBeDefined();
 
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     const call = callForKey(nonDefault?.key ?? '');
     expect(call?.update).not.toHaveProperty('isActive');
@@ -98,7 +102,7 @@ describe('ModelCatalogSeedService', () => {
     const defaultEntry = UNIFIED_MODEL_CATALOG.find((entry) => entry.isDefault);
     expect(defaultEntry).toBeDefined();
 
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
       isActive: true,
@@ -112,7 +116,7 @@ describe('ModelCatalogSeedService', () => {
     );
     expect(videoDefault?.key).toBe('bytedance/seedance-2.5');
 
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     expect(prisma.model.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -127,7 +131,7 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('writes providerCostUsd for live-margin bill time on Seedance 2.5', async () => {
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     const call = callForKey('bytedance/seedance-2.5');
     expect(call?.create).toMatchObject({
@@ -146,7 +150,7 @@ describe('ModelCatalogSeedService', () => {
     );
     expect(legacyEntry).toBeDefined();
 
-    await service.reconcileCatalog();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
     const call = callForKey(legacyEntry?.key ?? '');
     expect(call?.create).toMatchObject({
@@ -156,6 +160,27 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.update).toMatchObject({
       isLegacy: true,
       succeededBy: legacyEntry?.succeededBy,
+    });
+  });
+
+  it('promotes the lowest-cost video default when seeding the local catalog', async () => {
+    const localCatalog = getModelCatalogForDeployment(false);
+
+    await service.reconcileCatalog(localCatalog);
+
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { isDefault: false },
+        where: expect.objectContaining({
+          category: 'video',
+          isDefault: true,
+          key: { not: LOWEST_COST_VIDEO_MODEL_KEY },
+        }),
+      }),
+    );
+    expect(callForKey(LOWEST_COST_VIDEO_MODEL_KEY)?.update).toMatchObject({
+      isActive: true,
+      isDefault: true,
     });
   });
 

@@ -98,6 +98,29 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.24,
   },
   /**
+   * Cheapest T2V already wired in the Replicate video builder.
+   * providerCostUsd is **per second** at 720p draft-off ($0.02/s).
+   * 5s → applyMargin(0.10) ≈ 35 credits at margin 1.0.
+   * Cloud keeps Seedance 2.5 as `isDefault`; local/e2e promote this row.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 35,
+    costPerUnit: 7,
+    costTier: CostTier.LOW,
+    description:
+      'PrunaAI P-Video — cheapest text-to-video (T2V/I2V, draft mode). Use for local and e2e.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+    label: 'P-Video',
+    minCost: 10,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'p-video', owner: 'prunaai' },
+    providerCostUsd: 0.02,
+  },
+  /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).
    * Seed at 2K list so higher-res runs do not undercharge.
    */
