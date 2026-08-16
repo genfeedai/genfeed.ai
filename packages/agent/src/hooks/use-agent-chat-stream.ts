@@ -212,9 +212,14 @@ export function useAgentChatStream(
     const previousConnectionState = previousConnectionStateRef.current;
     previousConnectionStateRef.current = connectionState;
 
+    // Every hook mount starts at 'connecting' before the shared manager reports
+    // its real state, so only a transition out of a lost connection counts as a
+    // reconnect. Treating the initial connect as one re-fetched the snapshot and
+    // refreshed the sidebar on every route change.
     if (
       connectionState !== 'connected' ||
-      previousConnectionState === 'connected'
+      previousConnectionState === 'connected' ||
+      previousConnectionState === 'connecting'
     ) {
       return;
     }

@@ -58,18 +58,20 @@ export class SocketManager {
   }
 
   public static getInstance(config: ISocketManagerConfig = {}): SocketManager {
-    // If token changes, recreate the instance
-    if (
-      !SocketManager.instance ||
-      (config.token && SocketManager.instanceToken !== config.token)
-    ) {
-      // Clean up old instance if it exists
-      if (SocketManager.instance) {
-        SocketManager.instance.cleanup();
-      }
+    if (!SocketManager.instance) {
       SocketManager.instance = new SocketManager(config);
       SocketManager.instanceToken = config.token;
+      return SocketManager.instance;
     }
+
+    // A rotated token is handed to the shared socket in place. Recreating the
+    // manager here used to drop every subscription and connection-state
+    // listener each time the ~30s Better Auth JWT refreshed.
+    if (config.token && SocketManager.instanceToken !== config.token) {
+      SocketService.getInstance(config.token);
+      SocketManager.instanceToken = config.token;
+    }
+
     return SocketManager.instance;
   }
 

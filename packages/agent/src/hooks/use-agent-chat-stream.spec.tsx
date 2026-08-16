@@ -590,8 +590,46 @@ describe('useAgentChatStream', () => {
     expect(backgroundThread?.runStatus).toBe('completed');
   });
 
+  it('does not rehydrate or refresh threads on the initial socket connect', async () => {
+    // Every mount of useSocketManager reports 'connecting' before the shared
+    // manager answers 'connected'. Treating that as a reconnect re-fetched the
+    // snapshot and refreshed the sidebar on every route change.
+    socketConnectionState = 'connecting';
+    socketConnected = false;
+
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-initial',
+      messages: [],
+    });
+
+    const apiService = createApiService({
+      getMessages: vi.fn().mockResolvedValue([]),
+      getThreadSnapshot: vi.fn().mockResolvedValue(null),
+    });
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+
+    const { rerender } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    socketConnectionState = 'connected';
+    socketConnected = true;
+    rerender();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(refreshListener).not.toHaveBeenCalled();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
+  });
+
   it('rehydrates the visible thread from snapshot after reconnect', async () => {
-    socketConnectionState = 'offline';
+    socketConnectionState = 'reconnecting';
     socketConnected = false;
 
     useAgentChatStore.setState({
