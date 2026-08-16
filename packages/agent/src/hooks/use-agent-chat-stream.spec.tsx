@@ -1,5 +1,6 @@
 'use client';
 
+import { resetAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -91,6 +92,7 @@ describe('useAgentChatStream', () => {
     socketConnected = true;
     socketConnectionState = 'connected';
     socketHandlers.clear();
+    resetAgentStreamRuntime();
     useAgentChatStore.setState({
       activeRunId: null,
       activeRunStatus: 'idle',
@@ -187,6 +189,137 @@ describe('useAgentChatStream', () => {
         id: 'thread-new',
       }),
     );
+  });
+
+  it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {
+    // The persistent agent layout and the per-route chat container each mount
+    // this hook. Sending from one instance used to make the other "adopt" the
+    // in-flight run, so both handled `agent:token` and `agent:done` and the
+    // first reply rendered twice.
+    const startedAt = '2026-08-16T10:00:00.000Z';
+    const apiService = createApiService({
+      chatStream: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
+        runId: 'run-shared',
+        startedAt,
+        threadId: 'thread-shared',
+      }),
+    });
+
+    const layoutInstance = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+    const pageInstance = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await pageInstance.result.current.sendMessage('First prompt');
+    });
+
+    layoutInstance.rerender();
+    pageInstance.rerender();
+
+    await act(async () => {
+      for (const handler of socketHandlers.get('agent:token') ?? []) {
+        handler({ threadId: 'thread-shared', token: 'Hello' });
+      }
+    });
+
+    await waitFor(() =>
+      expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+        'Hello',
+      ),
+    );
+
+    await act(async () => {
+      for (const handler of socketHandlers.get('agent:done') ?? []) {
+        handler({
+          creditsRemaining: 10,
+          fullContent: 'Hello',
+          metadata: {},
+          runId: 'run-shared',
+          startedAt,
+          threadId: 'thread-shared',
+          toolCalls: [],
+        });
+      }
+    });
+
+    const assistantMessages = useAgentChatStore
+      .getState()
+      .messages.filter((message) => message.role === 'assistant');
+
+    expect(assistantMessages).toHaveLength(1);
+    expect(assistantMessages[0]?.content).toBe('Hello');
+    expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
+  });
+
+  it('keeps the shared subscriptions alive while another instance is still mounted', async () => {
+    // Route-segment swap on the first send: the page container unmounts and a
+    // new one mounts while the layout instance stays up. Tearing the shared
+    // listeners down with the departing instance would strand the run.
+    const startedAt = '2026-08-16T10:00:00.000Z';
+    const apiService = createApiService({
+      chatStream: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
+        runId: 'run-swap',
+        startedAt,
+        threadId: 'thread-swap',
+      }),
+    });
+
+    renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+    const firstPage = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await firstPage.result.current.sendMessage('First prompt');
+    });
+
+    firstPage.unmount();
+
+    const secondPage = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+    secondPage.rerender();
+
+    await act(async () => {
+      for (const handler of socketHandlers.get('agent:done') ?? []) {
+        handler({
+          creditsRemaining: 10,
+          fullContent: 'Recovered after swap',
+          metadata: {},
+          runId: 'run-swap',
+          startedAt,
+          threadId: 'thread-swap',
+          toolCalls: [],
+        });
+      }
+    });
+
+    const assistantMessages = useAgentChatStore
+      .getState()
+      .messages.filter((message) => message.role === 'assistant');
+
+    expect(assistantMessages).toHaveLength(1);
+    expect(assistantMessages[0]?.content).toBe('Recovered after swap');
+    expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
   });
 
   it('sends selected canonical artifact references with a streaming turn', async () => {

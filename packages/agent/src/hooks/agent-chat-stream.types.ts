@@ -1,6 +1,7 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
+import type { MutableRefObject } from 'react';
 
 export interface UseAgentChatStreamOptions {
   apiService: AgentApiService;
@@ -39,6 +40,17 @@ export interface PendingStreamCompletion {
   runId: string | null;
   startedAt: string | null;
   threadId: string;
+}
+
+/** Mutable stream-ownership state shared by every mounted `useAgentChatStream`. */
+export interface AgentStreamRuntime {
+  activeStreamThreadRef: MutableRefObject<string | null>;
+  bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
+  completionTimeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  /** Live hook instances; shared subscriptions are torn down only at zero. */
+  mountCount: number;
+  pendingCompletionRef: MutableRefObject<PendingStreamCompletion | null>;
+  unsubscribersRef: MutableRefObject<Array<() => void>>;
 }
 
 export const STREAM_COMPLETION_POLL_INTERVAL_MS = 10_000;
