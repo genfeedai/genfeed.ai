@@ -1,10 +1,5 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import { AgentWorkspacePageShell } from '../../AgentWorkspacePageShell';
-
+// The onboarding conversation is hosted by the agent layout
+// (AgentConversationRouteHost); the thread id is read from the pathname.
 export default function ChatOnboardingThreadPage() {
-  const params = useParams<{ threadId: string }>();
-
-  return <AgentWorkspacePageShell threadId={params.threadId} />;
+  return null;
 }

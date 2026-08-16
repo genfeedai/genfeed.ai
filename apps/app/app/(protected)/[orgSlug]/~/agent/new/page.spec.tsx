@@ -4,36 +4,12 @@ const resetActiveConversationState = vi.fn();
 const setActiveThread = vi.fn();
 
 vi.mock('@genfeedai/agent', () => ({
-  AgentFullPage: () => null,
   useAgentChatStore: {
     getState: () => ({
       resetActiveConversationState,
       setActiveThread,
     }),
   },
-}));
-
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
-    getToken: vi.fn().mockResolvedValue('token'),
-  }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useParams: () => ({ brandSlug: 'test-brand', orgSlug: 'test-org' }),
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
-}));
-
-vi.mock('../agent-workspace-context', () => ({
-  useAgentWorkspace: () => ({
-    agentApiService: {},
-    completeOnboardingFlow: vi.fn(),
-    handleOAuthConnect: vi.fn(),
-    isLoaded: true,
-    isOnboarding: false,
-  }),
 }));
 
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
@@ -55,16 +31,8 @@ describe('ChatNewPage', () => {
     expect(resetActiveConversationState).toHaveBeenCalledTimes(1);
   });
 
-  it('renders only the workspace shell container and no inline page content', () => {
+  it('renders nothing itself — the agent layout hosts the conversation', () => {
     const { container } = render(<ChatNewPage />);
-    expect(container.firstChild).toHaveClass(
-      'flex',
-      'h-full',
-      'min-h-0',
-      'flex-1',
-      'flex-col',
-      'overflow-hidden',
-    );
-    expect(container.firstChild).toBeEmptyDOMElement();
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -2,8 +2,9 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import { useLayoutEffect } from 'react';
-import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
+// The conversation shell is hosted by the agent layout
+// (AgentConversationRouteHost); this page only clears the active thread.
 export default function AgentPage() {
   useLayoutEffect(() => {
     const { resetActiveConversationState, setActiveThread } =
@@ -13,5 +14,5 @@ export default function AgentPage() {
     resetActiveConversationState();
   }, []);
 
-  return <AgentWorkspacePageShell />;
+  return null;
 }

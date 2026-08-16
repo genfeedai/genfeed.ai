@@ -1,39 +1,3 @@
-import type { ReactNode } from 'react';
-import { vi } from 'vitest';
-
-vi.mock('@genfeedai/agent', () => ({
-  AgentFullPage: () => null,
-}));
-
-vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-}));
-
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
-    getToken: vi.fn().mockResolvedValue('token'),
-  }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useParams: () => ({ brandSlug: 'test-brand', orgSlug: 'test-org' }),
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
-}));
-
-vi.mock('../agent-workspace-context', () => ({
-  useAgentWorkspace: () => ({
-    agentApiService: {},
-    completeOnboardingFlow: vi.fn(),
-    handleOAuthConnect: vi.fn(),
-    isLoaded: true,
-    isOnboarding: true,
-  }),
-}));
-
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render } from '@testing-library/react';
 import ChatOnboardingPage, * as PageModule from './page';
@@ -41,15 +5,8 @@ import ChatOnboardingPage, * as PageModule from './page';
 runPageModuleTests('app/(protected)/agent/onboarding/page', PageModule);
 
 describe('ChatOnboardingPage', () => {
-  it('renders the workspace shell container', () => {
+  it('renders nothing itself — the agent layout hosts the onboarding conversation', () => {
     const { container } = render(<ChatOnboardingPage />);
-    expect(container.firstChild).toHaveClass(
-      'flex',
-      'h-full',
-      'min-h-0',
-      'flex-1',
-      'flex-col',
-      'overflow-hidden',
-    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

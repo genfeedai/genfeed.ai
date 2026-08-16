@@ -1,9 +1,5 @@
-import { AgentWorkspacePageShell } from '../AgentWorkspacePageShell';
-
+// The onboarding conversation is hosted by the agent layout
+// (AgentConversationRouteHost) inside the focused onboarding frame.
 export default function ChatOnboardingPage() {
-  return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <AgentWorkspacePageShell />
-    </div>
-  );
+  return null;
 }

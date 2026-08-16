@@ -1,4 +1,6 @@
+import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
+import type { AgentConversationRoute } from '@genfeedai/interfaces';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -56,6 +58,63 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
     'managed-credits',
   ].filter(Boolean),
 );
+
+/**
+ * Resolve the conversation surface an `/agent/*` pathname (already passed
+ * through {@link normalizeProtectedPathname}) belongs to.
+ *
+ * The agent layout hosts one persistent conversation for `/agent`,
+ * `/agent/new`, `/agent/:threadId`, `/agent/onboarding`, and
+ * `/agent/onboarding/:threadId` — the URL is the thread selector, the shell
+ * never remounts. Anything else under `/agent` (`/agent/journey`) is a page
+ * with its own content and resolves to `null`.
+ *
+ * Malformed ids (`/agent/undefined` from a stale link) resolve without a
+ * `threadId`: the thread page redirects to the agent root, and the layout must
+ * not request `/threads/undefined/*` while that redirect is pending.
+ */
+export function resolveAgentConversationRoute(
+  normalizedPathname: string,
+): AgentConversationRoute | null {
+  const agentRoot = APP_ROUTES.AGENT.ROOT;
+
+  if (
+    normalizedPathname !== agentRoot &&
+    !normalizedPathname.startsWith(`${agentRoot}/`)
+  ) {
+    return null;
+  }
+
+  const segments = normalizedPathname
+    .slice(agentRoot.length)
+    .split('/')
+    .filter(Boolean);
+
+  const toThreadId = (segment: string | undefined): string | undefined =>
+    isRenderableThreadId(segment) ? segment : undefined;
+
+  if (segments[0] === 'onboarding') {
+    return segments.length <= 2
+      ? { isOnboarding: true, threadId: toThreadId(segments[1]) }
+      : null;
+  }
+
+  if (
+    segments.length === 0 ||
+    (segments.length === 1 && segments[0] === 'new')
+  ) {
+    return { isOnboarding: false, threadId: undefined };
+  }
+
+  if (
+    segments.length === 1 &&
+    normalizedPathname !== APP_ROUTES.AGENT.JOURNEY
+  ) {
+    return { isOnboarding: false, threadId: toThreadId(segments[0]) };
+  }
+
+  return null;
+}
 
 /**
  * First-login agent onboarding (`/agent/onboarding` and `/agent/onboarding/:threadId`)

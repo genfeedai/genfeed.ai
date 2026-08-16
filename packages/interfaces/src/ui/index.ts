@@ -1,3 +1,4 @@
+export * from './agent-conversation-route.interface';
 export * from './app-switcher.interface';
 export * from './avatar.interface';
 export * from './badge.interface';
