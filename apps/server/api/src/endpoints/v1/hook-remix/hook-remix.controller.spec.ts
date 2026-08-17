@@ -5,6 +5,7 @@ import {
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixController } from '@api/endpoints/v1/hook-remix/hook-remix.controller';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -21,8 +22,8 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
 }));
 
 describe('HookRemixController', () => {
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = testId('org');
+  const userId = testId('user');
 
   let controller: HookRemixController;
   let hookRemixService: {

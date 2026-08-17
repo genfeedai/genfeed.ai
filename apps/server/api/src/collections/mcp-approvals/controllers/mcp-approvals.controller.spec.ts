@@ -3,6 +3,7 @@ import { McpApprovalsController } from '@api/collections/mcp-approvals/controlle
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -10,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUser = {
   id: 'user_123',
-  brandId: '507f1f77bcf86cd799439013',
+  brandId: testId('brand'),
   organizationId: 'org-abc',
   userId: 'user-xyz',
 };

@@ -1,15 +1,14 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { testIds } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TagResolutionService', () => {
   let service: TagResolutionService;
   let tagsService: vi.Mocked<TagsService>;
 
-  const mockTagId1 = 'cltag1a2b3c4d5e6f7g8h9i0j';
-  const mockTagId2 = 'cltag2a2b3c4d5e6f7g8h9i0j';
-  const mockTagId3 = 'cltag3a2b3c4d5e6f7g8h9i0j';
+  const [mockTagId1, mockTagId2, mockTagId3] = testIds('tag', 3);
 
   const createFindAllResult = (
     docs: Array<{ id: string; label: string | null }>,

@@ -34,6 +34,7 @@ import {
   BrandKitSerializer,
   BrandSerializer,
 } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
@@ -322,12 +323,12 @@ describe('BrandsController', () => {
     } as never);
 
     const result = await controller.patch(mockRequest, mockUser, brandId, {
-      brand: 'c07f191e810c19729de860ee',
-      brandId: 'c07f191e810c19729de860ee',
+      brand: testId('brand'),
+      brandId: testId('brand'),
       label: 'Renamed Brand',
-      organization: 'c07f191e810c19729de860ee',
-      user: 'c07f191e810c19729de860ee',
-      userId: 'c07f191e810c19729de860ee',
+      organization: testId('brand'),
+      user: testId('brand'),
+      userId: testId('brand'),
     } as never);
 
     expect(brandsService.patch).toHaveBeenCalledWith(
@@ -344,8 +345,8 @@ describe('BrandsController', () => {
   });
 
   it('routes an explicit organization change through the relocation operation', async () => {
-    const brandId = 'c07f191e810c19729de860ee';
-    const destinationOrganizationId = 'd07f191e810c19729de860ee';
+    const brandId = testId('brand');
+    const destinationOrganizationId = testId('org', 2);
     const summary = {
       membersSevered: 0,
       schedulingPending: 0,
@@ -355,7 +356,7 @@ describe('BrandsController', () => {
     };
     brandsService.findOne.mockResolvedValue({
       ...mockBrand,
-      organizationId: 'c07f191e810c19729de860ee',
+      organizationId: testId('brand'),
     } as never);
     brandsService.relocateToOrganization.mockResolvedValue({
       brand: {
@@ -420,7 +421,10 @@ describe('BrandsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('honors superadmin organization filters with cuid2 ids', () => {
-      const organizationId = 'b13yktd0f1e38me3f55swu0n';
+      // Hand-written cuid2-shaped fixture (24 chars, low entropy) — this test
+      // targets the cuid2 id shape specifically, so `testId()`'s 25-char cuid
+      // output would not exercise the same branch.
+      const organizationId = 'borg00000000000000000001';
       const query = {
         isDeleted: false,
         organizationId,
@@ -640,7 +644,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects crawl requests without organization context', async () => {
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const userWithoutOrganization = {
         ...mockUser,
         ...mockUser,
@@ -670,7 +674,7 @@ describe('BrandsController', () => {
 
   describe('applyBrandKitDraft', () => {
     it('verifies brand access and passes organization context to the service', async () => {
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const applyResult = {
         appliedFields: ['description'],
         brandId,
@@ -728,7 +732,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects apply requests without organization context', async () => {
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const userWithoutOrganization = {
         ...mockUser,
         ...mockUser,
@@ -763,7 +767,7 @@ describe('BrandsController', () => {
 
   describe('createManualBrandKitDraft', () => {
     it('verifies brand access and passes manual intake to the service', async () => {
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const dto = {
         description: 'Manual description',
         guidanceText: 'Write with practical proof.',
@@ -820,7 +824,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects manual intake without organization context', async () => {
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const userWithoutOrganization = {
         ...mockUser,
         ...mockUser,
@@ -850,7 +854,7 @@ describe('BrandsController', () => {
 
   describe('importBrandKitAssets', () => {
     it('serializes the guarded asset import outcome', async () => {
-      const brandId = 'c07f191e810c19729de860ee';
+      const brandId = testId('brand');
       const dto = {
         assets: [
           {

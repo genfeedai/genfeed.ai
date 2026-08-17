@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_REVIEW_ITEMS = 100;
@@ -12,7 +13,7 @@ const metadata: ArgumentMetadata = {
 
 function buildBody(itemCount: number) {
   return {
-    brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+    brandId: testId('brand'),
     items: Array.from({ length: itemCount }, (_value, index) => ({
       format: 'post',
       label: `Review item ${index}`,

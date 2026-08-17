@@ -1,5 +1,6 @@
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('TrendPreferencesService', () => {
@@ -17,8 +18,8 @@ describe('TrendPreferencesService', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  const organizationId = '507f1f77bcf86cd799439011';
-  const brandId = '507f1f77bcf86cd799439022';
+  const organizationId = testId('org');
+  const brandId = testId('brand');
 
   beforeEach(() => {
     prisma = {
@@ -268,7 +269,7 @@ describe('TrendPreferencesService', () => {
       );
 
       await expect(
-        service.savePreferences('507f1f77bcf86cd799439011', {
+        service.savePreferences(organizationId, {
           categories: ['tech'],
         }),
       ).rejects.toThrow('save failed');

@@ -1,10 +1,11 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', () => {
-  const sourceIngredientId = 'cling1a2b3c4d5e6f7g8h9i0j';
+  const sourceIngredientId = testId('ingredient');
   const organizationId = 'org-1';
 
   const findOne = vi.fn();

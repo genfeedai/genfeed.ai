@@ -16,7 +16,7 @@ const API_PROJECT = '**/clip-projects/*';
 const API_REWRITE = '**/clip-projects/*/highlights/*/rewrite';
 const API_CLIP_RESULTS = '**/clip-results**';
 
-const MOCK_PROJECT_ID = '67d3d7a5e61f9c29b72d1234';
+const MOCK_PROJECT_ID = '000000000000000000001234';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
 /**

@@ -14,10 +14,11 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-const ORGANIZATION_ID = '507f1f77bcf86cd799439012';
+const ORGANIZATION_ID = testId('org');
 
 describe('InsightsController', () => {
   let controller: InsightsController;
@@ -25,7 +26,7 @@ describe('InsightsController', () => {
 
   const mockUser: User = {
     organizationId: ORGANIZATION_ID,
-    userId: '507f1f77bcf86cd799439011',
+    userId: testId('user'),
   } as unknown as User;
 
   const mockInsightsService = {

@@ -5,6 +5,7 @@ import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetTrainingOrchestratorService } from '@api/endpoints/admin/fleet/services/fleet-training-orchestrator.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -64,7 +65,7 @@ describe('AdminFleetTrainingOrchestratorService', () => {
       service.startTraining('org-1', 'user-1', {
         label: 'My LoRA',
         personaSlug: 'alice',
-        sourceIds: ['507f1f77bcf86cd799439011'],
+        sourceIds: [testId('source')],
       }),
     ).rejects.toThrow(BadRequestException);
 

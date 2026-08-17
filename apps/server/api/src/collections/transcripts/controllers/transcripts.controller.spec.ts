@@ -14,9 +14,12 @@ import { TranscriptsService } from '@api/collections/transcripts/services/transc
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { TranscriptStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const sharedId = testId('id');
 
 describe('TranscriptsController', () => {
   let controller: TranscriptsController;
@@ -24,28 +27,28 @@ describe('TranscriptsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    brandId: '507f191e810c19729de860ee'.toString(),
+    brandId: sharedId,
     isSuperAdmin: false,
-    organizationId: '507f191e810c19729de860ee'.toString(),
-    userId: '507f191e810c19729de860ee'.toString(),
+    organizationId: sharedId,
+    userId: sharedId,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
-    brandId: '507f191e810c19729de860ee'.toString(),
+    brandId: sharedId,
     isSuperAdmin: false,
-    userId: '507f191e810c19729de860ee'.toString(),
+    userId: sharedId,
   } as unknown as User;
 
   const mockReq = {} as Request;
 
   const mockTranscript = {
-    id: '507f191e810c19729de860ee',
+    id: sharedId,
     isDeleted: false,
-    organizationId: '507f191e810c19729de860ee',
+    organizationId: sharedId,
     status: TranscriptStatus.PENDING,
     transcriptText: 'Test transcript',
-    userId: '507f191e810c19729de860ee',
+    userId: sharedId,
     youtubeId: 'dQw4w9WgXcQ',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   };
@@ -169,7 +172,7 @@ describe('TranscriptsController', () => {
 
   describe('findOne', () => {
     it('should return a transcript by id', async () => {
-      const transcriptId = '507f191e810c19729de860ee'.toString();
+      const transcriptId = sharedId;
       transcriptsService.findOne.mockResolvedValue(
         mockTranscript as unknown as TranscriptEntity,
       );
@@ -184,7 +187,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should return null when transcript not found (controller returns null)', async () => {
-      const transcriptId = '507f191e810c19729de860ee'.toString();
+      const transcriptId = sharedId;
       transcriptsService.findOne.mockResolvedValue(null);
 
       const result = await controller.findOne(mockReq, transcriptId, mockUser);
@@ -194,7 +197,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should throw error when organization ID is missing', async () => {
-      const transcriptId = '507f191e810c19729de860ee'.toString();
+      const transcriptId = sharedId;
 
       await expect(
         controller.findOne(mockReq, transcriptId, mockUserWithoutOrg),
@@ -204,7 +207,7 @@ describe('TranscriptsController', () => {
 
   describe('update', () => {
     it('should update transcript', async () => {
-      const transcriptId = '507f191e810c19729de860ee'.toString();
+      const transcriptId = sharedId;
       const updateDto = { transcriptText: 'Updated text' };
 
       transcriptsService.updateOne.mockResolvedValue({
@@ -224,7 +227,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should throw error when organization ID is missing', async () => {
-      const transcriptId = '507f191e810c19729de860ee'.toString();
+      const transcriptId = sharedId;
       const updateDto = { transcriptText: 'Updated text' };
 
       await expect(

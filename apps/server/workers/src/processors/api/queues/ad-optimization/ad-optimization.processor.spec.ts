@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
@@ -8,7 +9,7 @@ import { AdOptimizationProcessor } from '@workers/processors/api/queues/ad-optim
 import type { Job } from 'bullmq';
 import { vi } from 'vitest';
 
-const ORG_ID = '507f191e810c19729de860ee'.toString();
+const ORG_ID = testId('org');
 const RUN_ID = 'run_001';
 
 function buildJob(data: {

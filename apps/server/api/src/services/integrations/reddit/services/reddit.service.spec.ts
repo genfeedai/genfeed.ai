@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -55,8 +56,8 @@ describe('RedditService', () => {
   });
 
   it('refreshes token', async () => {
-    const orgId = '507f191e810c19729de860ea';
-    const brandId = '507f191e810c19729de860eb';
+    const orgId = testId('org');
+    const brandId = testId('brand');
     (credentialsService.findOne as vi.Mock).mockResolvedValue({
       id: 'cred',
       refreshToken: 'refresh',
@@ -75,8 +76,8 @@ describe('RedditService', () => {
   });
 
   describe('submitPost', () => {
-    const orgId = '507f191e810c19729de860ea';
-    const brandId = '507f191e810c19729de860eb';
+    const orgId = testId('org');
+    const brandId = testId('brand');
 
     beforeEach(() => {
       // `submitPost` always refreshes first, so the token exchange is the first

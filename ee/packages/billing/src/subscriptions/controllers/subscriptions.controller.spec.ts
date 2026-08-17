@@ -19,10 +19,10 @@ describe('SubscriptionsController', () => {
   let creditsUtilsService: CreditsUtilsService;
 
   const mockUser: User = {
-    brandId: 'b07f1f77bcf86cd799439010',
+    brandId: 'b00000000000000000000000',
     id: 'user_123',
-    organizationId: 'o07f1f77bcf86cd799439012',
-    userId: 'u07f1f77bcf86cd799439011',
+    organizationId: 'o11111111111111111111111',
+    userId: 'u22222222222222222222222',
   };
 
   const mockSubscription = {
@@ -31,15 +31,15 @@ describe('SubscriptionsController', () => {
     currentPeriodStart: new Date(),
     currentPeriodEnd: new Date(),
     customerId: null,
-    id: 's07f1f77bcf86cd799439014',
+    id: 's33333333333333333333333',
     isDeleted: false,
-    organizationId: 'o07f1f77bcf86cd799439012',
+    organizationId: 'o11111111111111111111111',
     plan: SubscriptionPlan.MONTHLY,
     status: SubscriptionStatus.ACTIVE,
     stripePriceId: 'price_monthly',
     stripeSubscriptionId: 'sub_123',
     updatedAt: new Date(),
-    userId: 'u07f1f77bcf86cd799439011',
+    userId: 'u22222222222222222222222',
   } satisfies SubscriptionDocument;
 
   const mockSubscriptionsService = {

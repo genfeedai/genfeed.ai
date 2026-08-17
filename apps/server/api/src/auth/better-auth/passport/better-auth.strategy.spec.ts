@@ -1,5 +1,6 @@
 import type { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import type { BetterAuthIdentityResolverService } from '@api/auth/better-auth/services/better-auth-identity-resolver.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,7 +73,7 @@ describe('BetterAuthStrategy', () => {
 
   it('rejects a legacy Mongo-shaped subject before identity resolution', async () => {
     betterAuthService.verifyToken.mockResolvedValue({
-      sub: '507f1f77bcf86cd799439011',
+      sub: '000000000000000000000011',
     });
 
     await expect(strategy.validate(requestWith('Bearer tok'))).rejects.toThrow(
@@ -82,7 +83,7 @@ describe('BetterAuthStrategy', () => {
   });
 
   it('rejects a canonical subject with an incomplete account identity', async () => {
-    const canonicalUserId = 'cm1234567890abcdefghijkl';
+    const canonicalUserId = testId('user');
     betterAuthService.verifyToken.mockResolvedValue({
       sub: canonicalUserId,
     });

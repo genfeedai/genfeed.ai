@@ -29,6 +29,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import type { IFileMetadata } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -36,6 +37,8 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 
 // Mock setImmediate for testing async callbacks
 vi.useFakeTimers();
+
+const sharedId = testId('id');
 
 describe('WebhooksService', () => {
   let service: WebhooksService;
@@ -54,11 +57,11 @@ describe('WebhooksService', () => {
   let postProcessingOrchestrator: vi.Mocked<PostProcessingOrchestratorService>;
   let autoMergeService: vi.Mocked<AutoMergeService>;
 
-  const mockUserId = '507f191e810c19729de860ee';
-  const mockOrgId = '507f191e810c19729de860ee';
-  const mockBrandId = '507f191e810c19729de860ee';
-  const mockMetadataId = '507f191e810c19729de860ee';
-  const mockIngredientId = '507f191e810c19729de860ee';
+  const mockUserId = sharedId;
+  const mockOrgId = sharedId;
+  const mockBrandId = sharedId;
+  const mockMetadataId = sharedId;
+  const mockIngredientId = sharedId;
 
   const mockMetadata = {
     id: mockMetadataId,
@@ -735,14 +738,14 @@ describe('WebhooksService', () => {
   });
 
   describe('processAssetFromWebhook', () => {
-    const assetId = '507f191e810c19729de860ee'.toString();
+    const assetId = sharedId;
     const url = 'https://example.com/asset.png';
     const integration = 'test-integration';
 
     const mockAsset = {
       id: assetId,
       category: AssetCategory.LOGO,
-      parentBrandId: '507f191e810c19729de860ee',
+      parentBrandId: sharedId,
       parentType: 'BRAND',
       userId: mockUserId,
     };

@@ -10,6 +10,7 @@ import type { BetterAuthIdentityCacheService } from '@api/common/services/better
 import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
@@ -27,9 +28,9 @@ describe('UsersController', () => {
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = '507f191e810c19729de860ee'.toString();
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const settingsId = '507f191e810c19729de860ee'.toString();
+  const userId = testId('user');
+  const orgId = userId;
+  const settingsId = userId;
 
   const mockUser = {
     id: 'user_subject_123',
@@ -655,7 +656,7 @@ describe('UsersController', () => {
     });
 
     it('should throw for unauthorized user', async () => {
-      const otherUserId = '507f191e810c19729de860ee'.toString();
+      const otherUserId = userId;
 
       await expect(
         controller.getOnboardingStatus(mockRequest, mockUser, otherUserId),

@@ -9,11 +9,17 @@ import type { NotificationsPublisherService } from '@api/services/notifications/
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+
+const sourceImageId = testId('sourceimage');
+const trainingId = testId('training');
+const trainingBrandId = testId('trainingbrand');
+const relaunchTrainingId = testId('relaunchtraining');
 
 describe('TrainingsService', () => {
   let service: TrainingsService;
@@ -25,9 +31,9 @@ describe('TrainingsService', () => {
   let configService: { get: ReturnType<typeof vi.fn> };
 
   const identity = {
-    brandId: '507f191e810c19729de860ee',
-    organizationId: '507f191e810c19729de860ee',
-    userId: '507f191e810c19729de860ee',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   };
 
   beforeEach(() => {
@@ -75,7 +81,7 @@ describe('TrainingsService', () => {
         label: 'New Training',
         sources: Array(10)
           .fill(null)
-          .map(() => '507f191e810c19729de860ee'.toString()),
+          .map(() => sourceImageId),
         steps: 1000,
         trigger: 'NEWTOK',
         type: 'subject',
@@ -135,7 +141,7 @@ describe('TrainingsService', () => {
     it('resolves the default trainer model when none is provided', async () => {
       const sourceIds = Array(10)
         .fill(null)
-        .map(() => '507f191e810c19729de860ee'.toString());
+        .map(() => sourceImageId);
       ingredientsService.findAll.mockResolvedValueOnce({
         docs: sourceIds.map((id) => ({ id, metadata: { extension: 'jpg' } })),
       });
@@ -164,12 +170,12 @@ describe('TrainingsService', () => {
     it('creates the training with the resolved source images and default trainer model', async () => {
       const sourceIds = Array(10)
         .fill(null)
-        .map(() => '507f191e810c19729de860ee'.toString());
+        .map(() => sourceImageId);
       ingredientsService.findAll.mockResolvedValueOnce({
         docs: sourceIds.map((id) => ({ id, metadata: { extension: 'jpg' } })),
       });
       const createSpy = vi.spyOn(service, 'create').mockResolvedValueOnce({
-        id: '507f191e810c19729de860ee',
+        id: trainingId,
       } as unknown as TrainingDocument);
 
       const result = await service.createTrainingWithSources(
@@ -189,14 +195,12 @@ describe('TrainingsService', () => {
           label: 'New Training',
           organizationId: identity.organizationId,
           sources: {
-            connect: expect.arrayContaining([
-              { id: '507f191e810c19729de860ee' },
-            ]),
+            connect: expect.arrayContaining([{ id: sourceImageId }]),
           },
           userId: identity.userId,
         }),
       );
-      expect(result.training.id).toBe('507f191e810c19729de860ee');
+      expect(result.training.id).toBe(trainingId);
       expect(result.sourceImages).toHaveLength(10);
     });
 
@@ -235,7 +239,7 @@ describe('TrainingsService', () => {
 
   describe('relaunchTrainingWithSources', () => {
     const mockTraining = {
-      brandId: '507f1f77bcf86cd799439013',
+      brandId: trainingBrandId,
       config: {
         category: 'style',
         model: 'replicate/custom-model',
@@ -245,7 +249,7 @@ describe('TrainingsService', () => {
         trigger: 'MYTOK',
       },
       description: '',
-      id: '507f1f77bcf86cd799439014',
+      id: relaunchTrainingId,
       label: 'Custom Model',
       sources: Array.from(
         { length: 10 },
@@ -268,7 +272,7 @@ describe('TrainingsService', () => {
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          brandId: '507f1f77bcf86cd799439013',
+          brandId: trainingBrandId,
           config: expect.objectContaining({
             category: 'style',
             model: 'replicate/custom-model',

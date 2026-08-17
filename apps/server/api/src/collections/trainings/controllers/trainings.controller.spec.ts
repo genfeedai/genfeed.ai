@@ -14,6 +14,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -46,11 +47,13 @@ describe('TrainingsController', () => {
   let controller: TrainingsController;
   let trainingsService: vi.Mocked<TrainingsService>;
 
+  const fixtureId = testId('fixture');
+
   const mockUser = {
     id: 'user-123',
-    brandId: 'c07f191e810c19729de860ee'.toString(),
-    organizationId: 'c07f191e810c19729de860ee'.toString(),
-    userId: 'c07f191e810c19729de860ee'.toString(),
+    brandId: fixtureId,
+    organizationId: fixtureId,
+    userId: fixtureId,
   } as unknown as User;
 
   const mockRequest = {
@@ -199,7 +202,7 @@ describe('TrainingsController', () => {
       label: 'New Training',
       sources: Array(10)
         .fill(null)
-        .map(() => 'c07f191e810c19729de860ee'.toString()),
+        .map(() => fixtureId),
       steps: 1000,
       trigger: 'NEWTOK',
       type: 'subject',
@@ -207,7 +210,7 @@ describe('TrainingsController', () => {
 
     const mockSourceImages = [{ id: 'img-1', metadata: { extension: 'jpg' } }];
     const mockTraining = {
-      id: 'c07f191e810c19729de860ee',
+      id: fixtureId,
       label: 'New Training',
     };
 
@@ -243,7 +246,7 @@ describe('TrainingsController', () => {
 
   describe('findOne', () => {
     it('accepts a canonical cuid id and returns the training', async () => {
-      const cuid = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+      const cuid = testId('training');
       trainingsService.findOne.mockResolvedValueOnce({ id: cuid } as never);
 
       const result = await controller.findOne(mockRequest, mockUser, cuid);
@@ -265,8 +268,8 @@ describe('TrainingsController', () => {
 
   describe('processAndLaunchTrainingAsync (failure handling)', () => {
     const training = {
-      id: 't07f191e810c19729de860ee',
-      userId: 'u07f191e810c19729de860ee',
+      id: testId('training', 2),
+      userId: testId('user', 2),
     } as never;
     const sourceImages = [
       { id: 'img-1', metadata: { extension: 'jpg' } },
@@ -335,8 +338,8 @@ describe('TrainingsController', () => {
 
     it('should return false when user does not own the entity', () => {
       const entity = {
-        organizationId: 'c07f191e810c19729de860ff'.toString(),
-        userId: 'c07f191e810c19729de860aa'.toString(),
+        organizationId: testId('org', 2),
+        userId: testId('user', 3),
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

@@ -5,17 +5,26 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const personaId = testId('persona');
+const assignedPersonaId = testId('persona', 2);
+const memberId1 = testId('member', 1);
+const memberId2 = testId('member', 2);
 
 describe('PersonasController', () => {
   let controller: PersonasController;
 
   const mockUser = {
     id: 'user_123',
-    brandId: 'b07f1f77bcf86cd799439013',
-    organizationId: 'o07f1f77bcf86cd799439012',
-    userId: 'u07f1f77bcf86cd799439014',
+    brandId,
+    organizationId,
+    userId,
   };
 
   const mockServiceMethods = {
@@ -62,69 +71,69 @@ describe('PersonasController', () => {
     const mockRequest = {
       get: vi.fn().mockReturnValue('localhost'),
       headers: {},
-      path: '/personas/507f1f77bcf86cd799439017',
+      path: `/personas/${personaId}`,
       protocol: 'https',
       query: {},
     } as any;
 
     it('should assign members to a persona when memberIds is present', async () => {
       const mockPersona = {
-        id: 'p07f191e810c19729de860ee',
+        id: assignedPersonaId,
         name: 'Test Persona',
       };
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
       mockServiceMethods.findOne.mockResolvedValue({
-        id: 'p07f1f77bcf86cd799439017',
-        userId: 'u07f1f77bcf86cd799439014',
+        id: personaId,
+        userId,
       });
       mockServiceMethods.patch.mockResolvedValue(mockPersona);
 
       const body = {
-        memberIds: ['m07f1f77bcf86cd799439015', 'm07f1f77bcf86cd799439016'],
+        memberIds: [memberId1, memberId2],
       };
 
       await controller.patch(
         mockRequest,
         mockUser as any,
-        'p07f1f77bcf86cd799439017',
+        personaId,
         body as any,
       );
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
-        'p07f1f77bcf86cd799439017',
-        ['m07f1f77bcf86cd799439015', 'm07f1f77bcf86cd799439016'],
-        'o07f1f77bcf86cd799439012',
+        personaId,
+        [memberId1, memberId2],
+        organizationId,
       );
     });
 
     it('should still apply remaining fields via the base patch when provided alongside memberIds', async () => {
       const mockPersona = {
-        id: 'p07f191e810c19729de860ee',
+        id: assignedPersonaId,
         name: 'Test Persona',
       };
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
       mockServiceMethods.findOne.mockResolvedValue({
-        id: 'p07f1f77bcf86cd799439017',
-        userId: 'u07f1f77bcf86cd799439014',
+        id: personaId,
+        userId,
       });
       mockServiceMethods.patch.mockResolvedValue(mockPersona);
 
       const body = {
         label: 'Renamed Persona',
-        memberIds: ['m07f1f77bcf86cd799439015'],
+        memberIds: [memberId1],
       };
 
       await controller.patch(
         mockRequest,
         mockUser as any,
-        'p07f1f77bcf86cd799439017',
+        personaId,
         body as any,
       );
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
-        'p07f1f77bcf86cd799439017',
-        ['m07f1f77bcf86cd799439015'],
-        'o07f1f77bcf86cd799439012',
+        personaId,
+        [memberId1],
+        organizationId,
       );
       const patchArg = mockServiceMethods.patch.mock.calls[0][1] as Record<
         string,
@@ -137,17 +146,14 @@ describe('PersonasController', () => {
     it('should propagate errors from the assignment call', async () => {
       mockServiceMethods.assignMembers.mockRejectedValue(new Error('DB error'));
       mockServiceMethods.findOne.mockResolvedValue({
-        id: 'p07f1f77bcf86cd799439017',
-        userId: 'u07f1f77bcf86cd799439014',
+        id: personaId,
+        userId,
       });
 
       await expect(
-        controller.patch(
-          mockRequest,
-          mockUser as any,
-          'p07f1f77bcf86cd799439017',
-          { memberIds: ['m07f1f77bcf86cd799439015'] } as any,
-        ),
+        controller.patch(mockRequest, mockUser as any, personaId, {
+          memberIds: [memberId1],
+        } as any),
       ).rejects.toThrow('DB error');
     });
   });

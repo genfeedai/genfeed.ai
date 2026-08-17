@@ -28,6 +28,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { FastlaneFormat } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -419,8 +420,8 @@ describe('BrandsService', () => {
   });
 
   it('selects a brand using its canonical id', async () => {
-    const currentBrandId = 'hkh2jbovtpcsrzw3oyxr11oj';
-    const organizationId = 'b13yktd0f1e38me3f55swu0n';
+    const currentBrandId = testId('brand');
+    const organizationId = testId('org');
     const userId = 'user_current';
 
     delegate.findFirst

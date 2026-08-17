@@ -3,11 +3,12 @@ import { WorkflowStepRunnerService } from '@api/collections/workflows/services/w
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-const MOCK_USER_ID = '507f1f77bcf86cd799439011';
-const MOCK_ORG_ID = '507f1f77bcf86cd799439012';
-const WORKFLOW_ID = '507f1f77bcf86cd799439013';
+const MOCK_USER_ID = testId('user');
+const MOCK_ORG_ID = testId('org');
+const WORKFLOW_ID = testId('workflow');
 
 const SYSTEMIC_ERROR =
   'Systemic workflow templates cannot be executed directly. Clone the workflow first.';

@@ -2,8 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('ContentGatewayController', () => {
   let controller: ContentGatewayController;
@@ -14,8 +18,8 @@ describe('ContentGatewayController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
   const mockRequest = {
     originalUrl: '/content-gateway/signal',
@@ -56,7 +60,7 @@ describe('ContentGatewayController', () => {
     expect(contentGatewayService.routeSignal).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId: organizationId,
         type: 'cron',
       }),
     );
@@ -71,11 +75,11 @@ describe('ContentGatewayController', () => {
     });
 
     expect(contentGatewayService.processManualRequest).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
       'content-writing',
       { prompt: 'x' },
-      '507f1f77bcf86cd799439011',
+      userId,
     );
   });
 
@@ -88,7 +92,7 @@ describe('ContentGatewayController', () => {
 
     expect(contentGatewayService.routeSignal).toHaveBeenCalledWith(
       expect.objectContaining({
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId: organizationId,
       }),
     );
   });
@@ -115,11 +119,11 @@ describe('ContentGatewayController', () => {
     });
 
     expect(contentGatewayService.processManualRequest).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-5',
       'video-gen',
       params,
-      '507f1f77bcf86cd799439011',
+      userId,
     );
   });
 

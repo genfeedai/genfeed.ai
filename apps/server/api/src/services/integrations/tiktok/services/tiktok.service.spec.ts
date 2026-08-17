@@ -8,6 +8,7 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -364,10 +365,7 @@ describe('TiktokService', () => {
         }),
       });
 
-      const result = await service.refreshToken(
-        '507f191e810c19729de860ea',
-        '507f191e810c19729de860eb',
-      );
+      const result = await service.refreshToken(testId('org'), testId('brand'));
 
       expect(result).toBeInstanceOf(CredentialEntity);
       expect(httpService.post).toHaveBeenCalled();
@@ -384,10 +382,7 @@ describe('TiktokService', () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue(undefined);
 
       await expect(
-        service.refreshToken(
-          '507f191e810c19729de860ea',
-          '507f191e810c19729de860eb',
-        ),
+        service.refreshToken(testId('org'), testId('brand')),
       ).rejects.toThrow('No refresh token available');
     });
 
@@ -654,8 +649,8 @@ describe('TiktokService', () => {
       );
 
       const res = await service.getMediaAnalytics(
-        '507f191e810c19729de860ea',
-        '507f191e810c19729de860eb',
+        testId('org'),
+        testId('brand'),
         'v',
       );
 

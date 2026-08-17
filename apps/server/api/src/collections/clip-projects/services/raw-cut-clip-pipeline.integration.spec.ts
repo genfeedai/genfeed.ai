@@ -9,6 +9,7 @@ import type {
   FileQueueService,
 } from '@api/services/files-microservice/queue/file-queue.service';
 import { Status } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   type ClipGenerationInput,
@@ -17,9 +18,9 @@ import {
 import { RawCutClipService } from './raw-cut-clip.service';
 import { RawCutClipCompletionService } from './raw-cut-clip-completion.service';
 
-const ORGANIZATION_ID = '507f1f77bcf86cd799439011';
-const PROJECT_ID = '507f1f77bcf86cd799439012';
-const USER_ID = '507f1f77bcf86cd799439013';
+const ORGANIZATION_ID = testId('org');
+const PROJECT_ID = testId('project');
+const USER_ID = testId('user');
 
 function createMockLogger(): LoggerService {
   return {

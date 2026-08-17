@@ -4,6 +4,7 @@ import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-qu
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { modelCatalogAttributes } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request as ExpressRequest } from 'express';
@@ -147,7 +148,7 @@ describe('PublicModelsController', () => {
       const hostileQuery = {
         isDeleted: true,
         limit: 50,
-        organizationId: 'c07f191e810c19729de860ee',
+        organizationId: testId('org'),
         page: 1,
         registryStatus: 'pending',
       } as unknown as PublicModelsQueryDto;

@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -268,10 +269,10 @@ describe('PostsService', () => {
       const data = {
         count: 1,
         credentialId: 'cred-123',
-        sourceReferenceIds: ['507f1f77bcf86cd799439099'],
+        sourceReferenceIds: [testId('sourceReference')],
         sourceUrl: 'https://x.com/example/status/1',
         topic: 'Tech news',
-        trendId: '507f1f77bcf86cd799439098',
+        trendId: testId('trend'),
       };
 
       await service.generateTweets(data);
@@ -326,10 +327,10 @@ describe('PostsService', () => {
       const data = {
         count: 5,
         credentialId: 'cred-123',
-        sourceReferenceIds: ['507f1f77bcf86cd799439099'],
+        sourceReferenceIds: [testId('sourceReference')],
         sourceUrl: 'https://x.com/example/status/1',
         topic: 'Startup tips',
-        trendId: '507f1f77bcf86cd799439098',
+        trendId: testId('trend'),
       };
 
       await service.generateThread(data);

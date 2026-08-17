@@ -14,17 +14,18 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
-const callerOrgId = 'clr1a2b3c4d5e6f7g8h9i0jk';
-const otherOrgId = 'clr9z8y7x6w5v4u3t2s1r0qp';
-const callerUserId = 'clu1a2b3c4d5e6f7g8h9i0jk';
+const callerOrgId = testId('org');
+const otherOrgId = testId('org', 2);
+const callerUserId = testId('user');
 // A member of the caller's own organization.
-const memberId = 'clm1a2b3c4d5e6f7g8h9i0jk';
+const memberId = testId('member');
 // A real, well-formed member id that belongs to `otherOrgId`.
-const foreignMemberId = 'clm9z8y7x6w5v4u3t2s1r0qp';
+const foreignMemberId = testId('member', 2);
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({

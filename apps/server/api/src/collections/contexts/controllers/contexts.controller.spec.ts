@@ -12,9 +12,14 @@ import { KnowledgeSourceService } from '@api/collections/contexts/services/knowl
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { KnowledgeBaseCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const organizationId = testId('org');
+const userId = testId('user');
+const contextId = testId('context');
 
 describe('ContextsController', () => {
   let controller: ContextsController;
@@ -22,18 +27,18 @@ describe('ContextsController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockContext = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: contextId,
     createdAt: new Date(),
     description: 'A test context base',
     entries: [],
     isActive: true,
     label: 'Test Context',
-    organization: '507f1f77bcf86cd799439012',
+    organization: organizationId,
     type: 'general',
     updatedAt: new Date(),
   };
@@ -151,7 +156,7 @@ describe('ContextsController', () => {
 
   describe('findOne', () => {
     it('should return a context by id', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       mockContextsService.findOne.mockResolvedValue(mockContext);
 
       await controller.findOne(mockReq, id, mockUser);
@@ -162,7 +167,7 @@ describe('ContextsController', () => {
 
   describe('update', () => {
     it('should update a context', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       const updateDto: UpdateContextDto = {
         label: 'Updated Context',
       };
@@ -182,7 +187,7 @@ describe('ContextsController', () => {
 
   describe('remove', () => {
     it('should delete a context', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       mockContextsService.remove.mockResolvedValue(undefined);
 
       const result = await controller.remove(id, mockUser);
@@ -194,7 +199,7 @@ describe('ContextsController', () => {
 
   describe('addEntry', () => {
     it('should add entry to context', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       const addEntryDto: AddEntryDto = {
         content: 'New entry content',
         metadata: {},
@@ -218,7 +223,7 @@ describe('ContextsController', () => {
 
   describe('removeEntry', () => {
     it('should remove entry from context', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       const entryId = 'entry123';
       mockContextsService.removeEntry.mockResolvedValue(undefined);
 
@@ -321,13 +326,13 @@ describe('ContextsController', () => {
 
       const result = await controller.addSource(
         mockReq,
-        '507f1f77bcf86cd799439014',
+        contextId,
         dto,
         mockUser,
       );
 
       expect(mockKnowledgeSourceService.addSource).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        contextId,
         dto,
         mockUser.organizationId,
       );
@@ -357,7 +362,7 @@ describe('ContextsController', () => {
 
   describe('getStats', () => {
     it('should return context stats', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = contextId;
       const stats = {
         averageConfidence: 0.85,
         totalEntries: 100,

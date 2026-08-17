@@ -1,6 +1,7 @@
 import { ActionOrigin, AgentExecutionStatus } from '@genfeedai/enums';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { getActionOriginContext } from '@genfeedai/server';
+import { testId } from '@helpers/testing/test-id.helper';
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,10 +93,10 @@ describe('AgentRunProcessor', () => {
   });
 
   it('persists thread linkage and derives summary from assistant message content', async () => {
-    const runId = '507f191e810c19729de860ee'.toString();
-    const threadId = '507f191e810c19729de860ee'.toString();
-    const organizationId = '507f191e810c19729de860ee'.toString();
-    const userId = '507f191e810c19729de860ee'.toString();
+    const runId = testId('run').toString();
+    const threadId = testId('thread').toString();
+    const organizationId = testId('org').toString();
+    const userId = testId('user').toString();
 
     const job = {
       data: {

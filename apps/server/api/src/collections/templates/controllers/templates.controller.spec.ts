@@ -18,7 +18,11 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
+const templateId = testId('template');
 
 describe('TemplatesController', () => {
   let controller: TemplatesController;
@@ -26,18 +30,18 @@ describe('TemplatesController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId: testId('user'),
   } as unknown as User;
 
   const mockTemplate = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: templateId,
     categories: ['marketing'],
     category: 'email',
     createdAt: new Date(),
     description: 'Professional email template',
     label: 'Marketing Email Template',
-    organization: '507f1f77bcf86cd799439012',
+    organization: organizationId,
     platforms: ['email'],
     scope: AssetScope.PUBLIC,
     updatedAt: new Date(),
@@ -141,7 +145,7 @@ describe('TemplatesController', () => {
 
   describe('findOne', () => {
     it('should return a template by id', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = templateId;
       mockTemplatesService.findOne.mockResolvedValue(mockTemplate);
 
       const result = await controller.findOne(mockReq, id, mockUser);
@@ -153,7 +157,7 @@ describe('TemplatesController', () => {
 
   describe('update', () => {
     it('should update a template', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = templateId;
       const dto: UpdateTemplateDto = {
         label: 'Updated Template',
       };
@@ -174,7 +178,7 @@ describe('TemplatesController', () => {
 
   describe('remove', () => {
     it('should delete a template', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = templateId;
       mockTemplatesService.remove.mockResolvedValue(undefined);
 
       const result = await controller.remove(id, mockUser);
@@ -187,7 +191,7 @@ describe('TemplatesController', () => {
   describe('useTemplate', () => {
     it('should use template with variables', async () => {
       const dto: UseTemplateDto = {
-        templateId: '507f1f77bcf86cd799439014',
+        templateId,
         variables: { name: 'John', product: 'SaaS' },
       };
 

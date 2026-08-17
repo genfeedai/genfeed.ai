@@ -1,6 +1,7 @@
 import { TagsController } from '@api/collections/tags/controllers/tags.controller';
 import type { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('TagsController', () => {
@@ -14,9 +15,9 @@ describe('TagsController', () => {
     warn: vi.fn(),
   };
 
-  const userId = '507f191e810c19729de860ee'.toString();
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const brandId = '507f191e810c19729de860ee'.toString();
+  const userId = testId('user');
+  const orgId = testId('org');
+  const brandId = testId('brand');
 
   const mockUser = {
     id: 'authProvider_user_123',

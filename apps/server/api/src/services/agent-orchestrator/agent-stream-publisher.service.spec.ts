@@ -1,4 +1,5 @@
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
@@ -243,15 +244,19 @@ describe('AgentStreamPublisherService', () => {
     });
 
     it('persists a thread event when the thread is valid', async () => {
+      const organizationId = testId('org');
+      const threadId = testId('thread');
+      const userId = testId('user');
+
       mockAgentThreadsService.findOne.mockResolvedValue({
-        organizationId: 'cmptu23g70001zixnzwbzwp2e',
+        organizationId,
       });
 
       await service.publishToolStart({
         runId: 'run-1',
-        threadId: 'cmry35boo0000e7xnk6s5fq2q',
+        threadId,
         toolName: 'search',
-        userId: 'cmptu23g10000zixnc652bwom',
+        userId,
       } as any);
 
       expect(
@@ -262,11 +267,11 @@ describe('AgentStreamPublisherService', () => {
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: { origin: 'stream-publisher' },
-          organizationId: 'cmptu23g70001zixnzwbzwp2e',
+          organizationId,
           runId: 'run-1',
-          threadId: 'cmry35boo0000e7xnk6s5fq2q',
+          threadId,
           type: 'tool.started',
-          userId: 'cmptu23g10000zixnc652bwom',
+          userId,
         }),
       );
     });

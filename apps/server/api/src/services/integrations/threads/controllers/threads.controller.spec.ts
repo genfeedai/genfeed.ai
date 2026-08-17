@@ -12,6 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -23,12 +24,16 @@ describe('ThreadsController', () => {
   let brandsService: BrandsService;
   let threadsService: ThreadsService;
 
+  const mockBrandId = testId('brand');
+  const mockOrganizationId = testId('org');
+  const mockUserId = testId('user');
+
   const mockRequest = {} as never;
   const mockUser = {
-    brandId: '507f1f77bcf86cd799439015',
+    brandId: mockBrandId,
     id: 'auth-provider-user',
-    organizationId: '507f1f77bcf86cd799439011',
-    userId: '507f1f77bcf86cd799439013',
+    organizationId: mockOrganizationId,
+    userId: mockUserId,
   } as never;
 
   const mockBrandsService = { findOne: vi.fn() };
@@ -97,7 +102,7 @@ describe('ThreadsController', () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
       const result = await controller.connect(mockRequest, mockUser, {
-        brandId: '507f1f77bcf86cd799439015',
+        brandId: mockBrandId,
       });
 
       expect(result).toEqual({
@@ -108,9 +113,9 @@ describe('ThreadsController', () => {
 
     it('should save credentials and return OAuth URL when brand found', async () => {
       const mockBrand = {
-        id: '507f1f77bcf86cd799439015',
-        organizationId: '507f1f77bcf86cd799439011',
-        userId: '507f1f77bcf86cd799439013',
+        id: mockBrandId,
+        organizationId: mockOrganizationId,
+        userId: mockUserId,
       };
       mockBrandsService.findOne.mockResolvedValue(mockBrand);
       mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
@@ -119,13 +124,13 @@ describe('ThreadsController', () => {
       });
 
       const result = await controller.connect(mockRequest, mockUser, {
-        brandId: '507f1f77bcf86cd799439015',
+        brandId: mockBrandId,
       });
 
       expect(brandsService.findOne).toHaveBeenCalled();
       expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f1f77bcf86cd799439013',
+        mockUserId,
         CredentialPlatform.THREADS,
         expect.objectContaining({ isConnected: false }),
       );

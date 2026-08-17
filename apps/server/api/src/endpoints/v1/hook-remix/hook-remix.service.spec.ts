@@ -9,6 +9,7 @@ import type {
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -37,9 +38,9 @@ describe('HookRemixService', () => {
   };
 
   const userId = 'user_abc';
-  const organizationId = '507f191e810c19729de860eb';
-  const brandId = '507f191e810c19729de860ea';
-  const ctaIngredientId = '507f191e810c19729de860ec';
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const ctaIngredientId = testId('ingredient');
 
   const mockIngredient = {
     _id: ctaIngredientId,

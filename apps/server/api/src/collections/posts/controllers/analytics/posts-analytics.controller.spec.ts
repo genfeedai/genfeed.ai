@@ -16,6 +16,7 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -24,31 +25,31 @@ describe('PostsAnalyticsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: 'c07f1f77bcf86cd799439013',
-    organizationId: 'c07f1f77bcf86cd799439012',
-    userId: 'c07f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockPost = {
-    id: 'c07f1f77bcf86cd799439014',
-    brandId: 'c07f1f77bcf86cd799439013',
-    credentialId: 'c07f1f77bcf86cd799439016',
+    id: testId('post'),
+    brandId: testId('brand'),
+    credentialId: testId('credential'),
     isDeleted: false,
-    organizationId: 'c07f1f77bcf86cd799439012',
-    userId: 'c07f1f77bcf86cd799439011',
+    organizationId: testId('org'),
+    userId: testId('user'),
   };
 
   const mockCredential = {
-    id: 'c07f1f77bcf86cd799439016',
+    id: testId('credential'),
     isConnected: true,
-    organizationId: 'c07f1f77bcf86cd799439012',
+    organizationId: testId('org'),
     platform: 'twitter',
   };
 
   const mockAnalyticsSummary = {
     comments: 10,
     likes: 100,
-    postId: 'c07f1f77bcf86cd799439014',
+    postId: testId('post'),
     views: 1000,
   };
 
@@ -121,7 +122,7 @@ describe('PostsAnalyticsController', () => {
   });
 
   describe('getAnalytics', () => {
-    const postId = 'c07f1f77bcf86cd799439014';
+    const postId = testId('post');
 
     it('should return post analytics', async () => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
@@ -176,7 +177,7 @@ describe('PostsAnalyticsController', () => {
   });
 
   describe('refreshAnalytics', () => {
-    const postId = 'c07f1f77bcf86cd799439014';
+    const postId = testId('post');
 
     it('should refresh analytics for a post', async () => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
@@ -216,18 +217,18 @@ describe('PostsAnalyticsController', () => {
       // built from unpopulated relation aliases silently loses its tenant
       // scoping and can return another organization's credential.
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        id: 'c07f1f77bcf86cd799439016',
-        brandId: 'c07f1f77bcf86cd799439013',
-        organizationId: 'c07f1f77bcf86cd799439012',
+        id: testId('credential'),
+        brandId: testId('brand'),
+        organizationId: testId('org'),
       });
     });
 
     it('uses canonical scalar foreign keys for the credential lookup', async () => {
       mockPostsService.findOne.mockResolvedValue({
         ...mockPost,
-        brandId: 'c07f1f77bcf86cd799439013',
-        credentialId: 'c07f1f77bcf86cd799439016',
-        organizationId: 'c07f1f77bcf86cd799439012',
+        brandId: testId('brand'),
+        credentialId: testId('credential'),
+        organizationId: testId('org'),
       });
       mockCredentialsService.findOne.mockResolvedValue(mockCredential);
       mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
@@ -237,17 +238,17 @@ describe('PostsAnalyticsController', () => {
       await controller.refreshAnalytics(mockUser, postId);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        id: 'c07f1f77bcf86cd799439016',
-        brandId: 'c07f1f77bcf86cd799439013',
-        organizationId: 'c07f1f77bcf86cd799439012',
+        id: testId('credential'),
+        brandId: testId('brand'),
+        organizationId: testId('org'),
       });
     });
 
     it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {
       mockPostsService.findOne.mockResolvedValue({
-        id: 'c07f1f77bcf86cd799439014',
-        brandId: 'c07f1f77bcf86cd799439013',
-        credentialId: 'c07f1f77bcf86cd799439016',
+        id: testId('post'),
+        brandId: testId('brand'),
+        credentialId: testId('credential'),
         isDeleted: false,
       });
 
@@ -267,7 +268,7 @@ describe('PostsAnalyticsController', () => {
       mockAnalyticsSyncWorkflowService.runOrganizationRefresh.mockResolvedValue(
         {
           enqueued: 3,
-          organizationId: 'c07f1f77bcf86cd799439012',
+          organizationId: testId('org'),
           posts: 12,
           skipped: 1,
         },
@@ -277,7 +278,7 @@ describe('PostsAnalyticsController', () => {
 
       expect(
         mockAnalyticsSyncWorkflowService.runOrganizationRefresh,
-      ).toHaveBeenCalledWith('c07f1f77bcf86cd799439012');
+      ).toHaveBeenCalledWith(testId('org'));
       expect(mockPostsService.findAll).not.toHaveBeenCalled();
       expect(result.data?.attributes).toEqual({
         errorCount: 1,

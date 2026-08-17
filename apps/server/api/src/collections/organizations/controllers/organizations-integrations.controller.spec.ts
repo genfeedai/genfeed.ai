@@ -10,6 +10,7 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -18,13 +19,13 @@ describe('OrganizationsIntegrationsController', () => {
   let integrationsService: IntegrationsService;
   let mockReq: Request;
 
-  const organizationId = '507f1f77bcf86cd799439012';
-  const integrationId = '507f1f77bcf86cd799439011';
+  const organizationId = testId('org');
+  const integrationId = testId('integration');
   const mockUser = {
-    brandId: '507f1f77bcf86cd799439013',
+    brandId: testId('brand'),
     id: 'user_authProvider_123',
     organizationId,
-    userId: '507f1f77bcf86cd799439014',
+    userId: testId('user'),
   } as unknown as User;
 
   const mockIntegration = {

@@ -8,6 +8,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ArticleCategory, AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -19,9 +20,9 @@ describe('ArticlesController', () => {
   let service: ArticlesService;
 
   const mockPublicMetadata = {
-    brand: '507f1f77bcf86cd799439013',
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    brand: testId('brand'),
+    organization: testId('org'),
+    user: testId('user'),
   };
 
   const mockUser = {
@@ -37,21 +38,21 @@ describe('ArticlesController', () => {
   } as Request;
 
   const mockArticle = {
-    brandId: '507f1f77bcf86cd799439013',
-    id: '507f1f77bcf86cd799439014',
+    brandId: mockPublicMetadata.brand,
+    id: testId('article'),
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: mockPublicMetadata.organization,
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    userId: '507f1f77bcf86cd799439011',
+    userId: mockPublicMetadata.user,
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -130,7 +131,7 @@ describe('ArticlesController', () => {
 
   describe('findOne', () => {
     it('queries the canonical article id and enforces organization access', async () => {
-      const articleId = '507f1f77bcf86cd799439014';
+      const articleId = mockArticle.id;
 
       await controller.findOne(mockRequest, mockUser, articleId);
 
@@ -149,7 +150,7 @@ describe('ArticlesController', () => {
 
   describe('getVersions', () => {
     it('should return article versions', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = mockArticle.id;
       const versions = [
         { content: 'Version 1', createdAt: new Date(), promptId: '1' },
         { content: 'Version 2', createdAt: new Date(), promptId: '2' },
@@ -171,7 +172,7 @@ describe('ArticlesController', () => {
 
   describe('patch (restore from version)', () => {
     it('should restore article version when restoreFromVersionId is set', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = mockArticle.id;
       const promptId = 'prompt123';
 
       const restoredArticle = { ...mockArticle, content: 'Restored content' };
@@ -196,7 +197,7 @@ describe('ArticlesController', () => {
   });
 
   describe('createPreviewLink', () => {
-    const id = '507f1f77bcf86cd799439014';
+    const id = mockArticle.id;
 
     it('should mint a signed preview URL when a slug, public URL, and signing key exist', async () => {
       mockArticlesService.findOne.mockResolvedValue(mockArticle);

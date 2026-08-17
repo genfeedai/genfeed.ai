@@ -7,6 +7,7 @@ import {
   IngredientStatus,
   TagCategory,
 } from '@genfeedai/enums';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import type {
   IAsset,
   IBrand,
@@ -20,6 +21,8 @@ import type {
   IUser,
 } from '@genfeedai/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const localCdnIngredientId = testId('ingredient');
 
 // Mock dependencies
 vi.mock('@genfeedai/client/models', () => ({
@@ -839,15 +842,14 @@ describe('Ingredient', () => {
     it('rewrites leftover files-host /local/ cdnUrls onto the public CDN', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.IMAGE,
-        cdnUrl:
-          'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
-        id: 'cmsmc6doc004vloxn054gn7te',
-        s3Key: 'local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        cdnUrl: `https://files.genfeed.localhost/local/ingredients/images/${localCdnIngredientId}`,
+        id: localCdnIngredientId,
+        s3Key: `local/ingredients/images/${localCdnIngredientId}`,
         status: IngredientStatus.GENERATED,
       });
 
       expect(ingredient.ingredientUrl).toBe(
-        'https://cdn.genfeed.ai/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        `https://cdn.genfeed.ai/ingredients/images/${localCdnIngredientId}`,
       );
     });
 

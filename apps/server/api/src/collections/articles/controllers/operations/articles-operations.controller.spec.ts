@@ -15,6 +15,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ArticleCategory, AssetScope, ModelCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -23,10 +24,13 @@ describe('ArticlesOperationsController', () => {
   let controller: ArticlesOperationsController;
   let service: ArticlesService;
 
+  const articleId = testId('article');
+  const activityId = testId('activity');
+
   const mockPublicMetadata = {
-    brand: '507f1f77bcf86cd799439013',
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    brand: testId('brand'),
+    organization: testId('org'),
+    user: testId('user'),
   };
 
   const mockUser = {
@@ -42,21 +46,21 @@ describe('ArticlesOperationsController', () => {
   } as Request;
 
   const mockArticle = {
-    id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
+    id: articleId,
+    brand: mockPublicMetadata.brand,
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organization: '507f1f77bcf86cd799439012',
+    organization: mockPublicMetadata.organization,
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
+    user: mockPublicMetadata.user,
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -166,7 +170,7 @@ describe('ArticlesOperationsController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,
@@ -189,7 +193,7 @@ describe('ArticlesOperationsController', () => {
     });
 
     it('uses the requested brandId throughout article generation', async () => {
-      const requestedBrandId = '507f1f77bcf86cd799439099';
+      const requestedBrandId = testId('brand', 2);
       const dto: GenerateArticlesDto = {
         brandId: requestedBrandId,
         prompt: 'AI Technology',
@@ -203,7 +207,7 @@ describe('ArticlesOperationsController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,
@@ -247,7 +251,7 @@ describe('ArticlesOperationsController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,
@@ -344,7 +348,7 @@ describe('ArticlesOperationsController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,
@@ -361,7 +365,7 @@ describe('ArticlesOperationsController', () => {
 
   describe('reviewArticle', () => {
     it('should review an article', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = articleId;
       const review = { notes: ['tighten the intro'], score: 72 };
 
       mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({

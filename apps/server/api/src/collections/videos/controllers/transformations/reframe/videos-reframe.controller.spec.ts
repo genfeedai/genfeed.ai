@@ -15,6 +15,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException } from '@nestjs/common';
 
 vi.mock('@api/collections/metadata/services/metadata.service', () => ({
@@ -78,26 +79,30 @@ import type { Request } from 'express';
 
 const mockReq = {} as Request;
 
+const videoId = testId('video');
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
+const promptId = testId('prompt');
+const activityId = testId('activity');
+
 const mockVideo = {
-  brand: '507f1f77bcf86cd799439014',
+  brand: brandId,
   category: 'video',
-  id: '507f1f77bcf86cd799439011',
+  id: videoId,
   metadata: { duration: 10, height: 1080, width: 1920 },
-  organization: '507f1f77bcf86cd799439013',
-  user: '507f1f77bcf86cd799439012',
+  organization: organizationId,
+  user: userId,
 };
 
 const mockUser = {
   id: 'user_123',
-  brandId: '507f1f77bcf86cd799439014',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId,
+  organizationId,
+  userId,
 } as unknown as User;
-
-const ingredientId = '507f1f77bcf86cd799439017';
-const metadataId = '507f1f77bcf86cd799439016';
-const promptId = '507f1f77bcf86cd799439015';
-const activityId = '507f1f77bcf86cd799439018';
 
 describe('VideosReframeController', () => {
   let controller: VideosReframeController;
@@ -196,16 +201,11 @@ describe('VideosReframeController', () => {
 
   it('should reframe video and return ingredient data', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      {
-        format: 'portrait',
-        height: 1920,
-        width: 1080,
-      },
-    );
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+      height: 1920,
+      width: 1080,
+    });
     expect(result).toBeDefined();
     expect(result.id).toEqual(ingredientId);
   });
@@ -213,7 +213,7 @@ describe('VideosReframeController', () => {
   it('should throw NOT_FOUND when parent video does not exist', async () => {
     mockServices.videosService.findOne.mockResolvedValue(null);
     await expect(
-      controller.reframeVideo(mockReq, '507f1f77bcf86cd799439011', mockUser, {
+      controller.reframeVideo(mockReq, videoId, mockUser, {
         format: 'portrait',
       }),
     ).rejects.toThrow(HttpException);
@@ -221,12 +221,9 @@ describe('VideosReframeController', () => {
 
   it('should create a prompt with the video format text', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'square' },
-    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'square',
+    });
     expect(mockServices.promptsService.create).toHaveBeenCalledWith(
       expect.objectContaining({ original: 'Reframe video to square format' }),
     );
@@ -247,12 +244,9 @@ describe('VideosReframeController', () => {
 
   it('should leave credit deduction to the interceptor', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'portrait' },
-    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
     expect(
       mockServices.creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
@@ -263,12 +257,9 @@ describe('VideosReframeController', () => {
     mockServices.replicateService.generateTextToVideo.mockResolvedValueOnce(
       null,
     );
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'landscape' },
-    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'landscape',
+    });
     expect(
       mockServices.failedGenerationService.handleFailedVideoGeneration,
     ).toHaveBeenCalled();
@@ -279,12 +270,9 @@ describe('VideosReframeController', () => {
     mockServices.replicateService.generateTextToVideo.mockRejectedValueOnce(
       new Error('API down'),
     );
-    const result = await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'portrait' },
-    );
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
     expect(result).toBeDefined();
     expect(
       mockServices.failedGenerationService.handleFailedVideoGeneration,
@@ -294,12 +282,9 @@ describe('VideosReframeController', () => {
 
   it('should publish background task update on reframe start', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      { format: 'portrait' },
-    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
     expect(
       mockServices.websocketService.publishBackgroundTaskUpdate,
     ).toHaveBeenCalledWith(
@@ -313,16 +298,11 @@ describe('VideosReframeController', () => {
 
   it('should cap portrait dimensions to 1080x1920', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(
-      mockReq,
-      '507f1f77bcf86cd799439011',
-      mockUser,
-      {
-        format: 'portrait',
-        height: 8000,
-        width: 4000,
-      },
-    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+      height: 8000,
+      width: 4000,
+    });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(

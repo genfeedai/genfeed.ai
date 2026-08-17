@@ -11,6 +11,7 @@ import { VideoGenerationPreparationService } from '@api/collections/videos/servi
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,6 +27,8 @@ describe('VideoGenerationService', () => {
   const RESOLVED_BRAND = 'brand-resolved';
   const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5;
   const NON_BATCH_MODEL = MODEL_KEYS.KLINGAI_V2;
+  const promptId = testId('prompt');
+  const missingPromptId = testId('prompt', 2);
 
   const buildUser = (organizationId: string = ORG): User =>
     ({
@@ -254,12 +257,12 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ promptId: 'p07f191e810c19729de860ee' }),
+        baseDto({ promptId }),
         buildRequest(),
       );
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
-        id: 'p07f191e810c19729de860ee',
+        id: promptId,
         organizationId: ORG,
       });
     });
@@ -271,7 +274,7 @@ describe('VideoGenerationService', () => {
       const error = await service
         .generateVideo(
           buildUser(),
-          baseDto({ promptId: 'p07f191e810c19729de860ef' }),
+          baseDto({ promptId: missingPromptId }),
           buildRequest(),
         )
         .catch((e) => e);
@@ -290,12 +293,12 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(''),
-        baseDto({ promptId: 'p07f191e810c19729de860ee' }),
+        baseDto({ promptId }),
         buildRequest(),
       );
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
-        id: 'p07f191e810c19729de860ee',
+        id: promptId,
       });
     });
   });

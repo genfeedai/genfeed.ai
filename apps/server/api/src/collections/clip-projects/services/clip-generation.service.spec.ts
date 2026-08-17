@@ -2,6 +2,7 @@ import type { ClipResultsService } from '@api/collections/clip-results/clip-resu
 import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Mocked } from 'vitest';
 import {
@@ -10,6 +11,10 @@ import {
   type ClipHighlight,
 } from './clip-generation.service';
 import type { RawCutClipService } from './raw-cut-clip.service';
+
+const orgId = testId('org');
+const projectId = testId('project');
+const userId = testId('user');
 
 function createMockLogger(): LoggerService {
   return {
@@ -86,9 +91,9 @@ function makeInput(
   return {
     avatarId: 'avatar-123',
     highlights: [makeHighlight()],
-    orgId: '507f1f77bcf86cd799439011',
-    projectId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439013',
+    orgId,
+    projectId,
+    userId,
     voiceId: 'voice-456',
     ...overrides,
   };
@@ -436,14 +441,14 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     return {
       highlights: [makeHighlight()], // start_time 15, end_time 45
       mode: 'raw-cut',
-      orgId: '507f1f77bcf86cd799439011',
-      projectId: '507f1f77bcf86cd799439012',
+      orgId,
+      projectId,
       sourceVideoS3Key: 'videos/source.mp4',
       transcriptSegments: [
         { end: 25, start: 20, text: 'Inside window' },
         { end: 105, start: 100, text: 'Outside window' },
       ],
-      userId: '507f1f77bcf86cd799439013',
+      userId,
       ...overrides,
     };
   }
@@ -500,10 +505,10 @@ describe('ClipGenerationService (raw-cut mode)', () => {
         captionSrt: EXPECTED_SRT,
         clipResultId: 'clip-result-1',
         endTime: 45,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: orgId,
         sourceVideoS3Key: 'videos/source.mp4',
         startTime: 15,
-        userId: '507f1f77bcf86cd799439013',
+        userId,
       }),
     );
   });
@@ -517,7 +522,7 @@ describe('ClipGenerationService (raw-cut mode)', () => {
           providerJobId: 'raw-cut-trim-clip-result-1',
           providerName: 'raw-cut',
           sourceVideoS3Key: 'videos/source.mp4',
-          userId: '507f1f77bcf86cd799439013',
+          userId,
         }),
       );
       return {
@@ -540,7 +545,7 @@ describe('ClipGenerationService (raw-cut mode)', () => {
         providerJobId: 'raw-cut-trim-clip-result-1',
         providerName: 'raw-cut',
         sourceVideoS3Key: 'videos/source.mp4',
-        userId: '507f1f77bcf86cd799439013',
+        userId,
       }),
     );
   });

@@ -5,6 +5,10 @@ import {
   RunSurface,
   RunTrigger,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('Runs Surface Parity Contract', () => {
   const runsService = {
@@ -50,8 +54,8 @@ describe('Runs Surface Parity Contract', () => {
 
         await controller.create(
           {
-            organizationId: '507f1f77bcf86cd799439011',
-            userId: '507f1f77bcf86cd799439012',
+            organizationId,
+            userId,
           } as never,
           {
             headers: {
@@ -67,8 +71,8 @@ describe('Runs Surface Parity Contract', () => {
         );
 
         expect(runsService.createRun).toHaveBeenLastCalledWith(
-          '507f1f77bcf86cd799439012',
-          '507f1f77bcf86cd799439011',
+          userId,
+          organizationId,
           RunAuthType.BETTER_AUTH,
           expect.objectContaining({
             actionType: action,

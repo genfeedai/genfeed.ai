@@ -4,6 +4,7 @@ import type { PublishingSetupService } from '@api/collections/publishing-setup/s
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
   HttpException,
@@ -11,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-const ORGANIZATION_ID = 'clz1a2b3c4d5e6f7g8h9i0j1k';
-const USER_ID = 'clz1a2b3c4d5e6f7g8h9i0j1l';
+const ORGANIZATION_ID = testId('org');
+const USER_ID = testId('user');
 
 describe('PublishingSetupController', () => {
   it('separates the schedule-scoped checklist from the admin-scoped support bundle', () => {

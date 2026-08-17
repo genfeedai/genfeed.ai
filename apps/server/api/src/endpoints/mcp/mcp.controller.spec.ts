@@ -9,6 +9,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -44,9 +45,9 @@ describe('MCPController', () => {
     url: '/mcp/videos',
     user: {
       id: 'authProvider_user_123',
-      brandId: '507f1f77bcf86cd799439010',
-      organizationId: '507f1f77bcf86cd799439011',
-      userId: '507f1f77bcf86cd799439012',
+      brandId: testId('brand'),
+      organizationId: testId('org'),
+      userId: testId('user'),
     },
   } as unknown as Request;
 
@@ -97,7 +98,7 @@ describe('MCPController', () => {
   describe('createVideo', () => {
     it('should create video through VideosService', async () => {
       const mockVideoData = {
-        _id: '507f1f77bcf86cd799439015',
+        _id: testId('video'),
         status: 'processing',
         title: 'Test Video',
       };
@@ -123,7 +124,7 @@ describe('MCPController', () => {
     it('should get analytics through AnalyticsService', async () => {
       const mockAnalyticsData = [
         {
-          _id: '507f1f77bcf86cd799439016',
+          _id: testId('analytics'),
           type: 'video',
           views: 100,
         },

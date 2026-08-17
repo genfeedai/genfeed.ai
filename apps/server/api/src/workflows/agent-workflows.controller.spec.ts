@@ -1,7 +1,11 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AgentWorkflowsController } from '@api/workflows/agent-workflows.controller';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('AgentWorkflowsController', () => {
   let controller: AgentWorkflowsController;
@@ -15,8 +19,8 @@ describe('AgentWorkflowsController', () => {
   };
 
   const user = {
-    organizationId: '507f1f77bcf86cd799439011',
-    userId: '507f1f77bcf86cd799439012',
+    organizationId,
+    userId,
   };
 
   beforeEach(async () => {
@@ -49,8 +53,8 @@ describe('AgentWorkflowsController', () => {
     );
 
     expect(service.createWorkflow).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439011',
+      userId,
+      organizationId,
       { agentId: 'agent-1', linkedConversationId: 'thread-1' },
     );
   });
@@ -62,7 +66,7 @@ describe('AgentWorkflowsController', () => {
 
     expect(service.transition).toHaveBeenCalledWith(
       'wf-1',
-      '507f1f77bcf86cd799439011',
+      organizationId,
       'agent',
       {},
     );

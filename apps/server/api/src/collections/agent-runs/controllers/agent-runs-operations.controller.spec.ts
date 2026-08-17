@@ -5,16 +5,20 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentRunsOperationsController } from '@api/collections/agent-runs/controllers/agent-runs-operations.controller';
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
 describe('AgentRunsOperationsController', () => {
+  const brandId = testId('brand');
+  const organizationId = testId('org');
+  const userId = testId('user');
   const mockUser: User = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439014',
+    brandId,
+    organizationId,
+    userId,
   };
   const mockRequest = { originalUrl: '/api/runs', query: {} } as Request;
   const operationsService = {
@@ -65,9 +69,9 @@ describe('AgentRunsOperationsController', () => {
       controller.cancelRun(mockRequest, 'run1', mockUser),
     ).resolves.toEqual({ data: run });
     expect(operationsService.cancelRun).toHaveBeenCalledWith('run1', {
-      brandId: '507f1f77bcf86cd799439013',
-      organizationId: '507f1f77bcf86cd799439012',
-      userId: '507f1f77bcf86cd799439014',
+      brandId,
+      organizationId,
+      userId,
     });
   });
 
@@ -88,8 +92,8 @@ describe('AgentRunsOperationsController', () => {
 
     expect(operationsService.retryRun).toHaveBeenCalledWith('run1', {
       brandId: 'selected-brand',
-      organizationId: '507f1f77bcf86cd799439012',
-      userId: '507f1f77bcf86cd799439014',
+      organizationId,
+      userId,
     });
   });
 });

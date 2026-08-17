@@ -9,6 +9,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -42,8 +43,8 @@ describe('MetaAdsController', () => {
   };
 
   const mockUser = {
-    organizationId: '507f1f77bcf86cd799439011',
-    userId: '507f1f77bcf86cd799439013',
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockCredential = {

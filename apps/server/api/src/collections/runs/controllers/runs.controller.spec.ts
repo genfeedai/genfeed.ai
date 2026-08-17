@@ -13,8 +13,12 @@ import {
   RunSurface,
   RunTrigger,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('RunsController', () => {
   let controller: RunsController;
@@ -64,8 +68,8 @@ describe('RunsController', () => {
 
     const result = await controller.create(
       {
-        organizationId: '507f1f77bcf86cd799439011',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId: organizationId,
+        userId: userId,
       } as never,
       { headers: { 'x-trace-id': 'trace-from-header' } } as never,
       {
@@ -77,8 +81,8 @@ describe('RunsController', () => {
     );
 
     expect(mockRunsService.createRun).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439011',
+      userId,
+      organizationId,
       RunAuthType.BETTER_AUTH,
       expect.objectContaining({
         actionType: RunActionType.GENERATE,
@@ -101,8 +105,8 @@ describe('RunsController', () => {
     await controller.create(
       {
         isApiKey: true,
-        organizationId: '507f1f77bcf86cd799439011',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId: organizationId,
+        userId: userId,
       } as never,
       { headers: {} } as never,
       {
@@ -115,8 +119,8 @@ describe('RunsController', () => {
     );
 
     expect(mockRunsService.createRun).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439011',
+      userId,
+      organizationId,
       RunAuthType.API_KEY,
       expect.objectContaining({
         actionType: RunActionType.POST,
@@ -131,7 +135,7 @@ describe('RunsController', () => {
     await expect(
       controller.create(
         {
-          organizationId: '507f1f77bcf86cd799439011',
+          organizationId: organizationId,
         } as never,
         { headers: {} } as never,
         {
@@ -149,8 +153,8 @@ describe('RunsController', () => {
 
     const result = await controller.update(
       {
-        organizationId: '507f1f77bcf86cd799439011',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId: organizationId,
+        userId: userId,
       } as never,
       { headers: {} } as never,
       'run-cancel',
@@ -159,7 +163,7 @@ describe('RunsController', () => {
 
     expect(mockRunsService.cancelRun).toHaveBeenCalledWith(
       'run-cancel',
-      '507f1f77bcf86cd799439011',
+      organizationId,
     );
     expect(mockRunsService.updateRun).not.toHaveBeenCalled();
     expect(result).toEqual(mockRun);
@@ -189,8 +193,8 @@ describe('RunsController', () => {
       for (const actionType of actions) {
         await controller.create(
           {
-            organizationId: '507f1f77bcf86cd799439011',
-            userId: '507f1f77bcf86cd799439012',
+            organizationId: organizationId,
+            userId: userId,
           } as never,
           {
             headers: { 'x-trace-id': `trace-${surface}-${actionType}` },
@@ -204,8 +208,8 @@ describe('RunsController', () => {
         );
 
         expect(mockRunsService.createRun).toHaveBeenLastCalledWith(
-          '507f1f77bcf86cd799439012',
-          '507f1f77bcf86cd799439011',
+          userId,
+          organizationId,
           RunAuthType.BETTER_AUTH,
           expect.objectContaining({
             actionType,

@@ -1,6 +1,7 @@
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -46,7 +47,7 @@ describe('AuthWhoamiController', () => {
   });
 
   describe('whoami', () => {
-    const databaseUserId = 'clu1a2b3c4d5e6f7g8h9i0jk';
+    const databaseUserId = testId('user');
 
     it('should return full user context for authenticated user', async () => {
       mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });

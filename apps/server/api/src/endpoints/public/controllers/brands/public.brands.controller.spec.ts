@@ -12,12 +12,13 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('PublicBrandsController', () => {
-  const brandId = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+  const brandId = testId('brand');
   let controller: PublicBrandsController;
   let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;

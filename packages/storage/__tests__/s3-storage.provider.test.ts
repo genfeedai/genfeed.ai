@@ -81,9 +81,9 @@ describe('S3StorageProvider', () => {
       });
 
       expect(
-        provider.getUrl('ingredients/images/cmsmc6doc004vloxn054gn7te'),
+        provider.getUrl('ingredients/images/c000000000000000000000001'),
       ).toBe(
-        'https://staging-cdn.genfeed.ai/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        'https://staging-cdn.genfeed.ai/ingredients/images/c000000000000000000000001',
       );
     });
 

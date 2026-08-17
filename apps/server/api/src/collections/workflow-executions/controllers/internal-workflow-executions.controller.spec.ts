@@ -4,6 +4,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -12,15 +13,20 @@ import type { Request } from 'express';
 describe('InternalWorkflowExecutionsController', () => {
   let controller: InternalWorkflowExecutionsController;
 
+  const workflowId = testId('workflow');
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const executionId = testId('execution');
+
   const mockRequest = {} as Request;
   const mockWorkflow = {
-    id: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    id: workflowId,
+    organizationId,
+    userId,
   };
   const mockExecution = {
-    id: '507f1f77bcf86cd799439015',
-    organizationId: '507f1f77bcf86cd799439012',
+    id: executionId,
+    organizationId,
     status: 'running',
     userId: mockWorkflow.userId,
     workflowId: mockWorkflow.id,
@@ -82,25 +88,21 @@ describe('InternalWorkflowExecutionsController', () => {
   it('creates an execution for an org-scoped workflow', async () => {
     mockWorkflowsService.findOne.mockResolvedValue(mockWorkflow);
     mockWorkflowExecutorService.executeManualWorkflow.mockResolvedValue({
-      executionId: '507f1f77bcf86cd799439015',
+      executionId,
     });
     mockWorkflowExecutionsService.findOne.mockResolvedValue(mockExecution);
 
-    const result = await controller.create(
-      mockRequest,
-      '507f1f77bcf86cd799439012',
-      {
-        inputValues: { prompt: 'hello' },
-        workflowId: mockWorkflow.id,
-      },
-    );
+    const result = await controller.create(mockRequest, organizationId, {
+      inputValues: { prompt: 'hello' },
+      workflowId: mockWorkflow.id,
+    });
 
     expect(
       mockWorkflowExecutorService.executeManualWorkflow,
     ).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439014',
-      '507f1f77bcf86cd799439011',
-      '507f1f77bcf86cd799439012',
+      workflowId,
+      userId,
+      organizationId,
       { prompt: 'hello' },
       undefined,
       undefined,
@@ -113,8 +115,8 @@ describe('InternalWorkflowExecutionsController', () => {
 
     const result = await controller.findOne(
       mockRequest,
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439015',
+      organizationId,
+      executionId,
     );
 
     expect(mockWorkflowExecutionsService.findOne).toHaveBeenCalled();
@@ -130,13 +132,13 @@ describe('InternalWorkflowExecutionsController', () => {
 
     const result = await controller.update(
       mockRequest,
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439015',
+      organizationId,
+      executionId,
       { status: WorkflowExecutionStatus.CANCELLED },
     );
 
     expect(mockWorkflowExecutionsService.cancelExecution).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439015',
+      executionId,
     );
     expect(result).toBeDefined();
   });
@@ -145,7 +147,7 @@ describe('InternalWorkflowExecutionsController', () => {
     mockWorkflowExecutionsService.findOne.mockResolvedValue(null);
 
     await expect(
-      controller.update(mockRequest, '507f1f77bcf86cd799439012', 'missing-id', {
+      controller.update(mockRequest, organizationId, 'missing-id', {
         status: WorkflowExecutionStatus.CANCELLED,
       }),
     ).rejects.toThrow('Execution');

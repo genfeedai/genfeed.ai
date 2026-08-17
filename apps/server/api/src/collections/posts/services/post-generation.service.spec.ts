@@ -20,6 +20,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -27,11 +28,17 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 describe('PostGenerationService', () => {
   let service: PostGenerationService;
 
-  const userId = '507f1f77bcf86cd799439011';
-  const organizationId = '507f1f77bcf86cd799439012';
-  const brandId = '507f1f77bcf86cd799439013';
-  const postId = '507f1f77bcf86cd799439014';
-  const credentialId = '507f1f77bcf86cd799439016';
+  const userId = testId('user');
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const postId = testId('post');
+  const credentialId = testId('credential');
+  const activityId = testId('activity');
+  const sourceReferenceId = testId('sourceref');
+  const trendId = testId('trend');
+  const secondPostId = testId('post', 2);
+  const childPostId1 = testId('childpost', 1);
+  const childPostId2 = testId('childpost', 2);
 
   const identity = {
     brandId,
@@ -87,7 +94,7 @@ describe('PostGenerationService', () => {
     surface: 'post',
   } satisfies AccountPublishingContext;
 
-  const mockActivity = { id: '507f191e810c19729de860ee' };
+  const mockActivity = { id: activityId };
 
   const mockActivitiesService = {
     create: vi.fn().mockResolvedValue(mockActivity),
@@ -248,10 +255,10 @@ Tweet 3: Tech innovation is changing the world.`,
           count: 3,
           credentialId,
           format: 'post',
-          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
+          sourceReferenceIds: [sourceReferenceId],
           sourceUrl: 'https://x.com/example/status/1',
           topic: 'AI technology',
-          trendId: '507f1f77bcf86cd799439098',
+          trendId,
         },
         [mockPost],
         identity,
@@ -277,10 +284,10 @@ Tweet 3: Tech innovation is changing the world.`,
           count: 5,
           credentialId,
           format: 'thread',
-          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
+          sourceReferenceIds: [sourceReferenceId],
           sourceUrl: 'https://x.com/example/status/1',
           topic: 'AI technology',
-          trendId: '507f1f77bcf86cd799439098',
+          trendId,
         },
         [mockPost],
         identity,
@@ -343,7 +350,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockActivitiesService.create.mockRejectedValueOnce(
         new Error('activity store down'),
       );
-      const secondPost = { ...mockPost, id: '507f1f77bcf86cd799439015' };
+      const secondPost = { ...mockPost, id: secondPostId };
 
       await service.generateAccountContentAsync(
         { count: 2, credentialId, format: 'post', topic: 'AI' },
@@ -373,8 +380,8 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('expandThreadAsync', () => {
     const originalPost = { ...mockPost, description: 'Original tweet content' };
     const childPosts = [
-      { ...mockPost, id: '507f1f77bcf86cd799439021' },
-      { ...mockPost, id: '507f1f77bcf86cd799439022' },
+      { ...mockPost, id: childPostId1 },
+      { ...mockPost, id: childPostId2 },
     ];
 
     it('delegates thread generation through the bounded service', async () => {

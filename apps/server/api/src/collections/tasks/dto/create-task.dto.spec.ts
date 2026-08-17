@@ -1,6 +1,10 @@
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+
+const brandId = testId('brand');
+const entityId = testId('entity');
 
 describe('CreateTaskDto', () => {
   it('should be defined', () => {
@@ -10,10 +14,10 @@ describe('CreateTaskDto', () => {
   describe('validation', () => {
     it('accepts a valid task payload with linked entities', async () => {
       const dto = plainToInstance(CreateTaskDto, {
-        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+        brandId,
         linkedEntities: [
           {
-            entityId: 'clz1a2b3c4d5e6f7g8h9i0j1l',
+            entityId,
             entityModel: 'Post',
           },
         ],
@@ -42,7 +46,7 @@ describe('CreateTaskDto', () => {
       const dto = plainToInstance(CreateTaskDto, {
         linkedEntities: [
           {
-            entityId: 'clz1a2b3c4d5e6f7g8h9i0j1l',
+            entityId,
             entityModel: 'InvalidModel',
           },
         ],

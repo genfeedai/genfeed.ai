@@ -8,6 +8,7 @@ import type {
 import { RouterController } from '@api/services/router/router.controller';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -43,7 +44,7 @@ describe('RouterController', () => {
     modelDetails: {
       category: ModelCategory.IMAGE,
       cost: 5,
-      id: '507f1f77bcf86cd799439011',
+      id: testId('model'),
       key: 'google/imagen-4',
       provider: 'google',
     },
@@ -279,7 +280,7 @@ describe('RouterController', () => {
           modelDetails: {
             category: ModelCategory.VIDEO,
             cost: 10,
-            id: '507f1f77bcf86cd799439011',
+            id: testId('model', 2),
             key: 'runway/gen-3',
             provider: 'runway',
           },

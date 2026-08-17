@@ -7,6 +7,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -36,14 +37,20 @@ describe('IngredientsService', () => {
   };
   let prisma: PrismaService;
 
+  const brandId = testId('brand');
+  const ingredientId = testId('ingredient');
+  const metadataId = testId('metadata');
+  const organizationId = testId('org');
+  const userId = testId('user');
+
   const mockIngredient = {
-    brandId: '507f1f77bcf86cd799439013',
-    id: '507f1f77bcf86cd799439011',
+    brandId,
+    id: ingredientId,
     isDeleted: false,
-    metadataId: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439012',
+    metadataId,
+    organizationId,
     title: 'Test Ingredient',
-    userId: '507f1f77bcf86cd799439015',
+    userId,
   };
 
   beforeEach(async () => {
@@ -85,7 +92,7 @@ describe('IngredientsService', () => {
   describe('create', () => {
     it('should create an ingredient successfully', async () => {
       const createDto: CreateIngredientDto = {
-        brandId: '507f1f77bcf86cd799439013',
+        brandId,
         category: IngredientCategory.IMAGE,
         status: IngredientStatus.PROCESSING,
       };
@@ -98,7 +105,7 @@ describe('IngredientsService', () => {
 
     it('should handle creation errors', async () => {
       const createDto: CreateIngredientDto = {
-        brandId: '507f1f77bcf86cd799439013',
+        brandId,
         category: IngredientCategory.IMAGE,
         status: IngredientStatus.PROCESSING,
       };
@@ -247,8 +254,7 @@ describe('IngredientsService', () => {
 
   describe('patchAll', () => {
     it('rejects relation updates that Prisma updateMany cannot apply', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
-      const tagId = '507f1f77bcf86cd799439022';
+      const tagId = testId('tag');
 
       await expect(
         service.patchAll({ id: ingredientId }, { tags: [tagId] }),
@@ -260,8 +266,6 @@ describe('IngredientsService', () => {
     });
 
     it('keeps bulk writes on the canonical scalar boundary', async () => {
-      const brandId = '507f1f77bcf86cd799439013';
-      const ingredientId = '507f1f77bcf86cd799439011';
       ingredientDelegate.updateMany.mockResolvedValue({ count: 1 });
 
       await service.patchAll(

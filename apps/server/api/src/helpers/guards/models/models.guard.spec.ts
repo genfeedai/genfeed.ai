@@ -4,9 +4,12 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { ModelCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
+const objectId = testId('legacyobjectid');
 
 describe('ModelsGuard', () => {
   let guard: ModelsGuard;
@@ -17,7 +20,7 @@ describe('ModelsGuard', () => {
 
   const createContext = (
     body: Record<string, unknown> = {},
-    organizationId = '507f191e810c19729de860ee'.toString(),
+    organizationId = objectId,
   ): ExecutionContext => {
     const req: Record<string, unknown> = {
       body,
@@ -35,7 +38,7 @@ describe('ModelsGuard', () => {
     reflector = new Reflector();
     modelRegistrationService = {
       validateModelForOrg: vi.fn().mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
+        _id: objectId,
         category: ModelCategory.IMAGE,
         key: 'stable-diffusion',
       }),
@@ -83,7 +86,7 @@ describe('ModelsGuard', () => {
 
   it('sets selectedModel on request after validation', async () => {
     const mockModel = {
-      _id: '507f191e810c19729de860ee',
+      _id: objectId,
       category: ModelCategory.IMAGE,
       key: 'stable-diffusion',
     };
@@ -99,7 +102,7 @@ describe('ModelsGuard', () => {
 
   it('throws ForbiddenException when model category does not match', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      _id: objectId,
       category: ModelCategory.IMAGE,
       key: 'stable-diffusion',
     });
@@ -112,7 +115,7 @@ describe('ModelsGuard', () => {
 
   it('allows model when category matches exactly', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      _id: objectId,
       category: ModelCategory.VIDEO,
       key: 'sora-turbo',
     });
@@ -126,7 +129,7 @@ describe('ModelsGuard', () => {
 
   it('allows model when model has no category set', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      _id: objectId,
       key: 'generic-model',
     });
     vi.spyOn(reflector, 'get').mockReturnValue({
@@ -141,7 +144,7 @@ describe('ModelsGuard', () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
-    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const orgId = testId('cuidorg');
     const ctx = createContext({ model: 'genfeed-ai/flux-dev' }, orgId);
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
@@ -202,7 +205,7 @@ describe('ModelsGuard', () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
-    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const orgId = testId('cuidorg');
     const req: Record<string, unknown> = {
       body: { model: 'stable-diffusion' },
       context: {},
@@ -225,7 +228,7 @@ describe('ModelsGuard', () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
-    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const orgId = testId('cuidorg');
     const req: Record<string, unknown> = {
       body: { model: 'stable-diffusion' },
       context: { organizationId: 'default' },

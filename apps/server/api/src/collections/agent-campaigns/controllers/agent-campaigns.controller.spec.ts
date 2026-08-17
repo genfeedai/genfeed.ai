@@ -3,8 +3,13 @@ import { AgentCampaignsController } from '@api/collections/agent-campaigns/contr
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const brandId = testId('brand');
+const organizationId = testId('org');
+const metadataUserId = testId('user');
 
 describe('AgentCampaignsController', () => {
   let controller: AgentCampaignsController;
@@ -19,9 +24,9 @@ describe('AgentCampaignsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439014',
+    brandId,
+    organizationId,
+    userId: metadataUserId,
   };
 
   beforeEach(async () => {
@@ -90,8 +95,8 @@ describe('AgentCampaignsController', () => {
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-1',
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439014',
+        organizationId,
+        metadataUserId,
       );
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
@@ -115,7 +120,7 @@ describe('AgentCampaignsController', () => {
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-2',
-        '507f1f77bcf86cd799439012',
+        organizationId,
         'user_123',
       );
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
@@ -132,7 +137,7 @@ describe('AgentCampaignsController', () => {
 
       expect(mockExecutionService.pause).toHaveBeenCalledWith(
         'campaign-1',
-        '507f1f77bcf86cd799439012',
+        organizationId,
       );
     });
   });
@@ -148,9 +153,9 @@ describe('AgentCampaignsController', () => {
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId: brandId,
           isDeleted: false,
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId: organizationId,
         },
       });
     });
@@ -165,9 +170,9 @@ describe('AgentCampaignsController', () => {
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId: brandId,
           isDeleted: false,
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId: organizationId,
           status: 'active',
         },
       });
@@ -188,7 +193,7 @@ describe('AgentCampaignsController', () => {
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId: organizationId,
         },
       });
     });
@@ -206,7 +211,7 @@ describe('AgentCampaignsController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when entity organizationId matches user organization', () => {
-      const entity = { organizationId: '507f1f77bcf86cd799439012' };
+      const entity = { organizationId: organizationId };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(true);
@@ -235,7 +240,7 @@ describe('AgentCampaignsController', () => {
       // A Prisma row without an explicit include carries no `organization`
       // relation; reading the alias used to yield undefined on both sides and
       // wave the request through.
-      const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
+      const entity = { organization: { id: organizationId } };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(false);

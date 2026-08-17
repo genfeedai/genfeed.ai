@@ -15,10 +15,15 @@ import { VotesController } from '@api/collections/votes/controllers/votes.contro
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { VoteEntityModel } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const organizationId = testId('org');
+const userId = testId('user');
+const validEntityId = testId('entity');
 
 describe('VotesController', () => {
   let controller: VotesController;
@@ -28,11 +33,9 @@ describe('VotesController', () => {
 
   const mockUser = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f191e810c19729de860ea',
+    organizationId,
+    userId,
   };
-
-  const validEntityId = '507f191e810c19729de860ea';
   const validCreateVoteDto = {
     entity: validEntityId,
     entityModel: VoteEntityModel.INGREDIENT,

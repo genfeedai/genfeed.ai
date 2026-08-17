@@ -28,10 +28,16 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MemberRole } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const memberId = testId('member');
+const userId = testId('user');
+const organizationId = testId('org');
+const roleId = testId('role');
 
 describe('OrganizationsMembersController', () => {
   let controller: OrganizationsMembersController;
@@ -39,27 +45,27 @@ describe('OrganizationsMembersController', () => {
   let organizationsService: OrganizationsService;
 
   const mockMember = {
-    id: '507f1f77bcf86cd799439011',
+    id: memberId,
     createdAt: new Date(),
     isActive: true,
     isDeleted: false,
-    organizationId: '507f1f77bcf86cd799439013',
-    roleId: '507f1f77bcf86cd799439014',
+    organizationId,
+    roleId,
     updatedAt: new Date(),
-    userId: '507f1f77bcf86cd799439012',
+    userId,
   };
 
   const mockOrganization = {
-    id: '507f1f77bcf86cd799439013',
+    id: organizationId,
     isDeleted: false,
     name: 'Test Organization',
-    userId: '507f1f77bcf86cd799439012',
+    userId,
   };
 
   const mockUser = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockLoggerService = {
@@ -95,7 +101,7 @@ describe('OrganizationsMembersController', () => {
 
   const mockUsersService = {
     create: vi.fn().mockResolvedValue({
-      id: '507f1f77bcf86cd799439012',
+      id: userId,
     }),
     findOne: vi.fn(),
   };
@@ -225,7 +231,7 @@ describe('OrganizationsMembersController', () => {
 
       const result = await controller.findAllMembers(
         request,
-        '507f1f77bcf86cd799439013',
+        organizationId,
         {},
         mockUser,
       );
@@ -272,7 +278,7 @@ describe('OrganizationsMembersController', () => {
 
       const result = await controller.inviteMember(
         request,
-        '507f1f77bcf86cd799439013',
+        organizationId,
         inviteDto,
         mockUser,
       );
@@ -282,8 +288,8 @@ describe('OrganizationsMembersController', () => {
         expect.objectContaining({
           defaultRoleKey: 'user',
           email: inviteDto.email,
-          invitedByUserId: '507f1f77bcf86cd799439012',
-          organizationId: '507f1f77bcf86cd799439013',
+          invitedByUserId: userId,
+          organizationId,
           roleId: undefined,
         }),
       );
@@ -328,16 +334,15 @@ describe('OrganizationsMembersController', () => {
 
       const result = await controller.updateMember(
         mockUpdateRequest,
-        '507f1f77bcf86cd799439013',
-        '507f1f77bcf86cd799439011',
+        organizationId,
+        memberId,
         updateDto,
         mockUser,
       );
 
-      expect(membersService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        { brandIds: [] },
-      );
+      expect(membersService.patch).toHaveBeenCalledWith(memberId, {
+        brandIds: [],
+      });
       expect(result).toBeDefined();
     });
 
@@ -346,7 +351,7 @@ describe('OrganizationsMembersController', () => {
         controller.updateMember(
           {} as Request,
           'another-organization',
-          '507f1f77bcf86cd799439011',
+          memberId,
           updateDto,
           mockUser,
         ),

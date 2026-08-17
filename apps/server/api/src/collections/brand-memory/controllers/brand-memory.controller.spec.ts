@@ -2,11 +2,15 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandMemoryController } from '@api/collections/brand-memory/controllers/brand-memory.controller';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 
 describe('BrandMemoryController', () => {
   let controller: BrandMemoryController;
+
+  const organizationId = testId('org');
+  const userId = testId('user');
 
   const mockBrandMemoryService = {
     distillLongTermMemory: vi.fn(),
@@ -15,8 +19,8 @@ describe('BrandMemoryController', () => {
   };
 
   const mockUser = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   beforeEach(async () => {
@@ -51,7 +55,7 @@ describe('BrandMemoryController', () => {
     );
 
     expect(mockBrandMemoryService.getMemory).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
       {
         from: new Date('2026-02-01T00:00:00.000Z'),
@@ -72,7 +76,7 @@ describe('BrandMemoryController', () => {
     await controller.getInsights(mockReq, 'brand-1', mockUser, '5');
 
     expect(mockBrandMemoryService.getInsights).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
       5,
     );

@@ -23,6 +23,7 @@ import { Readable } from 'node:stream';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { AssetScope, IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,6 +38,9 @@ const mockRequest = {
   params: {},
   query: {},
 } as unknown as ExpressRequest;
+
+const videoId = testId('video');
+const brandId = testId('brand');
 
 describe('PublicVideosController', () => {
   let controller: PublicVideosController;
@@ -102,7 +106,6 @@ describe('PublicVideosController', () => {
   });
 
   it('should pass the brand filter when a valid entity ID is provided', async () => {
-    const brandId = 'c07f1f77bcf86cd799439014';
     await controller.findPublicVideos(
       mockRequest,
       {} as never,
@@ -151,7 +154,6 @@ describe('PublicVideosController', () => {
 
   // --- getVideoMetadata ---
   it('should return video metadata for valid public video', async () => {
-    const videoId = 'c07f1f77bcf86cd799439011';
     mockVideosService.findOne.mockResolvedValue({
       id: videoId,
       category: IngredientCategory.VIDEO,
@@ -170,13 +172,12 @@ describe('PublicVideosController', () => {
   it('should throw NOT_FOUND when video does not exist', async () => {
     mockVideosService.findOne.mockResolvedValue(null);
     await expect(
-      controller.getVideoMetadata(mockRequest, 'c07f1f77bcf86cd799439011'),
+      controller.getVideoMetadata(mockRequest, videoId),
     ).rejects.toThrow(HttpException);
   });
 
   // --- getVideo (stream) ---
   it('should stream video file from S3', async () => {
-    const videoId = 'c07f1f77bcf86cd799439011';
     mockVideosService.findOne.mockImplementation(
       scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
     );
@@ -209,9 +210,9 @@ describe('PublicVideosController', () => {
     );
     const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
 
-    await expect(
-      controller.getVideo('c07f1f77bcf86cd799439011', mockRes),
-    ).rejects.toThrow(HttpException);
+    await expect(controller.getVideo(videoId, mockRes)).rejects.toThrow(
+      HttpException,
+    );
     expect(mockFilesClientService.getFileFromS3).not.toHaveBeenCalled();
   });
 
@@ -226,8 +227,8 @@ describe('PublicVideosController', () => {
   it('should throw NOT_FOUND when video does not exist for stream', async () => {
     mockVideosService.findOne.mockResolvedValue(null);
     const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
-    await expect(
-      controller.getVideo('c07f1f77bcf86cd799439011', mockRes),
-    ).rejects.toThrow(HttpException);
+    await expect(controller.getVideo(videoId, mockRes)).rejects.toThrow(
+      HttpException,
+    );
   });
 });

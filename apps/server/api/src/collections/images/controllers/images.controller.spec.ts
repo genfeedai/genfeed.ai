@@ -58,6 +58,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -72,16 +73,17 @@ describe('ImagesController', () => {
   };
 
   const mockRequest = {} as unknown as Request;
+  const mockUserId = testId('user');
   const mockUser = {
-    id: 'c07f1f77bcf86cd799439013',
-    brandId: 'c07f1f77bcf86cd799439012',
-    organizationId: 'c07f1f77bcf86cd799439011',
-    userId: 'c07f1f77bcf86cd799439013',
+    id: mockUserId,
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: mockUserId,
   } as unknown as User;
 
   const mockImage = {
     category: 'image',
-    id: 'i07f191e810c19729de860ee',
+    id: testId('image'),
     metadata: { label: 'Test image' },
   };
 

@@ -3,13 +3,14 @@ import { MembersController } from '@api/collections/members/controllers/members.
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import { MemberRole } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
-const userId = '507f191e810c19729de860ee';
-const orgId = '507f191e810c19729de860ee';
-const brandId = '507f191e810c19729de860ee';
+const userId = testId('user');
+const orgId = userId;
+const brandId = userId;
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({

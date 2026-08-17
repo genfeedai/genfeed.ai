@@ -55,6 +55,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, RequestMethod } from '@nestjs/common';
@@ -73,12 +74,12 @@ describe('PostsOperationsController', () => {
   let generationController: PostsGenerationController;
 
   // Mock IDs
-  const userId = '507f1f77bcf86cd799439011';
-  const organizationId = '507f1f77bcf86cd799439012';
-  const brandId = '507f1f77bcf86cd799439013';
-  const postId = '507f1f77bcf86cd799439014';
-  const credentialId = '507f1f77bcf86cd799439016';
-  const ingredientId = '507f1f77bcf86cd799439017';
+  const userId = testId('user');
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const postId = testId('post');
+  const credentialId = testId('credential');
+  const ingredientId = testId('ingredient');
 
   const mockUser = {
     id: 'user_authProvider_123',
@@ -169,7 +170,7 @@ describe('PostsOperationsController', () => {
   };
 
   const mockActivity = {
-    id: '507f191e810c19729de860ee',
+    id: testId('other'),
     key: 'POST_PROCESSING',
     source: 'POST_GENERATION',
   };
@@ -654,7 +655,7 @@ Tweet 3: Tech innovation is changing the world.`,
         callCount++;
         return Promise.resolve({
           ...mockPost,
-          id: '507f191e810c19729de860ee',
+          id: testId('other'),
           order: callCount - 1,
         });
       });
@@ -769,7 +770,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
       });
 
       await expect(
@@ -784,7 +785,7 @@ Tweet 3: Tech innovation is changing the world.`,
       try {
         mockPostsService.findOne.mockResolvedValueOnce({
           ...mockPost,
-          organizationId: '507f191e810c19729de860ee',
+          organizationId: testId('other'),
         });
         await generationController.expandToThread(
           mockRequest,
@@ -842,7 +843,7 @@ Tweet 3: Tech innovation is changing the world.`,
         },
         {
           ingredientId: ingredientId,
-          postId: '507f191e810c19729de860ee',
+          postId: testId('other'),
           scheduledDate: new Date().toISOString(),
           text: 'Scheduled tweet 2',
           timezone: 'America/New_York',
@@ -858,7 +859,7 @@ Tweet 3: Tech innovation is changing the world.`,
           { ...mockPost, status: PostStatus.SCHEDULED },
           {
             ...mockPost,
-            id: '507f191e810c19729de860ee',
+            id: testId('other'),
             status: PostStatus.SCHEDULED,
           },
         ],
@@ -878,7 +879,7 @@ Tweet 3: Tech innovation is changing the world.`,
         [
           expect.objectContaining({ postId, text: 'Scheduled tweet 1' }),
           expect.objectContaining({
-            postId: '507f191e810c19729de860ee',
+            postId: testId('other'),
             text: 'Scheduled tweet 2',
           }),
         ],
@@ -938,7 +939,7 @@ Tweet 3: Tech innovation is changing the world.`,
       // The scoped read inside batchSchedule reports ids outside the
       // organization instead of the controller probing each one.
       mockPostsService.batchSchedule.mockResolvedValueOnce({
-        missingPostIds: [postId, '507f191e810c19729de860ee'],
+        missingPostIds: [postId, testId('other')],
         posts: [],
       });
 
@@ -1046,7 +1047,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when parent belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
       });
 
       await expect(
@@ -1189,7 +1190,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockPostsService.createRemix.mockResolvedValue({
         ...mockPost,
-        id: '507f191e810c19729de860ee',
+        id: testId('other'),
         description: createRemixDto.description,
         remixOf: mockPost.id,
       });
@@ -1237,7 +1238,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
       });
 
       await expect(
@@ -1360,7 +1361,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should reject a failed post from another organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
         status: PostStatus.FAILED,
         targetError,
       });
@@ -1437,7 +1438,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
       });
 
       await expect(
@@ -1576,7 +1577,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('throws FORBIDDEN when post belongs to another organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: testId('other'),
       });
 
       await expect(

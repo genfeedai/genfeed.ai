@@ -17,8 +17,13 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const organizationId = testId('org');
+const userId = testId('user');
+const profileId = testId('profile');
 
 describe('ProfilesController', () => {
   let controller: ProfilesController;
@@ -27,17 +32,17 @@ describe('ProfilesController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockProfile = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: profileId,
     createdAt: new Date(),
     description: 'Formal and professional writing style',
     isDefault: false,
     label: 'Professional Tone',
-    organization: '507f1f77bcf86cd799439012',
+    organization: organizationId,
     tone: 'professional',
     updatedAt: new Date(),
   };
@@ -164,7 +169,7 @@ describe('ProfilesController', () => {
 
   describe('findOne', () => {
     it('should return a profile by id', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = profileId;
       mockProfilesService.findOne.mockResolvedValue(mockProfile);
 
       const result = await controller.findOne(mockReq, id, mockUser);
@@ -176,7 +181,7 @@ describe('ProfilesController', () => {
 
   describe('update', () => {
     it('should update a profile', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = profileId;
       const updateDto: UpdateProfileDto = {
         label: 'Updated Profile',
       };
@@ -197,7 +202,7 @@ describe('ProfilesController', () => {
 
   describe('remove', () => {
     it('should delete a profile', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = profileId;
       mockProfilesService.remove.mockResolvedValue(undefined);
 
       const result = await controller.remove(id, mockUser);
@@ -210,14 +215,14 @@ describe('ProfilesController', () => {
   describe('applyProfile', () => {
     it('should apply profile to prompt', async () => {
       const dto: ApplyProfileDto = {
-        profileId: '507f1f77bcf86cd799439014',
+        profileId: profileId,
         prompt: 'Original prompt',
       };
 
       const result = {
         enhanced: 'Enhanced with professional tone',
         original: 'Original prompt',
-        profileApplied: '507f1f77bcf86cd799439014',
+        profileApplied: profileId,
       };
 
       mockProfilesService.applyProfile.mockResolvedValue(result);
@@ -237,7 +242,7 @@ describe('ProfilesController', () => {
     it('should analyze content tone', async () => {
       const dto: AnalyzeToneDto = {
         content: 'Test content',
-        profileId: '507f1f77bcf86cd799439014',
+        profileId: profileId,
       };
 
       const analysis = {

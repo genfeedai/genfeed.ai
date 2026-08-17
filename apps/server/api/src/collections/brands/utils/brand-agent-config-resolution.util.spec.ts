@@ -1,4 +1,5 @@
 import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -66,8 +67,8 @@ describe('resolveEffectiveBrandAgentConfig', () => {
   });
 
   it('preserves brand and organization identity defaults as separate sources', () => {
-    const brandVoiceId = '507f191e810c19729de860ee';
-    const organizationVoiceId = '507f191e810c19729de860ee';
+    const brandVoiceId = testId('id', 1);
+    const organizationVoiceId = testId('id', 1);
 
     const result = resolveEffectiveBrandAgentConfig({
       brand: {
@@ -77,7 +78,7 @@ describe('resolveEffectiveBrandAgentConfig', () => {
         },
       } as never,
       organizationSettings: {
-        defaultAvatarIngredientId: '507f191e810c19729de860ee',
+        defaultAvatarIngredientId: testId('id', 1),
         defaultVoiceId: organizationVoiceId,
       } as never,
     });
@@ -99,20 +100,20 @@ describe('resolveEffectiveBrandAgentConfig', () => {
       brand: {
         agentConfig: {
           defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
-          defaultVoiceId: '507f191e810c19729de860aa',
+          defaultVoiceId: testId('id', 2),
         },
       } as never,
       organizationSettings: {
-        defaultAvatarIngredientId: '507f191e810c19729de860ee',
+        defaultAvatarIngredientId: testId('id', 1),
         defaultAvatarPhotoUrl: 'https://cdn.example.com/org-avatar.png',
-        defaultVoiceId: '507f191e810c19729de860bb',
+        defaultVoiceId: testId('id', 3),
       } as never,
     });
 
     expect(result.identityDefaults.effective).toMatchObject({
-      defaultAvatarIngredientId: '507f191e810c19729de860ee',
+      defaultAvatarIngredientId: testId('id', 1),
       defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
-      defaultVoiceId: '507f191e810c19729de860aa',
+      defaultVoiceId: testId('id', 2),
     });
   });
 });
@@ -150,7 +151,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
   });
 
   it('lets strategy-level overrides win over inherited org policy', () => {
-    const strategyBrandId = '507f191e810c19729de860ee';
+    const strategyBrandId = testId('id', 1);
 
     const result = resolveEffectiveAgentExecutionConfig({
       organizationSettings: {
@@ -181,7 +182,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
 
 describe('resolveEffectiveAgentRuntimeConfig', () => {
   it('returns one merged runtime config surface for brand and execution concerns', () => {
-    const strategyBrandId = '507f191e810c19729de860ee';
+    const strategyBrandId = testId('id', 1);
 
     const result = resolveEffectiveAgentRuntimeConfig({
       brand: {

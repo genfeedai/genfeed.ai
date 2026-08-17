@@ -1,10 +1,13 @@
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
+
+import { testId } from '@helpers/testing/test-id.helper';
+
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn(() => ({
-    organizationId: '507f1f77bcf86cd799439033',
-    userId: '507f1f77bcf86cd799439044',
+    organizationId: testId('org'),
+    userId: testId('user'),
   })),
 }));
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -46,11 +49,11 @@ describe('AdsGatewayController', () => {
 
   const mockUser = {
     id: 'user_authProvider_123',
-    organizationId: '507f1f77bcf86cd799439033',
-    userId: '507f1f77bcf86cd799439044',
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
-  const validCredentialId = '507f1f77bcf86cd799439011';
+  const validCredentialId = testId('credential');
   const validAdAccountId = 'act_12345';
 
   beforeEach(async () => {
@@ -389,7 +392,7 @@ describe('AdsGatewayController', () => {
     });
 
     it('should call adsGatewayService.comparePlatforms with built contexts', async () => {
-      const credId2 = '507f1f77bcf86cd799439022';
+      const credId2 = testId('credential', 2);
       credentialsService.findOne
         .mockResolvedValueOnce({ accessToken: 'token-meta' })
         .mockResolvedValueOnce({ accessToken: 'token-google' });

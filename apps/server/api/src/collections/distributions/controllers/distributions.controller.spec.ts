@@ -4,6 +4,7 @@ import {
   DistributionPlatform,
   PublishStatus,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,12 +27,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-const ORG_ID = '507f191e810c19729de860ee'.toString();
-const USER_ID = '507f191e810c19729de860ee'.toString();
+const ORG_ID = testId('entity').toString();
+const USER_ID = testId('entity').toString();
 
 function createMockUser() {
   return {
-    brandId: '507f191e810c19729de860ee'.toString(),
+    brandId: testId('entity').toString(),
     organizationId: ORG_ID,
     userId: USER_ID,
   };
@@ -40,7 +41,7 @@ function createMockUser() {
 function createMocks() {
   const distributionsService = {
     cancelScheduled: vi.fn().mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      _id: testId('entity'),
       status: PublishStatus.CANCELLED,
     }),
     findByOrganization: vi.fn().mockResolvedValue({
@@ -48,17 +49,17 @@ function createMocks() {
       total: 0,
     }),
     findOneByOrganization: vi.fn().mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      _id: testId('entity'),
       platform: DistributionPlatform.TELEGRAM,
     }),
   };
 
   const telegramDistributionService = {
     schedule: vi.fn().mockResolvedValue({
-      distributionId: '507f191e810c19729de860ee'.toString(),
+      distributionId: testId('entity').toString(),
     }),
     sendImmediate: vi.fn().mockResolvedValue({
-      distributionId: '507f191e810c19729de860ee'.toString(),
+      distributionId: testId('entity').toString(),
       telegramMessageId: '42',
     }),
   };
@@ -176,7 +177,7 @@ describe('DistributionsController', () => {
   describe('findOne', () => {
     it('should query with organization isolation', async () => {
       const user = createMockUser();
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = testId('entity').toString();
 
       await controller.findOne(mockReq, id, user as never);
 
@@ -189,7 +190,7 @@ describe('DistributionsController', () => {
   describe('cancel', () => {
     it('should cancel with organization isolation', async () => {
       const user = createMockUser();
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = testId('entity').toString();
 
       await controller.cancel(mockReq, id, user as never);
 

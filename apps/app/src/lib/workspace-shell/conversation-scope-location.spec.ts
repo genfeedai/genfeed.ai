@@ -1,3 +1,4 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import {
   buildConversationScopeHref,
   buildOrganizationNewThreadHref,
@@ -42,9 +43,10 @@ describe('conversation scope location', () => {
   });
 
   it('extracts standard agent thread ids and ignores entry routes', () => {
-    expect(
-      extractAgentThreadIdFromPathname('/agent/cmsjhy6ip0030wjxnrdi5axao'),
-    ).toBe('cmsjhy6ip0030wjxnrdi5axao');
+    const threadId = testId('thread');
+    expect(extractAgentThreadIdFromPathname(`/agent/${threadId}`)).toBe(
+      threadId,
+    );
     expect(extractAgentThreadIdFromPathname('/agent/new')).toBeNull();
     expect(extractAgentThreadIdFromPathname('/agent/onboarding')).toBeNull();
     expect(extractAgentThreadIdFromPathname('/agent/journey')).toBeNull();

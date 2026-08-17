@@ -7,6 +7,7 @@ import {
   createBrandAppRoute,
   LEGACY_APP_ROUTES,
 } from '@genfeedai/constants';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
 import { describe, expect, it } from 'vitest';
@@ -73,7 +74,7 @@ describe('app next.config', () => {
 
     expect(
       isAllowed(
-        'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+        `https://files.genfeed.localhost/local/ingredients/images/${testId('ingredient')}`,
       ),
     ).toBe(true);
     expect(

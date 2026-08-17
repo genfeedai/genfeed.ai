@@ -10,8 +10,10 @@ describe('posts contract', () => {
     expect(
       createPostSchema.safeParse({
         // entityIdSchema only accepts uuid/cuid/cuid2/ulid, so this fixture
-        // must be a real cuid rather than a readable placeholder.
-        credentialId: 'cmptu23g70001zixnzwbzwp2e',
+        // must be cuid-shaped. This package has no dependency on
+        // @genfeedai/helpers, so the deterministic testId() shape is
+        // hand-written rather than imported.
+        credentialId: 'ccredential00000000000001',
         description: 'A long X post body',
         format: PostFormat.LONG_FORM,
         ingredients: [],
@@ -23,7 +25,7 @@ describe('posts contract', () => {
 
   it('does not keep leftover Post.status on create', () => {
     const parsed = createPostSchema.parse({
-      credentialId: 'cmptu23g70001zixnzwbzwp2e',
+      credentialId: 'ccredential00000000000001',
       description: 'A long X post body',
       ingredients: [],
       label: 'Launch essay',

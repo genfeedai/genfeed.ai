@@ -2,14 +2,19 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const organizationId = testId('org');
+const userId = testId('user');
+const brandId = testId('brand');
+
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn().mockReturnValue({
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId: testId('org'),
+    userId: testId('user'),
   }),
 }));
 
@@ -37,10 +42,10 @@ describe('NewslettersController', () => {
   };
 
   const mockUser = {
-    brandId: '507f1f77bcf86cd799439013',
+    brandId,
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockReq = { headers: {}, url: '/newsletters' } as unknown as Request;
@@ -107,7 +112,7 @@ describe('NewslettersController', () => {
       await controller.findAll(mockReq, mockUser, query);
 
       expect(service.findAllScoped).toHaveBeenCalledWith(
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
         query,
         expect.objectContaining({ limit: 10, page: 1 }),
       );
@@ -120,7 +125,7 @@ describe('NewslettersController', () => {
 
       expect(service.findOneScoped).toHaveBeenCalledWith(
         'nl-1',
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({ data: { _id: 'nl-1' } });
     });
@@ -133,7 +138,7 @@ describe('NewslettersController', () => {
 
       expect(service.createScoped).toHaveBeenCalledWith(
         dto,
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({
         data: { _id: 'nl-1', title: 'New Newsletter' },
@@ -149,7 +154,7 @@ describe('NewslettersController', () => {
       expect(service.updateScoped).toHaveBeenCalledWith(
         'nl-1',
         dto,
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({ data: { _id: 'nl-1', title: 'Updated' } });
     });
@@ -162,7 +167,7 @@ describe('NewslettersController', () => {
 
       expect(service.generateTopicProposals).toHaveBeenCalledWith(
         dto,
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({ data: ['Topic 1', 'Topic 2'] });
     });
@@ -175,7 +180,7 @@ describe('NewslettersController', () => {
 
       expect(service.generateDraft).toHaveBeenCalledWith(
         dto,
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({
         data: { _id: 'nl-1', draft: 'content' },
@@ -189,7 +194,7 @@ describe('NewslettersController', () => {
 
       expect(service.getContextPreview).toHaveBeenCalledWith(
         'nl-1',
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({ data: { context: 'preview' } });
     });
@@ -203,7 +208,7 @@ describe('NewslettersController', () => {
 
       expect(service.approveScoped).toHaveBeenCalledWith(
         'nl-1',
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({
         data: { _id: 'nl-1', status: 'approved' },
@@ -219,7 +224,7 @@ describe('NewslettersController', () => {
 
       expect(service.publishScoped).toHaveBeenCalledWith(
         'nl-1',
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        expect.objectContaining({ organizationId }),
       );
       expect(result).toEqual({
         data: { _id: 'nl-1', status: 'published' },

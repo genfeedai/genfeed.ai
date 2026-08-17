@@ -2,10 +2,14 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Observable, of, throwError } from 'rxjs';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('CreditsInterceptor', () => {
   let interceptor: CreditsInterceptor;
@@ -27,8 +31,8 @@ describe('CreditsInterceptor', () => {
     } as CreditsConfig,
     user: {
       id: 'user_123',
-      organizationId: '507f1f77bcf86cd799439013',
-      userId: '507f1f77bcf86cd799439012',
+      organizationId,
+      userId,
     },
   };
 
@@ -127,8 +131,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId,
+        userId,
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -143,10 +147,10 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 10,
                 description: 'Test operation',
-                organizationId: '507f1f77bcf86cd799439013',
+                organizationId,
                 source: ActivitySource.SCRIPT,
                 type: 'deduct-credits',
-                userId: '507f1f77bcf86cd799439012',
+                userId,
               });
               expect(loggerService.log).toHaveBeenCalledWith(
                 'Credit deduction job queued',
@@ -218,8 +222,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId,
+        userId,
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -233,7 +237,7 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 5,
                 description: 'BYOK operation',
-                organizationId: '507f1f77bcf86cd799439013',
+                organizationId,
                 source: ActivitySource.SCRIPT,
                 type: 'record-byok-usage',
               });
@@ -255,8 +259,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId,
+        userId,
       };
 
       const mockHandlerWithError = {
@@ -277,7 +281,7 @@ describe('CreditsInterceptor', () => {
               'Operation failed, credits not deducted',
               {
                 amount: 10,
-                organizationId: '507f1f77bcf86cd799439013',
+                organizationId,
               },
             );
             expect(
@@ -296,8 +300,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId,
+        userId,
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -311,10 +315,10 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 5,
                 description: 'Test operation',
-                organizationId: '507f1f77bcf86cd799439013',
+                organizationId,
                 source: ActivitySource.SCRIPT, // Default source
                 type: 'deduct-credits',
-                userId: '507f1f77bcf86cd799439012',
+                userId,
               });
               resolve();
             }, 10);

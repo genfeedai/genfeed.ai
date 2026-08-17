@@ -2,15 +2,16 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HeyGenController } from '@api/services/integrations/heygen/controllers/heygen.controller';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const mockUser = {
   id: 'user_abc',
-  brandId: '507f1f77bcf86cd799439014',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId: testId('brand'),
+  organizationId: testId('org'),
+  userId: testId('user'),
 } as unknown as User;
 
 describe('HeyGenController', () => {
@@ -87,9 +88,7 @@ describe('HeyGenController', () => {
 
   it('should pass organization from user metadata to getVoices', async () => {
     await controller.getVoices(mockUser);
-    expect(heygenService.getVoices).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439013',
-    );
+    expect(heygenService.getVoices).toHaveBeenCalledWith(testId('org'));
   });
 
   it('should throw HttpException when getVoices fails', async () => {

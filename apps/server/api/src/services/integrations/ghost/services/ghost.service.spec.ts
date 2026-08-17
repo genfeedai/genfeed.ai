@@ -64,7 +64,7 @@ describe('GhostService', () => {
 
   describe('generateToken', () => {
     it('should generate a JWT from a valid API key', () => {
-      const token = service.generateToken('abc123:deadbeef0123456789abcdef');
+      const token = service.generateToken('abc123:deaddeaddeaddeaddeaddead');
 
       expect(token.split('.')).toHaveLength(3);
     });

@@ -17,6 +17,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -43,19 +44,20 @@ describe('YoutubeController', () => {
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
-  const orgId = '507f1f77bcf86cd799439011';
+  const orgId = testId('org');
+  const userId = testId('user');
   const credentialId = 'test-object-id';
   const mockUser = {
     brandId,
     id: 'authProvider_user_1',
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId,
   } as never;
 
   const mockBrand = {
     id: brandId,
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId,
   };
 
   beforeEach(async () => {
@@ -72,7 +74,7 @@ describe('YoutubeController', () => {
         brandId,
         id: credentialId,
         organizationId: orgId,
-        userId: '507f1f77bcf86cd799439013',
+        userId,
       }),
       patch: vi
         .fn()
@@ -160,7 +162,7 @@ describe('YoutubeController', () => {
       await controller.connect(mockRequest, mockUser, dto);
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f1f77bcf86cd799439013',
+        userId,
         'youtube',
         { isConnected: false },
       );

@@ -1,10 +1,15 @@
 import type { MetaAdSyncJobData } from '@genfeedai/queue-contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const brandId = testId('brand');
+const credentialId = testId('credential');
+const organizationId = testId('org');
 
 describe('AdSyncMetaProcessor', () => {
   let adPerformanceService: {
@@ -70,10 +75,10 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111', 'act_222'],
-        brandId: '507f1f77bcf86cd799439012',
-        credentialId: '507f1f77bcf86cd799439013',
+        brandId: brandId,
+        credentialId: credentialId,
         lastSyncDate: '2024-01-01T00:00:00Z',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
       };
 
       const job = {
@@ -126,9 +131,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111'],
-        brandId: '507f1f77bcf86cd799439012',
-        credentialId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439011',
+        brandId: brandId,
+        credentialId: credentialId,
+        organizationId: organizationId,
       };
 
       const job = {
@@ -148,9 +153,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111', 'act_222', 'act_333'],
-        brandId: '507f1f77bcf86cd799439012',
-        credentialId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439011',
+        brandId: brandId,
+        credentialId: credentialId,
+        organizationId: organizationId,
       };
 
       const job = {
@@ -170,9 +175,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: [],
-        brandId: '507f1f77bcf86cd799439012',
-        credentialId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439011',
+        brandId: brandId,
+        credentialId: credentialId,
+        organizationId: organizationId,
       };
 
       const job = {
@@ -300,9 +305,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'invalid-token',
         adAccountIds: ['act_bad'],
-        brandId: '507f1f77bcf86cd799439012',
-        credentialId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439011',
+        brandId: brandId,
+        credentialId: credentialId,
+        organizationId: organizationId,
       };
 
       const job = {

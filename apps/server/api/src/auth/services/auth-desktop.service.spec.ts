@@ -3,6 +3,7 @@ import type { BetterAuthService } from '@api/auth/better-auth/better-auth.servic
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,8 +61,8 @@ vi.mock('@genfeedai/enums', () => ({
 
 const { AuthDesktopService } = await import('./auth-desktop.service.ts');
 
-const userId = '507f191e810c19729de860ee';
-const organizationId = '607f191e810c19729de860ee';
+const userId = testId('user');
+const organizationId = testId('org');
 const codeVerifier = 'desktop-code-verifier-desktop-code-verifier-desktop-code';
 const state = 'desktop-state-desktop-state';
 

@@ -1,10 +1,17 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import {
   isUsableOrganizationId,
   readRequestOrganizationId,
 } from './read-request-organization-id.util';
+
+// Low-entropy, same-shape stand-in for a legacy 24-char hex Mongo ObjectId —
+// this exercises isUsableOrganizationId's LEGACY_OBJECT_ID_PATTERN branch,
+// which specifically requires 24 hex chars (testId's cuid shape won't match).
+const LEGACY_OBJECT_ID = '000000000000000000000001';
+const ORGANIZATION_ID = testId('org');
 
 function makeAuthenticatedUser(organizationId: string): AuthenticatedUser {
   return {
@@ -28,8 +35,8 @@ function makeRequestContext(organizationId: string): IRequestContext {
 
 describe('isUsableOrganizationId', () => {
   it('accepts cuid and legacy 24-hex ids', () => {
-    expect(isUsableOrganizationId('cmptu23g70001zixnzwbzwp2e')).toBe(true);
-    expect(isUsableOrganizationId('507f191e810c19729de860ee')).toBe(true);
+    expect(isUsableOrganizationId(ORGANIZATION_ID)).toBe(true);
+    expect(isUsableOrganizationId(LEGACY_OBJECT_ID)).toBe(true);
   });
 
   it('rejects slugs and empty values', () => {
@@ -43,9 +50,9 @@ describe('readRequestOrganizationId', () => {
   it('reads a usable organization id from request.context', () => {
     expect(
       readRequestOrganizationId({
-        context: makeRequestContext('cmptu23g70001zixnzwbzwp2e'),
+        context: makeRequestContext(ORGANIZATION_ID),
       }),
-    ).toBe('cmptu23g70001zixnzwbzwp2e');
+    ).toBe(ORGANIZATION_ID);
   });
 
   it('returns undefined when request.context and request.user are missing', () => {
@@ -65,18 +72,18 @@ describe('readRequestOrganizationId', () => {
     // request.user, so Better Auth sessions reach guards with no context.
     expect(
       readRequestOrganizationId({
-        user: makeAuthenticatedUser('cmptu23g70001zixnzwbzwp2e'),
+        user: makeAuthenticatedUser(ORGANIZATION_ID),
       }),
-    ).toBe('cmptu23g70001zixnzwbzwp2e');
+    ).toBe(ORGANIZATION_ID);
   });
 
   it('prefers request.context over the authenticated user', () => {
     expect(
       readRequestOrganizationId({
-        context: makeRequestContext('cmptu23g70001zixnzwbzwp2e'),
-        user: makeAuthenticatedUser('507f191e810c19729de860ee'),
+        context: makeRequestContext(ORGANIZATION_ID),
+        user: makeAuthenticatedUser(LEGACY_OBJECT_ID),
       }),
-    ).toBe('cmptu23g70001zixnzwbzwp2e');
+    ).toBe(ORGANIZATION_ID);
   });
 
   it('rejects an unusable organization id on the authenticated user', () => {

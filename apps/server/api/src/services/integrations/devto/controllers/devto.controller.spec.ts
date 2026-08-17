@@ -16,9 +16,14 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { DevtoController } from '@api/services/integrations/devto/controllers/devto.controller';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const devtoOrganizationId = testId('org');
+const devtoUserId = testId('user');
+const devtoBrandId = testId('brand');
 
 describe('DevtoController', () => {
   let controller: DevtoController;
@@ -35,15 +40,15 @@ describe('DevtoController', () => {
   } as unknown as LoggerService;
 
   const mockUser = {
-    organizationId: '507f191e810c19729de860eb',
-    userId: '507f191e810c19729de860ec',
+    organizationId: devtoOrganizationId,
+    userId: devtoUserId,
   } as unknown as User;
 
   const mockRequest = {} as unknown as Request;
 
   const mockBrand = {
-    id: '507f191e810c19729de860ea',
-    organization: '507f191e810c19729de860eb',
+    id: devtoBrandId,
+    organization: devtoOrganizationId,
   };
 
   const mockDevtoUser = {
@@ -93,13 +98,13 @@ describe('DevtoController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: devtoBrandId,
       });
 
       expect(devtoService.getCurrentUser).toHaveBeenCalledWith('test-api-key');
       expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f191e810c19729de860ec',
+        devtoUserId,
         CredentialPlatform.DEV_TO,
         {
           accessToken: 'test-api-key',
@@ -115,7 +120,7 @@ describe('DevtoController', () => {
     it('should return bad request when apiKey is missing', async () => {
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: '',
-        brandId: '507f191e810c19729de860ea',
+        brandId: devtoBrandId,
       });
 
       expect(result).toHaveProperty('errors');
@@ -136,7 +141,7 @@ describe('DevtoController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: devtoBrandId,
       });
 
       expect(result).toHaveProperty('errors');
@@ -149,7 +154,7 @@ describe('DevtoController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'bad-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: devtoBrandId,
       });
 
       expect(result).toHaveProperty('errors');
@@ -162,7 +167,7 @@ describe('DevtoController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'bad-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: devtoBrandId,
       });
 
       expect(result).toHaveProperty('errors');
@@ -179,7 +184,7 @@ describe('DevtoController', () => {
       const result = await controller.publishArticle(
         mockUser,
         'article-1',
-        '507f191e810c19729de860ea',
+        devtoBrandId,
         'false',
         'typescript, webdev ,',
         'https://mysite.dev/hello',
@@ -187,8 +192,8 @@ describe('DevtoController', () => {
 
       expect(devtoService.publishArticle).toHaveBeenCalledWith(
         'article-1',
-        '507f191e810c19729de860eb',
-        '507f191e810c19729de860ea',
+        devtoOrganizationId,
+        devtoBrandId,
         {
           canonicalUrl: 'https://mysite.dev/hello',
           published: false,
@@ -201,16 +206,12 @@ describe('DevtoController', () => {
     it('should default published to true and tags to empty', async () => {
       devtoService.publishArticle.mockResolvedValue({ id: 1 });
 
-      await controller.publishArticle(
-        mockUser,
-        'article-1',
-        '507f191e810c19729de860ea',
-      );
+      await controller.publishArticle(mockUser, 'article-1', devtoBrandId);
 
       expect(devtoService.publishArticle).toHaveBeenCalledWith(
         'article-1',
-        '507f191e810c19729de860eb',
-        '507f191e810c19729de860ea',
+        devtoOrganizationId,
+        devtoBrandId,
         {
           canonicalUrl: undefined,
           published: true,
@@ -232,7 +233,7 @@ describe('DevtoController', () => {
       const result = await controller.publishArticle(
         mockUser,
         'article-1',
-        '507f191e810c19729de860ea',
+        devtoBrandId,
       );
 
       expect(result).toHaveProperty('errors');

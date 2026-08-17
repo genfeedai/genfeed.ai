@@ -1,6 +1,7 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -105,7 +106,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should notify the microservice for every payload', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_001',
         status: 'processing',
@@ -163,7 +164,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should patch metadata with videoUrl on completed status', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_complete',
         status: 'completed',
@@ -186,7 +187,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should patch metadata with error on failed status', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_fail',
         error: 'GPU timeout',
@@ -206,7 +207,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should use default error message when failed payload has no error field', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_fail_default',
         status: 'failed',
@@ -227,7 +228,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should NOT patch metadata when status is neither completed nor failed', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_processing',
         status: 'processing',
@@ -242,7 +243,7 @@ describe('OpusProWebhookService', () => {
     });
 
     it('should log completion after successful handling', async () => {
-      const mockId = '507f191e810c19729de860ee';
+      const mockId = testId('metadata');
       const payload: OpusProWebhookPayload = {
         callback_id: 'cb_log',
         status: 'processing',

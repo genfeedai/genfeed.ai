@@ -2,6 +2,7 @@ import {
   type TaskJobRequest,
   TaskQueueClientService,
 } from '@api/services/task-queue-client/task-queue-client.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Logger } from '@nestjs/common';
@@ -17,20 +18,20 @@ describe('TaskQueueClientService', () => {
   const mockFilesServiceUrl = 'http://localhost:3012';
 
   const mockTaskJobRequest: TaskJobRequest = {
-    assetId: '507f1f77bcf86cd799439014',
+    assetId: testId('asset'),
     config: {
       height: 1080,
       width: 1920,
     },
     metadata: {
-      stepId: '507f1f77bcf86cd799439016',
+      stepId: testId('step'),
       websocketUrl: 'ws://genfeed.localhost:3111',
-      workflowId: '507f1f77bcf86cd799439015',
+      workflowId: testId('workflow'),
     },
-    organizationId: '507f1f77bcf86cd799439013',
+    organizationId: testId('org'),
     priority: 1,
-    taskId: '507f1f77bcf86cd799439011',
-    userId: '507f1f77bcf86cd799439012',
+    taskId: testId('task'),
+    userId: testId('user'),
   };
 
   beforeEach(async () => {
@@ -303,11 +304,11 @@ describe('TaskQueueClientService', () => {
   describe('job request variations', () => {
     it('should queue job with minimal request data', async () => {
       const minimalRequest: TaskJobRequest = {
-        assetId: '507f1f77bcf86cd799439014',
+        assetId: testId('asset', 2),
         config: {},
-        organizationId: '507f1f77bcf86cd799439013',
-        taskId: '507f1f77bcf86cd799439011',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId: testId('org', 2),
+        taskId: testId('task', 2),
+        userId: testId('user', 2),
       };
 
       const mockResponse = {

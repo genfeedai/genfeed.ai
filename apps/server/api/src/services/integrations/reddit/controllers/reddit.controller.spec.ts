@@ -11,6 +11,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { RedditController } from '@api/services/integrations/reddit/controllers/reddit.controller';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -36,13 +37,14 @@ describe('RedditController', () => {
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
-  const orgId = '507f1f77bcf86cd799439011';
+  const orgId = testId('org');
   const credentialId = 'test-object-id';
+  const redditUserId = testId('reddituser');
   const mockUser = {
     brandId,
     id: 'authProvider_user_1',
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId: redditUserId,
   } as never;
 
   // A real Prisma row: the scalar FK only. The Mongo-era `organization` alias
@@ -51,7 +53,7 @@ describe('RedditController', () => {
   const mockBrand = {
     id: brandId,
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId: redditUserId,
   };
 
   beforeEach(async () => {
@@ -65,7 +67,7 @@ describe('RedditController', () => {
         brandId,
         id: credentialId,
         organizationId: orgId,
-        userId: '507f1f77bcf86cd799439013',
+        userId: redditUserId,
       }),
       patch: vi
         .fn()
@@ -127,7 +129,7 @@ describe('RedditController', () => {
       expect(result).toEqual({ url: 'https://reddit.com/auth?state=xyz' });
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f1f77bcf86cd799439013',
+        redditUserId,
         'reddit',
         { isConnected: false },
       );

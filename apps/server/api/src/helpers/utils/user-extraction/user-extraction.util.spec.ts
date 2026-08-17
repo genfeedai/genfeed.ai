@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 
 import { extractUserIds } from './user-extraction.util';
@@ -8,7 +9,7 @@ describe('extractUserIds', () => {
   });
 
   it('extracts every user identity field from a scalar ID', () => {
-    const id = '507f191e810c19729de860ee';
+    const id = testId('user');
     const result = extractUserIds(id);
     expect(result.dbUserId).toBe(id);
     expect(result.userId).toBe(id);
@@ -16,7 +17,7 @@ describe('extractUserIds', () => {
   });
 
   it('extracts every user identity field from a populated user', () => {
-    const id = '507f191e810c19729de860ee';
+    const id = testId('user');
     const result = extractUserIds({ id });
     expect(result.dbUserId).toBe(id);
     expect(result.userId).toBe(id);

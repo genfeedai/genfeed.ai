@@ -21,6 +21,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -33,12 +34,16 @@ describe('SpeechController', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let replicateService: vi.Mocked<ReplicateService>;
 
+  // Original fixture reused one literal id across brand/org/user; keep that
+  // identity match with a single shared testId.
+  const sharedEntityId = testId('user');
+
   const mockUser = {
     id: 'user-123',
-    brandId: '507f191e810c19729de860ee'.toString(),
+    brandId: sharedEntityId,
     isSuperAdmin: false,
-    organizationId: '507f191e810c19729de860ee'.toString(),
-    userId: '507f191e810c19729de860ee'.toString(),
+    organizationId: sharedEntityId,
+    userId: sharedEntityId,
   } as unknown as User;
 
   const mockReq = {} as Request;

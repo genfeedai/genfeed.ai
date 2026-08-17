@@ -644,8 +644,8 @@ describe('InstagramService', () => {
       });
 
       const result = await service.getMediaAnalytics(
-        '507f191e810c19729de860ea',
-        '507f191e810c19729de860eb',
+        '000000000000000000000001',
+        '000000000000000000000002',
         'media_id',
       );
 
@@ -677,8 +677,8 @@ describe('InstagramService', () => {
 
       await expect(
         service.getMediaAnalytics(
-          '507f191e810c19729de860ea',
-          '507f191e810c19729de860eb',
+          '000000000000000000000001',
+          '000000000000000000000002',
           'media_id',
         ),
       ).rejects.toThrow('Instagram credential not found');
@@ -689,8 +689,8 @@ describe('InstagramService', () => {
 
       await expect(
         service.getMediaAnalytics(
-          '507f191e810c19729de860ea',
-          '507f191e810c19729de860eb',
+          '000000000000000000000001',
+          '000000000000000000000002',
           'media_id',
         ),
       ).rejects.toThrow('Instagram credential not found');
@@ -704,8 +704,8 @@ describe('InstagramService', () => {
       });
 
       const result = await service.getMediaAnalytics(
-        '507f191e810c19729de860ea',
-        '507f191e810c19729de860eb',
+        '000000000000000000000001',
+        '000000000000000000000002',
         'media_id',
       );
 
@@ -739,8 +739,8 @@ describe('InstagramService', () => {
       });
 
       const result = await service.uploadVideo(
-        '507f191e810c19729de860ea',
-        '507f191e810c19729de860eb',
+        '000000000000000000000001',
+        '000000000000000000000002',
         'https://example.com/video.mp4',
         'Test caption',
       );
@@ -783,8 +783,8 @@ describe('InstagramService', () => {
 
       await expect(
         service.uploadVideo(
-          '507f191e810c19729de860ea',
-          '507f191e810c19729de860eb',
+          '000000000000000000000001',
+          '000000000000000000000002',
           'https://example.com/video.mp4',
           'Test caption',
         ),

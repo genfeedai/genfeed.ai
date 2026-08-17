@@ -1,13 +1,16 @@
 import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+
+const postId = testId('post');
 
 describe('ImportManualDto', () => {
   it('should validate with postId', async () => {
     const dto = plainToInstance(ImportManualDto, {
       likes: 25,
       platform: 'instagram',
-      postId: 'c07f1f77bcf86cd799439011',
+      postId,
       views: 500,
     });
 
@@ -30,7 +33,7 @@ describe('ImportManualDto', () => {
 
   it('should require platform', async () => {
     const dto = plainToInstance(ImportManualDto, {
-      postId: 'c07f1f77bcf86cd799439011',
+      postId,
       views: 100,
     });
 
@@ -41,7 +44,7 @@ describe('ImportManualDto', () => {
   it('should reject negative metric values', async () => {
     const dto = plainToInstance(ImportManualDto, {
       platform: 'instagram',
-      postId: 'c07f1f77bcf86cd799439011',
+      postId,
       views: -100,
     });
 
@@ -53,7 +56,7 @@ describe('ImportManualDto', () => {
     const dto = plainToInstance(ImportManualDto, {
       notes: 'Extracted from screenshot',
       platform: 'instagram',
-      postId: 'c07f1f77bcf86cd799439011',
+      postId,
       views: 100,
     });
 

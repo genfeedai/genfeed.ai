@@ -5,16 +5,21 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+
 describe('IngredientsController.cancelGeneration', () => {
   const mockUser: User = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439014',
+    brandId,
+    organizationId,
+    userId,
   };
   const mockRequest = { originalUrl: '/api/ingredients', query: {} } as Request;
   const cancellationService = {
@@ -58,8 +63,8 @@ describe('IngredientsController.cancelGeneration', () => {
     expect(cancellationService.cancelProcessingIngredient).toHaveBeenCalledWith(
       {
         id: 'ing-1',
-        organizationId: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439014',
+        organizationId,
+        userId,
       },
     );
   });

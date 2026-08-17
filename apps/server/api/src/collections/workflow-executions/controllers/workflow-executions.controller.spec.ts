@@ -10,8 +10,11 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
 
 describe('WorkflowExecutionsController', () => {
   let controller: WorkflowExecutionsController;
@@ -19,7 +22,7 @@ describe('WorkflowExecutionsController', () => {
   const mockRequest = {} as never;
   const mockUser = {
     id: 'user-123',
-    organizationId: '507f1f77bcf86cd799439011',
+    organizationId,
     userId: 'user-123',
   } as never;
 
@@ -136,7 +139,7 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.getExecutionStats).toHaveBeenCalledWith(
         'wf-1',
-        '507f1f77bcf86cd799439011',
+        organizationId,
       );
       expect(result).toEqual(expect.any(Promise));
     });
@@ -151,7 +154,7 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-1',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
       });
       expect(result).toEqual(mockExecution);
     });
@@ -178,7 +181,7 @@ describe('WorkflowExecutionsController', () => {
       ).toHaveBeenCalledWith(
         'wf-1',
         'user-123',
-        '507f1f77bcf86cd799439011',
+        organizationId,
         { prompt: 'hello' },
         { source: 'builder' },
         'api',
@@ -188,7 +191,7 @@ describe('WorkflowExecutionsController', () => {
         mockWorkflowExecutionAuthorizationService.authorize,
       ).toHaveBeenCalledWith({
         expectedContextVersion: undefined,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         requestedBrandId: undefined,
         threadId: undefined,
         userId: 'user-123',
@@ -196,7 +199,7 @@ describe('WorkflowExecutionsController', () => {
       });
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-new',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
       });
       expect(mockService.createExecution).not.toHaveBeenCalled();
       expect(result).toEqual(mockExecution);
@@ -227,7 +230,7 @@ describe('WorkflowExecutionsController', () => {
       ).toHaveBeenCalledWith(
         'wf-1',
         'user-123',
-        '507f1f77bcf86cd799439011',
+        organizationId,
         {},
         undefined,
         undefined,
@@ -267,7 +270,7 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-1',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
       });
       expect(mockService.cancelExecution).toHaveBeenCalledWith('exec-1');
       expect(result).toEqual(mockCancelled);

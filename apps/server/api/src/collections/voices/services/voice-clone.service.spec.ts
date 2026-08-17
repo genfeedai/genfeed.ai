@@ -11,19 +11,21 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
 describe('VoiceCloneService', () => {
-  const ingredientId = '507f191e810c19729de860ea';
-  const organizationId = '507f191e810c19729de860eb';
+  const ingredientId = testId('ingredient');
+  const organizationId = testId('org');
+  const userId = testId('user');
   const user = {
     id: 'auth-user-1',
-    brandId: '507f191e810c19729de860ec',
+    brandId: testId('brand'),
     organizationId: organizationId,
-    userId: '507f191e810c19729de860ed',
+    userId,
   } as User;
   const request = {} as Request;
   let byok: { resolveApiKey: ReturnType<typeof vi.fn> };
@@ -116,7 +118,7 @@ describe('VoiceCloneService', () => {
     expect(notifications.publishAssetStatus).toHaveBeenCalledWith(
       ingredientId,
       VoiceCloneStatus.READY,
-      '507f191e810c19729de860ed',
+      userId,
       expect.objectContaining({ provider: VoiceProvider.ELEVENLABS }),
     );
   });

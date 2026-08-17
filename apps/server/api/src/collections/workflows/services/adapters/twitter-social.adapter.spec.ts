@@ -1,8 +1,11 @@
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import type { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const organizationId = testId('org');
 
 describe('TwitterSocialAdapter', () => {
   let adapter: TwitterSocialAdapter;
@@ -59,7 +62,7 @@ describe('TwitterSocialAdapter', () => {
     it('should send a DM via TwitterService', async () => {
       const sender = adapter.createDmSender();
       const result = await sender({
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         recipientId: 'user456',
         text: 'Hello!',
@@ -68,7 +71,7 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        organizationId,
         'brand1',
         'user456',
         'Hello!',
@@ -82,7 +85,7 @@ describe('TwitterSocialAdapter', () => {
       const publisher = adapter.createReplyPublisher();
       const result = await publisher({
         mediaUrl: 'https://example.com/image.jpg',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         postId: 'tweet_original',
         text: 'Nice tweet!',
@@ -91,7 +94,7 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(mockTwitterService.uploadMedia).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        organizationId,
         'brand1',
         'https://example.com/image.jpg',
         'Nice tweet!',
@@ -104,7 +107,7 @@ describe('TwitterSocialAdapter', () => {
     it('should reply with text-only via postTweet', async () => {
       const publisher = adapter.createReplyPublisher();
       const result = await publisher({
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         postId: 'tweet_original',
         text: 'Nice tweet!',
@@ -113,7 +116,7 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(mockTwitterService.postTweet).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        organizationId,
         'brand1',
         'Nice tweet!',
         'tweet_original',
@@ -128,7 +131,7 @@ describe('TwitterSocialAdapter', () => {
       const checker = adapter.createMentionChecker();
       const result = await checker({
         lastMentionId: null,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -151,7 +154,7 @@ describe('TwitterSocialAdapter', () => {
       const checker = adapter.createMentionChecker();
       const result = await checker({
         lastMentionId: null,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -177,7 +180,7 @@ describe('TwitterSocialAdapter', () => {
       const checker = adapter.createMentionChecker();
       const result = await checker({
         lastMentionId: '999',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -207,7 +210,7 @@ describe('TwitterSocialAdapter', () => {
       const result = await checker({
         lastFollowerId: null,
         minFollowerCount: 100,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -243,7 +246,7 @@ describe('TwitterSocialAdapter', () => {
       const result = await checker({
         lastLikeId: null,
         minLikerFollowerCount: 100,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         postIds: ['postA', 'postB'],
       });
@@ -272,7 +275,7 @@ describe('TwitterSocialAdapter', () => {
       const result = await checker({
         lastRepostId: null,
         minReposterFollowerCount: 100,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         postIds: ['postA'],
       });
@@ -310,7 +313,7 @@ describe('TwitterSocialAdapter', () => {
         keywords: ['workflows'],
         lastPostId: null,
         matchMode: 'contains',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -346,7 +349,7 @@ describe('TwitterSocialAdapter', () => {
         keywords: ['\\d+ features'],
         lastPostId: null,
         matchMode: 'regex',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
@@ -384,7 +387,7 @@ describe('TwitterSocialAdapter', () => {
         keywords: [redosKeyword],
         lastPostId: null,
         matchMode: 'regex' as const,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter' as const,
       };
 
@@ -430,7 +433,7 @@ describe('TwitterSocialAdapter', () => {
         keywords: [redosKeyword],
         lastPostId: null,
         matchMode: 'regex' as const,
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter' as const,
       };
 
@@ -463,7 +466,7 @@ describe('TwitterSocialAdapter', () => {
       const result = await checker({
         lastCheckedPostId: null,
         metricType: 'likes',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         postIds: ['postA'],
         threshold: 100,
@@ -486,7 +489,7 @@ describe('TwitterSocialAdapter', () => {
       const sender = adapter.createDmSender();
       await sender({
         brandId: 'explicit-brand',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         recipientId: 'user456',
         text: 'Hello!',
@@ -495,7 +498,7 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        organizationId,
         'explicit-brand',
         'user456',
         'Hello!',
@@ -505,7 +508,7 @@ describe('TwitterSocialAdapter', () => {
     it('should fall back to userId when brandId is not provided', async () => {
       const sender = adapter.createDmSender();
       await sender({
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId: organizationId,
         platform: 'twitter',
         recipientId: 'user456',
         text: 'Hello!',
@@ -514,7 +517,7 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(mockTwitterService.sendCommentReplyDm).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        organizationId,
         'legacy-user',
         'user456',
         'Hello!',

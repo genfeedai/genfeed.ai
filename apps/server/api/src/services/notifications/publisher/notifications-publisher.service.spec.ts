@@ -1,5 +1,6 @@
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { Status } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { RedisService } from '@libs/redis/redis.service';
 
 describe('NotificationsPublisherService', () => {
@@ -193,7 +194,7 @@ describe('NotificationsPublisherService', () => {
     await service.publishVideoComplete(
       '/path',
       { url: 'https://cdn' } as never,
-      '507f1f77bcf86cd799439011',
+      testId('user'),
     );
 
     expect(notificationsService.sendVideoStatusEmail).toHaveBeenCalledWith(
@@ -214,7 +215,7 @@ describe('NotificationsPublisherService', () => {
     await service.publishWorkflowStatus(
       'workflow-1',
       'failed',
-      '507f1f77bcf86cd799439011',
+      testId('user'),
       { error: 'boom', workflowLabel: 'My Flow' },
     );
 

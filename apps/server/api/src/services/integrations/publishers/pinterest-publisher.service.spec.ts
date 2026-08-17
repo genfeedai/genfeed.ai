@@ -20,6 +20,7 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -33,12 +34,12 @@ describe('PinterestPublisherService', () => {
   let credentialsService: vi.Mocked<CredentialsService>;
 
   // Test IDs
-  const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockBrandId = '507f1f77bcf86cd799439012';
-  const mockPostId = '507f1f77bcf86cd799439013';
-  const mockUserId = '507f1f77bcf86cd799439014';
-  const mockCredentialId = '507f1f77bcf86cd799439015';
-  const mockIngredientId = '507f1f77bcf86cd799439016';
+  const mockOrganizationId = testId('org');
+  const mockBrandId = testId('brand');
+  const mockPostId = testId('post');
+  const mockUserId = testId('user');
+  const mockCredentialId = testId('credential');
+  const mockIngredientId = testId('ingredient');
   const mockBoardId = 'board-123456789';
 
   // Mock credential
@@ -107,7 +108,7 @@ describe('PinterestPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
-    ingredients: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
+    ingredients: [testId('ingredient', 2), testId('ingredient', 3)],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,

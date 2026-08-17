@@ -3,6 +3,7 @@ import { AgentRunsController } from '@api/collections/agent-runs/controllers/age
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { RunsController } from '@api/collections/runs/controllers/runs.controller';
 import { RunsService } from '@api/collections/runs/services/runs.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -82,8 +83,8 @@ function readRegisteredRoutes(app: INestApplication): RegisteredRoute[] {
 }
 
 describe('Runs route ownership (registered route table)', () => {
-  const orgId = '507f191e810c19729de860ee';
-  const userId = '507f191e810c19729de860ef';
+  const orgId = testId('org');
+  const userId = testId('user');
 
   let app: INestApplication;
   let agentRunsService: Record<string, ReturnType<typeof vi.fn>>;

@@ -13,8 +13,11 @@ import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-f
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+
+const fontFamilyId = testId('fontfamily');
 
 describe('FontFamiliesService', () => {
   type FontFamilyFixture = typeof mockFontFamily;
@@ -35,7 +38,7 @@ describe('FontFamiliesService', () => {
   let logger: LoggerService;
 
   const mockFontFamily = {
-    id: '507f1f77bcf86cd799439011',
+    id: fontFamilyId,
     category: 'sans-serif',
     createdAt: new Date(),
     displayName: 'Roboto',
@@ -210,7 +213,7 @@ describe('FontFamiliesService', () => {
 
   describe('patch', () => {
     it('should update font variants', async () => {
-      const id = '507f1f77bcf86cd799439011';
+      const id = fontFamilyId;
       const updateDto = asUpdateDto({
         variants: [
           '100',
@@ -246,7 +249,7 @@ describe('FontFamiliesService', () => {
     });
 
     it('should update font URL', async () => {
-      const id = '507f1f77bcf86cd799439011';
+      const id = fontFamilyId;
       const updateDto = asUpdateDto({
         url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900',
       });
@@ -338,7 +341,7 @@ describe('FontFamiliesService', () => {
 
   describe('remove', () => {
     it('should soft delete font family', async () => {
-      const id = '507f1f77bcf86cd799439011';
+      const id = fontFamilyId;
       const deletedFont = { ...mockFontFamily, isDeleted: true };
 
       prismaDelegate.update.mockResolvedValueOnce(deletedFont);
@@ -349,7 +352,7 @@ describe('FontFamiliesService', () => {
     });
 
     it('should return null when font not found for deletion', async () => {
-      const id = '507f1f77bcf86cd799439011';
+      const id = fontFamilyId;
       prismaDelegate.update.mockResolvedValueOnce(null);
 
       const result = await service.remove(id);

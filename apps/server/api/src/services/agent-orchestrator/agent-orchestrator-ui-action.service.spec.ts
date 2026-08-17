@@ -3,6 +3,7 @@ import {
   AgentOrchestratorUiActionService,
 } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import {
   HttpException,
   HttpStatus,
@@ -10,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ORG_ID = 'c7a123456789012345678901';
-const USER_ID = 'c7a123456789012345678902';
-const THREAD_ID = 'c7a123456789012345678903';
+const ORG_ID = testId('org');
+const USER_ID = testId('user');
+const THREAD_ID = testId('thread');
 
 const GENERATE_MEDIA_REQUEST = {
   action: 'confirm_generate_media' as const,

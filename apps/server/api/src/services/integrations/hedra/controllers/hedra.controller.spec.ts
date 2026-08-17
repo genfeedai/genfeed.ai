@@ -2,15 +2,18 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HedraController } from '@api/services/integrations/hedra/controllers/hedra.controller';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+const organizationId = testId('org');
+
 const mockUser = {
   id: 'user_abc',
-  brandId: '507f1f77bcf86cd799439014',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId: testId('brand'),
+  organizationId,
+  userId: testId('user'),
 } as unknown as User;
 
 describe('HedraController', () => {
@@ -65,9 +68,7 @@ describe('HedraController', () => {
 
   it('should pass organization to getVoices', async () => {
     await controller.getVoices(mockUser);
-    expect(hedraService.getVoices).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439013',
-    );
+    expect(hedraService.getVoices).toHaveBeenCalledWith(organizationId);
   });
 
   it('should throw HttpException when getVoices fails', async () => {
@@ -109,7 +110,7 @@ describe('HedraController', () => {
     await controller.getJobStatus('job-99', mockUser);
     expect(hedraService.getJobStatus).toHaveBeenCalledWith(
       'job-99',
-      '507f1f77bcf86cd799439013',
+      organizationId,
     );
   });
 

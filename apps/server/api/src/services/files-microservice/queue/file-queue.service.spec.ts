@@ -6,6 +6,7 @@ import {
   JobResponse,
 } from '@api/services/files-microservice/queue/file-queue.service';
 import type { IFrameInput, IJobStatusResponse } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -22,16 +23,16 @@ describe('FileQueueService', () => {
   let loggerService: LoggerService;
 
   const mockJob: FileProcessingJob = {
-    ingredientId: '507f1f77bcf86cd799439011',
-    organizationId: '507f1f77bcf86cd799439013',
+    ingredientId: testId('ingredient'),
+    organizationId: testId('org'),
     params: { quality: 'high' },
     priority: 1,
     type: 'video-processing',
-    userId: '507f1f77bcf86cd799439012',
+    userId: testId('user'),
   };
 
   const mockJobResponse: JobResponse = {
-    ingredientId: '507f1f77bcf86cd799439011',
+    ingredientId: testId('ingredient'),
     jobId: 'job_123',
     status: 'queued',
     type: 'video-processing',
@@ -323,7 +324,7 @@ describe('FileQueueService', () => {
 
   describe('addWatermark', () => {
     it('should add watermark to file', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const filePath = '/path/to/file.mp4';
       const text = 'Genfeed';
       const mockResponse = { data: mockJobResponse };
@@ -354,7 +355,7 @@ describe('FileQueueService', () => {
 
   describe('createGif', () => {
     it('should create GIF from video', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const videoPath = '/path/to/video.mp4';
       const options = { duration: 5, fps: 10 };
       const mockResponse = { data: mockJobResponse };
@@ -385,7 +386,7 @@ describe('FileQueueService', () => {
 
   describe('convertToPortrait', () => {
     it('should convert video to portrait format', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const videoPath = '/path/to/video.mp4';
       const dimensions = { height: 1920, width: 1080 };
       const mockResponse = { data: mockJobResponse };
@@ -418,7 +419,7 @@ describe('FileQueueService', () => {
     });
 
     it('should use default dimensions when not provided', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const videoPath = '/path/to/video.mp4';
       const mockResponse = { data: mockJobResponse };
 
@@ -443,7 +444,7 @@ describe('FileQueueService', () => {
 
   describe('prepareAllFiles', () => {
     it('should prepare all files for processing', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const frames = [{ id: 1 }, { id: 2 }] as unknown as IFrameInput[];
       const musicId = 'music_123';
       const mockResponse = { data: mockJobResponse };
@@ -477,7 +478,7 @@ describe('FileQueueService', () => {
 
   describe('cleanupTempFiles', () => {
     it('should cleanup temporary files', async () => {
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
       const delay = 5000;
       const mockResponse = { data: mockJobResponse };
 

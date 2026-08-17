@@ -13,6 +13,7 @@ import { LaunchCopyController } from '@api/collections/launch-copy/controllers/l
 import type { GenerateLaunchCopyDto } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
 import { LaunchCopyGeneratorService } from '@api/collections/launch-copy/services/launch-copy-generator.service';
 import { Platform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -26,13 +27,15 @@ describe('LaunchCopyController', () => {
     log: vi.fn(),
   } as unknown as LoggerService;
 
+  const organizationId = testId('org');
+
   const mockUser = {
-    organizationId: '507f191e810c19729de860eb',
-    userId: '507f191e810c19729de860ec',
+    organizationId,
+    userId: testId('user'),
   } as unknown as User;
 
   const dto: GenerateLaunchCopyDto = {
-    brandId: '507f191e810c19729de860ea',
+    brandId: testId('brand'),
     channel: Platform.PRODUCT_HUNT,
     description: 'A CLI that lints Postgres migrations',
     productName: 'MigraLint',
@@ -72,10 +75,7 @@ describe('LaunchCopyController', () => {
 
     const result = await controller.generate(mockUser, dto);
 
-    expect(generatorService.generate).toHaveBeenCalledWith(
-      '507f191e810c19729de860eb',
-      dto,
-    );
+    expect(generatorService.generate).toHaveBeenCalledWith(organizationId, dto);
     expect(result).toEqual(expect.objectContaining({ success: true }));
   });
 

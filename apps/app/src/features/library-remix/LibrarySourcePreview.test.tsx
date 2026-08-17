@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ImgHTMLAttributes } from 'react';
@@ -98,7 +99,7 @@ describe('LibrarySourcePreview', () => {
       <LibrarySourcePreview
         record={ingredient(
           IngredientCategory.IMAGE,
-          'https://files.genfeed.localhost/local/ingredients/images/cmsmc6doc004vloxn054gn7te',
+          `https://files.genfeed.localhost/local/ingredients/images/${testId('ingredient')}`,
         )}
       />,
     );

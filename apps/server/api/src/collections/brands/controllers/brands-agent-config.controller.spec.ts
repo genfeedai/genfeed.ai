@@ -3,11 +3,12 @@ import { BrandsAgentConfigController } from '@api/collections/brands/controllers
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { BrandSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
 
 describe('BrandsAgentConfigController agent-config endpoint', () => {
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = testId('org');
+  const userId = testId('org');
 
   const mockRequest = {
     originalUrl: '/v1/brands/brand-id/agent-config',
@@ -20,7 +21,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
   } as unknown as User;
 
   const mockBrand = {
-    id: '507f191e810c19729de860ee'.toString(),
+    id: testId('org'),
     isDeleted: false,
     label: 'Test Brand',
     slug: 'test-handle',
@@ -183,7 +184,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
   });
 
   it('uses the brandId parameter correctly', async () => {
-    const brandId = '507f191e810c19729de860ee'.toString();
+    const brandId = testId('org');
     mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
     await controller.updateAgentConfig(
       mockRequest,

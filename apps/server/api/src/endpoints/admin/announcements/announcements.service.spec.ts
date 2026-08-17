@@ -4,6 +4,7 @@ import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/an
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -26,11 +27,11 @@ describe('AdminAnnouncementsService', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let redisService: vi.Mocked<RedisService>;
 
-  const authorId = '507f191e810c19729de860ee'.toString();
-  const organizationId = '507f191e810c19729de860ee'.toString();
+  const authorId = testId('user');
+  const organizationId = testId('org');
 
   const mockAnnouncement = {
-    _id: '507f191e810c19729de860ee',
+    _id: testId('announcement'),
     body: 'Test announcement',
     channels: ['discord'],
   };

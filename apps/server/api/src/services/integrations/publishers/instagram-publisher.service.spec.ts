@@ -21,6 +21,7 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -33,12 +34,12 @@ describe('InstagramPublisherService', () => {
   let postsService: vi.Mocked<PostsService>;
 
   // Test IDs
-  const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockBrandId = '507f1f77bcf86cd799439012';
-  const mockPostId = '507f1f77bcf86cd799439013';
-  const mockUserId = '507f1f77bcf86cd799439014';
-  const mockCredentialId = '507f1f77bcf86cd799439015';
-  const mockIngredientId = '507f1f77bcf86cd799439016';
+  const mockOrganizationId = testId('org');
+  const mockBrandId = testId('brand');
+  const mockPostId = testId('post');
+  const mockUserId = testId('user');
+  const mockCredentialId = testId('credential');
+  const mockIngredientId = testId('ingredient');
 
   // Mock credential
   const mockCredential = {
@@ -106,9 +107,9 @@ describe('InstagramPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
     ingredients: [
-      '507f1f77bcf86cd799439020',
-      '507f1f77bcf86cd799439021',
-      '507f1f77bcf86cd799439022',
+      testId('ingredient', 2),
+      testId('ingredient', 3),
+      testId('ingredient', 4),
     ],
     isDeleted: false,
     organizationId: mockOrganizationId,
@@ -489,19 +490,19 @@ describe('InstagramPublisherService', () => {
 
     const mockChildren = [
       {
-        id: '507f1f77bcf86cd799439030',
+        id: testId('child', 1),
         category: PostCategory.TEXT,
         description: '<p>Comment 1</p>',
         order: 1,
       },
       {
-        id: '507f1f77bcf86cd799439031',
+        id: testId('child', 2),
         category: PostCategory.TEXT,
         description: '<p>Comment 2</p>',
         order: 2,
       },
       {
-        id: '507f1f77bcf86cd799439032',
+        id: testId('child', 3),
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
         ingredients: [mockIngredientId],
@@ -532,7 +533,7 @@ describe('InstagramPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const imageChildren = [
         {
-          id: '507f1f77bcf86cd799439040',
+          id: testId('child', 4),
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
           ingredients: [mockIngredientId],
@@ -557,13 +558,13 @@ describe('InstagramPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const unorderedChildren = [
         {
-          id: '507f1f77bcf86cd799439050',
+          id: testId('child', 5),
           category: PostCategory.TEXT,
           description: '<p>Second</p>',
           order: 2,
         },
         {
-          id: '507f1f77bcf86cd799439051',
+          id: testId('child', 6),
           category: PostCategory.TEXT,
           description: '<p>First</p>',
           order: 1,

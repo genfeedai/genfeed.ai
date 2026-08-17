@@ -1,4 +1,5 @@
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -135,7 +136,7 @@ describe('AdsResearchService', () => {
   });
 
   it('serves connected TikTok ads through the platform-generic gateway adapter', async () => {
-    const credentialId = '0123456789abcdef01234567';
+    const credentialId = testId('credential');
     credentialsService.findOne.mockResolvedValue({
       accessToken: 'sealed-token',
     });

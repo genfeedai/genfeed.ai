@@ -4,6 +4,7 @@ import {
   validatePassword,
   validateUrl,
 } from '@api/helpers/utils/validation.util';
+import { testId } from '@helpers/testing/test-id.helper';
 
 describe('Validation Utils', () => {
   describe('validateEmail', () => {
@@ -89,17 +90,22 @@ describe('Validation Utils', () => {
 
   describe('validateEntityId', () => {
     it('should return true for valid entity IDs', () => {
-      expect(validateEntityId('clv2f9w8d000008l4h9a1b2c3')).toBe(true);
-      expect(validateEntityId('b13yktd0f1e38me3f55swu0n')).toBe(true);
+      expect(validateEntityId(testId('entity'))).toBe(true);
+      // Hand-written cuid2-shaped id (24 chars, [a-z][a-z0-9]{23}) — testId's
+      // fixed 25-char cuid shape can't represent this variant.
+      expect(validateEntityId('a00000000000000000000001')).toBe(true);
       expect(validateEntityId('550e8400-e29b-41d4-a716-446655440000')).toBe(
         true,
       );
-      expect(validateEntityId('01ARZ3NDEKTSV4RRFFQ69G5FAV')).toBe(true);
+      // Hand-written ULID-shaped id (26 chars, Crockford base32).
+      expect(validateEntityId('010000000000000000000000AA')).toBe(true);
     });
 
     it('should return false for invalid entity IDs', () => {
       expect(validateEntityId('invalid-id')).toBe(false);
-      expect(validateEntityId('507f1f77bcf86cd799439011')).toBe(false);
+      // Hand-written low-entropy ObjectId-shaped id (24 hex chars) — must stay
+      // an ObjectId shape to test rejection; testId's cuid shape would pass.
+      expect(validateEntityId('500000000000000000000001')).toBe(false);
       expect(validateEntityId('507f1f77bcf86cd79943901')).toBe(false);
       expect(validateEntityId('507f1f77bcf86cd7994390111')).toBe(false);
       expect(validateEntityId('')).toBe(false);

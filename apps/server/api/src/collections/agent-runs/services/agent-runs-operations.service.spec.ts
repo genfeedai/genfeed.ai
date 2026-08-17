@@ -6,14 +6,15 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('AgentRunsOperationsService', () => {
   const scope: AgentRunOperationScope = {
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439014',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   };
   const agentRunsService = {
     cancel: vi.fn(),

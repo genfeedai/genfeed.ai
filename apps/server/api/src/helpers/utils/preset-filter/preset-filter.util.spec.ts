@@ -1,4 +1,5 @@
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
+import { testId } from '@helpers/testing/test-id.helper';
 
 describe('PresetFilterUtil', () => {
   afterEach(() => {
@@ -9,8 +10,8 @@ describe('PresetFilterUtil', () => {
 
   describe('buildScopeOrConditions', () => {
     it('includes global and organization scopes', () => {
-      const organization = '507f191e810c19729de860ee';
-      const user = '507f191e810c19729de860ee';
+      const organization = testId('scope');
+      const user = testId('scope');
 
       const conditions = PresetFilterUtil.buildScopeOrConditions({
         organizationId: organization,
@@ -46,7 +47,7 @@ describe('PresetFilterUtil', () => {
     });
 
     it('allows modification when organizations match', () => {
-      const orgId = '507f191e810c19729de860ee';
+      const orgId = testId('scope');
       const canModify = PresetFilterUtil.canUserModifyPreset(
         {
           isSuperAdmin: false,
@@ -60,8 +61,8 @@ describe('PresetFilterUtil', () => {
 
   describe('enrichPresetDto', () => {
     it('assigns canonical organization and brand ids for regular users', () => {
-      const orgId = '507f191e810c19729de860ee';
-      const brandId = '507f191e810c19729de860ee';
+      const orgId = testId('scope');
+      const brandId = testId('scope');
 
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brandId, label: 'My Preset' },
@@ -83,8 +84,8 @@ describe('PresetFilterUtil', () => {
     });
 
     it('converts provided organization/brand for superadmin org presets', () => {
-      const org = '507f191e810c19729de860ee';
-      const brandId = '507f191e810c19729de860ee';
+      const org = testId('scope');
+      const brandId = testId('scope');
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brandId, label: 'Org preset', organizationId: org },
         { isSuperAdmin: true },
@@ -97,8 +98,8 @@ describe('PresetFilterUtil', () => {
 
   describe('buildBaseMatch', () => {
     it('builds match object with filters and scope', () => {
-      const organization = '507f191e810c19729de860ee';
-      const user = '507f191e810c19729de860ee';
+      const organization = testId('scope');
+      const user = testId('scope');
       const match = PresetFilterUtil.buildBaseMatch(
         { organizationId: organization, userId: user },
         { category: 'video', isActive: true, isFavorite: false },

@@ -20,7 +20,7 @@ const mockRequestWithContext = {
     userId: USER_ID,
   },
 } as const;
-const LEGACY_ORG_ID = '68474055fb92be1d22932fb6';
+const LEGACY_ORG_ID = 'legacy-org-000';
 
 describe('StreaksController', () => {
   let controller: StreaksController;

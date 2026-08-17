@@ -31,6 +31,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -45,11 +46,16 @@ describe('ImagesUploadsController', () => {
   let filesClientService: FilesClientService;
   let sharedService: SharedService;
 
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
+  const ingredientId = testId('ingredient');
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRequest = {
@@ -59,9 +65,9 @@ describe('ImagesUploadsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: ingredientId,
     category: 'image',
-    id: '507f1f77bcf86cd799439014',
+    id: ingredientId,
     label: 'test-image.jpg',
     status: 'uploaded',
   };
@@ -422,9 +428,9 @@ describe('ImagesUploadsController', () => {
 
       const mockResult = {
         expiresIn: 3600,
-        id: '507f1f77bcf86cd799439014',
-        publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439014',
-        s3Key: 'ingredients/images/507f1f77bcf86cd799439014',
+        id: ingredientId,
+        publicUrl: `https://cdn.example.com/images/${ingredientId}`,
+        s3Key: `ingredients/images/${ingredientId}`,
         uploadUrl: 'https://s3.example.com/presigned-url',
       };
 
@@ -444,8 +450,6 @@ describe('ImagesUploadsController', () => {
 
   describe('confirmUpload', () => {
     it('should confirm completed upload', async () => {
-      const ingredientId = '507f1f77bcf86cd799439014';
-
       mockServices.presignedUploadService.confirmUpload.mockResolvedValue(
         mockIngredient,
       );

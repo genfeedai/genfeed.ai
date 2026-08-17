@@ -6,6 +6,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type { AgentScopeContextService } from '@genfeedai/server';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
@@ -40,10 +41,12 @@ describe('AgentThreadsController', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
 
+  const mockUserId = testId('user');
+
   const mockUser = {
-    id: 'u07f1f77bcf86cd799439011',
+    id: mockUserId,
     organizationId: 'org_current',
-    userId: 'u07f1f77bcf86cd799439011',
+    userId: mockUserId,
   };
 
   beforeEach(() => {
@@ -203,10 +206,7 @@ describe('AgentThreadsController', () => {
       );
 
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        { id: 'u07f1f77bcf86cd799439011' },
-        [],
-      );
+      expect(usersService.findOne).toHaveBeenCalledWith({ id: mockUserId }, []);
       expect(service.getUserThreads).toHaveBeenCalledWith(
         resolvedUserId,
         expect.any(String),
@@ -461,7 +461,7 @@ describe('AgentThreadsController', () => {
         expect.objectContaining({
           organizationId: 'org_current',
           title: 'Test',
-          userId: 'u07f1f77bcf86cd799439011',
+          userId: mockUserId,
         }),
       );
     });
@@ -487,7 +487,7 @@ describe('AgentThreadsController', () => {
         expectedContextVersion: 3,
         organizationId: 'org_current',
         threadId: 'thread-1',
-        userId: 'u07f1f77bcf86cd799439011',
+        userId: mockUserId,
       });
     });
   });
@@ -506,7 +506,7 @@ describe('AgentThreadsController', () => {
       });
 
       expect(service.archiveAllThreads).toHaveBeenCalledWith(
-        'u07f1f77bcf86cd799439011',
+        mockUserId,
         'org_current',
         undefined,
       );

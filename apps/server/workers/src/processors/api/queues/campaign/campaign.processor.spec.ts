@@ -2,6 +2,7 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CampaignProcessingJobData,
@@ -53,8 +54,8 @@ describe('CampaignProcessor', () => {
 
   describe('process', () => {
     it('should process active campaign successfully', async () => {
-      const campaignId = '507f191e810c19729de860ee'.toString();
-      const organizationId = '507f191e810c19729de860ee'.toString();
+      const campaignId = testId('fixture');
+      const organizationId = campaignId;
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -102,8 +103,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should skip non-active campaign', async () => {
-      const campaignId = '507f191e810c19729de860ee'.toString();
-      const organizationId = '507f191e810c19729de860ee'.toString();
+      const campaignId = testId('fixture');
+      const organizationId = campaignId;
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -132,8 +133,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should throw error if campaign not found', async () => {
-      const campaignId = '507f191e810c19729de860ee'.toString();
-      const organizationId = '507f191e810c19729de860ee'.toString();
+      const campaignId = testId('fixture');
+      const organizationId = campaignId;
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -153,8 +154,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should handle circuit breaker errors', async () => {
-      const campaignId = '507f191e810c19729de860ee'.toString();
-      const organizationId = '507f191e810c19729de860ee'.toString();
+      const campaignId = testId('fixture');
+      const organizationId = campaignId;
 
       const jobData: CampaignProcessingJobData = {
         campaignId,

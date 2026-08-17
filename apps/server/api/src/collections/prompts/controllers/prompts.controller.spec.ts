@@ -30,6 +30,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -42,9 +43,9 @@ describe('PromptsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockReq = {} as Request;
@@ -56,12 +57,12 @@ describe('PromptsController', () => {
   } satisfies PromptQueryDto;
 
   const mockPrompt = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: testId('prompt'),
     isDeleted: false,
-    organization: '507f1f77bcf86cd799439012',
+    organization: testId('org'),
     original: 'Test prompt',
     status: 'completed',
-    user: '507f1f77bcf86cd799439011',
+    user: testId('user'),
   };
 
   const mockPromptsService = {
@@ -192,10 +193,10 @@ describe('PromptsController', () => {
     it('scopes the list to the current user so marketplace installs are listable', async () => {
       const installedPrompt = {
         ...mockPrompt,
-        _id: '507f1f77bcf86cd799439015',
+        _id: testId('prompt', 2),
         isFavorite: true,
         original: 'Installed from the marketplace',
-        userId: '507f1f77bcf86cd799439011',
+        userId: testId('user'),
       };
 
       mockPromptsService.findAll.mockResolvedValue({
@@ -215,7 +216,7 @@ describe('PromptsController', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             isDeleted: false,
-            userId: '507f1f77bcf86cd799439011',
+            userId: testId('user'),
           }),
         }),
         expect.anything(),
@@ -226,7 +227,7 @@ describe('PromptsController', () => {
 
   describe('findOne', () => {
     it('should return a prompt by id', async () => {
-      const promptId = '507f1f77bcf86cd799439014';
+      const promptId = testId('prompt');
       mockPromptsService.findOne.mockResolvedValue(mockPrompt);
 
       const result = await controller.findOne(mockReq, promptId, mockUser);
@@ -236,7 +237,7 @@ describe('PromptsController', () => {
     });
 
     it('should return not found when prompt not found', async () => {
-      const promptId = '507f1f77bcf86cd799439014';
+      const promptId = testId('prompt');
       mockPromptsService.findOne.mockResolvedValue(null);
 
       const result = await controller.findOne(mockReq, promptId, mockUser);
@@ -247,7 +248,7 @@ describe('PromptsController', () => {
 
   describe('update', () => {
     it('should update a prompt', async () => {
-      const promptId = '507f1f77bcf86cd799439014';
+      const promptId = testId('prompt');
       const updatePromptDto: UpdatePromptDto = {
         isFavorite: true,
       };
@@ -269,7 +270,7 @@ describe('PromptsController', () => {
     });
 
     it('should return not found when prompt does not exist', async () => {
-      const promptId = '507f1f77bcf86cd799439014';
+      const promptId = testId('prompt');
       mockPromptsService.findOne.mockResolvedValue(null);
 
       const result = await controller.update(mockReq, promptId, {}, mockUser);
