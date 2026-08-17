@@ -1,5 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
+import ProductionDataBanner, {
+  productionDataBannerRuntime,
+} from '@ui/banners/production-data/ProductionDataBanner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -103,9 +105,11 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch or show the banner when not on localhost', async () => {
-    stubHostname('app.genfeed.ai');
-
+    vi.spyOn(productionDataBannerRuntime, 'getHostname').mockReturnValue(
+      'app.genfeed.ai',
+    );
     const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
 
     render(<ProductionDataBanner />);
 
@@ -127,8 +131,11 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch db-mode when NEXT_PUBLIC_PLAYWRIGHT_TEST is true', async () => {
-    vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', 'true');
+    vi.spyOn(productionDataBannerRuntime, 'getPublicEnv').mockImplementation(
+      (name) => (name === 'NEXT_PUBLIC_PLAYWRIGHT_TEST' ? 'true' : undefined),
+    );
     const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
 
     render(<ProductionDataBanner />);
 
@@ -136,8 +143,12 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch db-mode when NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP is true', async () => {
-    vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP', 'true');
+    vi.spyOn(productionDataBannerRuntime, 'getPublicEnv').mockImplementation(
+      (name) =>
+        name === 'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP' ? 'true' : undefined,
+    );
     const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
 
     render(<ProductionDataBanner />);
 
@@ -145,9 +156,11 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch db-mode when the mocked Playwright cookie is set', async () => {
-    // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the mocked-suite marker
-    document.cookie = '__playwright_test=true; path=/';
+    vi.spyOn(productionDataBannerRuntime, 'getCookieHeader').mockReturnValue(
+      '__playwright_test=true',
+    );
     const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
 
     render(<ProductionDataBanner />);
 
@@ -155,9 +168,11 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch db-mode when the authenticated Playwright banner cookie is set', async () => {
-    // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the authed banner marker
-    document.cookie = '__genfeed_playwright_banner=1; path=/';
+    vi.spyOn(productionDataBannerRuntime, 'getCookieHeader').mockReturnValue(
+      '__genfeed_playwright_banner=1',
+    );
     const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
 
     render(<ProductionDataBanner />);
 
