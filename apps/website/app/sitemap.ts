@@ -1,9 +1,12 @@
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
+import { launchArticleSlugs } from '@data/launch-articles.data';
 import { getAllProductSlugs } from '@data/products.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
 import { PublicService } from '@services/external/public.service';
 import type { MetadataRoute } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const productSlugs = getAllProductSlugs();
@@ -322,8 +325,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       [],
     );
   } catch {
-    // API unavailable at build time — article URLs omitted from sitemap
+    // The committed launch-article fallback below keeps the initial public
+    // corpus discoverable while a transient API failure is recovered.
   }
+
+  const launchArticleRoutes: MetadataRoute.Sitemap = launchArticleSlugs.map(
+    (slug) => ({
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.8,
+      url: `https://genfeed.ai/articles/${slug}`,
+    }),
+  );
 
   const allRoutes = [
     ...staticRoutes,
@@ -332,6 +345,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...integrationRoutes,
     ...useCaseRoutes,
     ...articleRoutes,
+    ...launchArticleRoutes,
   ];
 
   const seen = new Set<string>();
