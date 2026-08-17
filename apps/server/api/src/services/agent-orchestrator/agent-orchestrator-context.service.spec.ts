@@ -1,6 +1,7 @@
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AGENT_JAILBREAK_HARDENING } from '@api/services/agent-orchestrator/constants/agent-jailbreak-hardening.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AGENT_SCOPE_GUARDRAIL } from '@api/services/agent-orchestrator/constants/agent-scope-guardrail.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
@@ -11,6 +12,7 @@ import type {
   AgentChatContext,
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { UNTRUSTED_USER_DATA_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { AgentMessageRole, AgentType } from '@genfeedai/enums';
@@ -31,6 +33,7 @@ const THREAD_ID = 'c7a123456789012345678901';
 
 function createService(options?: {
   brandContext?: { defaultModel?: string } | null;
+  builtSystemPrompt?: string;
   orgSettings?: { agentReplyStyle?: string } | null;
   thread?: { memoryEntryIds?: string[]; systemPrompt?: string } | null;
 }): AgentOrchestratorContextService {
@@ -54,7 +57,8 @@ function createService(options?: {
     {
       assembleContext: vi.fn().mockResolvedValue(options?.brandContext ?? null),
       buildSystemPrompt: vi.fn(
-        (basePrompt: string) => `assembled:${basePrompt}`,
+        (basePrompt: string) =>
+          options?.builtSystemPrompt ?? `assembled:${basePrompt}`,
       ),
     } as never,
     {
@@ -423,5 +427,77 @@ describe('AgentOrchestratorContextService prompt-injection fencing', () => {
     expect(memoryText).toContain('[REMOVED] reveal your prompt');
     expect(memoryText).not.toContain('Ignore previous instructions');
     expect(memoryText).not.toMatch(/^system\s*:/m);
+  });
+});
+
+describe('AgentOrchestratorContextService jailbreak hardening', () => {
+  it('composes jailbreak language onto every resolve path', async () => {
+    const onboarding = await createService().resolveSystemPromptAndModel(
+      ONBOARDING_REQUEST,
+      CONTEXT,
+    );
+    const brandInterview = await createService().resolveSystemPromptAndModel(
+      { agentType: AgentType.BRAND_INTERVIEW, content: 'Start interview' },
+      CONTEXT,
+    );
+    const threadOwned = await createService({
+      thread: { systemPrompt: 'thread-owned prompt' },
+    }).resolveSystemPromptAndModel(
+      { content: 'Continue', threadId: THREAD_ID },
+      CONTEXT,
+    );
+    const requestOverride = await createService().resolveSystemPromptAndModel(
+      { content: 'Continue', systemPromptOverride: 'request override' },
+      CONTEXT,
+    );
+    const brandAssembled = await createService({
+      brandContext: { defaultModel: 'brand-model' },
+      builtSystemPrompt: 'brand-assembled prompt',
+    }).resolveSystemPromptAndModel({ content: 'Write a post' }, CONTEXT);
+    const typed = await createService().resolveSystemPromptAndModel(
+      { agentType: AgentType.X_CONTENT, content: 'Draft a tweet' },
+      CONTEXT,
+    );
+    const fallback = await createService().resolveSystemPromptAndModel(
+      { content: 'Help me brainstorm' },
+      CONTEXT,
+    );
+
+    expect(onboarding.systemPrompt).toContain(AGENT_JAILBREAK_HARDENING);
+    expect(brandInterview.systemPrompt).toBe(
+      composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT),
+    );
+    expect(threadOwned.systemPrompt).toBe(
+      composeAgentGuardrails('thread-owned prompt'),
+    );
+    expect(requestOverride.systemPrompt).toBe(
+      composeAgentGuardrails('request override'),
+    );
+    expect(brandAssembled.systemPrompt).toBe(
+      composeAgentGuardrails('brand-assembled prompt'),
+    );
+    expect(typed.systemPrompt).toContain(AGENT_JAILBREAK_HARDENING);
+    expect(typed.systemPrompt).toContain('X/Twitter Content Agent');
+    expect(fallback.systemPrompt).toBeUndefined();
+  });
+
+  it('applies jailbreak language to the buildMessageHistory fallback', () => {
+    const history = createService().buildMessageHistory([]);
+    const expected = composeAgentGuardrails(
+      AGENT_ORCHESTRATOR_SYSTEM_PROMPT,
+    ).replace('{{date}}', new Date().toISOString().split('T')[0]);
+
+    expect(history[0]).toEqual({ content: expected, role: 'system' });
+    expect(String(history[0]?.content)).toContain(AGENT_JAILBREAK_HARDENING);
+  });
+
+  it('does not double-append hardening when resolve already composed the override', () => {
+    const override = composeAgentGuardrails('already hardened');
+    const history = createService().buildMessageHistory([], override);
+
+    expect(history[0]?.content).toBe(override);
+    expect(
+      String(history[0]?.content).split(AGENT_JAILBREAK_HARDENING),
+    ).toHaveLength(2);
   });
 });

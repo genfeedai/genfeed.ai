@@ -523,8 +523,9 @@ export function getAgentTypeConfig(agentType: AgentType): AgentTypeConfig {
 }
 
 /**
- * Maps platform keywords found in user messages to the agent type whose
- * systemPromptSuffix contains the formatting rules for that platform.
+ * Fixed suffix table for `detectPlatformIntentSuffix`.
+ * User message text only selects among these four compile-time suffixes.
+ * Matched content is never interpolated into the system prompt.
  * Order matters: first match wins, so more specific patterns come first.
  */
 const PLATFORM_INTENT_PATTERNS: {
@@ -550,9 +551,11 @@ const PLATFORM_INTENT_PATTERNS: {
 ];
 
 /**
- * Detects platform intent from the user's message content.
- * Returns the systemPromptSuffix for the matched platform, or an empty string
- * if no platform intent is detected.
+ * Intentional gated selector: user message text only indexes
+ * `PLATFORM_INTENT_PATTERNS` and returns a fixed `systemPromptSuffix`.
+ * Free text is never interpolated into the system prompt — a jailbreak
+ * string that happens to mention LinkedIn still yields only the LinkedIn
+ * suffix. This is not user-controlled prompt injection.
  */
 export function detectPlatformIntentSuffix(content: string): string {
   for (const { agentType, keywords } of PLATFORM_INTENT_PATTERNS) {
