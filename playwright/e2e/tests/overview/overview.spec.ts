@@ -5,6 +5,7 @@ import {
   mockWorkspaceTasks,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 test.describe('Overview Compatibility Redirect', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -34,6 +35,7 @@ test.describe('Overview Compatibility Redirect', () => {
   test('keeps /overview as a compatibility redirect for unauthenticated users', async ({
     unauthenticatedPage,
   }) => {
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });

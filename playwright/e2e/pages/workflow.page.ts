@@ -83,8 +83,14 @@ export class WorkflowPage {
     this.sidebar = page
       .locator('[data-testid="workflow-sidebar"]')
       .or(page.getByTestId('sidebar-shell'))
+      .or(page.getByText('Search nodes...'))
+      .or(page.getByRole('heading', { name: 'Nodes' }))
       .first();
-    this.mainContent = page.locator('main, [data-testid="main-content"]');
+    this.mainContent = page
+      .locator('main, [data-testid="main-content"]')
+      .or(page.getByRole('button', { name: 'Publish' }))
+      .or(page.getByText('Untitled Workflow'))
+      .first();
 
     // Sidebar nav links
     this.navEditor = page

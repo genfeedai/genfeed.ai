@@ -83,7 +83,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToActivities();
-      await expect(authenticatedPage).toHaveURL(/activities/);
+      await expect(authenticatedPage).toHaveURL(/activit/);
     });
 
     test('should navigate to the Studio Edit timeline', async ({

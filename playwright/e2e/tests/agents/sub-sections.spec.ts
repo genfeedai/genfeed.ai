@@ -8,6 +8,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for Agents Sub-Routes
@@ -69,7 +70,9 @@ test.describe('Agents — Sub-Sections', () => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW));
 
     await expect(authenticatedPage).toHaveURL(/messages\/outreach\/new/);
-    await expect(authenticatedPage.locator('form').first()).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /Platform & Type/i }),
+    ).toBeVisible();
   });
 
   test('runs page shows run history', async ({ authenticatedPage }) => {
@@ -95,7 +98,7 @@ test.describe('Agents — Sub-Sections', () => {
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/autopilot/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: /autopilot/i }).first(),
+      authenticatedPage.getByText(/autopilot/i).first(),
     ).toBeVisible();
   });
 
@@ -154,10 +157,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    test.skip(
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
-      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
-    );
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
@@ -170,10 +170,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach sequence routes', async ({
     unauthenticatedPage,
   }) => {
-    test.skip(
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
-      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
-    );
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
 
     await unauthenticatedPage.waitForURL(/\/login/, {

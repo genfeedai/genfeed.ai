@@ -664,7 +664,7 @@ export async function mockActiveSubscription(
 ): Promise<void> {
   const { plan = 'pro', credits = 500, hasPaymentMethod = true } = options;
 
-  await routeApiPattern(page, '/subscriptions/**', async (route) => {
+  await routeApiPattern(page, '/subscriptions**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         data: {
@@ -681,7 +681,33 @@ export async function mockActiveSubscription(
     });
   });
 
-  await routeApiPattern(page, '/credits/**', async (route) => {
+  await routeApiPattern(page, '/credits/topbar-balances**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            generatedAt: new Date().toISOString(),
+            segments: [
+              {
+                balance: credits,
+                currencyOrUnit: 'credits',
+                label: 'Genfeed',
+                lastSyncedAt: new Date().toISOString(),
+                provider: 'genfeed',
+                status: 'available',
+              },
+            ],
+          },
+          id: 'topbar-balances',
+          type: 'topbar-balances',
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApiPattern(page, '/credits**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         data: {
@@ -3503,7 +3529,7 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
  * Mock for library content data
  */
 export async function mockLibraryData(page: Page): Promise<void> {
-  await page.route('**/api.genfeed.ai/v1/captions**', async (route) => {
+  const fulfillCaptions = async (route: Route): Promise<void> => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify({
@@ -3535,7 +3561,10 @@ export async function mockLibraryData(page: Page): Promise<void> {
       return;
     }
     await route.continue();
-  });
+  };
+
+  await page.route('**/api.genfeed.ai/v1/captions**', fulfillCaptions);
+  await page.route('**/v1/captions**', fulfillCaptions);
 
   await page.route('**/api.genfeed.ai/v1/ingredients**', async (route) => {
     if (route.request().method() === 'GET') {
@@ -4467,7 +4496,7 @@ export async function mockAdminTemplates(page: Page, count = 8): Promise<void> {
     type: 'templates',
   }));
 
-  await page.route('**/api.genfeed.ai/v1/templates**', async (route) => {
+  const fulfillTemplates = async (route: Route): Promise<void> => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify({
@@ -4480,7 +4509,10 @@ export async function mockAdminTemplates(page: Page, count = 8): Promise<void> {
       return;
     }
     await route.continue();
-  });
+  };
+
+  await page.route('**/api.genfeed.ai/v1/templates**', fulfillTemplates);
+  await page.route('**/v1/templates**', fulfillTemplates);
 }
 
 /**

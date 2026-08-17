@@ -32,7 +32,7 @@ export default function TemplatesPage() {
 
     try {
       const service = await getTemplatesService();
-      const data = await service.getTemplates();
+      const data = (await service.getTemplates()) ?? [];
 
       setTemplates(data);
       logger.info('Loaded templates', { count: data.length });
@@ -112,7 +112,10 @@ export default function TemplatesPage() {
 
                       <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/60">
                         <span className="capitalize inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border border-current/20">
-                          {template.category.replace(/-/g, ' ')}
+                          {(template.category ?? 'uncategorized').replace(
+                            /-/g,
+                            ' ',
+                          )}
                         </span>
 
                         {template.metadata?.difficulty && (

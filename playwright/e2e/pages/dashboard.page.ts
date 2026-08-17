@@ -279,7 +279,7 @@ export class DashboardPage {
     await this.#gotoOrClick(
       this.navActivities,
       APP_ROUTES.WORKSPACE.ACTIVITY,
-      /activities/,
+      /activit/,
     );
   }
 

@@ -5,6 +5,7 @@ import {
   mockReviewQueue,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
@@ -60,6 +61,7 @@ test.describe('Posts — Content Types', () => {
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.ROOT);
 
     // Should redirect to login

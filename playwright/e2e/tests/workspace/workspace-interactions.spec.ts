@@ -214,9 +214,9 @@ test.describe('Overview — deep interactions', () => {
   test('renders the overview activities feed with filters', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.OVERVIEW.ACTIVITIES);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.ACTIVITY);
 
-    await expect(authenticatedPage).toHaveURL(/\/overview\/activities/);
+    await expect(authenticatedPage).toHaveURL(/\/workspace\/activit/);
 
     // Activities list ships stats + filter controls; touch them where present.
     await tryClick(authenticatedPage, 'button:has-text("All")');

@@ -20,11 +20,11 @@ export default function RunStatsStrip({
     { label: 'Web Enabled', value: stats?.webEnabledRuns ?? 0 },
     {
       label: 'Top Actual Model',
-      value: stats?.topActualModels[0]?.model ?? 'Untracked',
+      value: stats?.topActualModels?.[0]?.model ?? 'Untracked',
     },
     {
       label: 'Top Requested Model',
-      value: stats?.topRequestedModels[0]?.model ?? 'Untracked',
+      value: stats?.topRequestedModels?.[0]?.model ?? 'Untracked',
     },
   ];
 

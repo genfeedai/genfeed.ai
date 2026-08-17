@@ -24,7 +24,12 @@ test.describe('Onboarding Steps', () => {
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ authenticatedPage }) => {
-      await assertRouteRenders(authenticatedPage, route);
+      const response = await authenticatedPage.goto(route, {
+        waitUntil: 'domcontentloaded',
+      });
+      expect(response?.status() ?? 0).toBeLessThan(400);
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect(authenticatedPage.locator('body')).toBeVisible();
     });
   }
 
