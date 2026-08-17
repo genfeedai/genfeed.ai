@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 
 export const CONSOLE_REPOSITORY = 'genfeedai/console.genfeed.ai';
 export const CONSOLE_WORKFLOW = 'deploy-hosted-saas.yml';
+export const MARKETPLACE_REPOSITORY = 'genfeedai/marketplace.genfeed.ai';
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 export function buildCorrelationId({ runId, runAttempt, releaseSha }) {
@@ -79,10 +80,10 @@ export function mapDispatchCapabilityError({ status, reason, message = '' }) {
   ].join(' ');
 }
 
-function assertReleaseSha(releaseSha) {
-  if (!SHA_PATTERN.test(releaseSha ?? '')) {
+function assertExactSha(label, sha) {
+  if (!SHA_PATTERN.test(sha ?? '')) {
     throw new Error(
-      `Release SHA is not an exact lowercase 40-character commit: ${releaseSha}`,
+      `${label} SHA is not an exact lowercase 40-character commit: ${sha}`,
     );
   }
 }
@@ -103,6 +104,7 @@ export async function preflightAndDispatch({
   ghApi,
   consoleRepository = CONSOLE_REPOSITORY,
   consoleWorkflow = CONSOLE_WORKFLOW,
+  marketplaceRepository = MARKETPLACE_REPOSITORY,
   releaseSha,
   runId,
   runAttempt,
@@ -114,7 +116,7 @@ export async function preflightAndDispatch({
     );
   }
 
-  assertReleaseSha(releaseSha);
+  assertExactSha('Release', releaseSha);
 
   const correlationId = buildCorrelationId({ runId, runAttempt, releaseSha });
   const expectedTitle = buildExpectedTitle({ releaseSha, correlationId });
@@ -128,6 +130,18 @@ export async function preflightAndDispatch({
   );
   requireOk(workflow);
 
+  const marketplaceCommit = await ghApi(
+    'GET',
+    `repos/${marketplaceRepository}/commits/master`,
+  );
+  if (marketplaceCommit.status < 200 || marketplaceCommit.status >= 300) {
+    throw new Error(
+      `Could not resolve ${marketplaceRepository} master for the hosted-SaaS handoff (HTTP ${marketplaceCommit.status || 'unknown'}).`,
+    );
+  }
+  const marketplaceSourceSha = marketplaceCommit.json?.sha ?? '';
+  assertExactSha('marketplace source', marketplaceSourceSha);
+
   const dispatch = await ghApi(
     'POST',
     `repos/${consoleRepository}/actions/workflows/${consoleWorkflow}/dispatches`,
@@ -136,13 +150,14 @@ export async function preflightAndDispatch({
       inputs: {
         release_sha: releaseSha,
         source_sha: releaseSha,
+        marketplace_source_sha: marketplaceSourceSha,
         correlation_id: correlationId,
       },
     },
   );
   requireOk(dispatch);
 
-  return { correlationId, expectedTitle };
+  return { correlationId, expectedTitle, marketplaceSourceSha };
 }
 
 function githubApiErrorMessage(stderr, stdout) {
@@ -211,6 +226,8 @@ export async function runCli({
       ghApi,
       consoleRepository: env.CONSOLE_REPOSITORY ?? CONSOLE_REPOSITORY,
       consoleWorkflow: env.CONSOLE_WORKFLOW ?? CONSOLE_WORKFLOW,
+      marketplaceRepository:
+        env.MARKETPLACE_REPOSITORY ?? MARKETPLACE_REPOSITORY,
       releaseSha: env.RELEASE_SHA ?? '',
       runId: env.GITHUB_RUN_ID ?? '0',
       runAttempt: env.GITHUB_RUN_ATTEMPT ?? '1',
@@ -220,7 +237,7 @@ export async function runCli({
     if (env.GITHUB_OUTPUT) {
       appendFileSync(
         env.GITHUB_OUTPUT,
-        `correlation_id=${result.correlationId}\nexpected_title=${result.expectedTitle}\n`,
+        `correlation_id=${result.correlationId}\nexpected_title=${result.expectedTitle}\nmarketplace_source_sha=${result.marketplaceSourceSha}\n`,
       );
     }
     return result;

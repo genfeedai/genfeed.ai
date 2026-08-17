@@ -105,10 +105,13 @@ Hosted SaaS infrastructure, deployment implementation, recovery controls, and
 production runbooks live in the private `genfeedai/console.genfeed.ai`
 operations repository. This public repository retains only the release
 handshake. `release.yml` dispatches `deploy-hosted-saas.yml` at private ref
-`master` with the exact pinned release/source SHA and a unique correlation ID,
-then waits for the uniquely matched private run to succeed. A missing,
-ambiguous, timed-out, mismatched, cancelled, or failed private run leaves the
-public release as a draft and prevents `latest` and npm promotion.
+`master` with the exact pinned release/source SHA, the exact marketplace
+`master` SHA resolved during preflight, and a unique correlation ID. The private
+workflow verifies both SHAs remain reachable from their respective trunks,
+deploys all Vercel frontends after the API rollout, and smokes the marketplace
+alongside the main web estate. A missing, ambiguous, timed-out, mismatched,
+cancelled, or failed private run leaves the public release as a draft and
+prevents `latest` and npm promotion.
 
 Configure the public repository secret `CONSOLE_DEPLOY_TOKEN` with a dedicated
 fine-grained token whose repository access is limited to
