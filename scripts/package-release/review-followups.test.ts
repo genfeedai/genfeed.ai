@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -20,11 +21,12 @@ interface PackageManifest {
 }
 
 describe('package and worktree review follow-ups', () => {
-  it('syncs includes to the newly created worktree when its path has spaces', () => {
+  it('resolves a bare name (with spaces) to <repo>/.worktrees/<name> and syncs includes there', () => {
     const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'git-wt-review-'));
     const repository = path.join(fixtureRoot, 'repository');
     const existingWorktree = path.join(fixtureRoot, 'zzz-existing');
-    const createdWorktree = path.join(fixtureRoot, 'aaa created with spaces');
+    const worktreeName = 'aaa created with spaces';
+    const createdWorktree = path.join(repository, '.worktrees', worktreeName);
 
     try {
       initializeFixtureRepository(repository);
@@ -42,7 +44,7 @@ describe('package and worktree review follow-ups', () => {
           path.join(repository, 'scripts/git-wt.sh'),
           '-b',
           'fixture-branch',
-          createdWorktree,
+          worktreeName,
           'HEAD',
         ],
         { cwd: repository, stdio: 'pipe' },
@@ -56,6 +58,86 @@ describe('package and worktree review follow-ups', () => {
       );
       expect(readJson('package.json').scripts?.['wt:setup']).toContain(
         'scripts/git-wt.sh',
+      );
+    } finally {
+      rmSync(fixtureRoot, { force: true, recursive: true });
+    }
+  });
+
+  it('refuses worktree paths outside <repo>/.worktrees/', () => {
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'git-wt-outside-'));
+    const repository = path.join(fixtureRoot, 'repository');
+    const outsideWorktree = path.join(fixtureRoot, 'sibling-worktree');
+
+    try {
+      initializeFixtureRepository(repository);
+
+      const result = spawnSync(
+        'bash',
+        [
+          path.join(repository, 'scripts/git-wt.sh'),
+          '-b',
+          'fixture-branch',
+          outsideWorktree,
+          'HEAD',
+        ],
+        { cwd: repository, encoding: 'utf8' },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('direct children of');
+      expect(existsSync(outsideWorktree)).toBe(false);
+      expect(listWorktrees(repository)).toEqual([realpathSync(repository)]);
+    } finally {
+      rmSync(fixtureRoot, { force: true, recursive: true });
+    }
+  });
+
+  it('never nests: from inside a worktree a bare name lands in the primary .worktrees/', () => {
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'git-wt-nested-'));
+    const repository = path.join(fixtureRoot, 'repository');
+    const firstWorktree = path.join(repository, '.worktrees', 'first');
+    const secondWorktree = path.join(repository, '.worktrees', 'second');
+
+    try {
+      initializeFixtureRepository(repository);
+      runGit(repository, [
+        'worktree',
+        'add',
+        '--detach',
+        firstWorktree,
+        'HEAD',
+      ]);
+
+      execFileSync(
+        'bash',
+        [
+          path.join(repository, 'scripts/git-wt.sh'),
+          '--detach',
+          'second',
+          'HEAD',
+        ],
+        { cwd: firstWorktree, stdio: 'pipe' },
+      );
+      const nested = spawnSync(
+        'bash',
+        [
+          path.join(repository, 'scripts/git-wt.sh'),
+          '--detach',
+          './nested',
+          'HEAD',
+        ],
+        { cwd: firstWorktree, encoding: 'utf8' },
+      );
+
+      expect(existsSync(path.join(secondWorktree, '.fixture-env'))).toBe(true);
+      expect(nested.status).toBe(1);
+      expect(nested.stderr).toContain('direct children of');
+      expect(existsSync(path.join(firstWorktree, 'nested'))).toBe(false);
+      expect(listWorktrees(repository).sort()).toEqual(
+        [repository, firstWorktree, secondWorktree]
+          .map((worktree) => realpathSync(worktree))
+          .sort(),
       );
     } finally {
       rmSync(fixtureRoot, { force: true, recursive: true });
@@ -194,6 +276,16 @@ function initializeFixtureRepository(repository: string): void {
 
 function runGit(cwd: string, args: string[]): void {
   execFileSync('git', args, { cwd, stdio: 'pipe' });
+}
+
+function listWorktrees(repository: string): string[] {
+  return execFileSync('git', ['worktree', 'list', '--porcelain'], {
+    cwd: repository,
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .filter((line) => line.startsWith('worktree '))
+    .map((line) => line.slice('worktree '.length));
 }
 
 function runNodeGuard(source: string, version: string) {
