@@ -2,6 +2,7 @@
 
 import ArticleEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/article/[id]/content';
 import NewsletterEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { ArtifactEditorType } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -35,6 +36,7 @@ interface PublishContentEditorPageProps {
 export default function PublishContentEditorPage({
   contentId,
 }: PublishContentEditorPageProps): ReactElement {
+  const { isReady } = useBrand();
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
@@ -50,6 +52,7 @@ export default function PublishContentEditorPage({
     isError,
     isLoading,
   } = useQuery({
+    enabled: isReady,
     queryFn: async ({ signal }) => {
       const [posts, articles, newsletters] = await Promise.all([
         getPostsService(),
@@ -67,7 +70,7 @@ export default function PublishContentEditorPage({
     staleTime: 60_000,
   });
 
-  if (isLoading) {
+  if (!isReady || isLoading) {
     return (
       <ArtifactEditorShell artifactLabel="Content" title="Loading…">
         <SkeletonCard />
@@ -75,7 +78,21 @@ export default function PublishContentEditorPage({
     );
   }
 
-  if (isError || contentKind === null || contentKind === undefined) {
+  if (isError) {
+    return (
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title="Could not load content"
+      >
+        <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
+          The content desk could not reach posts, articles, or newsletters. Try
+          again, or return to Posts and open the item from the list.
+        </div>
+      </ArtifactEditorShell>
+    );
+  }
+
+  if (contentKind === null || contentKind === undefined) {
     return (
       <ArtifactEditorShell artifactLabel="Content" title="Content not found">
         <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
