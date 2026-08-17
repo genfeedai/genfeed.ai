@@ -13,8 +13,8 @@ const brandId = testId('brand');
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn().mockReturnValue({
-    organizationId: testId('org'),
-    userId: testId('user'),
+    organizationId: 'corg000000000000000000001',
+    userId: 'cuser000000000000000000001',
   }),
 }));
 

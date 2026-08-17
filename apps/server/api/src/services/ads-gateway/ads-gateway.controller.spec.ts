@@ -6,8 +6,8 @@ import { testId } from '@helpers/testing/test-id.helper';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn(() => ({
-    organizationId: testId('org'),
-    userId: testId('user'),
+    organizationId: 'corg000000000000000000001',
+    userId: 'cuser000000000000000000001',
   })),
 }));
 vi.mock('@libs/utils/caller/caller.util', () => ({
