@@ -377,6 +377,7 @@ function UniversalWorkspaceShellContent({
     };
     const openConversationTab = () => {
       applyInspectorKind('conversation', 'open');
+      setIsMobileInspectorOpen(true);
     };
     const openFilesTab = () => {
       applyInspectorKind('files', 'open');
