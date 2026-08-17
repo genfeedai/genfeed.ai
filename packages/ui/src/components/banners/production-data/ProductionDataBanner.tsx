@@ -35,13 +35,9 @@ function isEnabledPublicEnv(
   name: 'NEXT_PUBLIC_PLAYWRIGHT_TEST' | 'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
 ): boolean {
   // Next inlines `process.env.NEXT_PUBLIC_*` member access at build time.
-  // Bracket access stays runtime-visible so Vitest/jsdom can stub the same flag.
-  const inlined =
-    name === 'NEXT_PUBLIC_PLAYWRIGHT_TEST'
-      ? process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST
-      : process.env.NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP;
-
-  return inlined === 'true' || process.env[name] === 'true';
+  // Read through a record so Vitest/jsdom stubs stay visible at runtime.
+  const env = process.env as Record<string, string | undefined>;
+  return env[name] === 'true';
 }
 
 function isPlaywrightRun(): boolean {

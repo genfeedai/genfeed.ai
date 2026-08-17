@@ -41,28 +41,33 @@ async function expectNoDbModeFetch(
   expect(screen.queryByTestId('production-data-banner')).toBeNull();
 }
 
+function stubHostname(hostname: string): void {
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { hostname },
+    writable: true,
+  });
+}
+
 describe('ProductionDataBanner', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     clearPlaywrightBannerMarkers();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...originalLocation, hostname: 'localhost' },
-      writable: true,
-    });
+    stubHostname('localhost');
   });
 
   afterEach(() => {
+    cleanup();
+    clearPlaywrightBannerMarkers();
+    vi.restoreAllMocks();
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: originalLocation,
       writable: true,
     });
-    cleanup();
-    clearPlaywrightBannerMarkers();
-    vi.restoreAllMocks();
   });
 
   it('shows banner when db-mode is production on localhost', async () => {
@@ -98,11 +103,7 @@ describe('ProductionDataBanner', () => {
   });
 
   it('does not fetch or show the banner when not on localhost', async () => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
-      writable: true,
-    });
+    stubHostname('app.genfeed.ai');
 
     const fetchSpy = mockDbModeFetch();
 
