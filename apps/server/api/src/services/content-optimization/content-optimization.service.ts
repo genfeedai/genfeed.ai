@@ -3,8 +3,6 @@ import {
   type OptimizationCycleResult,
   OptimizationCycleService,
 } from '@api/collections/content-performance/services/optimization-cycle.service';
-import type { VariationGroupPostScore } from '@api/collections/content-performance/services/variation-group-scoring.service';
-import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -155,7 +153,6 @@ export class ContentOptimizationService {
     private readonly openAiLlmService: OpenAiLlmService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly trendPreferencesService: TrendPreferencesService,
-    private readonly variationGroupScoringService: VariationGroupScoringService,
   ) {}
 
   // ─── 1. Content Performance Analysis ─────────────────────────────
@@ -305,11 +302,6 @@ export class ContentOptimizationService {
         recommendation: r.recommendation,
       }));
 
-    // Close the source-post variation loop (issue #3025): a group's scored
-    // winner is offered to the same opt-in trend-enrichment path as
-    // content-run winners (issue #166).
-    await this.requeueVariationGroupWinnersIntoTrends(organizationId, brandId);
-
     return {
       abTestSuggestions,
       contentTypes,
@@ -317,48 +309,6 @@ export class ContentOptimizationService {
       pipelineConfigs,
       postingSchedule,
     };
-  }
-
-  /**
-   * Score published source-post variation groups and feed each group's
-   * winner into the existing winner → trend feedback loop
-   * (`requeueWinnerIntoTrends`), gated by the same `autoRequeueWinners`
-   * trend preference content-run winners already respect (issue #166).
-   * Best-effort: a scoring or enrichment failure must never break
-   * recommendation generation.
-   */
-  private async requeueVariationGroupWinnersIntoTrends(
-    organizationId: string,
-    brandId: string,
-  ): Promise<void> {
-    const caller = `${this.logContext}.requeueVariationGroupWinnersIntoTrends`;
-
-    try {
-      const { groups } =
-        await this.variationGroupScoringService.scoreVariationGroups({
-          brandId,
-          organizationId,
-        });
-
-      for (const group of groups) {
-        await this.requeueWinnerIntoTrends(organizationId, brandId, {
-          avgEngagementRate: group.winner.avgEngagementRate,
-          format: group.winner.format,
-          hook: this.winnerHook(group.winner),
-          platform: group.winner.platform,
-          variantId: group.winner.variantId ?? group.winner.postId,
-        });
-      }
-    } catch (error) {
-      this.logger.warn(
-        `${caller} failed; continuing recommendation generation`,
-        { brandId, error, organizationId },
-      );
-    }
-  }
-
-  private winnerHook(winner: VariationGroupPostScore): string {
-    return winner.hook ?? winner.variantId ?? winner.postId;
   }
 
   async generateSuggestions(
