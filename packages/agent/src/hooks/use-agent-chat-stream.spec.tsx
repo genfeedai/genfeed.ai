@@ -1,9 +1,11 @@
 'use client';
 
+import { useAgentThreadList } from '@genfeedai/agent/components/useAgentThreadList';
 import { resetAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +26,7 @@ const EFFECT_METHOD_MAP = {
   chatStream: 'chatStreamEffect',
   getMessages: 'getMessagesEffect',
   getThreadSnapshot: 'getThreadSnapshotEffect',
+  getThreads: 'getThreadsEffect',
 } as const;
 
 function withAgentApiEffects<T extends Record<string, unknown>>(
@@ -188,8 +191,161 @@ describe('useAgentChatStream', () => {
         brandId: null,
         contextVersion: 1,
         id: 'thread-new',
+        title: 'Start a new run',
       }),
     );
+  });
+
+  it('writes the send title into the store immediately without a refresh event', async () => {
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+
+    useAgentChatStore.setState({
+      threads: [
+        {
+          contextVersion: 1,
+          createdAt: '2026-03-09T08:00:00.000Z',
+          id: 'recent-other',
+          status: AgentThreadStatus.ACTIVE,
+          title: 'Already recent',
+          updatedAt: '2026-03-09T12:00:00.000Z',
+        },
+      ],
+    });
+
+    const apiService = createApiService({
+      chatStream: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
+        runId: 'run-send',
+        startedAt: '2026-03-09T13:00:00.000Z',
+        threadId: 'thread-send',
+      }),
+    });
+
+    const { result } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.sendMessage('Visible sidebar title from send');
+    });
+
+    const threads = useAgentChatStore.getState().threads;
+    expect(threads[0]?.id).toBe('thread-send');
+    expect(threads[0]?.title).toBe('Visible sidebar title from send');
+    expect(refreshListener).not.toHaveBeenCalled();
+
+    vi.useFakeTimers();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(refreshListener).not.toHaveBeenCalled();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
+  });
+
+  it('reorders the list from finalize without a guessed refresh timeout', async () => {
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+
+    const startedAt = '2026-03-09T10:00:00.000Z';
+    const apiService = createApiService({
+      chatStream: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
+        runId: 'run-finalize',
+        startedAt,
+        threadId: 'thread-finalize',
+      }),
+    });
+
+    useAgentChatStore.setState({
+      threads: [
+        {
+          contextVersion: 1,
+          createdAt: startedAt,
+          id: 'thread-other',
+          status: AgentThreadStatus.ACTIVE,
+          title: 'Other',
+          updatedAt: '2026-03-09T12:00:00.000Z',
+        },
+        {
+          contextVersion: 1,
+          createdAt: startedAt,
+          id: 'thread-finalize',
+          status: AgentThreadStatus.ACTIVE,
+          title: 'Finalize me',
+          updatedAt: startedAt,
+        },
+      ],
+    });
+    useAgentChatStore.getState().setActiveThread('thread-finalize');
+
+    const { result } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.sendMessage('Finalize me');
+    });
+
+    act(() => {
+      const finalizedThread = useAgentChatStore
+        .getState()
+        .threads.find((thread) => thread.id === 'thread-finalize');
+
+      useAgentChatStore.setState({
+        threads: [
+          {
+            contextVersion: 1,
+            createdAt: startedAt,
+            id: 'thread-other',
+            status: AgentThreadStatus.ACTIVE,
+            title: 'Other',
+            updatedAt: '2026-03-09T14:00:00.000Z',
+          },
+          {
+            contextVersion: 1,
+            createdAt: startedAt,
+            id: 'thread-finalize',
+            runStatus: finalizedThread?.runStatus,
+            status: AgentThreadStatus.ACTIVE,
+            title: finalizedThread?.title ?? 'Finalize me',
+            updatedAt: startedAt,
+          },
+        ],
+      });
+    });
+
+    await act(async () => {
+      for (const handler of socketHandlers.get('agent:done') ?? []) {
+        handler({
+          creditsRemaining: 88,
+          fullContent: 'Final answer',
+          metadata: {},
+          runId: 'run-finalize',
+          startedAt,
+          threadId: 'thread-finalize',
+          toolCalls: [],
+        });
+      }
+    });
+
+    const threads = useAgentChatStore.getState().threads;
+    expect(threads[0]?.id).toBe('thread-finalize');
+    expect(threads[0]?.runStatus).toBe('completed');
+    expect(refreshListener).not.toHaveBeenCalled();
+
+    vi.useFakeTimers();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(refreshListener).not.toHaveBeenCalled();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
   });
 
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {
@@ -736,9 +892,11 @@ describe('useAgentChatStream', () => {
       messages: [],
     });
 
+    const getThreads = vi.fn().mockResolvedValue([]);
     const apiService = createApiService({
       getMessages: vi.fn().mockResolvedValue([]),
       getThreadSnapshot: vi.fn().mockResolvedValue(null),
+      getThreads,
     });
     const refreshListener = vi.fn();
     window.addEventListener('agent:threads:refresh', refreshListener);
@@ -758,6 +916,7 @@ describe('useAgentChatStream', () => {
     });
 
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(getThreads).not.toHaveBeenCalled();
     expect(refreshListener).not.toHaveBeenCalled();
     window.removeEventListener('agent:threads:refresh', refreshListener);
   });
@@ -1032,5 +1191,91 @@ describe('useAgentChatStream', () => {
     expect(state.stream.pendingUiActions).toEqual([liveGenerationCard]);
     expect(state.activeRunId).toBe('run-live');
     expect(state.activeRunStatus).toBe('running');
+  });
+
+  it('does not refetch the thread list when the socket reconnects', async () => {
+    socketConnectionState = 'reconnecting';
+    socketConnected = false;
+
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-reconnect',
+      threads: [
+        {
+          contextVersion: 1,
+          createdAt: '2026-03-09T10:00:00.000Z',
+          id: 'thread-reconnect',
+          status: AgentThreadStatus.ACTIVE,
+          title: 'Reconnect thread',
+          updatedAt: '2026-03-09T10:00:00.000Z',
+        },
+      ],
+    });
+
+    const getThreads = vi.fn().mockResolvedValue([
+      {
+        contextVersion: 1,
+        createdAt: '2026-03-09T10:00:00.000Z',
+        id: 'thread-reconnect',
+        status: AgentThreadStatus.ACTIVE,
+        title: 'Reconnect thread',
+        updatedAt: '2026-03-09T10:00:00.000Z',
+      },
+    ]);
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+
+    const apiService = createApiService({
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        activeRun: null,
+        lastAssistantMessage: null,
+        lastSequence: 0,
+        latestProposedPlan: null,
+        latestUiBlocks: null,
+        memorySummaryRefs: [],
+        pendingApprovals: [],
+        pendingInputRequests: [],
+        profileSnapshot: null,
+        sessionBinding: null,
+        source: 'agent',
+        threadId: 'thread-reconnect',
+        threadStatus: 'active',
+        timeline: [],
+        title: 'Reconnect thread',
+      }),
+      getThreads,
+    });
+
+    const { rerender } = renderHook(() => {
+      const list = useAgentThreadList({
+        apiService,
+        isActive: true,
+      });
+      const stream = useAgentChatStream({
+        apiService,
+      });
+      return { list, stream };
+    });
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(1);
+    });
+
+    socketConnectionState = 'connected';
+    socketConnected = true;
+    rerender();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(resolve, 200);
+        }),
+    );
+
+    expect(getThreads).toHaveBeenCalledTimes(1);
+    expect(refreshListener).not.toHaveBeenCalled();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
   });
 });

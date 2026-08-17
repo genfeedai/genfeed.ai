@@ -1,4 +1,3 @@
-import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import {
   AGENT_DRAFT_SUGGESTION_EVENT,
   type AgentDraftSuggestionPayload,
@@ -13,7 +12,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 
 export type HandleUiActionDeps = {
   activeThreadId: string | null;
@@ -130,32 +129,22 @@ export async function handleAgentUiAction(
       ),
     );
 
-    if (response.threadId !== deps.activeThreadId) {
-      deps.setActiveThread(response.threadId);
-    }
-
-    const now = new Date().toISOString();
     const existingThread = deps.threads.find(
       (thread) => thread.id === response.threadId,
     );
 
-    deps.upsertThread({
+    syncAgentThreadFromTurn({
+      activeThreadId: deps.activeThreadId,
       brandId: response.brandId,
-      createdAt: existingThread?.createdAt ?? now,
       contextVersion: response.contextVersion,
-      id: response.threadId,
+      createdAt: existingThread?.createdAt,
       planModeEnabled:
         existingThread?.planModeEnabled ?? deps.draftPlanModeEnabled,
-      status: AgentThreadStatus.ACTIVE,
+      setActiveThread: deps.setActiveThread,
+      threadId: response.threadId,
       title: existingThread?.title ?? 'Agent thread',
-      updatedAt: now,
+      upsertThread: deps.upsertThread,
     });
-
-    if (typeof window !== 'undefined') {
-      setTimeout(() => {
-        window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
-      }, 2000);
-    }
 
     deps.setCreditsRemaining(response.creditsRemaining);
 

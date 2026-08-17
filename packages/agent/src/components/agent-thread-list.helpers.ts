@@ -1,14 +1,9 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 
-export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
+export { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 
-export const AGENT_REFRESH_CONVERSATIONS_EVENT = 'agent:threads:refresh';
-/**
- * Refresh requests arrive in bursts (send + stream finalize + reconnect fire
- * within the same tick); the list coalesces them into one fetch.
- */
-export const AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS = 150;
+export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 
 export type AgentThreadListFilter = 'all' | 'needs-you' | 'working' | 'pinned';
 
@@ -262,21 +257,6 @@ export function getThreadStatusA11yLabel(
   }
 
   return `Conversation status for ${thread.title || 'Untitled'}`;
-}
-
-export function sortThreads(threads: AgentThread[]): AgentThread[] {
-  return threads.toSorted((left, right) => {
-    const pinnedDelta =
-      Number(right.isPinned ?? false) - Number(left.isPinned ?? false);
-    if (pinnedDelta !== 0) {
-      return pinnedDelta;
-    }
-
-    return (
-      new Date(right.updatedAt ?? right.createdAt).getTime() -
-      new Date(left.updatedAt ?? left.createdAt).getTime()
-    );
-  });
 }
 
 export function hasRenderableThreadId(thread: AgentThread): boolean {
