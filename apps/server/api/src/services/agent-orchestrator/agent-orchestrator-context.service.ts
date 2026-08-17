@@ -32,6 +32,11 @@ import {
   applyAgentReplyStyle,
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
+import {
+  fenceUntrustedContent,
+  sanitizeAgentUntrustedInput,
+  UNTRUSTED_USER_DATA_FRAMING,
+} from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -368,7 +373,10 @@ export class AgentOrchestratorContextService {
         if (isLatestUserMessage && attachments?.length) {
           history.push({
             content: [
-              { text: msg.content || '', type: 'text' },
+              {
+                text: fenceUntrustedContent(msg.content || ''),
+                type: 'text',
+              },
               ...attachments.map((a) => ({
                 image_url: { url: a.url },
                 type: 'image_url' as const,
@@ -377,8 +385,12 @@ export class AgentOrchestratorContextService {
             role: 'user',
           });
         } else {
+          const content =
+            msg.role === AgentMessageRole.USER
+              ? fenceUntrustedContent(msg.content || '')
+              : msg.content || '';
           history.push({
-            content: msg.content || '',
+            content,
             role: msg.role as 'user' | 'assistant',
           });
         }
@@ -552,7 +564,9 @@ export class AgentOrchestratorContextService {
       .map((section) => `## ${section}\n${sections.get(section)?.join('\n')}`)
       .join('\n\n');
 
-    return rendered ? `Saved memory to consider:\n\n${rendered}` : '';
+    return rendered
+      ? `Saved memory to consider:\n\n${UNTRUSTED_USER_DATA_FRAMING}\n\n${rendered}`
+      : '';
   }
 
   private resolveMemorySection(memory: AgentMemoryDocument): string {
@@ -574,9 +588,9 @@ export class AgentOrchestratorContextService {
   }
 
   private formatMemoryLine(memory: AgentMemoryDocument): string {
-    const base = (memory.summary || memory.content || '')
-      .trim()
-      .replace(/\s+/g, ' ');
+    const base = sanitizeAgentUntrustedInput(
+      (memory.summary || memory.content || '').trim().replace(/\s+/g, ' '),
+    );
 
     if (!base) {
       return '';
