@@ -326,7 +326,25 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     description:
       'Template-based prompt with @variable interpolation from connected Prompt nodes',
     icon: 'Puzzle',
-    inputs: [{ id: 'text', label: 'Variables', multiple: true, type: 'text' }],
+    inputs: [
+      { id: 'text', label: 'Variables', multiple: true, type: 'text' },
+      { id: 'topic', label: 'Topic', required: false, type: 'text' },
+      { id: 'brandVoice', label: 'Brand Voice', required: false, type: 'text' },
+      {
+        id: 'hooks',
+        label: 'Hooks',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
+      {
+        id: 'avoid',
+        label: 'Avoid Topics',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
+    ],
     label: 'Prompt Constructor',
     outputs: [{ id: 'text', label: 'Prompt', type: 'text' }],
     type: 'promptConstructor',

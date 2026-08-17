@@ -21,6 +21,21 @@ describe('SAAS_NODE_DEFINITIONS', () => {
     }
   });
 
+  it('exposes analytics posting-time and publish schedule handles', () => {
+    expect(SAAS_NODE_DEFINITIONS.analyticsFeedback.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'topHooks', type: 'text' }),
+        expect.objectContaining({ id: 'worstTopics', type: 'text' }),
+        expect.objectContaining({ id: 'bestPostingTimes', type: 'object' }),
+      ]),
+    );
+    expect(SAAS_NODE_DEFINITIONS.publish.inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'schedule', type: 'any' }),
+      ]),
+    );
+  });
+
   it('exposes the full voice config without removing the legacy voice output', () => {
     expect(SAAS_NODE_DEFINITIONS.brandContext.outputs).toEqual(
       expect.arrayContaining([

@@ -195,5 +195,55 @@ describe('PromptConstructorExecutor', () => {
       expect(result.data).toBe('Alice meets Alice');
       expect(result.metadata?.resolvedCount).toBe(2);
     });
+
+    it('should fold hooks and avoid lists into the resolved prompt', async () => {
+      const input = makeInput(
+        {
+          maxLength: 2200,
+          template: 'Write a {{tone}} caption about {{topic}}.',
+          tone: 'brand-voice',
+        },
+        [
+          ['topic', 'ai tools'],
+          ['hooks', ['I tried X for a week', 'Stop doing Y']],
+          ['avoid', ['giveaway', 'unboxings']],
+        ],
+      );
+
+      const result = await executor.execute(input);
+
+      expect(result.data).toBe(
+        [
+          'Write a brand-voice caption about ai tools.',
+          'Proven hooks to emulate:\n- I tried X for a week\n- Stop doing Y',
+          'Avoid these topics:\n- giveaway\n- unboxings',
+        ].join('\n\n'),
+      );
+      expect(result.metadata).toMatchObject({
+        avoidCount: 2,
+        hooksCount: 2,
+      });
+    });
+
+    it('should skip empty hooks and avoid guidance', async () => {
+      const input = makeInput(
+        {
+          template: 'Write about {{topic}}',
+        },
+        [
+          ['topic', 'ai tools'],
+          ['hooks', []],
+          ['avoid', '  '],
+        ],
+      );
+
+      const result = await executor.execute(input);
+
+      expect(result.data).toBe('Write about ai tools');
+      expect(result.metadata).toMatchObject({
+        avoidCount: 0,
+        hooksCount: 0,
+      });
+    });
   });
 });

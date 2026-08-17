@@ -32,6 +32,7 @@ describe('publish node', () => {
       expect(DEFAULT_PUBLISH_DATA.inputBrandId).toBeNull();
       expect(DEFAULT_PUBLISH_DATA.inputMediaId).toBeNull();
       expect(DEFAULT_PUBLISH_DATA.inputCaption).toBeNull();
+      expect(DEFAULT_PUBLISH_DATA.inputSchedule).toBeNull();
     });
 
     it('should default output arrays to empty', () => {
@@ -85,6 +86,14 @@ describe('publish node', () => {
       );
       expect(captionInput).toBeDefined();
       expect(captionInput?.required).toBe(false);
+    });
+
+    it('should have optional schedule input', () => {
+      const scheduleInput = publishNodeDefinition.inputs.find(
+        (i) => i.id === 'schedule',
+      );
+      expect(scheduleInput).toBeDefined();
+      expect(scheduleInput?.required).toBe(false);
     });
 
     it('should have no outputs', () => {

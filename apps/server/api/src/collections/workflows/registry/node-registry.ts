@@ -383,6 +383,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         type: 'text',
       },
       worstTopics: { label: 'Worst Topics', multiple: true, type: 'text' },
+      releaseEvidence: { label: 'Release Evidence', type: 'any' },
     },
   },
 
@@ -493,6 +494,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     isPremium: false,
     label: 'LLM',
     outputs: {
+      content: { label: 'Content', type: 'text' },
       text: { label: 'Response Text', type: 'text' },
     },
   },
@@ -515,11 +517,28 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     description: 'Compose prompts from templates with variable substitution',
     icon: 'FileText',
     inputs: {
+      angle: { label: 'Editorial Angle', required: false, type: 'text' },
+      avoid: {
+        label: 'Avoid Topics',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
+      brandVoice: { label: 'Brand Voice', required: false, type: 'text' },
+      cta: { label: 'CTA', required: false, type: 'text' },
+      hooks: {
+        label: 'Hooks',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
       listingTier: { label: 'Listing Tier', required: false, type: 'text' },
+      proofPoint: { label: 'Proof Point', required: false, type: 'text' },
       propertyType: { label: 'Property Type', required: false, type: 'text' },
       roomType: { label: 'Room Type', required: false, type: 'text' },
       stylePreset: { label: 'Style Preset', required: false, type: 'text' },
       targetSpace: { label: 'Target Space', required: false, type: 'text' },
+      topic: { label: 'Topic', required: false, type: 'text' },
     },
     label: 'Prompt Constructor',
     outputs: {
@@ -1307,6 +1326,11 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         required: false,
         type: 'text',
       },
+      platform: {
+        label: 'Platform',
+        required: false,
+        type: 'text',
+      },
     },
     isPremium: true,
     label: 'Trend Trigger',
@@ -1464,7 +1488,10 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     description: 'Publish content to social media platforms',
     icon: 'Share2',
     inputs: {
+      brand: { label: 'Brand', required: false, type: 'any' },
+      caption: { label: 'Caption', required: false, type: 'text' },
       media: { label: 'Media', type: 'any' },
+      schedule: { label: 'Schedule', required: false, type: 'any' },
     },
     label: 'Publish to Social',
     maps: WorkflowStepCategory.PUBLISH,

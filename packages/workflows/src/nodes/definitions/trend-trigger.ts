@@ -46,7 +46,16 @@ export const trendTriggerNodeDefinition = {
   defaultData: DEFAULT_TREND_TRIGGER_DATA,
   description: 'Start workflow when new trend matches criteria',
   icon: 'TrendingUp',
-  inputs: [],
+  inputs: [
+    {
+      id: 'keywords',
+      label: 'Keywords',
+      multiple: true,
+      required: false,
+      type: 'text',
+    },
+    { id: 'platform', label: 'Platform', required: false, type: 'text' },
+  ],
   label: 'Trend Trigger',
   outputs: [
     { id: 'trendId', label: 'Trend ID', type: 'text' },

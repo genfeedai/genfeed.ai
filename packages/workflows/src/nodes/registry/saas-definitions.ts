@@ -128,6 +128,7 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     inputs: [],
     label: 'Brand Context',
     outputs: [
+      { id: 'brandId', label: 'Brand ID', type: 'text' },
       { id: 'voice', label: 'Brand Voice', type: 'text' },
       { id: 'voiceConfig', label: 'Brand Voice Config', type: 'object' },
       { id: 'colors', label: 'Color Palette', type: 'text' },
@@ -242,6 +243,7 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'brand', label: 'Brand', required: true, type: 'brand' },
       { id: 'media', label: 'Media', required: true, type: 'any' },
       { id: 'caption', label: 'Caption', type: 'text' },
+      { id: 'schedule', label: 'Schedule', required: false, type: 'any' },
     ],
     label: 'Publish',
     outputs: [],
@@ -341,6 +343,8 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
         label: 'Week-over-Week Change %',
         type: 'number',
       },
+      { id: 'bestPostingTimes', label: 'Best Posting Times', type: 'object' },
+      { id: 'releaseEvidence', label: 'Release Evidence', type: 'object' },
     ],
     type: 'analyticsFeedback',
   },
@@ -407,7 +411,16 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     defaultData: DEFAULT_TREND_TRIGGER_DATA as Record<string, unknown>,
     description: 'Start workflow when new trend matches criteria',
     icon: 'TrendingUp',
-    inputs: [],
+    inputs: [
+      {
+        id: 'keywords',
+        label: 'Keywords',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
+      { id: 'platform', label: 'Platform', required: false, type: 'text' },
+    ],
     label: 'Trend Trigger',
     outputs: [
       { id: 'trendId', label: 'Trend ID', type: 'text' },
