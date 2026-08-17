@@ -69,13 +69,12 @@ export default async function Page({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     about: {
-      '@type': 'SoftwareApplication',
-      applicationCategory: 'BusinessApplication',
+      '@type': 'Thing',
       name: 'Genfeed',
     },
     description,
     mentions: {
-      '@type': 'SoftwareApplication',
+      '@type': 'Thing',
       name: competitorName,
     },
     name: `Genfeed vs ${competitorName}`,

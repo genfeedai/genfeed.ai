@@ -89,11 +89,26 @@ describe('comparison page route', () => {
     });
 
     const [comparisonJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [
-      { mentions: { name: string }; name: string },
+      {
+        about: { '@type': string; name: string };
+        mentions: { '@type': string; name: string };
+        name: string;
+      },
       { itemListElement: Array<{ name: string }> },
     ];
 
     const name = formatCompetitorSlug(KNOWN_SLUG);
+    expect(comparisonJsonLd.about).toEqual({
+      '@type': 'Thing',
+      name: 'Genfeed',
+    });
+    expect(comparisonJsonLd.mentions).toEqual({
+      '@type': 'Thing',
+      name,
+    });
+    expect(JSON.stringify(comparisonJsonLd)).not.toContain(
+      'SoftwareApplication',
+    );
     expect(comparisonJsonLd.mentions.name).toBe(name);
     expect(comparisonJsonLd.name).toBe(`Genfeed vs ${name}`);
     expect(breadcrumbJsonLd.itemListElement.map((item) => item.name)).toEqual([
