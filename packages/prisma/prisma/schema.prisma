@@ -713,6 +713,7 @@ model Organization {
   creditBalances                CreditBalance[]
   creditTransactions            CreditTransaction[]
   llmVendorCosts                LlmVendorCost[]
+  mediaVendorCosts              MediaVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
   leads                         Lead[]                         @relation("lead_org")
@@ -2523,6 +2524,31 @@ model LlmVendorCost {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
   @@map("llm_vendor_costs")
+}
+
+/// Per-generation media vendor cost (companion to LlmVendorCost, #2361).
+/// Micro-USD integers derived from Model.providerCostUsd × realized output
+/// units (seconds / megapixels / runs). BYOK rows store units with
+/// vendorCostMicros = 0. Never stores prompt content.
+model MediaVendorCost {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  provider         String
+  model            String
+  category         String
+  ingredientId     String?
+  units            Float        @default(1)
+  pricingType      String?
+  vendorCostMicros Int          @default(0)
+  isByok           Boolean      @default(false)
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_model_created_at_idx")
+  @@map("media_vendor_costs")
 }
 
 model CustomerInstance {

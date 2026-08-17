@@ -62,6 +62,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -100,6 +101,7 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
     forwardRef(() => FileQueueModule),
     forwardRef(() => FilesClientModule),
     forwardRef(() => IngredientsModule),
+    forwardRef(() => MediaVendorCostModule),
     forwardRef(() => MembersModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => MicroservicesModule),

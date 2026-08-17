@@ -2617,6 +2617,29 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       client: 'clientId',
     },
   },
+  MediaVendorCost: {
+    allFields: [
+      'category',
+      'createdAt',
+      'id',
+      'ingredientId',
+      'isByok',
+      'isDeleted',
+      'model',
+      'organization',
+      'organizationId',
+      'pricingType',
+      'provider',
+      'units',
+      'updatedAt',
+      'vendorCostMicros',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
+  },
   Member: {
     allFields: [
       'authProviderMembershipId',
@@ -3008,6 +3031,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'livestreamBotSessions',
       'llmVendorCosts',
       'mcpApprovals',
+      'mediaVendorCosts',
       'members',
       'models',
       'monitoredAccounts',

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   billCreditsFromProviderCost,
   buildPricingAuditStamp,
+  computeMediaVendorCostMicros,
   resolveLiveModelCreditPricing,
   resolveProviderCostUnits,
   withLiveModelCreditPricing,
@@ -102,6 +103,32 @@ describe('live model credit pricing', () => {
     expect(
       buildPricingAuditStamp({ providerCostUsd: 0 }).providerCostUsd,
     ).toBeNull();
+  });
+
+  it('computeMediaVendorCostMicros scales provider USD by realized units', () => {
+    // 10s × $0.24/s = $2.40 → 2_400_000 micro-USD
+    expect(
+      computeMediaVendorCostMicros(
+        {
+          defaultDuration: 5,
+          pricingType: PricingType.PER_SECOND,
+          providerCostUsd: 0.24,
+        },
+        { duration: 10 },
+      ),
+    ).toBe(2_400_000);
+    // FLAT: one run at $0.15
+    expect(
+      computeMediaVendorCostMicros({
+        pricingType: PricingType.FLAT,
+        providerCostUsd: 0.15,
+      }),
+    ).toBe(150_000);
+  });
+
+  it('computeMediaVendorCostMicros returns 0 without a provider cost', () => {
+    expect(computeMediaVendorCostMicros({ cost: 50 })).toBe(0);
+    expect(computeMediaVendorCostMicros({ providerCostUsd: 0 })).toBe(0);
   });
 
   it('withLiveModelCreditPricing projects fields without dropping others', () => {

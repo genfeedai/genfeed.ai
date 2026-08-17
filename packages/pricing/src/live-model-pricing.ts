@@ -151,6 +151,31 @@ export function resolveLiveModelCreditPricing(
   };
 }
 
+/** Micro-USD integer scale shared by the vendor-cost ledgers. */
+export const VENDOR_COST_MICROS_PER_USD = 1_000_000;
+
+/**
+ * Platform vendor cost of one media generation in micro-USD:
+ * `providerCostUsd × units`, where units follow the model's pricingType
+ * (seconds / megapixels / runs). Returns 0 when the model has no known
+ * provider cost — the ledger row then still counts the generation.
+ */
+export function computeMediaVendorCostMicros(
+  model: ModelLivePricingInput,
+  options?: ModelLivePricingUnits,
+): number {
+  if (!hasProviderCostUsd(model.providerCostUsd)) {
+    return 0;
+  }
+
+  const units = resolveProviderCostUnits(
+    model.pricingType,
+    model.defaultDuration,
+    options,
+  );
+  return Math.round(model.providerCostUsd * units * VENDOR_COST_MICROS_PER_USD);
+}
+
 /**
  * Audit stamp for a charge priced against this model: the margin multiplier in
  * force right now plus the model's provider-cost inputs. Callers attach it to
