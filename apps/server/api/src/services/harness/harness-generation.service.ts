@@ -5,6 +5,7 @@ import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
   formatHarnessBrief,
+  type PersonaSource,
 } from '@api/services/harness/harness-brief.util';
 import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
 import {
@@ -19,6 +20,12 @@ import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 export type ResolveHarnessBriefParams = {
+  /**
+   * Extra sources (e.g. caller-supplied audience signals) folded into the
+   * brief alongside any retrieved brand content memory. Caller-supplied
+   * sources are listed first, memory hits after.
+   */
+  additionalSources?: HarnessSourceRecord[];
   brandId?: string;
   contentType: ContentKind;
   /**
@@ -28,6 +35,7 @@ export type ResolveHarnessBriefParams = {
   includeContentMemory?: boolean;
   objective?: ContentObjective;
   organizationId: string;
+  persona?: PersonaSource | null;
   platform?: string;
   topic?: string;
 };
@@ -101,7 +109,10 @@ export class HarnessGenerationService {
 
       return await this.contentHarnessService.composeBrief(
         buildHarnessInput({
-          additionalSources: memorySources,
+          additionalSources: [
+            ...(params.additionalSources ?? []),
+            ...memorySources,
+          ],
           brand,
           intent: {
             contentType: params.contentType,
@@ -110,6 +121,7 @@ export class HarnessGenerationService {
             topic: params.topic,
           },
           organizationId: params.organizationId,
+          persona: params.persona,
           profileContribution: profileContribution ?? undefined,
         }),
       );
