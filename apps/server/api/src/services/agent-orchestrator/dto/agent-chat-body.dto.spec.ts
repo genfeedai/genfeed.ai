@@ -38,6 +38,14 @@ describe('AgentChatBodyDto', () => {
       expect(result).toEqual({ content: 'Draft me a post' });
     });
 
+    it('accepts content at the 32000 character bound', async () => {
+      const content = 'x'.repeat(32000);
+
+      const result = await pipe.transform({ content }, metadata);
+
+      expect(result).toEqual({ content });
+    });
+
     it('accepts a fully populated body and preserves every field', async () => {
       const value = {
         artifactReferences: [
@@ -96,6 +104,29 @@ describe('AgentChatBodyDto', () => {
       await expect(pipe.transform({ content: 123 }, metadata)).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('rejects content longer than 32000 characters', async () => {
+      await expect(
+        pipe.transform({ content: 'x'.repeat(32001) }, metadata),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('surfaces Validation failed for oversized content', async () => {
+      try {
+        await pipe.transform({ content: 'x'.repeat(32001) }, metadata);
+        throw new Error('expected BadRequestException');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        const response = (error as BadRequestException).getResponse() as Record<
+          string,
+          unknown
+        >;
+        expect(response).toEqual(
+          expect.objectContaining({ message: 'Validation failed' }),
+        );
+        expect(response.errors).toBeDefined();
+      }
     });
 
     it('rejects a source outside the allowed enum', async () => {

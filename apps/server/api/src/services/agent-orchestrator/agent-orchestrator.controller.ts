@@ -15,6 +15,7 @@ import {
   authorizeResearchFindingReferences,
   isAuthorizedAnalyticsQueryReference,
 } from '@api/services/agent-orchestrator/utils/agent-page-context-authorization.util';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -46,6 +47,7 @@ export class AgentOrchestratorController {
   ) {}
 
   @Post('threads/turns')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
   async createTurn(
     @Body() body: AgentChatBodyDto,
@@ -56,6 +58,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a thread' })
   async createThreadTurn(
     @Param('threadId') threadId: string,
@@ -67,6 +70,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/turns/stream')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
     summary: 'Start a streaming agent turn in a new or provided thread',
   })
@@ -79,6 +83,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns/stream')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
   async createThreadTurnStream(
     @Param('threadId') threadId: string,
