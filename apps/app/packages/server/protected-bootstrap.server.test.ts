@@ -119,9 +119,13 @@ describe('loadProtectedBootstrap', () => {
   it('skips server auth bootstrap in Playwright mode', async () => {
     process.env.PLAYWRIGHT_TEST = 'true';
 
-    const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
-    );
+    const {
+      getServerAuthToken,
+      isProtectedBootstrapBypassed,
+      loadProtectedBootstrap,
+    } = await import('@app-server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
 
     await expect(getServerAuthToken()).resolves.toBe('');
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
@@ -136,10 +140,13 @@ describe('loadProtectedBootstrap', () => {
       getAll: vi.fn(() => []),
     });
 
-    const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
-    );
+    const {
+      getServerAuthToken,
+      isProtectedBootstrapBypassed,
+      loadProtectedBootstrap,
+    } = await import('@app-server/protected-bootstrap.server');
 
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
     await expect(getServerAuthToken()).resolves.toBe('');
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
     expect(getInstanceMock).not.toHaveBeenCalled();

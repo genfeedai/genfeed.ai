@@ -7,7 +7,10 @@ import { PLAYWRIGHT_E2E_QUARANTINES } from './playwright-e2e-tiers.manifest.mjs'
 import {
   buildPlaywrightE2eTierPlan,
   buildPlaywrightE2eTierSummary,
+  collectPlaywrightJsonReportPaths,
   discoverPlaywrightSpecs,
+  isPlaywrightJsonReport,
+  mergePlaywrightJsonReports,
   PLAYWRIGHT_E2E_TIER_CONTRACT,
   validatePlaywrightE2eQuarantines,
 } from './playwright-e2e-tiers.mjs';
@@ -184,4 +187,72 @@ test('summary records discovered, executed, and quarantined inventory', () => {
   assert.equal(summary.executedFileCount, 2);
   assert.equal(summary.failedFileCount, 1);
   assert.equal(summary.status, 'failed');
+});
+
+test('summary without a Playwright report no longer pretends zero tests ran', () => {
+  const summary = buildPlaywrightE2eTierSummary({
+    plan: {
+      discoveredFiles: ['a.spec.ts'],
+      quarantinedFiles: [],
+      selectedFiles: ['a.spec.ts'],
+      tier: 'full',
+    },
+    status: 'failed',
+  });
+
+  assert.equal(summary.executedFileCount, 0);
+  assert.equal(summary.failedFileCount, 0);
+});
+
+test('summary merges shard JSON reports instead of the first missing report', () => {
+  const summary = buildPlaywrightE2eTierSummary({
+    plan: {
+      discoveredFiles: ['a.spec.ts', 'b.spec.ts'],
+      quarantinedFiles: [],
+      selectedFiles: ['a.spec.ts', 'b.spec.ts'],
+      tier: 'full',
+    },
+    playwrightReports: [
+      { suites: [{ specs: [{ ok: true }, { ok: false }] }] },
+      {
+        stats: { expected: 4, unexpected: 3 },
+        suites: [{ specs: [{ ok: true }, { ok: true }, { ok: false }] }],
+      },
+    ],
+    status: 'failed',
+  });
+
+  assert.equal(summary.executedFileCount, 5);
+  assert.equal(summary.failedFileCount, 2);
+});
+
+test('collects nested Playwright JSON report paths', () => {
+  const rootDir = createFixture([]);
+  const shardOne = path.join(rootDir, 'shards', '1', 'results.json');
+  const shardTwo = path.join(rootDir, 'shards', '2', 'results.json');
+  mkdirSync(path.dirname(shardOne), { recursive: true });
+  mkdirSync(path.dirname(shardTwo), { recursive: true });
+  writeFileSync(shardOne, '{}\n');
+  writeFileSync(shardTwo, '{}\n');
+
+  assert.deepEqual(collectPlaywrightJsonReportPaths(path.join(rootDir, 'shards')), [
+    shardOne,
+    shardTwo,
+  ]);
+});
+
+test('ignores inventory JSON that is not a Playwright report', () => {
+  assert.equal(isPlaywrightJsonReport({ discoveredFileCount: 111 }), false);
+  assert.equal(isPlaywrightJsonReport({ suites: [] }), true);
+  assert.equal(isPlaywrightJsonReport({ stats: { unexpected: 2 } }), true);
+});
+
+test('mergePlaywrightJsonReports prefers walked specs over empty stats', () => {
+  const merged = mergePlaywrightJsonReports([
+    { suites: [{ specs: [{ ok: false }] }] },
+    { stats: { expected: 2, unexpected: 1 }, suites: [] },
+  ]);
+
+  assert.equal(merged.executed, 4);
+  assert.equal(merged.failed, 2);
 });

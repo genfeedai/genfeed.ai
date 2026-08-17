@@ -47,6 +47,13 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
   assert.match(workflow, /playwright-report-full-merged/);
   assert.match(workflow, /playwright-full-traces/);
   assert.match(workflow, /playwright-full-screenshots/);
+  assert.match(workflow, /playwright-full-json-/);
+  assert.match(workflow, /--playwright-reports-dir=/);
+  assert.doesNotMatch(
+    workflow,
+    /--reporter=blob/,
+    'CLI --reporter=blob replaces config reporters and drops results.json',
+  );
   assert.match(workflow, /nightly-playwright-full-failure-reporter\.mjs/);
   assert.match(workflow, /NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL/);
 });

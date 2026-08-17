@@ -1,5 +1,7 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { brandPath } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Workflow Editor
@@ -11,7 +13,7 @@ import { expect } from '@playwright/test';
  */
 export class WorkflowPage {
   readonly page: Page;
-  readonly basePath = '/automate/workflows';
+  readonly basePath = brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS);
 
   // Layout
   readonly sidebar: Locator;
@@ -78,26 +80,37 @@ export class WorkflowPage {
     this.page = page;
 
     // Layout
-    this.sidebar = page.locator('[data-testid="workflow-sidebar"], aside, nav');
+    this.sidebar = page
+      .locator('[data-testid="workflow-sidebar"]')
+      .or(page.getByTestId('sidebar-shell'))
+      .first();
     this.mainContent = page.locator('main, [data-testid="main-content"]');
 
     // Sidebar nav links
-    this.navEditor = page.locator(
-      'a[href="/automate/workflows/new"],' +
-        ' a[href*="/automate/workflows/new"],' +
-        ' [data-testid="nav-editor"]',
-    );
-    this.navLibrary = page.locator(
-      'a[href$="/automate/workflows"],' + ' [data-testid="nav-library"]',
-    );
-    this.navTemplates = page.locator(
-      'a[href*="/automate/workflows/templates"],' +
-        ' [data-testid="nav-templates"]',
-    );
-    this.navExecutions = page.locator(
-      'a[href*="/automate/workflows/executions"],' +
-        ' [data-testid="nav-executions"]',
-    );
+    this.navEditor = page
+      .locator(
+        'a[href$="/automate/workflows/new"],' +
+          ' a[href*="/automate/workflows/new"],' +
+          ' [data-testid="nav-editor"]',
+      )
+      .first();
+    this.navLibrary = page
+      .locator(
+        'a[href$="/automate/workflows"],' + ' [data-testid="nav-library"]',
+      )
+      .first();
+    this.navTemplates = page
+      .locator(
+        'a[href*="/automate/workflows/templates"],' +
+          ' [data-testid="nav-templates"]',
+      )
+      .first();
+    this.navExecutions = page
+      .locator(
+        'a[href*="/automate/workflows/executions"],' +
+          ' [data-testid="nav-executions"]',
+      )
+      .first();
 
     // Canvas
     this.canvas = page.locator(

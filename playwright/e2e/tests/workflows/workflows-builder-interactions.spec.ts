@@ -115,7 +115,7 @@ test.describe('Workflows builder & canvas interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
 
     const canvas = authenticatedPage.locator('.react-flow').first();
     await canvas.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});

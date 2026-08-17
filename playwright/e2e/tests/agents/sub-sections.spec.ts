@@ -7,6 +7,7 @@ import {
   mockWorkflowTemplates,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 
 /**
  * E2E Tests for Agents Sub-Routes
@@ -28,7 +29,7 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('programs page loads programs list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -40,7 +41,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -53,7 +54,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
+    await authenticatedPage.goto(brandPath(APP_ROUTES.MESSAGES.OUTREACH));
 
     await expect(authenticatedPage).toHaveURL(/messages\/outreach/);
     await expect(
@@ -65,7 +66,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH_NEW);
+    await authenticatedPage.goto(brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW));
 
     await expect(authenticatedPage).toHaveURL(/messages\/outreach\/new/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
@@ -73,7 +74,7 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('runs page shows run history', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.RUNS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.RUNS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -88,7 +89,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.STRATEGIES, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.STRATEGIES), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -101,7 +102,7 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -118,7 +119,7 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -135,9 +136,12 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(/automate\/workflows\/templates/);
     await expect(

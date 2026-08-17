@@ -15,7 +15,15 @@ export {
   mockWebSocket,
   setupApiMocks,
 } from './api-interceptor';
-
+export {
+  brandPath,
+  E2E_BRAND_BASE,
+  E2E_BRAND_SLUG,
+  E2E_ORG_SLUG,
+  orgPath,
+  orgSettingsRoute,
+  sidebarLocator,
+} from './app-chrome';
 // Interaction helpers
 export {
   assertHealthy,

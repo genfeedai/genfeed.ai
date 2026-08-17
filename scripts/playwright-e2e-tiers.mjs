@@ -21,7 +21,12 @@ const REPORT_DIRECTORY = path.join(
   'playwright/artifacts/report',
 );
 const SUMMARY_FILENAME = 'full-tier-summary.json';
+const PLAYWRIGHT_JSON_REPORT_FILENAME = 'results.json';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const PLAYWRIGHT_JSON_REPORT_PATH = path.join(
+  REPORT_DIRECTORY,
+  PLAYWRIGHT_JSON_REPORT_FILENAME,
+);
 
 export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
   configs: {
@@ -234,30 +239,92 @@ function countSpecs(suite) {
 }
 
 /**
+ * @param {string} directory
+ * @returns {string[]}
+ */
+export function collectPlaywrightJsonReportPaths(directory) {
+  if (!directory || !existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return collectPlaywrightJsonReportPaths(absolutePath);
+      }
+
+      return entry.isFile() && entry.name.endsWith('.json')
+        ? [absolutePath]
+        : [];
+    })
+    .sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is { stats?: { expected?: number, unexpected?: number }, suites?: unknown[] }}
+ */
+export function isPlaywrightJsonReport(value) {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const report = /** @type {{ stats?: unknown, suites?: unknown }} */ (value);
+  return Array.isArray(report.suites) || report.stats !== undefined;
+}
+
+/**
+ * @param {Array<{ stats?: { expected?: number, unexpected?: number }, suites?: unknown[] }>} reports
+ * @returns {{ executed: number, failed: number }}
+ */
+export function mergePlaywrightJsonReports(reports) {
+  let executed = 0;
+  let failed = 0;
+
+  for (const report of reports) {
+    const walked = countSpecs({ suites: report.suites ?? [] });
+    if (walked.executed > 0) {
+      executed += walked.executed;
+      failed += walked.failed;
+      continue;
+    }
+
+    if (report.stats) {
+      executed += (report.stats.expected ?? 0) + (report.stats.unexpected ?? 0);
+      failed += report.stats.unexpected ?? 0;
+    }
+  }
+
+  return { executed, failed };
+}
+
+/**
  * @param {{
  *   plan: PlaywrightE2eTierPlan,
  *   playwrightReport?: { stats?: { expected?: number, unexpected?: number }, suites?: unknown[] },
+ *   playwrightReports?: Array<{ stats?: { expected?: number, unexpected?: number }, suites?: unknown[] }>,
  *   status: 'failed' | 'passed' | 'planned',
  * }} input
  */
 export function buildPlaywrightE2eTierSummary({
   plan,
   playwrightReport,
+  playwrightReports,
   status,
 }) {
   let executedFileCount = null;
   let failedFileCount = null;
 
   if (status !== 'planned') {
-    const walked = countSpecs({ suites: playwrightReport?.suites ?? [] });
-    if (walked.executed > 0) {
-      executedFileCount = walked.executed;
-      failedFileCount = walked.failed;
-    } else if (playwrightReport?.stats) {
-      const passed = playwrightReport.stats.expected ?? 0;
-      const failed = playwrightReport.stats.unexpected ?? 0;
-      executedFileCount = passed + failed;
-      failedFileCount = failed;
+    const reports = [
+      ...(playwrightReports ?? []),
+      ...(playwrightReport ? [playwrightReport] : []),
+    ];
+    const merged = mergePlaywrightJsonReports(reports);
+    if (merged.executed > 0 || reports.length > 0) {
+      executedFileCount = merged.executed;
+      failedFileCount = merged.failed;
     } else {
       executedFileCount = 0;
       failedFileCount = 0;
@@ -374,6 +441,7 @@ function parseCliOptions(args) {
   let summarize = false;
   let shard = null;
   let playwrightReportPath = null;
+  let playwrightReportsDir = null;
   let statusOverride = null;
 
   for (const arg of ownArgs) {
@@ -403,6 +471,10 @@ function parseCliOptions(args) {
       playwrightReportPath = arg.slice('--playwright-report='.length);
       continue;
     }
+    if (arg.startsWith('--playwright-reports-dir=')) {
+      playwrightReportsDir = arg.slice('--playwright-reports-dir='.length);
+      continue;
+    }
     playwrightArgs.push(arg);
   }
 
@@ -410,10 +482,60 @@ function parseCliOptions(args) {
     listOnly,
     playwrightArgs,
     playwrightReportPath,
+    playwrightReportsDir,
     shard: shard ?? readShardFromEnv(),
     statusOverride,
     summarize,
   };
+}
+
+/**
+ * @param {{
+ *   playwrightReportPath?: string | null,
+ *   playwrightReportsDir?: string | null,
+ * }} options
+ */
+function loadPlaywrightReports(options) {
+  /** @type {Array<{ stats?: { expected?: number, unexpected?: number }, suites?: unknown[] }>} */
+  const reports = [];
+  const reportPaths = [];
+
+  if (options.playwrightReportPath) {
+    reportPaths.push(options.playwrightReportPath);
+  } else if (existsSync(PLAYWRIGHT_JSON_REPORT_PATH)) {
+    reportPaths.push(PLAYWRIGHT_JSON_REPORT_PATH);
+  }
+
+  const reportDirectories = [];
+  if (options.playwrightReportsDir) {
+    reportDirectories.push(options.playwrightReportsDir);
+  }
+  const defaultShardsDirectory = path.join(REPORT_DIRECTORY, 'shards');
+  if (existsSync(defaultShardsDirectory)) {
+    reportDirectories.push(defaultShardsDirectory);
+  }
+
+  for (const directory of reportDirectories) {
+    reportPaths.push(...collectPlaywrightJsonReportPaths(directory));
+  }
+
+  const seen = new Set();
+  for (const reportPath of reportPaths) {
+    const absolutePath = path.isAbsolute(reportPath)
+      ? reportPath
+      : path.join(REPOSITORY_ROOT, reportPath);
+    if (seen.has(absolutePath) || !existsSync(absolutePath)) {
+      continue;
+    }
+    seen.add(absolutePath);
+
+    const parsed = readPlaywrightReport(absolutePath);
+    if (isPlaywrightJsonReport(parsed)) {
+      reports.push(parsed);
+    }
+  }
+
+  return reports;
 }
 
 function runPlaywrightFullTier(options) {
@@ -445,24 +567,17 @@ function runPlaywrightFullTier(options) {
   }
 
   if (options.summarize) {
-    let playwrightReport;
-    if (
-      options.playwrightReportPath &&
-      existsSync(options.playwrightReportPath)
-    ) {
-      playwrightReport = readPlaywrightReport(options.playwrightReportPath);
-    }
+    const playwrightReports = loadPlaywrightReports(options);
+    const merged = mergePlaywrightJsonReports(playwrightReports);
     const status =
       options.statusOverride ??
-      (playwrightReport &&
-      (playwrightReport.stats?.unexpected ?? 0) === 0 &&
-      countSpecs({ suites: playwrightReport.suites ?? [] }).failed === 0
+      (playwrightReports.length > 0 && merged.failed === 0
         ? 'passed'
         : 'failed');
     writeSummary(
       buildPlaywrightE2eTierSummary({
         plan,
-        playwrightReport,
+        playwrightReports,
         status,
       }),
     );

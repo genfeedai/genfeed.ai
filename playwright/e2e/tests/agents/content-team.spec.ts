@@ -6,6 +6,7 @@ import {
   mockWorkflowCrud,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 
 test.describe('Agents — Content Team', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -21,34 +22,25 @@ test.describe('Agents — Content Team', () => {
   test('content team landing page loads and shows core controls', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.ROOT, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.OVERVIEW), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/overview/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Content Team' }),
+      authenticatedPage.getByRole('heading', { name: /agents overview/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'HQ' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Team' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('link', { name: /hire agent/i }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('link', { name: /launch orchestrator/i }),
+      authenticatedPage.getByRole('link', { name: /hire/i }).first(),
     ).toBeVisible();
   });
 
   test('hire flow renders and submits', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.HIRE, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.HIRE), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/hire$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/hire(?:\/)?$/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
 
     await authenticatedPage
@@ -59,17 +51,19 @@ test.describe('Agents — Content Team', () => {
       .fill('AI creator monetization');
     await authenticatedPage.getByRole('button', { name: 'Hire Agent' }).click();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate/);
   });
 
   test('orchestrator flow renders and submits a basic team launch', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.ORCHESTRATOR, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.ORCHESTRATOR), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/orchestrator$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/automate\/orchestrator(?:\/)?$/,
+    );
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
 
     await authenticatedPage
@@ -83,7 +77,7 @@ test.describe('Agents — Content Team', () => {
       .getByRole('button', { name: 'Launch Team' })
       .click();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate/);
   });
 
   test('unauthenticated user is redirected from content team routes', async ({

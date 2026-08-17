@@ -228,6 +228,9 @@ export default defineConfig({
   ],
 
   // Reporter configuration
+  // CLI `--reporter=blob` replaces this list and drops the JSON inventory the
+  // full-tier summarize job needs. Keep blob here when shards run so both
+  // merge-reports and executed/failed counts survive.
   reporter: [
     [
       'html',
@@ -239,6 +242,9 @@ export default defineConfig({
     ],
     ['junit', { outputFile: path.join(artifactsRoot, 'report', 'junit.xml') }],
     isCI ? ['github'] : ['list'],
+    ...(process.env.E2E_SHARD_INDEX
+      ? [['blob', { outputDir: path.join(process.cwd(), 'blob-report') }]]
+      : []),
   ],
   retries: retryCount,
 

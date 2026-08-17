@@ -4,6 +4,7 @@ import {
   mockAutomationData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 
 test.describe('Agents Runs', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -18,7 +19,7 @@ test.describe('Agents Runs', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
-      `${APP_ROUTES.AUTOMATE.RUNS}?q=trend&sort=credits&range=30d`,
+      `${brandPath(APP_ROUTES.AUTOMATE.RUNS)}?q=trend&sort=credits&range=30d`,
     );
 
     await expect(authenticatedPage).toHaveURL(

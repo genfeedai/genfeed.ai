@@ -70,4 +70,39 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     trackingIssue: 71,
     reviewBy: '2026-11-14',
   },
+  {
+    file: 'playwright/e2e/tests/visual/visual-regression.spec.ts',
+    reason:
+      'Pixel baselines are not stable under the mocked full-tier nightly. Visual goldens need a dedicated job and update process.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/release/app-loads.spec.ts',
+    reason:
+      'LOCAL seeded image contract (`/default/default/workspace`). Not mocked app-core.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/release/workspace-loads.spec.ts',
+    reason:
+      'Requires a live LOCAL brand switcher and seeded workspace, not mocked app-core.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/release/api-integration.spec.ts',
+    reason:
+      'Hits live `GET /v1/auth/bootstrap` against a seeded API, not mocked app-core.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/release/health.spec.ts',
+    reason:
+      'Hits the live API health endpoint, not the mocked app-core full tier.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
 ];

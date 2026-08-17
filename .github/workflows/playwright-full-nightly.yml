@@ -81,7 +81,11 @@ jobs:
           E2E_COVERAGE: "1"
 
       - name: Run full E2E shard ${{ matrix.shard }}/8
-        run: node scripts/playwright-e2e-tiers.mjs -- --reporter=blob --trace retain-on-failure
+        # Do not pass `--reporter=blob` here — that CLI flag replaces the
+        # config reporters and drops results.json, which made summarize lie
+        # with Executed: 0. Blob + JSON both come from playwright.config.ts
+        # when E2E_SHARD_INDEX is set.
+        run: node scripts/playwright-e2e-tiers.mjs -- --trace retain-on-failure
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
@@ -92,6 +96,15 @@ jobs:
           E2E_TOTAL_SHARDS: "8"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      - name: Upload shard JSON inventory
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-full-json-${{ matrix.shard }}
+          path: playwright/artifacts/report/results.json
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload blob report (full shard ${{ matrix.shard }})
         uses: actions/upload-artifact@v7
@@ -193,6 +206,14 @@ jobs:
           name: playwright-full-tier-discovery
           path: playwright/artifacts/report/
 
+      - name: Download shard JSON reports
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: playwright-full-json-*
+          merge-multiple: true
+          path: playwright/artifacts/report/shards/
+
       - name: Write discovered / executed / quarantined summary
         env:
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
@@ -202,7 +223,7 @@ jobs:
           if [ "${FULL_TIER_RESULT}" = "success" ]; then
             status="passed"
           fi
-          node scripts/playwright-e2e-tiers.mjs --summarize --status="${status}"
+          node scripts/playwright-e2e-tiers.mjs --summarize --status="${status}" --playwright-reports-dir=playwright/artifacts/report/shards
 
       - name: Upload full-tier summary
         if: always()

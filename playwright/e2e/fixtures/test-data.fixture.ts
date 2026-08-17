@@ -1147,7 +1147,7 @@ export const selectors = {
   // Forms
   promptInput: '[data-testid="prompt-input"]',
   // Navigation
-  sidebar: '[data-testid="sidebar"]',
+  sidebar: '[data-testid="sidebar-shell"]',
   skeleton: '[data-testid="skeleton"]',
   submitButton: 'button[type="submit"]',
 

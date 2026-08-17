@@ -4,6 +4,7 @@ import {
   mockSkillsCatalog,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 
 test.describe('Agents Skills', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -17,14 +18,14 @@ test.describe('Agents Skills', () => {
   test('loads the skills catalog for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.SKILLS), {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/skills(?:$|[?#])/);
     await expect(
       authenticatedPage.getByRole('heading', {
-        name: 'Brand content behavior',
+        name: /Brand content behavior/i,
       }),
     ).toBeVisible();
     await expect(

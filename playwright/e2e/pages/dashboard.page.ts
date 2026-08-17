@@ -1,5 +1,7 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { E2E_BRAND_BASE, sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Dashboard/Overview Page
@@ -11,7 +13,7 @@ import { expect } from '@playwright/test';
  */
 export class DashboardPage {
   readonly page: Page;
-  readonly url = '/overview';
+  readonly url = `${E2E_BRAND_BASE}${APP_ROUTES.WORKSPACE.OVERVIEW}`;
 
   // Main layout
   readonly sidebar: Locator;
@@ -70,33 +72,37 @@ export class DashboardPage {
     this.page = page;
 
     // Layout
-    this.sidebar = page.locator(
-      '[data-testid="sidebar"], aside, nav[role="navigation"]',
-    );
-    this.topbar = page.locator('[data-testid="topbar"], header');
-    this.mainContent = page.locator('main, [data-testid="main-content"]');
+    this.sidebar = sidebarLocator(page);
+    this.topbar = page.locator('[data-testid="topbar"], header').first();
+    this.mainContent = page
+      .locator('main, [data-testid="main-content"]')
+      .first();
 
-    // Navigation - sidebar links
-    this.navOverview = page.locator(
-      'a[href="/overview"], a[href*="overview"], [data-testid="nav-overview"]',
-    );
-    this.navStudio = page.locator(
-      'a[href="/studio"], a[href*="studio"], [data-testid="nav-studio"]',
-    );
-    this.navActivities = page.locator(
-      'a[href="/activities"], a[href*="activities"], [data-testid="nav-activities"]',
-    );
-    this.navEditor = page.locator(
-      'a[href="/studio/edit"], a[href*="studio/edit"], [data-testid="nav-editor"]',
-    );
-    this.navSettings = page.locator(
-      'a[href="/settings"], a[href*="settings"], [data-testid="nav-settings"]',
-    );
+    // Navigation - sidebar links (org-prefixed; never match every overview href)
+    this.navOverview = this.sidebar
+      .locator(
+        `a[href$="${APP_ROUTES.WORKSPACE.OVERVIEW}"], a[href$="${APP_ROUTES.WORKSPACE.ROOT}"]`,
+      )
+      .first();
+    this.navStudio = this.sidebar
+      .locator(`a[href*="${APP_ROUTES.STUDIO.ROOT}"]`)
+      .first();
+    this.navActivities = this.sidebar
+      .locator(`a[href*="${APP_ROUTES.WORKSPACE.ACTIVITY}"]`)
+      .first();
+    this.navEditor = this.sidebar
+      .locator(`a[href*="${APP_ROUTES.STUDIO.EDIT}"]`)
+      .first();
+    this.navSettings = this.sidebar
+      .locator(`a[href*="${APP_ROUTES.SETTINGS.ROOT}"]`)
+      .first();
 
     // User menu
-    this.userMenuButton = page.locator(
-      '[data-testid="user-menu"], [data-testid="user-button"], button[aria-label*="user" i]',
-    );
+    this.userMenuButton = page
+      .locator(
+        '[data-testid="user-menu"], [data-testid="user-button"], button[aria-label*="user" i]',
+      )
+      .first();
     this.userMenuDropdown = page.locator(
       '[data-testid="user-menu-dropdown"], [role="menu"]',
     );
@@ -238,28 +244,59 @@ export class DashboardPage {
    */
   async isDisplayed(): Promise<boolean> {
     const url = this.page.url();
-    return url.includes('/overview') || url.includes('/dashboard');
+    return (
+      url.includes('/workspace') ||
+      url.includes('/overview') ||
+      url.includes('/dashboard')
+    );
+  }
+
+  async #gotoOrClick(
+    link: Locator,
+    path: string,
+    urlPattern: RegExp,
+  ): Promise<void> {
+    if (await link.isVisible().catch(() => false)) {
+      await link.click();
+    } else {
+      await this.page.goto(`${E2E_BRAND_BASE}${path}`, {
+        waitUntil: 'domcontentloaded',
+      });
+    }
+    await this.page.waitForURL(urlPattern);
   }
 
   // Navigation methods
   async navigateToStudio(): Promise<void> {
-    await this.navStudio.click();
-    await this.page.waitForURL(/studio|g\//);
+    await this.#gotoOrClick(
+      this.navStudio,
+      APP_ROUTES.STUDIO.STORYBOARD,
+      /studio|g\//,
+    );
   }
 
   async navigateToActivities(): Promise<void> {
-    await this.navActivities.click();
-    await this.page.waitForURL(/activities/);
+    await this.#gotoOrClick(
+      this.navActivities,
+      APP_ROUTES.WORKSPACE.ACTIVITY,
+      /activities/,
+    );
   }
 
   async navigateToEditor(): Promise<void> {
-    await this.navEditor.click();
-    await this.page.waitForURL(/studio\/edit/);
+    await this.#gotoOrClick(
+      this.navEditor,
+      APP_ROUTES.STUDIO.EDIT,
+      /studio\/edit/,
+    );
   }
 
   async navigateToSettings(): Promise<void> {
-    await this.navSettings.click();
-    await this.page.waitForURL(/settings/);
+    await this.#gotoOrClick(
+      this.navSettings,
+      APP_ROUTES.SETTINGS.PERSONAL,
+      /settings/,
+    );
   }
 
   /**
