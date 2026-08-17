@@ -9,11 +9,4 @@ describe('OrganizationEntity', () => {
     const entity = new OrganizationEntity();
     expect(entity).toBeInstanceOf(OrganizationEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new OrganizationEntity();
-  //     // Test properties
-  //   });
-  // });
 });

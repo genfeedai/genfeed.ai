@@ -34,12 +34,5 @@ describe('CreateOrganizationSettingDto', () => {
       expect(defaultLocaleErrors).toHaveLength(1);
       expect(defaultLocaleErrors[0]?.constraints).toHaveProperty('isIn');
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateOrganizationSettingDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

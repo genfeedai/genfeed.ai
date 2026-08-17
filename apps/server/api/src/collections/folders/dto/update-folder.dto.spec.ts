@@ -10,12 +10,5 @@ describe('UpdateFolderDto', () => {
       const dto = new UpdateFolderDto();
       expect(dto).toBeInstanceOf(UpdateFolderDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UpdateFolderDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

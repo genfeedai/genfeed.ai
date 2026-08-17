@@ -9,11 +9,4 @@ describe('BotEntity', () => {
     const entity = new BotEntity();
     expect(entity).toBeInstanceOf(BotEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new BotEntity();
-  //     // Test properties
-  //   });
-  // });
 });

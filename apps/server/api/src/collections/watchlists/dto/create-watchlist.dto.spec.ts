@@ -10,12 +10,5 @@ describe('CreateWatchlistDto', () => {
       const dto = new CreateWatchlistDto();
       expect(dto).toBeInstanceOf(CreateWatchlistDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateWatchlistDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

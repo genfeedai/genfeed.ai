@@ -10,12 +10,5 @@ describe('BotSettingsDto', () => {
       const dto = new BotSettingsDto();
       expect(dto).toBeInstanceOf(BotSettingsDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new BotSettingsDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

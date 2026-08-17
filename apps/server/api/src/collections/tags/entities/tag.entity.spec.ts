@@ -9,11 +9,4 @@ describe('TagEntity', () => {
     const entity = new TagEntity({});
     expect(entity).toBeInstanceOf(TagEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new TagEntity();
-  //     // Test properties
-  //   });
-  // });
 });

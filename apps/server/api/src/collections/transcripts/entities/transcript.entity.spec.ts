@@ -9,11 +9,4 @@ describe('TranscriptEntity', () => {
     const entity = new TranscriptEntity();
     expect(entity).toBeInstanceOf(TranscriptEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new TranscriptEntity();
-  //     // Test properties
-  //   });
-  // });
 });

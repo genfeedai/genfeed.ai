@@ -10,12 +10,5 @@ describe('UpdateContextDto', () => {
       const dto = new UpdateContextDto();
       expect(dto).toBeInstanceOf(UpdateContextDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UpdateContextDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

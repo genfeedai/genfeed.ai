@@ -9,11 +9,4 @@ describe('CreditTransactionsEntity', () => {
     const entity = new CreditTransactionsEntity();
     expect(entity).toBeInstanceOf(CreditTransactionsEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new CreditTransactionsEntity();
-  //     // Test properties
-  //   });
-  // });
 });

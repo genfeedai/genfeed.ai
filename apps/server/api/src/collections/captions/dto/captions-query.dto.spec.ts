@@ -10,12 +10,5 @@ describe('CaptionsQueryDto', () => {
       const dto = new CaptionsQueryDto();
       expect(dto).toBeInstanceOf(CaptionsQueryDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CaptionsQueryDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

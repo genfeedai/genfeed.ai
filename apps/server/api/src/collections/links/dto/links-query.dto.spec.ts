@@ -10,12 +10,5 @@ describe('LinksQueryDto', () => {
       const dto = new LinksQueryDto();
       expect(dto).toBeInstanceOf(LinksQueryDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new LinksQueryDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

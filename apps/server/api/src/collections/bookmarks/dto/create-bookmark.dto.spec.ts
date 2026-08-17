@@ -10,12 +10,5 @@ describe('CreateBookmarkDto', () => {
       const dto = new CreateBookmarkDto();
       expect(dto).toBeInstanceOf(CreateBookmarkDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateBookmarkDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

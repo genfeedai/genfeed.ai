@@ -9,11 +9,4 @@ describe('AnalyticsTimeSeriesEntity', () => {
     const entity = new AnalyticsTimeSeriesEntity([]);
     expect(entity).toBeInstanceOf(AnalyticsTimeSeriesEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new AnalyticsTimeSeriesEntity([]);
-  //     // Test properties
-  //   });
-  // });
 });

@@ -10,12 +10,5 @@ describe('CreateMemberDto', () => {
       const dto = new CreateMemberDto();
       expect(dto).toBeInstanceOf(CreateMemberDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateMemberDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

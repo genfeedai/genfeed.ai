@@ -10,12 +10,5 @@ describe('ArticleToThreadDto', () => {
       const dto = new ArticleToThreadDto();
       expect(dto).toBeInstanceOf(ArticleToThreadDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new ArticleToThreadDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

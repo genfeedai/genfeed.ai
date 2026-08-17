@@ -9,11 +9,4 @@ describe('WorkflowEntity', () => {
     const entity = new WorkflowEntity();
     expect(entity).toBeInstanceOf(WorkflowEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new WorkflowEntity();
-  //     // Test properties
-  //   });
-  // });
 });

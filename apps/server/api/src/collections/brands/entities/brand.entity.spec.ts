@@ -9,11 +9,4 @@ describe('BrandEntity', () => {
     const entity = new BrandEntity();
     expect(entity).toBeInstanceOf(BrandEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new BrandEntity();
-  //     // Test properties
-  //   });
-  // });
 });

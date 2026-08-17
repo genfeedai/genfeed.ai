@@ -9,11 +9,4 @@ describe('MusicEntity', () => {
     const entity = new MusicEntity();
     expect(entity).toBeInstanceOf(MusicEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new MusicEntity();
-  //     // Test properties
-  //   });
-  // });
 });

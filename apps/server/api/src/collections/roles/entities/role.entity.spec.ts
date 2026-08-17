@@ -9,11 +9,4 @@ describe('RoleEntity', () => {
     const entity = new RoleEntity();
     expect(entity).toBeInstanceOf(RoleEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new RoleEntity();
-  //     // Test properties
-  //   });
-  // });
 });
