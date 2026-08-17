@@ -16,6 +16,9 @@
 - **Never push directly to `master`** — PR only, always
 - **Never merge until required CI is green**
 - `feat/xxx` / `hotfix/xxx` off `master`
+- **Worktrees live at `<repo>/.worktrees/<name>`** (gitignored) — create with `git wt <name>`;
+  never `/tmp`, sibling dirs, `$HOME`, or inside another worktree. Keep them after merge for
+  follow-ups.
 - Releases are cut from `master` (semver tag + GitHub release via `/release`); `staging` and
   `production` are deploy environments driven by CI/tags, not branches
 - `bun.lock` is `merge=binary` — on conflict: `rm bun.lock && bun install`
