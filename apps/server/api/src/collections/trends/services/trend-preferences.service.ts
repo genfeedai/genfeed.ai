@@ -74,11 +74,12 @@ export class TrendPreferencesService {
       } else if (storedConfig?.autoRequeueWinners !== undefined) {
         // `config` is a Json column and Prisma REPLACES Json values on update
         // (it does not merge), so preserve omitted fields from the stored
-        // document. Leave the opt-in flag absent for a never-configured record
-        // so the config shape stays clean (#1112).
+        // document. Leave the flag absent for a never-configured record so
+        // the config shape stays clean (#1112). Read path defaults missing
+        // to true (opt-out, #3026).
         normalizedPreferences.autoRequeueWinners = this.readBoolean(
           storedConfig.autoRequeueWinners,
-          false,
+          true,
         );
       }
 
@@ -126,7 +127,7 @@ export class TrendPreferencesService {
       ...(doc as TrendPreferencesDocument),
       autoRequeueWinners: this.readBoolean(
         docRecord.autoRequeueWinners ?? config?.autoRequeueWinners,
-        false,
+        true,
       ),
       categories: this.readStringArray(
         docRecord.categories ?? config?.categories,
@@ -140,7 +141,7 @@ export class TrendPreferencesService {
   /**
    * Merge winning content-run signals into an org/brand's trend preferences so
    * future trend ingestion is biased toward what already performed (issue #166).
-   * Signals are unioned into the existing arrays; the opt-in flag is preserved.
+   * Signals are unioned into the existing arrays; the requeue flag is preserved.
    */
   async mergeWinnerSignals(
     organizationId: string,
