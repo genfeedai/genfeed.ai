@@ -12,6 +12,7 @@ import { NewslettersService } from '@services/content/newsletters.service';
 import { PostsService } from '@services/content/posts.service';
 import { useQuery } from '@tanstack/react-query';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import {
@@ -37,6 +38,7 @@ export default function PublishContentEditorPage({
   contentId,
 }: PublishContentEditorPageProps): ReactElement {
   const { isReady } = useBrand();
+  const translate = useTranslations('pages.posts.desk');
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
@@ -72,7 +74,10 @@ export default function PublishContentEditorPage({
 
   if (!isReady || isLoading) {
     return (
-      <ArtifactEditorShell artifactLabel="Content" title="Loading…">
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title={translate('loadingTitle')}
+      >
         <SkeletonCard />
       </ArtifactEditorShell>
     );
@@ -82,11 +87,10 @@ export default function PublishContentEditorPage({
     return (
       <ArtifactEditorShell
         artifactLabel="Content"
-        title="Could not load content"
+        title={translate('loadErrorTitle')}
       >
         <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
-          The content desk could not reach posts, articles, or newsletters. Try
-          again, or return to Posts and open the item from the list.
+          {translate('loadErrorBody')}
         </div>
       </ArtifactEditorShell>
     );
@@ -94,10 +98,12 @@ export default function PublishContentEditorPage({
 
   if (contentKind === null || contentKind === undefined) {
     return (
-      <ArtifactEditorShell artifactLabel="Content" title="Content not found">
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title={translate('missingTitle')}
+      >
         <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
-          No post, article, or newsletter matches this id. Use the breadcrumb to
-          return to Posts and open the item again.
+          {translate('missingBody')}
         </div>
       </ArtifactEditorShell>
     );

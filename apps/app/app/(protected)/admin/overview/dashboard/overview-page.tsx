@@ -23,7 +23,10 @@ const ActivityChart = dynamic(
   { ssr: false },
 );
 
-function formatNumber(num: number): string {
+function formatNumber(num: number | undefined): string {
+  if (num === undefined) {
+    return '—';
+  }
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }
@@ -291,25 +294,25 @@ export default function OverviewPage() {
       icon: Users,
       label: 'Total Users',
       trend: monthlyGrowth > 0 ? 12 : -5,
-      value: stats ? formatNumber(stats.totalUsers) : '—',
+      value: formatNumber(stats?.totalUsers),
     },
     {
       icon: Building2,
       label: 'Organizations',
       trend: monthlyGrowth > 0 ? 8 : -3,
-      value: stats ? formatNumber(stats.totalOrganizations) : '—',
+      value: formatNumber(stats?.totalOrganizations),
     },
     {
       icon: Newspaper,
       label: 'Total Posts',
       trend: monthlyGrowth > 0 ? 24 : monthlyGrowth,
-      value: stats ? formatNumber(stats.totalPosts) : '—',
+      value: formatNumber(stats?.totalPosts),
     },
     {
       icon: CreditCard,
       label: 'Subscriptions',
       trend: monthlyGrowth > 0 ? 15 : -2,
-      value: stats ? formatNumber(stats.totalSubscriptions) : '—',
+      value: formatNumber(stats?.totalSubscriptions),
     },
   ];
 
