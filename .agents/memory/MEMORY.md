@@ -115,6 +115,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Specs and decisions (per issue)
 
+- [auth-email-delivery-acknowledgement](spec-auth-email-delivery-acknowledgement.md) · [decisions](decisions-auth-email-delivery-acknowledgement.md) — synchronous provider acceptance for auth email
 - [argil-avatar-video](spec-argil-avatar-video.md) · [decisions](decisions-argil-avatar-video.md) — #2849
 - [desktop-local-database-boundary](spec-desktop-local-database-boundary.md) · [decisions](decisions-desktop-local-database-boundary.md) — #2824
 - [multi-type-posts-library](spec-multi-type-posts-library.md) · [decisions](decisions-multi-type-posts-library.md) — #2604

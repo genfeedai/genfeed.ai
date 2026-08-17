@@ -37,7 +37,10 @@ interface SessionBody {
   };
 }
 
-function createMagicLinkContractHarness(storeToken?: 'hashed' | 'plain') {
+function createMagicLinkContractHarness(
+  storeToken?: 'hashed' | 'plain',
+  deliveryError?: Error,
+) {
   const database: MemoryDB = {
     account: [],
     session: [],
@@ -47,6 +50,9 @@ function createMagicLinkContractHarness(storeToken?: 'hashed' | 'plain') {
   let deliveredMagicLink: IBetterAuthMagicLinkParams | undefined;
   const sendMagicLink = vi.fn(
     async (params: IBetterAuthMagicLinkParams): Promise<void> => {
+      if (deliveryError) {
+        throw deliveryError;
+      }
       deliveredMagicLink = params;
     },
   );
@@ -151,6 +157,22 @@ describe('Better Auth magic-link lifecycle contract', () => {
     expect(responseBody).not.toContain(delivered.token);
     expect(response.headers.get('location')).toBeNull();
     expect(JSON.stringify(harness.database)).not.toContain(delivered.token);
+  });
+
+  it('returns an error instead of success when the delivery callback rejects', async () => {
+    const providerDetail = 'private provider rejection detail';
+    const harness = createMagicLinkContractHarness(
+      undefined,
+      new Error(providerDetail),
+    );
+
+    const response = await requestMagicLink(harness);
+    const responseBody = await response.text();
+
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(responseBody).not.toContain('"status":true');
+    expect(responseBody).not.toContain(providerDetail);
+    expect(harness.sendMagicLink).toHaveBeenCalledOnce();
   });
 
   it('establishes a session from a valid token and authenticates the session cookie', async () => {

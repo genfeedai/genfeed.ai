@@ -10,7 +10,7 @@ const LINK_ID_PATTERN = /^[a-f0-9]{12}$/;
 describe('BetterAuthMailerService', () => {
   it('sends magic links with the shared Genfeed system email shell', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -31,12 +31,14 @@ describe('BetterAuthMailerService', () => {
       url,
     });
 
-    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
-      'user@example.com',
-      'Your Genfeed.ai sign-in link',
-      expect.stringContaining('<!doctype html>'),
-    );
-    const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
+    expect(notificationsService.deliverEmail).toHaveBeenCalledWith({
+      html: expect.stringContaining('<!doctype html>'),
+      idempotencyKey: `auth/magic-link/${buildAuthLinkCorrelationId('tok')}`,
+      subject: 'Your Genfeed.ai sign-in link',
+      to: 'user@example.com',
+    });
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
     expect(html).toContain('Genfeed.ai');
     expect(html).toContain('Sign in to Genfeed.ai');
     expect(html).toContain(
@@ -47,7 +49,7 @@ describe('BetterAuthMailerService', () => {
 
   it('sends signup magic links with account creation copy', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -69,12 +71,14 @@ describe('BetterAuthMailerService', () => {
       url,
     });
 
-    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
-      'user@example.com',
-      'Your Genfeed.ai sign-up link',
-      expect.stringContaining('<!doctype html>'),
-    );
-    const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
+    expect(notificationsService.deliverEmail).toHaveBeenCalledWith({
+      html: expect.stringContaining('<!doctype html>'),
+      idempotencyKey: `auth/magic-link/${buildAuthLinkCorrelationId('tok')}`,
+      subject: 'Your Genfeed.ai sign-up link',
+      to: 'user@example.com',
+    });
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
     expect(html).toContain('Create your Genfeed.ai account');
     expect(html).toContain('Create account');
     expect(html).toContain('If you did not create a Genfeed.ai account');
@@ -82,7 +86,7 @@ describe('BetterAuthMailerService', () => {
 
   it('sends email verification with the shared Genfeed system email shell', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -103,12 +107,14 @@ describe('BetterAuthMailerService', () => {
       user: { email: 'user@example.com' },
     });
 
-    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
-      'user@example.com',
-      'Verify your Genfeed.ai email',
-      expect.stringContaining('<!doctype html>'),
-    );
-    const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
+    expect(notificationsService.deliverEmail).toHaveBeenCalledWith({
+      html: expect.stringContaining('<!doctype html>'),
+      idempotencyKey: `auth/verification/${buildAuthLinkCorrelationId('verify')}`,
+      subject: 'Verify your Genfeed.ai email',
+      to: 'user@example.com',
+    });
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
     expect(html).toContain('Verify your email');
     expect(html).toContain(
       'https://app.genfeed.ai/v1/auth/verify-email?token=verify&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
@@ -118,7 +124,7 @@ describe('BetterAuthMailerService', () => {
 
   it('sends password reset emails through the shared notification pipeline', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -139,12 +145,14 @@ describe('BetterAuthMailerService', () => {
       user: { email: 'user@example.com' },
     });
 
-    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
-      'user@example.com',
-      'Reset your Genfeed.ai password',
-      expect.stringContaining('<!doctype html>'),
-    );
-    const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
+    expect(notificationsService.deliverEmail).toHaveBeenCalledWith({
+      html: expect.stringContaining('<!doctype html>'),
+      idempotencyKey: `auth/password-reset/${buildAuthLinkCorrelationId('reset')}`,
+      subject: 'Reset your Genfeed.ai password',
+      to: 'user@example.com',
+    });
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
     expect(html).toContain('Reset your password');
     expect(html).toContain('Reset password');
     expect(html).toContain(
@@ -153,7 +161,7 @@ describe('BetterAuthMailerService', () => {
     expect(html).toContain(
       'If you did not request a Genfeed.ai password reset',
     );
-    expect(logger.log).toHaveBeenCalledWith('Password reset email dispatched', {
+    expect(logger.log).toHaveBeenCalledWith('Password reset email accepted', {
       emailDomain: 'example.com',
       linkId: expect.stringMatching(LINK_ID_PATTERN),
       service: 'BetterAuthMailerService',
@@ -165,7 +173,7 @@ describe('BetterAuthMailerService', () => {
   // console transports, so the token must not reach the logger there either.
   it('never logs the magic-link URL or its token, even in development', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -187,14 +195,14 @@ describe('BetterAuthMailerService', () => {
     });
 
     // The email itself still carries the link — only the log must not.
-    expect(notificationsService.sendEmail).toHaveBeenCalledTimes(1);
+    expect(notificationsService.deliverEmail).toHaveBeenCalledTimes(1);
 
     const logged = JSON.stringify(logger.log.mock.calls);
     expect(logged).not.toContain(secret);
     expect(logged).not.toContain('magic-link/verify');
     expect(logged).not.toContain('user@example.com');
     expect(logger.log).toHaveBeenCalledTimes(1);
-    expect(logger.log).toHaveBeenCalledWith('Magic-link email dispatched', {
+    expect(logger.log).toHaveBeenCalledWith('Magic-link email accepted', {
       emailDomain: 'example.com',
       linkId: expect.stringMatching(LINK_ID_PATTERN),
       service: 'BetterAuthMailerService',
@@ -203,7 +211,7 @@ describe('BetterAuthMailerService', () => {
 
   it('never logs the password-reset URL or its token, even in development', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -224,7 +232,7 @@ describe('BetterAuthMailerService', () => {
       user: { email: 'user@example.com' },
     });
 
-    expect(notificationsService.sendEmail).toHaveBeenCalledTimes(1);
+    expect(notificationsService.deliverEmail).toHaveBeenCalledTimes(1);
 
     const logged = JSON.stringify(logger.log.mock.calls);
     expect(logged).not.toContain(secret);
@@ -235,7 +243,7 @@ describe('BetterAuthMailerService', () => {
 
   it('never logs the verification URL or its token', async () => {
     const notificationsService = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
@@ -259,11 +267,38 @@ describe('BetterAuthMailerService', () => {
     expect(logged).not.toContain(secret);
     expect(logged).not.toContain('verify-email');
     expect(logged).not.toContain('user@example.com');
-    expect(logger.log).toHaveBeenCalledWith('Verification email dispatched', {
+    expect(logger.log).toHaveBeenCalledWith('Verification email accepted', {
       emailDomain: 'example.com',
       linkId: expect.stringMatching(LINK_ID_PATTERN),
       service: 'BetterAuthMailerService',
     });
+  });
+
+  it('propagates provider rejection and does not report acceptance', async () => {
+    const deliveryError = new Error('Auth email delivery failed');
+    const notificationsService = {
+      deliverEmail: vi.fn().mockRejectedValue(deliveryError),
+    };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
+    };
+    const logger = { log: vi.fn() };
+    const service = new BetterAuthMailerService(
+      configService as never,
+      notificationsService as never,
+      logger as never,
+    );
+
+    await expect(
+      service.sendMagicLink({
+        email: 'user@example.com',
+        token: 'rejected-token',
+        url: 'https://api.genfeed.ai/v1/auth/magic-link/verify?token=rejected-token',
+      }),
+    ).rejects.toBe(deliveryError);
+
+    expect(logger.log).not.toHaveBeenCalled();
   });
 });
 

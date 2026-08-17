@@ -1,6 +1,8 @@
 import type {
   IChatbotMetadata,
   IDiscordEmbed,
+  IEmailDeliveryRequest,
+  IEmailDeliveryResponse,
   IIngredientNotificationData,
   IModelDiscoveryNotificationPayload,
   INotificationEvent,
@@ -13,6 +15,7 @@ import {
   buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
+import { safeFetch } from '@libs/security/destination-guard';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -28,6 +31,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private isShuttingDown = false;
   private readonly constructorName = this.constructor.name;
   private static readonly CONNECT_TIMEOUT_MS = 5_000;
+  private static readonly EMAIL_DELIVERY_TIMEOUT_MS = 10_000;
 
   constructor(
     private readonly configService: ConfigService,
@@ -206,6 +210,91 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       },
       type: 'email',
     });
+  }
+
+  /**
+   * Auth email needs request-time provider acceptance so the browser cannot
+   * report success after only a Redis publish. All other notification email
+   * keeps using sendEmail's asynchronous path.
+   */
+  async deliverEmail(payload: IEmailDeliveryRequest): Promise<string> {
+    let statusCode: number | undefined;
+
+    try {
+      const notificationsUrl = this.configService
+        .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
+        ?.trim();
+      const internalApiKey = this.configService
+        .get('GENFEEDAI_API_KEY')
+        ?.trim();
+
+      if (!notificationsUrl || !internalApiKey) {
+        throw new Error('Synchronous notifications delivery is not configured');
+      }
+
+      const baseUrl = new URL(
+        notificationsUrl.endsWith('/')
+          ? notificationsUrl
+          : `${notificationsUrl}/`,
+      );
+      if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+        throw new Error('Notifications service URL must use HTTP or HTTPS');
+      }
+
+      const deliveryUrl = new URL('v1/internal/email-deliveries', baseUrl);
+      const response = await safeFetch(
+        deliveryUrl,
+        {
+          body: JSON.stringify(payload),
+          headers: {
+            Authorization: `Bearer ${internalApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal: AbortSignal.timeout(
+            NotificationsService.EMAIL_DELIVERY_TIMEOUT_MS,
+          ),
+        },
+        {
+          allowedOrigins: [baseUrl.origin],
+          allowPrivateNetwork: true,
+        },
+      );
+
+      statusCode = response.status;
+      if (!response.ok) {
+        throw new Error(
+          `Notifications service returned HTTP ${response.status}`,
+        );
+      }
+
+      const responseBody: unknown = await response.json();
+      if (!this.isEmailDeliveryResponse(responseBody)) {
+        throw new Error(
+          'Notifications service returned an invalid delivery response',
+        );
+      }
+
+      return responseBody.emailId;
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} synchronous email delivery failed`,
+        error,
+        statusCode === undefined ? undefined : { statusCode },
+      );
+      throw new Error('Auth email delivery failed');
+    }
+  }
+
+  private isEmailDeliveryResponse(
+    value: unknown,
+  ): value is IEmailDeliveryResponse {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+
+    const emailId = Reflect.get(value, 'emailId');
+    return typeof emailId === 'string' && emailId.trim().length > 0;
   }
 
   sendCrmLeadOutreachEmail(input: {
