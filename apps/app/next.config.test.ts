@@ -169,7 +169,7 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects brand-scoped /admin to the platform dashboard', async () => {
+  it('redirects brand-scoped and org-scoped /admin to the platform dashboard', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
       destination: '/admin/overview/dashboard',
@@ -180,6 +180,16 @@ describe('app next.config', () => {
       destination: '/admin/overview/dashboard',
       permanent: true,
       source: '/:orgSlug/:brandSlug/admin/:path*',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/~/admin',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/~/admin/:path*',
     });
   });
 

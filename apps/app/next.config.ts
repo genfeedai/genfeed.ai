@@ -411,6 +411,16 @@ const config = createAppNextConfig({
       source: createBrandAppRoute(':orgSlug', ':brandSlug', '/admin/:path*'),
     },
     {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/admin'),
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/admin/:path*'),
+    },
+    {
       destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.DISCOVER.ROOT,
