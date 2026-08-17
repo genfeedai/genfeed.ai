@@ -21,7 +21,6 @@ vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
   },
 }));
 
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';

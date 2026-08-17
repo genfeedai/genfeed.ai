@@ -10,7 +10,6 @@ import type {
   AgentWorkflowActor,
   AgentWorkflowDocumentShape,
   AgentWorkflowPhase,
-  AgentWorkflowPhaseHistoryEntry,
   AgentWorkflowTrigger,
 } from '@api/workflows/agent-workflows.types';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';

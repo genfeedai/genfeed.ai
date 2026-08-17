@@ -1,6 +1,4 @@
 import { TemplateMetadataEntity } from '@api/collections/template-metadata/entities/template-metadata.entity';
-import type { TemplateMetadataDocument } from '@api/collections/template-metadata/schemas/template-metadata.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';

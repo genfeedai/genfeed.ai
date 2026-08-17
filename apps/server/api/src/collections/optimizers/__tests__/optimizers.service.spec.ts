@@ -1,7 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { type ContentScore, type Optimization } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';

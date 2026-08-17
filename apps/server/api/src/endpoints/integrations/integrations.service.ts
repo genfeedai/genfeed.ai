@@ -1,7 +1,6 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';

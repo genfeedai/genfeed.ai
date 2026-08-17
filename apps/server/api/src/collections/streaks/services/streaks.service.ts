@@ -1,4 +1,3 @@
-import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { CreditsUtilsService as CreditsUtilsServiceToken } from '@api/collections/credits/services/credits.utils.service';
 import type {
   StreakDocument,

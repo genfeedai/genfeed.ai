@@ -1,5 +1,4 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,

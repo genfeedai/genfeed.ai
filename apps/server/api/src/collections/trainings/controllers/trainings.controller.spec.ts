@@ -1,8 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';

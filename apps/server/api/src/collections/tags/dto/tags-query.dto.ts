@@ -1,5 +1,4 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { TagCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
