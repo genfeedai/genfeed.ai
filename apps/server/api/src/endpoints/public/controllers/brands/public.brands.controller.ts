@@ -369,7 +369,7 @@ export class PublicBrandsController {
         brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
+        ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
       },
       orderBy: { createdAt: -1, publishedAt: -1 },
     };

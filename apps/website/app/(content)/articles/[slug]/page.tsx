@@ -129,7 +129,7 @@ export default async function ArticleDetail({
           },
     body: typeof article.content === 'string' ? article.content : undefined,
     dateModified: article.updatedAt || article.createdAt,
-    datePublished: article.createdAt,
+    datePublished: article.publishedAt || article.createdAt,
     description:
       typeof article.summary === 'string' ? article.summary : undefined,
     headline:

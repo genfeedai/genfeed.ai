@@ -40,7 +40,10 @@ export class PublicArticlesController {
   @Cache({
     keyGenerator: (req) => `public:articles:${JSON.stringify(req.query)}`,
     tags: ['articles', 'public'],
-    ttl: 600, // 10 minutes
+    // Scheduled releases use `publishedAt` as their clock. Keep the public list
+    // close to that boundary instead of hiding a newly released article behind
+    // a ten-minute stale response.
+    ttl: 60,
   })
   async findPublicArticles(
     @Req() request: Request,
@@ -65,8 +68,7 @@ export class PublicArticlesController {
 
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
-      publishedAt: { not: null },
-      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
+      ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
     };
 
     // Add search filter
@@ -107,7 +109,7 @@ export class PublicArticlesController {
     keyGenerator: (req) =>
       `public:article:slug:${req.params?.slug ?? 'unknown'}`,
     tags: ['articles', 'public'],
-    ttl: 1800, // 30 minutes
+    ttl: 60,
   })
   async findPublicArticleBySlug(
     @Req() request: Request,
@@ -143,7 +145,7 @@ export class PublicArticlesController {
     keyGenerator: (req) =>
       `public:article:${req.params?.articleId ?? 'unknown'}`,
     tags: ['articles'],
-    ttl: 1800, // 30 minutes
+    ttl: 60,
   })
   async findPublicArticleById(
     @Req() request: Request,
@@ -154,8 +156,7 @@ export class PublicArticlesController {
 
     const article = await this.articlesService.findOne({
       id: articleId,
-      publishedAt: { not: null },
-      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
+      ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
     });
 
     if (!article) {

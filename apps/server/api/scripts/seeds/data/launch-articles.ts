@@ -19,15 +19,15 @@ import { ArticleCategory } from '@genfeedai/enums';
 // `@genfeedai/helpers` barrel resolves to the package's prebuilt `dist`, so a
 // seed run would depend on that build being current — it is not, on a checkout
 // where the package has not been rebuilt since the helper was added.
-import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
-
-export type LaunchArticle = {
+export type SeedArticle = {
   category: ArticleCategory;
   /** Sanitized HTML body. See the module note above — this is not markdown. */
   content: string;
   /** Article artwork on the CDN. See `articleArtwork()`. */
   coverImageUrl: string;
   label: string;
+  /** ISO-8601 release time. Future dates are scheduled publications. */
+  publishedAt: string;
   slug: string;
   summary: string;
 };
@@ -42,7 +42,7 @@ export type LaunchArticle = {
  * never a per-env or localhost one.
  */
 function articleArtwork(slug: string): string {
-  return cdnAsset(`/assets/cards/articles/${slug}.jpg`);
+  return `https://genfeed.ai/assets/cards/articles/${slug}.webp`;
 }
 
 const CLEAR_FRAMEWORK = `
@@ -1107,7 +1107,7 @@ viewers leave at 0:20. Let the two numbers tell you which problem you
 have.</p>
 `;
 
-const OSS_LAUNCH_PLAYBOOK = `
+export const RETIRED_OSS_LAUNCH_PLAYBOOK = `
 <p>Launching an open-source product is not one launch. It is two, staged a week
 or two apart, aimed at audiences that want opposite things: Hacker News wants
 the architecture and the honest caveats, Product Hunt wants the outcome and the
@@ -1320,12 +1320,19 @@ broken install command, an unanswered licence question, no attribution on the
 one day traffic actually arrives — far more often than on positioning.</p>
 `;
 
-export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
+const ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT = '2026-08-13T01:38:45.528Z';
+
+export const RETIRED_ARTICLE_SLUGS = [
+  'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+] as const;
+
+export const LAUNCH_ARTICLES: readonly SeedArticle[] = [
   {
     category: ArticleCategory.TUTORIAL,
     content: CLEAR_FRAMEWORK,
     coverImageUrl: articleArtwork('how-to-prompt-ai-content-clear-framework'),
     label: 'How to prompt AI content: the CLEAR framework',
+    publishedAt: '2026-07-21T09:00:00.000Z',
     slug: 'how-to-prompt-ai-content-clear-framework',
     summary:
       'A repeatable prompt structure — context, length, expectations, audience, role — plus the four mistakes behind most unusable AI output.',
@@ -1335,6 +1342,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
     content: ASSET_PROMPTING,
     coverImageUrl: articleArtwork('how-to-prompt-ai-images-videos-and-audio'),
     label: 'How to prompt AI images, videos, and audio',
+    publishedAt: '2026-07-23T09:00:00.000Z',
     slug: 'how-to-prompt-ai-images-videos-and-audio',
     summary:
       'Prompt skeletons for image, video, and audio generation, plus an interactive filmmaking lexicon for previewing and applying cinematic effects.',
@@ -1344,6 +1352,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
     content: IMAGE_PROMPT_TEMPLATES,
     coverImageUrl: articleArtwork('ai-image-prompt-templates'),
     label: '12 AI image prompt briefs to hand your agent',
+    publishedAt: '2026-07-28T09:00:00.000Z',
     slug: 'ai-image-prompt-templates',
     summary:
       'Twelve image briefs you hand to an agent that already knows your brand. It writes the prompt, you run it — no placeholders left to fill in.',
@@ -1355,6 +1364,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
       'how-to-grow-on-instagram-with-ai-generated-content',
     ),
     label: 'How to grow on Instagram with AI-generated content',
+    publishedAt: '2026-07-30T09:00:00.000Z',
     slug: 'how-to-grow-on-instagram-with-ai-generated-content',
     summary:
       "Instagram's six ranking signals, which two you actually control, and a weekly publishing loop for accounts producing visuals with AI.",
@@ -1366,6 +1376,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
       'how-to-grow-on-tiktok-with-ai-generated-content',
     ),
     label: 'How to grow on TikTok with AI-generated content',
+    publishedAt: '2026-08-04T09:00:00.000Z',
     slug: 'how-to-grow-on-tiktok-with-ai-generated-content',
     summary:
       'Why completion rate dominates TikTok distribution, how to earn the For You page, and how generated video changes the economics of a volume platform.',
@@ -1377,6 +1388,7 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
       'how-to-grow-on-linkedin-with-ai-generated-content',
     ),
     label: 'How to grow on LinkedIn with AI-generated content',
+    publishedAt: '2026-08-06T09:00:00.000Z',
     slug: 'how-to-grow-on-linkedin-with-ai-generated-content',
     summary:
       "Dwell time is LinkedIn's top ranking signal, and it explains every stylistic convention on the platform. What to post, when, and why.",
@@ -1388,19 +1400,11 @@ export const LAUNCH_ARTICLES: readonly LaunchArticle[] = [
       'how-to-grow-on-youtube-with-ai-generated-content',
     ),
     label: 'How to grow on YouTube with AI-generated content',
+    publishedAt: '2026-08-11T09:00:00.000Z',
     slug: 'how-to-grow-on-youtube-with-ai-generated-content',
     summary:
       'YouTube is a search engine with a recommendation layer. Titles, thumbnails, retention, Shorts — and how to read CTR against view duration.',
   },
-  {
-    category: ArticleCategory.GUIDE,
-    content: OSS_LAUNCH_PLAYBOOK,
-    coverImageUrl: articleArtwork(
-      'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
-    ),
-    label: 'How to launch an open-source product on Show HN and Product Hunt',
-    slug: 'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
-    summary:
-      'Two launches a week apart, for audiences that want opposite things. Readiness gates, timing, first-comment structure, and the week calendar.',
-  },
 ];
+
+export { articleArtwork, ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT };

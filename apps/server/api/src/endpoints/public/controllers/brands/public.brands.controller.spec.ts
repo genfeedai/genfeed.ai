@@ -201,6 +201,7 @@ describe('PublicBrandsController', () => {
           where: expect.objectContaining({
             brandId,
             isDeleted: false,
+            publishedAt: { lte: expect.any(Date) },
             scope: AssetScope.PUBLIC,
             status: 'PUBLISHED',
           }),
