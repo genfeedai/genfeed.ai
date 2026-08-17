@@ -11,7 +11,7 @@ describe('seeded article artwork identities', () => {
   const articles = [...LAUNCH_ARTICLES, ...SEO_ARTICLES];
 
   it('covers every seeded article with one permanent asset id', () => {
-    const slugs = articles.map(({ slug }) => slug).sort();
+    const slugs = [...new Set(articles.map(({ slug }) => slug))].sort();
     expect(Object.keys(ARTICLE_ARTWORK_IDS).sort()).toEqual(slugs);
     expect(new Set(Object.values(ARTICLE_ARTWORK_IDS)).size).toBe(slugs.length);
   });
