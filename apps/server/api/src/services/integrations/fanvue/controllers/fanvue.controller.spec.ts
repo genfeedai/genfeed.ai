@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { FanvueController } from '@api/services/integrations/fanvue/controllers/fanvue.controller';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -53,12 +54,13 @@ describe('FanvueController', () => {
     getUserProfile: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = '507f1f77bcf86cd799439012';
+  const orgId = testId('org');
+  const userId = testId('user');
   const brandId = 'test-object-id';
 
   const mockUser = {
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439011',
+    userId,
   } as unknown as User;
 
   const mockReq = {
@@ -87,7 +89,7 @@ describe('FanvueController', () => {
             findOne: vi.fn().mockResolvedValue({
               id: brandId,
               organizationId: orgId,
-              userId: '507f1f77bcf86cd799439011',
+              userId: userId,
             }),
           },
         },
@@ -164,7 +166,7 @@ describe('FanvueController', () => {
       expect(fanvueService.generatePkce).toHaveBeenCalled();
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         expect.anything(),
-        '507f1f77bcf86cd799439011',
+        userId,
         CredentialPlatform.FANVUE,
         expect.objectContaining({
           isConnected: false,
@@ -203,7 +205,7 @@ describe('FanvueController', () => {
         id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
         organizationId: orgId,
-        userId: '507f1f77bcf86cd799439011',
+        userId: userId,
       });
 
       const result = await controller.verify(mockReq, {

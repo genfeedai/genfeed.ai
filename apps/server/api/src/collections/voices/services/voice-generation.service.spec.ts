@@ -4,19 +4,22 @@ import { VoiceGenerationService } from '@api/collections/voices/services/voice-g
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
 describe('VoiceGenerationService', () => {
-  const ingredientId = '507f191e810c19729de860ea';
-  const organizationId = '507f191e810c19729de860eb';
+  const ingredientId = testId('ingredient');
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
   const user = {
     id: 'auth-user-1',
-    brandId: '507f191e810c19729de860ec',
+    brandId,
     organizationId: organizationId,
-    userId: '507f191e810c19729de860ed',
+    userId,
   } as User;
   const request = {} as Request;
   let elevenLabs: { generateAndUploadAudio: ReturnType<typeof vi.fn> };
@@ -93,7 +96,7 @@ describe('VoiceGenerationService', () => {
     expect(shared.createMediaDocuments).toHaveBeenCalledWith(
       user,
       expect.objectContaining({
-        brandId: '507f191e810c19729de860ec',
+        brandId,
         category: IngredientCategory.VOICE,
         organizationId,
         status: IngredientStatus.PROCESSING,
@@ -105,7 +108,7 @@ describe('VoiceGenerationService', () => {
       'Hello',
       ingredientId,
       organizationId,
-      '507f191e810c19729de860ed',
+      userId,
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
       { id: ingredientId },

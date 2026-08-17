@@ -3,6 +3,7 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthController } from '@api/services/integrations/openai-llm/controllers/openai-oauth.controller';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import { ByokProvider } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -19,8 +20,8 @@ describe('OpenAiOAuthController', () => {
     saveOAuthKey: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = '507f1f77bcf86cd799439012';
-  const userId = '507f1f77bcf86cd799439011';
+  const orgId = testId('org');
+  const userId = testId('user');
 
   const mockUser = {
     organizationId: orgId,

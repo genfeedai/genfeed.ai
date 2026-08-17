@@ -32,6 +32,7 @@ import { StripeController } from '@api/services/integrations/stripe/controllers/
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -66,7 +67,7 @@ describe('StripeController', () => {
     headers: { origin: 'https://app.genfeed.ai' },
   } as unknown as Request;
   const mockRequestNoOrigin = { headers: {} } as unknown as Request;
-  const orgId = '507f1f77bcf86cd799439011';
+  const orgId = testId('org');
   const userId = 'test-object-id';
   // Better Auth: request.user.id is the Genfeed User.id (JWT sub), not a
   // legacy external auth-provider id.

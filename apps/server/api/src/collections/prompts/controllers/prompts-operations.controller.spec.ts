@@ -31,6 +31,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PromptCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -40,27 +41,30 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;
 
+  const brandId = testId('brand');
+  const activityId = testId('activity');
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockPrompt = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: testId('prompt'),
     original: 'Test prompt',
     status: 'completed',
   };
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: '507f191e810c19729de860ee' }),
+      create: vi.fn().mockResolvedValue({ _id: activityId }),
       patch: vi.fn().mockResolvedValue({}),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439013',
+        _id: brandId,
       }),
     },
     configService: {},

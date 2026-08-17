@@ -4,12 +4,19 @@ import {
   isEntityId,
 } from '../src/helpers';
 
+// Low-entropy, shape-matching fixtures (not real ids) — see
+// packages/api-types/src/helpers/entity-id.ts for the regexes each satisfies.
+const CUID_FIXTURE = 'cid0000000000000000000001'; // ^c[a-z0-9]{8,}$
+const CUID2_FIXTURE = 'a00000000000000000000001'; // ^[a-z][a-z0-9]{23}$
+const ULID_FIXTURE = '00000000000000000000000001'; // ^[0-9A-HJKMNP-TV-Z]{26}$i
+const OBJECT_ID_FIXTURE = '000000000000000000000001'; // rejected: not an accepted shape
+
 describe('entity id helpers', () => {
   const validIds = [
     '550e8400-e29b-41d4-a716-446655440000',
-    'cmptu23g70001zixnzwbzwp2e',
-    'tz4a98xxat96iws9zmbrgj3a',
-    '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    CUID_FIXTURE,
+    CUID2_FIXTURE,
+    ULID_FIXTURE,
   ];
 
   it.each(validIds)('accepts %s', (id) => {
@@ -18,14 +25,12 @@ describe('entity id helpers', () => {
   });
 
   it('trims identifiers before returning validated data', () => {
-    expect(entityIdSchema.parse('  cmptu23g70001zixnzwbzwp2e  ')).toBe(
-      'cmptu23g70001zixnzwbzwp2e',
-    );
+    expect(entityIdSchema.parse(`  ${CUID_FIXTURE}  `)).toBe(CUID_FIXTURE);
   });
 
   it.each([
     '',
-    '507f1f77bcf86cd799439011',
+    OBJECT_ID_FIXTURE,
     'not an id',
     'black-forest-labs/flux-schnell',
     null,

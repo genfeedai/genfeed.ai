@@ -35,6 +35,7 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -52,12 +53,12 @@ describe('TwitterPublisherService', () => {
   let postsService: vi.Mocked<PostsService>;
 
   // Test IDs
-  const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockBrandId = '507f1f77bcf86cd799439012';
-  const mockPostId = '507f1f77bcf86cd799439013';
-  const mockUserId = '507f1f77bcf86cd799439014';
-  const mockCredentialId = '507f1f77bcf86cd799439015';
-  const mockIngredientId = '507f1f77bcf86cd799439016';
+  const mockOrganizationId = testId('org');
+  const mockBrandId = testId('brand');
+  const mockPostId = testId('post');
+  const mockUserId = testId('user');
+  const mockCredentialId = testId('credential');
+  const mockIngredientId = testId('ingredient');
 
   // Mock credential
   const mockCredential = {
@@ -127,9 +128,9 @@ describe('TwitterPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Carousel tweet</p>',
     ingredients: [
-      '507f1f77bcf86cd799439020',
-      '507f1f77bcf86cd799439021',
-      '507f1f77bcf86cd799439022',
+      testId('ingredient', 2),
+      testId('ingredient', 3),
+      testId('ingredient', 4),
     ],
     isDeleted: false,
     organizationId: mockOrganizationId,
@@ -647,14 +648,14 @@ describe('TwitterPublisherService', () => {
 
     const mockChildren = [
       {
-        id: '507f1f77bcf86cd799439030',
+        id: testId('post', 2),
         category: PostCategory.TEXT,
         description: '<p>Child 1</p>',
         ingredients: [],
         order: 1,
       },
       {
-        id: '507f1f77bcf86cd799439031',
+        id: testId('post', 3),
         category: PostCategory.IMAGE,
         description: '<p>Child 2</p>',
         ingredients: [mockIngredientId],
@@ -759,7 +760,7 @@ describe('TwitterPublisherService', () => {
         context,
         [
           {
-            _id: '507f1f77bcf86cd799439099',
+            _id: testId('post', 4),
             category: PostCategory.TEXT,
             description: '<p>Alias only</p>',
             ingredients: [],

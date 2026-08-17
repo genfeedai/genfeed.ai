@@ -6,12 +6,13 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-const orgId = '507f191e810c19729de860ee'.toString();
+const orgId = testId('org');
 
 const createContext = (
   body: Record<string, unknown> = {},

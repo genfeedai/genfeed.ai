@@ -4,13 +4,14 @@ import type { AvatarsService } from '@api/collections/avatars/services/avatars.s
 import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
-const userId = '507f191e810c19729de860ee'.toString();
-const orgId = '507f191e810c19729de860ee'.toString();
-const brandId = '507f191e810c19729de860ee'.toString();
+const userId = testId('user');
+const orgId = testId('org');
+const brandId = testId('brand');
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({

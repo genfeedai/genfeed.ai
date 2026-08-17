@@ -3,6 +3,7 @@ import { ReviewablePostsService } from '@api/collections/posts/services/reviewab
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -74,8 +75,8 @@ describe('ContentGatewayService', () => {
 
   it('routes a signal and returns posts/runs', async () => {
     const result = await service.routeSignal({
-      brandId: '507f1f77bcf86cd799439011',
-      organizationId: '507f1f77bcf86cd799439012',
+      brandId: testId('brand'),
+      organizationId: testId('org'),
       payload: { skillSlugs: ['content-writing'] },
       type: 'cron',
     });
@@ -90,8 +91,8 @@ describe('ContentGatewayService', () => {
 
   it('processes manual request for a specific skill', async () => {
     const result = await service.processManualRequest(
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439011',
+      testId('org'),
+      testId('brand'),
       'content-writing',
       { prompt: 'hello' },
     );
@@ -109,8 +110,8 @@ describe('ContentGatewayService', () => {
 
     await expect(
       service.processManualRequest(
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439099',
+        testId('org'),
+        testId('brand', 2),
         'some-skill',
       ),
     ).rejects.toThrow();
@@ -129,8 +130,8 @@ describe('ContentGatewayService', () => {
       .mockResolvedValueOnce([{ id: 'post-2' }]);
 
     const result = await service.routeSignal({
-      brandId: '507f1f77bcf86cd799439011',
-      organizationId: '507f1f77bcf86cd799439012',
+      brandId: testId('brand'),
+      organizationId: testId('org'),
       payload: {},
       type: 'cron',
     });
@@ -143,8 +144,8 @@ describe('ContentGatewayService', () => {
     skillsService.getEnabledSkillSlugs.mockResolvedValue([]);
 
     const result = await service.routeSignal({
-      brandId: '507f1f77bcf86cd799439011',
-      organizationId: '507f1f77bcf86cd799439012',
+      brandId: testId('brand'),
+      organizationId: testId('org'),
       payload: {},
       type: 'cron',
     });

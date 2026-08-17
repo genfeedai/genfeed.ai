@@ -2,6 +2,7 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -79,7 +80,7 @@ describe('EvaluationsOperationsService', () => {
   });
 
   describe('evaluateVideo', () => {
-    const organizationId = '507f1f77bcf86cd799439011';
+    const organizationId = testId('org');
 
     it('should evaluate video content', async () => {
       const mockAiResponse = {
@@ -162,7 +163,7 @@ describe('EvaluationsOperationsService', () => {
   });
 
   describe('evaluateImage', () => {
-    const organizationId = '507f1f77bcf86cd799439011';
+    const organizationId = testId('org');
 
     it('should evaluate image content', async () => {
       const mockAiResponse = {
@@ -227,7 +228,7 @@ describe('EvaluationsOperationsService', () => {
   });
 
   describe('evaluateArticle', () => {
-    const organizationId = '507f1f77bcf86cd799439011';
+    const organizationId = testId('org');
 
     it('should evaluate article content', async () => {
       const mockAiResponse = {

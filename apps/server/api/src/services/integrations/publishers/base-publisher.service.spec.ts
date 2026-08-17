@@ -17,6 +17,7 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -98,9 +99,9 @@ class TestPublisher extends BasePublisherService {
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
-const mockPostId = '507f1f77bcf86cd799439011';
-const mockIngredientId1 = '507f1f77bcf86cd799439021';
-const mockIngredientId2 = '507f1f77bcf86cd799439022';
+const mockPostId = testId('post');
+const mockIngredientId1 = testId('ingredient');
+const mockIngredientId2 = testId('ingredient', 2);
 
 function makePost(overrides: Partial<PostEntity> = {}): PostEntity {
   return {

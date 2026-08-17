@@ -7,8 +7,12 @@ import {
   RunStatus,
   RunSurface,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 describe('RunsMeteringService', () => {
   let service: RunsMeteringService;
@@ -54,14 +58,14 @@ describe('RunsMeteringService', () => {
     await service.record({
       actionType: RunActionType.GENERATE,
       authType: RunAuthType.BETTER_AUTH,
-      organizationId: '507f1f77bcf86cd799439011',
+      organizationId,
       progress: 10,
       runId: 'run-1',
       stage: RunMeteringStage.CREATED,
       status: RunStatus.PENDING,
       surface: RunSurface.CLI,
       traceId: 'trace-1',
-      userId: '507f1f77bcf86cd799439012',
+      userId,
     });
 
     expect(mockNotificationsPublisher.emit).toHaveBeenCalledWith(
@@ -83,14 +87,14 @@ describe('RunsMeteringService', () => {
     await service.record({
       actionType: RunActionType.POST,
       authType: RunAuthType.API_KEY,
-      organizationId: '507f1f77bcf86cd799439011',
+      organizationId,
       progress: 50,
       runId: 'run-2',
       stage: RunMeteringStage.UPDATED,
       status: RunStatus.RUNNING,
       surface: RunSurface.TG,
       traceId: 'trace-2',
-      userId: '507f1f77bcf86cd799439012',
+      userId,
     });
 
     expect(mockLogger.warn).toHaveBeenCalledWith(

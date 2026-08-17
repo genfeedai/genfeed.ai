@@ -15,6 +15,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { LoraStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -47,11 +48,11 @@ describe('AiInfluencerService', () => {
   };
 
   // Test IDs
-  const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockBrandId = '507f1f77bcf86cd799439012';
-  const mockUserId = '507f1f77bcf86cd799439013';
-  const mockPersonaId = '507f1f77bcf86cd799439014';
-  const mockIngredientId = '507f1f77bcf86cd799439015';
+  const mockOrganizationId = testId('org');
+  const mockBrandId = testId('brand');
+  const mockUserId = testId('user');
+  const mockPersonaId = testId('persona');
+  const mockIngredientId = testId('ingredient');
 
   // Mock persona
   const createMockPersona = (
@@ -779,7 +780,7 @@ describe('AiInfluencerService', () => {
     it('should find all autopilot personas and generate posts', async () => {
       const persona1 = createMockPersona({ slug: 'persona-1' });
       const persona2 = createMockPersona({
-        id: '507f1f77bcf86cd799439099',
+        id: testId('persona', 2),
         slug: 'persona-2',
       });
 
@@ -860,7 +861,7 @@ describe('AiInfluencerService', () => {
     it('should continue with other personas when one fails', async () => {
       const persona1 = createMockPersona({ slug: 'persona-fail' });
       const persona2 = createMockPersona({
-        id: '507f1f77bcf86cd799439099',
+        id: testId('persona', 2),
         slug: 'persona-ok',
       });
 

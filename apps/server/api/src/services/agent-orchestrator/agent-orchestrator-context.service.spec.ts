@@ -16,6 +16,7 @@ import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/a
 import { UNTRUSTED_USER_DATA_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { AgentMessageRole, AgentType } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ONBOARDING_REQUEST: AgentChatRequest = {
@@ -29,7 +30,7 @@ const CONTEXT: AgentChatContext = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
-const THREAD_ID = 'c7a123456789012345678901';
+const THREAD_ID = testId('thread');
 
 function createService(options?: {
   brandContext?: { defaultModel?: string } | null;

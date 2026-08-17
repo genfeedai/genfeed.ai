@@ -19,6 +19,7 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -42,8 +43,8 @@ describe('TrendsService', () => {
   };
   let loggerService: LoggerService;
 
-  const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockBrandId = '507f1f77bcf86cd799439012';
+  const mockOrganizationId = testId('org');
+  const mockBrandId = testId('brand');
 
   // A Prisma-style trend doc (with data blob containing the rich fields)
   const makePrismaTrendDoc = (
@@ -484,7 +485,7 @@ describe('TrendsService', () => {
     it('aggregates, dedupes, and ranks content items from cached previews', async () => {
       const cachedTrendA = new TrendEntity({
         ...mockTrend,
-        id: '507f1f77bcf86cd799439021',
+        id: testId('trend', 1),
         metadata: {
           sourcePreviewCache: [
             {
@@ -507,7 +508,7 @@ describe('TrendsService', () => {
 
       const cachedTrendB = new TrendEntity({
         ...mockTrend,
-        id: '507f1f77bcf86cd799439022',
+        id: testId('trend', 2),
         metadata: {
           sourcePreviewCache: [
             {
@@ -566,7 +567,7 @@ describe('TrendsService', () => {
         trends: [
           new TrendEntity({
             ...mockTrend,
-            id: '507f1f77bcf86cd799439023',
+            id: testId('trend', 3),
             metadata: {
               source: 'curated',
             },
@@ -588,7 +589,7 @@ describe('TrendsService', () => {
         trends: [
           new TrendEntity({
             ...mockTrend,
-            id: '507f1f77bcf86cd799439024',
+            id: testId('trend', 4),
             metadata: {
               source: 'public-reference',
               sourceClassification: {
@@ -794,7 +795,7 @@ describe('TrendsService', () => {
         }
       ).trendFilteringService;
       const brandAId = mockBrandId;
-      const brandBId = '507f1f77bcf86cd799439013';
+      const brandBId = testId('brandb');
 
       vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue(['twitter']);
       vi.spyOn(service, 'getTrends').mockResolvedValue([

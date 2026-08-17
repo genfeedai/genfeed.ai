@@ -3,6 +3,7 @@ import {
   AdBulkUploadService,
   CreateBulkUploadInput,
 } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -20,11 +21,11 @@ describe('AdBulkUploadService', () => {
     bodyCopies: ['Body 1'],
     campaignId: 'camp_1',
     creativeSource: 'manual-upload' as const,
-    credentialId: '507f1f77bcf86cd799439014',
+    credentialId: testId('credential'),
     headlines: ['Headline 1'],
     images: ['https://img.com/1.jpg'],
     linkUrl: 'https://example.com',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: testId('org'),
     videos: [],
   };
 
@@ -167,7 +168,7 @@ describe('AdBulkUploadService', () => {
   it('includes brandId in job doc when provided', async () => {
     const input: CreateBulkUploadInput = {
       ...validInput,
-      brandId: '507f1f77bcf86cd799439015',
+      brandId: testId('brand'),
     };
     await service.createBulkUpload(input);
     expect(bulkUploadJobsService.create).toHaveBeenCalledWith(

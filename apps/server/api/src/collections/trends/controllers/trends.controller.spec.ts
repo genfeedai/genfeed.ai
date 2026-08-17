@@ -18,6 +18,7 @@ import { TrendsController } from '@api/collections/trends/controllers/trends.con
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
 
 describe('TrendsController', () => {
@@ -43,9 +44,9 @@ describe('TrendsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockReq = {} as Request;
@@ -590,7 +591,7 @@ describe('TrendsController', () => {
       const adminUser = {
         id: 'admin_1',
         isSuperAdmin: true,
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId: testId('org'),
       } as unknown as User;
 
       await discoveryController.getCorpusFreshnessHealth(adminUser, undefined);

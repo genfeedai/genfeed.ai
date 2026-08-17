@@ -1,6 +1,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ActionOrigin } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
   HttpStatus,
@@ -18,22 +19,26 @@ describe('ApiKeyAuthGuard', () => {
   let request: ReturnType<typeof buildMockRequest>;
   let mockContext: ExecutionContext;
 
+  const mockApiKeyId = testId('apikey');
+  const mockApiKeyOrgId = testId('org');
+  const mockApiKeyUserId = testId('user');
+
   const mockApiKey = {
-    _id: '507f1f77bcf86cd799439011',
+    _id: mockApiKeyId,
     allowedIps: ['192.168.1.1'],
     createdAt: new Date(),
-    id: '507f1f77bcf86cd799439011',
+    id: mockApiKeyId,
     isRevoked: false,
     key: 'hashed_key_value',
     name: 'Test API Key',
-    organization: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439013',
+    organization: mockApiKeyOrgId,
+    organizationId: mockApiKeyOrgId,
     rateLimit: 60,
     scopes: ['videos:create', 'videos:read'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439012',
+    user: mockApiKeyUserId,
+    userId: mockApiKeyUserId,
   };
 
   beforeEach(async () => {

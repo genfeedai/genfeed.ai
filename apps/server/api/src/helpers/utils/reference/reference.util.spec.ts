@@ -5,6 +5,7 @@ import {
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -33,7 +34,7 @@ function createMocks() {
 }
 
 describe('buildReferenceImageUrl', () => {
-  const referenceId = '507f1f77bcf86cd799439011';
+  const referenceId = testId('reference');
 
   it('returns null when reference id is empty', async () => {
     const { ingredientsService, assetsService, configService, loggerService } =
@@ -180,8 +181,8 @@ describe('buildReferenceImageUrl', () => {
 });
 
 describe('buildReferenceImageUrls', () => {
-  const id1 = '507f1f77bcf86cd799439011';
-  const id2 = '507f1f77bcf86cd799439012';
+  const id1 = testId('ref', 1);
+  const id2 = testId('ref', 2);
 
   it('returns an empty array when no reference ids are provided', async () => {
     const { ingredientsService, assetsService, configService, loggerService } =

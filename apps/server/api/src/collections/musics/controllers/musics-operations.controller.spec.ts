@@ -26,6 +26,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,9 +38,9 @@ describe('MusicsOperationsController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockCreateMusicDto: CreateMusicDto = {
@@ -50,11 +51,11 @@ describe('MusicsOperationsController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ id: '507f191e810c19729de860ee' }),
+      create: vi.fn().mockResolvedValue({ id: testId('activity') }),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue({
-        id: '507f1f77bcf86cd799439013',
+        id: testId('brand'),
       }),
     },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
@@ -79,7 +80,7 @@ describe('MusicsOperationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        id: '507f1f77bcf86cd799439016',
+        id: testId('prompt'),
         original: mockCreateMusicDto.text,
       }),
     },
@@ -96,10 +97,10 @@ describe('MusicsOperationsController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          id: '507f1f77bcf86cd799439014',
+          id: testId('ingredient'),
         },
         metadataData: {
-          id: '507f1f77bcf86cd799439015',
+          id: testId('metadata'),
         },
       }),
     },

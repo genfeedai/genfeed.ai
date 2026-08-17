@@ -1,4 +1,5 @@
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 
 interface MockUser {
@@ -22,8 +23,8 @@ describe('CurrentUser Decorator', () => {
     const mockUser: MockUser = {
       email: 'test@example.com',
       id: 'user-123',
-      organizationId: '507f1f77bcf86cd799439012',
-      userId: '507f1f77bcf86cd799439011',
+      organizationId: testId('org'),
+      userId: testId('user'),
     };
     const context = createContext(mockUser);
 
@@ -53,19 +54,21 @@ describe('CurrentUser Decorator', () => {
   });
 
   it('should access user with complete metadata', () => {
+    const brandId = testId('brand');
+
     const mockUser: MockUser = {
       email: 'admin@example.com',
       id: 'user-456',
-      brandId: '507f1f77bcf86cd799439015',
-      organizationId: '507f1f77bcf86cd799439014',
+      brandId,
+      organizationId: testId('org', 2),
       role: 'admin',
-      userId: '507f1f77bcf86cd799439013',
+      userId: testId('user', 2),
     };
     const context = createContext(mockUser);
     const request = context.switchToHttp().getRequest<{ user: MockUser }>();
     expect(request.user.id).toBe('user-456');
     expect(request.user?.role).toBe('admin');
-    expect(request.user?.brandId).toBe('507f1f77bcf86cd799439015');
+    expect(request.user?.brandId).toBe(brandId);
   });
 
   it('should be defined as a param decorator factory', () => {

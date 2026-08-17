@@ -4,6 +4,7 @@ import { PublicMusicsController } from '@api/endpoints/public/controllers/musics
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope, IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -128,7 +129,7 @@ describe('PublicMusicsController', () => {
 
     it('should filter by brand when provided', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const mockMusics = {
         docs: [{ brandId, id: 'music1' }],
         page: 1,
@@ -169,7 +170,7 @@ describe('PublicMusicsController', () => {
 
   describe('getMusicMetadata', () => {
     it('should return music metadata for valid id', async () => {
-      const musicId = 'c07f191e810c19729de860ee'.toString();
+      const musicId = testId('music');
       const mockMusic = {
         id: musicId,
         status: IngredientStatus.GENERATED,
@@ -219,7 +220,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return not found when music does not exist', async () => {
-      const musicId = 'c07f191e810c19729de860ee'.toString();
+      const musicId = testId('music');
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -238,7 +239,7 @@ describe('PublicMusicsController', () => {
 
   describe('getMusic', () => {
     it('should stream music file successfully', async () => {
-      const musicId = 'c07f191e810c19729de860ee'.toString();
+      const musicId = testId('music');
       const mockMusic = {
         id: musicId,
         status: IngredientStatus.GENERATED,
@@ -269,7 +270,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return 404 when music not found', async () => {
-      const musicId = 'c07f191e810c19729de860ee'.toString();
+      const musicId = testId('music');
 
       musicsService.findOne.mockResolvedValue(null);
 
@@ -282,7 +283,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should handle S3 file retrieval error', async () => {
-      const musicId = 'c07f191e810c19729de860ee'.toString();
+      const musicId = testId('music');
       const mockMusic = {
         id: musicId,
         status: IngredientStatus.GENERATED,

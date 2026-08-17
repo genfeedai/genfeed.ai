@@ -230,7 +230,7 @@ describe('PerformanceInterceptor', () => {
       vi.mocked(Sentry.getActiveSpan).mockReturnValue(activeSpan as never);
       mockExecutionContext.getRequest.mockReturnValue({
         ...mockRequest,
-        url: '/v1/videos/507f1f77bcf86cd799439011?include=comments',
+        url: '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa?include=comments',
       });
       mockCallHandler.handle.mockReturnValue(of('success'));
 
@@ -425,14 +425,14 @@ describe('normalizeApiRoute', () => {
   });
 
   it('should replace high-cardinality path segments', () => {
-    expect(normalizeApiRoute('/v1/videos/507f1f77bcf86cd799439011')).toBe(
+    expect(normalizeApiRoute('/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa')).toBe(
       '/v1/videos/*',
     );
     expect(normalizeApiRoute('/v1/users/123')).toBe('/v1/users/*');
     expect(normalizeApiRoute('/v1/posts/my-post-slug')).toBe('/v1/posts/*');
     expect(
       normalizeApiRoute(
-        '/v1/videos/507f1f77bcf86cd799439011/comments/456?include=user',
+        '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa/comments/456?include=user',
       ),
     ).toBe('/v1/videos/*/comments/*');
   });
@@ -522,13 +522,13 @@ describe('APIMetricsInterceptor', () => {
       const testCases = [
         {
           expected: '/v1/videos/*',
-          url: '/v1/videos/507f1f77bcf86cd799439011',
+          url: '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa',
         },
         { expected: '/v1/users/*', url: '/v1/users/123' },
         { expected: '/v1/posts/*', url: '/v1/posts/my-post-slug' },
         {
           expected: '/v1/videos/*/comments/*',
-          url: '/v1/videos/507f1f77bcf86cd799439011/comments/456',
+          url: '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa/comments/456',
         },
       ];
 

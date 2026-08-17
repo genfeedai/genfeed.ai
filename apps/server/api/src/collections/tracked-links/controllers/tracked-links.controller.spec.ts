@@ -7,9 +7,14 @@ import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request, Response } from 'express';
+
+const organizationId = testId('org');
+const userId = testId('user');
+const linkId = testId('link');
 
 // Mock serializers to avoid real serialization in unit tests
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
@@ -35,16 +40,16 @@ describe('TrackedLinksController', () => {
   let service: TrackedLinksService;
 
   const mockUser: User = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockTrackedLink = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: linkId,
     clicks: 0,
     contentId: 'content123',
     createdAt: new Date(),
-    organization: '507f1f77bcf86cd799439012',
+    organization: organizationId,
     originalUrl: 'https://example.com',
     shortCode: 'abc123',
   };
@@ -113,7 +118,6 @@ describe('TrackedLinksController', () => {
 
   describe('getLink', () => {
     it('should return a tracked link by id', async () => {
-      const linkId = '507f1f77bcf86cd799439014';
       mockTrackedLinksService.getById.mockResolvedValue(mockTrackedLink);
 
       const result = await controller.getLink(mockReq, linkId, mockUser);
@@ -173,7 +177,6 @@ describe('TrackedLinksController', () => {
 
   describe('getLinkPerformance', () => {
     it('should return link performance', async () => {
-      const linkId = '507f1f77bcf86cd799439014';
       const performance = {
         clicks: 150,
         conversionRate: 0.15,
@@ -217,7 +220,6 @@ describe('TrackedLinksController', () => {
 
   describe('updateLink', () => {
     it('should update a tracked link', async () => {
-      const linkId = '507f1f77bcf86cd799439014';
       const updates = { campaignName: 'Updated Campaign' };
 
       const updated = { ...mockTrackedLink, ...updates };
@@ -241,7 +243,6 @@ describe('TrackedLinksController', () => {
 
   describe('deleteLink', () => {
     it('should delete a tracked link', async () => {
-      const linkId = '507f1f77bcf86cd799439014';
       mockTrackedLinksService.delete.mockResolvedValue(undefined);
 
       const result = await controller.deleteLink(linkId, mockUser);
@@ -257,7 +258,7 @@ describe('TrackedLinksController', () => {
   describe('trackClick', () => {
     it('should track a click', async () => {
       const dto: TrackClickDto = {
-        linkId: '507f1f77bcf86cd799439014',
+        linkId,
         sessionId: 'session123',
       };
 
@@ -280,7 +281,7 @@ describe('RedirectController', () => {
   let service: TrackedLinksService;
 
   const mockTrackedLink = {
-    id: '507f1f77bcf86cd799439014',
+    id: linkId,
     expiresAt: null,
     originalUrl: 'https://example.com',
     shortCode: 'abc123',

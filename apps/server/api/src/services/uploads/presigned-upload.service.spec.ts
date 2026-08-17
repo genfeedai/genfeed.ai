@@ -12,6 +12,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -27,10 +28,10 @@ describe('PresignedUploadService', () => {
   let metadataService: vi.Mocked<MetadataService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const mockUserId = 'c07f1f77bcf86cd799439011';
-  const mockOrganizationId = 'c07f1f77bcf86cd799439012';
-  const mockIngredientId = 'c07f1f77bcf86cd799439013';
-  const mockMetadataId = 'c07f1f77bcf86cd799439014';
+  const mockUserId = testId('user');
+  const mockOrganizationId = testId('org');
+  const mockIngredientId = testId('ingredient');
+  const mockMetadataId = testId('metadata');
 
   const mockUser = {
     emailAddresses: [{ emailAddress: 'test@example.com' }],
@@ -149,8 +150,8 @@ describe('PresignedUploadService', () => {
       });
 
       filesClientService.getPresignedUploadUrl.mockResolvedValue({
-        publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439013',
-        s3Key: 'ingredients/images/507f1f77bcf86cd799439013',
+        publicUrl: `https://cdn.example.com/images/${mockIngredientId}`,
+        s3Key: `ingredients/images/${mockIngredientId}`,
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=abc',
       });
 
@@ -159,8 +160,8 @@ describe('PresignedUploadService', () => {
       expect(result).toEqual({
         expiresIn: 3600,
         id: mockIngredientId.toString(),
-        publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439013',
-        s3Key: 'ingredients/images/507f1f77bcf86cd799439013',
+        publicUrl: `https://cdn.example.com/images/${mockIngredientId}`,
+        s3Key: `ingredients/images/${mockIngredientId}`,
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=abc',
       });
 
@@ -202,14 +203,14 @@ describe('PresignedUploadService', () => {
       });
 
       filesClientService.getPresignedUploadUrl.mockResolvedValue({
-        publicUrl: 'https://cdn.example.com/videos/507f1f77bcf86cd799439013',
-        s3Key: 'ingredients/videos/507f1f77bcf86cd799439013',
+        publicUrl: `https://cdn.example.com/videos/${mockIngredientId}`,
+        s3Key: `ingredients/videos/${mockIngredientId}`,
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=xyz',
       });
 
       const result = await service.getPresignedUploadUrl(mockUser, body);
 
-      expect(result.s3Key).toBe('ingredients/videos/507f1f77bcf86cd799439013');
+      expect(result.s3Key).toBe(`ingredients/videos/${mockIngredientId}`);
       expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
         mockIngredientId.toString(),
         'videos',

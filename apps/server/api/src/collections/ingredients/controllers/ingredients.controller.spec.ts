@@ -8,6 +8,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
@@ -23,11 +24,16 @@ describe('IngredientsController (cloneIngredient)', () => {
   let metadataService: MetadataService;
   let loggerService: LoggerService;
 
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
+  const ingredientId = testId('ingredient');
+
   const mockUser = {
     id: 'user_123',
-    brandId: 'c07f1f77bcf86cd799439013',
-    organizationId: 'c07f1f77bcf86cd799439012',
-    userId: 'c07f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRequest = {
@@ -140,13 +146,13 @@ describe('IngredientsController (cloneIngredient)', () => {
       const result = await controller.cloneIngredient(
         mockRequest,
         mockUser,
-        'c07f191e810c19729de860ea',
+        ingredientId,
       );
 
       expect(serviceFindOneSpy).toHaveBeenCalledWith(
         {
-          id: 'c07f191e810c19729de860ea',
-          organizationId: 'c07f1f77bcf86cd799439012',
+          id: ingredientId,
+          organizationId,
         },
         [PopulatePatterns.metadataFull],
       );
@@ -162,7 +168,7 @@ describe('IngredientsController (cloneIngredient)', () => {
         'images',
         {
           type: 'url',
-          url: 'http://cdn/images/c07f191e810c19729de860ea',
+          url: `http://cdn/images/${ingredientId}`,
         },
       );
 

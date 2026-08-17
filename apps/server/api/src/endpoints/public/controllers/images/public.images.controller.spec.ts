@@ -7,6 +7,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -39,8 +40,8 @@ describe('PublicImagesController', () => {
   let imagesService: vi.Mocked<ImagesService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const brandId = 'b07f191e810c19729de860ee';
-  const imageId = 'i07f191e810c19729de860ee';
+  const brandId = testId('brand');
+  const imageId = testId('image');
 
   const mockRequest = {
     originalUrl: '/api/public/images',

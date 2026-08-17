@@ -11,6 +11,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -40,20 +41,21 @@ describe('TiktokController', () => {
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
-  const orgId = '507f1f77bcf86cd799439011';
+  const orgId = testId('org');
   const credentialId = 'test-object-id';
+  const userId = testId('user');
   const mockUser = {
     brandId,
     id: 'authProvider_user_1',
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId,
   } as never;
 
   // A real Prisma row carries the scalar FK, never the populated-only alias.
   const mockBrand = {
     id: brandId,
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439013',
+    userId,
   };
 
   beforeEach(async () => {
@@ -76,7 +78,7 @@ describe('TiktokController', () => {
         brandId,
         id: credentialId,
         organizationId: orgId,
-        userId: '507f1f77bcf86cd799439013',
+        userId,
       }),
       patch: vi
         .fn()
@@ -160,7 +162,7 @@ describe('TiktokController', () => {
       await controller.connect(mockRequest, mockUser, dto);
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f1f77bcf86cd799439013',
+        userId,
         'tiktok',
         expect.objectContaining({ isConnected: false }),
       );

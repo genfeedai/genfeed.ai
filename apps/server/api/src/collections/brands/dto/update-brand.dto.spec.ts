@@ -41,7 +41,7 @@ describe('UpdateBrandDto', () => {
           pipe.transform(
             {
               label: 'Renamed Brand',
-              [field]: '507f191e810c19729de860ee',
+              [field]: '000000000000000000000001',
             },
             metadata,
           ),

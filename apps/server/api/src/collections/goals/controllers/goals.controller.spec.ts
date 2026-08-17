@@ -2,10 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { GoalsController } from '@api/collections/goals/controllers/goals.controller';
 import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { GoalsService } from '@api/collections/goals/services/goals.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('GoalsController.canUserModifyEntity', () => {
-  const organizationId = '507f191e810c19729de860ee';
+  const organizationId = testId('org');
   const controller = new GoalsController(
     {
       debug: vi.fn(),
@@ -18,7 +19,7 @@ describe('GoalsController.canUserModifyEntity', () => {
 
   const mockUser = {
     organizationId: organizationId,
-    userId: '507f191e810c19729de860ef',
+    userId: testId('user'),
   } as unknown as User;
 
   it('allows modification when the canonical organization ID matches', () => {
@@ -37,7 +38,7 @@ describe('GoalsController.canUserModifyEntity', () => {
 
   it('rejects modification when organizations differ', () => {
     const entity = {
-      organizationId: '607f191e810c19729de860ff',
+      organizationId: testId('otherOrg'),
     } as GoalDocument;
 
     expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);

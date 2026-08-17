@@ -1,5 +1,6 @@
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -13,9 +14,11 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   },
 }));
 
+const campaignId = testId('campaign');
+
 const makeCampaign = (overrides = {}) => ({
-  id: '507f191e810c19729de860ee',
-  organizationId: '507f191e810c19729de860ee',
+  id: campaignId,
+  organizationId: campaignId,
   status: CampaignStatus.ACTIVE,
   ...overrides,
 });
@@ -91,11 +94,11 @@ describe('CampaignQueueService', () => {
       expect(mockCampaignQueue.add).toHaveBeenCalledWith(
         'process',
         {
-          campaignId: '507f191e810c19729de860ee',
-          organizationId: '507f191e810c19729de860ee',
+          campaignId,
+          organizationId: campaignId,
         },
         expect.objectContaining({
-          jobId: 'campaign-507f191e810c19729de860ee',
+          jobId: `campaign-${campaignId}`,
         }),
       );
     });

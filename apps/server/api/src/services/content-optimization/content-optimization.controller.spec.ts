@@ -3,6 +3,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -21,9 +22,11 @@ describe('ContentOptimizationController', () => {
     queueAnalysis: vi.fn(),
   };
 
+  const organizationId = testId('org');
+
   const mockUser = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId: testId('user'),
   } as unknown as User;
 
   beforeEach(async () => {
@@ -66,7 +69,7 @@ describe('ContentOptimizationController', () => {
 
     expect(result).toHaveLength(1);
     expect(mockOptimizationService.generateSuggestions).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
     );
   });
@@ -101,7 +104,7 @@ describe('ContentOptimizationController', () => {
     );
 
     expect(mockOptimizationService.analyzePerformance).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
       { endDate: '2026-02-01', startDate: '2026-01-01', topN: 5 },
     );
@@ -117,7 +120,7 @@ describe('ContentOptimizationController', () => {
     });
 
     expect(mockOptimizationService.optimizePrompt).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
       'original prompt',
     );
@@ -132,7 +135,7 @@ describe('ContentOptimizationController', () => {
     const result = await controller.getRecommendations('brand-1', mockUser);
 
     expect(mockOptimizationService.getRecommendations).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
     );
     expect(result).toHaveLength(1);
@@ -144,7 +147,7 @@ describe('ContentOptimizationController', () => {
     const result = await controller.triggerOptimization('brand-1', mockUser);
 
     expect(mockQueueService.queueAnalysis).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439012',
+      organizationId,
       'brand-1',
     );
     expect(result).toEqual({ jobId: 'job-123', status: 'queued' });

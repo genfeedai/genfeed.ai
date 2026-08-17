@@ -15,6 +15,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -130,7 +131,7 @@ describe('PublicPostsController', () => {
 
     it('should filter by account when provided', async () => {
       const query = createBaseQuery();
-      const brandId = 'c07f191e810c19729de860ee'.toString();
+      const brandId = testId('brand');
       const mockPosts = {
         docs: [{ brandId, id: 'pub1' }],
         page: 1,
@@ -280,7 +281,7 @@ describe('PublicPostsController', () => {
 
   describe('getPostMetadata', () => {
     it('should return post metadata for valid id', async () => {
-      const postId = 'c07f191e810c19729de860ee'.toString();
+      const postId = testId('post');
 
       postsService.findOne.mockResolvedValue({
         id: postId,
@@ -312,7 +313,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should not expose a post that is not public', async () => {
-      const postId = 'c07f191e810c19729de860ee'.toString();
+      const postId = testId('post');
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -353,7 +354,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should return not found when post does not exist', async () => {
-      const postId = 'c07f191e810c19729de860ee'.toString();
+      const postId = testId('post');
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -380,7 +381,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should log the request with correct parameters', async () => {
-      const postId = 'c07f191e810c19729de860ee'.toString();
+      const postId = testId('post');
       const mockPost = {
         id: postId,
         title: 'Test Post',

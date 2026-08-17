@@ -83,8 +83,8 @@ describe('MetadataService', () => {
   it('drops invalid relation IDs instead of persisting legacy identifiers', async () => {
     await service.create({
       extension: ApiMetadataExtension.JPEG,
-      promptId: '507f1f77bcf86cd799439011',
-      tags: ['507f191e810c19729de860ea'],
+      promptId: '000000000000000000000001',
+      tags: ['000000000000000000000002'],
     });
 
     expect(metadata.create).toHaveBeenCalledWith({

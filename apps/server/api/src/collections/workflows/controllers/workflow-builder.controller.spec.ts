@@ -4,6 +4,7 @@ import { WorkflowFormatConverterService } from '@api/collections/workflows/servi
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -15,8 +16,8 @@ describe('WorkflowBuilderController', () => {
   const mockRequest = {} as Request;
 
   const mockUser: User = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockWorkflowsService = {

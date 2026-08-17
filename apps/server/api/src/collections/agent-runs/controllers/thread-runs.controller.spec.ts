@@ -9,6 +9,7 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ThreadRunsController } from '@api/collections/agent-runs/controllers/thread-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -16,14 +17,16 @@ describe('ThreadRunsController', () => {
   let controller: ThreadRunsController;
   let agentRunsService: { getByThread: ReturnType<typeof vi.fn> };
 
-  const orgId = '507f1f77bcf86cd799439012';
-  const threadId = '507f191e810c19729de860ee'.toString();
+  const orgId = testId('org');
+  const threadId = testId('thread');
+  const brandId = testId('brand');
+  const userId = testId('user');
 
   const mockUser: User = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
+    brandId,
     organizationId: orgId,
-    userId: '507f1f77bcf86cd799439014',
+    userId,
   };
 
   const mockRequest = {
@@ -59,12 +62,12 @@ describe('ThreadRunsController', () => {
     it('should return serialized runs for the given thread', async () => {
       const mockRuns = [
         {
-          id: '507f191e810c19729de860ee',
+          id: threadId,
           status: 'completed',
           threadId,
         },
         {
-          id: '507f191e810c19729de860ee',
+          id: threadId,
           status: 'running',
           threadId,
         },
@@ -81,7 +84,7 @@ describe('ThreadRunsController', () => {
         threadId,
         orgId,
         {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId,
           cursor: undefined,
           limit: undefined,
         },
@@ -110,7 +113,7 @@ describe('ThreadRunsController', () => {
         expect.any(String),
         orgId,
         {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId,
           cursor: undefined,
           limit: undefined,
         },
@@ -126,7 +129,7 @@ describe('ThreadRunsController', () => {
         threadId,
         expect.any(String),
         {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId,
           cursor: undefined,
           limit: undefined,
         },
@@ -144,10 +147,8 @@ describe('ThreadRunsController', () => {
     });
 
     it('should work with a different threadId', async () => {
-      const otherThreadId = '507f191e810c19729de860ee'.toString();
-      const mockRuns = [
-        { id: '507f191e810c19729de860ee', threadId: otherThreadId },
-      ];
+      const otherThreadId = threadId;
+      const mockRuns = [{ id: threadId, threadId: otherThreadId }];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
 
       await controller.getThreadRuns(mockRequest, otherThreadId, mockUser);
@@ -156,7 +157,7 @@ describe('ThreadRunsController', () => {
         otherThreadId,
         orgId,
         {
-          brandId: '507f1f77bcf86cd799439013',
+          brandId,
           cursor: undefined,
           limit: undefined,
         },
@@ -172,9 +173,7 @@ describe('ThreadRunsController', () => {
     });
 
     it('should handle single-run thread correctly', async () => {
-      const singleRun = [
-        { id: '507f191e810c19729de860ee', status: 'completed' },
-      ];
+      const singleRun = [{ id: threadId, status: 'completed' }];
       agentRunsService.getByThread.mockResolvedValue(singleRun);
 
       const result = await controller.getThreadRuns(

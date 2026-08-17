@@ -31,6 +31,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientStatus, TransformationCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -50,11 +51,21 @@ describe('ImagesTransformationsController', () => {
   let _creditsUtilsService: CreditsUtilsService;
   let _modelsService: ModelsService;
 
+  const userId = testId('user');
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const imageId = testId('image');
+  const metadataId = testId('metadata');
+  const promptId = testId('prompt');
+  const resizedImageId = testId('resized');
+  const newMetadataId = testId('metadata', 2);
+  const activityId = testId('activity');
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRequest = {
@@ -64,22 +75,22 @@ describe('ImagesTransformationsController', () => {
   } as unknown as Request;
 
   const mockImage = {
-    id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
+    id: imageId,
+    brand: brandId,
     category: 'image',
     metadata: {
-      id: '507f1f77bcf86cd799439015',
+      id: metadataId,
       height: 1080,
       width: 1920,
     },
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    organization: organizationId,
+    user: userId,
   };
 
   const mockServices = {
     activitiesService: {
       create: vi.fn().mockResolvedValue({
-        id: '507f1f77bcf86cd799439020',
+        id: activityId,
       }),
     },
     configService: {
@@ -96,7 +107,7 @@ describe('ImagesTransformationsController', () => {
       uploadToS3: vi.fn().mockResolvedValue({
         height: 1920,
         publicUrl: 'https://cdn.example.com/resized.jpg',
-        s3Key: 'ingredients/images/507f1f77bcf86cd799439017',
+        s3Key: `ingredients/images/${resizedImageId}`,
         size: 1024 * 1024,
         width: 1080,
       }),
@@ -131,7 +142,7 @@ describe('ImagesTransformationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        id: '507f1f77bcf86cd799439016',
+        id: promptId,
         original: 'Test prompt',
       }),
     },
@@ -147,10 +158,10 @@ describe('ImagesTransformationsController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          id: '507f1f77bcf86cd799439017',
+          id: resizedImageId,
         },
         metadataData: {
-          id: '507f1f77bcf86cd799439018',
+          id: newMetadataId,
         },
       }),
     },
@@ -239,14 +250,14 @@ describe('ImagesTransformationsController', () => {
 
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
       mockServices.imagesService.patch.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439017',
+        _id: resizedImageId,
         status: 'generated',
       });
 
       const result = await controller.resizeImage(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439014',
+        imageId,
         resizeParams,
       );
 
@@ -257,14 +268,14 @@ describe('ImagesTransformationsController', () => {
       expect(
         mockServices.filesClientService.resizeImageFromUrl,
       ).toHaveBeenCalledWith(
-        'https://api.example.com/ingredients/images/507f1f77bcf86cd799439014',
+        `https://api.example.com/ingredients/images/${imageId}`,
         {
           height: 1920,
           width: 1080,
         },
       );
       expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439017',
+        resizedImageId,
         'images',
         {
           contentType: 'image/jpeg',
@@ -274,7 +285,7 @@ describe('ImagesTransformationsController', () => {
       );
       expect(mockServices.metadataService.patch).toHaveBeenCalled();
       expect(mockServices.imagesService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439017',
+        resizedImageId,
         expect.objectContaining({
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.RESIZED],
@@ -289,7 +300,7 @@ describe('ImagesTransformationsController', () => {
       const result = await controller.resizeImage(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439014',
+        imageId,
         { height: 1920, width: 1080 },
       );
 
@@ -299,17 +310,12 @@ describe('ImagesTransformationsController', () => {
     it('should use default dimensions when not provided', async () => {
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
 
-      await controller.resizeImage(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439014',
-        {},
-      );
+      await controller.resizeImage(mockRequest, mockUser, imageId, {});
 
       expect(
         mockServices.filesClientService.resizeImageFromUrl,
       ).toHaveBeenCalledWith(
-        'https://api.example.com/ingredients/images/507f1f77bcf86cd799439014',
+        `https://api.example.com/ingredients/images/${imageId}`,
         {
           height: 1920,
           width: 1080,
@@ -331,7 +337,7 @@ describe('ImagesTransformationsController', () => {
 
       const result = await controller.reframeImage(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        imageId,
         mockUser,
         createImageDto,
       );
@@ -351,14 +357,9 @@ describe('ImagesTransformationsController', () => {
       mockServices.imagesService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.reframeImage(
-          mockRequest,
-          '507f1f77bcf86cd799439014',
-          mockUser,
-          {
-            text: 'Reframe',
-          },
-        ),
+        controller.reframeImage(mockRequest, imageId, mockUser, {
+          text: 'Reframe',
+        }),
       ).rejects.toThrow(HttpException);
     });
 
@@ -372,7 +373,7 @@ describe('ImagesTransformationsController', () => {
 
       await controller.reframeImage(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        imageId,
         mockUser,
         createImageDto,
       );
@@ -397,7 +398,7 @@ describe('ImagesTransformationsController', () => {
 
       await controller.reframeImage(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        imageId,
         mockUser,
         createImageDto,
       );
@@ -422,7 +423,7 @@ describe('ImagesTransformationsController', () => {
 
       const result = await controller.upscaleImage(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        imageId,
         mockUser,
         imageEditDto,
       );
@@ -439,24 +440,14 @@ describe('ImagesTransformationsController', () => {
       mockServices.imagesService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.upscaleImage(
-          mockRequest,
-          '507f1f77bcf86cd799439014',
-          mockUser,
-          {},
-        ),
+        controller.upscaleImage(mockRequest, imageId, mockUser, {}),
       ).rejects.toThrow(HttpException);
     });
 
     it('should use default upscale settings when not provided', async () => {
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
 
-      await controller.upscaleImage(
-        mockRequest,
-        '507f1f77bcf86cd799439014',
-        mockUser,
-        {},
-      );
+      await controller.upscaleImage(mockRequest, imageId, mockUser, {});
 
       expect(
         mockServices.promptBuilderService.buildPrompt,
@@ -474,12 +465,7 @@ describe('ImagesTransformationsController', () => {
     it('should deduct credits after successful generation', async () => {
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
 
-      await controller.upscaleImage(
-        mockRequest,
-        '507f1f77bcf86cd799439014',
-        mockUser,
-        {},
-      );
+      await controller.upscaleImage(mockRequest, imageId, mockUser, {});
 
       // Credits deduction is handled by CreditsInterceptor
       // Verify runModel was called successfully
@@ -490,12 +476,7 @@ describe('ImagesTransformationsController', () => {
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
       mockServices.replicateService.runModel.mockResolvedValue(null);
 
-      await controller.upscaleImage(
-        mockRequest,
-        '507f1f77bcf86cd799439014',
-        mockUser,
-        {},
-      );
+      await controller.upscaleImage(mockRequest, imageId, mockUser, {});
 
       expect(
         mockServices.failedGenerationService.handleFailedImageGeneration,

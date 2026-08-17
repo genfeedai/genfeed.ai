@@ -9,6 +9,7 @@ import {
   type OAuthUrlResult,
 } from '@api/shared/controllers/base-integration/base-integration.controller';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -106,9 +107,9 @@ function createMockLogger(): LoggerService {
 }
 
 describe('BaseIntegrationController', () => {
-  const orgId = '507f1f77bcf86cd799439012';
-  const userId = '507f1f77bcf86cd799439011';
-  const brandId = '507f191e810c19729de860ee';
+  const orgId = testId('org');
+  const userId = testId('user');
+  const brandId = testId('brand');
 
   let controller: TestIntegrationController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
@@ -136,7 +137,7 @@ describe('BaseIntegrationController', () => {
 
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: testId('brand'),
         isConnected: false,
       }),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1', isConnected: true }),
@@ -184,7 +185,7 @@ describe('BaseIntegrationController', () => {
 
     it('should throw FORBIDDEN when brand is not found', async () => {
       brandsService.findOne.mockResolvedValue(null);
-      const fakeBrandId = '507f191e810c19729de860ee'.toString();
+      const fakeBrandId = testId('brand').toString();
 
       await expect(
         controller.testValidateBrand(fakeBrandId, orgId),
@@ -228,7 +229,7 @@ describe('BaseIntegrationController', () => {
       credentialsService.findOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
-          id: '507f191e810c19729de860ee',
+          id: testId('brand'),
           isConnected: false,
         });
 
@@ -290,7 +291,7 @@ describe('BaseIntegrationController', () => {
 
       await expect(
         controller.testHandleConnect(mockUser, {
-          brandId: '507f191e810c19729de860ee'.toString(),
+          brandId: testId('brand').toString(),
         }),
       ).rejects.toThrow(HttpException);
     });
@@ -393,7 +394,7 @@ describe('BaseIntegrationController', () => {
 
   describe('updateCredentialWithTokens', () => {
     it('should patch credential with tokens and clear temporary fields', () => {
-      const credId = '507f191e810c19729de860ee';
+      const credId = testId('brand');
       const verifyResult = {
         accessSecret: 'access-secret',
         accessToken: 'final-access-token',
@@ -423,7 +424,7 @@ describe('BaseIntegrationController', () => {
     });
 
     it('should handle missing optional fields', () => {
-      const credId = '507f191e810c19729de860ee';
+      const credId = testId('brand');
       const verifyResult = {
         accessToken: 'token-only',
       };

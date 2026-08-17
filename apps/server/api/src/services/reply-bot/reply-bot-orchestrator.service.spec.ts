@@ -11,6 +11,7 @@ import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-ca
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -21,7 +22,7 @@ describe('ReplyBotOrchestratorService', () => {
   // `ReplyBotConfig.userId` is a non-nullable column, so every realistic bot
   // config row carries it. The `user` alias is the Mongo-era relation field and
   // is `undefined` unless the read explicitly populated it.
-  const botOwnerUserId = '507f1f77bcf86cd799439033';
+  const botOwnerUserId = testId('user');
 
   const mockConfigService = {
     get: vi.fn(() => 'test-value'),
@@ -169,7 +170,7 @@ describe('ReplyBotOrchestratorService', () => {
   });
 
   describe('processOrganizationBots', () => {
-    const orgId = '507f1f77bcf86cd799439011';
+    const orgId = testId('org');
     const credential = {
       accessToken: 'token-123',
       platform: 'twitter' as const,
@@ -211,7 +212,7 @@ describe('ReplyBotOrchestratorService', () => {
   });
 
   describe('processSingleBot', () => {
-    const orgId = '507f1f77bcf86cd799439011';
+    const orgId = testId('org');
     const credential = {
       accessToken: 'token-123',
       platform: 'twitter' as const,
@@ -594,8 +595,8 @@ describe('ReplyBotOrchestratorService', () => {
   });
 
   describe('testReplyGeneration', () => {
-    const orgId = '507f1f77bcf86cd799439011';
-    const botConfigId = '507f1f77bcf86cd799439022';
+    const orgId = testId('org');
+    const botConfigId = testId('config');
     const testContent = { author: 'testauthor', content: 'Test tweet' };
 
     it('should throw when bot config not found', async () => {

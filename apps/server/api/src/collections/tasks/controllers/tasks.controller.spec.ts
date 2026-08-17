@@ -9,6 +9,7 @@ import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { TaskSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
@@ -41,14 +42,15 @@ describe('TasksController', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const organizationId = '507f191e810c19729de860ee'.toString();
-  const userId = '507f191e810c19729de860ee'.toString();
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const brandId = testId('brand');
 
   const mockUser = {
     id: 'user-1',
-    brandId: '507f191e810c19729de860ef',
-    organizationId: organizationId,
-    userId: userId,
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRequest = {
@@ -114,7 +116,7 @@ describe('TasksController', () => {
   describe('create', () => {
     it('creates a task with organization prefix and next counter number', async () => {
       const createdTask = {
-        id: '507f191e810c19729de860ee',
+        id: testId('task'),
         identifier: 'GENA-18',
         taskNumber: 18,
         title: 'Add task tests',
@@ -136,7 +138,7 @@ describe('TasksController', () => {
       );
       expect(tasksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brandId: '507f191e810c19729de860ef',
+          brandId,
           identifier: 'GENA-18',
           organizationId,
           taskNumber: 18,
@@ -148,11 +150,11 @@ describe('TasksController', () => {
     });
 
     it('uses an explicit canonical brand ID instead of the session default', async () => {
-      const requestedBrandId = '507f191e810c19729de860ff';
+      const requestedBrandId = testId('brand', 2);
       organizationsService.findOne.mockResolvedValue({ prefix: 'GENA' });
       taskCountersService.getNextNumber.mockResolvedValue(19);
       tasksService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ed',
+        id: testId('task', 2),
         title: 'Cross-brand task',
       });
 
@@ -184,7 +186,7 @@ describe('TasksController', () => {
 
   describe('buildFindAllQuery', () => {
     it('adds organization scope and optional filters to the match stage', () => {
-      const parentId = '507f191e810c19729de860ee'.toString();
+      const parentId = testId('parent');
       const query = controller.buildFindAllQuery(mockUser, {
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
@@ -233,7 +235,7 @@ describe('TasksController', () => {
 
     it('rejects modification when organizations differ', () => {
       const entity = {
-        organizationId: '607f191e810c19729de860ff',
+        organizationId: testId('org', 2),
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
@@ -243,7 +245,7 @@ describe('TasksController', () => {
   describe('findByIdentifier', () => {
     it('returns a serialized task when found', async () => {
       const task = {
-        id: '507f191e810c19729de860ee',
+        id: testId('task'),
         identifier: 'GENA-18',
       } as TaskDocument;
       tasksService.findByIdentifier.mockResolvedValue(task);
@@ -272,10 +274,10 @@ describe('TasksController', () => {
 
   describe('findChildren', () => {
     it('loads children in the current organization scope', async () => {
-      const taskId = '507f191e810c19729de860ee'.toString();
+      const taskId = testId('task');
       const children = [
         {
-          id: '507f191e810c19729de860ee',
+          id: taskId,
           title: 'Child task',
         },
       ] as TaskDocument[];
@@ -296,7 +298,7 @@ describe('TasksController', () => {
   });
 
   describe('review transitions via patch', () => {
-    const taskId = '507f191e810c19729de860ee'.toString();
+    const taskId = testId('task');
     const task = {
       id: taskId,
       title: 'Review task',
@@ -361,8 +363,8 @@ describe('TasksController', () => {
   });
 
   describe('output actions', () => {
-    const taskId = '507f191e810c19729de860ee'.toString();
-    const outputId = '607f191e810c19729de860ff'.toString();
+    const taskId = testId('task');
+    const outputId = testId('output');
     const task = {
       id: taskId,
       title: 'Review task',

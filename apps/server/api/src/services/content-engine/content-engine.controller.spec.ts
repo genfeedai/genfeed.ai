@@ -4,6 +4,7 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,8 +38,8 @@ describe('ContentEngineController', () => {
     executeSingleItem: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = 'c07f1f77bcf86cd799439012';
-  const userId = 'c07f1f77bcf86cd799439011';
+  const orgId = testId('org');
+  const userId = testId('user');
 
   const mockUser = {
     id: 'user_123',

@@ -17,11 +17,20 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
+
+const videoId = testId('video');
+const captionId = testId('caption');
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
 
 describe('VideosCaptionsController', () => {
   let controller: VideosCaptionsController;
@@ -31,25 +40,25 @@ describe('VideosCaptionsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    brandId: '507f1f77bcf86cd799439014',
+    brandId,
     captions: [
       {
         content: 'Test caption content',
         format: 'srt',
-        id: '507f1f77bcf86cd799439015',
+        id: captionId,
         language: 'en',
       },
     ],
-    id: '507f1f77bcf86cd799439011',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    id: videoId,
+    organizationId,
+    userId,
   };
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockServices = {
@@ -117,7 +126,6 @@ describe('VideosCaptionsController', () => {
 
   describe('getCaptions', () => {
     it('should call videosService.findOne and return captions', async () => {
-      const videoId = '507f1f77bcf86cd799439011';
       const mockCaptionsData = { docs: [{ content: 'Test caption' }] };
 
       mockServices.videosService.findOne.mockResolvedValue(mockVideo);
@@ -151,8 +159,6 @@ describe('VideosCaptionsController', () => {
     });
 
     it('should return not found when video does not exist', async () => {
-      const videoId = '507f1f77bcf86cd799439011';
-
       mockServices.videosService.findOne.mockResolvedValue(null);
 
       const result = await controller.getCaptions(
@@ -168,8 +174,7 @@ describe('VideosCaptionsController', () => {
 
   describe('createVideoWithCaptions', () => {
     it('should add captions to video', async () => {
-      const videoId = '507f1f77bcf86cd799439011';
-      const createDto = { caption: '507f1f77bcf86cd799439015' };
+      const createDto = { caption: captionId };
 
       mockServices.videosService.findOne.mockResolvedValue(mockVideo);
       mockServices.captionsService.findOne.mockResolvedValue(
@@ -177,10 +182,10 @@ describe('VideosCaptionsController', () => {
       );
       mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: {
-          id: '507f1f77bcf86cd799439016',
+          id: ingredientId,
         },
         metadataData: {
-          id: '507f1f77bcf86cd799439017',
+          id: metadataId,
         },
       });
       mockServices.configService.get.mockReturnValue('https://api.example.com');
@@ -200,8 +205,7 @@ describe('VideosCaptionsController', () => {
     });
 
     it('should return not found when video does not exist', async () => {
-      const videoId = '507f1f77bcf86cd799439011';
-      const createDto = { caption: '507f1f77bcf86cd799439015' };
+      const createDto = { caption: captionId };
 
       mockServices.videosService.findOne.mockResolvedValue(null);
 

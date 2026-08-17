@@ -17,6 +17,7 @@ import {
   ModelCategory,
   PromptStatus,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -281,20 +282,21 @@ beforeEach(() => {
 describe('ImageGenerationService', () => {
   describe('prompt persistence', () => {
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {
+      const promptId = testId('prompt');
       const { service, promptsService } = createService();
       promptsService.findOne.mockResolvedValue({
-        id: 'p07f1f77bcf86cd799439015',
+        id: promptId,
         original: 'a sunset over the ocean',
       });
       promptsService.patch.mockResolvedValue({
-        id: 'p07f1f77bcf86cd799439015',
+        id: promptId,
         original: 'a sunset over the ocean',
       });
 
       await service.generateImage(
         buildUser(),
         baseDto({
-          promptId: 'p07f1f77bcf86cd799439015',
+          promptId,
           text: 'a sunset over the ocean',
         }),
         buildRequest(),
@@ -302,7 +304,7 @@ describe('ImageGenerationService', () => {
 
       expect(promptsService.create).not.toHaveBeenCalled();
       expect(promptsService.patch).toHaveBeenCalledWith(
-        'p07f1f77bcf86cd799439015',
+        promptId,
         expect.objectContaining({ status: PromptStatus.PROCESSING }),
       );
     });

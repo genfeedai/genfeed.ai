@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BrokenCircuitError,
@@ -45,11 +46,11 @@ describe('ReplyBotPollingProcessor', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let circuitExecute: ReturnType<typeof vi.fn>;
 
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const credentialId = '507f191e810c19729de860ee'.toString();
+  const orgId = testId('org');
+  const credentialId = testId('credential');
 
   const mockCredential = {
-    _id: '507f191e810c19729de860ee',
+    _id: credentialId,
     accessToken: 'access-token',
     accessTokenSecret: 'access-secret',
     externalId: 'ext-123',

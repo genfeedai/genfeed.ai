@@ -15,9 +15,16 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const userId = testId('user');
+const organizationId = testId('org');
+const brandId = testId('brand');
+const apiKeyId = testId('apikey');
+const rotatedApiKeyId = testId('apikey', 2);
 
 describe('ApiKeysController', () => {
   let controller: ApiKeysController;
@@ -26,13 +33,13 @@ describe('ApiKeysController', () => {
   const mockRequest = {} as Request;
 
   const mockUser: User = {
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockApiKey: ApiKey = {
-    _id: '507f1f77bcf86cd799439014',
+    _id: apiKeyId,
     allowedIps: [],
     category: ApiKeyCategory.GENFEEDAI,
     createdAt: new Date(),
@@ -42,11 +49,11 @@ describe('ApiKeysController', () => {
     isRevoked: false,
     key: 'hashed_key_value',
     label: 'Test API Key',
-    organization: '507f1f77bcf86cd799439012',
+    organization: organizationId,
     scopes: ['read', 'write'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: '507f1f77bcf86cd799439011',
+    user: userId,
   } as ApiKey;
 
   const mockApiKeysService = {
@@ -262,7 +269,7 @@ describe('ApiKeysController', () => {
 
   describe('findOne', () => {
     it('should return an API key by id', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
 
       const result = await controller.findOne(mockRequest, mockUser, id);
@@ -272,7 +279,7 @@ describe('ApiKeysController', () => {
     });
 
     it('should throw NotFoundException when API key not found', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(null);
 
       await expect(
@@ -308,7 +315,7 @@ describe('ApiKeysController', () => {
 
   describe('update', () => {
     it('should update an API key', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       const updateApiKeyDto: UpdateApiKeyDto = {
         isDeleted: false,
         label: 'Updated API Key',
@@ -330,7 +337,7 @@ describe('ApiKeysController', () => {
     });
 
     it('should throw NotFoundException when API key not found', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       const updateApiKeyDto: UpdateApiKeyDto = {
         isDeleted: false,
         label: 'Updated API Key',
@@ -344,7 +351,7 @@ describe('ApiKeysController', () => {
     });
 
     it('strips caller-supplied action origin from metadata updates', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
       mockApiKeysService.patch.mockResolvedValue(mockApiKey);
 
@@ -366,7 +373,7 @@ describe('ApiKeysController', () => {
     });
 
     it('preserves server verification while rejecting a replacement marker', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       const serverVerification = {
         lastVerifiedAt: '2026-07-27T23:00:00.000Z',
         transport: 'streamable-http',
@@ -398,7 +405,7 @@ describe('ApiKeysController', () => {
     });
 
     it('preserves an already-verified server origin on metadata updates', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       const signedCliKey = {
         ...mockApiKey,
         metadata: {
@@ -428,7 +435,7 @@ describe('ApiKeysController', () => {
 
   describe('revoke', () => {
     it('should revoke an API key', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
       const revokedKey = { ...mockApiKey, isRevoked: true };
       mockApiKeysService.revoke.mockResolvedValue(revokedKey);
@@ -440,7 +447,7 @@ describe('ApiKeysController', () => {
     });
 
     it('should throw NotFoundException when API key not found', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(null);
 
       await expect(
@@ -451,12 +458,12 @@ describe('ApiKeysController', () => {
 
   describe('rotate', () => {
     it('should revoke the old key and create a replacement with the same settings', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       const plainKey = 'plain_rotated_api_key_12345';
       const rotatedKey = {
         ...mockApiKey,
-        _id: '507f1f77bcf86cd799439015',
-        id: '507f1f77bcf86cd799439015',
+        _id: rotatedApiKeyId,
+        id: rotatedApiKeyId,
         label: mockApiKey.label,
       };
 
@@ -471,8 +478,8 @@ describe('ApiKeysController', () => {
       expect(service.findOne).toHaveBeenCalledWith({
         id,
         isRevoked: false,
-        organizationId: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439011',
+        organizationId,
+        userId,
       });
       expect(service.rotateWithKey).toHaveBeenCalledWith(
         id,
@@ -480,9 +487,9 @@ describe('ApiKeysController', () => {
           category: mockApiKey.category,
           description: mockApiKey.description,
           label: mockApiKey.label,
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId,
           scopes: mockApiKey.scopes,
-          userId: '507f1f77bcf86cd799439011',
+          userId,
         }),
       );
       expect(service.revoke).not.toHaveBeenCalled();
@@ -491,7 +498,7 @@ describe('ApiKeysController', () => {
     });
 
     it('does not carry connection verification onto a replacement key', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue({
         ...mockApiKey,
         metadata: {
@@ -518,7 +525,7 @@ describe('ApiKeysController', () => {
     });
 
     it('should throw NotFoundException when rotating a missing key', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = apiKeyId;
       mockApiKeysService.findOne.mockResolvedValue(null);
 
       await expect(

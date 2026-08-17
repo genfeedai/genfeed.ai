@@ -9,8 +9,11 @@ import {
   MODEL_KEYS,
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const defaultModelId = testId('model');
 
 describe('RouterService', () => {
   let service: RouterService;
@@ -19,7 +22,7 @@ describe('RouterService', () => {
 
   const createMockModel = (overrides: Record<string, unknown> = {}) =>
     ({
-      id: '507f1f77bcf86cd799439011',
+      id: defaultModelId,
       capabilities: [],
       category: ModelCategory.IMAGE,
       cost: 50,
@@ -1308,7 +1311,7 @@ describe('RouterService', () => {
   describe('Model Details', () => {
     it('should include correct model details in recommendation', async () => {
       const model = createMockModel({
-        id: '507f1f77bcf86cd799439011',
+        id: defaultModelId,
         category: ModelCategory.IMAGE,
         cost: 100,
         key: 'test-model-key',
@@ -1327,7 +1330,7 @@ describe('RouterService', () => {
       expect(result.modelDetails).toEqual({
         category: ModelCategory.IMAGE,
         cost: 100,
-        id: '507f1f77bcf86cd799439011',
+        id: defaultModelId,
         key: 'test-model-key',
         provider: 'test-provider',
       });

@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -138,7 +139,7 @@ describe('FilesClientService', () => {
   describe('getPath', () => {
     it('should return correct path for given type and ingredientId', () => {
       const type = 'videos';
-      const ingredientId = '507f1f77bcf86cd799439011';
+      const ingredientId = testId('ingredient');
 
       const result = service.getPath(type, ingredientId);
 

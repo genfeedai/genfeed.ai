@@ -3,6 +3,7 @@ import {
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
 import { ParseMode } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -266,20 +267,22 @@ describe('NotificationsService', () => {
     });
 
     it('should include userId and organizationId when provided', async () => {
+      const organizationId = testId('org');
+      const userId = testId('user');
       const event: NotificationEvent = {
         action: 'send_message',
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId,
         payload: {},
         type: 'bot',
-        userId: '507f1f77bcf86cd799439011',
+        userId,
       };
 
       await service.sendNotification(event);
 
       const publishCall = (mockPublisher.publish as vi.Mock).mock.calls[0];
       const publishedData = JSON.parse(publishCall[1]);
-      expect(publishedData.userId).toBe('507f1f77bcf86cd799439011');
-      expect(publishedData.organizationId).toBe('507f1f77bcf86cd799439012');
+      expect(publishedData.userId).toBe(userId);
+      expect(publishedData.organizationId).toBe(organizationId);
     });
   });
 
@@ -356,7 +359,7 @@ describe('NotificationsService', () => {
     it('should send chatbot message', async () => {
       const sessionId = 'session-123';
       const message = 'Bot message';
-      const metadata = { userId: '507f1f77bcf86cd799439011' };
+      const metadata = { userId: testId('user') };
 
       await service.sendChatbotMessage(sessionId, message, metadata);
 

@@ -3,6 +3,7 @@ import { VoicesCatalogController } from '@api/collections/voices/controllers/voi
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -27,7 +28,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('VoicesCatalogController', () => {
   const request = {} as Request;
   const user = { id: 'user-1' } as User;
-  const id = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+  const id = testId('voice');
   const catalogVoice = {
     createdAt: new Date('2026-01-01'),
     externalId: 'external-1',

@@ -10,6 +10,7 @@ import type { PublishContext } from '@api/services/integrations/publishers/inter
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -27,9 +28,9 @@ describe('ShopifyPublisherService', () => {
   let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const orgId = '507f1f77bcf86cd799439011';
-  const brandId = '507f1f77bcf86cd799439012';
-  const postId = '507f1f77bcf86cd799439013';
+  const orgId = testId('org');
+  const brandId = testId('brand');
+  const postId = testId('post');
 
   const mockCredential = {
     accessToken: 'encrypted-token',

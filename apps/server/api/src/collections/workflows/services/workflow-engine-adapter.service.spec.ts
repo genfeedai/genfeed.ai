@@ -2,6 +2,7 @@
 
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
+import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
@@ -830,12 +831,12 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes captions, music source, and sound overlay nodes without fallback', async () => {
-      const brandId = 'c07f1f77bcf86cd799439011';
-      const organizationId = 'c07f1f77bcf86cd799439012';
-      const userId = 'c07f1f77bcf86cd799439013';
-      const avatarId = 'c07f1f77bcf86cd799439014';
-      const musicId = 'c07f1f77bcf86cd799439015';
-      const captionedId = 'c07f1f77bcf86cd799439016';
+      const brandId = testId('brand');
+      const organizationId = testId('org');
+      const userId = testId('user');
+      const avatarId = testId('avatar');
+      const musicId = testId('music');
+      const captionedId = testId('captioned');
       const captionsService = { create: vi.fn().mockResolvedValue({}) };
       const fileQueueService = {
         processVideo: vi.fn().mockResolvedValue({ jobId: 'job-1' }),
@@ -1067,12 +1068,12 @@ describe('WorkflowEngineAdapterService', () => {
 
       const workflowDoc = {
         id: 'wf-real-estate',
-        brandId: 'c07f1f77bcf86cd799439011',
+        brandId: testId('brand'),
         edges: template.edges,
         inputVariables: template.inputVariables,
         nodes: template.nodes,
-        organizationId: 'c07f1f77bcf86cd799439012',
-        userId: 'c07f1f77bcf86cd799439013',
+        organizationId: testId('org'),
+        userId: testId('user'),
       };
 
       const executableWorkflow =
@@ -1515,15 +1516,15 @@ describe('WorkflowEngineAdapterService', () => {
           nodes: [
             {
               data: {
-                config: { assetType, brandId: 'b07f1f77bcf86cd799439011' },
+                config: { assetType, brandId: testId('brand') },
                 label: 'Brand Asset',
               },
               id: `brand-${assetType}`,
               type: 'brandAsset',
             },
           ],
-          organizationId: 'o07f1f77bcf86cd799439012',
-          userId: 'u07f1f77bcf86cd799439013',
+          organizationId: testId('org'),
+          userId: testId('user'),
         });
 
         const result = await brandAssetService.executeWorkflow(workflow);

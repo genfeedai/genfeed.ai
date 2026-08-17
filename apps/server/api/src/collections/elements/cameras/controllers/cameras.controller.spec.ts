@@ -9,6 +9,7 @@ import { ElementsCamerasService } from '@api/collections/elements/cameras/servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CameraSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -48,10 +49,10 @@ describe('ElementsCamerasController', () => {
 
   const mockSuperAdminUser = {
     id: 'user-123',
-    brandId: 'c07f191e810c19729de860ee'.toString(),
+    brandId: testId('brand'),
     isSuperAdmin: true,
-    organizationId: 'c07f191e810c19729de860ee'.toString(),
-    userId: 'c07f191e810c19729de860ee'.toString(),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockRequest = {
@@ -115,7 +116,7 @@ describe('ElementsCamerasController', () => {
       } as unknown as CreateElementCameraDto;
 
       const mockCreatedCamera = {
-        id: 'c07f191e810c19729de860ee',
+        id: testId('camera'),
         ...createDto,
       };
 
@@ -134,7 +135,7 @@ describe('ElementsCamerasController', () => {
 
   describe('update', () => {
     it('should update a camera for superadmin', async () => {
-      const id = 'c07f191e810c19729de860ee'.toString();
+      const id = testId('camera');
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
@@ -169,7 +170,7 @@ describe('ElementsCamerasController', () => {
     });
 
     it('should throw error if camera not found', async () => {
-      const id = 'c07f191e810c19729de860ee'.toString();
+      const id = testId('camera');
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
@@ -184,7 +185,7 @@ describe('ElementsCamerasController', () => {
 
   describe('remove', () => {
     it('should remove a camera for superadmin', async () => {
-      const id = 'c07f191e810c19729de860ee'.toString();
+      const id = testId('camera');
       const mockCamera = {
         id: id,
         key: 'delete-camera',

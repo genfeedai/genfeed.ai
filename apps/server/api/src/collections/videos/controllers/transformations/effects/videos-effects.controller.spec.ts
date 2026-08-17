@@ -34,6 +34,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -45,22 +46,27 @@ const mockRequest = {
   query: {},
 } as unknown as Request;
 
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const videoId = testId('video');
+
 const mockVideo = {
-  brandId: '507f1f77bcf86cd799439014',
-  id: '507f1f77bcf86cd799439011',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId,
+  id: videoId,
+  organizationId,
+  userId,
 };
 
 const mockUser = {
   id: 'user_123',
-  brandId: '507f1f77bcf86cd799439014',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId,
+  organizationId,
+  userId,
 } as unknown as User;
 
-const ingredientId = '507f1f77bcf86cd799439017';
-const metadataId = '507f1f77bcf86cd799439016';
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
 
 describe('VideosEffectsController', () => {
   let controller: VideosEffectsController;
@@ -131,7 +137,7 @@ describe('VideosEffectsController', () => {
     const result = await controller.reverseVideo(
       mockRequest,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      videoId,
     );
     expect(result).toBeDefined();
     expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
@@ -149,26 +155,18 @@ describe('VideosEffectsController', () => {
 
   it('should pass correct userId and room for reverse', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.reverseVideo(mockRequest, mockUser, videoId);
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         room: 'user:user_123',
-        userId: '507f1f77bcf86cd799439012',
+        userId: userId,
       }),
     );
   });
 
   it('should create ingredient with PROCESSING status for reverse', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.reverseVideo(mockRequest, mockUser, videoId);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -180,11 +178,7 @@ describe('VideosEffectsController', () => {
   // --- mirrorVideo ---
   it('should mirror video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.mirrorVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    const result = await controller.mirrorVideo(mockRequest, mockUser, videoId);
     expect(result).toBeDefined();
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'mirror-video' }),
@@ -204,24 +198,20 @@ describe('VideosEffectsController', () => {
       new Error('DB error'),
     );
     await expect(
-      controller.mirrorVideo(mockRequest, mockUser, '507f1f77bcf86cd799439011'),
+      controller.mirrorVideo(mockRequest, mockUser, videoId),
     ).rejects.toThrow();
     expect(mockServices.loggerService.error).toHaveBeenCalled();
   });
 
   it('should set parent to the source video id', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.reverseVideo(mockRequest, mockUser, videoId);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        parentId: '507f1f77bcf86cd799439011',
+        parentId: videoId,
       }),
     );
   });

@@ -5,6 +5,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -15,9 +16,11 @@ describe('WorkflowExecutionController', () => {
 
   const mockRequest = {} as Request;
 
+  const workflowId = testId('workflow');
+
   const mockUser: User = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockWorkflowsService = {
@@ -85,30 +88,30 @@ describe('WorkflowExecutionController', () => {
   describe('patchNodes', () => {
     beforeEach(() => {
       mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue({
-        id: '507f1f77bcf86cd799439014',
+        id: workflowId,
       });
       mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
-        id: '507f1f77bcf86cd799439014',
+        id: workflowId,
       });
     });
 
     it('should lock nodes and not unlock when only lock is provided', async () => {
       const result = await controller.patchNodes(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        workflowId,
         { lock: ['node-1'] },
         mockUser,
       );
 
       expect(mockWorkflowsService.findMutableOwnedOrThrow).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         {
           organizationId: mockUser.organizationId,
           userId: mockUser.userId,
         },
       );
       expect(mockWorkflowsService.lockNodes).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         ['node-1'],
         mockUser.organizationId,
       );
@@ -119,13 +122,13 @@ describe('WorkflowExecutionController', () => {
     it('should unlock nodes and not lock when only unlock is provided', async () => {
       const result = await controller.patchNodes(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        workflowId,
         { unlock: ['node-1'] },
         mockUser,
       );
 
       expect(mockWorkflowsService.unlockNodes).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         ['node-1'],
         mockUser.organizationId,
       );
@@ -136,13 +139,13 @@ describe('WorkflowExecutionController', () => {
     it('should fall back to findOwnedOrThrow when neither lock nor unlock is provided', async () => {
       const result = await controller.patchNodes(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        workflowId,
         {},
         mockUser,
       );
 
       expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         {
           organizationId: mockUser.organizationId,
           userId: mockUser.userId,
@@ -163,7 +166,7 @@ describe('WorkflowExecutionController', () => {
       });
 
       const result = await controller.resumeExecution(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         'exec-1',
         { expectedContextVersion: 4, threadId: 'thread-1' },
         mockUser,
@@ -177,12 +180,12 @@ describe('WorkflowExecutionController', () => {
         requestedBrandId: undefined,
         threadId: 'thread-1',
         userId: mockUser.userId,
-        workflowId: '507f1f77bcf86cd799439014',
+        workflowId: workflowId,
       });
       expect(
         mockWorkflowRunControlService.resumeFromFailed,
       ).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         'exec-1',
         mockUser.userId,
         mockUser.organizationId,
@@ -202,7 +205,7 @@ describe('WorkflowExecutionController', () => {
       });
 
       const result = await controller.submitApproval(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         'exec-1',
         { approved: true, nodeId: 'review-gate-1' },
         mockUser,
@@ -211,7 +214,7 @@ describe('WorkflowExecutionController', () => {
       expect(
         mockWorkflowExecutorService.submitReviewGateApproval,
       ).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
+        workflowId,
         'exec-1',
         mockUser.userId,
         mockUser.organizationId,
@@ -227,7 +230,7 @@ describe('WorkflowExecutionController', () => {
         requestedBrandId: undefined,
         threadId: undefined,
         userId: mockUser.userId,
-        workflowId: '507f1f77bcf86cd799439014',
+        workflowId: workflowId,
       });
       expect(result).toEqual({
         data: {
@@ -247,7 +250,7 @@ describe('WorkflowExecutionController', () => {
 
       await expect(
         controller.submitApproval(
-          '507f1f77bcf86cd799439014',
+          workflowId,
           'exec-1',
           { approved: true, nodeId: 'review-gate-1' },
           mockUser,

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/decorators/log/log-method.decorator', () => ({
@@ -40,9 +41,9 @@ const { DesktopSyncService } = await import('./desktop-sync.service');
 const { decodeManifestCursor, decodeThreadCursor, encodeThreadCursor } =
   await import('./desktop-sync-cursor.util');
 
-const userId = '507f191e810c19729de860ee';
-const organizationId = '607f191e810c19729de860ee';
-const brandId = '707f191e810c19729de860ee';
+const userId = testId('user');
+const organizationId = testId('org');
+const brandId = testId('brand');
 
 const makeUser = (): User =>
   ({

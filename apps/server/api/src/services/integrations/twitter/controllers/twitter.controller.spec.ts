@@ -25,6 +25,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -186,8 +187,8 @@ describe('TwitterController', () => {
 
   describe('verify', () => {
     it('should exchange code and update credential with OAuth 2.0 PKCE', async () => {
-      const brandId = '507f1f77bcf86cd799439011';
-      const organizationId = '507f1f77bcf86cd799439012';
+      const brandId = testId('brand');
+      const organizationId = testId('org');
       const state = 'opaque-oauth-state';
 
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
@@ -239,10 +240,10 @@ describe('TwitterController', () => {
 
     it('still returns the credential when authorized signal refresh fails', async () => {
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
-        brandId: '507f1f77bcf86cd799439011',
+        brandId: testId('brand'),
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId: testId('org'),
       });
       mockTwitterAuthorizedSignalsService.refresh.mockRejectedValueOnce(
         new Error('X rate limited'),

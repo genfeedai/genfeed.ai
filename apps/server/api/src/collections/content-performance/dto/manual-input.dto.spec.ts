@@ -2,6 +2,7 @@ import { ManualInputDto } from '@api/collections/content-performance/dto/manual-
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';
 import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_MANUAL_ENTRIES = 50;
@@ -13,7 +14,7 @@ const metadata: ArgumentMetadata = {
 
 function buildBody(entryCount: number) {
   return {
-    brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+    brandId: testId('brand'),
     entries: Array.from({ length: entryCount }, () => ({
       contentType: ContentType.IMAGE,
       measuredAt: '2026-07-01T00:00:00.000Z',

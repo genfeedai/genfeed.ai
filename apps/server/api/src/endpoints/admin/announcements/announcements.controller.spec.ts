@@ -1,6 +1,7 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -49,7 +50,7 @@ const makeUser = (orgId = 'org_test123') => ({
 });
 
 const makeAnnouncement = () => ({
-  _id: '507f191e810c19729de860ee',
+  _id: testId('announcement'),
   channel: 'discord',
   createdAt: new Date(),
   message: 'Test announcement',

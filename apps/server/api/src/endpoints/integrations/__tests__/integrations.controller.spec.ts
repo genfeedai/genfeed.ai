@@ -9,6 +9,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
+import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -20,7 +21,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 const mockIntegration: OrgIntegration = {
-  _id: '507f1f77bcf86cd799439011' as unknown as string,
+  _id: testId('integration') as unknown as string,
   config: {
     allowedUserIds: ['123', '456'],
     defaultWorkflow: 'wf-1',
@@ -28,7 +29,7 @@ const mockIntegration: OrgIntegration = {
   createdAt: new Date('2024-01-01'),
   encryptedToken: 'encrypted-token',
   isDeleted: false,
-  organization: '507f1f77bcf86cd799439012' as unknown as string,
+  organization: testId('org') as unknown as string,
   platform: IntegrationPlatform.TELEGRAM,
   status: IntegrationStatus.ACTIVE,
   updatedAt: new Date('2024-01-01'),

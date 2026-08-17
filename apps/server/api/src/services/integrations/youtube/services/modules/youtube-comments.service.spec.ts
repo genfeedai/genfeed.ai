@@ -1,5 +1,6 @@
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -47,8 +48,8 @@ describe('YoutubeCommentsService', () => {
   });
 
   describe('postComment', () => {
-    const orgId = '507f1f77bcf86cd799439011';
-    const brandId = '507f1f77bcf86cd799439022';
+    const orgId = testId('org');
+    const brandId = testId('brand');
     const videoId = 'dQw4w9WgXcQ';
     const commentText = 'Great video!';
 
@@ -137,8 +138,8 @@ describe('YoutubeCommentsService', () => {
   });
 
   describe('listRecentChannelComments', () => {
-    const orgId = '507f1f77bcf86cd799439011';
-    const brandId = '507f1f77bcf86cd799439022';
+    const orgId = testId('org');
+    const brandId = testId('brand');
 
     it('lists normalized comments for the connected channel', async () => {
       const mockAuth = { credentials: { access_token: 'token' } };
@@ -216,8 +217,8 @@ describe('YoutubeCommentsService', () => {
   });
 
   describe('replyToComment', () => {
-    const orgId = '507f1f77bcf86cd799439011';
-    const brandId = '507f1f77bcf86cd799439022';
+    const orgId = testId('org');
+    const brandId = testId('brand');
 
     it('replies to an existing YouTube comment', async () => {
       const mockAuth = { credentials: { access_token: 'token' } };

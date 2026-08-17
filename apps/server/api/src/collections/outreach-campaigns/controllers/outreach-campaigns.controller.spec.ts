@@ -6,18 +6,24 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { CampaignStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const organizationId = testId('org');
+const otherOrganizationId = testId('org', 2);
+const brandId = testId('brand');
+const userId = testId('user');
 
 describe('OutreachCampaignsController', () => {
   let controller: OutreachCampaignsController;
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439014',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockOutreachCampaignsService = {
@@ -65,14 +71,14 @@ describe('OutreachCampaignsController', () => {
   describe('canUserModifyEntity', () => {
     it('should return true when entity organizationId matches user organization', () => {
       const entity = {
-        organizationId: '507f1f77bcf86cd799439012',
+        organizationId,
       } as unknown as OutreachCampaignDocument;
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
     });
 
     it('should return false when organizationId belongs to another tenant', () => {
       const entity = {
-        organizationId: '507f1f77bcf86cd799439099',
+        organizationId: otherOrganizationId,
       } as unknown as OutreachCampaignDocument;
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
@@ -81,7 +87,7 @@ describe('OutreachCampaignsController', () => {
       // A Prisma row without an explicit include carries no `organization`
       // relation; reading the alias yielded undefined and skipped the check.
       const entity = {
-        organization: { id: '507f1f77bcf86cd799439012' },
+        organization: { id: organizationId },
       } as unknown as OutreachCampaignDocument;
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
@@ -93,7 +99,7 @@ describe('OutreachCampaignsController', () => {
         isSuperAdmin: true,
       } as unknown as User;
       const entity = {
-        organizationId: '507f1f77bcf86cd799439099',
+        organizationId: otherOrganizationId,
       } as unknown as OutreachCampaignDocument;
       expect(controller.canUserModifyEntity(superAdmin, entity)).toBe(true);
     });

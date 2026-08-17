@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -22,9 +23,12 @@ describe('OpusProController', () => {
     log: ReturnType<typeof vi.fn>;
   };
 
+  const organizationId = testId('org');
+  const userId = testId('user');
+
   const mockUser = {
-    organizationId: '507f1f77bcf86cd799439011',
-    userId: '507f1f77bcf86cd799439013',
+    organizationId,
+    userId,
   } as unknown as User;
 
   beforeEach(async () => {
@@ -104,9 +108,7 @@ describe('OpusProController', () => {
 
       await controller.getTemplates(mockUser);
 
-      expect(opusProService.getTemplates).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-      );
+      expect(opusProService.getTemplates).toHaveBeenCalledWith(organizationId);
     });
   });
 

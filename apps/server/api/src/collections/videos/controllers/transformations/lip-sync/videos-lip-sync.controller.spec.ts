@@ -33,12 +33,22 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const otherBrandId = testId('brand', 2);
+const imageIngredientId = testId('ingredient', 1);
+const audioIngredientId = testId('ingredient', 2);
+const ingredientDataId = testId('ingredientdata');
+const metadataDataId = testId('metadata');
 
 describe('VideosLipSyncController', () => {
   let controller: VideosLipSyncController;
@@ -47,37 +57,37 @@ describe('VideosLipSyncController', () => {
 
   const mockUser = {
     id: 'user_authProvider_123',
-    brandId: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockImageIngredient = {
-    brandId: '507f1f77bcf86cd799439099',
+    brandId: otherBrandId,
     category: IngredientCategory.IMAGE,
-    id: '507f1f77bcf86cd799439001',
-    organization: '507f1f77bcf86cd799439013',
+    id: imageIngredientId,
+    organization: organizationId,
     status: IngredientStatus.GENERATED,
   };
 
   const mockAudioIngredient = {
     category: IngredientCategory.AUDIO,
-    id: '507f1f77bcf86cd799439002',
-    organization: '507f1f77bcf86cd799439013',
+    id: audioIngredientId,
+    organization: organizationId,
     status: IngredientStatus.GENERATED,
   };
 
   const mockIngredientData = {
-    id: '507f1f77bcf86cd799439040',
+    id: ingredientDataId,
   };
 
   const mockMetadataData = {
-    id: '507f1f77bcf86cd799439050',
+    id: metadataDataId,
   };
 
   const mockDto: CreateLipSyncDto = {
-    parent: '507f1f77bcf86cd799439001',
-    voice: '507f1f77bcf86cd799439002',
+    parent: imageIngredientId,
+    voice: audioIngredientId,
   };
 
   let byokService: { resolveApiKey: ReturnType<typeof vi.fn> };
@@ -219,8 +229,8 @@ describe('VideosLipSyncController', () => {
           mockIngredientData.id,
           `http://localhost/images/${mockDto.parent}`,
           `http://localhost/audios/${mockDto.voice}`,
-          '507f1f77bcf86cd799439013',
-          '507f1f77bcf86cd799439012',
+          organizationId,
+          userId,
           undefined, // no BYOK key
         );
       });

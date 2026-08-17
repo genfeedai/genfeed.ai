@@ -2,6 +2,7 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import { PerformanceSummaryController } from '@api/collections/content-performance/controllers/performance-summary.controller';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -9,8 +10,8 @@ describe('PerformanceSummaryController', () => {
   let controller: PerformanceSummaryController;
   let mockService: Record<string, vi.Mock>;
 
-  const mockBrandId = 'b07f1f77bcf86cd799439012';
-  const mockOrgId = 'o07f1f77bcf86cd799439011';
+  const mockBrandId = testId('brand');
+  const mockOrgId = testId('org');
 
   const mockUser = {
     id: 'user_123',
@@ -211,7 +212,7 @@ describe('PerformanceSummaryController', () => {
 
   describe('validateBrandId', () => {
     it('accepts a canonical cuid brandId', async () => {
-      const cuidBrand = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+      const cuidBrand = testId('brand', 2);
 
       const result = await controller.getGenerationContext(
         cuidBrand,

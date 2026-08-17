@@ -23,6 +23,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -44,15 +45,15 @@ describe('BeehiivController', () => {
   } as unknown as LoggerService;
 
   const mockUser = {
-    organizationId: '507f191e810c19729de860eb',
-    userId: '507f191e810c19729de860ec',
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockRequest = {} as unknown as Request;
 
   const mockBrand = {
-    id: '507f191e810c19729de860ea',
-    organization: '507f191e810c19729de860eb',
+    id: testId('brand'),
+    organization: testId('org'),
   };
 
   const mockPublication = {
@@ -112,7 +113,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
       });
 
       expect(beehiivService.listPublications).toHaveBeenCalledWith(
@@ -120,7 +121,7 @@ describe('BeehiivController', () => {
       );
       expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f191e810c19729de860ec',
+        testId('user'),
         CredentialPlatform.BEEHIIV,
         {
           accessToken: 'test-api-key',
@@ -145,13 +146,13 @@ describe('BeehiivController', () => {
 
       await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
         publicationId: 'pub_selected',
       });
 
       expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
-        '507f191e810c19729de860ec',
+        testId('user'),
         CredentialPlatform.BEEHIIV,
         {
           accessToken: 'test-api-key',
@@ -168,7 +169,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
         publicationId: 'pub_missing',
       });
 
@@ -179,7 +180,7 @@ describe('BeehiivController', () => {
     it('should return bad request when apiKey is missing', async () => {
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: '',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
       });
 
       expect(result).toHaveProperty('errors');
@@ -200,7 +201,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
       });
 
       expect(result).toHaveProperty('errors');
@@ -213,7 +214,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
       });
 
       expect(result).toHaveProperty('errors');
@@ -228,7 +229,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'bad-key',
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
       });
 
       expect(result).toHaveProperty('errors');
@@ -246,7 +247,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.listPublications(
         mockUser,
-        '507f191e810c19729de860ea',
+        testId('brand'),
       );
 
       expect(result).toEqual({ data: [mockPublication] });
@@ -265,7 +266,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.listPublications(
         mockUser,
-        '507f191e810c19729de860ea',
+        testId('brand'),
       );
 
       expect(result).toHaveProperty('errors');
@@ -285,7 +286,7 @@ describe('BeehiivController', () => {
 
       const result = await controller.getSubscribers(
         mockUser,
-        '507f191e810c19729de860ea',
+        testId('brand'),
         '1',
         '20',
       );
@@ -315,7 +316,7 @@ describe('BeehiivController', () => {
         total_results: 0,
       });
 
-      await controller.getSubscribers(mockUser, '507f191e810c19729de860ea');
+      await controller.getSubscribers(mockUser, testId('brand'));
 
       expect(beehiivService.getSubscribers).toHaveBeenCalledWith(
         'decrypted-key',
@@ -351,7 +352,7 @@ describe('BeehiivController', () => {
       ]);
 
       const result = await controller.createSubscribers(mockRequest, mockUser, {
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
         emails: ['new@example.com', 'rejected@example.com'],
         utmSource: 'twitter',
       });
@@ -371,7 +372,7 @@ describe('BeehiivController', () => {
       );
 
       const result = await controller.createSubscribers(mockRequest, mockUser, {
-        brandId: '507f191e810c19729de860ea',
+        brandId: testId('brand'),
         emails: ['new@example.com'],
       });
 

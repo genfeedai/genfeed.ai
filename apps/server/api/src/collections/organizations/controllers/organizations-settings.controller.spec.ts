@@ -28,6 +28,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -40,20 +41,20 @@ describe('OrganizationsSettingsController', () => {
 
   const mockOrganizationSettings = {
     createdAt: new Date(),
-    id: '507f1f77bcf86cd799439011',
+    id: testId('setting'),
     isWhitelabelEnabled: false,
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: testId('org'),
     updatedAt: new Date(),
   };
 
   const mockSubscription = {
     cancelAtPeriodEnd: false,
-    id: '507f1f77bcf86cd799439015',
+    id: testId('subscription'),
     isDeleted: false,
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: testId('org'),
     plan: 'pro',
     status: 'active',
-    userId: '507f1f77bcf86cd799439011',
+    userId: testId('user'),
   } satisfies ISubscriptionOssReadModel;
 
   const mockLoggerService = {
@@ -152,7 +153,7 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('getSettings', () => {
-    const organizationId = '507f1f77bcf86cd799439012';
+    const organizationId = testId('org');
 
     it('should return organization settings', async () => {
       mockOrganizationSettingsService.findOne.mockResolvedValue(
@@ -197,7 +198,7 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('updateSettings', () => {
-    const organizationId = '507f1f77bcf86cd799439012';
+    const organizationId = testId('org');
     const updateDto = {
       isWhitelabelEnabled: true,
     };
@@ -251,7 +252,7 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('testWebhookDelivery', () => {
-    const organizationId = '507f1f77bcf86cd799439012';
+    const organizationId = testId('org');
 
     it('queues a publish webhook test delivery for organization owners', async () => {
       mockWebhookDispatchService.sendTestDelivery.mockResolvedValue({
@@ -317,7 +318,7 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('findOneSubscription', () => {
-    const organizationId = '507f1f77bcf86cd799439012';
+    const organizationId = testId('org');
 
     it('should return organization subscription', async () => {
       mockSubscriptionsService.findOne.mockResolvedValue(mockSubscription);
@@ -335,8 +336,8 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('getFleetCapabilities', () => {
-    const organizationId = '507f1f77bcf86cd799439012';
-    const brandId = '507f1f77bcf86cd799439013';
+    const organizationId = testId('org');
+    const brandId = testId('brand');
 
     it('should return brand flag without probing managed fleet runtime', async () => {
       mockBrandsService.findOne.mockResolvedValue({

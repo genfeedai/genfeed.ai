@@ -65,6 +65,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ActivitySource, TransformationCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -74,24 +75,29 @@ import type { Request } from 'express';
 
 const mockReq = {} as Request;
 
+const videoBrandId = testId('brand');
+const videoId = testId('video');
+const videoOrganizationId = testId('org');
+const videoUserId = testId('user');
+
 const mockVideo = {
-  brandId: 'c07f1f77bcf86cd799439014',
+  brandId: videoBrandId,
   category: 'video',
-  id: 'c07f1f77bcf86cd799439011',
-  organizationId: 'c07f1f77bcf86cd799439013',
-  userId: 'c07f1f77bcf86cd799439012',
+  id: videoId,
+  organizationId: videoOrganizationId,
+  userId: videoUserId,
 };
 
 const mockUser = {
   id: 'user_123',
-  brandId: 'c07f1f77bcf86cd799439014',
-  organizationId: 'c07f1f77bcf86cd799439013',
-  userId: 'c07f1f77bcf86cd799439012',
+  brandId: videoBrandId,
+  organizationId: videoOrganizationId,
+  userId: videoUserId,
 } as unknown as User;
 
-const ingredientId = 'c07f1f77bcf86cd799439015';
-const metadataId = 'c07f1f77bcf86cd799439016';
-const activityId = 'c07f1f77bcf86cd799439018';
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
+const activityId = testId('activity');
 
 describe('VideosUpscaleController', () => {
   let controller: VideosUpscaleController;
@@ -208,7 +214,7 @@ describe('VideosUpscaleController', () => {
     const result = await controller.upscaleVideo(
       mockReq,
       mockUser,
-      'c07f1f77bcf86cd799439011',
+      videoId,
       dto,
     );
     expect(result).toBeDefined();
@@ -219,16 +225,11 @@ describe('VideosUpscaleController', () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
 
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
 
     expect(
       mockServices.filesClientService.getPresignedDownloadUrl,
-    ).toHaveBeenCalledWith('c07f1f77bcf86cd799439011', 'videos');
+    ).toHaveBeenCalledWith(videoId, 'videos');
     expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -262,12 +263,7 @@ describe('VideosUpscaleController', () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     mockServices.replicateService.runModel.mockResolvedValueOnce(null);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(
       mockServices.failedGenerationService.handleFailedVideoGeneration,
     ).toHaveBeenCalled();
@@ -276,12 +272,7 @@ describe('VideosUpscaleController', () => {
   it('should publish background task update on upscale start', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(
       mockServices.websocketService.publishBackgroundTaskUpdate,
     ).toHaveBeenCalledWith(
@@ -292,12 +283,7 @@ describe('VideosUpscaleController', () => {
   it('should create activity for video upscale', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(mockServices.activitiesService.create).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'video-upscale-processing' }),
     );
@@ -306,27 +292,17 @@ describe('VideosUpscaleController', () => {
   it('should use router default model when dto does not specify one', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(mockServices.routerService.getDefaultModel).toHaveBeenCalled();
   });
 
   it('should query video with OR for user and organization', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'c07f1f77bcf86cd799439011',
+        id: videoId,
         OR: expect.arrayContaining([
           expect.objectContaining({ userId: expect.anything() }),
           expect.objectContaining({ organizationId: expect.anything() }),
@@ -338,12 +314,7 @@ describe('VideosUpscaleController', () => {
   it('should save ingredient with UPSCALED transformation', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
-    await controller.upscaleVideo(
-      mockReq,
-      mockUser,
-      'c07f1f77bcf86cd799439011',
-      dto,
-    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -361,12 +332,7 @@ describe('VideosUpscaleController', () => {
     );
     const dto: VideoEditDto = {};
     await expect(
-      controller.upscaleVideo(
-        mockReq,
-        mockUser,
-        'c07f1f77bcf86cd799439011',
-        dto,
-      ),
+      controller.upscaleVideo(mockReq, mockUser, videoId, dto),
     ).rejects.toThrow();
     expect(mockServices.loggerService.error).toHaveBeenCalled();
   });

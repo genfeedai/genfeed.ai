@@ -5,16 +5,20 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
+
+const organizationId = testId('org');
+const brandId = testId('brand');
 
 describe('AvatarVideoController', () => {
   let controller: AvatarVideoController;
 
   const mockRequest = {} as never;
   const mockUser = {
-    brandId: 'c07f1f77bcf86cd799439012',
+    brandId,
     id: 'auth-provider-user',
-    organizationId: 'c07f1f77bcf86cd799439011',
+    organizationId,
     userId: 'user-123',
   } as never;
   const mockAvatarVideoGenerationService = {
@@ -59,7 +63,7 @@ describe('AvatarVideoController', () => {
       ).toHaveBeenCalled();
       expect(mockVideosService.findOne).toHaveBeenCalledWith({
         id: 'ingredient-123',
-        organizationId: 'c07f1f77bcf86cd799439011',
+        organizationId,
       });
       expect(result).toEqual({ id: 'ingredient-123' });
     });

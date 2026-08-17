@@ -16,6 +16,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
@@ -28,11 +29,20 @@ describe('IngredientsOperationsController', () => {
   let ingredientsService: IngredientsService;
   let metadataService: MetadataService;
 
+  const brandId = testId('brand');
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const ingredientId = testId('ingredient');
+  const metadataId = testId('metadata');
+  const clonedIngredientId = testId('ingredient', 2);
+  const clonedMetadataId = testId('metadata', 2);
+  const [firstTagId, secondTagId] = testIds('tag', 2);
+
   const mockUser = {
     id: 'user_123',
-    brandId: 'c07f1f77bcf86cd799439013',
-    organizationId: 'c07f1f77bcf86cd799439012',
-    userId: 'c07f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRequest = {
@@ -42,18 +52,18 @@ describe('IngredientsOperationsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    id: 'c07f1f77bcf86cd799439014',
-    brandId: 'c07f1f77bcf86cd799439013',
+    id: ingredientId,
+    brandId,
     category: 'image',
     metadata: {
-      id: 'c07f1f77bcf86cd799439015',
+      id: metadataId,
       extension: 'jpg',
       height: 1080,
       width: 1920,
     },
-    metadataId: 'c07f1f77bcf86cd799439015',
-    organizationId: 'c07f1f77bcf86cd799439012',
-    userId: 'c07f1f77bcf86cd799439011',
+    metadataId,
+    organizationId,
+    userId,
   };
 
   const mockServices = {
@@ -95,10 +105,10 @@ describe('IngredientsOperationsController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          id: 'c07f1f77bcf86cd799439016',
+          id: clonedIngredientId,
         },
         metadataData: {
-          id: 'c07f1f77bcf86cd799439017',
+          id: clonedMetadataId,
         },
       }),
     },
@@ -175,7 +185,7 @@ describe('IngredientsOperationsController', () => {
       const result = await controller.cloneIngredient(
         mockRequest,
         mockUser,
-        'c07f1f77bcf86cd799439014',
+        ingredientId,
       );
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
@@ -195,18 +205,14 @@ describe('IngredientsOperationsController', () => {
         category: IngredientCategory.VIDEO,
       });
 
-      await controller.cloneIngredient(
-        mockRequest,
-        mockUser,
-        'c07f1f77bcf86cd799439014',
-      );
+      await controller.cloneIngredient(mockRequest, mockUser, ingredientId);
 
       await vi.waitFor(() => {
         expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
-          'c07f1f77bcf86cd799439016',
+          clonedIngredientId,
           'videos',
           expect.objectContaining({
-            url: 'https://api.example.com/ingredients/videos/c07f1f77bcf86cd799439014',
+            url: `https://api.example.com/ingredients/videos/${ingredientId}`,
           }),
         );
       });
@@ -217,7 +223,7 @@ describe('IngredientsOperationsController', () => {
     it('should refresh metadata successfully', async () => {
       const result = await controller.refreshMetadata(
         mockRequest,
-        'c07f1f77bcf86cd799439014',
+        ingredientId,
         mockUser,
       );
 
@@ -237,16 +243,12 @@ describe('IngredientsOperationsController', () => {
         category: IngredientCategory.VIDEO,
       });
 
-      await controller.refreshMetadata(
-        mockRequest,
-        'c07f1f77bcf86cd799439014',
-        mockUser,
-      );
+      await controller.refreshMetadata(mockRequest, ingredientId, mockUser);
 
       expect(
         mockServices.filesClientService.extractMetadataFromUrl,
       ).toHaveBeenCalledWith(
-        'https://api.example.com/ingredients/videos/c07f1f77bcf86cd799439014',
+        `https://api.example.com/ingredients/videos/${ingredientId}`,
       );
     });
   });
@@ -260,7 +262,7 @@ describe('IngredientsOperationsController', () => {
 
       const result = await controller.updateMetadata(
         mockRequest,
-        'c07f1f77bcf86cd799439014',
+        ingredientId,
         mockUser,
         updateDto,
       );
@@ -273,12 +275,12 @@ describe('IngredientsOperationsController', () => {
   describe('updateTags', () => {
     it('should update tags successfully', async () => {
       const updateTagsDto: UpdateTagsDto = {
-        tags: ['c07f1f77bcf86cd799439020', 'c07f1f77bcf86cd799439021'],
+        tags: [firstTagId, secondTagId],
       };
 
       const result = await controller.updateTags(
         mockRequest,
-        'c07f1f77bcf86cd799439014',
+        ingredientId,
         mockUser,
         updateTagsDto,
       );
@@ -290,7 +292,7 @@ describe('IngredientsOperationsController', () => {
 
   describe('bulkDelete', () => {
     const bulkDeleteDto: BulkDeleteIngredientsDto = {
-      ids: ['c07f1f77bcf86cd799439014', 'c07f1f77bcf86cd799439015'],
+      ids: [ingredientId, metadataId],
     };
 
     it('should delete multiple ingredients in a single scoped call', async () => {
@@ -307,8 +309,8 @@ describe('IngredientsOperationsController', () => {
         mockServices.ingredientsService.bulkSoftDeleteScoped,
       ).toHaveBeenCalledWith({
         ids: bulkDeleteDto.ids,
-        organizationId: 'c07f1f77bcf86cd799439012',
-        userId: 'c07f1f77bcf86cd799439011',
+        organizationId,
+        userId,
       });
       expect(mockServices.ingredientsService.findOne).not.toHaveBeenCalled();
       expect(result.deleted).toEqual(bulkDeleteDto.ids);
@@ -319,15 +321,15 @@ describe('IngredientsOperationsController', () => {
     it('should report inaccessible ingredients as failed', async () => {
       mockServices.ingredientsService.bulkSoftDeleteScoped.mockResolvedValueOnce(
         {
-          deleted: ['c07f1f77bcf86cd799439014'],
-          failed: ['c07f1f77bcf86cd799439015'],
+          deleted: [ingredientId],
+          failed: [metadataId],
         },
       );
 
       const result = await controller.bulkDelete(mockUser, bulkDeleteDto);
 
-      expect(result.deleted).toEqual(['c07f1f77bcf86cd799439014']);
-      expect(result.failed).toEqual(['c07f1f77bcf86cd799439015']);
+      expect(result.deleted).toEqual([ingredientId]);
+      expect(result.failed).toEqual([metadataId]);
       expect(result.message).toBe(
         'Successfully deleted 1 ingredient(s), failed to delete 1',
       );

@@ -3,6 +3,7 @@ import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PostAnalytics } from '@genfeedai/prisma';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
 type AnalyticsRow = Pick<
@@ -56,10 +57,10 @@ function dateMatches(
 }
 
 describe('analytics ingestion to dashboard smoke path', () => {
-  const organizationId = '507f1f77bcf86cd799439012';
-  const brandId = '507f1f77bcf86cd799439013';
-  const userId = '507f1f77bcf86cd799439011';
-  const postId = '507f1f77bcf86cd799439014';
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
+  const postId = testId('post');
 
   const post: SmokePost = {
     brandId,

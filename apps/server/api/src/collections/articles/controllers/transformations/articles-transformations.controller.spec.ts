@@ -13,6 +13,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { RouterService } from '@api/services/router/router.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { ArticleCategory, AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -22,10 +23,13 @@ describe('ArticlesTransformationsController', () => {
   let controller: ArticlesTransformationsController;
   let service: ArticlesService;
 
+  const articleId = testId('article');
+  const otherOrganizationId = testId('org', 2);
+
   const mockPublicMetadata = {
-    brand: '507f1f77bcf86cd799439013',
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    brand: testId('brand'),
+    organization: testId('org'),
+    user: testId('user'),
   };
 
   const mockUser = {
@@ -41,21 +45,21 @@ describe('ArticlesTransformationsController', () => {
   } as Request;
 
   const mockArticle = {
-    brandId: '507f1f77bcf86cd799439013',
-    id: '507f1f77bcf86cd799439014',
+    brandId: mockPublicMetadata.brand,
+    id: articleId,
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: mockPublicMetadata.organization,
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    userId: '507f1f77bcf86cd799439011',
+    userId: mockPublicMetadata.user,
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -147,7 +151,7 @@ describe('ArticlesTransformationsController', () => {
 
   describe('convertToThread', () => {
     it('should convert an article to a Twitter thread', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = articleId;
       const thread = ['Tweet 1', 'Tweet 2', 'Tweet 3'];
 
       mockArticlesService.convertToTwitterThread.mockResolvedValue(thread);
@@ -166,7 +170,7 @@ describe('ArticlesTransformationsController', () => {
 
   describe('analyzeVirality', () => {
     it('should analyze article virality', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = articleId;
       const analysis = {
         recommendations: ['Add a hook'],
         score: 85,
@@ -188,7 +192,7 @@ describe('ArticlesTransformationsController', () => {
 
   describe('editWithAI', () => {
     it('should enhance an article with AI', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = articleId;
       const dto: EditArticleWithAIDto = {
         prompt: 'Make it more engaging',
       };
@@ -214,7 +218,7 @@ describe('ArticlesTransformationsController', () => {
   });
 
   describe('scoreSeo', () => {
-    const id = '507f1f77bcf86cd799439014';
+    const id = articleId;
 
     it('should score an article and return the refreshed record', async () => {
       const scoredArticle = { ...mockArticle, seoScore: 91 };
@@ -257,7 +261,7 @@ describe('ArticlesTransformationsController', () => {
         docs: [
           {
             ...mockArticle,
-            organizationId: '507f1f77bcf86cd799439099',
+            organizationId: otherOrganizationId,
           },
         ],
       });

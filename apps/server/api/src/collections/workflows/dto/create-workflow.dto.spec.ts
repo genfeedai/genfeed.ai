@@ -1,4 +1,5 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
@@ -53,7 +54,7 @@ describe('CreateWorkflowDto', () => {
 
     it('allows clone creates to omit a label derived by the server', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {
-        sourceWorkflowId: '507f1f77bcf86cd799439014',
+        sourceWorkflowId: testId('workflow'),
       });
 
       const errors = await validate(dto);

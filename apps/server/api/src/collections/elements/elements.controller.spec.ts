@@ -6,6 +6,7 @@ import type {
 import { ElementsController } from '@api/collections/elements/elements.controller';
 import { ElementsService } from '@api/collections/elements/elements.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -13,12 +14,14 @@ describe('ElementsController', () => {
   let controller: ElementsController;
   let elementsService: vi.Mocked<ElementsService>;
 
+  const sharedUserId = testId('user');
+
   const mockUser = {
     id: 'user-123',
-    brandId: '507f191e810c19729de860ee'.toString(),
+    brandId: sharedUserId,
     isSuperAdmin: false,
-    organizationId: '507f191e810c19729de860ee'.toString(),
-    userId: '507f191e810c19729de860ee'.toString(),
+    organizationId: sharedUserId,
+    userId: sharedUserId,
   } as unknown as User;
 
   const mockElements = {

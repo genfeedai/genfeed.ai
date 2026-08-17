@@ -15,9 +15,12 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { MusicSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const defaultMockId = testId('default');
 
 function createMockLogger() {
   return {
@@ -41,9 +44,9 @@ function createMockMusicsService() {
 function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
-    brandId: 'c07f191e810c19729de860ee',
-    organizationId: 'c07f191e810c19729de860ee',
-    userId: 'c07f191e810c19729de860ee',
+    brandId: defaultMockId,
+    organizationId: defaultMockId,
+    userId: defaultMockId,
     ...overrides,
   };
 }
@@ -53,10 +56,10 @@ describe('MusicsController', () => {
   let musicsService: ReturnType<typeof createMockMusicsService>;
   let logger: ReturnType<typeof createMockLogger>;
   const request = {} as Request;
-  const musicId = 'm07f191e810c19729de860ea';
-  const organizationId = 'o07f191e810c19729de860eb';
-  const brandId = 'b07f191e810c19729de860ec';
-  const userId = 'u07f191e810c19729de860ed';
+  const musicId = testId('music');
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
   const music = {
     brandId,
     category: 'music',
@@ -98,11 +101,11 @@ describe('MusicsController', () => {
         where: {
           OR: expect.arrayContaining([
             expect.objectContaining({
-              brandId: 'c07f191e810c19729de860ee',
+              brandId: defaultMockId,
               category: 'MUSIC',
               isDeleted: false,
-              organizationId: 'c07f191e810c19729de860ee',
-              userId: 'c07f191e810c19729de860ee',
+              organizationId: defaultMockId,
+              userId: defaultMockId,
             }),
             expect.objectContaining({
               category: 'MUSIC',
@@ -177,7 +180,7 @@ describe('MusicsController', () => {
     });
 
     it('should filter by canonical brand ID when provided', () => {
-      const brandId = 'b07f191e810c19729de860ee';
+      const brandId = testId('brand', 2);
       const user = createMockUser();
       const inputQuery = { brandId };
       const query = controller.buildFindAllQuery(
@@ -328,8 +331,8 @@ describe('MusicsController', () => {
     it('rejects another tenant record before deletion', async () => {
       musicsService.findOne.mockResolvedValue({
         ...music,
-        organizationId: 'c07f191e810c19729de860ff',
-        userId: 'c07f191e810c19729de860fe',
+        organizationId: testId('org', 2),
+        userId: testId('user', 2),
       });
 
       await expect(controller.remove(request, user, musicId)).rejects.toThrow();

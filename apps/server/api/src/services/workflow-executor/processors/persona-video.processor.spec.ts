@@ -1,4 +1,5 @@
 import type { PersonaContentService } from '@api/services/persona-content/persona-content.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PersonaVideoProcessorInput } from './persona-video.processor';
 import { PersonaVideoProcessor } from './persona-video.processor';
@@ -32,10 +33,10 @@ describe('PersonaVideoProcessor', () => {
 
   const validInput: PersonaVideoProcessorInput = {
     aspectRatio: '16:9',
-    organizationId: '507f1f77bcf86cd799439011',
-    personaId: '507f1f77bcf86cd799439012',
+    organizationId: testId('org'),
+    personaId: testId('persona'),
     script: 'Hello world, this is a test script',
-    userId: '507f1f77bcf86cd799439013',
+    userId: testId('user'),
   };
 
   beforeEach(() => {

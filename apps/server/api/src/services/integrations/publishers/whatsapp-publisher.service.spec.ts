@@ -5,6 +5,7 @@ import type { PublishContext } from '@api/services/integrations/publishers/inter
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -14,11 +15,11 @@ describe('WhatsappPublisherService', () => {
   let logger: vi.Mocked<LoggerService>;
   let whatsappService: vi.Mocked<WhatsappService>;
 
-  const orgId = '507f1f77bcf86cd799439011';
-  const brandId = '507f1f77bcf86cd799439012';
-  const postId = '507f1f77bcf86cd799439013';
-  const credentialId = '507f1f77bcf86cd799439015';
-  const ingredientId = '507f1f77bcf86cd799439016';
+  const orgId = testId('org');
+  const brandId = testId('brand');
+  const postId = testId('post');
+  const credentialId = testId('credential');
+  const ingredientId = testId('ingredient');
 
   const mockCredential = {
     externalId: '+15551234567',

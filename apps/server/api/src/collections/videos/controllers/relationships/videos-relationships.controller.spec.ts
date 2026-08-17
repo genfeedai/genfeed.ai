@@ -27,6 +27,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -40,18 +41,29 @@ describe('VideosRelationshipsController', () => {
 
   const mockReq = {} as Request;
 
+  const videoId = testId('video');
+  const parentVideoId = testId('video', 2);
+  const secondMergeVideoId = testId('video', 3);
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const brandId = testId('brand');
+  const postId = testId('post');
+  const ingredientId = testId('ingredient');
+  const metadataId = testId('metadata');
+  const activityId = testId('activity');
+
   const mockVideo = {
-    id: '507f1f77bcf86cd799439011',
-    organizationId: '507f1f77bcf86cd799439013',
-    parentId: '507f1f77bcf86cd799439010',
-    userId: '507f1f77bcf86cd799439012',
+    id: videoId,
+    organizationId,
+    parentId: parentVideoId,
+    userId,
   };
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockServices = {
@@ -139,7 +151,6 @@ describe('VideosRelationshipsController', () => {
 
   describe('findChildren', () => {
     it('should return child videos', async () => {
-      const videoId = '507f1f77bcf86cd799439010';
       const query: VideosQueryDto = {};
 
       const mockData = {
@@ -152,11 +163,15 @@ describe('VideosRelationshipsController', () => {
 
       mockServices.videosService.findAll.mockResolvedValue(mockData);
 
-      const result = await controller.findChildren(mockReq, videoId, query);
+      const result = await controller.findChildren(
+        mockReq,
+        parentVideoId,
+        query,
+      );
 
       expect(videosService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ parentId: videoId }),
+          where: expect.objectContaining({ parentId: parentVideoId }),
         }),
         expect.anything(),
       );
@@ -166,13 +181,12 @@ describe('VideosRelationshipsController', () => {
 
   describe('findAllPosts', () => {
     it('should return posts for video', async () => {
-      const videoId = '507f1f77bcf86cd799439011';
       const query: VideosQueryDto = {};
 
       const mockData = {
         docs: [
           {
-            id: '507f1f77bcf86cd799439020',
+            id: postId,
             ingredients: [{ id: videoId }],
             platform: 'twitter',
             status: 'published',
@@ -210,25 +224,25 @@ describe('VideosRelationshipsController', () => {
   describe('mergeVideos', () => {
     it('should merge multiple videos', async () => {
       const createMergedVideoDto: CreateMergedVideoDto = {
-        ids: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+        ids: [videoId, secondMergeVideoId],
         isCaptionsEnabled: false,
         isResizeEnabled: false,
       };
 
       mockServices.videosService.findAll.mockResolvedValue({
-        docs: [mockVideo, { ...mockVideo, id: '507f1f77bcf86cd799439012' }],
+        docs: [mockVideo, { ...mockVideo, id: secondMergeVideoId }],
         total: 2,
       });
       mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: {
-          id: '507f1f77bcf86cd799439015',
+          id: ingredientId,
         },
         metadataData: {
-          id: '507f1f77bcf86cd799439016',
+          id: metadataId,
         },
       });
       mockServices.activitiesService.create.mockResolvedValue({
-        id: '507f1f77bcf86cd799439018',
+        id: activityId,
       });
       mockServices.fileQueueService.processVideo.mockResolvedValue({
         jobId: 'job123',
@@ -246,7 +260,7 @@ describe('VideosRelationshipsController', () => {
 
     it('should reject when no videos found', async () => {
       const createMergedVideoDto: CreateMergedVideoDto = {
-        ids: ['507f1f77bcf86cd799439011'],
+        ids: [videoId],
         isCaptionsEnabled: false,
         isResizeEnabled: false,
       };

@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -37,8 +38,8 @@ describe('GenerateController', () => {
 
     const mockUser = {
       id: 'user_123',
-      organizationId: '507f191e810c19729de860ee'.toString(),
-      userId: '507f191e810c19729de860ee'.toString(),
+      organizationId: testId('org'),
+      userId: testId('user'),
     } as unknown as User;
 
     beforeEach(async () => {

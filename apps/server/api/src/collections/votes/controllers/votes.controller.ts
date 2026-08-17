@@ -5,6 +5,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,10 +36,7 @@ export class VotesController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     try {
-      if (
-        !createVoteDto.entity ||
-        !/^[0-9a-f]{24}$/i.test(createVoteDto.entity)
-      ) {
+      if (!createVoteDto.entity || !isEntityId(createVoteDto.entity)) {
         throw new BadRequestException('Invalid entity id');
       }
 
@@ -60,7 +58,7 @@ export class VotesController {
     @Query('entity') entityId: string,
     @CurrentUser() user: User,
   ): Promise<void> {
-    if (!/^[0-9a-f]{24}$/i.test(entityId)) {
+    if (!isEntityId(entityId)) {
       throw new BadRequestException('Invalid entity id');
     }
 

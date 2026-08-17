@@ -8,6 +8,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { BrandSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
@@ -25,8 +26,8 @@ import request from 'supertest';
  * against the payloads the app actually sends.
  */
 describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
-  const orgId = '507f191e810c19729de860ee';
-  const brandId = '507f191e810c19729de860ff';
+  const orgId = testId('org');
+  const brandId = testId('brand');
 
   const mockBrand = {
     id: brandId,

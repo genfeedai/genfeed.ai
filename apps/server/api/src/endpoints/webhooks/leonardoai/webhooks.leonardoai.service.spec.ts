@@ -1,5 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -68,7 +69,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should return early when metadata not found', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,
@@ -88,7 +89,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should store first image URL on COMPLETE with images', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,
@@ -114,7 +115,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should stringify images array when first image has no url', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const images = [{ id: 'img-1' }];
     const body = {
       customId: metadataId,
@@ -138,7 +139,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should set error on FAILED status', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,
@@ -160,7 +161,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should patch with empty object for non-COMPLETE non-FAILED status', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,
@@ -177,7 +178,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should look up metadata with correct filter', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,
@@ -195,7 +196,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should log completion with generationId, metadataId, and status', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = testId('metadata');
     const body = {
       customId: metadataId,
       data: null,

@@ -11,27 +11,30 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PostStatus, Status, TargetExecutionState } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+
+const extraChildPostId = testId('post', 4);
 
 describe('PostThreadGenerationService', () => {
   let service: PostThreadGenerationService;
 
   const identity = {
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   };
   const originalPost = {
-    id: '507f1f77bcf86cd799439014',
+    id: testId('post', 1),
     description: 'Original tweet content',
   } as PostDocument;
   const childPosts = [
-    { id: '507f1f77bcf86cd799439021' },
-    { id: '507f1f77bcf86cd799439022' },
+    { id: testId('post', 2) },
+    { id: testId('post', 3) },
   ] as PostDocument[];
-  const activity = { id: '507f191e810c19729de860ee' };
+  const activity = { id: testId('activity') };
 
   const activitiesService = {
     create: vi.fn().mockResolvedValue(activity),
@@ -194,7 +197,7 @@ describe('PostThreadGenerationService', () => {
   it('continues failed-child cleanup when one status patch rejects', async () => {
     const cleanupChildren = [
       ...childPosts,
-      { id: '507f1f77bcf86cd799439023' } as PostDocument,
+      { id: extraChildPostId } as PostDocument,
     ];
     replicateService.generateTextCompletionSync.mockResolvedValueOnce(
       JSON.stringify(['Only reply']),
@@ -260,7 +263,7 @@ describe('PostThreadGenerationService', () => {
   it('preserves child positions when an intermediate reply is invalid', async () => {
     const positionedChildren = [
       ...childPosts,
-      { id: '507f1f77bcf86cd799439023' } as PostDocument,
+      { id: extraChildPostId } as PostDocument,
     ];
     replicateService.generateTextCompletionSync.mockResolvedValueOnce(
       JSON.stringify(['Reply one', 'a'.repeat(300), 'Reply three']),

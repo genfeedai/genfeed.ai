@@ -35,10 +35,18 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+
+const brandId = testId('brand');
+const videoId = testId('video');
+const organizationId = testId('org');
+const userId = testId('user');
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
 
 const mockRequest = {
   originalUrl: '/api/videos',
@@ -47,23 +55,20 @@ const mockRequest = {
 } as unknown as Request;
 
 const mockVideo = {
-  brand: '507f1f77bcf86cd799439014',
+  brand: brandId,
   category: 'video',
-  id: '507f1f77bcf86cd799439011',
-  organization: '507f1f77bcf86cd799439013',
+  id: videoId,
+  organization: organizationId,
   status: 'completed',
-  user: '507f1f77bcf86cd799439012',
+  user: userId,
 };
 
 const mockUser = {
   id: 'user_123',
-  brandId: '507f1f77bcf86cd799439014',
-  organizationId: '507f1f77bcf86cd799439013',
-  userId: '507f1f77bcf86cd799439012',
+  brandId,
+  organizationId,
+  userId,
 } as unknown as User;
-
-const ingredientId = '507f1f77bcf86cd799439017';
-const metadataId = '507f1f77bcf86cd799439016';
 
 describe('VideosEditsController', () => {
   let controller: VideosEditsController;
@@ -133,12 +138,10 @@ describe('VideosEditsController', () => {
   // --- trimVideo ---
   it('should trim video and return serialized ingredient', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.trimVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      { endTime: 10, startTime: 2 },
-    );
+    const result = await controller.trimVideo(mockRequest, mockUser, videoId, {
+      endTime: 10,
+      startTime: 2,
+    });
     expect(result).toBeDefined();
     expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
@@ -157,18 +160,16 @@ describe('VideosEditsController', () => {
   it('should reject trim duration less than 2 seconds', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await expect(
-      controller.trimVideo(mockRequest, mockUser, '507f1f77bcf86cd799439011', {
+      controller.trimVideo(mockRequest, mockUser, videoId, {
         endTime: 1,
         startTime: 0,
       }),
     ).rejects.toThrow(HttpException);
     try {
-      await controller.trimVideo(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439011',
-        { endTime: 1, startTime: 0 },
-      );
+      await controller.trimVideo(mockRequest, mockUser, videoId, {
+        endTime: 1,
+        startTime: 0,
+      });
     } catch (error) {
       expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
     }
@@ -177,7 +178,7 @@ describe('VideosEditsController', () => {
   it('should reject trim duration greater than 15 seconds', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await expect(
-      controller.trimVideo(mockRequest, mockUser, '507f1f77bcf86cd799439011', {
+      controller.trimVideo(mockRequest, mockUser, videoId, {
         endTime: 20,
         startTime: 0,
       }),
@@ -187,7 +188,7 @@ describe('VideosEditsController', () => {
   it('should reject negative startTime for trim', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await expect(
-      controller.trimVideo(mockRequest, mockUser, '507f1f77bcf86cd799439011', {
+      controller.trimVideo(mockRequest, mockUser, videoId, {
         endTime: 5,
         startTime: -1,
       }),
@@ -199,13 +200,13 @@ describe('VideosEditsController', () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     mockServices.metadataService.findOne.mockResolvedValue({
       height: 1080,
-      ingredient: '507f1f77bcf86cd799439011',
+      ingredient: videoId,
       width: 1920,
     });
     const result = await controller.addTextOverlay(
       mockRequest,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      videoId,
       { position: 'top', text: 'Hello World' },
     );
     expect(result).toBeDefined();
@@ -215,12 +216,7 @@ describe('VideosEditsController', () => {
   it('should throw BAD_REQUEST when text overlay has empty text', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await expect(
-      controller.addTextOverlay(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439011',
-        { text: '' },
-      ),
+      controller.addTextOverlay(mockRequest, mockUser, videoId, { text: '' }),
     ).rejects.toThrow(HttpException);
   });
 
@@ -228,12 +224,7 @@ describe('VideosEditsController', () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     mockServices.metadataService.findOne.mockResolvedValue(null);
     await expect(
-      controller.addTextOverlay(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439011',
-        { text: 'Hi' },
-      ),
+      controller.addTextOverlay(mockRequest, mockUser, videoId, { text: 'Hi' }),
     ).rejects.toThrow(HttpException);
   });
 
@@ -248,12 +239,10 @@ describe('VideosEditsController', () => {
 
   it('should pass correct processVideo type for trim', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.trimVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      { endTime: 5, startTime: 0 },
-    );
+    await controller.trimVideo(mockRequest, mockUser, videoId, {
+      endTime: 5,
+      startTime: 0,
+    });
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'trim-video' }),
     );

@@ -5,6 +5,7 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -20,11 +21,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-const organizationId = '507f191e810c19729de86001';
-const brandId = '507f191e810c19729de86002';
-const userId = '507f191e810c19729de86003';
-const ingredientId = '507f191e810c19729de86004';
-const folderId = '507f191e810c19729de86005';
+const organizationId = testId('org');
+const brandId = testId('brand');
+const userId = testId('user');
+const ingredientId = testId('ingredient');
+const folderId = testId('folder');
 
 const mockUser = {
   id: userId,
@@ -150,7 +151,7 @@ describe('IngredientsController folder assignment', () => {
     ingredientsService.findOne.mockResolvedValueOnce(ingredient);
     foldersService.findOne.mockResolvedValue({
       id: folderId,
-      brandId: '507f191e810c19729de86009',
+      brandId: testId('brand', 2),
       isDeleted: false,
       organizationId,
     });
@@ -171,7 +172,7 @@ describe('IngredientsController folder assignment', () => {
   it('rejects assignment when the asset is outside caller brand scope', async () => {
     ingredientsService.findOne.mockResolvedValue({
       ...ingredient,
-      brandId: '507f191e810c19729de86009',
+      brandId: testId('brand', 2),
     });
 
     const result = await controller.update(

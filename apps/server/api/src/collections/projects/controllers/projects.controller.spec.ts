@@ -6,6 +6,7 @@ import { ProjectsController } from '@api/collections/projects/controllers/projec
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ProjectSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -38,9 +39,9 @@ describe('ProjectsController', () => {
 
   const mockUser = {
     id: 'user-123',
-    brandId: '507f1f77bcf86cd799439013',
+    brandId: testId('brand'),
     organizationId: CALLER_ORG_ID,
-    userId: '507f1f77bcf86cd799439011',
+    userId: testId('user'),
   } as unknown as User;
 
   const mockRequest = {

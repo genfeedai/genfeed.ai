@@ -10,6 +10,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -19,18 +20,22 @@ describe('BrandsRelationshipsController', () => {
   let controller: BrandsRelationshipsController;
   let _brandsService: BrandsService;
 
+  const brandId = testId('brand');
+  const organizationId = testId('org');
+  const userId = testId('user');
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
+    brandId,
     isSuperAdmin: false,
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockBrand = {
-    _id: '507f1f77bcf86cd799439013',
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    _id: brandId,
+    organization: organizationId,
+    user: userId,
   };
 
   const mockServices = {
@@ -97,7 +102,7 @@ describe('BrandsRelationshipsController', () => {
     it('should return brand analytics', async () => {
       const result = await controller.findBrandAnalytics(
         {} as Request,
-        '507f1f77bcf86cd799439013',
+        brandId,
         {},
         mockUser,
       );

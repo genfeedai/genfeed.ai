@@ -2,12 +2,13 @@ import type { AgentGoalsService } from '@api/collections/agent-goals/services/ag
 import type { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { testId } from '@helpers/testing/test-id.helper';
 
 const ctx: ToolExecutionContext = {
-  organizationId: 'c7a123456789012345678901',
-  userId: 'c7a123456789012345678902',
+  organizationId: testId('org'),
+  userId: testId('user'),
 };
-const goalId = 'c7a123456789012345678903';
+const goalId = testId('goal');
 
 describe('AgentMemoryGoalsToolHandler', () => {
   let agentMemoryCaptureService: {
@@ -77,7 +78,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
     it('captures memory and reports routed destinations', async () => {
       const result = await handlerWithServices.captureMemory(
         {
-          brandId: '67a123456789012345678903',
+          brandId: testId('brand'),
           content: 'Use short, curiosity-driven newsletter openings.',
           contentType: 'newsletter',
           kind: 'winner',

@@ -11,6 +11,7 @@ import type { IRequestContext } from '@api/common/interfaces/request-context.int
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -68,23 +69,27 @@ describe('ModelsController', () => {
   let modelsService: vi.Mocked<ModelsService>;
   let _loggerService: vi.Mocked<LoggerService>;
 
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+  const userId = testId('user');
+
   const mockSuperAdminUser = {
     id: 'user-123',
-    brandId: 'c07f191e810c19729de860ee'.toString(),
+    brandId,
     isSuperAdmin: true,
-    organizationId: 'c07f191e810c19729de860ee'.toString(),
-    userId: 'c07f191e810c19729de860ee'.toString(),
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockRegularUser = {
     id: 'user-456',
-    brandId: 'c07f191e810c19729de860ee'.toString(),
+    brandId,
     isSuperAdmin: false,
-    organizationId: 'c07f191e810c19729de860ee'.toString(),
-    userId: 'c07f191e810c19729de860ee'.toString(),
+    organizationId,
+    userId,
   } as unknown as User;
 
-  const mockOrgId = 'c07f191e810c19729de860ee'.toString();
+  const mockOrgId = organizationId;
 
   const mockRequest = {
     context: {
@@ -217,7 +222,7 @@ describe('ModelsController', () => {
     it('should return false when isSuperAdmin is undefined', () => {
       const userWithoutSuperAdmin = {
         id: 'user-789',
-        userId: 'c07f191e810c19729de860ee'.toString(),
+        userId,
       } as unknown as User;
 
       const result = controller.canUserModifyEntity(userWithoutSuperAdmin);
@@ -376,8 +381,8 @@ describe('ModelsController', () => {
       // Simulates a scenario where enabledModelIds references a model from a different
       // org (e.g. data corruption). The org filter is the last line of defense.
       const scopedOrganizationId = mockOrgId;
-      const foreignOrgId = 'd07f191e810c19729de860ee';
-      const enabledModelId = 'm07f191e810c19729de860ee';
+      const foreignOrgId = testId('org', 2);
+      const enabledModelId = testId('model');
 
       const moduleRefMock = {
         findOne: vi.fn().mockResolvedValue({
@@ -433,7 +438,7 @@ describe('ModelsController', () => {
       };
 
       const mockCreatedModel = {
-        id: 'c07f191e810c19729de860ee',
+        id: testId('model'),
         ...createDto,
       };
 
@@ -452,7 +457,7 @@ describe('ModelsController', () => {
 
   describe('patch', () => {
     it('should allow superadmin to update a model', async () => {
-      const id = 'm07f191e810c19729de860ee';
+      const id = testId('model');
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -485,7 +490,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = 'm07f191e810c19729de860ee';
+      const id = testId('model');
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -500,7 +505,7 @@ describe('ModelsController', () => {
 
   describe('registry review actions', () => {
     it('should approve a discovered model for superadmins', async () => {
-      const id = 'c07f191e810c19729de860ee';
+      const id = testId('model');
       const approvedModel = {
         id,
         isActive: true,
@@ -525,7 +530,7 @@ describe('ModelsController', () => {
     });
 
     it('should reject a discovered model without deleting it', async () => {
-      const id = 'c07f191e810c19729de860ee';
+      const id = testId('model');
       const rejectedModel = {
         id,
         isActive: false,
@@ -550,7 +555,7 @@ describe('ModelsController', () => {
     });
 
     it('should mark a registry model as legacy', async () => {
-      const id = 'c07f191e810c19729de860ee';
+      const id = testId('model');
       const legacyModel = {
         id,
         isActive: false,
@@ -575,7 +580,7 @@ describe('ModelsController', () => {
     });
 
     it('should not disable the only default model through review actions', async () => {
-      const id = 'c07f191e810c19729de860ee';
+      const id = testId('model');
       modelsService.findOne.mockResolvedValue({
         id,
         category: 'image',
@@ -605,7 +610,7 @@ describe('ModelsController', () => {
 
   describe('remove', () => {
     it('should allow superadmin to remove a model', async () => {
-      const id = 'm07f191e810c19729de860ee';
+      const id = testId('model');
       const mockModel = {
         id,
         isDefault: false,
@@ -629,7 +634,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = 'm07f191e810c19729de860ee';
+      const id = testId('model');
 
       await expect(
         controller.remove(mockRequest, mockRegularUser, id),

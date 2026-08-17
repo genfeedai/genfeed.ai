@@ -4,11 +4,14 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const organizationId = testId('org');
 
 function createMockDeps() {
   return {
@@ -36,9 +39,9 @@ function createMockDeps() {
 
 function createMockUser(userId: string) {
   return {
-    brandId: '507f191e810c19729de860ee',
+    brandId: testId('brand'),
     isSuperAdmin: false,
-    organizationId: '507f191e810c19729de860ee',
+    organizationId,
     userId: userId,
   } as never;
 }
@@ -81,7 +84,7 @@ describe('CaptionsController', () => {
 
   describe('findAll', () => {
     it('should scope captions by canonical organization and user IDs', async () => {
-      const userId = '507f191e810c19729de860ef';
+      const userId = testId('user', 2);
       deps.captionsService.findAll.mockResolvedValue({ docs: [] });
 
       await controller.findAll(
@@ -93,7 +96,7 @@ describe('CaptionsController', () => {
       expect(deps.captionsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            organizationId: '507f191e810c19729de860ee',
+            organizationId,
             userId,
           }),
         }),
@@ -104,7 +107,7 @@ describe('CaptionsController', () => {
 
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
-      const captionId = '507f191e810c19729de860ee';
+      const captionId = testId('caption');
       const doc = {
         id: captionId,
         content: 'Hello',
@@ -133,8 +136,8 @@ describe('CaptionsController', () => {
   describe('create', () => {
     it('should throw 404 when ingredient not found', async () => {
       deps.ingredientsService.findOne.mockResolvedValue(null);
-      const userId = '507f191e810c19729de860ee';
-      const ingredientId = '507f191e810c19729de860ee';
+      const userId = testId('user');
+      const ingredientId = testId('ingredient');
 
       await expect(
         controller.create(
@@ -146,14 +149,14 @@ describe('CaptionsController', () => {
     });
 
     it('should throw BadRequestException for non-video ingredient', async () => {
-      const ingredientId = '507f191e810c19729de860ee';
+      const ingredientId = testId('ingredient');
       deps.ingredientsService.findOne.mockResolvedValue({
         id: ingredientId,
         category: IngredientCategory.IMAGE,
         status: IngredientStatus.GENERATED,
       });
 
-      const userId = '507f191e810c19729de860ee';
+      const userId = testId('user');
 
       await expect(
         controller.create(
@@ -165,14 +168,14 @@ describe('CaptionsController', () => {
     });
 
     it('should throw BadRequestException when video status is not ready', async () => {
-      const ingredientId = '507f191e810c19729de860ee';
+      const ingredientId = testId('ingredient');
       deps.ingredientsService.findOne.mockResolvedValue({
         id: ingredientId,
         category: IngredientCategory.VIDEO,
         status: IngredientStatus.GENERATING,
       });
 
-      const userId = '507f191e810c19729de860ee';
+      const userId = testId('user');
 
       await expect(
         controller.create(
@@ -184,8 +187,8 @@ describe('CaptionsController', () => {
     });
 
     it('should generate captions and create caption document for valid video', async () => {
-      const ingredientId = '507f191e810c19729de860ee';
-      const userId = '507f191e810c19729de860ee';
+      const ingredientId = testId('ingredient');
+      const userId = testId('user');
       const captionContent = '1\n00:00:00,000 --> 00:00:05,000\nHello';
 
       deps.ingredientsService.findOne.mockResolvedValue({
@@ -195,13 +198,14 @@ describe('CaptionsController', () => {
       });
       deps.whisperService.generateCaptions.mockResolvedValue(captionContent);
 
+      const createdCaptionId = testId('caption');
       const createdDoc = {
-        id: '507f191e810c19729de860ee',
+        id: createdCaptionId,
         content: captionContent,
         format: 'srt',
         language: 'en',
         toJSON: () => ({
-          id: '507f191e810c19729de860ee',
+          id: createdCaptionId,
           content: captionContent,
         }),
       };
@@ -220,7 +224,7 @@ describe('CaptionsController', () => {
       expect(deps.captionsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId,
-          organizationId: '507f191e810c19729de860ee',
+          organizationId,
           userId,
         }),
       );
@@ -229,7 +233,7 @@ describe('CaptionsController', () => {
 
   describe('update', () => {
     it('should return serialized caption on successful update', async () => {
-      const captionId = '507f191e810c19729de860ee';
+      const captionId = testId('caption');
       const updated = {
         id: captionId,
         content: 'Updated',
@@ -256,7 +260,7 @@ describe('CaptionsController', () => {
 
   describe('remove', () => {
     it('should return serialized caption on successful removal', async () => {
-      const captionId = '507f191e810c19729de860ee';
+      const captionId = testId('caption');
       const deleted = {
         id: captionId,
         isDeleted: true,

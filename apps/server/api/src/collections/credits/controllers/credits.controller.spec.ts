@@ -4,6 +4,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -12,11 +13,13 @@ describe('CreditsController', () => {
   let controller: CreditsController;
   let _creditTransactionsService: CreditTransactionsService;
 
+  const organizationId = testId('org');
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId,
+    userId: testId('user'),
   } as unknown as User;
 
   const mockUsageMetrics = {
@@ -134,7 +137,7 @@ describe('CreditsController', () => {
 
       expect(
         mockServices.creditTransactionsService.getUsageMetrics,
-      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
+      ).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
     });
 
@@ -143,7 +146,7 @@ describe('CreditsController', () => {
 
       expect(
         mockServices.creditTransactionsService.getUsageMetrics,
-      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
+      ).toHaveBeenCalledWith(organizationId);
     });
 
     it('should return serialized metrics response', async () => {
@@ -165,7 +168,7 @@ describe('CreditsController', () => {
 
       expect(
         mockServices.creditTransactionsService.getLastPurchaseBaseline,
-      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
+      ).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
     });
   });
@@ -176,7 +179,7 @@ describe('CreditsController', () => {
 
       expect(
         mockServices.topbarBalancesService.getTopbarBalances,
-      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
+      ).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
     });
 

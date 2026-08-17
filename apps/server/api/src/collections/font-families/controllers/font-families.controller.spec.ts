@@ -10,6 +10,7 @@ import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-f
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -17,14 +18,16 @@ import type { Request } from 'express';
 describe('FontFamiliesController', () => {
   let controller: FontFamiliesController;
 
+  const organizationId = testId('org');
+
   const mockUser: User = {
     isSuperAdmin: true,
-    organizationId: 'o07f1f77bcf86cd799439012',
-    userId: 'u07f1f77bcf86cd799439011',
+    organizationId,
+    userId: testId('user'),
   } as unknown as User;
 
   const mockFontFamily = {
-    id: 'f07f1f77bcf86cd799439014',
+    id: testId('font'),
     category: 'sans-serif',
     createdAt: new Date(),
     family: 'Roboto',
@@ -152,7 +155,7 @@ describe('FontFamiliesController', () => {
       expect(query.where.OR).toContainEqual({ organizationId: null });
       // user's org condition must be present
       expect(query.where.OR).toContainEqual({
-        organizationId: 'o07f1f77bcf86cd799439012',
+        organizationId,
       });
       // no { user: ... } condition — FontFamilyRecord has no user column
       expect(

@@ -17,6 +17,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException } from '@nestjs/common';
 
 describe('CredentialsController', () => {
@@ -33,9 +34,10 @@ describe('CredentialsController', () => {
   let instagramService: Record<string, ReturnType<typeof vi.fn>>;
   let quotaService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = '507f191e810c19729de860ee'.toString();
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const credId = '507f191e810c19729de860ee'.toString();
+  const userId = testId('user');
+  const orgId = testId('org');
+  const credId = testId('cred');
+  const brandEntityId = testId('brand');
 
   const mockUser = {
     id: 'authProvider_user_123',
@@ -205,7 +207,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = '507f191e810c19729de860ee'.toString();
+      const missingId = testId('missing');
 
       await expect(controller.findOne(mockRequest, missingId)).rejects.toThrow(
         HttpException,
@@ -217,19 +219,19 @@ describe('CredentialsController', () => {
     it('should return deduplicated mentions', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          id: '507f191e810c19729de860ee',
+          id: credId,
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          id: '507f191e810c19729de860ee',
+          id: credId,
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          id: '507f191e810c19729de860ee',
+          id: credId,
           externalHandle: '@user2',
           externalName: 'User Two',
           platform: CredentialPlatform.INSTAGRAM,
@@ -244,7 +246,7 @@ describe('CredentialsController', () => {
     it('should skip credentials without a handle', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          id: '507f191e810c19729de860ee',
+          id: credId,
           externalHandle: null,
           platform: CredentialPlatform.TWITTER,
         },
@@ -365,7 +367,7 @@ describe('CredentialsController', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne
         .mockResolvedValueOnce({
-          brandId: '507f191e810c19729de860ee',
+          brandId: brandEntityId,
           id: credId,
           organizationId: orgId,
           platform: CredentialPlatform.TWITTER,
@@ -386,7 +388,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for refresh', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = '507f191e810c19729de860ee'.toString();
+      const missingId = testId('missing');
 
       await expect(
         controller.refreshCredentialToken(mockRequest, missingId, mockUser),
@@ -418,7 +420,7 @@ describe('CredentialsController', () => {
       );
 
       credentialsService.findOne.mockResolvedValueOnce({
-        brandId: '507f191e810c19729de860ee',
+        brandId: brandEntityId,
         id: credId,
         organizationId: orgId,
         platform: CredentialPlatform.TWITTER,
@@ -457,7 +459,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for update', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = '507f191e810c19729de860ee'.toString();
+      const missingId = testId('missing');
 
       await expect(
         controller.update(
@@ -520,7 +522,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for deletion', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = '507f191e810c19729de860ee'.toString();
+      const missingId = testId('missing');
 
       await expect(
         controller.remove(missingId, mockUser, mockRequest),

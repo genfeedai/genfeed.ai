@@ -45,6 +45,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientFormat } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -60,45 +61,58 @@ describe('BatchInterpolationController', () => {
 
   const mockReq = {} as Request;
 
+  const brandId = testId('brand');
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const modelId = testId('model');
+  const promptId = testId('prompt');
+  const ingredientId = testId('ingredient');
+  const metadataId = testId('metadata');
+  const activityId = testId('activity');
+  const startImageId1 = testId('image', 1);
+  const endImageId1 = testId('image', 2);
+  const startImageId2 = testId('image', 3);
+  const endImageId2 = testId('image', 4);
+
   const mockUser = {
     id: 'user_authProvider_123',
-    brandId: '507f1f77bcf86cd799439014',
-    organizationId: '507f1f77bcf86cd799439013',
-    userId: '507f1f77bcf86cd799439012',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockModel = {
     category: 'video',
     cost: 5,
     hasInterpolation: true,
-    id: '507f1f77bcf86cd799439020',
+    id: modelId,
     key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
   };
 
   const mockBrand = {
-    id: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
+    id: brandId,
+    organization: organizationId,
   };
 
-  const mockPrompt = { id: '507f1f77bcf86cd799439030' };
+  const mockPrompt = { id: promptId };
 
   const mockIngredientData = {
-    id: '507f1f77bcf86cd799439040',
+    id: ingredientId,
   };
 
   const mockMetadataData = {
-    id: '507f1f77bcf86cd799439050',
+    id: metadataId,
   };
 
   const mockActivity = {
-    id: '507f1f77bcf86cd799439060',
+    id: activityId,
   };
 
   const mockPairs = [
     {
-      endImageId: '507f1f77bcf86cd799439002',
+      endImageId: endImageId1,
       prompt: 'smooth pan',
-      startImageId: '507f1f77bcf86cd799439001',
+      startImageId: startImageId1,
     },
   ];
 
@@ -281,12 +295,12 @@ describe('BatchInterpolationController', () => {
           ...mockDto,
           pairs: [
             {
-              endImageId: '507f1f77bcf86cd799439002',
-              startImageId: '507f1f77bcf86cd799439001',
+              endImageId: endImageId1,
+              startImageId: startImageId1,
             },
             {
-              endImageId: '507f1f77bcf86cd799439004',
-              startImageId: '507f1f77bcf86cd799439003',
+              endImageId: endImageId2,
+              startImageId: startImageId2,
             },
           ],
         };
@@ -334,8 +348,8 @@ describe('BatchInterpolationController', () => {
         expect(
           creditsUtilsService.deductCreditsFromOrganization,
         ).toHaveBeenCalledWith(
-          '507f1f77bcf86cd799439013',
-          '507f1f77bcf86cd799439012',
+          organizationId,
+          userId,
           5,
           expect.stringContaining(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1),
           'video-generate',
@@ -374,12 +388,12 @@ describe('BatchInterpolationController', () => {
           isLoopMode: true,
           pairs: [
             {
-              endImageId: '507f1f77bcf86cd799439002',
-              startImageId: '507f1f77bcf86cd799439001',
+              endImageId: endImageId1,
+              startImageId: startImageId1,
             },
             {
-              endImageId: '507f1f77bcf86cd799439004',
-              startImageId: '507f1f77bcf86cd799439003',
+              endImageId: endImageId2,
+              startImageId: startImageId2,
             },
           ],
         };
@@ -510,12 +524,12 @@ describe('BatchInterpolationController', () => {
           ...mockDto,
           pairs: [
             {
-              endImageId: '507f1f77bcf86cd799439002',
-              startImageId: '507f1f77bcf86cd799439001',
+              endImageId: endImageId1,
+              startImageId: startImageId1,
             },
             {
-              endImageId: '507f1f77bcf86cd799439004',
-              startImageId: '507f1f77bcf86cd799439003',
+              endImageId: endImageId2,
+              startImageId: startImageId2,
             },
           ],
         };
@@ -547,12 +561,12 @@ describe('BatchInterpolationController', () => {
           isMergeEnabled: true,
           pairs: [
             {
-              endImageId: '507f1f77bcf86cd799439002',
-              startImageId: '507f1f77bcf86cd799439001',
+              endImageId: endImageId1,
+              startImageId: startImageId1,
             },
             {
-              endImageId: '507f1f77bcf86cd799439004',
-              startImageId: '507f1f77bcf86cd799439003',
+              endImageId: endImageId2,
+              startImageId: startImageId2,
             },
           ],
         };

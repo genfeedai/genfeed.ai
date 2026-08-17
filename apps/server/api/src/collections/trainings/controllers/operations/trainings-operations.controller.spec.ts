@@ -10,6 +10,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { TrainingsOperationsController } from '@api/collections/trainings/controllers/operations/trainings-operations.controller';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -18,15 +19,21 @@ describe('TrainingsOperationsController', () => {
   let controller: TrainingsOperationsController;
   let trainingsService: TrainingsService;
 
+  const brandId = testId('brand');
+  const organizationId = testId('org');
+  const userId = testId('user');
+  const trainingId = testId('training');
+  const missingTrainingId = testId('training', 2);
+
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockTraining = {
-    brandId: '507f1f77bcf86cd799439013',
+    brandId,
     config: {
       category: 'style',
       model: 'replicate/custom-model',
@@ -35,15 +42,15 @@ describe('TrainingsOperationsController', () => {
       steps: 1200,
       trigger: 'MYTOK',
     },
-    id: '507f1f77bcf86cd799439014',
+    id: trainingId,
     model: 'replicate/custom-model',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId,
     sources: Array.from(
       { length: 10 },
       (_, i) => `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     ),
     stage: 'READY',
-    userId: '507f1f77bcf86cd799439011',
+    userId,
   };
 
   const mockSourceDocs = Array.from({ length: 10 }, (_, i) => ({
@@ -126,7 +133,7 @@ describe('TrainingsOperationsController', () => {
       const result = await controller.relaunchTraining(
         {} as unknown as Request,
         mockUser,
-        '507f1f77bcf86cd799439014',
+        trainingId,
       );
 
       expect(trainingsService.findOne).toHaveBeenCalled();
@@ -140,7 +147,7 @@ describe('TrainingsOperationsController', () => {
         controller.relaunchTraining(
           {} as unknown as Request,
           mockUser,
-          '507f191e810c19729de860ee'.toString(),
+          missingTrainingId,
         ),
       ).rejects.toThrow();
     });
@@ -155,7 +162,7 @@ describe('TrainingsOperationsController', () => {
         controller.relaunchTraining(
           {} as unknown as Request,
           mockUser,
-          '507f1f77bcf86cd799439014',
+          trainingId,
         ),
       ).rejects.toThrow();
       expect(
@@ -167,7 +174,7 @@ describe('TrainingsOperationsController', () => {
       await controller.relaunchTraining(
         {} as unknown as Request,
         mockUser,
-        '507f1f77bcf86cd799439014',
+        trainingId,
       );
 
       expect(
@@ -191,7 +198,7 @@ describe('TrainingsOperationsController', () => {
         controller.relaunchTraining(
           {} as unknown as Request,
           mockUser,
-          '507f1f77bcf86cd799439014',
+          trainingId,
         ),
       ).rejects.toThrow();
 
@@ -213,7 +220,7 @@ describe('TrainingsOperationsController', () => {
         controller.relaunchTraining(
           {} as unknown as Request,
           mockUser,
-          '507f1f77bcf86cd799439014',
+          trainingId,
         ),
       ).rejects.toThrow();
     });

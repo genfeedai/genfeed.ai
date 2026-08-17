@@ -8,6 +8,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -30,7 +31,7 @@ describe('VoicesController', () => {
   const request = {} as Request;
   const user = { id: 'user-1' } as User;
   const query = {} as VoicesQueryDto;
-  const voice = { id: 'v07f191e810c19729de860ea' };
+  const voice = { id: testId('voice') };
   let cloneService: { deleteClonedVoice: ReturnType<typeof vi.fn> };
   let libraryService: {
     findAll: ReturnType<typeof vi.fn>;

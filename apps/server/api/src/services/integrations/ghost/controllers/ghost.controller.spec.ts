@@ -8,6 +8,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -20,9 +21,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _s, data) => ({ data })),
 }));
 
-const mockOrgId = 'clz1a2b3c4d5e6f7g8h9i0j1k';
-const mockUserId = 'clz1a2b3c4d5e6f7g8h9i0j1l';
-const mockBrandId = 'clz1a2b3c4d5e6f7g8h9i0j1m';
+const mockOrgId = testId('org');
+const mockUserId = testId('user');
+const mockBrandId = testId('brand');
 const mockBrand = { id: mockBrandId, name: 'TestBrand' };
 
 const mockUser = {

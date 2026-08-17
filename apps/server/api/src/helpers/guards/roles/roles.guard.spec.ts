@@ -1,5 +1,6 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
   HttpException,
@@ -42,9 +43,9 @@ const expectForbidden = async (activation: Promise<boolean>): Promise<void> => {
   expect((thrownError as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
 };
 
-const TOKEN_ORGANIZATION_ID = 'clorgtoken0000000000000001';
-const REQUEST_ORGANIZATION_ID = 'clorgrequest0000000000001';
-const USER_ID = 'clusertoken000000000000001';
+const TOKEN_ORGANIZATION_ID = testId('org-token');
+const REQUEST_ORGANIZATION_ID = testId('org-request');
+const USER_ID = testId('user-token');
 
 describe('RolesGuard', () => {
   let reflector: Reflector;
@@ -270,13 +271,13 @@ describe('RolesGuard', () => {
   it('denies organization admins when a route requires platform superadmin', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(['superadmin']);
 
-    const organizationId = 'b13yktd0f1e38me3f55swu0n';
-    const userId = 'hkh2jbovtpcsrzw3oyxr11oj';
+    const organizationId = testId('org', 2);
+    const userId = testId('user', 2);
     const context = createContext({
       isSuperAdmin: false,
-      organizationId: organizationId,
+      organizationId,
       role: 'admin',
-      userId: userId,
+      userId,
     });
 
     await expect(guard.canActivate(context)).rejects.toThrow(HttpException);
@@ -308,8 +309,8 @@ describe('RolesGuard', () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
     mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
 
-    const organizationId = 'b13yktd0f1e38me3f55swu0n';
-    const userId = 'hkh2jbovtpcsrzw3oyxr11oj';
+    const organizationId = testId('org', 2);
+    const userId = testId('user', 2);
     const context = {
       getClass: vi.fn(),
       getHandler: vi.fn(),
@@ -318,8 +319,8 @@ describe('RolesGuard', () => {
           body: {},
           params: { organizationId },
           user: {
-            organizationId: organizationId,
-            userId: userId,
+            organizationId,
+            userId,
           },
         }),
       }),

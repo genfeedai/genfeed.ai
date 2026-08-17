@@ -1,4 +1,5 @@
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
@@ -10,8 +11,8 @@ describe('TaskQueryDto', () => {
   describe('validation', () => {
     it('accepts valid status, priority, and parent filters', async () => {
       const dto = plainToInstance(TaskQueryDto, {
-        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
-        parentId: 'clz1a2b3c4d5e6f7g8h9i0j1l',
+        brandId: testId('brand'),
+        parentId: testId('parent'),
         priority: 'critical',
         status: 'in_review',
       });

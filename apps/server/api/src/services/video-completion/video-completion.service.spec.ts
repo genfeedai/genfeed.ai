@@ -9,6 +9,7 @@ import { VideoCompletionService } from '@api/services/video-completion/video-com
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { IngredientStatus, Status } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { ConflictException } from '@nestjs/common';
@@ -46,9 +47,10 @@ describe('VideoCompletionService', () => {
     withLock: ReturnType<typeof vi.fn>;
   };
 
-  const mockIngredientId = '507f1f77bcf86cd799439011';
-  const mockUserId = '507f1f77bcf86cd799439012';
-  const mockOrganizationId = '507f1f77bcf86cd799439013';
+  const mockIngredientId = testId('ingredient');
+  const mockUserId = testId('user');
+  const mockOrganizationId = testId('org');
+  const mockMetadataId = testId('metadata');
 
   async function waitForAsyncHandler(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -345,7 +347,7 @@ describe('VideoCompletionService', () => {
             width: 1920,
           },
           publicUrl: 'https://example.com/video.mp4',
-          s3Key: 'ingredients/videos/507f1f77bcf86cd799439011',
+          s3Key: `ingredients/videos/${mockIngredientId}`,
         },
         status: 'completed',
         timestamp: new Date().toISOString(),
@@ -354,7 +356,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         id: mockIngredientId,
-        metadataId: '507f1f77bcf86cd799439099',
+        metadataId: mockMetadataId,
       } as never);
       ingredientsService.patch.mockResolvedValue({
         id: mockIngredientId,
@@ -377,14 +379,11 @@ describe('VideoCompletionService', () => {
           status: IngredientStatus.GENERATED,
         },
       );
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439099',
-        {
-          duration: 10.5,
-          height: 1080,
-          width: 1920,
-        },
-      );
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadataId, {
+        duration: 10.5,
+        height: 1080,
+        width: 1920,
+      });
     });
 
     it('should update ingredient status to FAILED on processing error', async () => {
@@ -432,7 +431,7 @@ describe('VideoCompletionService', () => {
         ingredientId: mockIngredientId.toString(),
         organizationId: mockOrganizationId.toString(),
         result: {
-          s3Key: 'ingredients/videos/507f1f77bcf86cd799439011',
+          s3Key: `ingredients/videos/${mockIngredientId}`,
         },
         status: 'completed',
         timestamp: new Date().toISOString(),
@@ -470,7 +469,7 @@ describe('VideoCompletionService', () => {
         ingredientId: mockIngredientId.toString(),
         organizationId: mockOrganizationId.toString(),
         result: {
-          s3Key: 'ingredients/videos/507f1f77bcf86cd799439011',
+          s3Key: `ingredients/videos/${mockIngredientId}`,
         },
         status: 'completed',
         timestamp: new Date().toISOString(),
@@ -479,7 +478,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         id: mockIngredientId,
-        metadataId: '507f1f77bcf86cd799439099',
+        metadataId: mockMetadataId,
       } as never);
       ingredientsService.patch.mockResolvedValue({
         id: mockIngredientId,
@@ -496,7 +495,7 @@ describe('VideoCompletionService', () => {
       expect(ingredientsService.patch).toHaveBeenCalledWith(
         mockData.ingredientId,
         {
-          s3Key: 'ingredients/videos/507f1f77bcf86cd799439011',
+          s3Key: `ingredients/videos/${mockIngredientId}`,
           status: IngredientStatus.GENERATED,
         },
       );
@@ -551,7 +550,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         id: mockIngredientId,
-        metadataId: '507f1f77bcf86cd799439099',
+        metadataId: mockMetadataId,
       } as never);
       ingredientsService.patch.mockResolvedValue({
         id: mockIngredientId,
@@ -565,14 +564,11 @@ describe('VideoCompletionService', () => {
       await subscribeCallback(mockData);
       await waitForAsyncHandler();
 
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439099',
-        {
-          duration: 24.2,
-          height: 1920,
-          width: 1080,
-        },
-      );
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadataId, {
+        duration: 24.2,
+        height: 1920,
+        width: 1080,
+      });
     });
 
     it('should handle errors during ingredient update', async () => {

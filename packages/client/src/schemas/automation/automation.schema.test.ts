@@ -441,13 +441,13 @@ describe('automation schemas', () => {
           targets: [
             {
               channelId: 'youtube-channel-id',
-              credentialId: '507f1f77bcf86cd799439011',
+              credentialId: 'test-credential-id-youtube',
               liveChatId: 'youtube-live-chat-id',
               platform: BotPlatform.YOUTUBE,
             },
             {
               channelId: 'twitch-channel-id',
-              credentialId: '507f1f77bcf86cd799439012',
+              credentialId: 'test-credential-id-twitch',
               platform: BotPlatform.TWITCH,
               senderId: 'twitch-sender-id',
             },
@@ -462,7 +462,7 @@ describe('automation schemas', () => {
       expect(
         botLivestreamTargetSchema.safeParse({
           channelId: 'UC123456789',
-          credentialId: '507f1f77bcf86cd799439011',
+          credentialId: 'test-credential-id-youtube',
           liveChatId: 'Cg0KC1VDeHl6MTIzNDU2',
           platform: BotPlatform.YOUTUBE,
         }).success,

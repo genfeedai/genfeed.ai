@@ -29,6 +29,7 @@ import type {
   AgentClipRunIdentity,
   AgentClipRunIdentityField,
 } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
@@ -164,9 +165,9 @@ function withSelectedReference(
 }
 
 describe('ClipProjectsController', () => {
-  const organizationId = '507f191e810c19729de860ee'.toString();
-  const projectId = '507f191e810c19729de860ee'.toString();
-  const userId = '507f191e810c19729de860ee'.toString();
+  const organizationId = testId('org');
+  const projectId = testId('project');
+  const userId = testId('user');
   const currentUser = {
     organizationId: organizationId,
     userId: userId,
@@ -312,7 +313,7 @@ describe('ClipProjectsController', () => {
     });
 
     it('should resolve and queue saved identity from the selected brand', async () => {
-      const brandId = '507f191e810c19729de860ef';
+      const brandId = testId('brand');
       const dto: CreateClipProjectFromYoutubeDto = {
         brandId,
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
@@ -417,7 +418,7 @@ describe('ClipProjectsController', () => {
     });
 
     it('should validate selected brand ownership before raw-cut creation', async () => {
-      const brandId = '507f191e810c19729de860ef';
+      const brandId = testId('brand');
       const dto: CreateClipProjectFromYoutubeDto = {
         brandId,
         mode: 'raw-cut',
@@ -445,7 +446,7 @@ describe('ClipProjectsController', () => {
   });
 
   it('should validate generic clip project brand ownership before create', async () => {
-    const brandId = '507f191e810c19729de860ef';
+    const brandId = testId('brand');
     const dto = {
       brandId,
       sourceVideoUrl: 'https://example.com/source.mp4',
@@ -785,7 +786,7 @@ describe('ClipProjectsController', () => {
   });
 
   it('should resolve persisted brand defaults before reviewed generation', async () => {
-    const brandId = '507f191e810c19729de860ef';
+    const brandId = testId('brand');
     const project = {
       ...createProject(projectId, organizationId),
       brandId,

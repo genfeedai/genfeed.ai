@@ -1,17 +1,18 @@
 import { CacheKeyGenerator } from '@api/helpers/decorators/cache/cache.decorator';
 import { AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 
 describe('CacheKeyGenerator', () => {
   describe('userScoped', () => {
     it('should generate user-scoped cache key', () => {
-      const userId = '507f1f77bcf86cd799439011';
+      const userId = testId('user');
       const result = CacheKeyGenerator.userScoped(userId, 'profile');
 
-      expect(result).toBe('user:507f1f77bcf86cd799439011:profile');
+      expect(result).toBe(`user:${userId}:profile`);
     });
 
     it('should generate key with multiple parts', () => {
-      const userId = '507f1f77bcf86cd799439011';
+      const userId = testId('user');
       const result = CacheKeyGenerator.userScoped(
         userId,
         'videos',
@@ -19,49 +20,47 @@ describe('CacheKeyGenerator', () => {
         'list',
       );
 
-      expect(result).toBe(
-        'user:507f1f77bcf86cd799439011:videos:favorites:list',
-      );
+      expect(result).toBe(`user:${userId}:videos:favorites:list`);
     });
 
     it('should generate key with no additional parts', () => {
-      const userId = '507f1f77bcf86cd799439011';
+      const userId = testId('user');
       const result = CacheKeyGenerator.userScoped(userId);
 
-      expect(result).toBe('user:507f1f77bcf86cd799439011:');
+      expect(result).toBe(`user:${userId}:`);
     });
   });
 
   describe('brandScoped', () => {
     it('should generate brand-scoped cache key', () => {
-      const brandId = '507f1f77bcf86cd799439012';
+      const brandId = testId('brand');
       const result = CacheKeyGenerator.brandScoped(brandId, 'posts');
 
-      expect(result).toBe('brand:507f1f77bcf86cd799439012:posts');
+      expect(result).toBe(`brand:${brandId}:posts`);
     });
 
     it('should generate key with multiple parts', () => {
-      const brandId = '507f1f77bcf86cd799439012';
+      const brandId = testId('brand');
       const result = CacheKeyGenerator.brandScoped(
         brandId,
         'posts',
         'scheduled',
       );
 
-      expect(result).toBe('brand:507f1f77bcf86cd799439012:posts:scheduled');
+      expect(result).toBe(`brand:${brandId}:posts:scheduled`);
     });
   });
 
   describe('organizationScoped', () => {
     it('should generate organization-scoped cache key', () => {
-      const orgId = '507f1f77bcf86cd799439013';
+      const orgId = testId('org');
       const result = CacheKeyGenerator.organizationScoped(orgId, 'members');
 
-      expect(result).toBe('org:507f1f77bcf86cd799439013:members');
+      expect(result).toBe(`org:${orgId}:members`);
     });
 
     it('should generate key with multiple parts', () => {
-      const orgId = '507f1f77bcf86cd799439013';
+      const orgId = testId('org');
       const result = CacheKeyGenerator.organizationScoped(
         orgId,
         'settings',
@@ -69,9 +68,7 @@ describe('CacheKeyGenerator', () => {
         'current',
       );
 
-      expect(result).toBe(
-        'org:507f1f77bcf86cd799439013:settings:billing:current',
-      );
+      expect(result).toBe(`org:${orgId}:settings:billing:current`);
     });
   });
 

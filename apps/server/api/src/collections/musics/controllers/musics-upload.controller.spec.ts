@@ -13,12 +13,19 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
+
+const brandId = testId('brand');
+const organizationId = testId('org');
+const userId = testId('user');
+const ingredientId = testId('ingredient');
+const metadataId = testId('metadata');
 
 describe('MusicsUploadController', () => {
   let controller: MusicsUploadController;
@@ -29,9 +36,9 @@ describe('MusicsUploadController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId,
+    organizationId,
+    userId,
   } as unknown as User;
 
   const mockFile: Express.Multer.File = {
@@ -62,11 +69,11 @@ describe('MusicsUploadController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439014',
+          _id: ingredientId,
           category: 'music',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439015',
+          _id: metadataId,
         },
       }),
     },

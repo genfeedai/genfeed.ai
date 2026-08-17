@@ -5,6 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -48,17 +49,17 @@ const makeRequest = (): Request => ({}) as Request;
 
 const makeUser = () =>
   ({
-    id: 'c07f191e810c19729de860ee',
-    brandId: 'c07f191e810c19729de860ee',
-    organizationId: 'c07f191e810c19729de860ee',
-    userId: 'c07f191e810c19729de860ee',
+    id: testId('shared'),
+    brandId: testId('shared'),
+    organizationId: testId('shared'),
+    userId: testId('shared'),
   }) as never;
 
 const makeProject = (overrides: Record<string, unknown> = {}) => ({
-  id: 'e07f191e810c19729de860ee',
+  id: testId('project'),
   isDeleted: false,
   name: 'My Project',
-  organizationId: 'c07f191e810c19729de860ee',
+  organizationId: testId('shared'),
   ...overrides,
 });
 
@@ -151,15 +152,15 @@ describe('EditorProjectsController', () => {
       expect(editorProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           config: expect.objectContaining({ name: 'New Project' }),
-          organizationId: 'c07f191e810c19729de860ee',
-          userId: 'c07f191e810c19729de860ee',
+          organizationId: testId('shared'),
+          userId: testId('shared'),
         }),
       );
       expect(result).toMatchObject({ data: project });
     });
 
     it('builds video track when sourceVideoId is provided', async () => {
-      const videoId = 'c07f191e810c19729de860ee';
+      const videoId = testId('shared');
       const video = {
         id: videoId,
         thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
@@ -186,9 +187,9 @@ describe('EditorProjectsController', () => {
             name: 'Video Project',
             sourceVideoId: videoId,
           }),
-          organizationId: 'c07f191e810c19729de860ee',
+          organizationId: testId('shared'),
           tracks: expect.any(Array),
-          userId: 'c07f191e810c19729de860ee',
+          userId: testId('shared'),
         }),
       );
       expect(result).toBeDefined();
@@ -197,7 +198,7 @@ describe('EditorProjectsController', () => {
     it('throws NotFoundException when sourceVideoId does not resolve', async () => {
       ingredientsService.findOne.mockResolvedValue(null as never);
 
-      const fakeVideoId = 'c07f191e810c19729de860ee';
+      const fakeVideoId = testId('shared');
       await expect(
         controller.create(makeRequest(), makeUser(), {
           name: 'Bad Video',
@@ -227,9 +228,9 @@ describe('EditorProjectsController', () => {
         {
           orderBy: { updatedAt: -1 },
           where: expect.objectContaining({
-            brandId: 'c07f191e810c19729de860ee',
+            brandId: testId('shared'),
             isDeleted: false,
-            organizationId: 'c07f191e810c19729de860ee',
+            organizationId: testId('shared'),
           }),
         },
         expect.objectContaining({ limit: 20, page: 1 }),
@@ -241,7 +242,7 @@ describe('EditorProjectsController', () => {
   // ── findOne ───────────────────────────────────────────────────────────────
   describe('findOne', () => {
     it('returns a project by id', async () => {
-      const projectId = 'cmscathrz0001wuxn9s4giiry';
+      const projectId = testId('project', 2);
       const project = makeProject({ id: projectId });
       editorProjectsService.findOne.mockResolvedValue(project as never);
 
@@ -253,7 +254,7 @@ describe('EditorProjectsController', () => {
 
       expect(editorProjectsService.findOne).toHaveBeenCalledWith({
         id: projectId,
-        organizationId: 'c07f191e810c19729de860ee',
+        organizationId: testId('shared'),
       });
       expect(result).toMatchObject({ data: project });
     });

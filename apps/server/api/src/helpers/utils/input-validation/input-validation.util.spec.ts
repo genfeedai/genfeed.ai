@@ -1,5 +1,6 @@
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
+import { testId } from '@helpers/testing/test-id.helper';
 
 const expectValidationDetail = (fn: () => unknown, detail: string) => {
   try {
@@ -475,12 +476,10 @@ describe('InputValidationUtil', () => {
 
   describe('validateEntityId', () => {
     it('should validate supported entity id strings', () => {
-      const result = InputValidationUtil.validateEntityId(
-        'clv2f9w8d000008l4h9a1b2c3',
-        'idField',
-      );
+      const entityId = testId('id');
+      const result = InputValidationUtil.validateEntityId(entityId, 'idField');
 
-      expect(result).toBe('clv2f9w8d000008l4h9a1b2c3');
+      expect(result).toBe(entityId);
     });
 
     it('should throw error for invalid id format', () => {

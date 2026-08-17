@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,9 +15,12 @@ describe('AdsResearchController', () => {
     prepareCampaignForReview: ReturnType<typeof vi.fn>;
   };
 
+  const organizationId = testId('org');
+  const userId = testId('user');
+
   const mockUser = {
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    organizationId,
+    userId,
   } as unknown as User;
 
   beforeEach(async () => {
@@ -61,7 +65,7 @@ describe('AdsResearchController', () => {
       await controller.listAds(mockUser, 'brand-1', 'Nike', 'fashion');
 
       expect(service.listAds).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+        organizationId,
         expect.objectContaining({
           brandId: 'brand-1',
           brandName: 'Nike',
@@ -85,7 +89,7 @@ describe('AdsResearchController', () => {
       );
 
       expect(service.listAds).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+        organizationId,
         expect.objectContaining({ limit: 25 }),
       );
     });
@@ -94,7 +98,7 @@ describe('AdsResearchController', () => {
       await controller.listAds(mockUser);
 
       expect(service.listAds).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+        organizationId,
         expect.objectContaining({ limit: undefined }),
       );
     });
@@ -111,7 +115,7 @@ describe('AdsResearchController', () => {
       );
 
       expect(service.getAdDetail).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+        organizationId,
         expect.objectContaining({
           channel: 'feed',
           id: 'ad-1',
@@ -129,7 +133,7 @@ describe('AdsResearchController', () => {
       const result = await controller.generateAdPack(mockUser, body);
 
       expect(service.generateAdPack).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+        organizationId,
         expect.objectContaining({ adId: 'ad-1', source: 'meta_ads' }),
       );
       expect(result).toEqual({ adPack: { headlines: [] } });
@@ -144,9 +148,9 @@ describe('AdsResearchController', () => {
       expect(service.createRemixWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
           adId: 'ad-1',
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId,
           source: 'meta_ads',
-          userId: '507f1f77bcf86cd799439011',
+          userId,
         }),
       );
     });
@@ -168,9 +172,9 @@ describe('AdsResearchController', () => {
           adId: 'ad-1',
           campaignName: 'Spring Campaign',
           dailyBudget: 50,
-          organizationId: '507f1f77bcf86cd799439012',
+          organizationId,
           source: 'meta_ads',
-          userId: '507f1f77bcf86cd799439011',
+          userId,
         }),
       );
     });

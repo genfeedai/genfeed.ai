@@ -7,6 +7,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -48,9 +49,9 @@ describe('VideosUploadController', () => {
 
   const mockUser = {
     id: 'user_123',
-    brandId: '507f1f77bcf86cd799439013',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: testId('brand'),
+    organizationId: testId('org'),
+    userId: testId('user'),
   } as unknown as User;
 
   const mockFile: Express.Multer.File = {
@@ -81,11 +82,11 @@ describe('VideosUploadController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439014',
+          _id: testId('ingredient'),
           category: 'video',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439015',
+          _id: testId('metadata'),
         },
       }),
     },

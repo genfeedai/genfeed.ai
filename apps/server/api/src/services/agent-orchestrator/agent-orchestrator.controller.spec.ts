@@ -10,8 +10,8 @@ import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const identity = vi.hoisted(() => ({
-  metadataUserId: '507f191e810c19729de860eb',
-  organizationId: '507f191e810c19729de860ea',
+  metadataUserId: 'cuser000000000000000000001',
+  organizationId: 'corg000000000000000000001',
 }));
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
@@ -92,7 +92,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
       const body = {
@@ -158,7 +158,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -202,7 +202,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -226,7 +226,7 @@ describe('AgentOrchestratorController', () => {
         userId: identity.metadataUserId,
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
       socialInboxService.resolveAgentContextReferences.mockResolvedValue({
@@ -249,7 +249,7 @@ describe('AgentOrchestratorController', () => {
             brandId: 'brand-1',
             conversationId: 'conversation-1',
             kind: 'social-conversation',
-            organizationId: '507f191e810c19729de860ea',
+            organizationId: identity.organizationId,
           },
         ],
       });
@@ -294,7 +294,7 @@ describe('AgentOrchestratorController', () => {
       ).toHaveBeenCalledWith(
         {
           brandId: 'brand-1',
-          organizationId: '507f191e810c19729de860ea',
+          organizationId: identity.organizationId,
           userId: identity.metadataUserId,
         },
         [
@@ -320,7 +320,7 @@ describe('AgentOrchestratorController', () => {
             socialReferences: [
               expect.objectContaining({
                 brandId: 'brand-1',
-                organizationId: '507f191e810c19729de860ea',
+                organizationId: identity.organizationId,
               }),
             ],
           },
@@ -336,7 +336,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -521,13 +521,13 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
       const artifactReference = {
         brandId: 'brand-1',
         kind: 'ingredient' as const,
-        organizationId: '507f191e810c19729de860ea',
+        organizationId: identity.organizationId,
         recordId: 'ingredient-1',
         serializer: 'ingredient' as const,
       };
@@ -559,7 +559,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -603,7 +603,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chatStream.mockResolvedValue({
         runId: 'run-1',
@@ -633,7 +633,7 @@ describe('AgentOrchestratorController', () => {
         userId: 'usr',
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       service.chatStream.mockResolvedValue({
         runId: 'run-1',
@@ -682,7 +682,7 @@ describe('AgentOrchestratorController', () => {
         userId: identity.metadataUserId,
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.organizationId,
       });
       agentGoalsService.create.mockResolvedValue({ _id: 'goal-1' });
 

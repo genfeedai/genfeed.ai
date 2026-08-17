@@ -60,6 +60,10 @@ const REPOSITORY_CONTRACTS = [
   },
   { command: ['bun', 'run', 'check:tenant-scope'], name: 'tenant scope' },
   {
+    command: ['bun', 'run', 'check:test-id-literals'],
+    name: 'test id literal guard',
+  },
+  {
     command: ['bun', 'run', 'check:agent-tool-dispatch'],
     name: 'agent tool dispatch coverage',
   },

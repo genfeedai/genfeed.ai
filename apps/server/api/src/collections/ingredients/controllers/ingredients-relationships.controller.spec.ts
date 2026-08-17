@@ -3,10 +3,16 @@ import { IngredientsRelationshipsController } from '@api/collections/ingredients
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+
+const ingredientId = testId('ingredient');
+const ingredientMetadataId = testId('ingredientmeta');
+const organizationId = testId('org');
+const postId = testId('post');
 
 describe('IngredientsRelationshipsController', () => {
   let controller: IngredientsRelationshipsController;
@@ -20,13 +26,13 @@ describe('IngredientsRelationshipsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    id: '507f1f77bcf86cd799439014',
+    id: ingredientId,
     category: 'image',
     metadata: {
-      id: '507f1f77bcf86cd799439015',
+      id: ingredientMetadataId,
       label: 'Test Image',
     },
-    organizationId: '507f1f77bcf86cd799439099',
+    organizationId,
   };
 
   const mockServices = {
@@ -45,8 +51,8 @@ describe('IngredientsRelationshipsController', () => {
       findAll: vi.fn().mockResolvedValue({
         docs: [
           {
-            id: '507f1f77bcf86cd799439020',
-            ingredients: [{ id: '507f1f77bcf86cd799439014' }],
+            id: postId,
+            ingredients: [{ id: ingredientId }],
           },
         ],
         limit: 10,
@@ -100,14 +106,14 @@ describe('IngredientsRelationshipsController', () => {
     it('should return child ingredients', async () => {
       const result = await controller.findChildren(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        ingredientId,
         {},
       );
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            parentId: '507f1f77bcf86cd799439014',
+            parentId: ingredientId,
             trainingId: null,
           }),
         }),
@@ -119,10 +125,7 @@ describe('IngredientsRelationshipsController', () => {
 
   describe('findMetadata', () => {
     it('should return ingredient metadata', async () => {
-      const result = await controller.findMetadata(
-        mockRequest,
-        '507f1f77bcf86cd799439014',
-      );
+      const result = await controller.findMetadata(mockRequest, ingredientId);
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -131,21 +134,17 @@ describe('IngredientsRelationshipsController', () => {
 
   describe('findPosts', () => {
     it('should return posts for ingredient', async () => {
-      const result = await controller.findPosts(
-        mockRequest,
-        '507f1f77bcf86cd799439014',
-        {},
-      );
+      const result = await controller.findPosts(mockRequest, ingredientId, {});
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
-        id: '507f1f77bcf86cd799439014',
+        id: ingredientId,
       });
       expect(postsService.findAll).toHaveBeenCalledWith(
         {
           orderBy: { createdAt: -1 },
           where: {
             ingredients: {
-              some: { id: '507f1f77bcf86cd799439014' },
+              some: { id: ingredientId },
             },
             isDeleted: false,
             organizationId: mockIngredient.organizationId,
@@ -163,11 +162,11 @@ describe('IngredientsRelationshipsController', () => {
       // `normalizeWhere` drops undefined values, so an unscoped read here would
       // list posts across every tenant. The filter must stay present as null.
       mockServices.ingredientsService.findOne.mockResolvedValueOnce({
-        id: '507f1f77bcf86cd799439014',
+        id: ingredientId,
         category: 'image',
       });
 
-      await controller.findPosts(mockRequest, '507f1f77bcf86cd799439014', {});
+      await controller.findPosts(mockRequest, ingredientId, {});
 
       expect(postsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({

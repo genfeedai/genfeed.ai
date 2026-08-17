@@ -1,16 +1,17 @@
 import { WatchlistsController } from '@api/collections/watchlists/controllers/watchlists.controller';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConflictException } from '@nestjs/common';
 
 describe('WatchlistsController', () => {
   let controller: WatchlistsController;
   let watchlistsService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = '507f191e810c19729de860ee'.toString();
-  const orgId = '507f191e810c19729de860ee'.toString();
-  const brandId = '507f191e810c19729de860ee'.toString();
-  const watchlistId = '507f191e810c19729de860ee'.toString();
+  const userId = testId('user');
+  const orgId = testId('org');
+  const brandId = testId('brand');
+  const watchlistId = testId('watchlist');
 
   const mockUser = {
     id: 'authProvider_user_123',
@@ -54,7 +55,7 @@ describe('WatchlistsController', () => {
     it('should return watchlist items for the current brand', async () => {
       const items = [
         {
-          id: '507f191e810c19729de860ee',
+          id: watchlistId,
           handle: 'creator1',
           platform: 'tiktok',
         },
@@ -102,7 +103,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, '507f191e810c19729de860ee'.toString()),
+        controller.findOne(mockRequest, watchlistId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -114,7 +115,7 @@ describe('WatchlistsController', () => {
         label: 'New Creator',
         platform: 'tiktok',
       };
-      const created = { id: '507f191e810c19729de860ee', ...dto };
+      const created = { id: watchlistId, ...dto };
       watchlistsService.create.mockResolvedValue(created);
 
       const result = await controller.create(
@@ -129,7 +130,7 @@ describe('WatchlistsController', () => {
 
     it('should return the existing item instead of erroring (upsert)', async () => {
       const existing = {
-        id: '507f191e810c19729de860ee',
+        id: watchlistId,
         handle: 'existing',
         platform: 'tiktok',
       };
@@ -158,7 +159,7 @@ describe('WatchlistsController', () => {
         platform: 'tiktok',
       } as Record<string, unknown>;
       watchlistsService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: watchlistId,
         ...dto,
       });
 
@@ -175,7 +176,7 @@ describe('WatchlistsController', () => {
     it('should create a watchlist item with minimal data (quick-add semantics)', async () => {
       const dto = { handle: 'fastcreator', platform: 'instagram' };
       watchlistsService.create.mockResolvedValue({
-        id: '507f191e810c19729de860ee',
+        id: watchlistId,
         ...dto,
         label: '@fastcreator',
       });
@@ -198,7 +199,7 @@ describe('WatchlistsController', () => {
 
     it('should return existing item instead of error for duplicates (minimal payload)', async () => {
       const existing = {
-        id: '507f191e810c19729de860ee',
+        id: watchlistId,
         handle: 'dupcreator',
         platform: 'tiktok',
       };
@@ -244,7 +245,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.update(mockRequest, '507f191e810c19729de860ee'.toString(), {
+        controller.update(mockRequest, watchlistId, {
           notes: 'X',
         } as never),
       ).rejects.toThrow(NotFoundException);
@@ -259,7 +260,7 @@ describe('WatchlistsController', () => {
       };
       watchlistsService.findOne.mockResolvedValue(existing);
       watchlistsService.findByHandle.mockResolvedValue({
-        id: '607f191e810c19729de860ff', // different ID = duplicate
+        id: testId('watchlist', 2), // different ID = duplicate
         handle: 'creator2',
       });
 

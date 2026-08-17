@@ -5,6 +5,7 @@ import {
   BrandProvider,
   useBrand,
 } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -103,6 +104,8 @@ function createWrapper() {
 }
 
 describe('BrandProvider', () => {
+  const enabledModelId = testId('model');
+
   const initialBootstrap = {
     accessState: null,
     brandId: 'brand_123',
@@ -128,7 +131,7 @@ describe('BrandProvider', () => {
     },
     organizationId: 'org_123',
     settings: {
-      enabledModelIds: ['507f1f77bcf86cd799439011'],
+      enabledModelIds: [enabledModelId],
       organization: 'org_123',
     },
     streak: null,
@@ -196,7 +199,7 @@ describe('BrandProvider', () => {
     expect(screen.getByTestId('brand-count')).toHaveTextContent('1');
     expect(screen.getByTestId('enabled-models')).toHaveTextContent('1');
     expect(screen.getByTestId('enabled-model-id')).toHaveTextContent(
-      '507f1f77bcf86cd799439011',
+      enabledModelId,
     );
     expect(screen.getByTestId('fleet-brand-enabled')).toHaveTextContent('true');
   });

@@ -45,15 +45,16 @@ import {
   AgentToolName,
 } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 
-const ORG_ID = 'c7a123456789012345678901';
-const USER_ID = 'c7a123456789012345678902';
-const CONVERSATION_ID = 'c7a123456789012345678903';
-const RUN_ID = 'c7a123456789012345678904';
+const ORG_ID = testId('org');
+const USER_ID = testId('user');
+const CONVERSATION_ID = testId('conversation');
+const RUN_ID = testId('run');
 const LLM_CALL_CONTEXT = {
   runId: undefined,
   threadId: CONVERSATION_ID,
@@ -972,10 +973,10 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     const artifactReference = {
-      brandId: 'c7a123456789012345678905',
+      brandId: testId('brand'),
       kind: 'ingredient' as const,
       organizationId: ORG_ID,
-      recordId: 'c7a123456789012345678906',
+      recordId: testId('ingredient'),
       serializer: 'ingredient' as const,
     };
 
@@ -1907,7 +1908,7 @@ describe('AgentOrchestratorService', () => {
   });
 
   it('should apply org agent policy defaults for strategy-driven runs', async () => {
-    const strategyBrandId = 'b07f191e810c19729de860ee';
+    const strategyBrandId = testId('brand', 2);
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -1925,7 +1926,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      id: 's07f191e810c19729de860ee',
+      id: testId('strategy'),
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       brandId: strategyBrandId,
       platforms: ['linkedin'],
@@ -2886,7 +2887,7 @@ describe('AgentOrchestratorService', () => {
     await expect(
       service.chatStream(
         {
-          brandId: 'c7a123456789012345678905',
+          brandId: testId('brand'),
           content: 'Generate 3 posts for LinkedIn',
         },
         {

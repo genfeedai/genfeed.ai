@@ -1,4 +1,5 @@
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import type { Mocked } from 'vitest';
@@ -6,6 +7,9 @@ import {
   RawCutClipService,
   type RawCutDispatchInput,
 } from './raw-cut-clip.service';
+
+const organizationId = testId('org');
+const userId = testId('user');
 
 function createMockLogger(): LoggerService {
   return {
@@ -37,10 +41,10 @@ function makeInput(
     captionSrt: '1\n00:00:00,000 --> 00:00:05,000\nHello',
     clipResultId: 'clip-result-1',
     endTime: 45,
-    organizationId: '507f1f77bcf86cd799439011',
+    organizationId,
     sourceVideoS3Key: 'videos/source.mp4',
     startTime: 15,
-    userId: '507f1f77bcf86cd799439013',
+    userId,
     ...overrides,
   };
 }
@@ -67,9 +71,9 @@ describe('RawCutClipService', () => {
       expect.objectContaining({
         id: 'raw-cut-trim-clip-result-1',
         ingredientId: 'clip-result-1',
-        organizationId: '507f1f77bcf86cd799439011',
+        organizationId,
         type: 'clip-trim',
-        userId: '507f1f77bcf86cd799439013',
+        userId,
       }),
     );
   });

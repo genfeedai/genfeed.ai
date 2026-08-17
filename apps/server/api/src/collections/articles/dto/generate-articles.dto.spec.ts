@@ -1,7 +1,10 @@
 import { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+
+const brandId = testId('brand');
 
 describe('GenerateArticlesDto', () => {
   it('should be defined', () => {
@@ -34,14 +37,14 @@ describe('GenerateArticlesDto', () => {
 
     it('keeps an optional brandId through whitelist stripping', async () => {
       const dto = plainToInstance(GenerateArticlesDto, {
-        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+        brandId,
         prompt: 'AI infrastructure trends',
       });
 
       const errors = await validate(dto, { whitelist: true });
 
       expect(errors).toHaveLength(0);
-      expect(dto.brandId).toBe('clz1a2b3c4d5e6f7g8h9i0j1k');
+      expect(dto.brandId).toBe(brandId);
     });
 
     it('strips keys the DTO does not declare', async () => {

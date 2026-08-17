@@ -2,6 +2,7 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import { DevController } from '@api/endpoints/dev/dev.controller';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -66,14 +67,14 @@ describe('DevController', () => {
 
   it('throws NOT_FOUND when ingredient does not exist', async () => {
     ingredientsService.findOne.mockResolvedValue(null);
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     await expect(controller.debugDiscordCard({ ingredientId })).rejects.toThrow(
       HttpException,
     );
   });
 
   it('sends Discord notification for valid ingredient', async () => {
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     ingredientsService.findOne.mockResolvedValue({
       category: 'image',
       id: ingredientId,
@@ -94,7 +95,7 @@ describe('DevController', () => {
   });
 
   it('builds correct CDN URL', async () => {
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     ingredientsService.findOne.mockResolvedValue({
       category: 'video',
       id: ingredientId,
@@ -113,7 +114,7 @@ describe('DevController', () => {
   // raw `${category}s` interpolation produced `VIDEOs/`, addressing a key that
   // never exists. The lowercase fixtures above are why this shipped green.
   it('lower-cases a SCREAMING_SNAKE category when building the CDN URL', async () => {
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     ingredientsService.findOne.mockResolvedValue({
       category: IngredientCategory.VIDEO,
       id: ingredientId,
@@ -130,7 +131,7 @@ describe('DevController', () => {
   });
 
   it('logs start and completion', async () => {
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     ingredientsService.findOne.mockResolvedValue({
       category: 'image',
       id: ingredientId,
@@ -143,7 +144,7 @@ describe('DevController', () => {
   });
 
   it('logs error and wraps when sendNotification fails', async () => {
-    const ingredientId = '507f191e810c19729de860ee'.toString();
+    const ingredientId = testId('ingredient').toString();
     ingredientsService.findOne.mockResolvedValue({
       _id: ingredientId,
       category: 'image',

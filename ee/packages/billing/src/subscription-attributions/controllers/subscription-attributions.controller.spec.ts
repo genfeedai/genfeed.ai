@@ -16,10 +16,10 @@ describe('SubscriptionAttributionsController', () => {
   let service: SubscriptionAttributionsService;
 
   const mockUser: User = {
-    brandId: 'b07f1f77bcf86cd799439013',
-    id: 'u07f1f77bcf86cd799439011',
-    organizationId: 'o07f1f77bcf86cd799439012',
-    userId: 'u07f1f77bcf86cd799439011',
+    brandId: 'b00000000000000000000001',
+    id: 'u00000000000000000000001',
+    organizationId: 'o00000000000000000000001',
+    userId: 'u00000000000000000000001',
   };
 
   const mockReq = {} as Request;

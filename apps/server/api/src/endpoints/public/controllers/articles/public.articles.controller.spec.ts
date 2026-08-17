@@ -3,6 +3,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -55,14 +56,14 @@ describe('PublicArticlesController', () => {
   let articlesService: ArticlesService;
 
   const mockArticle = {
-    id: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+    id: testId('article'),
     category: 'Technology',
     content: 'This is a public article',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Public Article',
     organization: {
-      id: 'clz1a2b3c4d5e6f7g8h9i0j1l',
+      id: testId('org'),
       name: 'Test Org',
     },
     publishedAt: new Date(),
@@ -73,7 +74,7 @@ describe('PublicArticlesController', () => {
     tags: [],
     updatedAt: new Date(),
     user: {
-      id: 'clz1a2b3c4d5e6f7g8h9i0j1m',
+      id: testId('user'),
       email: 'john@example.com',
       name: 'John Doe',
     },
@@ -210,7 +211,7 @@ describe('PublicArticlesController', () => {
 
     it('should filter by tag through the Tag[] relation', async () => {
       const request = {} as Request;
-      const tag = 'clz1a2b3c4d5e6f7g8h9i0j1n';
+      const tag = testId('tag');
       const query = buildArticlesQuery({ tag });
 
       mockArticlesService.findAll.mockResolvedValue({
@@ -296,7 +297,7 @@ describe('PublicArticlesController', () => {
   describe('findPublicArticleById', () => {
     it('should return article by id', async () => {
       const request = {} as Request;
-      const id = '507f1f77bcf86cd799439014';
+      const id = testId('article', 2);
       mockArticlesService.findOne.mockResolvedValue(mockArticle);
 
       const result = await controller.findPublicArticleById(request, id);
@@ -313,7 +314,7 @@ describe('PublicArticlesController', () => {
 
     it('should return not found when article does not exist', async () => {
       const request = {} as Request;
-      const id = '507f1f77bcf86cd799439014';
+      const id = testId('article', 2);
       mockArticlesService.findOne.mockResolvedValue(null);
 
       const result = await controller.findPublicArticleById(request, id);
