@@ -38,6 +38,7 @@ vi.mock('@genfeedai/helpers', async () => ({
 
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import type { TrainedModelInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import {
@@ -60,6 +61,25 @@ const createParams = (
   prompt: overrides.prompt ?? 'Test prompt',
   ...overrides,
 });
+
+type TrainedModelPromptBuilder = {
+  buildTrainedModelPrompt: (
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ) => TrainedModelInput;
+};
+
+function buildTrainedModelPrompt(
+  promptBuilder: ReplicatePromptBuilder,
+  model: string,
+  params: PromptBuilderParams,
+  promptText: string,
+): TrainedModelInput {
+  return (
+    promptBuilder as unknown as TrainedModelPromptBuilder
+  ).buildTrainedModelPrompt(model, params, promptText);
+}
 
 describe('ReplicatePromptBuilder', () => {
   let builder: ReplicatePromptBuilder;
@@ -1104,6 +1124,46 @@ describe('ReplicatePromptBuilder', () => {
       expect(result.prompt).toBe('A custom generation');
       expect(result.seed).toBe(42);
       expect(result.aspect_ratio).toBeDefined();
+    });
+  });
+
+  // ==========================================================================
+  // Trained-model safety checker (ADR-PROMPT-MODERATION-STANCE / #3012)
+  // ==========================================================================
+  describe('buildTrainedModelPrompt - safety checker', () => {
+    it('keeps disable_safety_checker true on the trained-model owner path', () => {
+      const result = buildTrainedModelPrompt(
+        builder,
+        'genfeedai/custom-lora:v1',
+        createParams({
+          height: 1024,
+          modelCategory: ModelCategory.IMAGE,
+          outputs: 2,
+          references: ['https://example.com/ref.jpg'],
+          seed: 42,
+          width: 1024,
+        }),
+        'A likeness portrait',
+      );
+
+      expect(result.disable_safety_checker).toBe(true);
+      expect(result.num_outputs).toBe(2);
+      expect(result.image).toBe('https://example.com/ref.jpg');
+      expect(result.prompt).toBe('A likeness portrait');
+    });
+
+    it('keeps disable_safety_checker false on the standard image-builder path', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+        createParams({
+          height: 1024,
+          modelCategory: ModelCategory.IMAGE,
+          width: 1024,
+        }),
+        'A quick image',
+      );
+
+      expect(result).toHaveProperty('disable_safety_checker', false);
     });
   });
 
