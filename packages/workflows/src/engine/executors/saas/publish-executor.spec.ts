@@ -4,6 +4,7 @@ import type { ExecutableNode } from '../../types';
 import type { ExecutorInput } from '../base-executor';
 import {
   createPublishExecutor,
+  nextOccurrenceFromPostingTime,
   type PublishExecutor,
   type PublishResolver,
 } from './publish-executor';
@@ -174,6 +175,64 @@ describe('PublishExecutor', () => {
       );
       const result = await executor.execute(input);
       expect(result.metadata?.scheduledFor).toBeTruthy();
+    });
+
+    it('accepts a brand id string from the brand handle', async () => {
+      const input = makeInput(
+        { platforms: { twitter: true } },
+        { brand: 'b-1', caption: 'text post' },
+      );
+      await executor.execute(input);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'b-1' }),
+      );
+    });
+
+    it('schedules from best posting times on the schedule handle', async () => {
+      const input = makeInput(
+        { platforms: { twitter: true } },
+        {
+          brand: { brandId: 'b-1' },
+          caption: 'text post',
+          schedule: [
+            { avgEngagement: 0.1, dayOfWeek: 1, hour: 9 },
+            { avgEngagement: 0.4, dayOfWeek: 2, hour: 18 },
+          ],
+        },
+      );
+
+      const result = await executor.execute(input);
+      const scheduledFor = result.metadata?.scheduledFor;
+
+      expect(typeof scheduledFor).toBe('string');
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scheduledFor: expect.any(Date),
+        }),
+      );
+      const scheduledDate = new Date(String(scheduledFor));
+      expect(scheduledDate.getUTCDay()).toBe(2);
+      expect(scheduledDate.getUTCHours()).toBe(18);
+    });
+
+    it('wraps a same-day posting slot that already passed to next week', () => {
+      const now = new Date(Date.UTC(2026, 7, 18, 19, 0, 0));
+      const next = nextOccurrenceFromPostingTime(
+        { dayOfWeek: 2, hour: 18 },
+        now,
+      );
+
+      expect(next.toISOString()).toBe('2026-08-25T18:00:00.000Z');
+    });
+
+    it('falls back to config schedule when posting times are empty', async () => {
+      const input = makeInput(
+        { platforms: { twitter: true } },
+        { brand: { brandId: 'b-1' }, caption: 'text post', schedule: [] },
+      );
+
+      const result = await executor.execute(input);
+      expect(result.metadata?.scheduledFor).toBeNull();
     });
   });
 });

@@ -25,11 +25,32 @@ export interface PromptConstructorResult {
   unresolvedPlaceholders: string[];
 }
 
+const HOOKS_INPUT_HANDLE = 'hooks';
+const AVOID_INPUT_HANDLE = 'avoid';
+const TEMPLATE_RESERVED_CONFIG_KEYS = new Set([
+  'inputVariableKeys',
+  'label',
+  'template',
+  'variables',
+  HOOKS_INPUT_HANDLE,
+  AVOID_INPUT_HANDLE,
+]);
+
 // =============================================================================
 // HELPERS
 // =============================================================================
 
 const PLACEHOLDER_REGEX = /\{\{(\w+)\}\}/g;
+
+function isPrimitiveTemplateValue(
+  value: unknown,
+): value is string | number | boolean {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  );
+}
 
 /**
  * Replaces {{variable}} placeholders in a template with values from the
@@ -55,6 +76,53 @@ function resolveTemplate(
   return { prompt, resolvedVariables, unresolvedPlaceholders };
 }
 
+export function readPromptGuidanceList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  return [];
+}
+
+export function foldPromptGuidance(
+  prompt: string,
+  hooks: string[],
+  avoid: string[],
+): string {
+  const sections: string[] = [];
+  const trimmedPrompt = prompt.trim();
+
+  if (trimmedPrompt.length > 0) {
+    sections.push(trimmedPrompt);
+  }
+
+  if (hooks.length > 0) {
+    sections.push(
+      ['Proven hooks to emulate:', ...hooks.map((hook) => `- ${hook}`)].join(
+        '\n',
+      ),
+    );
+  }
+
+  if (avoid.length > 0) {
+    sections.push(
+      ['Avoid these topics:', ...avoid.map((topic) => `- ${topic}`)].join('\n'),
+    );
+  }
+
+  return sections.join('\n\n');
+}
+
 // =============================================================================
 // EXECUTOR
 // =============================================================================
@@ -67,10 +135,15 @@ export class PromptConstructorExecutor extends BaseExecutor {
     const config = this.resolveConfig(node, inputs);
 
     const result = resolveTemplate(config.template, config.variables);
+    const hooks = readPromptGuidanceList(inputs.get(HOOKS_INPUT_HANDLE));
+    const avoid = readPromptGuidanceList(inputs.get(AVOID_INPUT_HANDLE));
+    const prompt = foldPromptGuidance(result.prompt, hooks, avoid);
 
     return {
-      data: result.prompt,
+      data: prompt,
       metadata: {
+        avoidCount: avoid.length,
+        hooksCount: hooks.length,
         resolvedCount: result.resolvedVariables.length,
         unresolvedCount: result.unresolvedPlaceholders.length,
       },
@@ -115,8 +188,25 @@ export class PromptConstructorExecutor extends BaseExecutor {
       }
     }
 
+    for (const [key, value] of Object.entries(node.config)) {
+      if (
+        TEMPLATE_RESERVED_CONFIG_KEYS.has(key) ||
+        key in variables ||
+        !isPrimitiveTemplateValue(value)
+      ) {
+        continue;
+      }
+
+      variables[key] = String(value);
+    }
+
     for (const [key, value] of inputs.entries()) {
-      if (value === undefined || value === null) {
+      if (
+        value === undefined ||
+        value === null ||
+        key === HOOKS_INPUT_HANDLE ||
+        key === AVOID_INPUT_HANDLE
+      ) {
         continue;
       }
 

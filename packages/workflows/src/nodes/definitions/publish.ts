@@ -37,6 +37,7 @@ export interface PublishSchedule {
  * - brand (brand): Brand context from Brand node (required)
  * - media (any): Media to publish - image, video, etc. (required)
  * - caption (text): Optional caption text
+ * - schedule (any): Optional schedule override or best-posting-time slots
  *
  * Creates Post entities in the database.
  */
@@ -47,6 +48,7 @@ export interface PublishNodeData extends BaseNodeData {
   inputBrandId: string | null;
   inputMediaId: string | null;
   inputCaption: string | null;
+  inputSchedule: string | null;
 
   // Platform configuration
   platforms: {
@@ -78,6 +80,7 @@ export const DEFAULT_PUBLISH_DATA: Partial<PublishNodeData> = {
   inputBrandId: null,
   inputCaption: null,
   inputMediaId: null,
+  inputSchedule: null,
   label: 'Publish',
   platforms: {
     instagram: false,
@@ -106,6 +109,12 @@ export const publishNodeDefinition = {
     { id: 'brand', label: 'Brand', required: true, type: 'brand' },
     { id: 'media', label: 'Media', required: true, type: 'any' },
     { id: 'caption', label: 'Caption', required: false, type: 'text' },
+    {
+      id: 'schedule',
+      label: 'Schedule',
+      required: false,
+      type: 'any',
+    },
   ],
   label: 'Publish',
   outputs: [],

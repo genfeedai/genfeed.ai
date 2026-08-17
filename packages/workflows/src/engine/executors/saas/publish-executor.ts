@@ -4,7 +4,6 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
-import type { BrandContextOutput } from './brand-executor';
 
 export type SocialPlatform =
   | 'twitter'
@@ -26,6 +25,14 @@ export interface PublishConfig {
   caption?: string;
   hashtags?: string[];
 }
+
+export interface PublishPostingTimeSlot {
+  dayOfWeek: number;
+  hour: number;
+  avgEngagement?: number;
+}
+
+const SCHEDULE_INPUT_HANDLE = 'schedule';
 
 export interface PublishOutput {
   postIds: string[];
@@ -54,6 +61,115 @@ export type PublishResolver = (params: {
   /** Target keyword forwarded to the downstream SEO-optimization workflow. */
   targetKeyword?: string | null;
 }) => Promise<PublishOutput>;
+
+function isPublishPostingTimeSlot(
+  value: unknown,
+): value is PublishPostingTimeSlot {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const slot = value as Record<string, unknown>;
+  return (
+    typeof slot.dayOfWeek === 'number' &&
+    Number.isFinite(slot.dayOfWeek) &&
+    typeof slot.hour === 'number' &&
+    Number.isFinite(slot.hour)
+  );
+}
+
+function isPublishSchedule(value: unknown): value is PublishConfig['schedule'] {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const schedule = value as Record<string, unknown>;
+  return schedule.type === 'immediate' || schedule.type === 'scheduled';
+}
+
+function scheduledForFromConfig(
+  schedule: PublishConfig['schedule'],
+): Date | null {
+  return schedule.type === 'scheduled' && schedule.datetime
+    ? new Date(schedule.datetime)
+    : null;
+}
+
+export function nextOccurrenceFromPostingTime(
+  slot: PublishPostingTimeSlot,
+  now: Date = new Date(),
+): Date {
+  const scheduled = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      slot.hour,
+      0,
+      0,
+      0,
+    ),
+  );
+  let daysAhead = (slot.dayOfWeek - now.getUTCDay() + 7) % 7;
+  if (daysAhead === 0 && scheduled <= now) {
+    daysAhead = 7;
+  }
+  scheduled.setUTCDate(scheduled.getUTCDate() + daysAhead);
+  return scheduled;
+}
+
+export function resolvePublishScheduledFor(
+  scheduleConfig: PublishConfig['schedule'],
+  scheduleInput: unknown,
+  now: Date = new Date(),
+): Date | null {
+  if (Array.isArray(scheduleInput)) {
+    const slots = scheduleInput.filter(isPublishPostingTimeSlot);
+    if (slots.length === 0) {
+      return scheduledForFromConfig(scheduleConfig);
+    }
+
+    const bestSlot = [...slots].sort(
+      (left, right) => (right.avgEngagement ?? 0) - (left.avgEngagement ?? 0),
+    )[0];
+    if (!bestSlot) {
+      return scheduledForFromConfig(scheduleConfig);
+    }
+    return nextOccurrenceFromPostingTime(bestSlot, now);
+  }
+
+  if (isPublishSchedule(scheduleInput)) {
+    return scheduledForFromConfig(scheduleInput);
+  }
+
+  if (typeof scheduleInput === 'string' && scheduleInput.trim().length > 0) {
+    const parsed = new Date(scheduleInput);
+    return Number.isNaN(parsed.getTime())
+      ? scheduledForFromConfig(scheduleConfig)
+      : parsed;
+  }
+
+  if (scheduleInput instanceof Date && !Number.isNaN(scheduleInput.getTime())) {
+    return scheduleInput;
+  }
+
+  return scheduledForFromConfig(scheduleConfig);
+}
+
+export function resolvePublishBrandId(brandInput: unknown): string {
+  if (typeof brandInput === 'string' && brandInput.trim().length > 0) {
+    return brandInput.trim();
+  }
+
+  if (brandInput && typeof brandInput === 'object' && 'brandId' in brandInput) {
+    const brandId = (brandInput as { brandId?: unknown }).brandId;
+    if (typeof brandId === 'string' && brandId.trim().length > 0) {
+      return brandId.trim();
+    }
+  }
+
+  throw new Error('Missing required input: brand');
+}
 
 export class PublishExecutor extends BaseExecutor {
   readonly nodeType = 'publish';
@@ -102,9 +218,8 @@ export class PublishExecutor extends BaseExecutor {
       throw new Error('Publish resolver not configured');
     }
 
-    const brandContext = this.getRequiredInput<BrandContextOutput>(
-      inputs,
-      'brand',
+    const brandId = resolvePublishBrandId(
+      this.getRequiredInput<unknown>(inputs, 'brand'),
     );
     const media = this.getOptionalInput<unknown | undefined>(
       inputs,
@@ -143,10 +258,10 @@ export class PublishExecutor extends BaseExecutor {
         type: 'immediate',
       },
     );
-    const scheduledFor =
-      schedule.type === 'scheduled' && schedule.datetime
-        ? new Date(schedule.datetime)
-        : null;
+    const scheduledFor = resolvePublishScheduledFor(
+      schedule,
+      this.getOptionalInput<unknown>(inputs, SCHEDULE_INPUT_HANDLE, undefined),
+    );
 
     const triggerSeoOptimization = this.getOptionalConfig<boolean>(
       node.config,
@@ -160,7 +275,7 @@ export class PublishExecutor extends BaseExecutor {
     );
 
     const result = await this.resolver({
-      brandId: brandContext.brandId,
+      brandId,
       caption,
       media,
       organizationId: context.organizationId,

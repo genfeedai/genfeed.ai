@@ -1,6 +1,9 @@
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
+export const CONTENT_LOOP_PROMPT_TEMPLATE =
+  'Write a {{tone}} social caption about {{topic}}.\n\nBrand voice:\n{{brandVoice}}\n\nKeep it under {{maxLength}} characters.';
+
 export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   category: 'content',
   description:
@@ -19,6 +22,27 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       sourceHandle: 'bestPlatform',
       target: 'trend-trigger',
       targetHandle: 'platform',
+    },
+    {
+      id: 'e-feedback-hooks',
+      source: 'analytics-feedback',
+      sourceHandle: 'topHooks',
+      target: 'prompt-constructor',
+      targetHandle: 'hooks',
+    },
+    {
+      id: 'e-feedback-avoid',
+      source: 'analytics-feedback',
+      sourceHandle: 'worstTopics',
+      target: 'prompt-constructor',
+      targetHandle: 'avoid',
+    },
+    {
+      id: 'e-feedback-schedule',
+      source: 'analytics-feedback',
+      sourceHandle: 'bestPostingTimes',
+      target: 'publish',
+      targetHandle: 'schedule',
     },
     {
       id: 'e-trend-prompt',
@@ -117,7 +141,12 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       data: {
-        config: { includeHashtags: true, maxLength: 2200, tone: 'brand-voice' },
+        config: {
+          includeHashtags: true,
+          maxLength: 2200,
+          template: CONTENT_LOOP_PROMPT_TEMPLATE,
+          tone: 'brand-voice',
+        },
         label: 'Prompt Constructor',
       },
       id: 'prompt-constructor',
@@ -178,8 +207,12 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       category: WorkflowStepCategory.GENERATE_HOOK,
-      config: { includeHashtags: true, tone: 'brand-voice' },
-      dependsOn: ['step-trend-trigger'],
+      config: {
+        includeHashtags: true,
+        template: CONTENT_LOOP_PROMPT_TEMPLATE,
+        tone: 'brand-voice',
+      },
+      dependsOn: ['step-analytics-feedback', 'step-trend-trigger'],
       id: 'step-prompt',
       name: 'Build Prompt',
     },
@@ -204,7 +237,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
         },
         schedule: { type: 'immediate' },
       },
-      dependsOn: ['step-generate'],
+      dependsOn: ['step-analytics-feedback', 'step-generate'],
       id: 'step-publish',
       name: 'Publish',
     },

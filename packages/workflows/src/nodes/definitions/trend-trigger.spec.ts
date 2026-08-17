@@ -55,8 +55,17 @@ describe('trend-trigger node', () => {
       expect(trendTriggerNodeDefinition.label).toBe('Trend Trigger');
     });
 
-    it('should have no inputs (trigger node)', () => {
-      expect(trendTriggerNodeDefinition.inputs).toEqual([]);
+    it('should accept optional keyword and platform inputs', () => {
+      expect(trendTriggerNodeDefinition.inputs).toEqual([
+        {
+          id: 'keywords',
+          label: 'Keywords',
+          multiple: true,
+          required: false,
+          type: 'text',
+        },
+        { id: 'platform', label: 'Platform', required: false, type: 'text' },
+      ]);
     });
 
     it('should output trendId, topic, platform, viralScore, hashtags, videoUrl, soundId', () => {
