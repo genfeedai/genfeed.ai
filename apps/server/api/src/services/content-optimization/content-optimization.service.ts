@@ -1,9 +1,11 @@
+import type { BrandMemoryMetricsInput } from '@api/collections/brand-memory/services/brand-memory.service';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import {
   type OptimizationCycleResult,
   OptimizationCycleService,
 } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -71,12 +73,36 @@ export interface OptimizationSuggestion {
   suggestion: string;
   confidence: number;
   dataPoints: number;
+  /**
+   * Raw derived value backing the suggestion (a posting-hour bucket, a
+   * content-format label, or a hook string) — the typed payload
+   * `autoApplySuggestion` writes to a concrete owning record, distinct from
+   * the human-readable `suggestion` sentence.
+   */
+  targetValue?: string;
 }
+
+/**
+ * `applied` stays for backward compatibility; `outcome` is the typed
+ * discriminator that tells callers *why* nothing changed when it didn't —
+ * `not_auto_applicable` is honest about suggestion categories (currently
+ * `hook`) that have no safe, concrete owning record to write to yet.
+ */
+export type AutoApplyOutcome =
+  | 'applied'
+  | 'not_found'
+  | 'below_confidence'
+  | 'not_auto_applicable';
 
 export interface AutoApplyResult {
   suggestionId: string;
   applied: boolean;
+  outcome: AutoApplyOutcome;
   reason?: string;
+  appliedTarget?: {
+    field: 'topPerformingTime' | 'topPerformingFormat';
+    value: string;
+  };
 }
 
 /**
@@ -201,11 +227,10 @@ export class ContentOptimizationService {
           brandId,
           5,
         ),
-        this.performanceSummaryService.getTopPerformers(
+        this.performanceSummaryService.getWorstPerformers(
           organizationId,
           brandId,
           5,
-          // worst = lowest engagement — reuse with reversed expectation
         ),
         this.performanceSummaryService.generatePerformanceContext(
           organizationId,
@@ -361,6 +386,7 @@ export class ContentOptimizationService {
         dataPoints: topTime.count,
         id: this.buildSuggestionId('timing', topTime.value),
         suggestion: `Concentrate posting around ${topTime.value}; this time window consistently appears in top daily performance.`,
+        targetValue: topTime.value,
       });
     }
 
@@ -371,6 +397,7 @@ export class ContentOptimizationService {
         dataPoints: topFormat.count,
         id: this.buildSuggestionId('format', topFormat.value),
         suggestion: `Increase ${topFormat.value} output; this format appears most often in your top-performing days.`,
+        targetValue: topFormat.value,
       });
     }
 
@@ -381,6 +408,7 @@ export class ContentOptimizationService {
         dataPoints: topHook.count,
         id: this.buildSuggestionId('hook', topHook.value),
         suggestion: `Reuse this winning hook structure: "${topHook.value}".`,
+        targetValue: topHook.value,
       });
     }
 
@@ -399,20 +427,50 @@ export class ContentOptimizationService {
     const suggestion = suggestions.find((item) => item.id === suggestionId);
 
     if (!suggestion) {
-      return { applied: false, reason: 'Suggestion not found', suggestionId };
+      return {
+        applied: false,
+        outcome: 'not_found',
+        reason: 'Suggestion not found',
+        suggestionId,
+      };
     }
 
     if (suggestion.confidence < minConfidenceThreshold) {
       return {
         applied: false,
+        outcome: 'below_confidence',
         reason: `Confidence ${suggestion.confidence.toFixed(2)} below threshold ${minConfidenceThreshold.toFixed(2)}`,
         suggestionId,
       };
     }
 
+    const target = this.resolveAutoApplyTarget(suggestion);
+
+    if (!target) {
+      return {
+        applied: false,
+        outcome: 'not_auto_applicable',
+        reason: `No safe automated target exists yet for "${suggestion.category}" suggestions — apply manually.`,
+        suggestionId,
+      };
+    }
+
+    const metricsPatch: BrandMemoryMetricsInput =
+      target.field === 'topPerformingTime'
+        ? { topPerformingTime: target.value }
+        : { topPerformingFormat: target.value };
+
+    await this.brandMemoryService.updateMetrics(
+      organizationId,
+      brandId,
+      metricsPatch,
+    );
+
     await this.brandMemoryService.logEntry(organizationId, brandId, {
       content: `Auto-applied optimization: ${suggestion.suggestion}`,
       metadata: {
+        appliedField: target.field,
+        appliedValue: target.value,
         confidence: suggestion.confidence,
         dataPoints: suggestion.dataPoints,
         suggestionId: suggestion.id,
@@ -427,7 +485,39 @@ export class ContentOptimizationService {
       source: 'optimization_engine',
     });
 
-    return { applied: true, suggestionId };
+    return {
+      appliedTarget: target,
+      applied: true,
+      outcome: 'applied',
+      suggestionId,
+    };
+  }
+
+  /**
+   * Maps a suggestion to a safe, concrete owning record it can be written to.
+   * `timing`/`format` suggestions are derived from — and feed back into —
+   * `BrandMemory.metrics.topPerformingTime` / `.topPerformingFormat`, the same
+   * fields `BrandMemorySyncService` writes from real measured performance and
+   * `generateSuggestions` reads to derive suggestions in the first place.
+   * `hook` suggestions are free-form prose with no structured owning field in
+   * this service's scope, so they intentionally resolve to `null` — honest
+   * "not auto-applicable" rather than a fabricated write.
+   */
+  private resolveAutoApplyTarget(
+    suggestion: OptimizationSuggestion,
+  ): { field: 'topPerformingTime' | 'topPerformingFormat'; value: string } | null {
+    if (!suggestion.targetValue) {
+      return null;
+    }
+
+    switch (suggestion.category) {
+      case 'timing':
+        return { field: 'topPerformingTime', value: suggestion.targetValue };
+      case 'format':
+        return { field: 'topPerformingFormat', value: suggestion.targetValue };
+      default:
+        return null;
+    }
   }
 
   // ─── 4. Winner → Trend Feedback (issue #166) ─────────────────────
@@ -595,16 +685,31 @@ export class ContentOptimizationService {
     return insights;
   }
 
+  private describePerformanceItem(item: PerformanceContentItem): string {
+    return SecurityUtil.sanitizePromptInput(
+      item.description || item.title || item.postId,
+      100,
+    );
+  }
+
   private buildOptimizationSystemPrompt(
     topPerformers: PerformanceContentItem[],
-    _worstPerformers: PerformanceContentItem[],
+    worstPerformers: PerformanceContentItem[],
     performanceContext: string,
   ): string {
     const topExamples = topPerformers
       .slice(0, 3)
       .map(
         (p) =>
-          `- "${(p.description || p.title).substring(0, 100)}" (engagement: ${p.engagementRate.toFixed(2)}%)`,
+          `- "${this.describePerformanceItem(p)}" (engagement: ${p.engagementRate.toFixed(2)}%)`,
+      )
+      .join('\n');
+
+    const antiPatternExamples = worstPerformers
+      .slice(0, 3)
+      .map(
+        (p) =>
+          `- "${this.describePerformanceItem(p)}" (engagement: ${p.engagementRate.toFixed(2)}%)`,
       )
       .join('\n');
 
@@ -615,7 +720,10 @@ Performance context: ${performanceContext}
 Top performing content:
 ${topExamples || 'No data yet.'}
 
-Your job: take the user's content prompt and optimize it based on what has worked historically.
+Historical Anti-Patterns (avoid repeating these underperforming angles/structures):
+${antiPatternExamples || 'No underperforming data yet.'}
+
+Your job: take the user's content prompt and optimize it based on what has worked historically, while steering away from the historical anti-patterns above.
 Return ONLY valid JSON.`;
   }
 

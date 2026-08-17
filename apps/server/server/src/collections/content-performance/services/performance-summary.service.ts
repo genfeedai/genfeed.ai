@@ -87,6 +87,11 @@ type PostingTimeAnalysisRow = {
   post_count: bigint | number | string;
 };
 
+// A zero/low-reach post always has the lowest possible engagement rate, which
+// would otherwise dominate "worst performers" without telling us anything
+// about content quality — this floor keeps the signal meaningful.
+const DEFAULT_MIN_IMPRESSIONS_FLOOR = 100;
+
 @Injectable()
 export class PerformanceSummaryService {
   constructor(
@@ -195,6 +200,32 @@ export class PerformanceSummaryService {
     );
 
     return this.getContentByEngagement(matchFilter, limit, 'desc');
+  }
+
+  /**
+   * Get worst performing content ranked by engagement rate, excluding posts
+   * that fall under a minimum-impressions floor. Without the floor, a post
+   * with near-zero reach always looks "worst" by engagement rate but carries
+   * no real signal about what content angle underperformed.
+   */
+  async getWorstPerformers(
+    organizationId: string,
+    brandId: string,
+    limit: number = 10,
+    dateRange?: { startDate?: Date | string; endDate?: Date | string },
+    minImpressions: number = DEFAULT_MIN_IMPRESSIONS_FLOOR,
+  ): Promise<PerformanceContentItem[]> {
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
+      dateRange?.startDate,
+      dateRange?.endDate,
+    );
+
+    const matchFilter: Prisma.PostAnalyticsWhereInput = {
+      ...this.buildMatchFilter(organizationId, brandId, startDate, endDate),
+      totalViews: { gte: minImpressions },
+    };
+
+    return this.getContentByEngagement(matchFilter, limit, 'asc');
   }
 
   /**

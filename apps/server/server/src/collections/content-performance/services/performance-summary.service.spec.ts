@@ -145,6 +145,69 @@ describe('PerformanceSummaryService', () => {
     });
   });
 
+  describe('getWorstPerformers', () => {
+    it('scopes the query to the organization, brand, date range, and applies the default minimum-impressions floor', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 10, {
+        endDate: '2026-07-31',
+        startDate: '2026-07-01',
+      });
+
+      const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
+      expect(where.organizationId).toBe('org-1');
+      expect(where.brandId).toBe('brand-1');
+      expect(where.date.gte).toBeInstanceOf(Date);
+      expect(where.date.lte).toBeInstanceOf(Date);
+      expect(where.totalViews).toEqual({ gte: 100 });
+    });
+
+    it('sorts ascending by engagement rate and honours the limit', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 3);
+
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { engagementRate: 'asc' },
+          take: 3,
+        }),
+      );
+    });
+
+    it('honours a caller-supplied minimum-impressions floor', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 5, undefined, 500);
+
+      const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
+      expect(where.totalViews).toEqual({ gte: 500 });
+    });
+
+    it('joins analytics rows with their post title, description and publish date', async () => {
+      analyticsFindMany.mockResolvedValueOnce([
+        makeAnalytics({ engagementRate: 0.2 }),
+      ]);
+      postFindMany.mockResolvedValueOnce([makePost()]);
+
+      const [item] = await service.getWorstPerformers('org-1', 'brand-1');
+
+      expect(item).toEqual({
+        comments: 5,
+        description: 'A great description. Second sentence.',
+        engagementRate: 0.2,
+        likes: 10,
+        platform: 'instagram',
+        postId: 'post-1',
+        publishDate: new Date('2026-07-20T14:00:00.000Z'),
+        saves: 2,
+        shares: 3,
+        title: 'A great title',
+        views: 1000,
+      });
+    });
+
+    it('skips the post lookup entirely when there are no analytics rows', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1');
+
+      expect(postFindMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getPromptPerformance', () => {
     it('returns an empty list when no analytics exist', async () => {
       await expect(
