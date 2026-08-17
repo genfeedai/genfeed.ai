@@ -37,6 +37,24 @@ describe('system workflow catalog', () => {
     expect(getSystemWorkflowCatalogEntry('does-not-exist')).toBeNull();
   });
 
+  it('lists the content loop autopilot workflow as an installable, schedule-enabled entry (#3018)', () => {
+    const entry = getSystemWorkflowCatalogEntry('content-loop-autopilot');
+
+    expect(entry).toMatchObject({
+      canonicalId: 'content-loop-autopilot',
+      family: 'content-loop-autopilot',
+      installable: true,
+      isScheduleEnabled: true,
+      schedule: '0 8 * * *',
+      sourceIssue: 3018,
+    });
+    expect(
+      listInstallableSystemWorkflowCatalog().some(
+        (item) => item.canonicalId === 'content-loop-autopilot',
+      ),
+    ).toBe(true);
+  });
+
   it('uses stable canonical ids without duplicates', () => {
     const ids = listSystemWorkflowCatalog().map((entry) => entry.canonicalId);
     expect(new Set(ids).size).toBe(ids.length);

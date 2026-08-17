@@ -17,6 +17,7 @@ import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
@@ -612,6 +613,28 @@ export class WorkflowTemplateSeederService {
       organizationId,
       sourceIssue: 786,
       templates: CONTENT_PRODUCTION_WORKFLOW_TEMPLATES,
+      userId,
+    });
+  }
+
+  /**
+   * Idempotently seeds the default-on content loop autopilot workflow for an
+   * organization (#3018): daily analytics sync followed by a harness winner
+   * promotion sweep, so the closed content loop keeps improving without an
+   * operator manually running analytics sync or `promote-winners`. Brands
+   * without a connected credential are simply skipped inside the node, not a
+   * hard failure — same `tenant-connected-account` credential policy as the
+   * other default-on families.
+   */
+  async ensureContentLoopAutopilotWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.ensureSeededTemplateWorkflows({
+      logContext: 'ensureContentLoopAutopilotWorkflows',
+      organizationId,
+      sourceIssue: 3018,
+      templates: CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES,
       userId,
     });
   }
