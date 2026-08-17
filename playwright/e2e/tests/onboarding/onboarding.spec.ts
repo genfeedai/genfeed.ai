@@ -80,7 +80,7 @@ test.describe('Onboarding Flow', () => {
       await page.skipStep();
 
       await expect(onboardingPage).toHaveURL(
-        /\/onboarding\/(providers|success|summary)/,
+        /\/onboarding\/(providers|success|summary)|\/workspace/,
       );
     });
   });

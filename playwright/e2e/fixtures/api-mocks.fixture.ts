@@ -664,7 +664,7 @@ export async function mockActiveSubscription(
 ): Promise<void> {
   const { plan = 'pro', credits = 500, hasPaymentMethod = true } = options;
 
-  await routeApiPattern(page, '/subscriptions/**', async (route) => {
+  await routeApiPattern(page, '/subscriptions**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         data: {
@@ -681,7 +681,7 @@ export async function mockActiveSubscription(
     });
   });
 
-  await routeApiPattern(page, '/credits/**', async (route) => {
+  await routeApiPattern(page, '/credits**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         data: {

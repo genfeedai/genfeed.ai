@@ -482,13 +482,18 @@ async function handleOrganizationRoutes(route: Route): Promise<void> {
     url.endsWith('/mine') ||
     url.includes('/mine?')
   ) {
+    // Bespoke projection (not JSON:API). OrganizationsService.getMyOrganizations
+    // reads res.data as MyOrganizationSummary[] — a document-shaped fallback
+    // makes `.filter` throw and the switcher shows "Failed to load organizations".
     await route.fulfill({
       body: JSON.stringify([
         {
           brand: { id: 'brand-1', label: 'Brand 1' },
           id: 'mock-org-id-e2e-test',
           isActive: true,
-          label: 'Organization',
+          isOwner: true,
+          label: 'Test Organization',
+          slug: 'test-org',
         },
       ]),
       contentType: 'application/json',
@@ -1604,15 +1609,18 @@ export async function setupApiMocks(
     });
   });
 
-  await routeApi('/organizations/**', handleOrganizationRoutes);
+  // Collection roots (`/organizations?mine=true`, `/credits`) do not match
+  // `/resource/**`. Use `/resource**` so the query-string and bare-list
+  // requests hit the same handlers as nested paths.
+  await routeApi('/organizations**', handleOrganizationRoutes);
 
-  await routeApi('/billing/**', handleBillingRoutes);
+  await routeApi('/billing**', handleBillingRoutes);
 
-  await routeApi('/subscriptions/**', handleBillingRoutes);
+  await routeApi('/subscriptions**', handleBillingRoutes);
 
-  await routeApi('/credits/**', handleBillingRoutes);
+  await routeApi('/credits**', handleBillingRoutes);
 
-  await routeApi('/payments/**', handleBillingRoutes);
+  await routeApi('/payments**', handleBillingRoutes);
 
   await routeApi('/analytics/**', handleAnalyticsRoutes);
 

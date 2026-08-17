@@ -195,6 +195,7 @@ export default function OrganizationSwitcher({
         }))}
         renderTrigger={({ isOpen }) => (
           <div
+            data-testid="organization-switcher-trigger"
             className={cn(
               SWITCHER_TRIGGER_CLASSNAME,
               isSwitching && 'cursor-not-allowed opacity-50',

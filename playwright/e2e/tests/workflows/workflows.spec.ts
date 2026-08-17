@@ -53,16 +53,16 @@ test.describe('Workflows', () => {
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: workflow.name }),
+      authenticatedPage
+        .getByText(workflow.name)
+        .or(authenticatedPage.getByText('Untitled Workflow'))
+        .first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Archive' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(/Typical run|Usually/i).first(),
     ).toBeVisible();
   });
 

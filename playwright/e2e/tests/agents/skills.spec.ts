@@ -25,15 +25,13 @@ test.describe('Agents Skills', () => {
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/skills(?:$|[?#])/);
     await expect(
-      authenticatedPage.getByRole('heading', {
-        name: /Brand content behavior/i,
-      }),
+      authenticatedPage.getByRole('heading', { name: /Catalog/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'YouTube Script Setup' }),
+      authenticatedPage.getByText('YouTube Script Setup').first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Test in chat' }),
+      authenticatedPage.getByRole('button', { name: /Test With Agent/i }),
     ).toBeVisible();
   });
 

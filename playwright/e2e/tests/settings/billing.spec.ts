@@ -29,9 +29,8 @@ test.describe('Billing Settings', () => {
       await expect(authenticatedPage).toHaveURL(
         new RegExp(`${APP_ROUTES.SETTINGS.CREDITS}`),
       );
-      await expect(
-        authenticatedPage.getByRole('heading', { name: 'Credits' }),
-      ).toBeVisible();
+      await expect(authenticatedPage.getByText('Credits Left')).toBeVisible();
+      await expect(authenticatedPage.getByText('Buy credits')).toBeVisible();
     });
 
     test('should display current credit balance', async ({

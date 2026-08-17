@@ -70,7 +70,9 @@ test.describe('Agents — Sub-Sections', () => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW));
 
     await expect(authenticatedPage).toHaveURL(/messages\/outreach\/new/);
-    await expect(authenticatedPage.locator('form').first()).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /Platform & Type/i }),
+    ).toBeVisible();
   });
 
   test('runs page shows run history', async ({ authenticatedPage }) => {
