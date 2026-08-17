@@ -25,7 +25,7 @@ import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-con
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { hasLiveReconnectStream } from '@genfeedai/agent/utils/has-live-reconnect-stream';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -245,10 +245,6 @@ export function useAgentChatStream(
     ) {
       void restoreThreadFromSnapshot(currentThreadId).catch(() => undefined);
     }
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('agent:threads:refresh'));
-    }
   }, [connectionState, restoreThreadFromSnapshot]);
 
   const syncThreadState = useCallback(
@@ -261,27 +257,17 @@ export function useAgentChatStream(
       contextVersion?: number,
       brandId?: string | null,
     ) => {
-      if (threadId !== activeThreadId) {
-        setActiveThread(threadId);
-      }
-
-      const now = new Date().toISOString();
-      upsertThread({
+      syncAgentThreadFromTurn({
+        activeThreadId,
         brandId,
-        createdAt: createdAt ?? now,
-        contextVersion: contextVersion ?? 1,
-        id: threadId,
+        contextVersion,
+        createdAt,
         planModeEnabled,
-        status: AgentThreadStatus.ACTIVE,
+        setActiveThread,
+        threadId,
         title: existingThreadTitle || content.slice(0, 60),
-        updatedAt: now,
+        upsertThread,
       });
-
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('agent:threads:refresh'));
-        }, 2000);
-      }
     },
     [activeThreadId, setActiveThread, upsertThread],
   );

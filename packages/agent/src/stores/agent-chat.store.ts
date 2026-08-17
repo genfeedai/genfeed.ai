@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
+import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type {
   OnboardingChecklistStatus,
@@ -1121,8 +1122,17 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     })),
   updateThread: (threadId, update) =>
     set((state) => ({
-      threads: state.threads.map((thread) =>
-        thread.id === threadId ? { ...thread, ...update } : thread,
+      threads: sortThreads(
+        state.threads.map((thread) =>
+          thread.id === threadId
+            ? {
+                ...thread,
+                ...update,
+                updatedAt:
+                  update.updatedAt ?? update.lastActivityAt ?? thread.updatedAt,
+              }
+            : thread,
+        ),
       ),
     })),
   upsertThread: (thread) =>
@@ -1136,14 +1146,14 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       const existingIndex = state.threads.findIndex(
         (item) => item.id === thread.id,
       );
+      const next =
+        existingIndex === -1
+          ? [thread, ...state.threads]
+          : state.threads.map((item, index) =>
+              index === existingIndex ? { ...item, ...thread } : item,
+            );
 
-      if (existingIndex === -1) {
-        return { threads: [thread, ...state.threads] };
-      }
-
-      const next = [...state.threads];
-      next[existingIndex] = { ...next[existingIndex], ...thread };
-      return { threads: next };
+      return { threads: sortThreads(next) };
     }),
   userChangedAgentDuringOverlay: false,
   wasAgentOpenBeforeOverlay: false,

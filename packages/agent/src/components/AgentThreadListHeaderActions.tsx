@@ -1,4 +1,3 @@
-import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,6 +13,7 @@ interface AgentThreadListHeaderActionsProps {
   viewStatus: AgentThreadStatus;
   threadCount: number;
   onArchiveAll: () => void;
+  onRefresh: () => void;
   onToggleView: () => void;
 }
 
@@ -21,6 +21,7 @@ export function AgentThreadListHeaderActions({
   viewStatus,
   threadCount,
   onArchiveAll,
+  onRefresh,
   onToggleView,
 }: AgentThreadListHeaderActionsProps): ReactElement {
   const isArchivedView = viewStatus === AgentThreadStatus.ARCHIVED;
@@ -44,9 +45,7 @@ export function AgentThreadListHeaderActions({
         {!isArchivedView ? (
           <DropdownMenuItem
             onSelect={() => {
-              window.dispatchEvent(
-                new Event(AGENT_REFRESH_CONVERSATIONS_EVENT),
-              );
+              onRefresh();
             }}
           >
             <RefreshCw className="size-4" />

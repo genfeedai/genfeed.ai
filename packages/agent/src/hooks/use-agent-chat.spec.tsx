@@ -199,4 +199,44 @@ describe('useAgentChat', () => {
       expect.any(AbortSignal),
     );
   });
+
+  it('writes the send title into the store immediately without a refresh event', async () => {
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+
+    const chat = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      creditsRemaining: 95,
+      creditsUsed: 5,
+      message: { content: 'Done', metadata: {}, role: 'assistant' },
+      threadId: 'thread-send-title',
+      toolCalls: [],
+    });
+    const apiService = {
+      chat,
+      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
+        Effect.promise(() => chat(...args)),
+      ),
+    } as unknown as AgentApiService;
+
+    const { result } = renderHook(() => useAgentChat({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Visible sidebar title from send');
+    });
+
+    expect(useAgentChatStore.getState().threads[0]?.title).toBe(
+      'Visible sidebar title from send',
+    );
+    expect(refreshListener).not.toHaveBeenCalled();
+
+    vi.useFakeTimers();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(refreshListener).not.toHaveBeenCalled();
+    vi.useRealTimers();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
+  });
 });

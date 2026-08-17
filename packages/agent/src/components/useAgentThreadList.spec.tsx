@@ -5,10 +5,6 @@ import { AgentThreadStatus } from '@genfeedai/enums';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS,
-  AGENT_REFRESH_CONVERSATIONS_EVENT,
-} from './agent-thread-list.helpers';
 import { useAgentThreadList } from './useAgentThreadList';
 
 function makeThread(
@@ -414,7 +410,7 @@ describe('useAgentThreadList', () => {
     expect(result.current.isArchivedView).toBe(false);
   });
 
-  it('coalesces a burst of refresh events into one thread fetch', async () => {
+  it('shows a store upsert title immediately without refetching conversations', async () => {
     const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
     const apiService = makeApiService({ getThreadsEffect });
 
@@ -422,20 +418,79 @@ describe('useAgentThreadList', () => {
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
     expect(getThreadsEffect).toHaveBeenCalledTimes(1);
 
-    // send + stream finalize + reconnect all dispatch within the same tick.
     act(() => {
-      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
-      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
-      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
+      useAgentChatStore.getState().upsertThread(
+        makeThread('t-send', {
+          title: 'Visible from send',
+          updatedAt: '2026-03-20T12:00:00.000Z',
+        }),
+      );
     });
+
+    expect(result.current.threads[0]?.title).toBe('Visible from send');
+    expect(result.current.threads.map((thread) => thread.id)).toContain(
+      't-send',
+    );
     expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+  });
+
+  it('reorders the list from a store finalize write without refetching', async () => {
+    const getThreadsEffect = vi.fn(() =>
+      Effect.succeed([
+        makeThread('stale', {
+          title: 'Stale',
+          updatedAt: '2026-03-20T08:00:00.000Z',
+        }),
+        makeThread('fresh', {
+          title: 'Fresh',
+          updatedAt: '2026-03-20T11:00:00.000Z',
+        }),
+      ]),
+    );
+    const apiService = makeApiService({ getThreadsEffect });
+
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.threads).toHaveLength(2));
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      useAgentChatStore.getState().updateThread('stale', {
+        lastActivityAt: '2026-03-20T12:00:00.000Z',
+        runStatus: 'completed',
+      });
+    });
+
+    expect(result.current.threads.map((thread) => thread.id)).toEqual([
+      'stale',
+      'fresh',
+    ]);
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores the retired window refresh event and only refetches from handleRefresh', async () => {
+    const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
+    const apiService = makeApiService({ getThreadsEffect });
+
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.threads).toHaveLength(1));
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new Event('agent:threads:refresh'));
+      window.dispatchEvent(new Event('agent:threads:refresh'));
+    });
 
     await act(
       () =>
-        new Promise((resolve) =>
-          setTimeout(resolve, AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS * 2),
-        ),
+        new Promise((resolve) => {
+          setTimeout(resolve, 200);
+        }),
     );
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
     expect(getThreadsEffect).toHaveBeenCalledTimes(2);
   });
 

@@ -209,4 +209,75 @@ describe('agent-chat.store upsertThread', () => {
 
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
+
+  it('re-sorts the list by updatedAt so send and finalize do not wait for a refetch', () => {
+    useAgentChatStore.getState().upsertThread({
+      ...makeThread('older'),
+      title: 'Older',
+      updatedAt: '2026-03-26T08:00:00.000Z',
+    });
+    useAgentChatStore.getState().upsertThread({
+      ...makeThread('newer'),
+      title: 'Newer',
+      updatedAt: '2026-03-26T12:00:00.000Z',
+    });
+
+    expect(
+      useAgentChatStore.getState().threads.map((thread) => thread.id),
+    ).toEqual(['newer', 'older']);
+
+    useAgentChatStore.getState().upsertThread({
+      ...makeThread('older'),
+      title: 'Bumped after send',
+      updatedAt: '2026-03-26T13:00:00.000Z',
+    });
+
+    expect(
+      useAgentChatStore.getState().threads.map((thread) => thread.id),
+    ).toEqual(['older', 'newer']);
+    expect(useAgentChatStore.getState().threads[0]?.title).toBe(
+      'Bumped after send',
+    );
+  });
+});
+
+describe('agent-chat.store updateThread list order', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  it('promotes a finalized thread from lastActivityAt without a refresh delay', () => {
+    useAgentChatStore.getState().setThreads([
+      {
+        contextVersion: 1,
+        createdAt: '2026-03-26T08:00:00.000Z',
+        id: 'stale',
+        status: AgentThreadStatus.ACTIVE,
+        title: 'Stale',
+        updatedAt: '2026-03-26T08:00:00.000Z',
+      },
+      {
+        contextVersion: 1,
+        createdAt: '2026-03-26T12:00:00.000Z',
+        id: 'fresh',
+        status: AgentThreadStatus.ACTIVE,
+        title: 'Fresh',
+        updatedAt: '2026-03-26T12:00:00.000Z',
+      },
+    ]);
+
+    useAgentChatStore.getState().updateThread('stale', {
+      lastActivityAt: '2026-03-26T13:00:00.000Z',
+      runStatus: 'completed',
+    });
+
+    const threads = useAgentChatStore.getState().threads;
+    expect(threads.map((thread) => thread.id)).toEqual(['stale', 'fresh']);
+    expect(threads[0]).toMatchObject({
+      id: 'stale',
+      lastActivityAt: '2026-03-26T13:00:00.000Z',
+      runStatus: 'completed',
+      updatedAt: '2026-03-26T13:00:00.000Z',
+    });
+  });
 });

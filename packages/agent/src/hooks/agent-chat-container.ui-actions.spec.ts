@@ -192,6 +192,21 @@ describe('handleAgentUiAction', () => {
     expect(deps.setLatestProposedPlan).toHaveBeenCalledWith(null);
   });
 
+  it('does not dispatch a delayed thread-list refresh after a UI action', async () => {
+    const refreshListener = vi.fn();
+    window.addEventListener('agent:threads:refresh', refreshListener);
+    const deps = makeDeps();
+
+    await handleAgentUiAction('start_interview', { step: 1 }, deps);
+
+    expect(refreshListener).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(refreshListener).not.toHaveBeenCalled();
+    vi.useRealTimers();
+    window.removeEventListener('agent:threads:refresh', refreshListener);
+  });
+
   it('switches the active thread when the response lands elsewhere', async () => {
     const deps = makeDeps({
       apiService: {

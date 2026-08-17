@@ -20,7 +20,6 @@ export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarCon
 export { AgentStrategyConfig } from '@genfeedai/agent/components/AgentStrategyConfig';
 export { AgentStrategyStatus } from '@genfeedai/agent/components/AgentStrategyStatus';
 export {
-  AGENT_REFRESH_CONVERSATIONS_EVENT,
   AgentThreadList,
   type AgentThreadListProps,
 } from '@genfeedai/agent/components/AgentThreadList';

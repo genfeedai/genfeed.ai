@@ -385,6 +385,34 @@ describe('AgentThreadList', () => {
     );
   });
 
+  it('refetches conversations from the header Refresh action', async () => {
+    const thread = createThread('conv-1', 'Refresh me');
+    const apiService = createApiService({
+      getThreads: vi
+        .fn()
+        .mockResolvedValueOnce([thread])
+        .mockResolvedValueOnce([
+          createThread('conv-1', 'Refresh me'),
+          createThread('conv-2', 'Appeared after refresh'),
+        ]),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Refresh me')).toBeInTheDocument();
+    expect(apiService.getThreads).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Refresh' }));
+
+    expect(
+      await screen.findByText('Appeared after refresh'),
+    ).toBeInTheDocument();
+    expect(apiService.getThreads).toHaveBeenCalledTimes(2);
+  });
+
   it('archives a thread from the row action and removes it from the list', async () => {
     const thread = createThread('conv-1', 'Needs archive');
     const apiService = createApiService({

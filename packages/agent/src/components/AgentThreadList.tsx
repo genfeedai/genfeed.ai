@@ -9,7 +9,6 @@ import { AgentThreadListErrorBanner } from './AgentThreadListErrorBanner';
 import { AgentThreadListHeaderActions } from './AgentThreadListHeaderActions';
 import { AgentThreadListRow } from './AgentThreadListRow';
 import {
-  AGENT_REFRESH_CONVERSATIONS_EVENT,
   type AgentThreadListFilter,
   groupAgentThreads,
 } from './agent-thread-list.helpers';
@@ -29,8 +28,6 @@ export type AgentThreadListProps = {
   /** When true, render the Conversations label above search. */
   showTitle?: boolean;
 };
-
-export { AGENT_REFRESH_CONVERSATIONS_EVENT };
 
 export function AgentThreadList({
   apiService,
@@ -77,6 +74,7 @@ export function AgentThreadList({
     handleThreadContextMenu,
     handleToggleView,
     handleRetryLoad,
+    handleRefresh,
   } = useAgentThreadList({ apiService, isActive, brandId, onNavigate });
   const { prefetchThread, cancelPrefetch } = useAgentThreadPrefetch({
     apiService,
@@ -179,6 +177,9 @@ export function AgentThreadList({
                 threadCount={threads.length}
                 onArchiveAll={() => {
                   handleArchiveAllThreads().catch(() => undefined);
+                }}
+                onRefresh={() => {
+                  handleRefresh().catch(() => undefined);
                 }}
                 onToggleView={handleToggleView}
               />

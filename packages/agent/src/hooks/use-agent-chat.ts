@@ -5,7 +5,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
@@ -104,29 +104,21 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
           ),
         );
 
-        if (response.threadId !== activeThreadId) {
-          setActiveThread(response.threadId);
-        }
-        const now = new Date().toISOString();
         const existingThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === response.threadId);
-        upsertThread({
+        syncAgentThreadFromTurn({
+          activeThreadId,
           brandId: response.brandId,
           contextVersion: response.contextVersion,
-          createdAt: existingThread?.createdAt ?? now,
-          id: response.threadId,
+          createdAt: existingThread?.createdAt,
           planModeEnabled:
             existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
-          status: AgentThreadStatus.ACTIVE,
+          setActiveThread,
+          threadId: response.threadId,
           title: existingThread?.title || content.slice(0, 60),
-          updatedAt: now,
+          upsertThread,
         });
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            window.dispatchEvent(new Event('agent:threads:refresh'));
-          }, 2000);
-        }
 
         setCreditsRemaining(response.creditsRemaining);
 
