@@ -26,6 +26,11 @@ const SESSION_COOKIE_NAMES = [
   '__Secure-better-auth.session_token',
 ] as const;
 
+// Dedicated production-data banner skip. Do not reuse `__playwright_test` —
+// proxy.ts treats that cookie as an auth-bypass signal.
+const PLAYWRIGHT_BANNER_COOKIE_NAME = '__genfeed_playwright_banner';
+const PLAYWRIGHT_BANNER_COOKIE_VALUE = '1';
+
 interface ISessionCredentials {
   email: string;
   name: string;
@@ -187,6 +192,16 @@ function buildStorageState(token: string) {
         sameSite: 'Lax',
         secure,
         value: token,
+      },
+      {
+        domain: url.hostname,
+        expires: -1,
+        httpOnly: false,
+        name: PLAYWRIGHT_BANNER_COOKIE_NAME,
+        path: '/',
+        sameSite: 'Lax',
+        secure,
+        value: PLAYWRIGHT_BANNER_COOKIE_VALUE,
       },
     ],
     origins: [],

@@ -104,6 +104,10 @@ const appPlaywrightWebServerEnv = {
     process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'http://localhost:3000',
   NEXT_PUBLIC_PLAYWRIGHT_TEST:
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true',
+  // Banner-only skip. Authed runs set NEXT_PUBLIC_PLAYWRIGHT_TEST=false so
+  // proxy.ts still exercises real Better Auth. Do not reuse `__playwright_test`.
+  NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP:
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP || 'true',
   NEXT_PUBLIC_WS_ENDPOINT:
     process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://genfeed.localhost:3111',
   PLAYWRIGHT_TEST: 'true',
@@ -216,6 +220,9 @@ export default defineConfig({
             use: {
               ...devices['Desktop Chrome'],
               baseURL: appBaseURL,
+              // Storage state also carries `__genfeed_playwright_banner=1`
+              // from auth.setup.ts so ProductionDataBanner skips /system/db-mode
+              // without the `__playwright_test` auth-bypass cookie.
               storageState: path.join(
                 artifactsRoot,
                 '.better-auth',

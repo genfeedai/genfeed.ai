@@ -17,8 +17,28 @@ function isLocalhost(): boolean {
   );
 }
 
+const PLAYWRIGHT_TEST_COOKIE = '__playwright_test=true';
+const PLAYWRIGHT_BANNER_COOKIE = '__genfeed_playwright_banner=1';
+
+function isEnabledPublicEnv(
+  name: 'NEXT_PUBLIC_PLAYWRIGHT_TEST' | 'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
+): boolean {
+  // Next inlines `process.env.NEXT_PUBLIC_*` member access at build time.
+  // Bracket access stays runtime-visible so Vitest/jsdom can stub the same flag.
+  const inlined =
+    name === 'NEXT_PUBLIC_PLAYWRIGHT_TEST'
+      ? process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST
+      : process.env.NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP;
+
+  return inlined === 'true' || process.env[name] === 'true';
+}
+
 function isPlaywrightRun(): boolean {
-  if (process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true') {
+  if (isEnabledPublicEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST')) {
+    return true;
+  }
+
+  if (isEnabledPublicEnv('NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP')) {
     return true;
   }
 
@@ -26,7 +46,11 @@ function isPlaywrightRun(): boolean {
     return false;
   }
 
-  return document.cookie.includes('__playwright_test=true');
+  const cookies = document.cookie;
+  return (
+    cookies.includes(PLAYWRIGHT_TEST_COOKIE) ||
+    cookies.includes(PLAYWRIGHT_BANNER_COOKIE)
+  );
 }
 
 export default function ProductionDataBanner() {
