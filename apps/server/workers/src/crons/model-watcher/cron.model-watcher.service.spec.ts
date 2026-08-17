@@ -61,6 +61,9 @@ describe('CronModelWatcherService', () => {
             createDraftModel: vi.fn(),
             detectCategory: vi.fn().mockReturnValue(ModelCategory.IMAGE),
             fetchReplicateSchema: vi.fn(),
+            syncKnownProviderCosts: vi
+              .fn()
+              .mockResolvedValue({ checked: 0, drifted: 0, updated: 0 }),
             touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -169,6 +172,26 @@ describe('CronModelWatcherService', () => {
           provider: ModelProvider.REPLICATE,
         }),
       );
+    });
+
+    it('runs the provider-cost passthrough over existing models', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({ next: null, results: [] }),
+        ok: true,
+      } as Response);
+      modelDiscoveryService.syncKnownProviderCosts.mockResolvedValueOnce({
+        checked: 2,
+        drifted: 1,
+        updated: 1,
+      });
+
+      const result = await service.discoverNewModels();
+
+      expect(modelDiscoveryService.syncKnownProviderCosts).toHaveBeenCalledWith(
+        mockExistingModels,
+      );
+      expect(result.providerCostsDrifted).toBe(1);
+      expect(result.providerCostsUpdated).toBe(1);
     });
 
     it('should ignore models already in DB', async () => {

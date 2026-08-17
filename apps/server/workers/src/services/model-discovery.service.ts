@@ -1,14 +1,18 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import type {
   IModelDiscoveryInput,
+  IProviderCostSyncSummary,
   IReplicateVersionDetail,
 } from '@workers/interfaces/model-discovery.interface';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+
+/** Tolerance for comparing stored vs known provider USD costs. */
+const PROVIDER_COST_EPSILON = 1e-9;
 
 /**
  * Schema property shape from Replicate OpenAPI schema inspection.
@@ -181,6 +185,80 @@ export class ModelDiscoveryService {
       );
       return null;
     }
+  }
+
+  /**
+   * Pass through known provider-cost changes onto existing model rows.
+   *
+   * Live billing derives credits from `providerCostUsd × applyMargin` at
+   * charge time, so a provider repricing silently erodes (or inflates) the
+   * margin until the stored cost is refreshed. This sync compares each
+   * Replicate model against the curated known-cost map, logs any drift, and
+   * updates `providerCostUsd` so the configured margin stays real.
+   */
+  async syncKnownProviderCosts(
+    models: ServerModelRecord[],
+  ): Promise<IProviderCostSyncSummary> {
+    const context = 'ModelDiscoveryService syncKnownProviderCosts';
+    const summary: IProviderCostSyncSummary = {
+      checked: 0,
+      drifted: 0,
+      updated: 0,
+    };
+
+    for (const model of models) {
+      if (typeof model.key !== 'string' || model.isDeleted) {
+        continue;
+      }
+      if (model.provider && model.provider !== ModelProvider.REPLICATE) {
+        continue;
+      }
+
+      const knownCostUsd = this.modelPricingService.getKnownReplicateCost(
+        model.key,
+      );
+      if (knownCostUsd === null) {
+        continue;
+      }
+      summary.checked++;
+
+      const storedCostUsd =
+        typeof model.providerCostUsd === 'number' &&
+        Number.isFinite(model.providerCostUsd)
+          ? model.providerCostUsd
+          : null;
+      if (
+        storedCostUsd !== null &&
+        Math.abs(storedCostUsd - knownCostUsd) < PROVIDER_COST_EPSILON
+      ) {
+        continue;
+      }
+
+      summary.drifted++;
+      this.logger.warn(`${context} provider cost drift: ${model.key}`, {
+        knownCostUsd,
+        modelKey: model.key,
+        storedCostUsd,
+      });
+
+      try {
+        await this.modelsService.patch(model.id, {
+          providerCostUsd: knownCostUsd,
+        });
+        summary.updated++;
+      } catch (error: unknown) {
+        this.logger.error(
+          `${context} failed to update provider cost: ${model.key}`,
+          { error, knownCostUsd },
+        );
+      }
+    }
+
+    if (summary.drifted > 0) {
+      this.logger.log(`${context} completed`, summary);
+    }
+
+    return summary;
   }
 
   /**
