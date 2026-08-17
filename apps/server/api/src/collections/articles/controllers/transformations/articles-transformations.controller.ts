@@ -225,7 +225,6 @@ export class ArticlesTransformationsController {
         user.brandId,
         {
           ...(dto.label && { label: `Remix: ${dto.label}` }),
-          // instructions: dto.instructions,
         },
       );
 

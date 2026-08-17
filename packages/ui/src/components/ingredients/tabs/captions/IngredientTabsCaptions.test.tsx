@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-// Mock the component - adjust import path as needed
-// import IngredientTabsCaptions from '@ui/ingredients/tabs/captions/IngredientTabsCaptions';
-
 describe('IngredientTabsCaptions', () => {
   describe('rendering', () => {
     it('renders captions list', () => {

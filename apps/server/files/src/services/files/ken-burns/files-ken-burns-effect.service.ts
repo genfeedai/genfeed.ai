@@ -93,11 +93,6 @@ export class FilesKenBurnsEffectService {
   ): Promise<string[]> {
     const slidePaths: string[] = [];
 
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'clips',
-    //   status: IngredientStatus.PROCESSING,
-    // });
-
     for (let i = 0; i < frameFiles.length; i++) {
       const file = frameFiles[i];
       const slidePath = path.join(outputPath, `frame_${i}.mp4`);
@@ -113,11 +108,6 @@ export class FilesKenBurnsEffectService {
 
       slidePaths.push(slidePath);
     }
-
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'clips',
-    //   status: 'completed',
-    // });
 
     return slidePaths;
   }
@@ -229,11 +219,6 @@ export class FilesKenBurnsEffectService {
       });
     const srtFiles = voiceFiles.map((file) => file.replace(/\.mp3$/, '.srt'));
 
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'audio',
-    //   status: IngredientStatus.PROCESSING,
-    // });
-
     this.loggerService.log('Started adding audio');
 
     try {
@@ -287,11 +272,6 @@ export class FilesKenBurnsEffectService {
       });
 
       this.loggerService.log('Finished audio processing');
-
-      // await this.websocketService.emit(websocketURL, {
-      //   step: 'audio',
-      //   status: 'completed',
-      // });
     } catch (error: unknown) {
       this.loggerService.error('Error adding audio', error);
       throw error instanceof Error ? error : new Error(String(error));

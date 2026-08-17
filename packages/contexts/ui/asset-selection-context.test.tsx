@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 // Mock the context - adjust import path as needed
-// import { AssetSelectionProvider, useAssetSelection } from '@genfeedai/contexts/asset-selection-context';
-
 describe('AssetSelectionContext', () => {
   describe('AssetSelectionProvider', () => {
     it('provides asset selection context to children', () => {

@@ -642,7 +642,6 @@ export class FacebookService {
 
       const impressions = getInsightValue('post_impressions');
       const engagedUsers = getInsightValue('post_engaged_users');
-      // const clicks = getInsightValue('post_clicks');
       const videoViews = getInsightValue('post_video_views');
 
       // Calculate engagement rate

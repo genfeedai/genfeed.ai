@@ -55,7 +55,6 @@ describe('Video Generation Integration Tests', () => {
   let elevenLabsService: ElevenLabsService;
   let awsService: AWSService;
   let ffmpegService: MockFFmpegService;
-  // let videosService: VideosService;
 
   beforeAll(async () => {
     // Start in-memory MongoDB
@@ -129,7 +128,6 @@ describe('Video Generation Integration Tests', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    // videosService = moduleFixture.get<VideosService>(VideosService);
     elevenLabsService = moduleFixture.get<ElevenLabsService>(ElevenLabsService);
     awsService = moduleFixture.get<AWSService>('AWSService');
     ffmpegService = moduleFixture.get<MockFFmpegService>('FFmpegService');
@@ -141,11 +139,6 @@ describe('Video Generation Integration Tests', () => {
 
   describe('Complete Video Generation Workflow', () => {
     it('should generate a video with AI-generated images and voiceover', async () => {
-      // Test data
-      // const userId = MongoIdFactory.createString();
-      // const organizationId = MongoIdFactory.createString();
-      // const prompt = 'Create a 30-second video about climate change';
-
       // Mock voice generation
       const mockAudioBuffer = Buffer.from('audio-data');
       (elevenLabsService.textToSpeech as vi.Mock).mockResolvedValue(
@@ -161,15 +154,6 @@ describe('Video Generation Integration Tests', () => {
       awsService.uploadToS3.mockResolvedValue(mockS3Url);
 
       // Execute video generation workflow
-      // Video data would be used in the actual implementation
-      // const videoData = {
-      //   user: userId,
-      //   organization: organizationId,
-      //   prompt,
-      //   duration: 30,
-      //   style: 'cinematic',
-      //   voiceId: 'voice-123',
-      // };
 
       // Step 1: Generate scenes from prompt
       const scenes = await generateScenesFromPrompt();
@@ -210,10 +194,6 @@ describe('Video Generation Integration Tests', () => {
     });
 
     it('should handle video generation with multiple audio tracks', async () => {
-      // const mockBackgroundMusic = Buffer.from('music-data');
-      // const mockVoiceover = Buffer.from('voice-data');
-      // const mockSoundEffects = Buffer.from('sfx-data');
-
       ffmpegService.addAudioAndTextToVideo.mockResolvedValue(
         '/tmp/final-video.mp4',
       );
@@ -228,12 +208,6 @@ describe('Video Generation Integration Tests', () => {
     });
 
     it('should handle video generation failure and rollback', async () => {
-      // const videoData = {
-      //   user: MongoIdFactory.createString(),
-      //   organization: MongoIdFactory.createString(),
-      //   prompt: 'Test video',
-      // };
-
       await expect(generateVideoWithRollback()).rejects.toThrow(
         'API limit exceeded',
       );
@@ -243,17 +217,6 @@ describe('Video Generation Integration Tests', () => {
     });
 
     it('should generate video with custom templates', async () => {
-      // const template = {
-      //   name: 'Product Demo',
-      //   scenes: [
-      //     { duration: 5, type: 'intro', transition: 'fade' },
-      //     { duration: 20, type: 'main', transition: 'slide' },
-      //     { duration: 5, type: 'outro', transition: 'fade' },
-      //   ],
-      //   music: 'upbeat',
-      //   style: 'modern',
-      // };
-
       ffmpegService.createKenBurnsVideoWithTransitions.mockResolvedValue(
         '/tmp/template-video.mp4',
       );
@@ -298,12 +261,6 @@ describe('Video Generation Integration Tests', () => {
   describe('Video Processing and Effects', () => {
     it('should apply video filters and effects', async () => {
       const videoPath = '/tmp/raw-video.mp4';
-      // const effects = {
-      //   filters: ['blur', 'vintage', 'vignette'],
-      //   colorCorrection: { brightness: 1.2, contrast: 1.1, saturation: 0.9 },
-      //   speed: 1.5,
-      //   reverse: false,
-      // };
 
       ffmpegService.applyPortraitBlur.mockResolvedValue(
         '/tmp/processed-video.mp4',

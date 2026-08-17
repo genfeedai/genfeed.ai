@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 // Mock the context - adjust import path as needed
-// import { CommandPaletteProvider, useCommandPalette } from '@genfeedai/contexts/command-palette.context';
-
 describe('CommandPaletteContext', () => {
   describe('CommandPaletteProvider', () => {
     it('provides command palette context to children', () => {

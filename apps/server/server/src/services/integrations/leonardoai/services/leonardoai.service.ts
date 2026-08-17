@@ -42,50 +42,6 @@ export class LeonardoAIService {
     return res.generations_by_pk.generated_images[0].id;
   }
 
-  // TO DO
-  // IMPLEMENT THE LEORNARDO IMAGE REFERENCE MODEL
-  // private async createUpload(referenceUrl: string) {
-  //   const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-  //   try {
-  //     this.loggerService.log(`${url} started`);
-
-  //     const res = await this.sdk.uploadInitImage({
-  //       extension: 'jpg',
-  //     });
-
-  //     if (res.status !== 200) {
-  //       this.loggerService.error(`${url} failed`, res.error);
-  //       throw res.error;
-  //     }
-
-  //     const initData = res.data.uploadInitImage;
-
-  //     const fields = JSON.parse(initData.fields);
-  //     const presignedUrl = initData.url;
-  //     const imageId = initData.id;
-
-  //     // Load file
-  //     const fileResponse = await axios.get(referenceUrl, {
-  //       responseType: 'stream',
-  //     });
-
-  //     const formData = new FormData();
-  //     Object.keys(fields).forEach((key) => formData.append(key, fields[key]));
-  //     formData.append('file', fileResponse.data);
-
-  //     const response = await axios.post(presignedUrl, formData);
-
-  //     if (response.status !== 204) {
-  //       throw new Error('Failed to upload image');
-  //     }
-
-  //     return imageId;
-  //   } catch (error: unknown) {
-  //     this.loggerService.error(`${url} failed`, error);
-  //   }
-  // }
-
   public async generateImage(
     prompt: string,
     options?: {
@@ -119,28 +75,15 @@ export class LeonardoAIService {
         this.sdk.auth(apiKeyOverride);
       }
 
-      // let imageReferenceId = null;
-      // if (options?.referenceUrl) {
-      //   imageReferenceId = await this.createUpload(options.reference);
-      // }
-
       const generationData = {
         height,
-        // alchemy: true,
         modelId: 'b24e16ff-06e3-43eb-8d33-4416c2d75876',
 
         num_images: 1,
         presetStyle: options?.style?.toUpperCase() || 'ANIME',
         prompt,
-        // photoReal: true,
-        // modelId: 'leonardo-image-v1',
-        // guidance_scale: 0.35,
         sd_version: 'v3',
-        // TO DO - NOT WORKING
-        // init_image_id: imageReferenceId,
-        // init_strength: 0.5,
         width,
-        // enhance_prompt: true,
       };
 
       const res = await this.sdk.createGeneration(generationData);

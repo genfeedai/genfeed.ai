@@ -181,9 +181,6 @@ export class MemoryMonitorService implements OnModuleDestroy {
       },
     );
 
-    // Send alert (implement your alerting mechanism)
-    // this.alertingService.sendCriticalAlert('Memory critical');
-
     // Gracefully shutdown after giving time to complete current operations
     setTimeout(() => {
       process.exit(1); // Exit with error code to trigger restart
