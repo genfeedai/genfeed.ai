@@ -26,6 +26,7 @@ import {
 } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { UsersService } from '@services/organization/users.service';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type PropsWithChildren,
@@ -95,7 +96,7 @@ function AgentWorkspaceLayoutClientContent({
 }: AgentWorkspaceLayoutClientProps) {
   const rawPathname = usePathname();
   const pathname = useMemo(
-    () => normalizeProtectedPathname(rawPathname),
+    () => normalizeProtectedPathname(rawPathname ?? ''),
     [rawPathname],
   );
   const { replace } = useRouter();
@@ -508,7 +509,7 @@ export function AgentWorkspaceLayoutClient({
   children,
 }: AgentWorkspaceLayoutClientProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <AgentWorkspaceLayoutClientContent agentApiService={agentApiService}>
         {children}
       </AgentWorkspaceLayoutClientContent>

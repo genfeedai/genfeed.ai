@@ -135,6 +135,13 @@ vi.mock('@genfeedai/constants', () => {
         ? routePath
         : `/${routePath}`;
   return {
+    APP_ROUTES: {
+      ADMIN: {
+        OVERVIEW: {
+          DASHBOARD: '/admin/overview/dashboard',
+        },
+      },
+    },
     APP_SWITCHER_FEATURE_FLAGS: {
       workspace: 'app_switcher_workspace',
       agent: 'app_switcher_agent',
@@ -319,7 +326,7 @@ describe('AppSwitcher', () => {
 
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
       'href',
-      '/admin',
+      '/admin/overview/dashboard',
     );
   });
 

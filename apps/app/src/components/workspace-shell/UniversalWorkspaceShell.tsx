@@ -1111,7 +1111,7 @@ function UniversalWorkspaceShellContent({
               <section
                 aria-label="Primary workspace canvas"
                 className={cn(
-                  'min-h-0 min-w-0 flex-1 bg-background focus:outline-none',
+                  'flex min-h-0 min-w-0 flex-1 flex-col bg-background focus:outline-none',
                   isAgentRoute || workflowSurfaceRoute.isGraphCanvas
                     ? 'overflow-hidden'
                     : 'overflow-auto',

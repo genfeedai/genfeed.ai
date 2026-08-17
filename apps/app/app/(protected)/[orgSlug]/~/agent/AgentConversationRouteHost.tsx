@@ -33,11 +33,18 @@ export function AgentConversationRouteHost({
   children,
 }: AgentConversationRouteHostProps) {
   const rawPathname = usePathname();
-  const route = useMemo(
-    () =>
-      resolveAgentConversationRoute(normalizeProtectedPathname(rawPathname)),
-    [rawPathname],
-  );
+  const route = useMemo(() => {
+    // `usePathname()` is null during the first App Router paint. Treat that
+    // as the unthreaded conversation so /agent/new keeps the shell mounted
+    // instead of rendering only a page that returns null.
+    if (!rawPathname) {
+      return { isOnboarding: false, threadId: undefined };
+    }
+
+    return resolveAgentConversationRoute(
+      normalizeProtectedPathname(rawPathname),
+    );
+  }, [rawPathname]);
 
   if (!route) {
     return children;
@@ -47,13 +54,9 @@ export function AgentConversationRouteHost({
 
   return (
     <>
-      {route.isOnboarding ? (
-        <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-          {shell}
-        </div>
-      ) : (
-        shell
-      )}
+      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+        {shell}
+      </div>
       {children}
     </>
   );
