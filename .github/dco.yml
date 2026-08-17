@@ -1,0 +1,8 @@
+# DCO app configuration (https://github.com/apps/dco).
+#
+# Every commit from an outside contributor must carry a Signed-off-by trailer —
+# that is the inbound-contribution contract in CONTRIBUTING.md → DCO sign-off and
+# ADR-DCO-NOT-CLA. Members of the genfeedai organization are the maintainers who
+# already own the licence, so their commits are exempt (#2996).
+require:
+  members: false
