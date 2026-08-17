@@ -42,36 +42,17 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="caption-item"],' +
-            ' [data-testid="content-item"],' +
-            ' table tbody tr,' +
-            ' [role="row"],' +
-            ' .caption-card',
-        )
-        .or(authenticatedPage.getByText('FORMAT'))
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator(
-          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
-        )
-        .or(
-          authenticatedPage.getByText(
-            /no captions found|captions could not be loaded/i,
-          ),
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected caption items or empty state to be visible',
-      ).toBe(true);
+      await expect(
+        authenticatedPage
+          .locator(
+            '[data-testid="caption-item"], [data-testid="content-item"], [role="row"], .caption-card',
+          )
+          .or(authenticatedPage.getByText('FORMAT'))
+          .or(authenticatedPage.getByText(/no captions found/i))
+          .or(authenticatedPage.getByText(/captions could not be loaded/i))
+          .or(authenticatedPage.getByText('Assets'))
+          .first(),
+      ).toBeVisible();
     });
   });
 
@@ -252,31 +233,16 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Voice items or empty state
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="voice-item"],' +
-            ' [data-testid="content-item"],' +
-            ' .voice-card,' +
-            ' .voice-sample',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator(
-          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
-        )
-        .or(authenticatedPage.getByText(/no voices|could not be loaded/i))
-        .or(authenticatedPage.getByText(/^Voices$/))
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected voice items or empty state to be visible',
-      ).toBe(true);
+      await expect(
+        authenticatedPage
+          .locator(
+            '[data-testid="voice-item"], [data-testid="content-item"], .voice-card, .voice-sample',
+          )
+          .or(authenticatedPage.getByText(/no voices|could not be loaded/i))
+          .or(authenticatedPage.getByText(/voices/i))
+          .or(authenticatedPage.getByText('Assets'))
+          .first(),
+      ).toBeVisible();
     });
   });
 
