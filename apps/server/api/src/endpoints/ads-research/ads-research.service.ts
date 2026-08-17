@@ -2,6 +2,7 @@ import { CreativePatternsService } from '@api/collections/creative-patterns/crea
 import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
@@ -820,7 +821,7 @@ export class AdsResearchService {
       loginCustomerId?: string;
     },
   ): Promise<AdsAdapterContext> {
-    if (!/^[0-9a-f]{24}$/i.test(params.credentialId)) {
+    if (!isEntityId(params.credentialId)) {
       throw new BadRequestException('credentialId is invalid');
     }
 

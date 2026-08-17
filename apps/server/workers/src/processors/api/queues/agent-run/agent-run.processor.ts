@@ -12,6 +12,7 @@ import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
@@ -199,7 +200,7 @@ export class AgentRunProcessor extends WorkerHost {
       const threadId = extractRunThreadId(result);
       const resultRecord = result as unknown as Record<string, unknown>;
 
-      if (threadId && /^[0-9a-f]{24}$/i.test(threadId)) {
+      if (threadId && isEntityId(threadId)) {
         await this.agentRunsService.patch(data.runId, {
           threadId,
         } as Record<string, unknown>);
