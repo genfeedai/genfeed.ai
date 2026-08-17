@@ -23,6 +23,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
+import { hasLiveReconnectStream } from '@genfeedai/agent/utils/has-live-reconnect-stream';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -232,9 +233,16 @@ export function useAgentChatStream(
       return;
     }
 
-    const currentThreadId = useAgentChatStore.getState().activeThreadId;
+    const currentState = useAgentChatStore.getState();
+    const currentThreadId = currentState.activeThreadId;
 
-    if (currentThreadId) {
+    if (
+      currentThreadId &&
+      !hasLiveReconnectStream({
+        isStreaming: currentState.stream.isStreaming,
+        pendingUiActionCount: currentState.stream.pendingUiActions.length,
+      })
+    ) {
       void restoreThreadFromSnapshot(currentThreadId).catch(() => undefined);
     }
 
