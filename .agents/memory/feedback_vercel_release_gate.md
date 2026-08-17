@@ -7,7 +7,7 @@ last_verified: 2026-08-12
 topics: [deployment, production, vercel, ci]
 ---
 
-**Rule:** Keep Vercel Git auto-deploy disabled for SaaS frontend projects. Production frontend deploys for `app.genfeed.ai`, `genfeed.ai`, and `docs.genfeed.ai` are operated by the private console repository after the production API release succeeds. There is no standalone `admin.genfeed.ai` Vercel project in the open-source monorepo; instance-admin UI should live under `apps/app` when it is exposed.
+**Rule:** Keep Vercel Git auto-deploy disabled for SaaS frontend projects. Production frontend deploys for `app.genfeed.ai`, `genfeed.ai`, `docs.genfeed.ai`, and `marketplace.genfeed.ai` are operated by the private console repository after the production API release succeeds. Each repository is deployed from an exact SHA verified against its trunk. There is no standalone `admin.genfeed.ai` Vercel project in the open-source monorepo; instance-admin UI should live under `apps/app` when it is exposed.
 
 **Why:** Merging PR #795 to `master` triggered Vercel Git integration and deployed `app.genfeed.ai` before the API release path ran. The desired workflow mirrors Gateway Ventures' Vitae flow: merge to trunk is not the same as cutting a SaaS release; frontends deploy after API/migrations/smoke checks, not before.
 
