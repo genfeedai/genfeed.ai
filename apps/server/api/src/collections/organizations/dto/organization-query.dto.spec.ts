@@ -10,12 +10,5 @@ describe('OrganizationQueryDto', () => {
       const dto = new OrganizationQueryDto();
       expect(dto).toBeInstanceOf(OrganizationQueryDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new OrganizationQueryDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

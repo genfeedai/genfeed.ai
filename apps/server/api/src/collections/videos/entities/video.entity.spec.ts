@@ -9,11 +9,4 @@ describe('VideoEntity', () => {
     const entity = new VideoEntity();
     expect(entity).toBeInstanceOf(VideoEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new VideoEntity();
-  //     // Test properties
-  //   });
-  // });
 });

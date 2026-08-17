@@ -10,12 +10,5 @@ describe('VideoEditDto', () => {
       const dto = new VideoEditDto();
       expect(dto).toBeInstanceOf(VideoEditDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new VideoEditDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

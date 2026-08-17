@@ -10,12 +10,5 @@ describe('CreateRoleDto', () => {
       const dto = new CreateRoleDto();
       expect(dto).toBeInstanceOf(CreateRoleDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateRoleDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

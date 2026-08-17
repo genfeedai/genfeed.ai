@@ -10,12 +10,5 @@ describe('UpdatePresetDto', () => {
       const dto = new UpdatePresetDto();
       expect(dto).toBeInstanceOf(UpdatePresetDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UpdatePresetDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

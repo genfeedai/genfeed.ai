@@ -10,12 +10,5 @@ describe('BookmarksQueryDto', () => {
       const dto = new BookmarksQueryDto();
       expect(dto).toBeInstanceOf(BookmarksQueryDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new BookmarksQueryDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

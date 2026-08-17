@@ -9,11 +9,4 @@ describe('AnalyticsOverviewEntity', () => {
     const entity = new AnalyticsOverviewEntity({});
     expect(entity).toBeInstanceOf(AnalyticsOverviewEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new AnalyticsOverviewEntity({});
-  //     // Test properties
-  //   });
-  // });
 });

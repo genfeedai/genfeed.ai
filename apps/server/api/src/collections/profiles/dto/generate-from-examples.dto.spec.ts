@@ -10,12 +10,5 @@ describe('GenerateFromExamplesDto', () => {
       const dto = new GenerateFromExamplesDto();
       expect(dto).toBeInstanceOf(GenerateFromExamplesDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new GenerateFromExamplesDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

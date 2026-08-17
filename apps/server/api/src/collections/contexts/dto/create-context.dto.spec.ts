@@ -10,12 +10,5 @@ describe('CreateContextDto', () => {
       const dto = new CreateContextDto();
       expect(dto).toBeInstanceOf(CreateContextDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateContextDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

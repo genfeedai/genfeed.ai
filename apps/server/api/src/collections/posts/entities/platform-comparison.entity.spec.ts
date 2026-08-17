@@ -9,11 +9,4 @@ describe('PlatformComparisonEntity', () => {
     const entity = new PlatformComparisonEntity([]);
     expect(entity).toBeInstanceOf(PlatformComparisonEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new PlatformComparisonEntity([]);
-  //     // Test properties
-  //   });
-  // });
 });

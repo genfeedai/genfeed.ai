@@ -10,12 +10,5 @@ describe('UpdateArticleDto', () => {
       const dto = new UpdateArticleDto();
       expect(dto).toBeInstanceOf(UpdateArticleDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UpdateArticleDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

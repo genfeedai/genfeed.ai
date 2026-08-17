@@ -9,11 +9,4 @@ describe('BookmarkEntity', () => {
     const entity = new BookmarkEntity();
     expect(entity).toBeInstanceOf(BookmarkEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new BookmarkEntity();
-  //     // Test properties
-  //   });
-  // });
 });

@@ -36,12 +36,5 @@ describe('CreateSettingDto', () => {
       expect(localeErrors).toHaveLength(1);
       expect(localeErrors[0]?.constraints).toHaveProperty('isIn');
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateSettingDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

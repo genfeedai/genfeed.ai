@@ -9,11 +9,4 @@ describe('TrainingEntity', () => {
     const entity = new TrainingEntity();
     expect(entity).toBeInstanceOf(TrainingEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new TrainingEntity();
-  //     // Test properties
-  //   });
-  // });
 });

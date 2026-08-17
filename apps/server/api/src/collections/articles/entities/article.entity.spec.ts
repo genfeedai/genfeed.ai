@@ -9,11 +9,4 @@ describe('ArticleEntity', () => {
     const entity = new ArticleEntity();
     expect(entity).toBeInstanceOf(ArticleEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new ArticleEntity();
-  //     // Test properties
-  //   });
-  // });
 });

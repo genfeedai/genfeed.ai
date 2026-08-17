@@ -9,11 +9,4 @@ describe('ApiKeyEntity', () => {
     const entity = new ApiKeyEntity();
     expect(entity).toBeInstanceOf(ApiKeyEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new ApiKeyEntity();
-  //     // Test properties
-  //   });
-  // });
 });

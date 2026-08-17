@@ -10,12 +10,5 @@ describe('AnalyticsQueryDto', () => {
       const dto = new AnalyticsQueryDto();
       expect(dto).toBeInstanceOf(AnalyticsQueryDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new AnalyticsQueryDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

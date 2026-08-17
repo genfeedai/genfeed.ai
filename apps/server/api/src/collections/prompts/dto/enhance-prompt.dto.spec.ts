@@ -10,12 +10,5 @@ describe('EnhancePromptDto', () => {
       const dto = new EnhancePromptDto();
       expect(dto).toBeInstanceOf(EnhancePromptDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new EnhancePromptDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });
