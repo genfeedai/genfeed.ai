@@ -26,6 +26,7 @@ import type {
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
   applyAgentReplyStyle,
@@ -204,9 +205,11 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: isSelfHostedDeployment()
-          ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
-          : ONBOARDING_SYSTEM_PROMPT,
+        systemPrompt: composeAgentGuardrails(
+          isSelfHostedDeployment()
+            ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
+            : ONBOARDING_SYSTEM_PROMPT,
+        ),
       };
     }
 
@@ -217,7 +220,7 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: BRAND_INTERVIEW_SYSTEM_PROMPT,
+        systemPrompt: composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT),
       };
     }
 
@@ -236,7 +239,7 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: prompt,
+        systemPrompt: composeAgentGuardrails(prompt),
       };
     }
 
@@ -254,7 +257,7 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: prompt,
+        systemPrompt: composeAgentGuardrails(prompt),
       };
     }
     const basePrompt = buildAgentSystemPrompt({
@@ -276,7 +279,7 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt,
+        systemPrompt: composeAgentGuardrails(systemPrompt),
       };
     }
 
@@ -287,7 +290,9 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: applyAgentReplyStyle(basePrompt, replyStyle),
+        systemPrompt: composeAgentGuardrails(
+          applyAgentReplyStyle(basePrompt, replyStyle),
+        ),
       };
     }
 
@@ -298,7 +303,7 @@ export class AgentOrchestratorContextService {
       preparedScope,
       resolvedSkills,
       systemPrompt: agentTypeConfig?.systemPromptSuffix
-        ? basePrompt
+        ? composeAgentGuardrails(basePrompt)
         : undefined,
     };
   }
@@ -310,7 +315,8 @@ export class AgentOrchestratorContextService {
     compressedThreadContext?: string,
   ): OpenRouterMessage[] {
     const systemPrompt = (
-      systemPromptOverride || AGENT_ORCHESTRATOR_SYSTEM_PROMPT
+      systemPromptOverride ||
+      composeAgentGuardrails(AGENT_ORCHESTRATOR_SYSTEM_PROMPT)
     ).replace('{{date}}', new Date().toISOString().split('T')[0]);
 
     const history: OpenRouterMessage[] = [
