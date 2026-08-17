@@ -183,8 +183,10 @@ the issue.
 
 ## Pull-request contract
 
-1. Fork the repository and create a short-lived branch from the latest
-   `master`.
+1. Check nobody is already on it: search
+   [open pull requests](https://github.com/genfeedai/genfeed.ai/pulls) and the
+   issue thread for a claim. Then fork the repository and create a short-lived
+   branch from the latest `master`.
 2. Make **one focused change**. Aim for **≤ 400 changed lines** excluding
    lockfiles and generated files; split larger work into stacked PRs. This is a
    soft limit — say why when you exceed it.
@@ -252,11 +254,12 @@ git commit -s -m "fix(api): return 401 for revoked keys"
 
 This adds a `Signed-off-by: Your Name <you@example.com>` trailer certifying
 that you wrote the change or have the right to submit it under the repository
-licence. Use a real name and a reachable email. The DCO check on the PR fails
-if any commit lacks the trailer; fix it with `git rebase --signoff` (or
-`git commit --amend -s` for the last commit) and force-push your branch.
-Members of the `genfeedai` organization are exempt (`.github/dco.yml`): the
-maintainer already holds the licence, so only inbound contributions certify.
+licence. Use a real name and a reachable email. For outside contributors the
+DCO check on the PR fails if any commit lacks the trailer; fix it with
+`git rebase --signoff` (or `git commit --amend -s` for the last commit) and
+force-push your branch. Members of the `genfeedai` organization are exempt
+(`.github/dco.yml`): the maintainer already holds the licence, so only inbound
+contributions certify.
 
 ## Focused verification
 
