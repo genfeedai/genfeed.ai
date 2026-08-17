@@ -65,11 +65,13 @@ SHALL …`. Required on every issue opened in this repository (bug, feature, tas
 _Avoid_: acceptance criteria (unqualified), AC, user story.
 
 **Conventional PR title**: A pull request title in Conventional Commits form
-(`type(scope): summary`). Because merges are squash-only, the title becomes the commit subject.
+(`type(scope): summary`; allowed types `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`,
+`ci`, `perf`). Because merges are squash-only, the title becomes the commit subject.
 _Avoid_: commit message (contributors do not control the squash commit body).
 
 **DCO sign-off**: The `Signed-off-by:` trailer (`git commit -s`) certifying the Developer
-Certificate of Origin. Required on every commit in a contributor PR; checked by the DCO app.
+Certificate of Origin. Required on every commit in an outside contributor's PR; checked by the DCO
+app. Members of the `genfeedai` organization are exempt.
 There is no CLA. Contributor PRs may not modify `ee/`.
 _Avoid_: CLA, contributor agreement.
 

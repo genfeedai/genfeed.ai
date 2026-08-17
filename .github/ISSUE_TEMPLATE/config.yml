@@ -11,4 +11,4 @@ contact_links:
     about: Never file a vulnerability as a public issue. Use private reporting; acknowledged within 72 hours.
   - name: Hosted product (app.genfeed.ai) account or billing
     url: https://genfeed.ai
-    about: Hosted-account questions are handled by Genfeed support, outside this repository.
+    about: Hosted-account questions are handled by Genfeed support — email support@genfeed.ai, outside this repository.
