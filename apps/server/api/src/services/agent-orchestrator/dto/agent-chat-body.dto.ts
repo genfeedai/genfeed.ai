@@ -13,6 +13,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 /**
@@ -41,7 +42,11 @@ import {
 export class AgentChatBodyDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'The user message content for this turn' })
+  @MaxLength(32000)
+  @ApiProperty({
+    description: 'The user message content for this turn',
+    maxLength: 32000,
+  })
   content!: string;
 
   @IsString()

@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
 import {
   AgentThreadSerializer,
@@ -186,6 +187,7 @@ export class AgentThreadsController {
   }
 
   @Post()
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Create a new agent thread' })
   async createThread(
     @Req() req: Request,
@@ -281,6 +283,7 @@ export class AgentThreadsController {
   }
 
   @Post(':threadId/messages')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Add a message to a thread' })
   async addMessage(
     @Req() req: Request,

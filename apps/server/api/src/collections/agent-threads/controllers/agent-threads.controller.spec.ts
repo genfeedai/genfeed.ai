@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -95,6 +96,39 @@ describe('AgentThreadsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should have a user-scoped rate limit on createThread', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      AgentThreadsController.prototype.createThread,
+    );
+    expect(metadata).toEqual({
+      limit: 30,
+      scope: 'user',
+      windowMs: 60_000,
+    });
+  });
+
+  it('should have a user-scoped rate limit on addMessage', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      AgentThreadsController.prototype.addMessage,
+    );
+    expect(metadata).toEqual({
+      limit: 30,
+      scope: 'user',
+      windowMs: 60_000,
+    });
+  });
+
+  it('does not rate-limit listThreads', () => {
+    expect(
+      Reflect.getMetadata(
+        RATE_LIMIT_KEY,
+        AgentThreadsController.prototype.listThreads,
+      ),
+    ).toBeUndefined();
   });
 
   describe('listThreads', () => {
