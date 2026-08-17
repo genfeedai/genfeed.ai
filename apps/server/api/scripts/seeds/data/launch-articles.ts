@@ -15,11 +15,7 @@
  */
 
 import { ArticleCategory } from '@genfeedai/enums';
-// Imported by source path, as every other `cdnAsset` caller does. The
-// `@genfeedai/helpers` barrel resolves to the package's prebuilt `dist`, so a
-// seed run would depend on that build being current — it is not, on a checkout
-// where the package has not been rebuilt since the helper was added.
-import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
+import { articleArtwork } from './article-artwork';
 
 export type SeedArticle = {
   category: ArticleCategory;
@@ -33,19 +29,6 @@ export type SeedArticle = {
   slug: string;
   summary: string;
 };
-
-/**
- * Every launch article ships a generated header image. The path is derived from
- * the slug rather than stored per article so the seed and the upload that puts
- * the file on the CDN cannot drift apart.
- *
- * Artwork lives on `cdn.genfeed.ai` — one stable host in every environment,
- * because social crawlers reading the OG card need a publicly reachable URL and
- * never a per-env or localhost one.
- */
-function articleArtwork(slug: string): string {
-  return cdnAsset(`/assets/cards/articles/${slug}.webp`);
-}
 
 const CLEAR_FRAMEWORK = `
 <p>Most bad AI output is not a model problem. It is a brief problem. The model
@@ -1409,4 +1392,4 @@ export const LAUNCH_ARTICLES: readonly SeedArticle[] = [
   },
 ];
 
-export { articleArtwork, ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT };
+export { ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT };
