@@ -416,7 +416,9 @@ export class BatchGenerationReviewService {
    */
   private recordHarnessReviewFeedback(
     items: BatchItemFull[],
-    decision: typeof ReviewDecision.REJECTED | typeof ReviewDecision.REQUEST_CHANGES,
+    decision:
+      | typeof ReviewDecision.REJECTED
+      | typeof ReviewDecision.REQUEST_CHANGES,
     organizationId: string,
     brandId: string | undefined,
     reason?: string,

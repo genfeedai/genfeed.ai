@@ -63,9 +63,7 @@ describe('HarnessReviewFeedbackService', () => {
       harnessProfilesService.update.mock.calls[0];
     expect(profileId).toBe('profile-1');
     expect(organizationId).toBe('org-1');
-    expect(dto.examples.avoid).toEqual([
-      'This post says something off-brand.',
-    ]);
+    expect(dto.examples.avoid).toEqual(['This post says something off-brand.']);
     expect(dto.avoidFeedback).toHaveLength(1);
     expect(dto.avoidFeedback[0]).toMatchObject({
       content: 'This post says something off-brand.',
@@ -202,7 +200,9 @@ describe('HarnessReviewFeedbackService', () => {
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
-    expect(dto.avoidFeedback[0].content.length).toBeLessThan(longContent.length);
+    expect(dto.avoidFeedback[0].content.length).toBeLessThan(
+      longContent.length,
+    );
     expect(dto.avoidFeedback[0].content.endsWith('…')).toBe(true);
   });
 
@@ -341,7 +341,9 @@ describe('HarnessReviewFeedbackService', () => {
     const profile = createProfile();
     moduleRefProfilesService.getActiveForBrand.mockResolvedValue(profile);
     moduleRefProfilesService.update.mockResolvedValue(profile);
-    const moduleRef = { get: vi.fn().mockReturnValue(moduleRefProfilesService) };
+    const moduleRef = {
+      get: vi.fn().mockReturnValue(moduleRefProfilesService),
+    };
 
     const withModuleRef = new HarnessReviewFeedbackService(
       logger as unknown as LoggerService,

@@ -54,7 +54,9 @@ export class HarnessReviewFeedbackService {
     private readonly moduleRef?: ModuleRef,
   ) {}
 
-  async recordReviewDecision(params: RecordReviewDecisionParams): Promise<void> {
+  async recordReviewDecision(
+    params: RecordReviewDecisionParams,
+  ): Promise<void> {
     try {
       await this.applyDecision(params);
     } catch (error) {
@@ -71,7 +73,9 @@ export class HarnessReviewFeedbackService {
     }
   }
 
-  private async applyDecision(params: RecordReviewDecisionParams): Promise<void> {
+  private async applyDecision(
+    params: RecordReviewDecisionParams,
+  ): Promise<void> {
     if (
       params.decision !== ReviewDecision.REJECTED &&
       params.decision !== ReviewDecision.REQUEST_CHANGES

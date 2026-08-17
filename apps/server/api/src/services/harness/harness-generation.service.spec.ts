@@ -118,19 +118,18 @@ describe('HarnessGenerationService#resolveBrief', () => {
   });
 
   it('merges caller-supplied additionalSources ahead of retrieved brand content memory', async () => {
-    const { service, contentHarnessService, contextsService } =
-      createService({
-        contextsService: {
-          retrieveBrandContentMemory: vi.fn().mockResolvedValue([
-            {
-              content: 'A top-performing winner post',
-              id: 'memory-1',
-              relevance: 0.9,
-              source: 'library',
-            },
-          ]),
-        },
-      });
+    const { service, contentHarnessService, contextsService } = createService({
+      contextsService: {
+        retrieveBrandContentMemory: vi.fn().mockResolvedValue([
+          {
+            content: 'A top-performing winner post',
+            id: 'memory-1',
+            relevance: 0.9,
+            source: 'library',
+          },
+        ]),
+      },
+    });
 
     await service.resolveBrief({
       additionalSources: [
