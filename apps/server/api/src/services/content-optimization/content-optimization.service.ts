@@ -4,6 +4,7 @@ import {
   OptimizationCycleService,
 } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -201,11 +202,10 @@ export class ContentOptimizationService {
           brandId,
           5,
         ),
-        this.performanceSummaryService.getTopPerformers(
+        this.performanceSummaryService.getWorstPerformers(
           organizationId,
           brandId,
           5,
-          // worst = lowest engagement — reuse with reversed expectation
         ),
         this.performanceSummaryService.generatePerformanceContext(
           organizationId,
@@ -597,16 +597,26 @@ export class ContentOptimizationService {
 
   private buildOptimizationSystemPrompt(
     topPerformers: PerformanceContentItem[],
-    _worstPerformers: PerformanceContentItem[],
+    worstPerformers: PerformanceContentItem[],
     performanceContext: string,
   ): string {
     const topExamples = topPerformers
       .slice(0, 3)
       .map(
-        (p) =>
-          `- "${(p.description || p.title).substring(0, 100)}" (engagement: ${p.engagementRate.toFixed(2)}%)`,
+        (item) =>
+          `- "${this.formatPerformerLabel(item)}" (engagement: ${item.engagementRate.toFixed(2)}%)`,
       )
       .join('\n');
+
+    const antiPatterns = worstPerformers.slice(0, 3).map((item) => {
+      const label = this.formatPerformerLabel(item);
+      return `- Avoid repeating underperforming angle "${label}" (${item.engagementRate.toFixed(2)}% engagement).`;
+    });
+
+    const antiPatternSection =
+      antiPatterns.length > 0
+        ? `\n## Historical Anti-Patterns\n${antiPatterns.join('\n')}\n`
+        : '\n';
 
     return `You are a content optimization AI. Analyze content performance data and improve prompts.
 
@@ -614,9 +624,14 @@ Performance context: ${performanceContext}
 
 Top performing content:
 ${topExamples || 'No data yet.'}
-
+${antiPatternSection}
 Your job: take the user's content prompt and optimize it based on what has worked historically.
 Return ONLY valid JSON.`;
+  }
+
+  private formatPerformerLabel(item: PerformanceContentItem): string {
+    const rawLabel = item.title || item.description || item.postId;
+    return SecurityUtil.sanitizePromptInput(rawLabel, 140);
   }
 
   private parseOptimizationResponse(

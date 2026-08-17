@@ -1,5 +1,8 @@
 import type { ServerPrisma } from '@server/server.dependencies';
-import { PerformanceSummaryService } from './performance-summary.service';
+import {
+  DEFAULT_WORST_PERFORMER_MIN_VIEWS,
+  PerformanceSummaryService,
+} from './performance-summary.service';
 
 function makeAnalytics(overrides: Record<string, unknown> = {}) {
   return {
@@ -140,6 +143,125 @@ describe('PerformanceSummaryService', () => {
         expect.objectContaining({
           take: 2,
           where: { id: { in: ['post-1', 'post-2'] } },
+        }),
+      );
+    });
+  });
+
+  describe('getWorstPerformers', () => {
+    // DEFAULT_WORST_PERFORMER_MIN_VIEWS is 10: drop zero-reach / unpublished
+    // rows without requiring a large audience before a post can count as an
+    // anti-pattern.
+    const topRow = makeAnalytics({
+      engagementRate: 12.5,
+      postId: 'top-post',
+      totalViews: 8000,
+    });
+    const worstReachedRow = makeAnalytics({
+      engagementRate: 0.4,
+      postId: 'worst-reached',
+      totalViews: 200,
+    });
+    const zeroReachRow = makeAnalytics({
+      engagementRate: 0.01,
+      postId: 'zero-reach',
+      totalViews: 0,
+    });
+
+    function stubMixedAnalytics() {
+      analyticsFindMany.mockImplementation(
+        (query?: {
+          orderBy?: { engagementRate?: 'asc' | 'desc' };
+          take?: number;
+          where?: { totalViews?: { gte?: number } };
+        }) => {
+          const minViews = query?.where?.totalViews?.gte;
+          const rows = [topRow, worstReachedRow, zeroReachRow].filter(
+            (row) =>
+              minViews === undefined || Number(row.totalViews) >= minViews,
+          );
+          const direction = query?.orderBy?.engagementRate === 'asc' ? 1 : -1;
+          const sorted = [...rows].sort(
+            (left, right) =>
+              (Number(left.engagementRate) - Number(right.engagementRate)) *
+              direction,
+          );
+          return Promise.resolve(sorted.slice(0, query?.take ?? sorted.length));
+        },
+      );
+      postFindMany.mockImplementation(
+        (query?: { where?: { id?: { in?: string[] } } }) => {
+          const ids = new Set(query?.where?.id?.in ?? []);
+          return Promise.resolve(
+            [
+              makePost({ id: 'top-post', label: 'Winning hook' }),
+              makePost({ id: 'worst-reached', label: 'Generic AI tips' }),
+              makePost({ id: 'zero-reach', label: 'Unpublished draft' }),
+            ].filter((post) => ids.has(post.id)),
+          );
+        },
+      );
+    }
+
+    it('scopes the query to the organization, brand and date range', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 10, {
+        endDate: '2026-07-31',
+        startDate: '2026-07-01',
+      });
+
+      const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
+      expect(where.organizationId).toBe('org-1');
+      expect(where.brandId).toBe('brand-1');
+      expect(where.date.gte).toBeInstanceOf(Date);
+      expect(where.date.lte).toBeInstanceOf(Date);
+    });
+
+    it('ranks by lowest engagement and applies DEFAULT_WORST_PERFORMER_MIN_VIEWS so zero-reach posts cannot dominate', async () => {
+      stubMixedAnalytics();
+
+      const worst = await service.getWorstPerformers('org-1', 'brand-1', 5);
+
+      expect(DEFAULT_WORST_PERFORMER_MIN_VIEWS).toBe(10);
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { engagementRate: 'asc' },
+          take: 5,
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            totalViews: { gte: DEFAULT_WORST_PERFORMER_MIN_VIEWS },
+          }),
+        }),
+      );
+      expect(worst.map((item) => item.postId)).toEqual([
+        'worst-reached',
+        'top-post',
+      ]);
+      expect(worst.map((item) => item.postId)).not.toContain('zero-reach');
+    });
+
+    it('returns a different first item than getTopPerformers on a mixed fixture', async () => {
+      stubMixedAnalytics();
+
+      const [top] = await service.getTopPerformers('org-1', 'brand-1', 5);
+      const [worst] = await service.getWorstPerformers('org-1', 'brand-1', 5);
+
+      expect(top.postId).toBe('top-post');
+      expect(worst.postId).toBe('worst-reached');
+      expect(top.postId).not.toBe(worst.postId);
+      expect(top.engagementRate).toBeGreaterThan(worst.engagementRate);
+    });
+
+    it('honours a caller-supplied minViews override', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 3, {
+        minViews: 250,
+      });
+
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            totalViews: { gte: 250 },
+          }),
         }),
       );
     });
