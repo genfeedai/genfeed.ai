@@ -240,7 +240,7 @@ export function useAgentChatStream(
       currentThreadId &&
       !hasLiveReconnectStream({
         isStreaming: currentState.stream.isStreaming,
-        pendingUiActionCount: currentState.stream.pendingUiActions.length,
+        pendingUiActionCount: currentState.stream.pendingUiActions?.length ?? 0,
       })
     ) {
       void restoreThreadFromSnapshot(currentThreadId).catch(() => undefined);

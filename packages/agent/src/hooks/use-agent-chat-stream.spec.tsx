@@ -106,6 +106,7 @@ describe('useAgentChatStream', () => {
       stream: {
         activeToolCalls: [],
         isStreaming: false,
+        pendingUiActions: [],
         streamingContent: '',
         streamingReasoning: '',
       },
@@ -848,6 +849,84 @@ describe('useAgentChatStream', () => {
     expect(thread?.lastAssistantPreview).toBe('Recovered after reconnect');
     expect(thread?.runStatus).toBe('idle');
     expect(thread?.attentionState).toBeNull();
+  });
+
+  it('rehydrates after reconnect when stream has no pendingUiActions field', async () => {
+    socketConnectionState = 'reconnecting';
+    socketConnected = false;
+
+    useAgentChatStore.setState({
+      activeRunId: 'run-legacy-stream',
+      activeRunStatus: 'running',
+      activeThreadId: 'thread-legacy-stream',
+      messages: [],
+      stream: {
+        activeToolCalls: [],
+        isStreaming: false,
+        streamingContent: '',
+        streamingReasoning: '',
+      },
+      threads: [
+        {
+          createdAt: '2026-03-09T10:00:00.000Z',
+          id: 'thread-legacy-stream',
+          runStatus: 'running',
+          status: 'active' as never,
+          title: 'Legacy stream',
+          updatedAt: '2026-03-09T10:00:00.000Z',
+        },
+      ],
+      workEvents: [],
+    });
+
+    const apiService = createApiService({
+      getMessages: vi.fn().mockResolvedValue([
+        {
+          content: 'Recovered legacy stream',
+          createdAt: '2026-03-09T10:00:08.000Z',
+          id: 'assistant-legacy',
+          role: 'assistant',
+          threadId: 'thread-legacy-stream',
+        },
+      ]),
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        activeRun: null,
+        lastAssistantMessage: {
+          content: 'Recovered legacy stream',
+          createdAt: '2026-03-09T10:00:08.000Z',
+          messageId: 'assistant-legacy',
+        },
+        lastSequence: 1,
+        latestProposedPlan: null,
+        latestUiBlocks: null,
+        memorySummaryRefs: [],
+        pendingApprovals: [],
+        pendingInputRequests: [],
+        profileSnapshot: null,
+        sessionBinding: null,
+        source: 'agent',
+        threadId: 'thread-legacy-stream',
+        threadStatus: 'active',
+        timeline: [],
+        title: 'Legacy stream',
+      }),
+    });
+
+    const { rerender } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    socketConnectionState = 'connected';
+    socketConnected = true;
+    rerender();
+
+    await waitFor(() => {
+      expect(apiService.getThreadSnapshot).toHaveBeenCalledWith(
+        'thread-legacy-stream',
+      );
+    });
   });
 
   it('does not restore a snapshot over a live local stream on reconnect', async () => {
