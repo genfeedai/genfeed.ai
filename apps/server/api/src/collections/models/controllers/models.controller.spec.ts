@@ -415,6 +415,8 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
+      expect(moduleRefMock.ensureEnabledModelIds).not.toHaveBeenCalled();
+      expect(moduleRefMock.findOne).not.toHaveBeenCalled();
       expect(queryArg).toMatchObject({
         where: {
           OR: [
@@ -423,21 +425,17 @@ describe('ModelsController', () => {
           ],
         },
       });
-
-      expect(queryArg).toMatchObject({
-        where: {
-          id: { in: [enabledModelId] },
-        },
-      });
+      expect(
+        (queryArg as { where: Record<string, unknown> }).where.id,
+      ).toBeUndefined();
     });
 
     it('seeds an empty allowlist before filtering by organizationId', async () => {
-      const queryOrganizationId = testId('org', 3);
       const seededModelId = testId('model', 3);
       const emptySettings = {
         enabledModelIds: [],
         id: testId('setting'),
-        organizationId: queryOrganizationId,
+        organizationId: mockOrgId,
       };
       const settingsService = {
         ensureEnabledModelIds: vi.fn().mockResolvedValue({
@@ -456,7 +454,7 @@ describe('ModelsController', () => {
       modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
 
       await controller.findAll(mockRequest, mockRegularUser, {
-        organizationId: queryOrganizationId,
+        organizationId: mockOrgId,
       });
 
       expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
@@ -470,11 +468,10 @@ describe('ModelsController', () => {
     });
 
     it('keeps enable-none when seed still returns an empty allowlist', async () => {
-      const queryOrganizationId = testId('org', 4);
       const emptySettings = {
         enabledModelIds: [],
         id: testId('setting'),
-        organizationId: queryOrganizationId,
+        organizationId: mockOrgId,
       };
       const settingsService = {
         ensureEnabledModelIds: vi.fn().mockResolvedValue(emptySettings),
@@ -490,7 +487,7 @@ describe('ModelsController', () => {
       modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
 
       await controller.findAll(mockRequest, mockRegularUser, {
-        organizationId: queryOrganizationId,
+        organizationId: mockOrgId,
       });
 
       expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
@@ -501,6 +498,29 @@ describe('ModelsController', () => {
           id: { in: [] },
         },
       });
+    });
+
+    it('does not seed a foreign organizationId from a non-admin caller', async () => {
+      const foreignOrgId = testId('org', 5);
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn(),
+        findOne: vi.fn(),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: foreignOrgId,
+      });
+
+      expect(settingsService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
     });
   });
 
