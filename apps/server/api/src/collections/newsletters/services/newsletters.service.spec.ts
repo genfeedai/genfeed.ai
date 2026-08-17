@@ -215,6 +215,21 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     );
   });
 
+  it('findOneScoped looks up by organization and id, not the JWT brand', async () => {
+    await service.findOneScoped('newsletter-1', {
+      ...ctx,
+      brandId: 'other-brand',
+    });
+
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'newsletter-1',
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      },
+    });
+  });
+
   it('updateScoped writes the archived status', async () => {
     await service.updateScoped('newsletter-1', { status: 'archived' }, ctx);
 
