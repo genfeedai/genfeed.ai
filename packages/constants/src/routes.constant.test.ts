@@ -53,12 +53,9 @@ describe('routes.constant', () => {
     expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
   });
 
-  it('keeps the retired Automate strategies URL as an Autopilot alias', () => {
-    expect(APP_ROUTES.AUTOMATE.STRATEGIES).toBe('/automate/strategies');
+  it('does not keep a /automate/strategies route', () => {
+    expect('STRATEGIES' in APP_ROUTES.AUTOMATE).toBe(false);
     expect(APP_ROUTES.AUTOMATE.AUTOPILOT).toBe('/automate/autopilot');
-    expect(APP_ROUTES.AUTOMATE.STRATEGIES).not.toBe(
-      APP_ROUTES.AUTOMATE.AUTOPILOT,
-    );
   });
 
   it('keeps the retired cron-jobs lab path compatibility-only', () => {

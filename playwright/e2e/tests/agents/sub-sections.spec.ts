@@ -14,8 +14,7 @@ import { brandPath } from '../../utils/app-chrome';
  *
  * Covers: /automate/campaigns (Programs), /automate/campaigns/new,
  *         /messages/outreach, /messages/outreach/new, /automate/runs,
- *         /automate/autopilot (legacy /automate/strategies redirects here),
- *         /workflows, /workflows/new, /workflows/templates
+ *         /automate/autopilot, /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -86,11 +85,11 @@ test.describe('Agents — Sub-Sections', () => {
     ).toBeVisible();
   });
 
-  test('retired strategies URL folds into Autopilot', async ({
+  test('autopilot page is the strategies desk', async ({
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.STRATEGIES), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.AUTOPILOT), {
       waitUntil: 'domcontentloaded',
     });
 

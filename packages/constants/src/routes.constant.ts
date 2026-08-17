@@ -123,12 +123,6 @@ export const APP_ROUTES = {
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
     /**
-     * @deprecated Dead URL. Agent strategies are the generic automation
-     * policies; the shipped desk is AUTOMATE.AUTOPILOT. This alias permanently
-     * redirects there.
-     */
-    STRATEGIES: '/automate/strategies',
-    /**
      * Agent Programs (budget/quota wrappers around strategies).
      * UI label is "Programs"; path kept for deep-link stability.
      * Marketer multi-platform content campaigns belong in Publish (P1).
