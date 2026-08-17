@@ -849,4 +849,109 @@ describe('useAgentChatStream', () => {
     expect(thread?.runStatus).toBe('idle');
     expect(thread?.attentionState).toBeNull();
   });
+
+  it('does not restore a snapshot over a live local stream on reconnect', async () => {
+    socketConnectionState = 'reconnecting';
+    socketConnected = false;
+
+    const startedAt = '2026-08-17T10:00:00.000Z';
+    const liveMessages = [
+      {
+        content: 'Generate a cover',
+        createdAt: startedAt,
+        id: 'user-live',
+        role: 'user' as const,
+        threadId: 'thread-live',
+      },
+    ];
+    const liveWorkEvents = [
+      {
+        createdAt: startedAt,
+        event: 'tool_started' as const,
+        id: 'work-live',
+        label: 'Generating image',
+        runId: 'run-live',
+        status: 'running' as const,
+        threadId: 'thread-live',
+      },
+    ];
+    const liveGenerationCard = {
+      id: 'generation-live',
+      title: 'Generate image',
+      type: 'generation_action_card' as const,
+    };
+
+    useAgentChatStore.setState({
+      activeRunId: 'run-live',
+      activeRunStatus: 'running',
+      activeThreadId: 'thread-live',
+      messages: liveMessages,
+      stream: {
+        activeToolCalls: [],
+        isStreaming: true,
+        pendingUiActions: [liveGenerationCard],
+        streamingContent: 'Working on the cover',
+        streamingReasoning: '',
+      },
+      threads: [
+        {
+          createdAt: startedAt,
+          id: 'thread-live',
+          runStatus: 'running',
+          status: 'active' as never,
+          title: 'Live generate',
+          updatedAt: startedAt,
+        },
+      ],
+      workEvents: liveWorkEvents,
+    });
+
+    const apiService = createApiService({
+      getMessages: vi.fn().mockResolvedValue([]),
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        activeRun: null,
+        lastAssistantMessage: null,
+        lastSequence: 0,
+        latestProposedPlan: null,
+        latestUiBlocks: null,
+        memorySummaryRefs: [],
+        pendingApprovals: [],
+        pendingInputRequests: [],
+        profileSnapshot: null,
+        sessionBinding: null,
+        source: 'agent',
+        threadId: 'thread-live',
+        threadStatus: 'active',
+        timeline: [],
+        title: 'Stale snapshot',
+      }),
+    });
+
+    const { rerender } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    socketConnectionState = 'connected';
+    socketConnected = true;
+    rerender();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+
+    const state = useAgentChatStore.getState();
+
+    expect(state.messages).toEqual(liveMessages);
+    expect(state.workEvents).toEqual(liveWorkEvents);
+    expect(state.stream.isStreaming).toBe(true);
+    expect(state.stream.streamingContent).toBe('Working on the cover');
+    expect(state.stream.pendingUiActions).toEqual([liveGenerationCard]);
+    expect(state.activeRunId).toBe('run-live');
+    expect(state.activeRunStatus).toBe('running');
+  });
 });
