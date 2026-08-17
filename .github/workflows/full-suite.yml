@@ -23,6 +23,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Least-privilege default token; jobs that need more request it explicitly.
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: CI Gate

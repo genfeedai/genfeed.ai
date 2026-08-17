@@ -47,6 +47,10 @@ concurrency:
   group: package-publish
   cancel-in-progress: false
 
+# Least-privilege default token; jobs that need more request it explicitly.
+permissions:
+  contents: read
+
 jobs:
   plan:
     name: Plan npm release from registry drift
