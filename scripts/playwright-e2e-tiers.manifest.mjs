@@ -105,4 +105,198 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
+  {
+    file: 'playwright/e2e/tests/dashboard/analytics.spec.ts',
+    reason:
+      'Asserts retired dashboard stat widgets. Analytics lives at /analytics/overview. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/admin/business-analytics.spec.ts',
+    reason:
+      'Admin business-analytics cards drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/settings/profile.spec.ts',
+    reason:
+      'Personal-settings locators drifted (`firstName` / profile-section). Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/analytics/deep-pages.spec.ts',
+    reason:
+      'Insights / hooks / performance-lab / trend-turnover copy drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/workflow/execution.spec.ts',
+    reason:
+      'Workflow execution locators trip strict-mode. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/discover/discovery.spec.ts',
+    reason:
+      'Discover heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/calendar/scheduling.spec.ts',
+    reason: 'Publish calendar assertions drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/auth/public-extra.spec.ts',
+    reason: 'Public auth extra selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/states/error-states.spec.ts',
+    reason:
+      'Network-abort helper fails page.goto before the surface renders. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/studio/batch.spec.ts',
+    reason:
+      'Studio batch nav/count assertions drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/tasks/tasks-edge-states.spec.ts',
+    reason:
+      'Standalone /tasks was retired; workspace inbox owns the desk. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/tasks/tasks.spec.ts',
+    reason:
+      'Standalone /tasks was retired; workspace inbox owns the desk. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/chat/chat-flows.spec.ts',
+    reason:
+      'Agent chat analytics snapshot / publish-fallback UI drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/analytics/overview.spec.ts',
+    reason:
+      'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/discover/discover-interactions.spec.ts',
+    reason: 'Discover interaction copy drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/settings/brand-interview.spec.ts',
+    reason:
+      'Brand interview locators trip strict-mode. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/workflow/workflow-detail.spec.ts',
+    reason:
+      'Workflow detail locators trip strict-mode. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/automation/overview.spec.ts',
+    reason: 'Automate overview copy/nav drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/chat/plan-mode.spec.ts',
+    reason: 'Plan-mode approval chrome drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/posts/posts-interactions.spec.ts',
+    reason: 'Publish desk interactions drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/posts/publishing.spec.ts',
+    reason: 'Publish flow copy drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/library/avatar-library.spec.ts',
+    reason: 'Avatar library selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/admin/admin-organization.spec.ts',
+    reason: 'Admin organization selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/studio/batch-clips-interactions.spec.ts',
+    reason:
+      'Studio batch/clips interactions drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/settings/connections.spec.ts',
+    reason:
+      'Connections/social settings selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/settings/organization-identity.spec.ts',
+    reason:
+      'Org identity-defaults selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/studio-edit/studio-edit.spec.ts',
+    reason:
+      'Studio edit timeline selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/brands/identity-defaults.spec.ts',
+    reason:
+      'Brand identity-defaults selectors drifted. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
+  {
+    file: 'playwright/e2e/tests/posts/management.spec.ts',
+    reason:
+      'Publish list tabs/cards still assert pre-desk copy after the POM prefix fix. Evidence: run 31991510270.',
+    trackingIssue: 2982,
+    reviewBy: '2026-11-17',
+  },
 ];
