@@ -12,6 +12,11 @@ import {
 } from '../app/seo';
 
 const contentDirectory = fileURLToPath(new URL('../content', import.meta.url));
+const apiReferencePath = path.join(
+  contentDirectory,
+  'api-reference',
+  'reference.mdx',
+);
 
 function findMdxFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -85,6 +90,13 @@ describe('docs SEO metadata', () => {
     expect(body).toContain('User-agent: *');
     expect(body).toContain('Allow: /');
     expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
+  });
+
+  it('lets the interactive API reference own the only rendered H1', () => {
+    const source = fs.readFileSync(apiReferencePath, 'utf8');
+
+    expect(source).toContain('<SwaggerUI />');
+    expect(source.match(/^# /gm) ?? []).toHaveLength(0);
   });
 
   it('keeps every docs route description unique and within watchdog bounds', () => {
