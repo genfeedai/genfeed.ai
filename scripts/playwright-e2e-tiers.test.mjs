@@ -235,10 +235,10 @@ test('collects nested Playwright JSON report paths', () => {
   writeFileSync(shardOne, '{}\n');
   writeFileSync(shardTwo, '{}\n');
 
-  assert.deepEqual(collectPlaywrightJsonReportPaths(path.join(rootDir, 'shards')), [
-    shardOne,
-    shardTwo,
-  ]);
+  assert.deepEqual(
+    collectPlaywrightJsonReportPaths(path.join(rootDir, 'shards')),
+    [shardOne, shardTwo],
+  );
 });
 
 test('ignores inventory JSON that is not a Playwright report', () => {
