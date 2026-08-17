@@ -147,6 +147,10 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
 
     const input: TrainedModelInput = {
       aspect_ratio: calculatedRatio || getDefaultAspectRatio(model),
+      // Trained/LoRA personal-likeness models trip Replicate's NSFW checker
+      // (false positives on the customer's own face). This bypass is intentional.
+      // Standard replicate-image/video builders keep the checker on.
+      // Product stance: ADR-PROMPT-MODERATION-STANCE (#3012).
       disable_safety_checker: true,
       num_outputs: params.outputs ?? 1,
       output_format: params.outputFormat ?? 'jpg',
