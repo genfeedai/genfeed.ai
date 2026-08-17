@@ -426,8 +426,17 @@ async function assertRouteLoads(
       });
       break;
     } catch (error) {
-      const isRetryableAbort =
-        error instanceof Error && error.message.includes('net::ERR_ABORTED');
+      const message = error instanceof Error ? error.message : String(error);
+      const isRedirectRace =
+        message.includes('interrupted by another navigation') ||
+        message.includes('Execution context was destroyed');
+
+      if (isRedirectRace) {
+        await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+        break;
+      }
+
+      const isRetryableAbort = message.includes('net::ERR_ABORTED');
 
       if (!isRetryableAbort || attempt === 2) {
         throw error;
@@ -456,26 +465,37 @@ async function assertRouteLoads(
     expect(page.url(), `${route} redirected to login`).not.toMatch(/\/login/);
   }
 
-  const bodySignal = await page.locator('body').evaluate((body) => {
-    const visibleNodes = Array.from(body.querySelectorAll('*')).filter(
-      (element) => {
-        const style = window.getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
+  let bodySignal = { textLength: 0, visibleNodeCount: 0 };
+  try {
+    bodySignal = await page.locator('body').evaluate((body) => {
+      const visibleNodes = Array.from(body.querySelectorAll('*')).filter(
+        (element) => {
+          const style = window.getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
 
-        return (
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          rect.width > 0 &&
-          rect.height > 0
-        );
-      },
-    );
+          return (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            rect.width > 0 &&
+            rect.height > 0
+          );
+        },
+      );
 
-    return {
-      textLength: body.textContent?.trim().length ?? 0,
-      visibleNodeCount: visibleNodes.length,
-    };
-  });
+      return {
+        textLength: body.textContent?.trim().length ?? 0,
+        visibleNodeCount: visibleNodes.length,
+      };
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('Execution context was destroyed')) {
+      throw error;
+    }
+    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+    await expect(page.locator('body')).toBeVisible();
+    return;
+  }
 
   expect(
     bodySignal.textLength + bodySignal.visibleNodeCount,

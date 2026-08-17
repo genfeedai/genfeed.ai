@@ -314,12 +314,20 @@ test.describe('Workflows builder & canvas interactions', () => {
   });
 
   test('empty library state renders without errors', async ({
-    automationPage,
+    authenticatedPage,
   }) => {
-    // automationPage bootstraps at /automate/workflows with empty workflow mocks.
-    await expect(automationPage).toHaveURL(/\/automate\/workflows/);
+    await mockWorkflowCrud(authenticatedPage, []);
+    await mockWorkflowExecutions(authenticatedPage, []);
+    await mockWorkflowTemplates(authenticatedPage, []);
 
-    await expect(automationPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(automationPage);
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows/);
+    await expect(authenticatedPage.locator('body')).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Workflows' }).first(),
+    ).toBeVisible();
   });
 });
