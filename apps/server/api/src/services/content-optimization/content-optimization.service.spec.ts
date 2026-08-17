@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('openai', () => ({ default: vi.fn() }));
 
+import type { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 
 describe('ContentOptimizationService', () => {
@@ -30,6 +31,9 @@ describe('ContentOptimizationService', () => {
     getPreferences: ReturnType<typeof vi.fn>;
     mergeWinnerSignals: ReturnType<typeof vi.fn>;
     savePreferences: ReturnType<typeof vi.fn>;
+  };
+  let mockVariationGroupScoring: {
+    scoreVariationGroups: ReturnType<typeof vi.fn>;
   };
 
   const orgId = 'org-123';
@@ -200,6 +204,10 @@ describe('ContentOptimizationService', () => {
       savePreferences: vi.fn().mockResolvedValue({ id: 'pref-1' }),
     };
 
+    mockVariationGroupScoring = {
+      scoreVariationGroups: vi.fn().mockResolvedValue({ groups: [] }),
+    };
+
     service = new ContentOptimizationService(
       mockLogger,
       mockPerformanceSummary,
@@ -207,6 +215,7 @@ describe('ContentOptimizationService', () => {
       mockOpenAiLlm,
       mockBrandMemory,
       mockTrendPreferences,
+      mockVariationGroupScoring as unknown as VariationGroupScoringService,
     );
   });
 
@@ -278,7 +287,11 @@ describe('ContentOptimizationService', () => {
     });
 
     it('should fetch distinct worst performers instead of duplicating the top-performers call', async () => {
-      await service.optimizePrompt(orgId, brandId, 'Create a post about fitness');
+      await service.optimizePrompt(
+        orgId,
+        brandId,
+        'Create a post about fitness',
+      );
 
       expect(mockPerformanceSummary.getWorstPerformers).toHaveBeenCalledWith(
         orgId,
@@ -288,14 +301,16 @@ describe('ContentOptimizationService', () => {
     });
 
     it('should build a sanitized historical anti-patterns section from worst performers', async () => {
-      await service.optimizePrompt(orgId, brandId, 'Create a post about fitness');
+      await service.optimizePrompt(
+        orgId,
+        brandId,
+        'Create a post about fitness',
+      );
 
       const systemMessage =
         mockOpenAiLlm.chatCompletion.mock.calls[0][0].messages[0].content;
       expect(systemMessage).toContain('Historical Anti-Patterns');
-      expect(systemMessage).toContain(
-        'Generic listicle nobody engaged with',
-      );
+      expect(systemMessage).toContain('Generic listicle nobody engaged with');
     });
 
     it('should handle malformed LLM response gracefully', async () => {
@@ -364,6 +379,77 @@ describe('ContentOptimizationService', () => {
       expect(result.general.length).toBeGreaterThan(0);
       expect(result.general[0].priority).toBe('high');
       expect(result.general[0].category).toBe('hook');
+    });
+
+    describe('variation-group winner requeue (issue #3025)', () => {
+      const winningGroup = {
+        groupId: 'group-1',
+        scores: [],
+        winner: {
+          avgEngagementRate: 8.2,
+          avgPerformanceScore: 90,
+          format: 'reel',
+          hook: 'Stop scrolling if you sell online',
+          platform: 'instagram',
+          postId: 'post-1',
+          rank: 1,
+          score: 71.9,
+          totalRecords: 2,
+          totalViews: 800,
+          variantId: 'variant-1',
+        },
+      };
+
+      it('scores variation groups for the org/brand being analyzed', async () => {
+        await service.getRecommendations(orgId, brandId);
+
+        expect(
+          mockVariationGroupScoring.scoreVariationGroups,
+        ).toHaveBeenCalledWith({ brandId, organizationId: orgId });
+      });
+
+      it('offers each group winner to requeueWinnerIntoTrends when opt-in is enabled', async () => {
+        mockVariationGroupScoring.scoreVariationGroups.mockResolvedValue({
+          groups: [winningGroup],
+        });
+        mockTrendPreferences.getPreferences.mockResolvedValue({
+          autoRequeueWinners: true,
+        });
+
+        await service.getRecommendations(orgId, brandId);
+
+        expect(mockTrendPreferences.mergeWinnerSignals).toHaveBeenCalledTimes(
+          1,
+        );
+        const [calledOrg, calledBrand, signals] =
+          mockTrendPreferences.mergeWinnerSignals.mock.calls[0];
+        expect(calledOrg).toBe(orgId);
+        expect(calledBrand).toBe(brandId);
+        expect(signals.platforms).toEqual(['instagram']);
+        expect(signals.keywords).toContain('reel');
+      });
+
+      it('respects the autoRequeueWinners gate — no trend update when opt-in is disabled', async () => {
+        mockVariationGroupScoring.scoreVariationGroups.mockResolvedValue({
+          groups: [winningGroup],
+        });
+        mockTrendPreferences.getPreferences.mockResolvedValue(null);
+
+        await service.getRecommendations(orgId, brandId);
+
+        expect(mockTrendPreferences.mergeWinnerSignals).not.toHaveBeenCalled();
+      });
+
+      it('does not break recommendation generation when scoring fails', async () => {
+        mockVariationGroupScoring.scoreVariationGroups.mockRejectedValue(
+          new Error('scoring exploded'),
+        );
+
+        const result = await service.getRecommendations(orgId, brandId);
+
+        expect(result.general).toBeInstanceOf(Array);
+        expect(mockLogger.warn).toHaveBeenCalled();
+      });
     });
   });
 

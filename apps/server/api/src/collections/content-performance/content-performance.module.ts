@@ -5,11 +5,14 @@ import { PerformanceSummaryController } from '@api/collections/content-performan
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { OptimizationCycleService } from '@api/collections/content-performance/services/optimization-cycle.service';
+import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
+import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
+import { CacheModule } from '@api/services/cache/cache.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
@@ -36,6 +39,8 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     AnalyticsSyncService,
     EmailDigestService,
     BrandMemorySyncService,
+    WinnerPromotionWorkflowService,
+    VariationGroupScoringService,
   ],
   imports: [
     forwardRef(() => BrandMemoryModule),
@@ -46,6 +51,7 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     forwardRef(() => QueuesModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => UsersModule),
+    forwardRef(() => CacheModule),
   ],
   providers: [
     ContentPerformanceService,
@@ -55,6 +61,8 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     AnalyticsSyncService,
     EmailDigestService,
     BrandMemorySyncService,
+    WinnerPromotionWorkflowService,
+    VariationGroupScoringService,
     {
       provide: SERVER_TOKENS.brandMemorySync,
       useExisting: BrandMemorySyncService,

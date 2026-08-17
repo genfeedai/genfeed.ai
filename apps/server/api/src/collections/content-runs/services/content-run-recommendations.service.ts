@@ -1,4 +1,8 @@
 import {
+  computeVariantPerformanceScore,
+  rankByScoreDesc,
+} from '@api/collections/content-performance/utils/variant-performance-scoring.util';
+import {
   hydrateContentRun,
   isContentRunRecord,
   toContentRunJsonValue,
@@ -157,34 +161,31 @@ export class ContentRunRecommendationsService {
       groups.set(variantId, current);
     }
 
-    return [...groups.values()]
-      .map((group) => {
-        const avgEngagementRate =
-          group.totalEngagementRate / Math.max(group.totalRecords, 1);
-        const avgPerformanceScore =
-          group.totalPerformanceScore / Math.max(group.totalRecords, 1);
-        const engagementScore = Math.min(avgEngagementRate * 10, 100);
-        const volumeScore = Math.min(Math.log10(group.totalViews + 1) * 10, 30);
+    const scored = [...groups.values()].map((group) => {
+      const avgEngagementRate =
+        group.totalEngagementRate / Math.max(group.totalRecords, 1);
+      const avgPerformanceScore =
+        group.totalPerformanceScore / Math.max(group.totalRecords, 1);
 
-        return {
+      return {
+        avgEngagementRate,
+        avgPerformanceScore,
+        contentType: group.contentType,
+        format: group.format,
+        platform: group.platform,
+        score: computeVariantPerformanceScore({
           avgEngagementRate,
           avgPerformanceScore,
-          contentType: group.contentType,
-          format: group.format,
-          platform: group.platform,
-          rank: 0,
-          score:
-            avgPerformanceScore * 0.6 +
-            engagementScore * 0.3 +
-            volumeScore * 0.1,
-          totalEngagements: group.totalEngagements,
-          totalRecords: group.totalRecords,
           totalViews: group.totalViews,
-          variantId: group.variantId,
-        };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map((score, index) => ({ ...score, rank: index + 1 }));
+        }),
+        totalEngagements: group.totalEngagements,
+        totalRecords: group.totalRecords,
+        totalViews: group.totalViews,
+        variantId: group.variantId,
+      };
+    });
+
+    return rankByScoreDesc(scored);
   }
 
   private buildAnalyticsSummary(
