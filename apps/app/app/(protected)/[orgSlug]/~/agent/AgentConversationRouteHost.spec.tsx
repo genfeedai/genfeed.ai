@@ -103,6 +103,13 @@ describe('AgentConversationRouteHost', () => {
     expect(shellRenderSpy).toHaveBeenLastCalledWith(undefined);
   });
 
+  it('keeps the conversation shell mounted when pathname is unresolved', () => {
+    const { getByTestId } = renderHost(null as unknown as string);
+
+    expect(getByTestId('conversation-shell')).toHaveTextContent('none');
+    expect(getByTestId('route-page')).toBeInTheDocument();
+  });
+
   it('renders only the route page outside conversation routes', () => {
     const { queryByTestId, getByTestId } = renderHost(
       '/test-org/~/agent/journey',

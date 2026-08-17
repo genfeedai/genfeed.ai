@@ -189,9 +189,12 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
   {
     group: 'Administration',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.ORGANIZATION,
+    href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
     label: 'Organizations',
-    matchPaths: [APP_ROUTES.ADMIN.ORGANIZATION],
+    matchPaths: [
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+      APP_ROUTES.ADMIN.ORGANIZATION,
+    ],
     outline: Users,
     solid: Users,
   },

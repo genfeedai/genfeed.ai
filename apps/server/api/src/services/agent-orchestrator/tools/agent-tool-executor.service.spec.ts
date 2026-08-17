@@ -5500,6 +5500,14 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+    expect(voicesService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+        }),
+      }),
+      {},
+    );
     expect(result.nextActions?.[0]).toMatchObject({
       id: 'voice-clone-1700000000000',
       recommendedVoiceId: testId('voicebrand'),

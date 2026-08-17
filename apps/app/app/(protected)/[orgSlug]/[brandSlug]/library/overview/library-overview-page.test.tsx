@@ -2,6 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LibraryOverviewPage from './library-overview-page';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/demo/FUDNEWS${path}`,
+  }),
+}));
+
 vi.mock('./library-overview-credit-notice', () => ({
   default: () => <div data-testid="library-credit-notice" />,
 }));
@@ -25,15 +31,15 @@ describe('LibraryOverviewPage', () => {
 
     expect(screen.getByRole('link', { name: 'Videos' })).toHaveAttribute(
       'href',
-      '/library/videos',
+      '/demo/FUDNEWS/library/videos',
     );
     expect(screen.getByRole('link', { name: 'Images' })).toHaveAttribute(
       'href',
-      '/library/images',
+      '/demo/FUDNEWS/library/images',
     );
     expect(screen.getByRole('link', { name: 'Voices' })).toHaveAttribute(
       'href',
-      '/library/voices',
+      '/demo/FUDNEWS/library/voices',
     );
   });
 

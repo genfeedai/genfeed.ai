@@ -128,7 +128,13 @@ export function isFocusedOnboardingPath(normalizedPathname: string): boolean {
   );
 }
 
-export function normalizeProtectedPathname(rawPathname: string): string {
+export function normalizeProtectedPathname(
+  rawPathname: string | null | undefined,
+): string {
+  if (!rawPathname) {
+    return '';
+  }
+
   const parts = rawPathname.split('/').filter(Boolean);
 
   // Platform / product roots keep their full path. Without this,

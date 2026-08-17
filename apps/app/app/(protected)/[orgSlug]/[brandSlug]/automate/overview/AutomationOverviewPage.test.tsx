@@ -89,6 +89,20 @@ describe('AutomationOverviewPage', () => {
     expect(screen.getByText('Programs')).toBeInTheDocument();
   });
 
+  it('scopes Open Runs to the current brand so it cannot hijack to another workspace', () => {
+    render(<AutomationOverviewPage />);
+
+    const runLinks = screen.getAllByRole('link', { name: /open runs/i });
+
+    expect(runLinks.length).toBeGreaterThan(0);
+    for (const runLink of runLinks) {
+      expect(runLink).toHaveAttribute(
+        'href',
+        '/acme-org/acme-creator/automate/runs',
+      );
+    }
+  });
+
   it('links to the content-runs index so the detail page is reachable', () => {
     render(<AutomationOverviewPage />);
 

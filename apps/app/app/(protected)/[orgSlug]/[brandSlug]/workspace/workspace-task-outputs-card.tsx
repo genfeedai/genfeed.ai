@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -36,6 +37,8 @@ export function WorkspaceTaskOutputsCard({
   taskId,
   outputType,
 }: WorkspaceTaskOutputsCardProps) {
+  const { href } = useOrgUrl();
+
   return (
     <Card
       label="Generated outputs"
@@ -52,7 +55,7 @@ export function WorkspaceTaskOutputsCard({
           size={ButtonSize.SM}
           className="font-semibold"
         >
-          <Link href={APP_ROUTES.LIBRARY.ROOT}>Open library</Link>
+          <Link href={href(APP_ROUTES.LIBRARY.OVERVIEW)}>Open library</Link>
         </Button>
       </div>
 

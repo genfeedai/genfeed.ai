@@ -16,10 +16,10 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
-
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
@@ -300,7 +300,7 @@ export default function PublishLayoutContent(
   props: Parameters<typeof PublishLayoutContentContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <PublishLayoutContentContent {...props} />
     </Suspense>
   );

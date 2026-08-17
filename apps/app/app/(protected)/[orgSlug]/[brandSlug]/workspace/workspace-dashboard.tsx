@@ -11,6 +11,7 @@ import type { IAgentRun, SurfaceSummaryItem } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { AgentRunStats } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
@@ -90,6 +91,7 @@ const STATUS_DOT_CLASSES: Record<AgentExecutionStatus, string> = {
 /* ------------------------------------------------------------------ */
 
 function AgentRunCard({ run }: { run: IAgentRun }) {
+  const { href } = useOrgUrl();
   const statusLabel =
     run.status === AgentExecutionStatus.RUNNING
       ? 'Live now'
@@ -137,7 +139,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`${APP_ROUTES.AUTOMATE.RUNS}/${run.id}`}
+            href={href(`${APP_ROUTES.AUTOMATE.RUNS}/${run.id}`)}
             aria-label={`Open ${run.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -169,6 +171,7 @@ export function DashboardAgentCards({
   isLoading?: boolean;
   runs: IAgentRun[];
 }) {
+  const { href } = useOrgUrl();
   const displayRuns = useMemo(() => {
     const liveRuns = activeRuns.slice(0, 3);
     if (liveRuns.length >= 3) return liveRuns;
@@ -200,7 +203,7 @@ export function DashboardAgentCards({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={APP_ROUTES.AUTOMATE.RUNS}>View All</Link>
+            <Link href={href(APP_ROUTES.AUTOMATE.RUNS)}>View All</Link>
           </Button>
         )}
       </div>
@@ -314,6 +317,7 @@ export function DashboardRecentActivity({
   isLoading?: boolean;
   workspaceTasks: Task[];
 }) {
+  const { href } = useOrgUrl();
   const sortedTasks = useMemo(
     () =>
       workspaceTasks
@@ -340,7 +344,9 @@ export function DashboardRecentActivity({
           size={ButtonSize.XS}
           className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
         >
-          <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>View All &rarr;</Link>
+          <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
+            View All &rarr;
+          </Link>
         </Button>
       }
     >
@@ -421,6 +427,7 @@ export function DashboardRecentTasks({
   isLoading?: boolean;
   workspaceTasks: Task[];
 }) {
+  const { href } = useOrgUrl();
   const sortedTasks = useMemo(
     () =>
       workspaceTasks
@@ -447,7 +454,9 @@ export function DashboardRecentTasks({
           size={ButtonSize.XS}
           className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
         >
-          <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>View All &rarr;</Link>
+          <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
+            View All &rarr;
+          </Link>
         </Button>
       }
     >
@@ -605,10 +614,13 @@ export function WorkspaceDashboard({
   reviewInbox,
   runs,
   stats,
-  trendsHref = APP_ROUTES.DISCOVER.OVERVIEW,
+  trendsHref: providedTrendsHref,
   trendItems = [],
   workspaceTasks,
 }: DashboardProps) {
+  const { href } = useOrgUrl();
+  const scopedTrendsHref =
+    providedTrendsHref ?? href(APP_ROUTES.DISCOVER.OVERVIEW);
   // A brand with nothing in it used to render six empty bands stacked on top of
   // each other. Collapse the whole thing into one guided block instead.
   if (
@@ -623,7 +635,7 @@ export function WorkspaceDashboard({
       workspaceTasks,
     })
   ) {
-    return <WorkspaceDashboardFirstRun trendsHref={trendsHref} />;
+    return <WorkspaceDashboardFirstRun trendsHref={scopedTrendsHref} />;
   }
 
   // Overview lives inside the conversation canvas, so it stays a centered,
@@ -658,7 +670,7 @@ export function WorkspaceDashboard({
         <OverviewTrendsPanel
           trends={trendItems}
           isLoading={isTrendsLoading}
-          viewAllHref={trendsHref}
+          viewAllHref={scopedTrendsHref}
         />
       </DashboardGrid>
     </div>

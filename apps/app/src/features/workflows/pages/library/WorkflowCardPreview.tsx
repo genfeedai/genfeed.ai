@@ -1,15 +1,11 @@
 'use client';
 
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
-const DEFAULT_WORKFLOW_CARD_CDN =
-  process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.genfeed.ai';
-
-import { metadata } from '@helpers/media/metadata/metadata.helper';
-
-const DEFAULT_WORKFLOW_CARD_IMAGE = `${DEFAULT_WORKFLOW_CARD_CDN}${metadata.cards.default}`;
+const DEFAULT_WORKFLOW_CARD_IMAGE = metadata.cards.default;
 
 function isVideoUrl(url: string): boolean {
   const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];

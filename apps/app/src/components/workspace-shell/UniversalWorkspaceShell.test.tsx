@@ -948,21 +948,48 @@ describe('UniversalWorkspaceShell', () => {
     fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Conversation' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      ),
+      expect(
+        screen
+          .getAllByRole('tab', { name: 'Conversation' })
+          .every((tab) => tab.getAttribute('aria-selected') === 'true'),
+      ).toBe(true),
     );
 
     // And back, so the context listener is covered by the same transition.
     fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      ),
+      expect(
+        screen
+          .getAllByRole('tab', { name: 'Context' })
+          .every((tab) => tab.getAttribute('aria-selected') === 'true'),
+      ).toBe(true),
     );
+  });
+
+  it('opens the mobile inspector drawer on the composer conversation event', async () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.queryByText(
+        'Context and conversation for the active workspace surface.',
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+
+    expect(
+      await screen.findByText(
+        'Context and conversation for the active workspace surface.',
+      ),
+    ).toBeVisible();
   });
 
   it('leads the inspector rail with Context, then Conversation', () => {

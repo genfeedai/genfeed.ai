@@ -2,7 +2,7 @@
 
 import { ButtonVariant, Timeframe } from '@genfeedai/enums';
 import type { DateRange as AnalyticsDateRange } from '@genfeedai/interfaces/utils/date.interface';
-import { format, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
@@ -44,6 +44,15 @@ function getStartDate(
   return subDays(yesterday, daysMap[preset] - 1);
 }
 
+function formatUtcChipDate(date: Date, withYear: boolean): string {
+  return date.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+    ...(withYear ? { year: 'numeric' } : {}),
+  });
+}
+
 function formatSelectedDateRange(
   dateRange: CalendarDateRange | undefined,
 ): string {
@@ -52,10 +61,10 @@ function formatSelectedDateRange(
   }
 
   if (!dateRange.to) {
-    return format(dateRange.from, 'MMM d, yyyy');
+    return formatUtcChipDate(dateRange.from, true);
   }
 
-  return `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`;
+  return `${formatUtcChipDate(dateRange.from, false)} - ${formatUtcChipDate(dateRange.to, true)}`;
 }
 
 function getPresetForRange(

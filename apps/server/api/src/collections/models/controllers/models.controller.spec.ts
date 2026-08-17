@@ -6,9 +6,11 @@ import { ModelsController } from '@api/collections/models/controllers/models.con
 import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -44,12 +46,6 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
     },
   };
 });
-
-type RequestWithContext = {
-  context?: IRequestContext;
-  originalUrl: string;
-  query: Record<string, unknown>;
-};
 
 vi.mock('@helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -116,6 +112,19 @@ describe('ModelsController', () => {
     originalUrl: '/api/models',
     query: {},
   } as unknown as RequestWithContext;
+
+  const emptyPaginateResult = {
+    docs: [],
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10,
+    nextPage: null,
+    page: 1,
+    pagingCounter: 1,
+    prevPage: null,
+    totalDocs: 0,
+    totalPages: 1,
+  } as AggregatePaginateResult<ModelDocument>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -383,12 +392,18 @@ describe('ModelsController', () => {
       const scopedOrganizationId = mockOrgId;
       const foreignOrgId = testId('org', 2);
       const enabledModelId = testId('model');
+      const organizationSettings = {
+        enabledModelIds: [enabledModelId],
+        organizationId: foreignOrgId,
+      };
 
       const moduleRefMock = {
-        findOne: vi.fn().mockResolvedValue({
-          enabledModelIds: [enabledModelId],
-          organizationId: foreignOrgId,
-        }),
+        ensureEnabledModelIds: vi
+          .fn()
+          .mockImplementation((settings: typeof organizationSettings) =>
+            Promise.resolve(settings),
+          ),
+        findOne: vi.fn().mockResolvedValue(organizationSettings),
       };
 
       // Temporarily override getOrganizationSettingsService
@@ -398,17 +413,18 @@ describe('ModelsController', () => {
         'getOrganizationSettingsService',
       ).mockReturnValue(moduleRefMock);
 
-      const mockModels = { docs: [], totalDocs: 0 };
-      modelsService.findAll.mockResolvedValue(mockModels);
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
-      const query: ModelsQueryDto = {
+      const query = {
         organizationId: foreignOrgId.toString(),
-      };
+      } as ModelsQueryDto;
 
       await controller.findAll(mockRequest, mockRegularUser, query);
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
+      expect(moduleRefMock.ensureEnabledModelIds).not.toHaveBeenCalled();
+      expect(moduleRefMock.findOne).not.toHaveBeenCalled();
       expect(queryArg).toMatchObject({
         where: {
           OR: [
@@ -417,12 +433,102 @@ describe('ModelsController', () => {
           ],
         },
       });
+      expect(
+        (queryArg as { where: Record<string, unknown> }).where.id,
+      ).toBeUndefined();
+    });
 
-      expect(queryArg).toMatchObject({
+    it('seeds an empty allowlist before filtering by organizationId', async () => {
+      const seededModelId = testId('model', 3);
+      const emptySettings = {
+        enabledModelIds: [],
+        id: testId('setting'),
+        organizationId: mockOrgId,
+      };
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn().mockResolvedValue({
+          ...emptySettings,
+          enabledModelIds: [seededModelId],
+        }),
+        findOne: vi.fn().mockResolvedValue(emptySettings),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: mockOrgId,
+      } as ModelsQueryDto);
+
+      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
+        emptySettings,
+      );
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
         where: {
-          id: { in: [enabledModelId] },
+          id: { in: [seededModelId] },
         },
       });
+    });
+
+    it('keeps enable-none when seed still returns an empty allowlist', async () => {
+      const emptySettings = {
+        enabledModelIds: [],
+        id: testId('setting'),
+        organizationId: mockOrgId,
+      };
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn().mockResolvedValue(emptySettings),
+        findOne: vi.fn().mockResolvedValue(emptySettings),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: mockOrgId,
+      } as ModelsQueryDto);
+
+      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
+        emptySettings,
+      );
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: {
+          id: { in: [] },
+        },
+      });
+    });
+
+    it('does not seed a foreign organizationId from a non-admin caller', async () => {
+      const foreignOrgId = testId('org', 5);
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn(),
+        findOne: vi.fn(),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: foreignOrgId,
+      } as ModelsQueryDto);
+
+      expect(settingsService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
     });
   });
 

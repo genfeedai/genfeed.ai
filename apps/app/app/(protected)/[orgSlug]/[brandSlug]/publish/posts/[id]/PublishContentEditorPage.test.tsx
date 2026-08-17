@@ -6,6 +6,8 @@ import PublishContentEditorPage from './PublishContentEditorPage';
 
 const mocks = vi.hoisted(() => ({
   articleFindOne: vi.fn(),
+  authedServiceError: null as Error | null,
+  isReady: true,
   newsletterFindOne: vi.fn(),
   postFindOne: vi.fn(),
 }));
@@ -64,9 +66,25 @@ vi.mock('../../../edit/artifact-editor-shell', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ isReady: mocks.isReady }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
-    return async () => factory('token');
+    return async () => {
+      if (mocks.authedServiceError) {
+        throw mocks.authedServiceError;
+      }
+      return factory('token');
+    };
   },
 }));
 
@@ -94,9 +112,11 @@ vi.mock('@tanstack/react-query', async () => {
   const React = await import('react');
   return {
     useQuery: ({
+      enabled = true,
       queryFn,
       queryKey,
     }: {
+      enabled?: boolean;
       queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown>;
       queryKey: unknown[];
     }) => {
@@ -107,6 +127,10 @@ vi.mock('@tanstack/react-query', async () => {
       }>({ data: undefined, isError: false, isLoading: true });
 
       React.useEffect(() => {
+        if (!enabled) {
+          setState({ data: undefined, isError: false, isLoading: true });
+          return;
+        }
         let cancelled = false;
         const controller = new AbortController();
         void queryFn({ signal: controller.signal })
@@ -125,7 +149,7 @@ vi.mock('@tanstack/react-query', async () => {
           controller.abort();
         };
         // queryKey[1] is contentId
-      }, [queryKey[1]]);
+      }, [enabled, queryKey[1]]);
 
       return state;
     },
@@ -135,6 +159,8 @@ vi.mock('@tanstack/react-query', async () => {
 describe('PublishContentEditorPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authedServiceError = null;
+    mocks.isReady = true;
     mocks.postFindOne.mockRejectedValue(new Error('miss'));
     mocks.articleFindOne.mockRejectedValue(new Error('miss'));
     mocks.newsletterFindOne.mockRejectedValue(new Error('miss'));
@@ -186,5 +212,32 @@ describe('PublishContentEditorPage', () => {
     expect(
       screen.getByText(/no post, article, or newsletter matches this id/i),
     ).toBeVisible();
+  });
+
+  it('keeps the loading shell while brand context is not ready', () => {
+    mocks.isReady = false;
+
+    render(<PublishContentEditorPage contentId="content-1" />);
+
+    expect(screen.getByRole('heading', { name: 'Loading…' })).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Content not found' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.postFindOne).not.toHaveBeenCalled();
+  });
+
+  it('does not treat a service failure as a missing post', async () => {
+    mocks.authedServiceError = new Error('auth not ready');
+
+    render(<PublishContentEditorPage contentId="content-1" />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Could not load content' }),
+      ).toBeVisible();
+    });
+    expect(
+      screen.queryByRole('heading', { name: 'Content not found' }),
+    ).not.toBeInTheDocument();
   });
 });

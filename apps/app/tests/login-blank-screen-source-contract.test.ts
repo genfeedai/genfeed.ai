@@ -31,6 +31,18 @@ describe('post-login blank screen source contracts', () => {
     expect(source).not.toContain('fallback={null}');
   });
 
+  it('keeps the agent workspace Suspense boundary visible while it resolves', () => {
+    const source = readAppSource(
+      'app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
+    );
+
+    expect(source).toContain('LazyLoadingFallback');
+    expect(source).toContain(
+      'fallback={<LazyLoadingFallback variant="grid" />}',
+    );
+    expect(source).not.toContain('fallback={null}');
+  });
+
   it('keeps an App Router error boundary on the workspace segment', () => {
     const source = readAppSource(
       'app/(protected)/[orgSlug]/[brandSlug]/workspace/error.tsx',

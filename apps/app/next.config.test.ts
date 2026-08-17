@@ -131,6 +131,68 @@ describe('app next.config', () => {
     });
   });
 
+  it('redirects dead /settings/agents to /settings/policy in three scopes', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/settings/policy',
+      permanent: true,
+      source: '/settings/agents',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/settings/policy',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/settings/agents',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/settings/policy',
+      permanent: true,
+      source: '/:orgSlug/~/settings/agents',
+    });
+  });
+
+  it('redirects /library/assets to /library/videos in three scopes', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/library/videos',
+      permanent: true,
+      source: '/library/assets',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/library/videos',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/library/assets',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/library/videos',
+      permanent: true,
+      source: '/:orgSlug/~/library/assets',
+    });
+  });
+
+  it('redirects brand-scoped and org-scoped /admin to the platform dashboard', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/admin',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/admin/:path*',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/~/admin',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/admin/overview/dashboard',
+      permanent: true,
+      source: '/:orgSlug/~/admin/:path*',
+    });
+  });
+
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
     const redirects = await config.redirects?.();
     const inboxRedirect = redirects?.find(

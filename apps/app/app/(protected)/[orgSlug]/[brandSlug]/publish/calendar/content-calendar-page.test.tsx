@@ -59,6 +59,7 @@ const calendarRenderProps: Array<{
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
   getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
   isItemDraggable: (item: CalendarItemShape) => boolean;
+  isLoading: boolean;
   items: CalendarItemShape[];
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
 }> = [];
@@ -122,6 +123,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     getEventBadge,
     getEventChannels,
     isItemDraggable,
+    isLoading,
     items,
     modal,
     onEventClick,
@@ -131,6 +133,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
     getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
     isItemDraggable: (item: CalendarItemShape) => boolean;
+    isLoading?: boolean;
     items: CalendarItemShape[];
     modal: ReactNode;
     onEventClick: (item: CalendarItemShape) => void;
@@ -140,6 +143,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
       getEventBadge,
       getEventChannels,
       isItemDraggable,
+      isLoading: Boolean(isLoading),
       items,
       onEventDrop,
     });
@@ -397,6 +401,47 @@ describe('ContentCalendarPage', () => {
         status: 'draft',
       }),
     ).toBeNull();
+  });
+
+  it('does not throw when a release target relationship collapses to a non-array', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        scheduledAt: undefined,
+        targets: {
+          id: 'target-1',
+          platform: CredentialPlatform.INSTAGRAM,
+          scheduledAt: '2026-03-12T10:00:00.000Z',
+        } as unknown as IChannelTarget[],
+      }),
+    ]);
+
+    await renderLoaded();
+
+    const { getEventChannels, items } = latestCalendarProps();
+    const releaseItem = items.find((item) => item.itemType === 'release');
+
+    expect(() =>
+      getEventChannels(releaseItem as CalendarItemShape),
+    ).not.toThrow();
+    expect(getEventChannels(releaseItem as CalendarItemShape)).toEqual([]);
+  });
+
+  it('does not throw when targets collapse to a string', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        targets: 'target-1' as unknown as IChannelTarget[],
+      }),
+    ]);
+
+    await renderLoaded();
+
+    const { getEventChannels, items } = latestCalendarProps();
+    const releaseItem = items.find((item) => item.itemType === 'release');
+
+    expect(() =>
+      getEventChannels(releaseItem as CalendarItemShape),
+    ).not.toThrow();
+    expect(getEventChannels(releaseItem as CalendarItemShape)).toEqual([]);
   });
 
   it('derives one channel icon per distinct platform and none for articles', async () => {

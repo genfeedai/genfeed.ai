@@ -2,6 +2,7 @@
 
 import ArticleEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/article/[id]/content';
 import NewsletterEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { ArtifactEditorType } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -11,6 +12,7 @@ import { NewslettersService } from '@services/content/newsletters.service';
 import { PostsService } from '@services/content/posts.service';
 import { useQuery } from '@tanstack/react-query';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import {
@@ -35,6 +37,8 @@ interface PublishContentEditorPageProps {
 export default function PublishContentEditorPage({
   contentId,
 }: PublishContentEditorPageProps): ReactElement {
+  const { isReady } = useBrand();
+  const translate = useTranslations('pages.posts.desk');
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
@@ -50,6 +54,7 @@ export default function PublishContentEditorPage({
     isError,
     isLoading,
   } = useQuery({
+    enabled: isReady,
     queryFn: async ({ signal }) => {
       const [posts, articles, newsletters] = await Promise.all([
         getPostsService(),
@@ -67,20 +72,38 @@ export default function PublishContentEditorPage({
     staleTime: 60_000,
   });
 
-  if (isLoading) {
+  if (!isReady || isLoading) {
     return (
-      <ArtifactEditorShell artifactLabel="Content" title="Loading…">
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title={translate('loadingTitle')}
+      >
         <SkeletonCard />
       </ArtifactEditorShell>
     );
   }
 
-  if (isError || contentKind === null || contentKind === undefined) {
+  if (isError) {
     return (
-      <ArtifactEditorShell artifactLabel="Content" title="Content not found">
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title={translate('loadErrorTitle')}
+      >
         <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
-          No post, article, or newsletter matches this id. Use the breadcrumb to
-          return to Posts and open the item again.
+          {translate('loadErrorBody')}
+        </div>
+      </ArtifactEditorShell>
+    );
+  }
+
+  if (contentKind === null || contentKind === undefined) {
+    return (
+      <ArtifactEditorShell
+        artifactLabel="Content"
+        title={translate('missingTitle')}
+      >
+        <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
+          {translate('missingBody')}
         </div>
       </ArtifactEditorShell>
     );

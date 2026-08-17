@@ -30,7 +30,6 @@ export class VoiceLibraryService {
       const sort = query.sort || 'metadata.label: 1, createdAt: -1';
       const where: Record<string, unknown> = scopedWhere(user.organizationId, {
         OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
-        brandId: user.brandId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VOICE,
         ),

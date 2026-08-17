@@ -22,26 +22,6 @@ export interface UseAdminStatsReturn {
   refresh: () => Promise<void>;
 }
 
-const defaultStats: IAnalytics = {
-  activeBots: 0,
-  activeWorkflows: 0,
-  monthlyGrowth: 0,
-  pendingPosts: 0,
-  recentActivities: 0,
-  totalBrands: 0,
-  totalCredentialsConnected: 0,
-  totalCredits: 0,
-  totalImages: 0,
-  totalModels: 0,
-  totalOrganizations: 0,
-  totalPosts: 0,
-  totalSubscriptions: 0,
-  totalUsers: 0,
-  totalVideos: 0,
-  totalViews: 0,
-  viewsGrowth: 0,
-};
-
 export function useAdminStats(): UseAdminStatsReturn {
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -97,7 +77,7 @@ export function useAdminStats(): UseAdminStatsReturn {
   });
 
   const stats = useMemo(
-    () => (statsData as IAnalytics) ?? defaultStats,
+    () => (statsData as IAnalytics | null | undefined) ?? null,
     [statsData],
   );
 

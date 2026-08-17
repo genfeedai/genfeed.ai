@@ -24,17 +24,11 @@ import {
   getStatusColor,
   getStatusIcon,
 } from '@/features/workflows/utils/status-helpers';
-
-function getWorkflowLabel(execution: ExecutionResult): string {
-  const { workflow } = execution;
-  if (workflow?.label) {
-    return workflow.label;
-  }
-  return `${execution.workflowId.slice(0, 8)}...`;
-}
+import { getWorkflowLabel } from './get-workflow-label';
 
 type ExecutionsState = {
   executions: ExecutionResult[];
+  workflowLabels: Map<string, string>;
   isLoading: boolean;
   error: string | null;
   offset: number;
@@ -43,12 +37,18 @@ type ExecutionsState = {
 
 type ExecutionsAction =
   | { type: 'FETCH_START' }
-  | { type: 'FETCH_SUCCESS'; executions: ExecutionResult[]; hasMore: boolean }
+  | {
+      type: 'FETCH_SUCCESS';
+      executions: ExecutionResult[];
+      hasMore: boolean;
+      workflowLabels: Map<string, string>;
+    }
   | { type: 'FETCH_ERROR'; error: string }
   | { type: 'SET_OFFSET'; offset: number };
 
 const initialState: ExecutionsState = {
   executions: [],
+  workflowLabels: new Map(),
   isLoading: true,
   error: null,
   offset: 0,
@@ -68,6 +68,7 @@ function executionsReducer(
         isLoading: false,
         executions: action.executions,
         hasMore: action.hasMore,
+        workflowLabels: action.workflowLabels,
       };
     case 'FETCH_ERROR':
       return { ...state, isLoading: false, error: action.error };
@@ -86,7 +87,8 @@ const EXECUTIONS_PER_PAGE = 20;
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
-  const { executions, isLoading, error, offset, hasMore } = state;
+  const { executions, workflowLabels, isLoading, error, offset, hasMore } =
+    state;
 
   const getService = useAuthedService(createWorkflowApiService);
 
@@ -100,10 +102,18 @@ export default function WorkflowExecutionsPage() {
           return;
         }
 
-        const data = await service.listExecutions({
-          limit: EXECUTIONS_PER_PAGE,
-          offset: pageOffset,
-        });
+        const [data, workflows] = await Promise.all([
+          service.listExecutions({
+            limit: EXECUTIONS_PER_PAGE,
+            offset: pageOffset,
+          }),
+          service.list().catch((error: unknown) => {
+            logger.error('Failed to load workflow labels for executions', {
+              error,
+            });
+            return [];
+          }),
+        ]);
         if (signal.aborted) {
           return;
         }
@@ -112,6 +122,11 @@ export default function WorkflowExecutionsPage() {
           type: 'FETCH_SUCCESS',
           executions: data,
           hasMore: data.length === EXECUTIONS_PER_PAGE,
+          workflowLabels: new Map(
+            workflows
+              .filter((workflow) => workflow.label.trim().length > 0)
+              .map((workflow) => [workflow.id, workflow.label]),
+          ),
         });
       } catch (err) {
         if (signal.aborted) {
@@ -250,7 +265,7 @@ export default function WorkflowExecutionsPage() {
                             )}
                             className="font-medium hover:text-primary"
                           >
-                            {getWorkflowLabel(execution)}
+                            {getWorkflowLabel(execution, workflowLabels)}
                           </Link>
                           <div className="text-xs text-muted-foreground">
                             {execution.id.slice(0, 8)}...

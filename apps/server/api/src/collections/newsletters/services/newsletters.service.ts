@@ -87,8 +87,12 @@ export class NewslettersService extends BaseService<
     id: string,
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
+    // Org + id only — same contract as posts/articles findOne. The Publish
+    // desk lists by the URL brand (`useBrand()`), but JWT `user.brandId` is
+    // often a different brand in the same org. Requiring the JWT brand here
+    // made listed newsletters open as "Content not found".
     const data = await this.delegate.findFirst({
-      where: scopedWhere(ctx.organizationId, { id, brandId: ctx.brandId }),
+      where: scopedWhere(ctx.organizationId, { id }),
     });
 
     if (!data) {

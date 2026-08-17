@@ -103,4 +103,20 @@ describe('SettingsUsagePage', () => {
       screen.queryByText('No credit activity yet'),
     ).not.toBeInTheDocument();
   });
+
+  it('does not render Balance as 0 while metrics are missing', () => {
+    mockUseQuery.mockImplementation(() => ({
+      data: undefined,
+      error: null,
+      isFetching: false,
+      isLoading: true,
+      refetch: vi.fn(),
+    }));
+
+    render(<SettingsUsagePage />);
+
+    expect(screen.getByText('Balance')).toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
 });

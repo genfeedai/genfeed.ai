@@ -16,6 +16,16 @@ describe('getAgentTypeConfig', () => {
     expect(config.systemPromptSuffix).toContain('X/Twitter');
   });
 
+  it('gives video creators the voice-clone card alongside generate_voice', () => {
+    const config = getAgentTypeConfig(AgentType.VIDEO_CREATOR);
+    expect(config.defaultTools).toEqual(
+      expect.arrayContaining([
+        AgentToolName.GENERATE_VOICE,
+        AgentToolName.PREPARE_VOICE_CLONE,
+      ]),
+    );
+  });
+
   it('gives the X specialist the dedicated X read and draft tools', () => {
     const config = getAgentTypeConfig(AgentType.X_CONTENT);
     expect(config.defaultTools).toEqual(

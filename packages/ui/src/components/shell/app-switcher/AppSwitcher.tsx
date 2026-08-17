@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAGS,
   type AppSwitcherFeatureFlagKey,
   createBrandAppRoute,
@@ -199,7 +200,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
       id: 'admin',
       itemKey: 'admin',
       label: 'Admin',
-      route: () => '/admin',
+      route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
     },
   ],
 };

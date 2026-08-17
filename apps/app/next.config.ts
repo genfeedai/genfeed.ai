@@ -353,6 +353,73 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/review'),
     },
+    // Org Settings → Agents is a dead path. Live page is /settings/policy.
+    {
+      destination: APP_ROUTES.SETTINGS.POLICY,
+      permanent: true,
+      source: '/settings/agents',
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.SETTINGS.POLICY,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/settings/agents'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.SETTINGS.POLICY,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/settings/agents'),
+    },
+    // Library IA: Assets is a destination; /library/assets never shipped.
+    {
+      destination: APP_ROUTES.LIBRARY.VIDEOS,
+      permanent: true,
+      source: '/library/assets',
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.VIDEOS,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/library/assets'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.LIBRARY.VIDEOS,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/library/assets'),
+    },
+    // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/admin'),
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/admin/:path*'),
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/admin'),
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/admin/:path*'),
+    },
     {
       destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,

@@ -225,15 +225,33 @@ export class ModelsController extends BaseCRUDController<
     const findAllQuery = this.buildFindAllQuery(user, query);
     const where = { ...(findAllQuery.where ?? {}) } as Record<string, unknown>;
 
-    // Add organization filtering if organizationId is provided
-    if (query.organizationId) {
-      const organizationSettings =
-        await this.getOrganizationSettingsService().findOne({
-          organizationId: query.organizationId,
-        });
+    // Defense-in-depth: org-scoped tenant isolation
+    // Derive org from request context middleware, NOT from query params
+    const authenticatedOrgId = request.context?.organizationId
+      ? request.context.organizationId
+      : null;
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const requestedOrgId = query.organizationId;
+    const canSeedRequestedOrg =
+      Boolean(requestedOrgId) &&
+      (isSuperAdmin || requestedOrgId === authenticatedOrgId);
+
+    // Seed only an org the caller is allowed to mutate. A query
+    // organizationId alone used to PATCH another tenant from enable-none
+    // to a full latest-model allowlist.
+    if (canSeedRequestedOrg && requestedOrgId) {
+      const organizationSettingsService = this.getOrganizationSettingsService();
+      const organizationSettings = await organizationSettingsService.findOne({
+        organizationId: requestedOrgId,
+      });
+      const seededSettings = organizationSettings
+        ? await organizationSettingsService.ensureEnabledModelIds(
+            organizationSettings,
+          )
+        : organizationSettings;
 
       const rawEnabledModelIds = (
-        organizationSettings as Record<string, unknown> | undefined
+        seededSettings as Record<string, unknown> | undefined
       )?.enabledModelIds;
       const enabledModelIds = Array.isArray(rawEnabledModelIds)
         ? rawEnabledModelIds.filter(
@@ -248,12 +266,6 @@ export class ModelsController extends BaseCRUDController<
         where.id = { in: [] };
       }
     }
-
-    // Defense-in-depth: org-scoped tenant isolation
-    // Derive org from request context middleware, NOT from query params
-    const authenticatedOrgId = request.context?.organizationId
-      ? request.context.organizationId
-      : null;
 
     if (authenticatedOrgId) {
       where.OR = [

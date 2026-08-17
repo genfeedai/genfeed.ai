@@ -7,6 +7,8 @@ import type {
   ContentCalendarProps,
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
+import { Skeleton } from '@ui/primitives/skeleton';
 import type {
   CalendarOptions,
   DatesSetInfo,
@@ -71,8 +73,10 @@ function isSameDateRange(
   );
 }
 
-function FullCalendarHost({ options }: FullCalendarHostProps) {
-  const [loadError, setLoadError] = useState<Error | null>(null);
+function FullCalendarMount({
+  onError,
+  options,
+}: FullCalendarHostProps & { onError: (error: Error) => void }) {
   const calendarRef = useRef<FullCalendarInstance | null>(null);
   const elementRef = useRef<HTMLDivElement | null>(null);
 
@@ -85,8 +89,6 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
       if (!elementRef.current || signal.aborted) {
         return;
       }
-
-      setLoadError(null);
 
       try {
         const [
@@ -125,7 +127,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
         if (signal.aborted) {
           return;
         }
-        setLoadError(
+        onError(
           error instanceof Error
             ? error
             : new Error('Unable to load FullCalendar component'),
@@ -142,13 +144,36 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
         calendarRef.current = null;
       }
     };
-  }, [options]);
-
-  if (loadError) {
-    throw loadError;
-  }
+  }, [onError, options]);
 
   return <div ref={elementRef} />;
+}
+
+function FullCalendarHost({ options }: FullCalendarHostProps) {
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  if (loadError) {
+    return (
+      <ErrorFallback
+        description="The schedule grid could not start. Try again, or open the list view."
+        error={loadError}
+        resetErrorBoundary={() => {
+          setLoadError(null);
+          setRetryCount((count) => count + 1);
+        }}
+        title="Calendar failed to load"
+      />
+    );
+  }
+
+  return (
+    <FullCalendarMount
+      key={retryCount}
+      onError={setLoadError}
+      options={options}
+    />
+  );
 }
 
 export default function ContentCalendar<T extends CalendarItem>({
@@ -166,6 +191,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   filterControls,
   modal,
   emptyState,
+  isLoading = false,
 }: ContentCalendarProps<T>) {
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
@@ -435,7 +461,14 @@ export default function ContentCalendar<T extends CalendarItem>({
       )}
 
       <Card className="w-full border border-white/[0.06]" bodyClassName="p-0">
-        {events.length === 0 && emptyState ? (
+        {isLoading ? (
+          <div
+            className="fullcalendar-container p-6"
+            data-testid="calendar-loading"
+          >
+            <Skeleton className="h-[32rem] w-full" />
+          </div>
+        ) : events.length === 0 && emptyState ? (
           emptyState
         ) : (
           <div className="fullcalendar-container" style={calendarThemeStyle}>

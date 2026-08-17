@@ -505,14 +505,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/credits/controllers/credits.controller.spec.ts",
-      "fingerprint": "cf10547e29ccedd349ee",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/credits/entities/credit-balance.entity.spec.ts",
@@ -1058,22 +1050,6 @@
     },
     {
       "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "4f14d76149d0814dae2e",
-      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'RequestWithContext' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 101 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "6fb3b61c2989b017e18d",
-      "message": "Argument of type 'RequestWithContext' is not assignable to parameter of type 'import(\"<root>/apps/server/api/src/common/middleware/request-context.middleware\").RequestWithContext'.   Type 'RequestWithContext' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 101 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "95dc271d8b0d663aaee1",
@@ -1116,14 +1092,6 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "ec8a68a2baa837fffac3",
-      "message": "Argument of type '{ docs: never[]; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Type '{ docs: never[]; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<ModelDocument>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "fcfab23b400c985ac7f4",
       "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 54 more ...; supportsFeatures: string[]; }': description, category, isDeleted, createdAt, and 57 more.",
       "workspace": "api"
@@ -1142,14 +1110,6 @@
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "3896948e7a9680588216",
       "message": "Type '{ isDeleted: true; sort: string; }' is missing the following properties from type 'ModelsQueryDto': page, limit",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "92089dc3f18bdce07481",
-      "message": "Type '{ organizationId: string; }' is missing the following properties from type 'ModelsQueryDto': page, limit, isDeleted, sort",
       "workspace": "api"
     },
     {

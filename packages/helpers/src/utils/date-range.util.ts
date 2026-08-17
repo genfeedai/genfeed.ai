@@ -1,6 +1,4 @@
-import { format, subDays } from 'date-fns';
-
-const API_DATE_FORMAT = 'yyyy-MM-dd';
+import { subDays } from 'date-fns';
 
 type DateRangeInput = {
   endDate?: Date | string | null;
@@ -8,7 +6,20 @@ type DateRangeInput = {
 };
 
 export function formatApiDate(date: Date | string): string {
-  return format(new Date(date), API_DATE_FORMAT);
+  const parsed = new Date(date);
+  const year = parsed.getUTCFullYear();
+  const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function formatUtcChipDate(date: Date, withYear: boolean): string {
+  return date.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+    ...(withYear ? { year: 'numeric' } : {}),
+  });
 }
 
 export function formatOptionalApiDate(

@@ -110,6 +110,12 @@ export interface ContentCalendarProps<T extends CalendarItem> {
   filterControls?: ReactNode;
   modal?: ReactNode;
   /**
+   * While the host is still fetching the visible window, keep FullCalendar
+   * unmounted. A first-paint construct/render throw inside the host would
+   * otherwise loop the protected-shell ErrorBoundary on Try Again.
+   */
+  isLoading?: boolean;
+  /**
    * Rendered in place of the (otherwise blank) time grid when there are no
    * schedulable events. Lets the host surface a meaningful empty state instead
    * of a full 48-row grid that reads as broken rather than "no events".
