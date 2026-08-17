@@ -48,7 +48,11 @@ import {
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import Redis from 'ioredis';
-import { LAUNCH_ARTICLES } from './data/launch-articles';
+import {
+  ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
+  RETIRED_ARTICLE_SLUGS,
+} from './data/launch-articles';
+import { SEO_ARTICLES } from './data/seo-articles';
 
 const logger = new Logger('ArticlesSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -58,6 +62,8 @@ type SupportedCluster = (typeof SUPPORTED_CLUSTERS)[number];
 
 type SeedArgs = {
   allClusters: boolean;
+  brandId?: string;
+  brandSlug?: string;
   dryRun: boolean;
   env?: string;
   organizationId?: string;
@@ -68,6 +74,8 @@ type SeedArgs = {
 };
 
 type SeedOwner = {
+  brandId: string;
+  brandLabel: string;
   organizationId: string;
   organizationLabel: string;
   userId: string;
@@ -78,6 +86,14 @@ type OrganizationSelector = {
   isDeleted: false;
   label?: string;
   userId?: string;
+};
+
+type BrandSelector = {
+  id?: string;
+  isActive: true;
+  isDeleted: false;
+  organizationId: string;
+  slug?: string;
 };
 
 function loadEnvFile(envArg?: string): void {
@@ -110,6 +126,10 @@ function loadEnvFile(envArg?: string): void {
 export function parseArticlesSeedArgs(args: readonly string[]): SeedArgs {
   return {
     allClusters: args.includes('--all-clusters'),
+    brandId: args.find((arg) => arg.startsWith('--brandId='))?.split('=')[1],
+    brandSlug: args
+      .find((arg) => arg.startsWith('--brandSlug='))
+      ?.split('=')[1],
     dryRun: !args.includes('--live'),
     env: args.find((arg) => arg.startsWith('--env='))?.split('=')[1],
     organizationId: args
@@ -214,6 +234,39 @@ export function buildOrganizationSelector(
   };
 }
 
+export function buildBrandSelector(
+  brandId: string | null,
+  brandSlug: string | null,
+  organizationId: string,
+): BrandSelector {
+  return {
+    ...(brandId ? { id: brandId } : {}),
+    isActive: true,
+    isDeleted: false,
+    organizationId,
+    ...(brandSlug ? { slug: brandSlug } : {}),
+  };
+}
+
+export function resolveSeedPublishedAt(params: {
+  existingPublishedAt: Date | null;
+  intendedPublishedAt: Date;
+  migrateFrom?: Date;
+}): Date {
+  if (!params.existingPublishedAt) {
+    return params.intendedPublishedAt;
+  }
+
+  if (
+    params.migrateFrom &&
+    params.existingPublishedAt.getTime() === params.migrateFrom.getTime()
+  ) {
+    return params.intendedPublishedAt;
+  }
+
+  return params.existingPublishedAt;
+}
+
 /**
  * Articles require both an owning user and an organization — `articles` carries
  * a non-nullable `organizationId`, and every tenant-scoped read filters on it,
@@ -228,6 +281,8 @@ export function buildOrganizationSelector(
  * "oldest" is whichever account happened to sign up first.
  */
 async function resolveOwner(params: {
+  brandId: string | null;
+  brandSlug: string | null;
   organizationId: string | null;
   organizationLabel: string | null;
   ownerEmail: string | null;
@@ -316,7 +371,35 @@ async function resolveOwner(params: {
     throw new Error(`User ${userId} not found`);
   }
 
+  const brands = await params.prisma.brand.findMany({
+    orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    select: { id: true, label: true },
+    where: buildBrandSelector(
+      params.brandId,
+      params.brandSlug,
+      organization.id,
+    ),
+  });
+  const [brand] = brands;
+
+  if (!brand) {
+    const selector = params.brandId
+      ? `id ${params.brandId}`
+      : params.brandSlug
+        ? `slug ${params.brandSlug}`
+        : `organization ${organization.label}`;
+    throw new Error(`No active brand found for ${selector}`);
+  }
+
+  if (!params.brandId && !params.brandSlug && brands.length > 1) {
+    logger.log(
+      `${brands.length} active brands match; using default/oldest ${brand.label} (${brand.id}). Pass --brandId=<id> or --brandSlug=<slug> to choose another.`,
+    );
+  }
+
   return {
+    brandId: brand.id,
+    brandLabel: brand.label,
     organizationId: organization.id,
     organizationLabel: organization.label,
     userId,
@@ -531,6 +614,7 @@ async function reportSeededRows(
     orderBy: { slug: 'asc' },
     select: {
       coverImageUrl: true,
+      brandId: true,
       isDeleted: true,
       publishedAt: true,
       scope: true,
@@ -539,20 +623,25 @@ async function reportSeededRows(
     },
     where: {
       organizationId: owner.organizationId,
-      slug: { in: LAUNCH_ARTICLES.map((article) => article.slug) },
+      slug: {
+        in: [
+          ...SEO_ARTICLES.map((article) => article.slug),
+          ...RETIRED_ARTICLE_SLUGS,
+        ],
+      },
     },
   });
 
   for (const row of rows) {
     logger.log(
-      `row ${row.slug}: status=${row.status} scope=${row.scope} publishedAt=${row.publishedAt?.toISOString() ?? 'null'} isDeleted=${row.isDeleted} artwork=${row.coverImageUrl ? 'set' : 'MISSING'}`,
+      `row ${row.slug}: status=${row.status} scope=${row.scope} brandId=${row.brandId ?? 'MISSING'} publishedAt=${row.publishedAt?.toISOString() ?? 'null'} isDeleted=${row.isDeleted} artwork=${row.coverImageUrl ? 'set' : 'MISSING'}`,
     );
   }
 
   const publicCount = await prisma.article.count({
     where: {
       isDeleted: false,
-      publishedAt: { not: null },
+      publishedAt: { lte: new Date() },
       status: ArticleStatus.PUBLISHED,
     },
   });
@@ -592,7 +681,7 @@ export async function runArticlesSeed(): Promise<void> {
 
   if (args.validateRuntime) {
     logger.log(
-      `Articles seed runtime ready (${LAUNCH_ARTICLES.length} launch articles bundled)`,
+      `Articles seed runtime ready (${SEO_ARTICLES.length} SEO articles bundled)`,
     );
     return;
   }
@@ -614,6 +703,17 @@ export async function runArticlesSeed(): Promise<void> {
   ) {
     throw new Error(
       'A live production seed must name its owner: pass --ownerEmail=<email> or --organizationId=<id>',
+    );
+  }
+
+  if (
+    args.env === 'production' &&
+    !args.dryRun &&
+    !args.brandId &&
+    !args.brandSlug
+  ) {
+    throw new Error(
+      'A live production seed must name its review brand: pass --brandId=<id> or --brandSlug=<slug>',
     );
   }
 
@@ -639,6 +739,8 @@ export async function runArticlesSeed(): Promise<void> {
     });
 
     const owner = await resolveOwner({
+      brandId: parseOptionalId(args.brandId),
+      brandSlug: args.brandSlug ?? null,
       organizationId: parseOptionalId(args.organizationId),
       organizationLabel: args.organizationLabel ?? null,
       ownerEmail: args.ownerEmail ?? null,
@@ -647,16 +749,18 @@ export async function runArticlesSeed(): Promise<void> {
     });
 
     logger.log(
-      `${args.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${LAUNCH_ARTICLES.length} article(s) into ${owner.organizationLabel} (${owner.organizationId})${args.env ? ` for ${args.env}` : ''}`,
+      `${args.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEO_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${args.env ? ` for ${args.env}` : ''}`,
     );
 
     let created = 0;
     let updated = 0;
-    const publishedAt = new Date();
+    const originalLaunchBatchPublishedAt = new Date(
+      ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
+    );
 
-    for (const article of LAUNCH_ARTICLES) {
+    for (const article of SEO_ARTICLES) {
       const existing = await prisma.article.findFirst({
-        select: { id: true, publishedAt: true },
+        select: { brandId: true, id: true, publishedAt: true },
         where: {
           isDeleted: false,
           organizationId: owner.organizationId,
@@ -665,17 +769,25 @@ export async function runArticlesSeed(): Promise<void> {
       });
 
       if (existing) {
+        const intendedPublishedAt = new Date(article.publishedAt);
+        const publishedAt = resolveSeedPublishedAt({
+          existingPublishedAt: existing.publishedAt,
+          intendedPublishedAt,
+          migrateFrom: originalLaunchBatchPublishedAt,
+        });
         if (args.dryRun) {
-          logger.log(`[DRY RUN] would refresh article ${article.slug}`);
+          logger.log(
+            `[DRY RUN] would refresh article ${article.slug} at ${publishedAt.toISOString()}${existing.brandId === owner.brandId ? '' : ` and assign brand ${owner.brandLabel}`}`,
+          );
         } else {
           await prisma.article.update({
             data: {
+              brandId: owner.brandId,
               category: article.category,
               content: article.content,
               coverImageUrl: article.coverImageUrl,
               label: article.label,
-              // Never move an existing publication date — only backfill one.
-              publishedAt: existing.publishedAt ?? publishedAt,
+              publishedAt,
               scope: ArticleScope.PUBLIC,
               status: ArticleStatus.PUBLISHED,
               summary: article.summary,
@@ -696,13 +808,14 @@ export async function runArticlesSeed(): Promise<void> {
 
       await prisma.article.create({
         data: {
+          brandId: owner.brandId,
           category: article.category,
           content: article.content,
           coverImageUrl: article.coverImageUrl,
           isDeleted: false,
           label: article.label,
           organizationId: owner.organizationId,
-          publishedAt,
+          publishedAt: new Date(article.publishedAt),
           scope: ArticleScope.PUBLIC,
           slug: article.slug,
           status: ArticleStatus.PUBLISHED,
@@ -712,6 +825,31 @@ export async function runArticlesSeed(): Promise<void> {
       });
       logger.log(`Published article ${article.slug}`);
       created += 1;
+    }
+
+    for (const slug of RETIRED_ARTICLE_SLUGS) {
+      const retired = await prisma.article.findFirst({
+        select: { id: true, status: true },
+        where: {
+          isDeleted: false,
+          organizationId: owner.organizationId,
+          slug,
+        },
+      });
+
+      if (!retired) {
+        continue;
+      }
+
+      if (args.dryRun) {
+        logger.log(`[DRY RUN] would archive retired article ${slug}`);
+      } else if (retired.status !== ArticleStatus.ARCHIVED) {
+        await prisma.article.update({
+          data: { brandId: owner.brandId, status: ArticleStatus.ARCHIVED },
+          where: { id: retired.id },
+        });
+        logger.log(`Archived retired article ${slug}`);
+      }
     }
 
     logger.log(

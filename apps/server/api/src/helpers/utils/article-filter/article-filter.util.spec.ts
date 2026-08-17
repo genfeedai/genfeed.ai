@@ -113,6 +113,17 @@ describe('ArticleFilterUtil', () => {
         status: 'PUBLISHED',
       });
     });
+
+    it('only exposes published articles whose release time has arrived', () => {
+      const now = new Date('2026-08-15T12:00:00.000Z');
+
+      expect(ArticleFilterUtil.buildPublicArticleVisibilityFilter(now)).toEqual(
+        {
+          publishedAt: { lte: now },
+          status: 'PUBLISHED',
+        },
+      );
+    });
   });
 
   describe('buildArticleStatusFilter', () => {

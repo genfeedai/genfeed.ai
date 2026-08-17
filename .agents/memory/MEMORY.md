@@ -61,6 +61,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_overlay_menus_elevated_surface](feedback_overlay_menus_elevated_surface.md) — dropdowns and popovers use bg-secondary + shadow-dropdown, never elevated or canvas
 - [feedback_conversation_contrast](feedback_conversation_contrast.md) — void chrome stays dark; conversation type is AA white/gray; chroma comes from media
 - [feedback_generation_card_retry_after_failure](feedback_generation_card_retry_after_failure.md) — failed generate keeps Generate on the card; UI-action false is not Done
+- [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
 - [feedback_generation_card_manual_collapse_on_error](feedback_generation_card_manual_collapse_on_error.md) — failed generation cards stay expandable; the operator can collapse them by hand
 - [feedback_ui_action_403_not_provider](feedback_ui_action_403_not_provider.md) — confirm-generate 403s are our API (allowlist/brand/org), not a provider block
 - [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing

@@ -83,6 +83,23 @@ export class ArticleFilterUtil {
     };
   }
 
+  /**
+   * Canonical public-release boundary for articles.
+   *
+   * A future `publishedAt` is a scheduled release, not a public article. Keep
+   * this clock injectable so callers and tests can reason about the exact
+   * release boundary without mutating global time.
+   */
+  static buildPublicArticleVisibilityFilter(now: Date = new Date()): {
+    publishedAt: { lte: Date };
+    status: PrismaArticleStatusValue;
+  } {
+    return {
+      publishedAt: { lte: now },
+      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
+    };
+  }
+
   static isPublicArticleStatus(status: unknown): boolean {
     return (
       ArticleFilterUtil.toPrismaArticleStatus(String(status)) === 'PUBLISHED'

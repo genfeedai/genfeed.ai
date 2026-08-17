@@ -149,6 +149,15 @@ describe('PublicArticlesController', () => {
       const result = await controller.findPublicArticles(request, query);
 
       expect(articlesService.findAll).toHaveBeenCalled();
+      expect(articlesService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            publishedAt: { lte: expect.any(Date) },
+            status: 'PUBLISHED',
+          }),
+        }),
+        expect.any(Object),
+      );
       expect(result.data).toEqual(articles);
     });
 
@@ -295,6 +304,7 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id,
+          publishedAt: { lte: expect.any(Date) },
           status: 'PUBLISHED',
         }),
       );

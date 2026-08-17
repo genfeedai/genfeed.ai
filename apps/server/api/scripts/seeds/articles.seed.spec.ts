@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertArticleSchemaReady,
+  buildBrandSelector,
   buildOrganizationSelector,
   countDeletedCacheKeys,
   getMissingArticleColumns,
   isLocalDatabaseUrl,
   parseArticlesSeedArgs,
   REQUIRED_ARTICLE_COLUMNS,
+  resolveSeedPublishedAt,
 } from './articles.seed';
 
 describe('articles seed schema preflight', () => {
@@ -103,6 +105,56 @@ describe('articles seed schema preflight', () => {
       ownerEmail: 'vincent@genfeed.ai',
       validateRuntime: true,
     });
+  });
+
+  it('parses explicit brand ownership for reviewable seeded articles', () => {
+    expect(
+      parseArticlesSeedArgs([
+        '--brandId=brand-1',
+        '--brandSlug=genfeed',
+        '--ownerEmail=vincent@genfeed.ai',
+      ]),
+    ).toMatchObject({
+      brandId: 'brand-1',
+      brandSlug: 'genfeed',
+      ownerEmail: 'vincent@genfeed.ai',
+    });
+
+    expect(buildBrandSelector('brand-1', 'genfeed', 'org-1')).toEqual({
+      id: 'brand-1',
+      isActive: true,
+      isDeleted: false,
+      organizationId: 'org-1',
+      slug: 'genfeed',
+    });
+  });
+
+  it('moves only the known launch batch timestamp to an editorial date', () => {
+    const intended = new Date('2026-07-21T09:00:00.000Z');
+    const originalBatch = new Date('2026-08-13T01:38:45.528Z');
+    const manuallyEdited = new Date('2026-08-01T10:30:00.000Z');
+
+    expect(
+      resolveSeedPublishedAt({
+        existingPublishedAt: originalBatch,
+        intendedPublishedAt: intended,
+        migrateFrom: originalBatch,
+      }),
+    ).toEqual(intended);
+    expect(
+      resolveSeedPublishedAt({
+        existingPublishedAt: manuallyEdited,
+        intendedPublishedAt: intended,
+        migrateFrom: originalBatch,
+      }),
+    ).toEqual(manuallyEdited);
+    expect(
+      resolveSeedPublishedAt({
+        existingPublishedAt: null,
+        intendedPublishedAt: intended,
+        migrateFrom: originalBatch,
+      }),
+    ).toEqual(intended);
   });
 
   it('counts only cache keys that Redis actually deleted', () => {

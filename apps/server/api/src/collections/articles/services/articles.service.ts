@@ -529,8 +529,7 @@ export class ArticlesService extends BaseService<
 
     const where: Record<string, unknown> = {
       isDeleted: false,
-      publishedAt: { not: null },
-      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
+      ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
     };
 
     if (search) {
@@ -586,8 +585,10 @@ export class ArticlesService extends BaseService<
     // In preview mode, allow any status/scope
     // In normal mode, only show published articles (PUBLISHED = public)
     if (!isPreview) {
-      where.publishedAt = { not: null };
-      Object.assign(where, ArticleFilterUtil.buildPublicArticleStatusFilter());
+      Object.assign(
+        where,
+        ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+      );
     }
 
     const article = await this.delegate.findFirst({ where });

@@ -93,6 +93,7 @@ describe('RssService', () => {
         expect.objectContaining({
           where: {
             isDeleted: false,
+            publishedAt: { lte: expect.any(Date) },
             scope: ArticleScope.PUBLIC,
             status: 'PUBLISHED',
           },
