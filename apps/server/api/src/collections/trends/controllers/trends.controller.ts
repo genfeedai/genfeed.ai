@@ -236,6 +236,7 @@ export class TrendsController {
     return {
       preferences: preferences
         ? {
+            autoRequeueWinners: preferences.autoRequeueWinners ?? true,
             categories: preferences.categories || [],
             hashtags: preferences.hashtags || [],
             keywords: preferences.keywords || [],
@@ -272,7 +273,7 @@ export class TrendsController {
     return {
       message: 'Trend preferences saved successfully',
       preferences: {
-        autoRequeueWinners: preferences.autoRequeueWinners ?? false,
+        autoRequeueWinners: preferences.autoRequeueWinners ?? true,
         categories: preferences.categories || [],
         hashtags: preferences.hashtags || [],
         keywords: preferences.keywords || [],

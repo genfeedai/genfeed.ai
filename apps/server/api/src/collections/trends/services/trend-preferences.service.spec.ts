@@ -53,7 +53,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId);
 
       expect(result).toEqual({
-        autoRequeueWinners: false,
+        autoRequeueWinners: true,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -76,7 +76,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId, brandId);
 
       expect(result).toEqual({
-        autoRequeueWinners: false,
+        autoRequeueWinners: true,
         brandId: 'brand1',
         categories: ['fashion'],
         hashtags: [],
@@ -102,7 +102,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId, brandId);
 
       expect(result).toEqual({
-        autoRequeueWinners: false,
+        autoRequeueWinners: true,
         categories: ['general'],
         hashtags: [],
         keywords: [],
@@ -148,6 +148,26 @@ describe('TrendPreferencesService', () => {
       expect(result?.autoRequeueWinners).toBe(true);
       expect(result?.keywords).toEqual(['ai']);
     });
+
+    it('should default autoRequeueWinners to true when the flag is unset', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: { keywords: ['ai'] },
+      });
+
+      const result = await service.getPreferences(organizationId);
+
+      expect(result?.autoRequeueWinners).toBe(true);
+    });
+
+    it('should preserve an explicit autoRequeueWinners false', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: { autoRequeueWinners: false, keywords: ['ai'] },
+      });
+
+      const result = await service.getPreferences(organizationId);
+
+      expect(result?.autoRequeueWinners).toBe(false);
+    });
   });
 
   describe('savePreferences', () => {
@@ -176,7 +196,7 @@ describe('TrendPreferencesService', () => {
         }),
       );
       expect(result).toEqual({
-        autoRequeueWinners: false,
+        autoRequeueWinners: true,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -209,7 +229,7 @@ describe('TrendPreferencesService', () => {
         }),
       );
       expect(result).toEqual({
-        autoRequeueWinners: false,
+        autoRequeueWinners: true,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -301,7 +321,7 @@ describe('TrendPreferencesService', () => {
       });
       prisma.trendPreferences.update.mockResolvedValue({});
 
-      // Common edit flow: keywords/categories/platforms change, opt-in flag untouched.
+      // Common edit flow: keywords/categories/platforms change, requeue flag untouched.
       await service.savePreferences(organizationId, { keywords: ['ai'] });
 
       const updateArg = prisma.trendPreferences.update.mock.calls[0][0];
@@ -314,7 +334,7 @@ describe('TrendPreferencesService', () => {
       });
     });
 
-    it('should preserve stored arrays when only the opt-in flag changes', async () => {
+    it('should preserve stored arrays when only the requeue flag changes', async () => {
       prisma.trendPreferences.findFirst.mockResolvedValue({
         config: {
           autoRequeueWinners: false,
@@ -343,7 +363,7 @@ describe('TrendPreferencesService', () => {
   });
 
   describe('mergeWinnerSignals', () => {
-    it('should union winner signals into existing preferences and preserve the opt-in flag', async () => {
+    it('should union winner signals into existing preferences and preserve the requeue flag', async () => {
       prisma.trendPreferences.findFirst.mockResolvedValue({
         config: {
           autoRequeueWinners: true,

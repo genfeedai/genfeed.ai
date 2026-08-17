@@ -10,7 +10,7 @@ import {
 export class SaveTrendPreferencesDto {
   @ApiProperty({
     description:
-      'Automatically feed winning content-run signals back into trend ingestion (opt-in)',
+      'Automatically feed winning content-run signals back into trend ingestion (opt-out; defaults to true when unset)',
     example: true,
     required: false,
   })

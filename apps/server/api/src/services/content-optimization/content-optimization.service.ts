@@ -66,17 +66,42 @@ export interface OptimizationRecommendations {
   general: ContentRecommendation[];
 }
 
+export interface TimingSuggestionPayload {
+  preferredTime: string;
+}
+
+export interface FormatSuggestionPayload {
+  preferredFormat: string;
+}
+
+export interface HookSuggestionPayload {
+  hook: string;
+}
+
+export type OptimizationSuggestionPayload =
+  | TimingSuggestionPayload
+  | FormatSuggestionPayload
+  | HookSuggestionPayload;
+
 export interface OptimizationSuggestion {
   id: string;
   category: 'timing' | 'format' | 'hook';
   suggestion: string;
   confidence: number;
   dataPoints: number;
+  payload: OptimizationSuggestionPayload;
 }
+
+export type AutoApplyStatus =
+  | 'applied'
+  | 'not_found'
+  | 'below_threshold'
+  | 'not_auto_applicable';
 
 export interface AutoApplyResult {
   suggestionId: string;
   applied: boolean;
+  status: AutoApplyStatus;
   reason?: string;
 }
 
@@ -360,6 +385,7 @@ export class ContentOptimizationService {
         confidence: this.computeConfidence(topTime.count, memory.length),
         dataPoints: topTime.count,
         id: this.buildSuggestionId('timing', topTime.value),
+        payload: { preferredTime: topTime.value },
         suggestion: `Concentrate posting around ${topTime.value}; this time window consistently appears in top daily performance.`,
       });
     }
@@ -370,6 +396,7 @@ export class ContentOptimizationService {
         confidence: this.computeConfidence(topFormat.count, memory.length),
         dataPoints: topFormat.count,
         id: this.buildSuggestionId('format', topFormat.value),
+        payload: { preferredFormat: topFormat.value },
         suggestion: `Increase ${topFormat.value} output; this format appears most often in your top-performing days.`,
       });
     }
@@ -380,6 +407,7 @@ export class ContentOptimizationService {
         confidence: this.computeConfidence(topHook.count, memory.length),
         dataPoints: topHook.count,
         id: this.buildSuggestionId('hook', topHook.value),
+        payload: { hook: topHook.value },
         suggestion: `Reuse this winning hook structure: "${topHook.value}".`,
       });
     }
@@ -399,13 +427,34 @@ export class ContentOptimizationService {
     const suggestion = suggestions.find((item) => item.id === suggestionId);
 
     if (!suggestion) {
-      return { applied: false, reason: 'Suggestion not found', suggestionId };
+      return {
+        applied: false,
+        reason: 'Suggestion not found',
+        status: 'not_found',
+        suggestionId,
+      };
     }
 
     if (suggestion.confidence < minConfidenceThreshold) {
       return {
         applied: false,
         reason: `Confidence ${suggestion.confidence.toFixed(2)} below threshold ${minConfidenceThreshold.toFixed(2)}`,
+        status: 'below_threshold',
+        suggestionId,
+      };
+    }
+
+    const didApply = await this.applySuggestionPayload(
+      organizationId,
+      brandId,
+      suggestion,
+    );
+
+    if (!didApply) {
+      return {
+        applied: false,
+        reason: 'Suggestion cannot be auto-applied',
+        status: 'not_auto_applicable',
         suggestionId,
       };
     }
@@ -427,7 +476,7 @@ export class ContentOptimizationService {
       source: 'optimization_engine',
     });
 
-    return { applied: true, suggestionId };
+    return { applied: true, status: 'applied', suggestionId };
   }
 
   // ─── 4. Winner → Trend Feedback (issue #166) ─────────────────────
@@ -437,7 +486,8 @@ export class ContentOptimizationService {
    * feed its signals (platform, hook keywords, format) back into the org/brand's
    * trend preferences so future trend ingestion is biased toward what worked.
    *
-   * Gated per-org/brand by the `autoRequeueWinners` trend preference (opt-in).
+   * Gated per-org/brand by the `autoRequeueWinners` trend preference (opt-out).
+   * Missing or undefined means requeue; only an explicit `false` skips.
    */
   async requeueWinnerIntoTrends(
     organizationId: string,
@@ -451,13 +501,13 @@ export class ContentOptimizationService {
       brandId,
     );
 
-    if (!preferences?.autoRequeueWinners) {
-      this.logger.log(`${caller} skipped — opt-in disabled or unset`, {
+    if (preferences?.autoRequeueWinners === false) {
+      this.logger.log(`${caller} skipped — opted out`, {
         brandId,
         contentRunId: winner.contentRunId,
       });
       return {
-        reason: 'winner_trend_enrichment_disabled_or_missing',
+        reason: 'winner_trend_enrichment_disabled',
         requeued: false,
       };
     }
@@ -779,6 +829,77 @@ Return ONLY valid JSON.`;
     }
 
     return suggestions;
+  }
+
+  private async applySuggestionPayload(
+    organizationId: string,
+    brandId: string,
+    suggestion: OptimizationSuggestion,
+  ): Promise<boolean> {
+    switch (suggestion.category) {
+      case 'timing': {
+        const preferredTime = this.readPayloadField(
+          suggestion.payload,
+          'preferredTime',
+        );
+        if (!preferredTime) {
+          return false;
+        }
+
+        await this.brandMemoryService.updateMetrics(organizationId, brandId, {
+          topPerformingTime: preferredTime,
+        });
+        return true;
+      }
+      case 'format': {
+        const preferredFormat = this.readPayloadField(
+          suggestion.payload,
+          'preferredFormat',
+        );
+        if (!preferredFormat) {
+          return false;
+        }
+
+        await this.brandMemoryService.updateMetrics(organizationId, brandId, {
+          topPerformingFormat: preferredFormat,
+        });
+        return true;
+      }
+      case 'hook': {
+        const hook = this.readPayloadField(suggestion.payload, 'hook');
+        if (!hook) {
+          return false;
+        }
+
+        const sanitizedHook = SecurityUtil.sanitizePromptInput(hook);
+        if (!sanitizedHook) {
+          return false;
+        }
+
+        await this.brandMemoryService.logEntry(organizationId, brandId, {
+          content: sanitizedHook,
+          metadata: {
+            suggestionId: suggestion.id,
+            source: 'optimization_auto_apply',
+          },
+          type: 'hook',
+        });
+        return true;
+      }
+      default:
+        return false;
+    }
+  }
+
+  private readPayloadField(
+    payload: OptimizationSuggestionPayload,
+    key: 'preferredTime' | 'preferredFormat' | 'hook',
+  ): string | null {
+    const record = payload as Record<string, unknown>;
+    const value = record[key];
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : null;
   }
 
   private computeConfidence(count: number, totalDays: number): number {

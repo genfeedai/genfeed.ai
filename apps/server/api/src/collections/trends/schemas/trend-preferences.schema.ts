@@ -7,7 +7,7 @@ export interface TrendPreferencesDocument extends PrismaTrendPreferences {
   platforms?: string[];
   /**
    * When true, winning content-run signals are automatically fed back into this
-   * org/brand's trend ingestion (issue #166). Opt-in: defaults to false.
+   * org/brand's trend ingestion (issue #166). Opt-out: defaults to true when unset.
    */
   autoRequeueWinners?: boolean;
   [key: string]: unknown;
