@@ -1,3 +1,4 @@
+import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/interfaces';
 import {
   IsArray,
   IsBoolean,
@@ -58,6 +59,15 @@ export class UpsertHarnessProfileDto {
   @IsOptional()
   @IsObject()
   examples?: Record<string, string[]>;
+
+  /**
+   * Auto-added anti-example audit trail (see `IHarnessAvoidFeedbackEntry`).
+   * System-managed by `HarnessReviewFeedbackService`; not shallow-validated
+   * per-entry, consistent with the other loosely-typed profile blocks above.
+   */
+  @IsOptional()
+  @IsArray()
+  avoidFeedback?: IHarnessAvoidFeedbackEntry[];
 
   @IsOptional()
   @IsArray()

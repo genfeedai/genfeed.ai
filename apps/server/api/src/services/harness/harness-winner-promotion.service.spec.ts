@@ -147,4 +147,55 @@ describe('HarnessWinnerPromotionService', () => {
       'org-1',
     );
   });
+
+  it('ranks author closed loops above raw likes via the Heavy Ranker weight', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue({
+      topPerformers: [
+        {
+          comments: 5,
+          data: { authorClosedLoops: 0 },
+          description: '',
+          engagementRate: 10,
+          likes: 500,
+          platform: 'twitter',
+          postId: 'like-heavy',
+          saves: 2,
+          shares: 2,
+          title: 'Like-heavy post nobody talked back to',
+          views: 10_000,
+        },
+        {
+          comments: 6,
+          data: { authorClosedLoops: 4 },
+          description: '',
+          engagementRate: 2,
+          likes: 30,
+          platform: 'twitter',
+          postId: 'looped',
+          saves: 3,
+          shares: 1,
+          title: 'Loop-rich post where the author kept replying',
+          views: 10_000,
+        },
+      ],
+    });
+    prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
+    prisma.contextEntry.findMany.mockResolvedValue([]);
+
+    await service.promoteTopPerformers({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      limit: 1,
+    });
+
+    expect(contextsService.addEntry).toHaveBeenCalledTimes(1);
+    expect(contextsService.addEntry).toHaveBeenCalledWith(
+      'ctx-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Loop-rich post'),
+        metadata: expect.objectContaining({ postId: 'looped' }),
+      }),
+      'org-1',
+    );
+  });
 });

@@ -248,6 +248,10 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
         userId,
         organizationId,
       );
+      await workflowSeeder.ensureContentLoopAutopilotWorkflows(
+        userId,
+        organizationId,
+      );
       await workflowSeeder.ensureReplyPollingWorkflows(userId, organizationId);
       await workflowSeeder.ensureTrendNotificationWorkflows(
         userId,

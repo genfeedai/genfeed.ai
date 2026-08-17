@@ -2025,14 +2025,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.service.spec.ts",
-      "fingerprint": "f21d4e91c0fa70721cea",
-      "message": "Argument of type 'null' is not assignable to parameter of type '{ apiKey: string; apiSecret?: string | undefined; } | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2571,
       "count": 1,
       "file": "apps/server/api/src/endpoints/analytics/analytics.controller.spec.ts",

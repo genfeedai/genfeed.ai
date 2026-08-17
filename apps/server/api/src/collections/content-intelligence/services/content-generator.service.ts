@@ -1,10 +1,8 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
-import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
@@ -12,11 +10,7 @@ import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
   fitBrandContextToBudget,
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
-import { ContentHarnessService } from '@api/services/harness/harness.service';
-import {
-  buildHarnessInput,
-  formatHarnessBrief,
-} from '@api/services/harness/harness-brief.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { extractHashtags } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
@@ -57,11 +51,9 @@ export class ContentGeneratorService {
     private readonly playbookBuilderService: PlaybookBuilderService,
     @Optional()
     private readonly topPerformerPromptContextService?: TopPerformerPromptContextService,
-    @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
-    @Optional() private readonly contentHarnessService?: ContentHarnessService,
     @Optional()
-    private readonly harnessProfilesService?: HarnessProfilesService,
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {
     this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
@@ -193,58 +185,40 @@ export class ContentGeneratorService {
   ): Promise<string | undefined> {
     if (
       !dto.brandId ||
-      !this.brandsService ||
       !this.personasService ||
-      !this.contentHarnessService
+      !this.harnessGenerationService
     ) {
       return undefined;
     }
 
     try {
-      const brand = await this.brandsService.findOne(
-        {
-          id: dto.brandId,
-          organizationId: organizationId,
-        },
-        'none',
-      );
-
-      if (!brand) {
-        return undefined;
-      }
-
       const persona = await this.personasService.findOne({
         brandId: dto.brandId,
         organizationId: organizationId,
       });
-      const profileContribution =
-        await this.harnessProfilesService?.buildContributionForBrand(
-          organizationId.toString(),
-          dto.brandId.toString(),
-        );
 
-      const brief = await this.contentHarnessService.composeBrief(
-        buildHarnessInput({
-          additionalSources:
-            dto.additionalContext?.map((content, index) => ({
-              content,
-              id: `content-context-${index}`,
-              kind: 'audience_signal',
-            })) ?? [],
-          brand,
-          intent: {
-            contentType: 'post',
-            objective: 'engagement',
-            platform: dto.platform,
-            topic: dto.topic,
-          },
-          organizationId: organizationId.toString(),
-          persona,
-          profileContribution: profileContribution ?? undefined,
-        }),
-      );
+      // Single seam: HarnessGenerationService.resolveBrief is the only place
+      // that folds pgvector brand content memory into the brief (#3020).
+      // `includeContentMemory` is intentionally left unset so resolveBrief's
+      // own gate (`includeContentMemory ?? Boolean(topic?.trim())`) decides —
+      // passing `topic` through is what drives that gate here.
+      const brief = await this.harnessGenerationService.resolveBrief({
+        additionalSources:
+          dto.additionalContext?.map((content, index) => ({
+            content,
+            id: `content-context-${index}`,
+            kind: 'audience_signal',
+          })) ?? [],
+        brandId: dto.brandId,
+        contentType: 'post',
+        objective: 'engagement',
+        organizationId,
+        persona,
+        platform: dto.platform,
+        topic: dto.topic,
+      });
 
-      const formattedBrief = formatHarnessBrief(brief);
+      const formattedBrief = this.harnessGenerationService.formatBrief(brief);
       return formattedBrief || undefined;
     } catch {
       return undefined;

@@ -110,6 +110,41 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     ]);
   });
 
+  it('seeds the content loop autopilot workflow default-on for an organization (#3018)', async () => {
+    await service.ensureContentLoopAutopilotWorkflows('user-1', 'org-1');
+
+    expect(tx.workflow.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isScheduleEnabled: true,
+        label: 'Content Loop Autopilot',
+        metadata: expect.objectContaining({
+          sourceIssue: 3018,
+          sourceTemplateId: 'content-loop-autopilot',
+          sourceType: 'seeded-template',
+          systemWorkflow: expect.objectContaining({
+            canonicalId: 'content-loop-autopilot',
+            credentialPolicy: 'tenant-connected-account',
+            sourceIssue: 3018,
+          }),
+        }),
+        organizationId: 'org-1',
+        schedule: '0 8 * * *',
+        status: WorkflowStatus.ACTIVE,
+        userId: 'user-1',
+      }),
+    });
+    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
+      expect.objectContaining({
+        id: 'analyticsGenericSync',
+        type: 'analyticsGenericSync',
+      }),
+      expect.objectContaining({
+        id: 'harnessWinnerPromotionSweep',
+        type: 'harnessWinnerPromotionSweep',
+      }),
+    ]);
+  });
+
   it('does not seed a duplicate livestream bot workflow', async () => {
     prisma.workflow.findFirst.mockImplementation(({ where }) => {
       const sourceTemplateId = where.metadata.equals;

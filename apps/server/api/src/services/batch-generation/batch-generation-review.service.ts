@@ -14,6 +14,7 @@ import {
 } from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
+import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
@@ -31,7 +32,7 @@ import {
   scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class BatchGenerationReviewService {
@@ -42,6 +43,8 @@ export class BatchGenerationReviewService {
     private readonly postLifecycleService: PostLifecycleService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly summaryService: BatchGenerationSummaryService,
+    @Optional()
+    private readonly harnessReviewFeedbackService?: HarnessReviewFeedbackService,
   ) {}
 
   /**
@@ -404,6 +407,43 @@ export class BatchGenerationReviewService {
     ];
   }
 
+  /**
+   * Feeds human rejections/change-requests on generated batch items back
+   * into the brand's harness profile (anti-examples) so future generations
+   * avoid repeating the rejected pattern. Fire-and-forget: the harness
+   * service never throws, but this is still not awaited so a slow or failed
+   * feedback write can never delay or fail the review action itself.
+   */
+  private recordHarnessReviewFeedback(
+    items: BatchItemFull[],
+    decision:
+      | typeof ReviewDecision.REJECTED
+      | typeof ReviewDecision.REQUEST_CHANGES,
+    organizationId: string,
+    brandId: string | undefined,
+    reason?: string,
+  ): void {
+    if (!this.harnessReviewFeedbackService || items.length === 0) {
+      return;
+    }
+
+    for (const item of items) {
+      const content = item.caption ?? item.prompt;
+      if (!content) {
+        continue;
+      }
+      void this.harnessReviewFeedbackService.recordReviewDecision({
+        brandId,
+        content,
+        decision,
+        organizationId,
+        reason,
+        sourceId: item.id,
+        sourceType: 'batch_item',
+      });
+    }
+  }
+
   async rejectItems(
     batchId: string,
     itemIds: string[],
@@ -426,6 +466,7 @@ export class BatchGenerationReviewService {
     const reviewedAt = new Date().toISOString();
 
     const batchItems = resolveBatchItems(batchRecord);
+    const rejectedItems: BatchItemFull[] = [];
 
     for (const item of batchItems) {
       if (itemIdSet.has(item.id)) {
@@ -445,8 +486,17 @@ export class BatchGenerationReviewService {
         if (item.postId) {
           postIdsToReject.push(item.postId);
         }
+        rejectedItems.push(item);
       }
     }
+
+    this.recordHarnessReviewFeedback(
+      rejectedItems,
+      ReviewDecision.REJECTED,
+      orgId,
+      batchRecord.brandId ?? undefined,
+      feedback,
+    );
 
     if (postIdsToReject.length > 0) {
       for (const postId of postIdsToReject) {
@@ -525,6 +575,7 @@ export class BatchGenerationReviewService {
     const reviewedAt = new Date().toISOString();
 
     const batchItems = resolveBatchItems(batchRecord);
+    const changesRequestedItems: BatchItemFull[] = [];
 
     for (const item of batchItems) {
       if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
@@ -543,8 +594,17 @@ export class BatchGenerationReviewService {
         if (item.postId) {
           postIdsToKeepAsDraft.push(item.postId);
         }
+        changesRequestedItems.push(item);
       }
     }
+
+    this.recordHarnessReviewFeedback(
+      changesRequestedItems,
+      ReviewDecision.REQUEST_CHANGES,
+      orgId,
+      batchRecord.brandId ?? undefined,
+      feedback,
+    );
 
     if (postIdsToKeepAsDraft.length > 0) {
       for (const postId of postIdsToKeepAsDraft) {

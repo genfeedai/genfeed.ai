@@ -45,7 +45,19 @@ export class AgentSpawnService implements OnModuleInit {
 
     const brandContext = await this.contextAssemblyService.assembleContext({
       credentialId,
-      layers: { brandGuidance: true, brandIdentity: true, brandMemory: true },
+      // Every spawned sub-agent type is a content-creation specialist (see
+      // SYSTEM_PROMPT_MANAGER) — recentPosts keeps it from repeating what the
+      // brand just shipped. ragContext stays off: this call doesn't thread a
+      // `query`, so the flag would be an inert no-op (AgentContextAssemblyService
+      // only loads RAG when `params.query` is set), and the task string is
+      // already the model's primary input via `content` below.
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandMemory: true,
+        performancePatterns: true,
+        recentPosts: true,
+      },
       organizationId: parentContext.organizationId,
     });
 

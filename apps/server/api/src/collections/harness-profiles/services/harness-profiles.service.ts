@@ -13,6 +13,7 @@ import type { ContentHarnessContribution } from '@genfeedai/harness';
 import type {
   HarnessProfileScope,
   HarnessProfileStatus,
+  IHarnessAvoidFeedbackEntry,
   IHarnessProfileExamples,
   IHarnessProfileStructure,
   IHarnessProfileThesis,
@@ -62,6 +63,40 @@ function readStringArrayRecord(value: unknown): Record<string, string[]> {
 
 function serializeJsonRecord(value: Record<string, unknown>) {
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+/**
+ * `avoidFeedback` entries carry non-string fields (isAutoAdded, nested
+ * content/reason/source/addedAt), so they cannot round-trip through the
+ * generic `readStringArrayRecord` helpers above — validate the shape
+ * explicitly instead.
+ */
+function readAvoidFeedbackEntry(
+  value: unknown,
+): IHarnessAvoidFeedbackEntry | undefined {
+  const record = readRecord(value);
+  const content = readString(record.content);
+  const source = readString(record.source);
+  const addedAt = readString(record.addedAt);
+  if (!content || !source || !addedAt) {
+    return undefined;
+  }
+
+  return {
+    addedAt,
+    content,
+    isAutoAdded: Boolean(record.isAutoAdded),
+    reason: readString(record.reason),
+    source,
+  };
+}
+
+function readAvoidFeedback(value: unknown): IHarnessAvoidFeedbackEntry[] {
+  return Array.isArray(value)
+    ? value
+        .map((item) => readAvoidFeedbackEntry(item))
+        .filter((item): item is IHarnessAvoidFeedbackEntry => Boolean(item))
+    : [];
 }
 
 @Injectable()
@@ -361,6 +396,7 @@ export class HarnessProfilesService {
       ...profile,
       ...data,
       audience: readStringArray(data.audience),
+      avoidFeedback: readAvoidFeedback(data.avoidFeedback),
       brandId: readString(data.brandId) ?? '',
       createdBy: profile.createdById,
       description: readString(data.description),
@@ -402,6 +438,7 @@ export class HarnessProfilesService {
   ) {
     return {
       audience: readStringArray(dto.audience),
+      avoidFeedback: readAvoidFeedback(dto.avoidFeedback),
       brandId: dto.brandId,
       description: readString(dto.description),
       examples: readStringArrayRecord(dto.examples),

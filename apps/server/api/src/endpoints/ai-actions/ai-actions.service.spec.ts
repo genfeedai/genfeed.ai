@@ -13,6 +13,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AiActionsService', () => {
   let service: AiActionsService;
+  let contextAssemblyService: vi.Mocked<AgentContextAssemblyService>;
   let openRouterService: vi.Mocked<OpenRouterService>;
   let byokService: vi.Mocked<ByokService>;
   let loggerService: vi.Mocked<LoggerService>;
@@ -51,6 +52,7 @@ describe('AiActionsService', () => {
     }).compile();
 
     service = module.get<AiActionsService>(AiActionsService);
+    contextAssemblyService = module.get(AgentContextAssemblyService);
     openRouterService = module.get(OpenRouterService);
     byokService = module.get(ByokService);
     loggerService = module.get(LoggerService);
@@ -75,6 +77,39 @@ describe('AiActionsService', () => {
       );
     });
 
+    it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.REWRITE,
+        content: 'Test content',
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Result' } }],
+        usage: { total_tokens: 50 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      // ai-actions is a single-turn helper with no thread history or
+      // memories, so it has the most budget headroom of any
+      // AgentContextAssemblyService caller — worth enabling recentPosts too,
+      // since most actions operate on content the brand is about to
+      // publish. ragContext stays off: no `query` is threaded through this
+      // call (dto.content is the artifact being transformed, not a
+      // retrieval query).
+      expect(contextAssemblyService.assembleContext).toHaveBeenCalledWith({
+        layers: {
+          brandGuidance: true,
+          brandIdentity: true,
+          brandMemory: true,
+          performancePatterns: true,
+          recentPosts: true,
+        },
+        organizationId: 'org_123',
+      });
+    });
+
     it('should execute action without BYOK successfully', async () => {
       const dto: ExecuteAiActionDto = {
         action: AiActionType.REWRITE,
@@ -82,7 +117,7 @@ describe('AiActionsService', () => {
         context: { brand: 'TestBrand', tone: 'professional' },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: 'Generated caption' } }],
         usage: { total_tokens: 100 },
@@ -149,7 +184,7 @@ describe('AiActionsService', () => {
         },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: 'Result' } }],
         usage: { total_tokens: 50 },
@@ -170,7 +205,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: '  Trimmed result  \n' } }],
         usage: { total_tokens: 75 },
@@ -187,7 +222,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: null } }],
         usage: { total_tokens: 10 },
@@ -212,7 +247,7 @@ describe('AiActionsService', () => {
         },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockRejectedValue(error);
 
       await expect(service.execute('org_789', dto)).rejects.toThrow();
@@ -233,7 +268,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockRejectedValue('string error');
 
       await expect(service.execute('org_999', dto)).rejects.toBe(

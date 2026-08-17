@@ -33,6 +33,27 @@ export interface IHarnessProfileExamples {
   avoid?: string[];
 }
 
+/**
+ * Audit trail for anti-examples appended automatically from human review
+ * decisions (rejected / request_changes on generated content). Tracked
+ * separately from `examples.avoid` (which stays a flat string list so the
+ * settings UI keeps editing it as plain text) so the cap/eviction logic in
+ * `HarnessReviewFeedbackService` can tell auto-added entries apart from
+ * operator/seed-curated ones and never evict the latter.
+ */
+export interface IHarnessAvoidFeedbackEntry {
+  /** Excerpted, length-capped copy of the rejected content. */
+  content: string;
+  /** Reviewer-supplied rejection feedback, when present. */
+  reason?: string;
+  /** `${sourceType}:${sourceId}` stamp of the review decision, for audit + dedupe. */
+  source: string;
+  /** ISO timestamp the entry was recorded. */
+  addedAt: string;
+  /** True for entries appended by the review-feedback pipeline (evictable). */
+  isAutoAdded: boolean;
+}
+
 export interface IHarnessProfile extends IBaseEntity {
   organization?: string;
   organizationId?: string;
@@ -52,6 +73,8 @@ export interface IHarnessProfile extends IBaseEntity {
   voice: IHarnessProfileVoice;
   structure: IHarnessProfileStructure;
   examples: IHarnessProfileExamples;
+  /** Auto-added anti-example audit trail. See `IHarnessAvoidFeedbackEntry`. */
+  avoidFeedback?: IHarnessAvoidFeedbackEntry[];
   guardrails: string[];
   metadata?: Record<string, unknown>;
 }

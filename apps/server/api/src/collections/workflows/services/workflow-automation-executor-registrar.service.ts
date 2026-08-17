@@ -1,3 +1,4 @@
+import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
@@ -24,6 +25,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
+    private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -35,6 +37,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerReplyPollingExecutors(engine);
     this.registerTrendNotificationExecutors(engine);
     this.registerLivestreamBotExecutors(engine);
+    this.registerWinnerPromotionExecutors(engine);
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
@@ -258,6 +261,37 @@ export class WorkflowAutomationExecutorRegistrarService {
         botId,
       );
     });
+  }
+
+  private registerWinnerPromotionExecutors(engine: WorkflowEngine): void {
+    engine.registerExecutor(
+      'harnessWinnerPromotionSweep',
+      (_node, _inputs, context) =>
+        this.winnerPromotionWorkflowService
+          ? this.winnerPromotionWorkflowService.runOrganizationWinnerPromotion(
+              context.organizationId,
+            )
+          : this.winnerPromotionUnavailable(
+              'harnessWinnerPromotionSweep',
+              context,
+            ),
+    );
+  }
+
+  private async winnerPromotionUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ) {
+    return {
+      action,
+      brandsEligible: 0,
+      brandsFailed: 0,
+      brandsPromoted: 0,
+      organizationId: context.organizationId,
+      promoted: 0,
+      reason: 'winner_promotion_service_unavailable',
+      status: 'skipped',
+    };
   }
 
   private async adAutomationUnavailable(

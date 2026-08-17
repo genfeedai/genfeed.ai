@@ -2,8 +2,10 @@ import { ContentGeneratorService } from '@api/collections/content-intelligence/s
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -350,5 +352,171 @@ describe('ContentGeneratorService', () => {
     const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(results).toHaveLength(3);
+  });
+});
+
+// #3020 — the harness system prompt now flows entirely through
+// HarnessGenerationService.resolveBrief (the same seam ContentQualityScorerService,
+// AdsResearchService, and ReplyGenerationService already use), so pgvector brand
+// content memory is folded in here too instead of only on the standalone harness
+// generation path.
+const MOCK_PERSONA = {
+  bio: 'Founder voice',
+  handle: 'founder',
+  label: 'Founder Persona',
+};
+
+describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () => {
+  let service: ContentGeneratorService;
+  let personasService: { findOne: ReturnType<typeof vi.fn> };
+  let harnessGenerationService: {
+    resolveBrief: ReturnType<typeof vi.fn>;
+    formatBrief: ReturnType<typeof vi.fn>;
+  };
+  let openRouterService: { chatCompletion: ReturnType<typeof vi.fn> };
+
+  beforeEach(async () => {
+    personasService = {
+      findOne: vi.fn().mockResolvedValue(MOCK_PERSONA),
+    };
+    harnessGenerationService = {
+      formatBrief: vi
+        .fn()
+        .mockReturnValue('SYSTEM DIRECTIVES:\n- Stay on brand'),
+      resolveBrief: vi.fn().mockResolvedValue({
+        evaluationCriteria: [],
+        guardrails: [],
+        metadata: { contentType: 'post', objective: 'engagement' },
+        packs: [],
+        providerHints: [],
+        sources: [],
+        styleDirectives: [],
+        systemDirectives: ['Stay on brand'],
+      }),
+    };
+    openRouterService = {
+      chatCompletion: vi.fn().mockResolvedValue({
+        choices: [{ message: { content: LLM_JSON_RESPONSE } }],
+      }),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ContentGeneratorService,
+        { provide: ConfigService, useValue: { get: vi.fn() } },
+        {
+          provide: AgentContextAssemblyService,
+          useValue: {
+            assembleContext: vi.fn().mockResolvedValue(null),
+            buildSystemPrompt: vi.fn().mockReturnValue(''),
+          },
+        },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
+        { provide: OpenRouterService, useValue: openRouterService },
+        {
+          provide: PatternStoreService,
+          useValue: {
+            findByOrganization: vi.fn().mockResolvedValue([]),
+            findOne: vi.fn().mockResolvedValue(null),
+            incrementUsage: vi.fn(),
+          },
+        },
+        {
+          provide: PlaybookBuilderService,
+          useValue: { findOne: vi.fn().mockResolvedValue(null) },
+        },
+        {
+          provide: TopPerformerPromptContextService,
+          useValue: { assembleContext: vi.fn().mockResolvedValue(undefined) },
+        },
+        { provide: PersonasService, useValue: personasService },
+        {
+          provide: HarnessGenerationService,
+          useValue: harnessGenerationService,
+        },
+      ],
+    }).compile();
+
+    service = module.get(ContentGeneratorService);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves the persona and passes it plus the generation topic through resolveBrief', async () => {
+    await service.generateContent(ORG_ID, BASE_DTO as never);
+
+    expect(personasService.findOne).toHaveBeenCalledWith({
+      brandId: BASE_DTO.brandId,
+      organizationId: ORG_ID,
+    });
+    expect(harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: BASE_DTO.brandId,
+        contentType: 'post',
+        objective: 'engagement',
+        organizationId: ORG_ID,
+        persona: MOCK_PERSONA,
+        platform: BASE_DTO.platform,
+        topic: BASE_DTO.topic,
+      }),
+    );
+    // The topic gate lives inside resolveBrief now — ContentGeneratorService
+    // must not override includeContentMemory, only supply the topic that
+    // drives the gate.
+    const callArgs = harnessGenerationService.resolveBrief.mock.calls[0][0];
+    expect(callArgs).not.toHaveProperty('includeContentMemory');
+  });
+
+  it('forwards dto.additionalContext as audience_signal sources', async () => {
+    const dto = {
+      ...BASE_DTO,
+      additionalContext: ['Recent customer testimonial'],
+    };
+
+    await service.generateContent(ORG_ID, dto as never);
+
+    expect(harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        additionalSources: [
+          {
+            content: 'Recent customer testimonial',
+            id: 'content-context-0',
+            kind: 'audience_signal',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('folds the formatted harness brief into the generation system prompt', async () => {
+    await service.generateContent(ORG_ID, BASE_DTO as never);
+
+    const systemMessage =
+      openRouterService.chatCompletion.mock.calls[0]?.[0]?.messages?.find(
+        (message: { role?: string }) => message.role === 'system',
+      );
+    expect(systemMessage?.content).toContain('SYSTEM DIRECTIVES');
+  });
+
+  it('does not call resolveBrief when brandId is absent', async () => {
+    const dto = { ...BASE_DTO, brandId: undefined };
+
+    await service.generateContent(ORG_ID, dto as never);
+
+    expect(harnessGenerationService.resolveBrief).not.toHaveBeenCalled();
+  });
+
+  it('falls back to undefined when resolveBrief resolves null', async () => {
+    harnessGenerationService.resolveBrief.mockResolvedValue(null);
+    harnessGenerationService.formatBrief.mockReturnValue('');
+
+    const results = await service.generateContent(ORG_ID, BASE_DTO as never);
+
+    expect(results.length).toBeGreaterThan(0);
   });
 });

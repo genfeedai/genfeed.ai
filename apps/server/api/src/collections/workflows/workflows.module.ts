@@ -7,6 +7,7 @@ dependency management, and workflow execution tracking.
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
+import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -106,6 +107,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentThreadsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
+    forwardRef(() => ContentPerformanceModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ElevenLabsModule),

@@ -15,6 +15,7 @@ import { BatchGenerationReconcileService } from '@api/services/batch-generation/
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
@@ -37,6 +38,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ConfigModule),
+    forwardRef(() => ContentHarnessModule),
     forwardRef(() => ContentIntelligenceModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => HarnessProfilesModule),

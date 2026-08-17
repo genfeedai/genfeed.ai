@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -135,6 +136,11 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly socialInboxService?: SocialInboxService,
     @Optional() private readonly sourcePostsService?: SourcePostsService,
     @Optional() private readonly twitterService?: TwitterService,
+    // Appended at the end (not inline with its automation-service siblings)
+    // so it never shifts the fixed positional indices the adapter spec file
+    // relies on (e.g. AGENT_AUTOPILOT_SERVICE_INDEX, SOCIAL_INBOX_SERVICE_INDEX).
+    @Optional()
+    private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -206,6 +212,7 @@ export class WorkflowEngineAdapterService {
       this.replyPollingWorkflowService,
       this.trendNotificationWorkflowService,
       this.livestreamBotWorkflowService,
+      this.winnerPromotionWorkflowService,
     );
     this.trendPublishRegistrar =
       new WorkflowTrendPublishExecutorRegistrarService(

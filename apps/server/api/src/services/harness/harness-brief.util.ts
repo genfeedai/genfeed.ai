@@ -26,7 +26,7 @@ type BrandSource = Pick<
   | 'text'
 >;
 
-type PersonaSource = Pick<
+export type PersonaSource = Pick<
   {
     bio?: string | null;
     contentStrategy?: {

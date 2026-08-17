@@ -1,5 +1,4 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { closedLoopBoostScore } from '@api/services/reply-bot/author-closed-loop.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
@@ -266,7 +265,10 @@ export class HarnessWinnerPromotionService {
         : '';
     const platform = item.platform ? ` on ${item.platform}` : '';
     const xScore = isXPlatform(item.platform)
-      ? ` [x-score ${scoreXPublicMetricsPer1k(item).toFixed(1)}/1k]`
+      ? ` [x-score ${scoreXPublicMetricsPer1k({
+          ...item,
+          authorClosedLoops: readAuthorClosedLoops(item),
+        }).toFixed(1)}/1k]`
       : '';
     return `Winning post${platform}${rate}${xScore}: ${text.slice(0, 400)}`;
   }
@@ -301,18 +303,14 @@ export class HarnessWinnerPromotionService {
       const leftIsX = isXPlatform(left.platform);
       const rightIsX = isXPlatform(right.platform);
       if (leftIsX && rightIsX) {
-        const leftScore =
-          scoreXPublicMetricsPer1k(left) +
-          closedLoopBoostScore({
-            authorClosedLoops: readAuthorClosedLoops(left),
-            engagementRate: 0,
-          });
-        const rightScore =
-          scoreXPublicMetricsPer1k(right) +
-          closedLoopBoostScore({
-            authorClosedLoops: readAuthorClosedLoops(right),
-            engagementRate: 0,
-          });
+        const leftScore = scoreXPublicMetricsPer1k({
+          ...left,
+          authorClosedLoops: readAuthorClosedLoops(left),
+        });
+        const rightScore = scoreXPublicMetricsPer1k({
+          ...right,
+          authorClosedLoops: readAuthorClosedLoops(right),
+        });
         return rightScore - leftScore;
       }
       if (leftIsX !== rightIsX) {
