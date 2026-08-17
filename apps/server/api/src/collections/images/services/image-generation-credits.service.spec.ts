@@ -82,6 +82,35 @@ describe('ImageGenerationCreditsService', () => {
       amount: 20,
       deferred: false,
       modelKey: 'fal/model',
+      pricingMetadata: {
+        marginMultiplier: 1,
+        pricingType: null,
+        providerCostUsd: null,
+      },
+    });
+  });
+
+  it('stamps provider-cost pricing metadata for live-priced models', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 50,
+      pricingType: 'flat',
+      providerCostUsd: 0.15,
+    });
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { height: 1080, width: 1920 } as never,
+      'fal/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toMatchObject({
+      pricingMetadata: {
+        marginMultiplier: 1,
+        pricingType: 'flat',
+        providerCostUsd: 0.15,
+      },
     });
   });
 });

@@ -59,4 +59,31 @@ describe('VideoGenerationCreditsService', () => {
       title: 'Insufficient credits',
     });
   });
+
+  it('settles deferred credits with the pricing audit stamp', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      pricingType: 'per-second',
+      providerCostUsd: 0.24,
+    });
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      'kling/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toEqual({
+      amount: 10,
+      deferred: false,
+      modelKey: 'kling/model',
+      pricingMetadata: {
+        marginMultiplier: 1,
+        pricingType: 'per-second',
+        providerCostUsd: 0.24,
+      },
+    });
+  });
 });

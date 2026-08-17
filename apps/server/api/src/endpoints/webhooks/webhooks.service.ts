@@ -10,6 +10,7 @@ import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/servi
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -40,6 +41,7 @@ export class WebhooksService {
     private readonly filesClientService: FilesClientService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
+    private readonly mediaGenerationCostService: MediaGenerationCostService,
     private readonly mediaUploadService: MediaUploadService,
     private readonly metadataLookupService: MetadataLookupService,
     private readonly metadataService: MetadataService,
@@ -191,6 +193,24 @@ export class WebhooksService {
     // 3. Mark ingredient as GENERATED
     await this.ingredientsService.patch(input.ingredientId, {
       status: IngredientStatus.GENERATED,
+    });
+
+    // 3.5 Vendor-cost ledger row from the realized output (fire-and-forget;
+    // the service swallows every failure so it can never break finalization).
+    const generationMetadata = metadata as {
+      duration?: number;
+      height?: number;
+      model?: string;
+      width?: number;
+    } | null;
+    void this.mediaGenerationCostService.recordGenerationCost({
+      category: input.categoryValue,
+      durationSeconds: generationMetadata?.duration ?? null,
+      height: generationMetadata?.height ?? null,
+      ingredientId: input.ingredientId,
+      modelKey: generationMetadata?.model ?? null,
+      organizationId: ingredient.organizationId ?? null,
+      width: generationMetadata?.width ?? null,
     });
 
     // 4. Post-processing (fire-and-forget)

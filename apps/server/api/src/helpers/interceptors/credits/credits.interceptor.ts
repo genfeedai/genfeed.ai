@@ -84,6 +84,9 @@ export class CreditsInterceptor implements NestInterceptor {
               amount: currentCreditsConfig.amount || 0,
               description: currentCreditsConfig.description,
               maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
+              metadata: currentCreditsConfig.pricingMetadata
+                ? { ...currentCreditsConfig.pricingMetadata }
+                : undefined,
               organizationId: identity.organizationId,
               source: currentCreditsConfig.source || ActivitySource.SCRIPT,
               type: 'deduct-credits',

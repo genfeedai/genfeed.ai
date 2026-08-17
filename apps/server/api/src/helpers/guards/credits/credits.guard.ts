@@ -24,7 +24,10 @@ import {
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
-import { billCreditsFromProviderCost } from '@genfeedai/pricing';
+import {
+  billCreditsFromProviderCost,
+  buildPricingAuditStamp,
+} from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -572,6 +575,9 @@ export class CreditsGuard implements CanActivate {
         ...creditsConfig,
         amount: requiredCredits,
         modelKey: modelKey || creditsConfig.modelKey, // Store the actual model key used
+        ...(resolvedModel
+          ? { pricingMetadata: buildPricingAuditStamp(resolvedModel) }
+          : {}),
       };
       request.creditsConfig = updatedCreditsConfig;
       this.loggerService.debug('Credits guard: creditsConfig set on request', {

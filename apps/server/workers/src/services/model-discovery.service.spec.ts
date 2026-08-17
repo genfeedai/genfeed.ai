@@ -61,6 +61,7 @@ describe('ModelDiscoveryService', () => {
   let mockModelPricingService: {
     estimateCost: ReturnType<typeof vi.fn>;
     estimateFromProviderCost: ReturnType<typeof vi.fn>;
+    getKnownReplicateCost: ReturnType<typeof vi.fn>;
   };
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
@@ -93,6 +94,7 @@ describe('ModelDiscoveryService', () => {
         ...mockPricing,
         cost: 34,
       }),
+      getKnownReplicateCost: vi.fn().mockReturnValue(null),
     };
 
     mockConfigService = {
@@ -105,6 +107,98 @@ describe('ModelDiscoveryService', () => {
       mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
     );
+  });
+
+  describe('syncKnownProviderCosts', () => {
+    const KNOWN_COSTS: Record<string, number> = {
+      'google/veo-3': 0.5,
+    };
+
+    beforeEach(() => {
+      mockModelPricingService.getKnownReplicateCost.mockImplementation(
+        (key: string) => KNOWN_COSTS[key] ?? null,
+      );
+    });
+
+    it('updates drifted providerCostUsd and logs the drift', async () => {
+      const summary = await service.syncKnownProviderCosts([
+        {
+          id: 'model-1',
+          isDeleted: false,
+          key: 'google/veo-3',
+          providerCostUsd: 0.4,
+        },
+      ] as never);
+
+      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 1 });
+      expect(mockModelsService.patch).toHaveBeenCalledWith('model-1', {
+        providerCostUsd: 0.5,
+      });
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('provider cost drift'),
+        { knownCostUsd: 0.5, modelKey: 'google/veo-3', storedCostUsd: 0.4 },
+      );
+    });
+
+    it('backfills models missing providerCostUsd', async () => {
+      const summary = await service.syncKnownProviderCosts([
+        { id: 'model-1', isDeleted: false, key: 'google/veo-3' },
+      ] as never);
+
+      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 1 });
+      expect(mockModelsService.patch).toHaveBeenCalledWith('model-1', {
+        providerCostUsd: 0.5,
+      });
+    });
+
+    it('leaves in-sync, unknown, deleted, and non-Replicate models alone', async () => {
+      const summary = await service.syncKnownProviderCosts([
+        {
+          id: 'in-sync',
+          isDeleted: false,
+          key: 'google/veo-3',
+          providerCostUsd: 0.5,
+        },
+        {
+          id: 'unknown',
+          isDeleted: false,
+          key: 'acme/unknown-model',
+          providerCostUsd: 0.1,
+        },
+        {
+          id: 'deleted',
+          isDeleted: true,
+          key: 'google/veo-3',
+          providerCostUsd: 0.4,
+        },
+        {
+          id: 'other-provider',
+          isDeleted: false,
+          key: 'google/veo-3',
+          provider: 'fal',
+          providerCostUsd: 0.4,
+        },
+      ] as never);
+
+      expect(summary).toEqual({ checked: 1, drifted: 0, updated: 0 });
+      expect(mockModelsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('counts drift without update when the patch fails', async () => {
+      mockModelsService.patch.mockRejectedValue(new Error('db down'));
+
+      const summary = await service.syncKnownProviderCosts([
+        {
+          id: 'model-1',
+          isDeleted: false,
+          key: 'google/veo-3',
+          providerCostUsd: 0.4,
+        },
+      ] as never);
+
+      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 0 });
+      expect(mockLoggerService.error).toHaveBeenCalled();
+    });
   });
 
   describe('createDraftModel', () => {

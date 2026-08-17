@@ -1,6 +1,7 @@
 import { PricingType } from '@genfeedai/enums';
+import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
 
-import { applyMargin } from './plans-pricing';
+import { applyMargin, getRuntimeMarginMultiplier } from './plans-pricing';
 
 /**
  * Fields needed to compute customer-facing credits from raw provider USD.
@@ -147,6 +148,49 @@ export function resolveLiveModelCreditPricing(
     cost: unitCredits,
     costPerUnit: null,
     minCost: unitCredits,
+  };
+}
+
+/** Micro-USD integer scale shared by the vendor-cost ledgers. */
+export const VENDOR_COST_MICROS_PER_USD = 1_000_000;
+
+/**
+ * Platform vendor cost of one media generation in micro-USD:
+ * `providerCostUsd × units`, where units follow the model's pricingType
+ * (seconds / megapixels / runs). Returns 0 when the model has no known
+ * provider cost — the ledger row then still counts the generation.
+ */
+export function computeMediaVendorCostMicros(
+  model: ModelLivePricingInput,
+  options?: ModelLivePricingUnits,
+): number {
+  if (!hasProviderCostUsd(model.providerCostUsd)) {
+    return 0;
+  }
+
+  const units = resolveProviderCostUnits(
+    model.pricingType,
+    model.defaultDuration,
+    options,
+  );
+  return Math.round(model.providerCostUsd * units * VENDOR_COST_MICROS_PER_USD);
+}
+
+/**
+ * Audit stamp for a charge priced against this model: the margin multiplier in
+ * force right now plus the model's provider-cost inputs. Callers attach it to
+ * the credit transaction so the charge stays reconstructable after margin or
+ * provider-cost changes.
+ */
+export function buildPricingAuditStamp(
+  model: Pick<ModelLivePricingInput, 'pricingType' | 'providerCostUsd'>,
+): CreditsPricingMetadata {
+  return {
+    marginMultiplier: getRuntimeMarginMultiplier(),
+    pricingType: model.pricingType ?? null,
+    providerCostUsd: hasProviderCostUsd(model.providerCostUsd)
+      ? model.providerCostUsd
+      : null,
   };
 }
 

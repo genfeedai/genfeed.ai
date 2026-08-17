@@ -79,6 +79,8 @@ export class CronModelWatcherService {
       draftsCreated: 0,
       errors: 0,
       newModelsFound: 0,
+      providerCostsDrifted: 0,
+      providerCostsUpdated: 0,
       timestamp: new Date(),
       totalPolled: 0,
     };
@@ -97,6 +99,13 @@ export class CronModelWatcherService {
       );
 
       this.logger.log(`${url} loaded ${existingKeys.size} existing model keys`);
+
+      // Step 1.5: Pass through known provider-cost changes so the configured
+      // margin stays real for models billed live from providerCostUsd.
+      const costSync =
+        await this.modelDiscoveryService.syncKnownProviderCosts(allModels);
+      summary.providerCostsDrifted = costSync.drifted;
+      summary.providerCostsUpdated = costSync.updated;
 
       // Step 2: Poll Replicate API for official models
       const replicateModels = await this.pollReplicateModels();
@@ -190,6 +199,8 @@ export class CronModelWatcherService {
         draftsCreated: summary.draftsCreated,
         errors: summary.errors,
         newModelsFound: summary.newModelsFound,
+        providerCostsDrifted: summary.providerCostsDrifted,
+        providerCostsUpdated: summary.providerCostsUpdated,
         totalPolled: summary.totalPolled,
       });
 

@@ -19,6 +19,7 @@ import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/servi
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -47,6 +48,7 @@ describe('WebhooksService', () => {
   let cacheService: vi.Mocked<CacheService>;
   let assetsService: vi.Mocked<AssetsService>;
   let metadataLookupService: vi.Mocked<MetadataLookupService>;
+  let mediaGenerationCostService: vi.Mocked<MediaGenerationCostService>;
   let mediaUploadService: vi.Mocked<MediaUploadService>;
   let activityUpdateService: vi.Mocked<ActivityUpdateService>;
   let postProcessingOrchestrator: vi.Mocked<PostProcessingOrchestratorService>;
@@ -234,6 +236,12 @@ describe('WebhooksService', () => {
           },
         },
         {
+          provide: MediaGenerationCostService,
+          useValue: {
+            recordGenerationCost: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: MediaUploadService,
           useValue: {
             uploadAndUpdateMetadata: vi.fn().mockResolvedValue(undefined),
@@ -268,6 +276,7 @@ describe('WebhooksService', () => {
     cacheService = module.get(CacheService);
     assetsService = module.get(AssetsService);
     metadataLookupService = module.get(MetadataLookupService);
+    mediaGenerationCostService = module.get(MediaGenerationCostService);
     mediaUploadService = module.get(MediaUploadService);
     activityUpdateService = module.get(ActivityUpdateService);
     postProcessingOrchestrator = module.get(PostProcessingOrchestratorService);
@@ -331,6 +340,14 @@ describe('WebhooksService', () => {
       );
       expect(websocketService.publishVideoComplete).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);
+      expect(
+        mediaGenerationCostService.recordGenerationCost,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: IngredientCategory.IMAGE,
+          ingredientId: mockIngredientId.toString(),
+        }),
+      );
     });
 
     it('skips finalize when the ingredient is no longer processing', async () => {

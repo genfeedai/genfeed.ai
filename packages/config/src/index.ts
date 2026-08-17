@@ -33,9 +33,6 @@ export {
   shouldShowCreditsNav,
   usesMeteredCredits,
 } from './license';
-export type { PricingConfig } from './pricing';
-// Pricing
-export { getPricingConfig } from './pricing';
 export {
   canReceiveProviderWebhooks,
   isProviderWebhookReachable,

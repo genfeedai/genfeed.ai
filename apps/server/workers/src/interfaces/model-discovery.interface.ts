@@ -108,4 +108,20 @@ export interface IModelDiscoveryRunSummary {
   draftsCreated: number;
   errors: number;
   timestamp: Date;
+  /** Replicate watcher only: models whose stored providerCostUsd drifted from the known cost */
+  providerCostsDrifted?: number;
+  /** Replicate watcher only: drifted models whose providerCostUsd was refreshed */
+  providerCostsUpdated?: number;
+}
+
+/**
+ * Summary of a known-provider-cost passthrough sync over existing models
+ */
+export interface IProviderCostSyncSummary {
+  /** Models whose key has a known provider cost */
+  checked: number;
+  /** Models whose stored providerCostUsd differed from the known cost */
+  drifted: number;
+  /** Drifted models whose providerCostUsd was successfully updated */
+  updated: number;
 }

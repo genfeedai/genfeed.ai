@@ -7,6 +7,7 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import {
   calculateDynamicImageCost,
   commitDeferredCredits,
+  type DeferredCreditsRequest,
   doesImageProviderFanOutPerOutput,
   isDeferredCreditsRequest,
   requestedOutputCount,
@@ -16,6 +17,7 @@ import {
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { buildPricingAuditStamp } from '@genfeedai/pricing';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -32,21 +34,13 @@ export class ImageGenerationCreditsService {
     organization: string,
     request: Request,
   ): Promise<void> {
-    const reqWithCredits = request as unknown as {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        modelKey?: string;
-      };
-    };
+    const reqWithCredits = request as unknown as DeferredCreditsRequest;
     if (!isDeferredCreditsRequest(reqWithCredits)) {
       return;
     }
 
-    const requiredCredits = await this.resolveRequiredCredits(
-      createImageDto,
-      model,
-    );
+    const { requiredCredits, resolvedModelDoc } =
+      await this.resolveRequiredCredits(createImageDto, model);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
@@ -59,13 +53,18 @@ export class ImageGenerationCreditsService {
         );
       throw createInsufficientCreditsException(requiredCredits, balance);
     }
-    commitDeferredCredits(reqWithCredits, requiredCredits, model);
+    commitDeferredCredits(
+      reqWithCredits,
+      requiredCredits,
+      model,
+      resolvedModelDoc ? buildPricingAuditStamp(resolvedModelDoc) : undefined,
+    );
   }
 
   private async resolveRequiredCredits(
     createImageDto: CreateImageDto,
     model: string,
-  ): Promise<number> {
+  ) {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: baseModelKey(model),
     });
@@ -79,7 +78,7 @@ export class ImageGenerationCreditsService {
     const isBatchSupported =
       MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
 
-    return scaleCreditsForFanOut(
+    const requiredCredits = scaleCreditsForFanOut(
       baseCost,
       requestedOutputCount(createImageDto.outputs),
       doesImageProviderFanOutPerOutput(
@@ -87,5 +86,7 @@ export class ImageGenerationCreditsService {
         isBatchSupported,
       ),
     );
+
+    return { requiredCredits, resolvedModelDoc };
   }
 }
