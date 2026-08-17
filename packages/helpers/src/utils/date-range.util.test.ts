@@ -1,6 +1,7 @@
 import {
   formatApiDate,
   formatOptionalApiDate,
+  formatUtcChipDate,
   getDateRangeKeys,
   getDateRangeWithDefaults,
   getDefaultDateRange,
@@ -63,6 +64,22 @@ describe('date-range.util', () => {
       expect(formatApiDate(new Date('2024-02-20T15:45:00Z'))).toBe(
         '2024-02-20',
       );
+    });
+
+    it('keeps the UTC calendar day for midnight instants', () => {
+      expect(formatApiDate(new Date('2026-08-10T00:00:00.000Z'))).toBe(
+        '2026-08-10',
+      );
+    });
+  });
+
+  describe('formatUtcChipDate', () => {
+    it('prints the UTC calendar day for midnight instants', () => {
+      const start = new Date('2026-08-10T00:00:00.000Z');
+      const end = new Date('2026-08-16T00:00:00.000Z');
+
+      expect(formatUtcChipDate(start, false)).toBe('Aug 10');
+      expect(formatUtcChipDate(end, true)).toBe('Aug 16, 2026');
     });
   });
 
