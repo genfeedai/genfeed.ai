@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import { Skeleton } from '@ui/primitives/skeleton';
 import type {
   CalendarOptions,
   DatesSetInfo,
@@ -190,6 +191,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   filterControls,
   modal,
   emptyState,
+  isLoading = false,
 }: ContentCalendarProps<T>) {
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
@@ -459,7 +461,14 @@ export default function ContentCalendar<T extends CalendarItem>({
       )}
 
       <Card className="w-full border border-white/[0.06]" bodyClassName="p-0">
-        {events.length === 0 && emptyState ? (
+        {isLoading ? (
+          <div
+            className="fullcalendar-container p-6"
+            data-testid="calendar-loading"
+          >
+            <Skeleton className="h-[32rem] w-full" />
+          </div>
+        ) : events.length === 0 && emptyState ? (
           emptyState
         ) : (
           <div className="fullcalendar-container" style={calendarThemeStyle}>

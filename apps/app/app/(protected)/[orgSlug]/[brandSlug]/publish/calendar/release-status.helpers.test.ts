@@ -15,6 +15,7 @@ import {
   releasePlatformIndicators,
   releaseSources,
   releaseStatusBadge,
+  releaseTargets,
   targetHistory,
   targetStateBadge,
   validationBadge,
@@ -78,6 +79,33 @@ describe('targetStateBadge / validationBadge', () => {
   });
 });
 
+describe('releaseTargets', () => {
+  it('returns the array when the relationship is already a list', () => {
+    const scheduled = target();
+    expect(releaseTargets(release({ targets: [scheduled] }))).toEqual([
+      scheduled,
+    ]);
+  });
+
+  it('returns an empty list when JSON:API collapses targets to an object or string', () => {
+    expect(
+      releaseTargets(
+        release({
+          targets: { id: 'target-1' } as unknown as IChannelTarget[],
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      releaseTargets(
+        release({
+          targets: 'target-1' as unknown as IChannelTarget[],
+        }),
+      ),
+    ).toEqual([]);
+    expect(releaseTargets(release({ targets: undefined }))).toEqual([]);
+  });
+});
+
 describe('isReleaseReschedulable', () => {
   it('refuses to move a release that already published', () => {
     expect(
@@ -103,6 +131,16 @@ describe('isReleaseReschedulable', () => {
 
   it('allows a scheduled release whose targets are all still pending', () => {
     expect(isReleaseReschedulable(release())).toBe(true);
+  });
+
+  it('does not throw when JSON:API collapses targets to a non-array', () => {
+    expect(
+      isReleaseReschedulable(
+        release({
+          targets: { id: 'target-1' } as unknown as IChannelTarget[],
+        }),
+      ),
+    ).toBe(true);
   });
 });
 

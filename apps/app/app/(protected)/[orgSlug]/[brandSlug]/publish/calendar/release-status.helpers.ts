@@ -121,12 +121,23 @@ export function validationBadge(
  * still movable. Moving a release whose targets have already gone out would
  * silently rewrite history for the ones that published.
  */
+/**
+ * JSON:API to-many sideloads sometimes collapse `targets` to a single object
+ * or a string. `for...of` / `.find` on those shapes throw and loop the
+ * protected-shell ErrorBoundary on `/publish/calendar`.
+ */
+export function releaseTargets(
+  release: IReleaseGroup | null | undefined,
+): IChannelTarget[] {
+  return Array.isArray(release?.targets) ? release.targets : [];
+}
+
 export function isReleaseReschedulable(release: IReleaseGroup): boolean {
   if (IMMOVABLE_RELEASE_STATUSES.has(release.status)) {
     return false;
   }
 
-  return (release.targets ?? []).every((target) =>
+  return releaseTargets(release).every((target) =>
     isTargetReschedulable(target),
   );
 }
@@ -146,7 +157,7 @@ export function isTargetBlockedByReadiness(target: IChannelTarget): boolean {
 
 export function releaseSources(release: IReleaseGroup): ReleaseTargetSource[] {
   const seen = new Set<ReleaseTargetSource>();
-  for (const target of release.targets ?? []) {
+  for (const target of releaseTargets(release)) {
     if (target.source) {
       seen.add(target.source);
     }
@@ -162,7 +173,7 @@ export function releasePlatformIndicators(
   const seen = new Set<string>();
   const indicators: CalendarEventIndicator[] = [];
 
-  for (const target of release.targets ?? []) {
+  for (const target of releaseTargets(release)) {
     if (seen.has(target.platform)) {
       continue;
     }

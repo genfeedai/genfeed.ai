@@ -62,6 +62,7 @@ import ReleaseDetailDrawer, {
 import {
   isReleaseReschedulable,
   releaseStatusBadge,
+  releaseTargets,
 } from './release-status.helpers';
 
 const DEFAULT_COLOR = '#8b5cf6';
@@ -99,7 +100,7 @@ function mutationErrorMessage(error: unknown): string {
 function releaseInstant(release: IReleaseGroup): string | undefined {
   return (
     release.scheduledAt ??
-    release.targets?.find((target) => target.scheduledAt)?.scheduledAt ??
+    releaseTargets(release).find((target) => target.scheduledAt)?.scheduledAt ??
     undefined
   );
 }
@@ -359,7 +360,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       }
 
       const seen = new Map<string, CalendarEventChannel>();
-      for (const target of item.release.targets ?? []) {
+      for (const target of releaseTargets(item.release)) {
         const platformId = parsePlatform(target.platform) ?? target.platform;
         if (!seen.has(platformId)) {
           seen.set(platformId, {
@@ -451,7 +452,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
    * to the review queue where the rewritten draft lands.
    */
   const handleAddChannel = useCallback(() => {
-    const sourceTarget = selectedRelease?.targets?.[0];
+    const sourceTarget = releaseTargets(selectedRelease)[0];
     if (!selectedRelease || !sourceTarget) {
       return;
     }
@@ -597,6 +598,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       filterControls={filterControls}
       modal={modal}
       emptyState={emptyState}
+      isLoading={isLoading}
     />
   );
 }

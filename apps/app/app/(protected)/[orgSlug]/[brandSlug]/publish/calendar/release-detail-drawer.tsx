@@ -32,6 +32,7 @@ import {
   isTargetBlockedByReadiness,
   isTargetReschedulable,
   releaseStatusBadge,
+  releaseTargets,
   targetHistory,
   targetStateBadge,
   validationBadge,
@@ -71,7 +72,7 @@ function seedTargetDates(
   }
 
   const seeded: Record<string, string> = {};
-  for (const target of release.targets ?? []) {
+  for (const target of releaseTargets(release)) {
     seeded[target.id] = toDateTimeLocalInput(
       target.scheduledAt ?? release.scheduledAt,
       target.timezone || release.timezone,
@@ -135,7 +136,7 @@ export default function ReleaseDetailDrawer({
   }, [release]);
 
   const isPending = pendingAction !== null;
-  const targets = release?.targets ?? [];
+  const targets = releaseTargets(release);
   const statusBadge = release ? releaseStatusBadge(release) : null;
   const canRescheduleRelease = release
     ? isReleaseReschedulable(release)

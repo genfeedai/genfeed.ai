@@ -557,6 +557,21 @@ describe('ContentCalendar', () => {
     ).toBeNull();
   });
 
+  it('does not mount FullCalendar while the host is still loading', () => {
+    render(
+      <ContentCalendar
+        items={[makeItem()]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        isLoading
+      />,
+    );
+
+    expect(screen.getByTestId('calendar-loading')).toBeVisible();
+    expect(calendarMocks.instances).toHaveLength(0);
+  });
+
   it('renders an inline error instead of throwing when FullCalendar fails to start', async () => {
     calendarMocks.failNextConstruct();
 
