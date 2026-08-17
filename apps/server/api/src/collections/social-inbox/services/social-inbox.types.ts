@@ -91,6 +91,7 @@ export type OutboundReservation = {
 };
 
 export class SocialInboxProviderError extends Error {
+  override readonly cause?: unknown;
   readonly cursor?: string;
   readonly isRateLimited: boolean;
   readonly platform: string;
@@ -98,6 +99,7 @@ export class SocialInboxProviderError extends Error {
   constructor(
     message: string,
     options: {
+      cause?: unknown;
       cursor?: string;
       isRateLimited?: boolean;
       platform: string;
@@ -105,6 +107,7 @@ export class SocialInboxProviderError extends Error {
   ) {
     super(message);
     this.name = 'SocialInboxProviderError';
+    this.cause = options.cause;
     this.cursor = options.cursor;
     this.isRateLimited = options.isRateLimited === true;
     this.platform = options.platform;

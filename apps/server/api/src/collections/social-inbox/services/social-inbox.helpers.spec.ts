@@ -1,5 +1,6 @@
 import {
   getAvailability,
+  LINKEDIN_DM_UNAVAILABLE_REASON,
   normalizePlatform,
   sanitizeBody,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
@@ -114,8 +115,7 @@ describe('getAvailability', () => {
       canPostReply: true,
       canSendDm: false,
       postReplyReason: undefined,
-      sendDmReason:
-        'LinkedIn messaging is not available on the connected account',
+      sendDmReason: LINKEDIN_DM_UNAVAILABLE_REASON,
     });
   });
 

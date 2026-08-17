@@ -24,6 +24,10 @@ import {
   LinkedInService,
   resolveLinkedInVisibility,
 } from '@api/services/integrations/linkedin/services/linkedin.service';
+import {
+  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+  LINKEDIN_DM_UNAVAILABLE_REASON,
+} from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -513,6 +517,7 @@ describe('LinkedInService', () => {
         'https://api.linkedin.com/v2/socialActions/urn%3Ali%3Ashare%3A123/comments',
         expect.objectContaining({
           params: { count: 50, start: 0 },
+          timeout: 30000,
         }),
       );
       expect(result).toEqual([
@@ -545,7 +550,24 @@ describe('LinkedInService', () => {
 
       expect(result).toEqual({
         isPermitted: false,
-        reason: 'LinkedIn messaging is not available on the connected account',
+        reason: LINKEDIN_DM_UNAVAILABLE_REASON,
+        threads: [],
+      });
+      expect(mockHttpService.get).not.toHaveBeenCalled();
+    });
+
+    it('reports mailbox ingestion as unavailable when the grant includes a mailbox scope', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        grantedScopes: ['openid', 'profile', 'email', 'r_member_mailbox'],
+        id: 'cred-1',
+      });
+
+      const result = await service.listDirectMessages('org-123', 'brand-456');
+
+      expect(result).toEqual({
+        isImplemented: false,
+        isPermitted: true,
+        reason: LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
         threads: [],
       });
       expect(mockHttpService.get).not.toHaveBeenCalled();

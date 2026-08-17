@@ -515,6 +515,32 @@ describe('SocialMessagesPage', () => {
     expect(mocks.syncXDms).not.toHaveBeenCalled();
   });
 
+  it('keeps remaining platform enqueues and shows a partial-failure notice', async () => {
+    mocks.syncX.mockRejectedValue(new Error('X is not connected'));
+
+    render(<SocialMessagesPage />);
+
+    const syncButton = await screen.findByRole('button', {
+      name: 'Sync comments',
+    });
+    const callsAfterLoad = mocks.listPage.mock.calls.length;
+
+    fireEvent.click(syncButton);
+
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+    expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
+    expect(mocks.syncX).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(mocks.listPage.mock.calls.length).toBeGreaterThan(callsAfterLoad),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Partial failure: X failed to queue/),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it('renders a DM thread without a source content anchor', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,
