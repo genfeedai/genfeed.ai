@@ -131,7 +131,6 @@ export function AgentChatContainer({
       setPrioritize(preferredPriority);
     }
     // Mount-only hydrate from localStorage.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, []);
 
   useEffect(() => {

@@ -60,7 +60,6 @@ export default function FastlaneBlitz({
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAsset, swipeDir]);
 
   if (isGenerating && readyAssets.length === 0) {
@@ -156,7 +155,6 @@ export default function FastlaneBlitz({
           style={swipeStyle}
         >
           {currentAsset?.thumbnailUrl || currentAsset?.ingredientUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={currentAsset.thumbnailUrl ?? currentAsset.ingredientUrl}
               alt={currentAsset.idea.hook}

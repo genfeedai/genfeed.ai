@@ -349,7 +349,6 @@ export function usePostsList({
         posts: updatedPosts,
       }));
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryClient, pagination, ...postsQueryKey, postsQueryKey],
   );
 

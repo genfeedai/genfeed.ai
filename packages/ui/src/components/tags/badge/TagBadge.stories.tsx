@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { ComponentSize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
