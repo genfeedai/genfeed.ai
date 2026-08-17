@@ -1,0 +1,13 @@
+# Every path routes review to the maintainer. See GOVERNANCE.md.
+# Order matters: later matches win.
+
+*                     @VincentShipsIt
+
+# Maintainer-only trees and legal/policy files (see ADR-DCO-NOT-CLA).
+ee/**                 @VincentShipsIt
+LICENSE               @VincentShipsIt
+ee/LICENSE            @VincentShipsIt
+TRADEMARK.md          @VincentShipsIt
+GOVERNANCE.md         @VincentShipsIt
+SECURITY.md           @VincentShipsIt
+.github/**            @VincentShipsIt

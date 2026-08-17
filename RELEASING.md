@@ -9,14 +9,47 @@ This repo is trunk-based. `master` is the single trunk.
 - Production release automation should only run from commits that already landed on `master`.
 - `staging` and `production` are deploy environments, not promotion branches.
 
+## Version contract
+
+Vocabulary is defined in [CONTEXT.md](CONTEXT.md) (Repo version, Changelog,
+Upgrade note).
+
+- **One repo version.** The semver in the root `package.json` is the version of
+  the repository and of the Community bundle. Bump it in a normal PR, merge,
+  then dispatch `Release` with the matching `v<version>` tag — the workflow
+  fails closed on a mismatch. That tag names the GHCR image, the self-hosted
+  bundle, and the GitHub release. `v1.0.0` marks Launch.
+- **Independent surfaces.** `desktop-v*`, `mobile-v*`, and
+  `extension-browser-v*` version independently, as do the published npm
+  packages (`@genfeedai/cli`, `@genfeedai/create`) — each has its own
+  `package.json` version bumped in a normal PR. Matching numbers across
+  surfaces are a convenience, not a requirement.
+- **`0.x` semantics.** Before `v1.0.0`, minor releases may contain breaking
+  changes for self-hosters. Every such release carries an **Upgrade note**
+  section at the top of the release body that names the breaking change, the
+  Prisma migration(s) involved, and the manual step if any. From `v1.0.0`
+  semver is strict: breaking changes only in a major.
+- **No cadence.** Releases ship from `master` when the maintainer decides
+  they are ready. There is no weekly/monthly schedule and no release train.
+- **Changelog is generated, never hand-edited.** The `Release` workflow runs
+  git-cliff with [`cliff.toml`](cliff.toml) over Conventional Commit subjects
+  (which, under squash-only merge, are the PR titles). The section for the tag
+  becomes the GitHub release body; the full `CHANGELOG.md` is attached to the
+  release as an asset. Nothing is committed back to `master`, so the Releases
+  page is the changelog. Write good PR titles; that is the changelog. Preview
+  locally with `bunx git-cliff --unreleased --tag vX.Y.Z --strip header`.
+- **Security fixes** ship as a normal release; the advisory is published with
+  it (see [SECURITY.md](SECURITY.md)).
+
 ## Main Production Release
 
 Use this when shipping the hosted product and self-hosted image.
 
 1. Merge the intended changes to `master` via PR.
-2. Open GitHub Actions → `Release`, choose `master`, and enter a new stable
-   semver tag such as `v1.2.3`.
-3. Dispatch the workflow once. Do not create or publish the GitHub release
+2. Bump `version` in the root `package.json` to `1.2.3` in a PR and merge it.
+3. Open GitHub Actions → `Release`, choose `master`, and enter the matching
+   stable semver tag `v1.2.3`.
+4. Dispatch the workflow once. Do not create or publish the GitHub release
    separately with `gh release create` or the Releases UI.
 
 The canonical workflow pins the selected `master` SHA and runs Full Suite once.

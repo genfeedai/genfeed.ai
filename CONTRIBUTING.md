@@ -1,137 +1,260 @@
 # Contributing to Genfeed.ai
 
 Contributions to the open-source tree are welcome through pull requests to
-`master`, the repository's single trunk.
+`master`, the repository's single trunk. This guide is the contract: how to set
+up, how to open an issue, how to open a PR, and what happens after.
+
+Shared vocabulary (Maintainer, Contributor, Community, EARS, DCO sign-off, …)
+lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
+[GOVERNANCE.md](GOVERNANCE.md).
+
+## Contents
+
+- [Before you start](#before-you-start)
+- [Toolchain and supported operating systems](#toolchain-and-supported-operating-systems)
+- [Contributor dev path (fixed ports)](#contributor-dev-path-fixed-ports)
+- [Maintainer dev path (Portless HTTPS)](#maintainer-dev-path-portless-https)
+- [Opening an issue](#opening-an-issue)
+- [Pull-request contract](#pull-request-contract)
+- [Agent-authored PRs](#agent-authored-prs)
+- [DCO sign-off](#dco-sign-off)
+- [Focused verification](#focused-verification)
+- [Code standards](#code-standards)
+- [Repository boundaries](#repository-boundaries)
+- [After you open a PR](#after-you-open-a-pr)
 
 ## Before you start
 
-- Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
-- Search existing issues and pull requests to avoid duplicate work.
-- Open an issue before a large or cross-cutting change so maintainers can confirm
-  the scope.
+- Read [SECURITY.md](SECURITY.md) before reporting a vulnerability — never in a
+  public issue.
+- Search [existing issues and pull requests](https://github.com/genfeedai/genfeed.ai/issues?q=)
+  to avoid duplicate work.
+- For anything larger than a typo or docs fix, open (or find) an issue first so
+  the scope is agreed before the code exists. See
+  [Opening an issue](#opening-an-issue).
 - Do not include credentials, `.env` files, customer data, or generated build
-  artifacts.
+  artifacts in commits, issues, or screenshots.
+- By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Toolchain
+## Toolchain and supported operating systems
 
 - Node.js `>=24 <25`
 - Bun `1.3.14`
-- Docker Engine with Docker Compose v2, or Docker Desktop, when running
-  PostgreSQL/Redis or the Community distribution
+- Docker Engine with Docker Compose v2, or Docker Desktop, for PostgreSQL and
+  Redis (and for the Community distribution)
 
 This is a Bun workspace. Do not use npm, Yarn, or pnpm to install repository
 dependencies or update `bun.lock`.
 
-## Development setup
+**Operating systems.** Development is supported on **macOS and Linux**. On
+**Windows, use WSL2** (Ubuntu) and run everything inside the WSL2 filesystem;
+native Windows shells are not supported and are not tested in CI. Self-hosting
+the Community bundle only needs Docker and works anywhere Docker Compose v2 runs.
+
+## Contributor dev path (fixed ports)
+
+This is the default path for outside contributors. It needs no elevated
+privileges, no certificate trust, and no background service: plain `http://`
+on fixed ports.
 
 ```bash
 git clone https://github.com/<your-account>/genfeed.ai.git
 cd genfeed.ai
 bun install
-bun run dev:setup
 cp .env.example .env.local
 ```
 
-`bun run dev:setup` is the required one-time local host setup. It installs or
-verifies the repository-pinned Portless startup service with HTTPS on port
-`443`, `.localhost` routes, and hosts-file synchronization disabled. macOS and
-Linux may request administrator approval to install the startup service and
-trust the local certificate authority. The command is idempotent and can be
-rerun to repair the configuration.
-
-Verify the machine contract at any time with `bun run dev:doctor`.
-
-Edit `.env.local` before generating workspace env files. At minimum, align the
-database credentials with `docker/local/docker-compose.yml`:
+Open `.env.local` and set the two values the local Compose file expects
+(everything else has a working default for local development):
 
 ```env
 DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 ```
 
-Then sync and start the local dependencies:
+Generate the per-workspace env files, start the databases, and apply
+migrations:
 
 ```bash
 bun run env:sync local --prune-legacy
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
+bun run --cwd packages/prisma db:migrate
 ```
 
-Run only the workspaces needed for your change. Canonical root scripts:
-
-| Command | Starts |
-| --- | --- |
-| `bun run dev:setup` | Once per machine — Portless HTTPS on `:443` |
-| `bun run dev:doctor` | Read-only Portless contract check |
-| `bun run dev:backend:min` | api + files + notifications (app minimum) |
-| `bun run dev:backend` | Full backend (+ mcp + workers) |
-| `bun run dev:app` | Product UI → `https://app.genfeed.localhost/` |
-| `bun run dev` | Full stack (Portless) |
-| `bun run dev:docs` | Docs site |
-| `bun run dev:website` | Marketing site |
-| `bun run dev:desktop` | Electron shell |
-| `bun run dev:debug*` | Fixed-port escape hatch only |
-
-Package model (routed services): package **`dev`** is the Portless entry;
-**`dev:process`** is the child process Portless runs (`run-service.ts`);
-**`dev:debug`** is fixed ports without Portless. The names `dev:direct` and
-`dev:portless` are retired. Thin aliases (`dev:essentials`, `dev:app:be`,
-`dev:all`, …) still point at the canonical names for one cycle.
+Then start the app minimum in two terminals:
 
 ```bash
-bun run dev:backend:min
-bun run dev:app
+bun run dev:debug:backend:min      # api :3010, files :3012, notifications :3111
 ```
+
+```bash
+bun run dev:debug:app              # web UI → http://genfeed.localhost:3000
+```
+
+Open <http://genfeed.localhost:3000>. `*.localhost` resolves to loopback on
+macOS, Linux, and WSL2 without touching `/etc/hosts`.
+
+| Command                          | Starts                                              |
+| -------------------------------- | --------------------------------------------------- |
+| `bun run dev:debug:backend:min`  | api + files + notifications (app minimum)           |
+| `bun run dev:debug:backend`      | Full backend (+ mcp `:3014` + workers `:3013`)      |
+| `bun run dev:debug:app`          | Product UI → `http://genfeed.localhost:3000`        |
+| `bun run dev:debug:frontend`     | app + website                                       |
+| `bun run dev:debug:docs`         | Docs site                                           |
+| `bun run dev:debug`              | Everything                                          |
+
+Fixed ports: app `3000`, API `3010`, files `3012`, workers `3013`, MCP `3014`,
+notifications/websocket `3111` (containers and deployed environments use
+`3011`). Service origins (`API_URL`, `NEXT_PUBLIC_API_URL`, auth URLs, …) are
+derived automatically for these ports at the `dev:debug` boundary; you do not
+need to edit them in `.env.local`. Override a single port with the matching
+`*_PORT` variable if one is taken.
 
 The self-hosted distribution has a separate container-image path that does not
 require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 
-### Dev host
+## Maintainer dev path (Portless HTTPS)
 
-Normal `bun run dev*` commands use Portless over trusted local HTTPS:
-
-- App: `https://app.genfeed.localhost`
-- Website: `https://website.genfeed.localhost`
-- Docs: `https://docs.genfeed.localhost`
-- API: `https://api.genfeed.localhost`
-- Files: `https://files.genfeed.localhost`
-- MCP: `https://mcp.genfeed.localhost`
-- Notifications: `https://notifications.genfeed.localhost`
-
-`*.localhost` resolves to loopback without `/etc/hosts`. The required
-`bun run dev:setup` command installs the startup proxy, while every repository
-runner enforces HTTPS on the standard port and disables hosts-file
-synchronization. Linked worktrees receive branch-prefixed routes automatically.
-
-The app keeps browser API and auth traffic on its own `/v1` route, which Next.js
-proxies to the matching Portless API route. Runtime endpoint and redirect
-variables are derived from the process's worktree-aware `PORTLESS_URL`; do not
-mix Portless routes with fixed-port values.
-
-Fixed ports remain available for explicit debugging:
+Maintainers and anyone who wants production-like origins run the same
+workspaces behind [Portless](https://github.com/vercel-labs/portless) on
+trusted local HTTPS (`https://app.genfeed.localhost`, `https://api.genfeed.localhost`,
+…). This path installs a startup service on `:443` and trusts a local
+certificate authority, so it asks for administrator approval once per machine.
 
 ```bash
-bun run dev:debug:app
-bun run dev:debug:backend:min
-bun run dev:debug:frontend
+bun run dev:setup          # once per machine; idempotent, rerun to repair
+bun run dev:doctor         # read-only contract check
+bun run dev:backend:min    # api + files + notifications behind Portless
+bun run dev:app            # https://app.genfeed.localhost/
 ```
 
-Those commands inject fixed bind ports at the `dev:debug` / `run-service`
-boundary (no Portless): app `3000`, API `3010`, and notifications/websocket
-`3111`. Canonical environment examples keep the clean HTTPS service origins.
-Container, self-hosted, and deployed notifications services continue to use
-port `3011`.
+Package model (routed services): package **`dev`** is the Portless entry;
+**`dev:process`** is the child process Portless runs (`run-service.ts`);
+**`dev:debug`** is the same child on fixed ports without Portless. Do not mix
+Portless routes with fixed-port values in one environment. Linked worktrees
+receive branch-prefixed routes automatically. Details:
+[docs/local-development-host-migration.md](docs/local-development-host-migration.md).
 
-## Branch and pull-request workflow
+You do not need this path to contribute. If `dev:setup` fails on your machine,
+use the fixed-port path above and mention it in the PR.
 
-1. Fork the repository.
-2. Create a short-lived branch from the latest `master`.
-3. Make one focused change.
-4. Run focused checks for the files and workspaces you changed.
-5. Open a pull request against `genfeedai/genfeed.ai:master`.
+## Opening an issue
 
-External-fork CI is held until a maintainer reviews the patch and applies the
-`run-ci` label. The pull-request template records the evidence maintainers need
-for that review.
+Blank issues are disabled. Use one of the forms:
+
+| Form                                                                                          | Title prefix | Label         |
+| --------------------------------------------------------------------------------------------- | ------------ | ------------- |
+| [Bug report](https://github.com/genfeedai/genfeed.ai/issues/new?template=bug.yml)             | `fix:`       | `bug`         |
+| [Feature request](https://github.com/genfeedai/genfeed.ai/issues/new?template=feature.yml)    | `feat:`      | `enhancement` |
+| [Task](https://github.com/genfeedai/genfeed.ai/issues/new?template=task.yml)                  | `chore:` …   | `task`        |
+
+Questions and early ideas go to
+[Discussions](https://github.com/genfeedai/genfeed.ai/discussions), not issues
+(see [SUPPORT.md](SUPPORT.md)).
+
+**Every form requires EARS acceptance criteria.** Write each requirement as a
+testable line:
+
+```text
+- [ ] WHEN a user opens the brand settings page THE SYSTEM SHALL show the brand's saved voice within 1 s.
+- [ ] IF the API key is revoked THEN THE SYSTEM SHALL return 401 and not 500.
+- [ ] WHILE a generation is running THE SYSTEM SHALL keep the Stop button enabled.
+```
+
+Keywords: `WHEN` (event), `WHILE` (state), `WHERE` (feature/mode), `IF … THEN`
+(unwanted condition), always followed by `THE SYSTEM SHALL …`. This repository
+is worked by agents as much as by people, and agents need testable requirements
+to act. **You will not be bounced for imperfect syntax** — write your best
+attempt; triage rewrites weak criteria (label `needs:ears`) rather than closing
+the issue.
+
+**What happens next (triage, within 7 days):**
+
+- The issue opens with `needs:triage`. The maintainer or a triage agent confirms
+  or rewrites the acceptance criteria, applies labels, and places it on
+  [Project #12](https://github.com/orgs/genfeedai/projects/12).
+- Public labels you may see: `needs:triage`, `needs:ears`, `needs:info`,
+  `good first issue`, `help wanted`, plus the type label. **Priority is a project
+  field, never a label.**
+- Labels prefixed `shipcode:` are internal automation state. They are visible
+  but not for contributors to set.
+- If you want to work on an issue, say so in a comment. Issues labelled
+  `good first issue` and `help wanted` are pre-scoped for outside contributors.
+
+## Pull-request contract
+
+1. Fork the repository and create a short-lived branch from the latest
+   `master`.
+2. Make **one focused change**. Aim for **≤ 400 changed lines** excluding
+   lockfiles and generated files; split larger work into stacked PRs. This is a
+   soft limit — say why when you exceed it.
+3. Sign off every commit ([DCO](#dco-sign-off)).
+4. Run [focused checks](#focused-verification) for what you changed.
+5. Open the PR against `genfeedai/genfeed.ai:master` and fill in the template.
+
+**Title.** Merges are squash-only, so **the PR title becomes the commit
+subject** on `master`. Use Conventional Commits:
+`type(scope): summary` — `feat`, `fix`, `docs`, `refactor`, `test`, `chore`,
+`build`, `ci`, `perf`. Lowercase summary, imperative mood, no trailing period,
+≤ 72 characters. Add `!` before the colon for a breaking change and describe
+it in the body. Individual commit messages inside the PR are not preserved.
+The `PR Title` check enforces the shape and runs on fork PRs without waiting
+for `run-ci`; the title is also the changelog line (see below), so write it for
+a reader of the release notes.
+
+**Linked issue.** Every PR beyond a typo or docs-only fix references an issue:
+`Closes #123` when it fully resolves the work, `Refs #123` for context. If you
+genuinely have no issue, write `No-Issue` and one sentence why; the maintainer
+may ask you to open one before review.
+
+**Body.** The [template](.github/pull_request_template.md) asks for Summary,
+Related issue, Scope, Verification, Screenshots (for UI), AI involvement, and a
+checklist. Fill it truthfully — it is what review reads first.
+
+**Fork CI.** Workflows on a fork PR do not run automatically. A maintainer
+applies the `run-ci` label after a first read, and GitHub additionally requires
+approval for every outside collaborator's run. Secrets never reach fork runs, so
+jobs that need them are skipped for forks. Include your focused-check output in
+the PR body so review is not blocked on CI.
+
+**Review and merge.** An automated review pipeline comments first; the
+maintainer decides. Expect a first response within 7 days. Ready-for-review PRs
+are the default — mark a PR draft only if you are still working on it.
+
+## Agent-authored PRs
+
+Genfeed is an agent-native repository; a large share of its own code is written
+by AI agents under human direction. Agent-authored contributions from outside
+are welcome on three conditions:
+
+1. **Disclose it.** Fill the "AI involvement" line in the PR template (which
+   tool, roughly what it did — e.g. "Claude Code drafted the implementation and
+   tests; I reviewed and edited").
+2. **A named human is accountable.** The PR author is responsible for the
+   description being accurate and the verification being real. "The agent said
+   it passed" is not verification — run the checks and paste the output.
+3. **Same rules as everyone.** DCO sign-off, conventional title, linked issue,
+   scope discipline, no `ee/` changes.
+
+Undisclosed agent-authored PRs are closed when detected. Bulk, low-effort, or
+templated PRs (drive-by dependency bumps, mass rewording, unrequested
+refactors) are closed without review regardless of authorship.
+
+## DCO sign-off
+
+Contributions are accepted under the
+[Developer Certificate of Origin](https://developercertificate.org/). There is
+no CLA. Sign off every commit:
+
+```bash
+git commit -s -m "fix(api): return 401 for revoked keys"
+```
+
+This adds a `Signed-off-by: Your Name <you@example.com>` trailer certifying
+that you wrote the change or have the right to submit it under the repository
+licence. Use a real name and a reachable email. The DCO check on the PR fails
+if any commit lacks the trailer; fix it with `git rebase --signoff` (or
+`git commit --amend -s` for the last commit) and force-push your branch.
 
 ## Focused verification
 
@@ -151,7 +274,7 @@ workspace provides them and always run:
 git diff --check
 ```
 
-Broad workspace builds and test suites run in GitHub Actions. In the pull
+Broad workspace builds and full test suites run in GitHub Actions. In the pull
 request, list exactly what you ran and any checks left to CI.
 
 ## Code standards
@@ -161,37 +284,41 @@ request, list exactly what you ran and any checks left to CI.
 - Keep response serializers in `packages/serializers`.
 - Preserve single-tenant Community behavior and organization guards in shared
   API code.
-- Use conventional commit subjects such as `feat:`, `fix:`, `docs:`, and
-  `refactor:`.
 - Match at least three existing examples before introducing a new code pattern.
 - New user-visible copy in `apps/app` or shared product packages
   (`packages/ui`, `packages/pages`, `packages/agent`, `packages/contexts`) goes
   through the host app message catalog (`apps/app/messages/en/<namespace>.json`
   + `useTranslations` / `getTranslations`). Do not hoist strings into a
   module-level `COPY` const to satisfy `bun run check:untranslated-strings`.
+- Tests are colocated (`*.test.ts` / `*.spec.ts`); write the failing test
+  first when fixing a bug.
+- Repository-wide conventions that agents and humans both follow are in
+  [AGENTS.md](AGENTS.md); the declared stack and how to change it are in
+  [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Repository boundaries
 
 - `apps/` contains product, server, and client applications.
 - `packages/` contains shared packages. Check each package's own metadata for
   its license and public API.
-- `ee/` contains commercially licensed packages and is not part of the normal
-  public contribution path. Do not include `ee/` changes unless a maintainer has
-  explicitly requested them.
+- **`ee/` is maintainer-only.** It contains commercially licensed packages
+  ([`ee/LICENSE`](ee/LICENSE)) and is excluded from the Community image.
+  Contributor PRs that modify `ee/` are closed; `.github/CODEOWNERS` enforces
+  review. Rationale: `.agents/memory/architecture/ADR-DCO-NOT-CLA.md`.
 - Managed inference infrastructure, customer model assignments, and Fleet/LoRA
   operations are outside this public repository.
+- The Genfeed name and logo are trademarks — see [TRADEMARK.md](TRADEMARK.md).
 
-## Pull-request expectations
+## After you open a PR
 
-- Keep the patch single-purpose and split unrelated work.
-- Use a closing reference (`Closes #123`) only when the pull request fully
-  resolves tracked work. Use a non-closing reference (`Refs #123`) for context
-  only. If no tracking issue exists, write `No-Issue` and explain why. A closing
-  reference takes effect when the pull request merges into the default branch.
-- Explain user-visible behavior and repository-boundary effects.
-- Include focused verification commands and results.
-- Call out generated files, migrations, configuration changes, and external
-  settings that still need a maintainer action.
+- Automated review comments arrive within minutes; address or rebut them in
+  the thread.
+- The maintainer applies `run-ci` and approves the workflow run after a first
+  read.
+- Once CI is green and review is approved, the maintainer squash-merges using
+  your PR title as the commit subject.
+- Merged work ships in the next Community release cut from `master`
+  ([RELEASING.md](RELEASING.md)); the generated release notes credit the PR
+  by number and title.
 
 Integration utilities live in [packages/integrations](packages/integrations/README.md).
-Release flows are documented in [RELEASING.md](RELEASING.md).

@@ -1,1 +1,14 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Question or self-hosting help
+    url: https://github.com/genfeedai/genfeed.ai/discussions/categories/q-a
+    about: Ask how something works or get help running Community. Answers stay searchable for everyone.
+  - name: Idea or early proposal
+    url: https://github.com/genfeedai/genfeed.ai/discussions/categories/ideas
+    about: Float an idea before it is concrete enough for a feature request with acceptance criteria.
+  - name: Security vulnerability (private)
+    url: https://github.com/genfeedai/genfeed.ai/security/advisories/new
+    about: Never file a vulnerability as a public issue. Use private reporting; acknowledged within 72 hours.
+  - name: Hosted product (app.genfeed.ai) account or billing
+    url: https://genfeed.ai
+    about: Hosted-account questions are handled by Genfeed support, outside this repository.

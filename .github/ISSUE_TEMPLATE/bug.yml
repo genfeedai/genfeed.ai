@@ -1,12 +1,12 @@
 name: Bug report
 description: Report reproducible broken behavior
 title: "fix: "
-labels: ["bug"]
+labels: ["bug", "needs:triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Search existing issues before filing. Do not include secrets, credentials, personal data, or security-vulnerability details.
+        Search existing issues before filing. Do not include secrets, credentials, personal data, or security-vulnerability details (see SECURITY.md). Questions belong in Discussions. Triage happens within 7 days.
   - type: textarea
     id: current
     attributes:
@@ -19,6 +19,16 @@ body:
     attributes:
       label: Expected behavior
       description: What observable behavior should happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use testable outcomes. Prefer WHEN, WHILE, WHERE, or IF ... THE SYSTEM SHALL ... Imperfect syntax is fine — triage rewrites, it never closes for phrasing.
+      placeholder: |
+        - [ ] WHEN ... THE SYSTEM SHALL ...
+        - [ ] IF ... THEN THE SYSTEM SHALL ...
     validations:
       required: true
   - type: textarea

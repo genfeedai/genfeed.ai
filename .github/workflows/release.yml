@@ -40,11 +40,52 @@ jobs:
             exit 1
           fi
 
+      - name: Validate release tag shape
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "${REQUESTED_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Stable release tag must use vX.Y.Z: ${REQUESTED_TAG}"
+            exit 1
+          fi
+
       - name: Checkout pinned master SHA
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # One repo version (RELEASING.md → Version contract): the root package.json
+      # is bumped in a normal PR and the dispatched tag must name that version.
+      - name: Verify root package.json version matches the release tag
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          package_version="$(jq -r '.version' package.json)"
+          if [ "v${package_version}" != "${REQUESTED_TAG}" ]; then
+            echo "::error::Root package.json is ${package_version} but the release tag is ${REQUESTED_TAG}. Bump the root version in a PR, merge it, then dispatch Release with the matching tag."
+            exit 1
+          fi
+
+      # Changelog is generated, never hand-edited: the release body is the
+      # git-cliff section for this tag, and the full CHANGELOG.md is attached to
+      # the release as an asset. cliff.toml owns grouping and PR links.
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4.8.0
+        with:
+          config: cliff.toml
+          args: --unreleased --tag ${{ inputs.tag }} --strip header
+        env:
+          OUTPUT: release-notes.md
+
+      - name: Generate full changelog
+        uses: orhun/git-cliff-action@v4.8.0
+        with:
+          config: cliff.toml
+          args: --tag ${{ inputs.tag }}
+        env:
+          OUTPUT: CHANGELOG.md
 
       - name: Validate version and create or reuse draft release
         id: release
@@ -88,7 +129,8 @@ jobs:
               echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
               exit 1
             fi
-            echo "Reusing draft release ${release_tag} at ${release_sha}."
+            gh release edit "${release_tag}" --notes-file release-notes.md
+            echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
           else
             if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
               echo "::error::Tag ${release_tag} already exists without a reusable draft release."
@@ -97,11 +139,13 @@ jobs:
 
             gh release create "${release_tag}" \
               --draft \
-              --generate-notes \
+              --notes-file release-notes.md \
               --target "${release_sha}" \
               --title "${release_tag}"
             echo "Created draft release ${release_tag} at ${release_sha}."
           fi
+
+          gh release upload "${release_tag}" CHANGELOG.md --clobber
 
           {
             echo "image_tag=${image_tag}"
