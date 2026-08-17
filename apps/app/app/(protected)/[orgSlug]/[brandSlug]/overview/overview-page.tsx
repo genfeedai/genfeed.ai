@@ -201,7 +201,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.ANALYTICS.OVERVIEW,
+      href: hrefFn(APP_ROUTES.ANALYTICS.OVERVIEW),
       icon: ChartColumn,
       kicker: 'Measure',
       label: 'Analytics',
@@ -222,7 +222,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.AUTOMATE.OVERVIEW,
+      href: hrefFn(APP_ROUTES.AUTOMATE.OVERVIEW),
       icon: Settings,
       kicker: 'Automate',
       label: 'Automation',
@@ -243,7 +243,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.LIBRARY.IMAGES,
+      href: hrefFn(APP_ROUTES.LIBRARY.IMAGES),
       icon: Image,
       kicker: 'Reuse',
       label: 'Library',
@@ -362,7 +362,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Discover',
         description: 'Start with the strongest live signals',
-        href: APP_ROUTES.DISCOVER.OVERVIEW,
+        href: href(APP_ROUTES.DISCOVER.OVERVIEW),
         icon: TrendingUp,
         id: 'trends',
         label: 'Discover',
@@ -371,7 +371,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Create Posts',
         description: 'Draft new posts, articles, and campaign assets',
-        href: CREATE_CONTENT_AGENT_HREF,
+        href: href(CREATE_CONTENT_AGENT_HREF),
         icon: MessageSquare,
         id: 'create',
         label: 'Posts',
@@ -383,7 +383,7 @@ export default function OverviewPageContent({
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
-        href: APP_ROUTES.PUBLISH.REVIEW,
+        href: href(APP_ROUTES.PUBLISH.REVIEW),
         icon: ClipboardCheck,
         id: 'review',
         label: 'Publishing Inbox',
@@ -392,7 +392,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
-        href: APP_ROUTES.PUBLISH.SCHEDULED,
+        href: href(APP_ROUTES.PUBLISH.SCHEDULED),
         icon: Calendar,
         id: 'schedule',
         label: 'Schedule',
@@ -401,7 +401,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'View Analytics',
         description: 'Track cross-platform performance',
-        href: APP_ROUTES.ANALYTICS.OVERVIEW,
+        href: href(APP_ROUTES.ANALYTICS.OVERVIEW),
         icon: ChartColumn,
         id: 'analytics',
         label: 'Analytics',
@@ -410,13 +410,13 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
-        href: APP_ROUTES.AUTOMATE.RUNS,
+        href: href(APP_ROUTES.AUTOMATE.RUNS),
         icon: Sparkles,
         id: 'automations',
         label: 'Agents',
       },
     ],
-    [reviewInbox.readyCount],
+    [href, reviewInbox.readyCount],
   );
 
   const header = (

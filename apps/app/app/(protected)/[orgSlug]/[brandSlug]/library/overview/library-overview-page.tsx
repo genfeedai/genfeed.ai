@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
 import { PageSection } from '@ui/layout/page-section';
@@ -108,13 +109,14 @@ function LibraryCategoryTile({
   config: LibraryCategoryCardConfig;
   testId: string;
 }) {
+  const { href } = useOrgUrl();
   const Icon = config.icon;
   const titleId = `${config.id}-library-tile-title`;
   const descriptionId = `${config.id}-library-tile-description`;
 
   return (
     <Link
-      href={config.href}
+      href={href(config.href)}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       data-testid={testId}

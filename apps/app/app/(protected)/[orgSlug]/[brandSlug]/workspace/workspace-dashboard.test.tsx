@@ -12,6 +12,12 @@ import {
   WorkspaceDashboard,
 } from './workspace-dashboard';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/demo/FUDNEWS${path}`,
+  }),
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -146,7 +152,7 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByText('Failed')).toBeVisible();
     expect(screen.getByText('View All')).toHaveAttribute(
       'href',
-      '/automate/runs',
+      '/demo/FUDNEWS/automate/runs',
     );
 
     // Regression (#1229): agent-run cards must use the shared Card tokens,
