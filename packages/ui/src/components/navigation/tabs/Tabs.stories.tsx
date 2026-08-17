@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Badge from '@ui/display/badge/Badge';
 import Tabs from '@ui/navigation/tabs/Tabs';

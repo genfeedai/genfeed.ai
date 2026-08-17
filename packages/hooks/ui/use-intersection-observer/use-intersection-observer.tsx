@@ -31,7 +31,6 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
 
   const frozen = useRef(false);
 
-  /* eslint-disable react-doctor/no-adjust-state-on-prop-change -- IntersectionObserver is an external subscription; state changes come from observer callbacks, not prop mirroring. */
   useEffect(() => {
     if (
       !ref.current ||
@@ -43,9 +42,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // eslint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- IntersectionObserver writes subscription state from an observer callback.
         setEntry(entry);
-        // eslint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- IntersectionObserver writes subscription state from an observer callback.
         setIsIntersecting(entry.isIntersecting);
 
         if (entry.isIntersecting && triggerOnce) {

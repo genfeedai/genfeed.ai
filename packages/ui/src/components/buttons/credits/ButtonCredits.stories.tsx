@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import {
   BG_BLUR,
   BORDER_WHITE_30,

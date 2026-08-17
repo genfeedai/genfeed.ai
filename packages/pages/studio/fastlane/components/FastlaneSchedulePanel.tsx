@@ -187,7 +187,6 @@ export default function FastlaneSchedulePanel({
           >
             <div className="flex items-center gap-2">
               {(asset.thumbnailUrl ?? asset.ingredientUrl) && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={asset.thumbnailUrl ?? asset.ingredientUrl}
                   alt={asset.idea.hook}

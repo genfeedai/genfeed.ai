@@ -79,7 +79,6 @@ function ElementsProviderContent({
     userId: null,
   });
 
-  /* eslint-disable react-doctor/no-adjust-state-on-prop-change -- Async provider resource loading updates state from fetch lifecycle callbacks, not prop mirroring. */
   const findAllElements = useCallback(async () => {
     if (!isSignedIn || !enabled) {
       return;

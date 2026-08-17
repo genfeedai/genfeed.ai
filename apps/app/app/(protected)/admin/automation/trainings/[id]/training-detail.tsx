@@ -101,7 +101,6 @@ export default function TrainingDetail({
   useEffect(() => {
     const controller = new AbortController();
 
-    // eslint-disable-next-line react-doctor/no-event-handler -- Route-scoped training data loads when trainingId changes, not from a user event.
     if (trainingId) {
       void loadTraining(controller);
     }
