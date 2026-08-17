@@ -10,6 +10,24 @@ export interface WeeklySummaryOptions {
   endDate?: Date | string;
 }
 
+export interface WorstPerformersOptions {
+  startDate?: Date | string;
+  endDate?: Date | string;
+  /**
+   * Minimum `totalViews` before a post can rank as a worst performer.
+   * Defaults to {@link DEFAULT_WORST_PERFORMER_MIN_VIEWS}.
+   */
+  minViews?: number;
+}
+
+/**
+ * Floor for worst-performer ranking. Posts below this view count are treated
+ * as unreached rather than underperforming, so zero-reach rows cannot dominate
+ * anti-pattern lists. 10 is enough to drop unpublished / never-distributed
+ * posts without requiring a large audience first.
+ */
+export const DEFAULT_WORST_PERFORMER_MIN_VIEWS = 10;
+
 export interface PerformanceContentItem {
   postId: string;
   title: string;
@@ -198,6 +216,36 @@ export class PerformanceSummaryService {
   }
 
   /**
+   * Get worst performing content ranked by lowest engagement rate.
+   * Applies a minimum-views floor so zero-reach posts do not dominate.
+   */
+  async getWorstPerformers(
+    organizationId: string,
+    brandId: string,
+    limit: number = 10,
+    options: WorstPerformersOptions = {},
+  ): Promise<PerformanceContentItem[]> {
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
+      options.startDate,
+      options.endDate,
+    );
+
+    const matchFilter = this.buildMatchFilter(
+      organizationId,
+      brandId,
+      startDate,
+      endDate,
+    );
+
+    return this.getContentByEngagement(
+      matchFilter,
+      limit,
+      'asc',
+      options.minViews ?? DEFAULT_WORST_PERFORMER_MIN_VIEWS,
+    );
+  }
+
+  /**
    * Get prompt/description performance.
    */
   async getPromptPerformance(
@@ -344,9 +392,18 @@ export class PerformanceSummaryService {
     matchFilter: Prisma.PostAnalyticsWhereInput,
     limit: number,
     sortDirection: 'asc' | 'desc',
+    minViews?: number,
   ): Promise<PerformanceContentItem[]> {
+    const where: Prisma.PostAnalyticsWhereInput =
+      minViews === undefined
+        ? matchFilter
+        : {
+            ...matchFilter,
+            totalViews: { gte: minViews },
+          };
+
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
+      where,
       orderBy: { engagementRate: sortDirection },
       take: limit,
     });
