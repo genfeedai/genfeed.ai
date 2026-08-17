@@ -41,15 +41,22 @@ export class CreditsController {
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
-      const orgId = (req.user as User | undefined)?.organizationId ?? 'unknown';
+      const orgId =
+        (req as RequestWithContext).context?.organizationId ??
+        (req.user as User | undefined)?.organizationId ??
+        'unknown';
       return CACHE_PATTERNS.CREDITS_USAGE(orgId);
     },
     tags: [CACHE_TAGS.CREDITS],
     ttl: 60,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getUsageMetrics(@Req() req: Request, @CurrentUser() user: User) {
-    const organizationId = user.organizationId.toString();
+  async getUsageMetrics(
+    @Req() req: RequestWithContext,
+    @CurrentUser() user: User,
+  ) {
+    const organizationId =
+      req.context?.organizationId ?? user.organizationId.toString();
 
     const data =
       await this.creditTransactionsService.getUsageMetrics(organizationId);

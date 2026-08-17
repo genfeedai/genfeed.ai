@@ -515,7 +515,7 @@ export default function SettingsUsagePage() {
             Balance
           </Text>
           <Text as="p" size="xl" weight="bold">
-            {(metrics?.currentBalance ?? 0).toLocaleString()}
+            {metrics ? metrics.currentBalance.toLocaleString() : '—'}
           </Text>
         </Card>
         <Card bodyClassName="gap-3 p-4">
@@ -523,7 +523,7 @@ export default function SettingsUsagePage() {
             Used (7 days)
           </Text>
           <Text as="p" size="xl" weight="bold">
-            {(metrics?.usage7Days ?? 0).toLocaleString()}
+            {metrics ? metrics.usage7Days.toLocaleString() : '—'}
           </Text>
         </Card>
         <Card bodyClassName="gap-3 p-4">
@@ -531,7 +531,7 @@ export default function SettingsUsagePage() {
             Used (30 days)
           </Text>
           <Text as="p" size="xl" weight="bold">
-            {(metrics?.usage30Days ?? 0).toLocaleString()}
+            {metrics ? metrics.usage30Days.toLocaleString() : '—'}
           </Text>
         </Card>
         <Card bodyClassName="gap-3 p-4">

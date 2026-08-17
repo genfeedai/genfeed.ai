@@ -149,6 +149,27 @@ describe('CreditsController', () => {
       ).toHaveBeenCalledWith(organizationId);
     });
 
+    it('prefers the request context organization for usage metrics', async () => {
+      await controller.getUsageMetrics(
+        {
+          ...mockReq,
+          context: {
+            hydratedAt: Date.now(),
+            isSuperAdmin: false,
+            organizationId: 'active-org-id',
+            stripeSubscriptionStatus: 'active',
+            subscriptionTier: 'pro',
+            userId: 'user-db-id',
+          },
+        } as unknown as RequestWithContext,
+        mockUser,
+      );
+
+      expect(
+        mockServices.creditTransactionsService.getUsageMetrics,
+      ).toHaveBeenCalledWith('active-org-id');
+    });
+
     it('should return serialized metrics response', async () => {
       const result = await controller.getUsageMetrics(mockReq, mockUser);
 
