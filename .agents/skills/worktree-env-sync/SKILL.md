@@ -16,9 +16,8 @@ Shipped in #1578.
 
 - **`git wt <name> [branch]`** — adds `<repo>/.worktrees/<name>` and syncs env in one step (needs
   the one-time `bun run wt:setup`, which installs the `wt` git alias). A bare name is the whole
-  path; `git wt` refuses anything that is not a direct child of `.worktrees/` (or the
-  harness-owned `.claude/worktrees/`), so worktrees never nest and never land in `/tmp`,
-  sibling dirs, or `$HOME`.
+  path; `git wt` refuses anything that is not a direct child of `.worktrees/`, so worktrees
+  never nest and never land in `/tmp`, sibling dirs, `$HOME`, or tool-specific worktree roots.
 - **`bun run wt:sync [target-dir]`** — run after any `git worktree add`, including Codex/CI
   worktrees. Idempotent; never clobbers an existing file.
 

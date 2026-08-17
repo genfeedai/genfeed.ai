@@ -7,7 +7,7 @@
 #
 # Worktrees live inside the repo, under `<repo>/.worktrees/` (gitignored). A bare
 # name resolves to `<repo>/.worktrees/<name>`; any explicit path outside
-# `.worktrees/` (or the harness-owned `.claude/worktrees/`) is refused, so agent
+# `.worktrees/` is refused, so agent
 # lanes stop scattering multi-GB checkouts across `/tmp`, sibling dirs, and $HOME.
 
 set -euo pipefail
@@ -48,7 +48,7 @@ fi
 args=("$@")
 requested="${args[$((path_index - 1))]}"
 case "$requested" in
-  */*|/*|.|..) resolved="$requested" ;;
+  */*|.|..) resolved="$requested" ;;
   *) resolved="$worktrees_root/$requested" ;;
 esac
 
@@ -66,7 +66,7 @@ fi
 
 # Direct child only — `.worktrees/<name>` — never a worktree inside a worktree.
 case "$(dirname "$abs")" in
-  "$worktrees_root"|"$primary_root/.claude/worktrees") ;;
+  "$worktrees_root") ;;
   *)
     echo "git wt — worktrees must be direct children of $worktrees_root/ (got: $abs)" >&2
     echo "         pass a bare name, e.g. \`git wt feat-123-short-title\`" >&2
@@ -74,7 +74,7 @@ case "$(dirname "$abs")" in
     ;;
 esac
 
-args[$((path_index - 1))]="$abs"
+args[path_index - 1]="$abs"
 set -- "${args[@]}"
 before_worktrees=()
 while IFS= read -r worktree_path; do

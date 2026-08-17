@@ -93,6 +93,40 @@ describe('package and worktree review follow-ups', () => {
     }
   });
 
+  it('refuses the legacy .claude/worktrees path', () => {
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'git-wt-claude-'));
+    const repository = path.join(fixtureRoot, 'repository');
+    const claudeWorktree = path.join(
+      repository,
+      '.claude',
+      'worktrees',
+      'legacy-location',
+    );
+
+    try {
+      initializeFixtureRepository(repository);
+
+      const result = spawnSync(
+        'bash',
+        [
+          path.join(repository, 'scripts/git-wt.sh'),
+          '-b',
+          'fixture-branch',
+          claudeWorktree,
+          'HEAD',
+        ],
+        { cwd: repository, encoding: 'utf8' },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('direct children of');
+      expect(existsSync(claudeWorktree)).toBe(false);
+      expect(listWorktrees(repository)).toEqual([realpathSync(repository)]);
+    } finally {
+      rmSync(fixtureRoot, { force: true, recursive: true });
+    }
+  });
+
   it('never nests: from inside a worktree a bare name lands in the primary .worktrees/', () => {
     const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'git-wt-nested-'));
     const repository = path.join(fixtureRoot, 'repository');
