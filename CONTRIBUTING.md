@@ -198,6 +198,9 @@ subject** on `master`. Use Conventional Commits:
 `build`, `ci`, `perf`. Lowercase summary, imperative mood, no trailing period,
 ≤ 72 characters. Add `!` before the colon for a breaking change and describe
 it in the body. Individual commit messages inside the PR are not preserved.
+The `PR Title` check enforces the shape and runs on fork PRs without waiting
+for `run-ci`; the title is also the changelog line (see below), so write it for
+a reader of the release notes.
 
 **Linked issue.** Every PR beyond a typo or docs-only fix references an issue:
 `Closes #123` when it fully resolves the work, `Refs #123` for context. If you
@@ -315,6 +318,7 @@ request, list exactly what you ran and any checks left to CI.
 - Once CI is green and review is approved, the maintainer squash-merges using
   your PR title as the commit subject.
 - Merged work ships in the next Community release cut from `master`
-  ([RELEASING.md](RELEASING.md)); the generated `CHANGELOG.md` credits the PR.
+  ([RELEASING.md](RELEASING.md)); the generated release notes credit the PR
+  by number and title.
 
 Integration utilities live in [packages/integrations](packages/integrations/README.md).
