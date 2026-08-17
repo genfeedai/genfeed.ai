@@ -2,6 +2,10 @@ import {
   type ResolvedBrandSkill,
   SkillsService,
 } from '@api/collections/skills/services/skills.service';
+import {
+  sanitizeAgentUntrustedInput,
+  UNTRUSTED_ORG_SKILL_FRAMING,
+} from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -56,10 +60,17 @@ export class SkillRuntimeService {
         continue;
       }
 
+      const sanitizedInstructions = sanitizeAgentUntrustedInput(
+        skill.instructions,
+      );
+      if (!sanitizedInstructions) {
+        continue;
+      }
+
       const truncated =
-        skill.instructions.length > MAX_INSTRUCTIONS_PER_SKILL
-          ? `${skill.instructions.slice(0, MAX_INSTRUCTIONS_PER_SKILL)}…`
-          : skill.instructions;
+        sanitizedInstructions.length > MAX_INSTRUCTIONS_PER_SKILL
+          ? `${sanitizedInstructions.slice(0, MAX_INSTRUCTIONS_PER_SKILL)}…`
+          : sanitizedInstructions;
 
       const section = `## Skill: ${skill.name}\n${truncated}`;
 
@@ -75,7 +86,11 @@ export class SkillRuntimeService {
       totalLength += section.length;
     }
 
-    return sections.join('\n\n');
+    if (sections.length === 0) {
+      return '';
+    }
+
+    return `${UNTRUSTED_ORG_SKILL_FRAMING}\n\n${sections.join('\n\n')}`;
   }
 
   /**
