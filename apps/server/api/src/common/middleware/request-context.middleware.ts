@@ -45,15 +45,35 @@ export class RequestContextMiddleware implements NestMiddleware {
     _res: Response,
     next: NextFunction,
   ): Promise<void> {
+    await this.hydrate(req);
+    return next();
+  }
+
+  /**
+   * Hydrate `req.context` from the authenticated identity.
+   *
+   * Express middleware runs before Nest guards, so for Better Auth / API-key
+   * requests `req.user` does not exist yet when `use()` runs. The global
+   * `CombinedAuthGuard` therefore calls this again right after it sets
+   * `req.user`, which is what makes `req.context` available to every guard,
+   * interceptor, and controller behind it (models, subscription, super-admin,
+   * feature flags, rate limits). Idempotent: an already-hydrated request is
+   * left untouched.
+   */
+  async hydrate(req: RequestWithContext): Promise<void> {
+    if (req.context) {
+      return;
+    }
+
     if (isSelfHostedDeployment()) {
       await this.hydrateSelfHostedContext(req);
-      return next();
+      return;
     }
 
     const user = req.user;
 
     if (!user) {
-      return next();
+      return;
     }
 
     const userId = user.userId || user.id || '';
@@ -61,7 +81,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     const brandId = user.brandId ?? undefined;
 
     if (!userId || !organizationId) {
-      return next();
+      return;
     }
 
     const cacheKey = buildRcKey(userId, organizationId, brandId || undefined);
@@ -73,7 +93,7 @@ export class RequestContextMiddleware implements NestMiddleware {
         const cached = await publisher.get(cacheKey);
         if (cached) {
           req.context = JSON.parse(cached) as IRequestContext;
-          return next();
+          return;
         }
       }
 
@@ -111,8 +131,6 @@ export class RequestContextMiddleware implements NestMiddleware {
     } catch (error: unknown) {
       this.logger.error('RequestContextMiddleware failed', error, this.context);
     }
-
-    return next();
   }
 
   private async hydrateSelfHostedContext(

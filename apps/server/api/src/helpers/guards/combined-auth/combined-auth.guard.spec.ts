@@ -1,4 +1,5 @@
 import type { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -21,6 +22,7 @@ describe('CombinedAuthGuard', () => {
   };
   let apiKeyAuthGuard: { canActivate: ReturnType<typeof vi.fn> };
   let betterAuthGuard: { canActivate: ReturnType<typeof vi.fn> };
+  let requestContextMiddleware: { hydrate: ReturnType<typeof vi.fn> };
   let prisma: {
     brand: { findFirst: ReturnType<typeof vi.fn> };
     organization: { findFirst: ReturnType<typeof vi.fn> };
@@ -58,6 +60,7 @@ describe('CombinedAuthGuard', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
       betterAuthGuard as unknown as BetterAuthGuard,
+      requestContextMiddleware as unknown as RequestContextMiddleware,
     ) as {
       canActivate: (context: ExecutionContext) => Promise<boolean>;
     };
@@ -69,6 +72,9 @@ describe('CombinedAuthGuard', () => {
     };
     betterAuthGuard = {
       canActivate: vi.fn(),
+    };
+    requestContextMiddleware = {
+      hydrate: vi.fn().mockResolvedValue(undefined),
     };
     prisma = {
       brand: { findFirst: vi.fn() },
@@ -111,6 +117,101 @@ describe('CombinedAuthGuard', () => {
     expect(result).toBe(true);
     expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+  });
+
+  it('hydrates request.context once Better Auth has set request.user', async () => {
+    // RequestContextMiddleware runs before this guard, so req.context is
+    // still empty when the token is verified — the guard must fill it in.
+    const authenticatedUser = {
+      id: 'user_1',
+      organizationId: 'cmptu23g70001zixnzwbzwp2e',
+      userId: 'user_1',
+    };
+    const mockRequest: { headers: object; user?: object; context?: object } = {
+      headers: { authorization: 'Bearer jwt_token_here' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = authenticatedUser;
+      return true;
+    });
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(requestContextMiddleware.hydrate).toHaveBeenCalledTimes(1);
+    expect(requestContextMiddleware.hydrate).toHaveBeenCalledWith(mockRequest);
+  });
+
+  it('hydrates request.context after API key authentication', async () => {
+    const mockRequest: { headers: object; user?: object } = {
+      headers: { authorization: 'Bearer gf_1234567890abcdef' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    apiKeyAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = { id: 'user_1', organizationId: 'org_1' };
+      return true;
+    });
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(requestContextMiddleware.hydrate).toHaveBeenCalledWith(mockRequest);
+  });
+
+  it('leaves an already hydrated request.context untouched', async () => {
+    const existingContext = { organizationId: 'org_1', userId: 'user_1' };
+    const mockRequest: { headers: object; user?: object; context: object } = {
+      context: existingContext,
+      headers: { authorization: 'Bearer jwt_token_here' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = { id: 'user_1', organizationId: 'org_1' };
+      return true;
+    });
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+    expect(mockRequest.context).toBe(existingContext);
+  });
+
+  it('does not hydrate request.context when authentication is rejected', async () => {
+    const mockRequest = {
+      headers: { authorization: 'Bearer jwt_token_here' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockResolvedValue(false);
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(false);
+
+    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+  });
+
+  it('still allows the request when context hydration throws', async () => {
+    const mockRequest: { headers: object; user?: object } = {
+      headers: { authorization: 'Bearer jwt_token_here' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = { id: 'user_1', organizationId: 'org_1' };
+      return true;
+    });
+    requestContextMiddleware.hydrate.mockRejectedValue(new Error('redis down'));
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('uses API key authentication when bearer token starts with gf_', async () => {

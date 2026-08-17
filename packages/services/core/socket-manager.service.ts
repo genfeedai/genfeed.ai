@@ -58,18 +58,20 @@ export class SocketManager {
   }
 
   public static getInstance(config: ISocketManagerConfig = {}): SocketManager {
-    // If token changes, recreate the instance
-    if (
-      !SocketManager.instance ||
-      (config.token && SocketManager.instanceToken !== config.token)
-    ) {
-      // Clean up old instance if it exists
-      if (SocketManager.instance) {
-        SocketManager.instance.cleanup();
-      }
+    if (!SocketManager.instance) {
       SocketManager.instance = new SocketManager(config);
       SocketManager.instanceToken = config.token;
+      return SocketManager.instance;
     }
+
+    // A rotated token is handed to the shared socket in place. Recreating the
+    // manager here used to drop every subscription and connection-state
+    // listener each time the ~30s Better Auth JWT refreshed.
+    if (config.token && SocketManager.instanceToken !== config.token) {
+      SocketService.getInstance(config.token);
+      SocketManager.instanceToken = config.token;
+    }
+
     return SocketManager.instance;
   }
 
@@ -147,8 +149,10 @@ export class SocketManager {
     event: string,
     handler: ISocketEventHandler<T>,
   ): () => void {
-    // Log subscription details for debugging
-    logger.info(`WSS subscribing to event: ${event}`, {
+    // Debug-level: this and the per-event log below sit on the streaming hot
+    // path (every token chunk crosses here) and must not format payloads at
+    // info level in production.
+    logger.debug(`WSS subscribing to event: ${event}`, {
       isConnected: this.isConnected(),
       listenersCount: this.listeners.length,
       socketId: this.socketService.socket?.id,
@@ -156,7 +160,7 @@ export class SocketManager {
 
     // Wrap handler with logging
     const wrappedHandler: ISocketEventHandler<T> = (data: T) => {
-      logger.info(`WSS ${event}`, data);
+      logger.debug(`WSS ${event}`, data);
       handler(data);
     };
 

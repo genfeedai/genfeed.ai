@@ -9,6 +9,7 @@ import {
   isFocusedOnboardingPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
+  resolveAgentConversationRoute,
   resolveOrganizationScopePath,
 } from './operator-shell';
 
@@ -30,6 +31,56 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/agent/thread-1')).toBe(
       '/agent/thread-1',
     );
+  });
+
+  it('resolves which conversation surface a normalized agent path hosts', () => {
+    expect(resolveAgentConversationRoute('/agent')).toEqual({
+      isOnboarding: false,
+      threadId: undefined,
+    });
+    expect(resolveAgentConversationRoute('/agent/new')).toEqual({
+      isOnboarding: false,
+      threadId: undefined,
+    });
+    expect(resolveAgentConversationRoute('/agent/thread-1')).toEqual({
+      isOnboarding: false,
+      threadId: 'thread-1',
+    });
+    expect(resolveAgentConversationRoute('/agent/onboarding')).toEqual({
+      isOnboarding: true,
+      threadId: undefined,
+    });
+    expect(resolveAgentConversationRoute('/agent/onboarding/thread-1')).toEqual(
+      {
+        isOnboarding: true,
+        threadId: 'thread-1',
+      },
+    );
+    expect(
+      resolveAgentConversationRoute(
+        normalizeProtectedPathname('/acme/~/agent/thread-1'),
+      ),
+    ).toEqual({ isOnboarding: false, threadId: 'thread-1' });
+  });
+
+  it('keeps malformed thread ids off the conversation surface', () => {
+    // `/agent/undefined` from a stale link: the page redirects, the layout
+    // must not fetch `/threads/undefined/*` in the meantime.
+    expect(resolveAgentConversationRoute('/agent/undefined')).toEqual({
+      isOnboarding: false,
+      threadId: undefined,
+    });
+    expect(resolveAgentConversationRoute('/agent/onboarding/null')).toEqual({
+      isOnboarding: true,
+      threadId: undefined,
+    });
+  });
+
+  it('leaves non-conversation agent routes to their own page', () => {
+    expect(resolveAgentConversationRoute('/agent/journey')).toBeNull();
+    expect(resolveAgentConversationRoute('/agent/thread-1/extra')).toBeNull();
+    expect(resolveAgentConversationRoute('/workspace')).toBeNull();
+    expect(resolveAgentConversationRoute('/agents')).toBeNull();
   });
 
   it('identifies focused onboarding from a normalized agent path', () => {

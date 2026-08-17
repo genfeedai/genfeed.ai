@@ -5,6 +5,10 @@ import { AgentThreadStatus } from '@genfeedai/enums';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS,
+  AGENT_REFRESH_CONVERSATIONS_EVENT,
+} from './agent-thread-list.helpers';
 import { useAgentThreadList } from './useAgentThreadList';
 
 function makeThread(
@@ -408,6 +412,31 @@ describe('useAgentThreadList', () => {
     });
     expect(result.current.viewStatus).toBe(AgentThreadStatus.ACTIVE);
     expect(result.current.isArchivedView).toBe(false);
+  });
+
+  it('coalesces a burst of refresh events into one thread fetch', async () => {
+    const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
+    const apiService = makeApiService({ getThreadsEffect });
+
+    const { result } = renderThreadList(apiService);
+    await waitFor(() => expect(result.current.threads).toHaveLength(1));
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+
+    // send + stream finalize + reconnect all dispatch within the same tick.
+    act(() => {
+      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
+      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
+      window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
+    });
+    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+
+    await act(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(resolve, AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS * 2),
+        ),
+    );
+    expect(getThreadsEffect).toHaveBeenCalledTimes(2);
   });
 
   it('surfaces load failures with a retry state', async () => {

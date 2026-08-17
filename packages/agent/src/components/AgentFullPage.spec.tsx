@@ -78,6 +78,7 @@ vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
 }));
 
 interface StoreState {
+  activeRunId: string | null;
   activeThreadId: string | null;
   cacheConversation: ReturnType<typeof vi.fn>;
   clearComposerSeed: ReturnType<typeof vi.fn>;
@@ -140,6 +141,7 @@ interface StoreState {
   setThreadPrompt: ReturnType<typeof vi.fn>;
   setWorkEvents: ReturnType<typeof vi.fn>;
   seedComposer: ReturnType<typeof vi.fn>;
+  stream: { isStreaming: boolean };
   threads: Array<{
     brandId?: string | null;
     id: string;
@@ -150,6 +152,7 @@ interface StoreState {
 }
 
 const storeState: StoreState = {
+  activeRunId: null,
   activeThreadId: null,
   cacheConversation: vi.fn(),
   clearComposerSeed: vi.fn(),
@@ -181,6 +184,7 @@ const storeState: StoreState = {
   setRunStartedAt: vi.fn(),
   setThreadPrompt: vi.fn(),
   setWorkEvents: vi.fn(),
+  stream: { isStreaming: false },
   threads: [],
   upsertThread: vi.fn(),
 };
@@ -306,7 +310,9 @@ describe('AgentFullPage', () => {
     storeState.resetStreamState.mockReset();
     storeState.resetActiveConversationState.mockReset();
     storeState.clearThreadAttention.mockReset();
+    storeState.activeRunId = null;
     storeState.activeThreadId = null;
+    storeState.stream = { isStreaming: false };
     storeState.isConversationCacheFresh.mockReset();
     storeState.isConversationCacheFresh.mockReturnValue(false);
     storeState.messages = [];
@@ -1154,6 +1160,65 @@ describe('AgentFullPage', () => {
     });
     expect(apiService.getMessages).toHaveBeenCalledTimes(1);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('never rehydrates messages or snapshot over a live local run when the URL catches up to the streaming thread', async () => {
+    // First prompt on /agent/new: sendMessage created thread-1, the store is
+    // streaming it, and only then does the route land on /agent/thread-1.
+    storeState.activeThreadId = 'thread-1';
+    storeState.activeRunId = 'run-1';
+    storeState.stream = { isStreaming: true };
+    storeState.messages = [
+      {
+        content: 'Make me a hero image',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-user-1',
+        role: 'user',
+        threadId: 'thread-1',
+      },
+    ];
+
+    const apiService = createApiService({
+      // A page fetched now predates the assistant turn: it must never land.
+      getMessages: vi.fn(
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue([], signal),
+      ),
+      getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            createdAt: '2026-03-10T10:00:00.000Z',
+            id: threadId,
+            status: AgentThreadStatus.ACTIVE,
+            title: 'Make me a hero image',
+            updatedAt: '2026-03-10T10:00:00.000Z',
+          },
+          signal,
+        ),
+      ),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(apiService.getThread).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(storeState.setThreadPrompt).toHaveBeenCalledWith(
+        'thread-1',
+        undefined,
+      );
+    });
+
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+    expect(storeState.setMessagesPage).not.toHaveBeenCalled();
+    expect(storeState.resetStreamState).not.toHaveBeenCalled();
+    expect(storeState.setWorkEvents).not.toHaveBeenCalled();
+    expect(storeState.setActiveRun).not.toHaveBeenCalled();
   });
 
   it('uses chat-first empty state copy outside onboarding', async () => {

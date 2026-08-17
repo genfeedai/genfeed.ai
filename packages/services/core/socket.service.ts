@@ -136,10 +136,33 @@ export class SocketService {
     return SocketService.classInstance;
   }
 
+  /**
+   * Rotate the bearer token without tearing the socket down.
+   *
+   * Better Auth re-issues a short-lived JWT roughly every 30s, and the gateway
+   * only reads the token during the handshake. Recreating the socket on every
+   * rotation dropped a healthy connection (and every listener bound to it) into
+   * a "reconnecting" state several times a minute. Updating `auth` and the
+   * manager's `extraHeaders` in place means the next (re)connect uses the fresh
+   * token while a live connection stays untouched.
+   */
   private updateToken(token: string): void {
     this.currentToken = token;
-    this.disconnect();
-    this.initializeSocket(token);
+    this.socket.auth = { token };
+
+    const managerOptions = this.socket.io?.opts;
+    if (managerOptions) {
+      managerOptions.extraHeaders = {
+        ...managerOptions.extraHeaders,
+        Authorization: `Bearer ${token}`,
+      };
+    }
+
+    // An idle socket (rejected handshake with a stale token, no automatic
+    // retry pending) should pick the rotated token up right away.
+    if (!this.socket.connected && !this.socket.active) {
+      this.socket.connect();
+    }
   }
 
   public connect(): void {

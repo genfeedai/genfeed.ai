@@ -1,5 +1,5 @@
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import AgentPage, * as PageModule from './page';
 
 const resetActiveConversationState = vi.fn();
@@ -14,21 +14,13 @@ vi.mock('@genfeedai/agent', () => ({
   },
 }));
 
-vi.mock('./AgentWorkspacePageShell', () => ({
-  AgentWorkspacePageShell: () => (
-    <div data-testid="agent-workspace-page-shell" />
-  ),
-}));
-
 runPageModuleTests('app/(protected)/[orgSlug]/~/agent/page', PageModule);
 
 describe('AgentPage', () => {
-  it('renders the org-scoped agent workspace', () => {
-    render(<AgentPage />);
+  it('clears the active thread and renders nothing (the layout hosts the conversation)', () => {
+    const { container } = render(<AgentPage />);
 
-    expect(
-      screen.getByTestId('agent-workspace-page-shell'),
-    ).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
     expect(setActiveThread).toHaveBeenCalledWith(null);
     expect(resetActiveConversationState).toHaveBeenCalled();
   });

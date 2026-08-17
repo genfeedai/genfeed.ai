@@ -6,9 +6,9 @@ import {
   flushBufferedEventsForThread,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import { restoreThreadFromSnapshot as restoreThreadFromSnapshotFn } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
+import { getAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
 import type {
-  BufferedThreadEvent,
   PendingStreamCompletion,
   SendStreamMessageOptions,
   UseAgentChatStreamOptions,
@@ -33,6 +33,10 @@ export type {
   UseAgentChatStreamOptions,
   UseAgentChatStreamReturn,
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
+
+// Stream ownership is shared across every mounted instance of this hook — see
+// `getAgentStreamRuntime` for why a per-instance ref meant two stream owners.
+const streamRuntime = getAgentStreamRuntime();
 
 export function useAgentChatStream(
   options: UseAgentChatStreamOptions,
@@ -82,36 +86,29 @@ export function useAgentChatStream(
   const resetStreamState = useAgentChatStore((s) => s.resetStreamState);
 
   const abortRef = useRef<AbortController | null>(null);
-  const activeStreamThreadRef = useRef<string | null>(null);
-  const bufferedEventsRef = useRef<BufferedThreadEvent[]>([]);
-  const unsubscribersRef = useRef<Array<() => void>>([]);
-  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const pendingCompletionRef = useRef<PendingStreamCompletion | null>(null);
   const resolveStreamFromMessagesRef = useRef<
     ((pending: PendingStreamCompletion) => Promise<void>) | null
   >(null);
   const previousConnectionStateRef = useRef(connectionState);
 
   const clearCompletionWatchdog = useCallback(() => {
-    if (completionTimeoutRef.current) {
-      clearTimeout(completionTimeoutRef.current);
-      completionTimeoutRef.current = null;
+    if (streamRuntime.completionTimeoutRef.current) {
+      clearTimeout(streamRuntime.completionTimeoutRef.current);
+      streamRuntime.completionTimeoutRef.current = null;
     }
   }, []);
 
   const cleanupSubscriptions = useCallback(() => {
-    for (const unsub of unsubscribersRef.current) {
+    for (const unsub of streamRuntime.unsubscribersRef.current) {
       unsub();
     }
-    unsubscribersRef.current = [];
-    bufferedEventsRef.current = [];
+    streamRuntime.unsubscribersRef.current = [];
+    streamRuntime.bufferedEventsRef.current = [];
   }, []);
 
   const flushBufferedEvents = useCallback((threadId: string) => {
-    bufferedEventsRef.current = flushBufferedEventsForThread(
-      bufferedEventsRef.current,
+    streamRuntime.bufferedEventsRef.current = flushBufferedEventsForThread(
+      streamRuntime.bufferedEventsRef.current,
       threadId,
     );
   }, []);
@@ -121,7 +118,18 @@ export function useAgentChatStream(
   }, [connectionState, setSocketConnectionState]);
 
   useEffect(() => {
+    streamRuntime.mountCount += 1;
+
     return () => {
+      streamRuntime.mountCount -= 1;
+
+      // Another instance (the persistent layout, or the page container that
+      // replaces this one on a route-segment swap) still owns the shared
+      // subscriptions — only the last one out tears them down.
+      if (streamRuntime.mountCount > 0) {
+        return;
+      }
+
       clearCompletionWatchdog();
       cleanupSubscriptions();
     };
@@ -175,8 +183,8 @@ export function useAgentChatStream(
         apiService,
         clearCompletionWatchdog,
         clearPendingCompletionIfThread: (id) => {
-          if (pendingCompletionRef.current?.threadId === id) {
-            pendingCompletionRef.current = null;
+          if (streamRuntime.pendingCompletionRef.current?.threadId === id) {
+            streamRuntime.pendingCompletionRef.current = null;
             clearCompletionWatchdog();
           }
         },
@@ -212,9 +220,14 @@ export function useAgentChatStream(
     const previousConnectionState = previousConnectionStateRef.current;
     previousConnectionStateRef.current = connectionState;
 
+    // Every hook mount starts at 'connecting' before the shared manager reports
+    // its real state, so only a transition out of a lost connection counts as a
+    // reconnect. Treating the initial connect as one re-fetched the snapshot and
+    // refreshed the sidebar on every route change.
     if (
       connectionState !== 'connected' ||
-      previousConnectionState === 'connected'
+      previousConnectionState === 'connected' ||
+      previousConnectionState === 'connecting'
     ) {
       return;
     }
@@ -404,12 +417,12 @@ export function useAgentChatStream(
   const scheduleCompletionWatchdog = useCallback(() => {
     clearCompletionWatchdog();
 
-    if (!pendingCompletionRef.current) {
+    if (!streamRuntime.pendingCompletionRef.current) {
       return;
     }
 
-    completionTimeoutRef.current = setTimeout(() => {
-      const pending = pendingCompletionRef.current;
+    streamRuntime.completionTimeoutRef.current = setTimeout(() => {
+      const pending = streamRuntime.pendingCompletionRef.current;
 
       if (!pending) {
         return;
@@ -427,12 +440,14 @@ export function useAgentChatStream(
         clearCompletionWatchdog,
         clearPendingInputRequest,
         clearPendingCompletion: (threadId) => {
-          if (pendingCompletionRef.current?.threadId === threadId) {
-            pendingCompletionRef.current = null;
+          if (
+            streamRuntime.pendingCompletionRef.current?.threadId === threadId
+          ) {
+            streamRuntime.pendingCompletionRef.current = null;
           }
         },
         isCurrentPendingThread: (threadId) =>
-          pendingCompletionRef.current?.threadId === threadId,
+          streamRuntime.pendingCompletionRef.current?.threadId === threadId,
         isThreadVisible,
         resetStreamState,
         scheduleCompletionWatchdog,
@@ -464,7 +479,7 @@ export function useAgentChatStream(
   }, [resolveStreamFromMessages]);
 
   const touchCompletionWatchdog = useCallback(() => {
-    if (!pendingCompletionRef.current) {
+    if (!streamRuntime.pendingCompletionRef.current) {
       return;
     }
 
@@ -472,14 +487,14 @@ export function useAgentChatStream(
   }, [scheduleCompletionWatchdog]);
 
   const attachSubscriptions = useCallback(() => {
-    unsubscribersRef.current.push(
+    streamRuntime.unsubscribersRef.current.push(
       ...attachAgentStreamSubscriptions({
-        activeStreamThreadRef,
+        activeStreamThreadRef: streamRuntime.activeStreamThreadRef,
         addActiveToolCall,
         addPendingUiActions,
         addWorkEvent,
         appendStreamToken,
-        bufferedEventsRef,
+        bufferedEventsRef: streamRuntime.bufferedEventsRef,
         cleanupSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
@@ -487,7 +502,7 @@ export function useAgentChatStream(
         finalizeStream,
         isThreadVisible,
         markThreadRunning,
-        pendingCompletionRef,
+        pendingCompletionRef: streamRuntime.pendingCompletionRef,
         resetStreamState,
         setActiveRun,
         setActiveRunStatus,
@@ -551,14 +566,18 @@ export function useAgentChatStream(
       return;
     }
 
-    // Already the owner of this stream — `sendMessage` attached on this instance.
-    if (activeStreamThreadRef.current === activeThreadId) {
+    // The shared runtime already owns this stream — `sendMessage` attached the
+    // subscriptions on this or another live instance.
+    if (
+      streamRuntime.activeStreamThreadRef.current === activeThreadId &&
+      streamRuntime.unsubscribersRef.current.length > 0
+    ) {
       return;
     }
 
-    activeStreamThreadRef.current = activeThreadId;
+    streamRuntime.activeStreamThreadRef.current = activeThreadId;
     attachSubscriptions();
-    pendingCompletionRef.current = {
+    streamRuntime.pendingCompletionRef.current = {
       initiatedAt: Date.now(),
       preAssistantIds: collectAssistantMessageIds(state.messages),
       runId: state.activeRunId,
@@ -615,9 +634,9 @@ export function useAgentChatStream(
       abortRef.current?.abort();
       abortRef.current = new AbortController();
       const signal = sendOptions?.signal || abortRef.current.signal;
-      activeStreamThreadRef.current = currentActiveThreadId;
-      bufferedEventsRef.current = [];
-      pendingCompletionRef.current = null;
+      streamRuntime.activeStreamThreadRef.current = currentActiveThreadId;
+      streamRuntime.bufferedEventsRef.current = [];
+      streamRuntime.pendingCompletionRef.current = null;
 
       setWorkEvents([]);
       clearPendingInputRequest();
@@ -678,8 +697,8 @@ export function useAgentChatStream(
           ),
         );
 
-        activeStreamThreadRef.current = response.threadId;
-        pendingCompletionRef.current = {
+        streamRuntime.activeStreamThreadRef.current = response.threadId;
+        streamRuntime.pendingCompletionRef.current = {
           initiatedAt: Date.now(),
           preAssistantIds,
           runId: response.runId,
@@ -713,7 +732,7 @@ export function useAgentChatStream(
           return;
         }
 
-        pendingCompletionRef.current = null;
+        streamRuntime.pendingCompletionRef.current = null;
         clearCompletionWatchdog();
         if (currentActiveThreadId) {
           updateThreadSummary(currentActiveThreadId, {
@@ -758,7 +777,7 @@ export function useAgentChatStream(
 
   const clearChat = useCallback(() => {
     abortRef.current?.abort();
-    pendingCompletionRef.current = null;
+    streamRuntime.pendingCompletionRef.current = null;
     clearCompletionWatchdog();
     cleanupSubscriptions();
     resetStreamState();

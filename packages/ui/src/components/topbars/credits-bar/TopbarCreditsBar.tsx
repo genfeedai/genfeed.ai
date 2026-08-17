@@ -54,7 +54,7 @@ function TopbarCreditsBarContent() {
   );
   const latestBalanceRequestRef = useRef(0);
   refreshBreakdownRef.current = refreshCreditsBreakdown;
-  const { subscribe, unsubscribe } = useSocketManager();
+  const { isReady: isSocketReady, subscribe, unsubscribe } = useSocketManager();
 
   const clearTopbarBalanceRefreshTimeout = useCallback(() => {
     const timeout = balanceRefreshTimeoutRef.current;
@@ -116,7 +116,10 @@ function TopbarCreditsBarContent() {
   }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
-    if (!showCredits || !organizationId) {
+    // `subscribe` is a silent no-op until the socket manager exists; without
+    // this gate a bar mounted before the token resolves never gets live
+    // balance updates.
+    if (!showCredits || !organizationId || !isSocketReady) {
       return;
     }
 
@@ -153,6 +156,7 @@ function TopbarCreditsBarContent() {
       unsubscribe(creditsEvent, creditsHandler);
     };
   }, [
+    isSocketReady,
     organizationId,
     showCredits,
     subscribe,

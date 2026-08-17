@@ -6,6 +6,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS,
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   getErrorMessage,
   hasRenderableThreadId,
@@ -303,16 +304,27 @@ export function useAgentThreadList({
       return;
     }
 
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const handleRefresh = () => {
-      loadThreads().catch(() => undefined);
+      if (refreshTimer !== null) {
+        clearTimeout(refreshTimer);
+      }
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        loadThreads().catch(() => undefined);
+      }, AGENT_REFRESH_CONVERSATIONS_DEBOUNCE_MS);
     };
 
     window.addEventListener(AGENT_REFRESH_CONVERSATIONS_EVENT, handleRefresh);
-    return () =>
+    return () => {
+      if (refreshTimer !== null) {
+        clearTimeout(refreshTimer);
+      }
       window.removeEventListener(
         AGENT_REFRESH_CONVERSATIONS_EVENT,
         handleRefresh,
       );
+    };
   }, [isActive, loadThreads]);
 
   const prevActiveIdRef = useRef(activeThreadId);

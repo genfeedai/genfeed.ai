@@ -35,6 +35,7 @@ import {
   composeTimelineWithStream,
   deriveHistoricalTimeline,
 } from '@genfeedai/agent/utils/derive-timeline';
+import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import type {
   AttachmentItem,
@@ -808,15 +809,16 @@ export function useAgentChatContainer({
     };
   }, []);
 
-  const hasRenderableThreadState =
-    messages.length > 0 ||
-    Boolean(latestProposedPlan) ||
-    Boolean(pendingInputRequest) ||
-    workEvents.length > 0 ||
-    streamState.isStreaming ||
-    streamState.streamingContent.length > 0 ||
-    streamState.streamingReasoning.length > 0;
-  const isEmpty = !hasRenderableThreadState;
+  const isEmpty = !hasRenderableThreadState({
+    hasLatestProposedPlan: Boolean(latestProposedPlan),
+    hasPendingInputRequest: Boolean(pendingInputRequest),
+    isStreaming: streamState.isStreaming,
+    messageCount: messages.length,
+    pendingUiActionCount: streamState.pendingUiActions.length,
+    streamingContentLength: streamState.streamingContent.length,
+    streamingReasoningLength: streamState.streamingReasoning.length,
+    workEventCount: workEvents.length,
+  });
 
   // Scroll tracking
   useEffect(() => {

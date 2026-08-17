@@ -13,7 +13,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ChevronDown, CircleAlert, CircleCheck, Clock } from 'lucide-react';
-import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import { memo, type ReactElement, useEffect, useMemo, useState } from 'react';
 
 interface TimelineWorkGroupProps {
   entry: TimelineWorkGroupEntry;
@@ -25,7 +25,7 @@ interface TimelineWorkGroupProps {
  * - Live: steps open + trailing "Working for …"
  * - Settled: one-line "Worked for …" (expand for steps)
  */
-export function TimelineWorkGroup({
+function TimelineWorkGroupInner({
   entry,
 }: TimelineWorkGroupProps): ReactElement {
   const visibleEvents = useMemo(
@@ -271,6 +271,11 @@ export function TimelineWorkGroup({
     </div>
   );
 }
+
+// Historical entries are structurally shared upstream
+// (`computeStableTimelineEntries`), so an unchanged `entry` reference lets a
+// settled work group bail out while the live turn streams tokens.
+export const TimelineWorkGroup = memo(TimelineWorkGroupInner);
 
 function formatDurationMs(durationMs: number | null): string | null {
   if (durationMs == null || !Number.isFinite(durationMs) || durationMs < 0) {

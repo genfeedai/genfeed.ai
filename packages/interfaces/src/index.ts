@@ -246,6 +246,7 @@ export * from './training/modal-training-new.interface';
 export * from './training/training-context.interface';
 export * from './training/training-layout-content.interface';
 export * from './training-layout.interface';
+export * from './ui/agent-conversation-route.interface';
 export * from './ui/app-switcher.interface';
 export * from './ui/avatar.interface';
 export * from './ui/badge.interface';

@@ -3,8 +3,10 @@
 import { isRenderableThreadId } from '@genfeedai/agent';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { AgentWorkspacePageShell } from '../AgentWorkspacePageShell';
 
+// The conversation shell is hosted by the agent layout
+// (AgentConversationRouteHost) so switching threads never remounts it; this
+// page only guards the route.
 export default function ChatThreadPage() {
   const params = useParams<{ id: string; orgSlug: string }>();
   const { replace } = useRouter();
@@ -19,9 +21,5 @@ export default function ChatThreadPage() {
     }
   }, [isValidThreadId, params.orgSlug, replace]);
 
-  if (!isValidThreadId) {
-    return null;
-  }
-
-  return <AgentWorkspacePageShell threadId={params.id} />;
+  return null;
 }

@@ -58,6 +58,34 @@ describe('planThreadSwitchFetches', () => {
       shouldFetchThread: false,
     });
   });
+
+  it('never rehydrates messages or snapshot over a live local run for the visible thread', () => {
+    expect(
+      planThreadSwitchFetches({
+        hasInFlightHydration: false,
+        hasLiveLocalRun: true,
+        isCacheFresh: false,
+      }),
+    ).toEqual({
+      shouldFetchMessages: false,
+      shouldFetchSnapshot: false,
+      shouldFetchThread: true,
+    });
+  });
+
+  it('still skips the thread record for a live local run when the cache is fresh', () => {
+    expect(
+      planThreadSwitchFetches({
+        hasInFlightHydration: false,
+        hasLiveLocalRun: true,
+        isCacheFresh: true,
+      }),
+    ).toEqual({
+      shouldFetchMessages: false,
+      shouldFetchSnapshot: false,
+      shouldFetchThread: false,
+    });
+  });
 });
 
 describe('shouldDelayThreadSwitchFetch', () => {

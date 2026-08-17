@@ -7,7 +7,8 @@ const mockSocketDisconnect = vi.fn();
 const mockSocketOff = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
 const socketEventHandlers = new Map<string, (...args: unknown[]) => void>();
-const socketState = vi.hoisted(() => ({ active: true }));
+const socketState = vi.hoisted(() => ({ active: true, connected: false }));
+const mockIo = vi.hoisted(() => vi.fn());
 const { mockLogger } = vi.hoisted(() => ({
   mockLogger: {
     debug: vi.fn(),
@@ -18,23 +19,30 @@ const { mockLogger } = vi.hoisted(() => ({
 }));
 
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => {
-    const socket = {
-      get active() {
-        return socketState.active;
-      },
-      connect: mockSocketConnect,
-      disconnect: mockSocketDisconnect,
-      off: mockSocketOff,
-      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        socketEventHandlers.set(event, handler);
-        mockSocketOn(event, handler);
-      }),
-      removeAllListeners: mockSocketRemoveAllListeners,
-    };
+  io: mockIo.mockImplementation(
+    (_endpoint: string, config: { auth?: unknown; extraHeaders?: unknown }) => {
+      const socket = {
+        get active() {
+          return socketState.active;
+        },
+        auth: config.auth,
+        connect: mockSocketConnect,
+        get connected() {
+          return socketState.connected;
+        },
+        disconnect: mockSocketDisconnect,
+        io: { opts: { extraHeaders: config.extraHeaders } },
+        off: mockSocketOff,
+        on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+          socketEventHandlers.set(event, handler);
+          mockSocketOn(event, handler);
+        }),
+        removeAllListeners: mockSocketRemoveAllListeners,
+      };
 
-    return socket;
-  }),
+      return socket;
+    },
+  ),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -73,13 +81,42 @@ describe('SocketService', () => {
       expect(i1).toBe(i2);
     });
 
-    it('returns a new instance when a different token is provided', () => {
+    it('returns the same instance when a different token is provided', () => {
       const i1 = SocketService.getInstance('token-a');
-      // Providing a different token forces re-init via updateToken,
-      // but since we cleared, the instance is new each time.
       const i2 = SocketService.getInstance('token-b');
-      // The same classInstance reference is returned (token is updated in-place)
       expect(i2).toBe(i1);
+    });
+
+    it('rotates the token in place without tearing down a live socket', () => {
+      // Better Auth re-issues a JWT every ~30s; a rotated token must not
+      // disconnect the socket (that is what made the UI flip to
+      // "Reconnecting" and re-fetch threads on every rotation).
+      socketState.connected = true;
+      const service = SocketService.getInstance('token-a');
+      const liveSocket = service.socket;
+
+      SocketService.getInstance('token-b');
+
+      expect(mockIo).toHaveBeenCalledTimes(1);
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+      expect(service.socket).toBe(liveSocket);
+      expect(service.socket.auth).toEqual({ token: 'token-b' });
+      expect(service.socket.io.opts.extraHeaders).toEqual({
+        Authorization: 'Bearer token-b',
+      });
+    });
+
+    it('reconnects with the rotated token when the socket is idle', () => {
+      socketState.connected = false;
+      socketState.active = false;
+      SocketService.getInstance('token-a');
+
+      SocketService.getInstance('token-b');
+
+      expect(mockIo).toHaveBeenCalledTimes(1);
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(mockSocketConnect).toHaveBeenCalledOnce();
     });
   });
 

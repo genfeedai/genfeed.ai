@@ -1103,8 +1103,10 @@ function UniversalWorkspaceShellContent({
               conversation inside the inspector. */}
             <div className="relative flex h-full min-h-0 min-w-0 flex-col">
               {/* One region, always. The route owns what it renders here —
-                `/agent/*` renders the conversation as its page, every other
-                route renders its own SaaS surface. The shell no longer swaps
+                `/agent/*` hosts the conversation in its route layout
+                (AgentConversationRouteHost) so thread switches never remount
+                it, every other route renders its own SaaS surface. The shell
+                no longer swaps
                 between a hard-wired conversation and the route's children. */}
               <section
                 aria-label="Primary workspace canvas"

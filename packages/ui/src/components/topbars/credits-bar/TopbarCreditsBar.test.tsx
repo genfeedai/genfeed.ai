@@ -10,6 +10,7 @@ const {
   mockRefreshCreditsBreakdown,
   mockSubscribe,
   mockUnsubscribe,
+  socketState,
 } = vi.hoisted(() => ({
   mockGetCreditsService: vi.fn(),
   mockGetTopbarBalances: vi.fn(),
@@ -18,6 +19,7 @@ const {
   mockRefreshCreditsBreakdown: vi.fn(),
   mockSubscribe: vi.fn(),
   mockUnsubscribe: vi.fn(),
+  socketState: { isReady: true },
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -44,6 +46,7 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
 
 vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
+    isReady: socketState.isReady,
     subscribe: mockSubscribe,
     unsubscribe: mockUnsubscribe,
   }),
@@ -122,6 +125,33 @@ describe('TopbarCreditsBar', () => {
       getTopbarBalances: mockGetTopbarBalances,
     });
     mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
+    socketState.isReady = true;
+  });
+
+  it('subscribes to live balance events only once the socket is ready', async () => {
+    socketState.isReady = false;
+    const { rerender } = render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
+    });
+    // Before the socket manager exists, subscribe() is a silent no-op — the
+    // bar would never receive live balance updates. It must wait instead.
+    expect(mockSubscribe).not.toHaveBeenCalled();
+
+    socketState.isReady = true;
+    rerender(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        '/credits/org_1',
+        expect.any(Function),
+      );
+    });
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      '/organizations/org_1',
+      expect.any(Function),
+    );
   });
 
   it('loads topbar balances without logging an error', async () => {

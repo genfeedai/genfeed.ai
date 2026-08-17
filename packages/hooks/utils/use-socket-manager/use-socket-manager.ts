@@ -12,7 +12,7 @@ import {
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface SocketSubscription<T = unknown> {
   event: string;
@@ -40,7 +40,6 @@ export function useSocketManager(
   const disableSocketsForPlaywright =
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
 
-  const _optionsKey = useMemo(() => JSON.stringify(options ?? {}), [options]);
   const latestOptionsRef = useRef(options);
 
   useEffect(() => {

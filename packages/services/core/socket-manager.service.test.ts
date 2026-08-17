@@ -11,10 +11,11 @@ const mockManagerOff = vi.fn();
 const socketState = vi.hoisted(() => ({ active: true, connected: false }));
 
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => ({
+  io: vi.fn((_endpoint: string, config: { auth?: unknown }) => ({
     get active() {
       return socketState.active;
     },
+    auth: config.auth,
     connect: mockSocketConnect,
     get connected() {
       return socketState.connected;
@@ -24,6 +25,7 @@ vi.mock('socket.io-client', () => ({
     io: {
       off: mockManagerOff,
       on: mockManagerOn,
+      opts: {},
     },
     off: mockSocketOff,
     on: mockSocketOn,
@@ -76,11 +78,33 @@ describe('SocketManager', () => {
       expect(i1).toBe(i2);
     });
 
-    it('creates a new instance when the token changes', () => {
+    it('creates a new instance after clearInstance', () => {
       const i1 = SocketManager.getInstance({ token: 'token-a' });
       SocketManager.clearInstance();
       const i2 = SocketManager.getInstance({ token: 'token-b' });
       expect(i1).not.toBe(i2);
+    });
+
+    it('keeps the same instance and its listeners when the token rotates', () => {
+      // ~26 useSocketManager consumers call getInstance on every effect run
+      // with a freshly resolved (rotated) JWT. Recreating the manager here
+      // dropped every subscription and re-ran the reconnect side effects.
+      const i1 = SocketManager.getInstance({ token: 'token-a' });
+      const handler = vi.fn();
+      i1.subscribe('agent:token', handler);
+      const stateListener = vi.fn();
+      i1.subscribeConnectionState(stateListener);
+      stateListener.mockClear();
+      mockSocketOff.mockClear();
+
+      const i2 = SocketManager.getInstance({ token: 'token-b' });
+
+      expect(i2).toBe(i1);
+      expect(i2.getListenersCount()).toBe(1);
+      expect(mockSocketOff).not.toHaveBeenCalled();
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(stateListener).not.toHaveBeenCalled();
+      expect(i2.getSocketService().socket.auth).toEqual({ token: 'token-b' });
     });
   });
 
