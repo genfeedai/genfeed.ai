@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import config from './next.config';
 
 describe('website next.config', () => {
+  it('serves pre-optimized CDN images without Vercel transformations', () => {
+    expect(config.images?.unoptimized).toBe(true);
+  });
+
   it('reserves training rights while allowing search and agent input', async () => {
     const headers = await config.headers?.();
     const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');
