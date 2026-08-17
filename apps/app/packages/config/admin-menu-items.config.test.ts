@@ -27,7 +27,8 @@ describe('ADMIN_MENU_ITEMS', () => {
   it('includes cross-org cloud management destinations', () => {
     const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).toContain('/admin/organization');
+    expect(hrefs).toContain('/admin/overview/analytics/organizations');
+    expect(hrefs).not.toContain('/admin/organization');
     expect(hrefs).toContain('/admin/administration/users');
     expect(hrefs).toContain('/admin/administration/warmup-accounts');
     expect(hrefs).toContain('/admin/administration/subscriptions');
