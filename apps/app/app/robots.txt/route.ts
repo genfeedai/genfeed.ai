@@ -1,6 +1,7 @@
 const ROBOTS_TXT = `User-agent: *
 Disallow: /
 Content-Signal: ai-train=no, search=no, ai-input=no
+Sitemap: https://app.genfeed.ai/sitemap.xml
 `;
 
 export const dynamic = 'force-static';
