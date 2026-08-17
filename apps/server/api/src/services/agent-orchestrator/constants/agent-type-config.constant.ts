@@ -193,6 +193,7 @@ Image guidelines:
       AgentToolName.REPURPOSE_POST,
       AgentToolName.AI_ACTION,
       AgentToolName.PREPARE_GENERATION,
+      AgentToolName.PREPARE_VOICE_CLONE,
       AgentToolName.PREPARE_WORKFLOW_TRIGGER,
       AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
       AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES,

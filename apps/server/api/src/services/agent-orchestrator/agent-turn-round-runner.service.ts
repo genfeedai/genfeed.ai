@@ -12,6 +12,7 @@ import {
   type AgentArtifactCompletionMetadata,
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { getGenerationPreparationRedirect } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import {
   buildResolvedModelMetadata,
   normalizeResponseModel,
@@ -652,19 +653,7 @@ export class AgentTurnRoundRunnerService {
     toolName: AgentToolName,
     allowedTools: Set<AgentToolName>,
   ): AgentToolName | null {
-    const canPrepareGeneration = allowedTools.has(
-      AgentToolName.PREPARE_GENERATION,
-    );
-    const isDirectGenerationTool =
-      toolName === AgentToolName.GENERATE_IMAGE ||
-      toolName === AgentToolName.GENERATE_VIDEO ||
-      toolName === AgentToolName.GENERATE_AS_IDENTITY;
-
-    if (canPrepareGeneration && isDirectGenerationTool) {
-      return AgentToolName.PREPARE_GENERATION;
-    }
-
-    return null;
+    return getGenerationPreparationRedirect(toolName, allowedTools);
   }
 
   private buildUnknownToolRecoveryParams(
