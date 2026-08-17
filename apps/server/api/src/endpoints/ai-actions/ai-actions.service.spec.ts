@@ -83,7 +83,7 @@ describe('AiActionsService', () => {
         content: 'Test content',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: 'Result' } }],
         usage: { total_tokens: 50 },
@@ -117,7 +117,7 @@ describe('AiActionsService', () => {
         context: { brand: 'TestBrand', tone: 'professional' },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: 'Generated caption' } }],
         usage: { total_tokens: 100 },
@@ -184,7 +184,7 @@ describe('AiActionsService', () => {
         },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: 'Result' } }],
         usage: { total_tokens: 50 },
@@ -205,7 +205,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: '  Trimmed result  \n' } }],
         usage: { total_tokens: 75 },
@@ -222,7 +222,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockResolvedValue({
         choices: [{ message: { content: null } }],
         usage: { total_tokens: 10 },
@@ -247,7 +247,7 @@ describe('AiActionsService', () => {
         },
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockRejectedValue(error);
 
       await expect(service.execute('org_789', dto)).rejects.toThrow();
@@ -268,7 +268,7 @@ describe('AiActionsService', () => {
         content: 'Test',
       };
 
-      byokService.resolveApiKey.mockResolvedValue(null);
+      byokService.resolveApiKey.mockResolvedValue(undefined);
       openRouterService.chatCompletion.mockRejectedValue('string error');
 
       await expect(service.execute('org_999', dto)).rejects.toBe(

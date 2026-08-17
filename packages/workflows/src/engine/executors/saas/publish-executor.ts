@@ -15,7 +15,7 @@ export type SocialPlatform =
   | 'threads'
   | 'youtube';
 
-export type ScheduleType = 'immediate' | 'scheduled' | 'optimal';
+export type ScheduleType = 'immediate' | 'scheduled';
 
 export interface PublishConfig {
   platforms: Record<SocialPlatform, boolean>;
@@ -25,56 +25,6 @@ export interface PublishConfig {
   };
   caption?: string;
   hashtags?: string[];
-}
-
-/**
- * A single best-performing posting slot, as produced by
- * `AnalyticsFeedbackExecutor`'s `bestPostingTimes` output.
- */
-export interface PublishBestPostingTime {
-  dayOfWeek: number; // 0 (Sunday) - 6 (Saturday), UTC
-  hour: number; // 0-23, UTC
-  avgEngagement: number;
-}
-
-/**
- * Resolves the next UTC timestamp matching the highest-engagement posting
- * slot. Returns `null` when no slots are available, so callers can fall back
- * to immediate publish rather than stalling the loop on missing analytics.
- */
-export function resolveOptimalScheduleTime(
-  bestPostingTimes: PublishBestPostingTime[] | undefined,
-  now: Date,
-): Date | null {
-  if (!bestPostingTimes || bestPostingTimes.length === 0) {
-    return null;
-  }
-
-  const best = bestPostingTimes.reduce((top, candidate) =>
-    candidate.avgEngagement > top.avgEngagement ? candidate : top,
-  );
-
-  if (
-    !Number.isInteger(best.dayOfWeek) ||
-    best.dayOfWeek < 0 ||
-    best.dayOfWeek > 6 ||
-    !Number.isInteger(best.hour) ||
-    best.hour < 0 ||
-    best.hour > 23
-  ) {
-    return null;
-  }
-
-  const target = new Date(now);
-  target.setUTCHours(best.hour, 0, 0, 0);
-
-  let dayDelta = best.dayOfWeek - target.getUTCDay();
-  if (dayDelta < 0 || (dayDelta === 0 && target.getTime() <= now.getTime())) {
-    dayDelta += 7;
-  }
-  target.setUTCDate(target.getUTCDate() + dayDelta);
-
-  return target;
 }
 
 export interface PublishOutput {
@@ -193,15 +143,10 @@ export class PublishExecutor extends BaseExecutor {
         type: 'immediate',
       },
     );
-    const bestPostingTimes = this.getOptionalInput<
-      PublishBestPostingTime[] | undefined
-    >(inputs, 'bestPostingTimes', undefined);
     const scheduledFor =
       schedule.type === 'scheduled' && schedule.datetime
         ? new Date(schedule.datetime)
-        : schedule.type === 'optimal'
-          ? resolveOptimalScheduleTime(bestPostingTimes, new Date())
-          : null;
+        : null;
 
     const triggerSeoOptimization = this.getOptionalConfig<boolean>(
       node.config,
@@ -232,7 +177,6 @@ export class PublishExecutor extends BaseExecutor {
       metadata: {
         platforms: enabledPlatforms,
         postCount: result.postIds.length,
-        scheduleType: schedule.type,
         scheduledFor: scheduledFor?.toISOString() ?? null,
       },
     };

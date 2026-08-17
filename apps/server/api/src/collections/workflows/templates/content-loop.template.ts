@@ -35,20 +35,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'brandVoice',
     },
     {
-      id: 'e-hooks-prompt',
-      source: 'analytics-feedback',
-      sourceHandle: 'topHooks',
-      target: 'prompt-constructor',
-      targetHandle: 'topHooks',
-    },
-    {
-      id: 'e-worst-prompt',
-      source: 'analytics-feedback',
-      sourceHandle: 'worstTopics',
-      target: 'prompt-constructor',
-      targetHandle: 'avoidTopics',
-    },
-    {
       id: 'e-prompt-gen',
       source: 'prompt-constructor',
       sourceHandle: 'prompt',
@@ -56,13 +42,9 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'prompt',
     },
     {
-      // No sourceHandle: PublishExecutor reads `inputs.get('brand')` as the
-      // full BrandContextOutput object (`brandContext.brandId`, `.label`,
-      // etc). Naming a sourceHandle here would make the engine extract just
-      // that one property (see WorkflowEngine.gatherInputs) and hand Publish
-      // a bare string instead of the object it expects.
       id: 'e-brand-publish',
       source: 'brand-context',
+      sourceHandle: 'brandId',
       target: 'publish',
       targetHandle: 'brand',
     },
@@ -72,13 +54,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       sourceHandle: 'content',
       target: 'publish',
       targetHandle: 'caption',
-    },
-    {
-      id: 'e-feedback-timing',
-      source: 'analytics-feedback',
-      sourceHandle: 'bestPostingTimes',
-      target: 'publish',
-      targetHandle: 'bestPostingTimes',
     },
   ],
   icon: 'repeat',
@@ -142,18 +117,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       data: {
-        config: {
-          includeHashtags: true,
-          maxLength: 2200,
-          template:
-            'Write a {{tone}} social post about {{topic}} that matches this brand voice: {{brandVoice}}\n\nLean into hooks that have performed well recently: {{topHooks}}\n\nAvoid retreading topics that underperformed recently: {{avoidTopics}}\n\nKeep it under {{maxLength}} characters. Include hashtags: {{includeHashtags}}.',
-          tone: 'brand-voice',
-          variables: {
-            includeHashtags: 'true',
-            maxLength: '2200',
-            tone: 'brand-voice',
-          },
-        },
+        config: { includeHashtags: true, maxLength: 2200, tone: 'brand-voice' },
         label: 'Prompt Constructor',
       },
       id: 'prompt-constructor',
@@ -185,7 +149,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
             twitter: false,
             youtube: false,
           },
-          schedule: { type: 'optimal' },
+          schedule: { type: 'immediate' },
         },
         label: 'Publish',
       },
@@ -238,7 +202,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
           twitter: false,
           youtube: false,
         },
-        schedule: { type: 'optimal' },
+        schedule: { type: 'immediate' },
       },
       dependsOn: ['step-generate'],
       id: 'step-publish',

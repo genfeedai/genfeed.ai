@@ -120,9 +120,7 @@ export class PromptConstructorExecutor extends BaseExecutor {
         continue;
       }
 
-      variables[key] = Array.isArray(value)
-        ? value.map((item) => String(item)).join(', ')
-        : String(value);
+      variables[key] = String(value);
     }
 
     return {

@@ -7,12 +7,7 @@ import { ContentOptimizationService } from '@api/services/content-optimization/c
 
 describe('ContentOptimizationService', () => {
   let service: ContentOptimizationService;
-  let mockPerformanceSummary: {
-    getWeeklySummary: ReturnType<typeof vi.fn>;
-    getTopPerformers: ReturnType<typeof vi.fn>;
-    getWorstPerformers: ReturnType<typeof vi.fn>;
-    generatePerformanceContext: ReturnType<typeof vi.fn>;
-  };
+  let mockPerformanceSummary: { getWeeklySummary: ReturnType<typeof vi.fn> };
   let mockOptimizationCycle: { runOptimizationCycle: ReturnType<typeof vi.fn> };
   let mockOpenAiLlm: { chatCompletion: ReturnType<typeof vi.fn> };
   let mockLogger: {
@@ -25,7 +20,6 @@ describe('ContentOptimizationService', () => {
     getMemory: ReturnType<typeof vi.fn>;
     logEntry: ReturnType<typeof vi.fn>;
     addInsight: ReturnType<typeof vi.fn>;
-    updateMetrics: ReturnType<typeof vi.fn>;
   };
   let mockTrendPreferences: {
     getPreferences: ReturnType<typeof vi.fn>;
@@ -132,20 +126,6 @@ describe('ContentOptimizationService', () => {
         },
       ]),
       getWeeklySummary: vi.fn().mockResolvedValue(mockWeeklySummary),
-      getWorstPerformers: vi.fn().mockResolvedValue([
-        {
-          comments: 0,
-          description: 'Generic listicle nobody engaged with',
-          engagementRate: 0.3,
-          likes: 1,
-          platform: 'instagram',
-          postId: 'p-worst',
-          saves: 0,
-          shares: 0,
-          title: 'Worst Post',
-          views: 400,
-        },
-      ]),
     };
 
     mockOptimizationCycle = {
@@ -175,7 +155,6 @@ describe('ContentOptimizationService', () => {
 
     mockBrandMemory = {
       addInsight: vi.fn().mockResolvedValue(undefined),
-      updateMetrics: vi.fn().mockResolvedValue(undefined),
       getMemory: vi.fn().mockResolvedValue([
         {
           date: new Date('2026-02-20T00:00:00.000Z'),
@@ -284,33 +263,6 @@ describe('ContentOptimizationService', () => {
       expect(result.confidenceScore).toBe(0.4);
       expect(result.reasoning).toContain('Heuristic');
       expect(result.suggestions.length).toBeGreaterThan(0);
-    });
-
-    it('should fetch distinct worst performers instead of duplicating the top-performers call', async () => {
-      await service.optimizePrompt(
-        orgId,
-        brandId,
-        'Create a post about fitness',
-      );
-
-      expect(mockPerformanceSummary.getWorstPerformers).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        5,
-      );
-    });
-
-    it('should build a sanitized historical anti-patterns section from worst performers', async () => {
-      await service.optimizePrompt(
-        orgId,
-        brandId,
-        'Create a post about fitness',
-      );
-
-      const systemMessage =
-        mockOpenAiLlm.chatCompletion.mock.calls[0][0].messages[0].content;
-      expect(systemMessage).toContain('Historical Anti-Patterns');
-      expect(systemMessage).toContain('Generic listicle nobody engaged with');
     });
 
     it('should handle malformed LLM response gracefully', async () => {
@@ -475,20 +427,6 @@ describe('ContentOptimizationService', () => {
   });
 
   describe('autoApplySuggestion', () => {
-    it('should return a not_found outcome for an unknown suggestion id', async () => {
-      vi.spyOn(service, 'generateSuggestions').mockResolvedValue([]);
-
-      const result = await service.autoApplySuggestion(
-        orgId,
-        brandId,
-        'missing',
-      );
-
-      expect(result.applied).toBe(false);
-      expect(result.outcome).toBe('not_found');
-      expect(mockBrandMemory.updateMetrics).not.toHaveBeenCalled();
-    });
-
     it('should not apply low confidence suggestions', async () => {
       vi.spyOn(service, 'generateSuggestions').mockResolvedValue([
         {
@@ -497,7 +435,6 @@ describe('ContentOptimizationService', () => {
           dataPoints: 3,
           id: 'low-confidence',
           suggestion: 'Post at 6PM',
-          targetValue: '18:00',
         },
       ]);
 
@@ -508,80 +445,27 @@ describe('ContentOptimizationService', () => {
       );
 
       expect(result.applied).toBe(false);
-      expect(result.outcome).toBe('below_confidence');
       expect(mockBrandMemory.logEntry).not.toHaveBeenCalled();
-      expect(mockBrandMemory.updateMetrics).not.toHaveBeenCalled();
     });
 
-    it('should apply high confidence timing suggestions to BrandMemory.metrics.topPerformingTime', async () => {
-      vi.spyOn(service, 'generateSuggestions').mockResolvedValue([
-        {
-          category: 'timing',
-          confidence: 0.91,
-          dataPoints: 12,
-          id: 'high-confidence-timing',
-          suggestion: 'Concentrate posting around 18:00',
-          targetValue: '18:00',
-        },
-      ]);
-
-      const result = await service.autoApplySuggestion(
-        orgId,
-        brandId,
-        'high-confidence-timing',
-      );
-
-      expect(result.applied).toBe(true);
-      expect(result.outcome).toBe('applied');
-      expect(result.appliedTarget).toEqual({
-        field: 'topPerformingTime',
-        value: '18:00',
-      });
-      expect(mockBrandMemory.updateMetrics).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        { topPerformingTime: '18:00' },
-      );
-      expect(mockBrandMemory.logEntry).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        expect.objectContaining({
-          content: expect.stringContaining('Concentrate posting around 18:00'),
-          type: 'optimization_auto_apply',
-        }),
-      );
-      expect(mockBrandMemory.addInsight).toHaveBeenCalled();
-    });
-
-    it('should apply high confidence format suggestions to BrandMemory.metrics.topPerformingFormat', async () => {
+    it('should apply high confidence suggestions to brand memory', async () => {
       vi.spyOn(service, 'generateSuggestions').mockResolvedValue([
         {
           category: 'format',
           confidence: 0.91,
           dataPoints: 12,
-          id: 'high-confidence-format',
+          id: 'high-confidence',
           suggestion: 'Increase short-form video output',
-          targetValue: 'short-form-video',
         },
       ]);
 
       const result = await service.autoApplySuggestion(
         orgId,
         brandId,
-        'high-confidence-format',
+        'high-confidence',
       );
 
       expect(result.applied).toBe(true);
-      expect(result.outcome).toBe('applied');
-      expect(result.appliedTarget).toEqual({
-        field: 'topPerformingFormat',
-        value: 'short-form-video',
-      });
-      expect(mockBrandMemory.updateMetrics).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        { topPerformingFormat: 'short-form-video' },
-      );
       expect(mockBrandMemory.logEntry).toHaveBeenCalledWith(
         orgId,
         brandId,
@@ -591,32 +475,6 @@ describe('ContentOptimizationService', () => {
         }),
       );
       expect(mockBrandMemory.addInsight).toHaveBeenCalled();
-    });
-
-    it('should honestly report hook suggestions as not auto-applicable instead of pretending to apply them', async () => {
-      vi.spyOn(service, 'generateSuggestions').mockResolvedValue([
-        {
-          category: 'hook',
-          confidence: 0.95,
-          dataPoints: 20,
-          id: 'high-confidence-hook',
-          suggestion: 'Reuse this winning hook structure: "Stop scrolling"',
-          targetValue: 'Stop scrolling',
-        },
-      ]);
-
-      const result = await service.autoApplySuggestion(
-        orgId,
-        brandId,
-        'high-confidence-hook',
-      );
-
-      expect(result.applied).toBe(false);
-      expect(result.outcome).toBe('not_auto_applicable');
-      expect(result.reason).toBeDefined();
-      expect(mockBrandMemory.updateMetrics).not.toHaveBeenCalled();
-      expect(mockBrandMemory.logEntry).not.toHaveBeenCalled();
-      expect(mockBrandMemory.addInsight).not.toHaveBeenCalled();
     });
   });
 

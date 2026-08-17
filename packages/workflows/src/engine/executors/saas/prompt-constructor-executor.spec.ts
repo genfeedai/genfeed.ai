@@ -184,25 +184,6 @@ describe('PromptConstructorExecutor', () => {
       expect(result.metadata?.unresolvedCount).toBe(1);
     });
 
-    it('should join array input values into a readable comma list', async () => {
-      const input = makeInput(
-        {
-          template: 'Lean into: {{topHooks}}. Avoid: {{avoidTopics}}.',
-          variables: {},
-        },
-        [
-          ['topHooks', ['ask a question', 'call out a myth']],
-          ['avoidTopics', ['pricing rumors']],
-        ],
-      );
-
-      const result = await executor.execute(input);
-
-      expect(result.data).toBe(
-        'Lean into: ask a question, call out a myth. Avoid: pricing rumors.',
-      );
-    });
-
     it('should handle duplicate placeholders', async () => {
       const input = makeInput({
         template: '{{name}} meets {{name}}',
