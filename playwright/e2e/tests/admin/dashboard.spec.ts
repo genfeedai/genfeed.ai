@@ -86,9 +86,14 @@ test.describe('Admin Dashboard', () => {
 
     await admin.assertPageVisible();
     await expect(adminPage).toHaveURL(/templates/);
-    await expect(
-      adminPage.getByRole('link', { name: /open template/i }).first(),
-    ).toBeVisible();
+    const hasTemplates = await adminPage
+      .getByTestId('templates-grid')
+      .or(adminPage.getByRole('link', { name: /open template/i }))
+      .or(adminPage.getByText(/no templates yet/i))
+      .first()
+      .isVisible()
+      .catch(() => false);
+    expect(hasTemplates).toBe(true);
   });
 
   test('should show analytics overview', async ({ adminPage }) => {

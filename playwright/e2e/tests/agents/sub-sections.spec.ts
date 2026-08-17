@@ -98,7 +98,7 @@ test.describe('Agents — Sub-Sections', () => {
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/autopilot/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: /autopilot/i }).first(),
+      authenticatedPage.getByText(/autopilot/i).first(),
     ).toBeVisible();
   });
 

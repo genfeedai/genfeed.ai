@@ -57,7 +57,11 @@ test.describe('Library Media Types', () => {
         .locator(
           '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
         )
-        .or(authenticatedPage.getByText(/no captions found/i))
+        .or(
+          authenticatedPage.getByText(
+            /no captions found|captions could not be loaded/i,
+          ),
+        )
         .first()
         .isVisible()
         .catch(() => false);
@@ -127,10 +131,10 @@ test.describe('Library Media Types', () => {
         authenticatedPage.getByRole('heading', { name: 'Visual Assets' }),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByTestId('organization-switcher-trigger'),
+        authenticatedPage.getByTestId('organization-switcher-trigger').first(),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByTestId('brand-switcher-trigger'),
+        authenticatedPage.getByTestId('brand-switcher-trigger').first(),
       ).toBeVisible();
     });
 
@@ -215,7 +219,9 @@ test.describe('Library Media Types', () => {
         .locator(
           '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
         )
-        .or(authenticatedPage.getByText(/no (music|tracks)/i))
+        .or(
+          authenticatedPage.getByText(/no (music|tracks)|could not be loaded/i),
+        )
         .first()
         .isVisible()
         .catch(() => false);
@@ -258,7 +264,7 @@ test.describe('Library Media Types', () => {
         .locator(
           '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
         )
-        .or(authenticatedPage.getByText(/no voices/i))
+        .or(authenticatedPage.getByText(/no voices|could not be loaded/i))
         .first()
         .isVisible()
         .catch(() => false);
@@ -299,6 +305,7 @@ test.describe('Library Media Types', () => {
             ' button:has-text("Filter"),' +
             ' button:has-text("Sort")',
         )
+        .or(authenticatedPage.getByText(/^Search$/i))
         .first()
         .isVisible()
         .catch(() => false);

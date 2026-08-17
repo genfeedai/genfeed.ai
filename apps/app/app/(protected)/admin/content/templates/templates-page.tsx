@@ -32,7 +32,7 @@ export default function TemplatesPage() {
 
     try {
       const service = await getTemplatesService();
-      const data = await service.getTemplates();
+      const data = (await service.getTemplates()) ?? [];
 
       setTemplates(data);
       logger.info('Loaded templates', { count: data.length });

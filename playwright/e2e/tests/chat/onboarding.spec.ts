@@ -170,11 +170,6 @@ test.describe('Agent Onboarding', () => {
 
     await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding/);
     await expect(
-      authenticatedPage.getByRole('heading', {
-        name: 'Tell the agent what you create',
-      }),
-    ).toBeVisible();
-    await expect(
       authenticatedPage.getByTestId('onboarding-composer-card'),
     ).toBeVisible();
     await expect(

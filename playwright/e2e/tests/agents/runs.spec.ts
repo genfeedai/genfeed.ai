@@ -32,7 +32,7 @@ test.describe('Agents Runs', () => {
     await expect(authenticatedPage.getByText('Routing Paths')).toBeVisible();
     await expect(authenticatedPage.getByText('Routing Trends')).toBeVisible();
     await expect(
-      authenticatedPage.getByText('Routing Anomalies'),
+      authenticatedPage.getByRole('heading', { name: 'Routing Anomalies' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByDisplayValue('Window: 30d'),

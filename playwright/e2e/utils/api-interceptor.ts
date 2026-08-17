@@ -847,6 +847,33 @@ async function handleBillingRoutes(route: Route): Promise<void> {
     return;
   }
 
+  if (url.includes('/topbar-balances')) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(
+          {
+            generatedAt: new Date().toISOString(),
+            segments: [
+              {
+                balance: 500,
+                currencyOrUnit: 'credits',
+                label: 'Genfeed',
+                lastSyncedAt: new Date().toISOString(),
+                provider: 'genfeed',
+                status: 'available',
+              },
+            ],
+          },
+          'topbar-balances',
+          'topbar-balances',
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (url.includes('/credits')) {
     await route.fulfill({
       body: JSON.stringify(

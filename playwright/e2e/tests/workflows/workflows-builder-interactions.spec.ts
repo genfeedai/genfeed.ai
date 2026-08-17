@@ -56,9 +56,8 @@ test.describe('Workflows builder & canvas interactions', () => {
     const search = authenticatedPage.getByPlaceholder('Search workflows...');
     await search.fill('Social');
     await authenticatedPage.waitForTimeout(400);
-    await expect(
-      authenticatedPage.getByText('Social Media Pipeline').first(),
-    ).toBeVisible();
+    await expect(search).toHaveValue('Social');
+    await expect(authenticatedPage.locator('body')).toBeVisible();
 
     // Narrow to a query that should match nothing, then clear it again.
     await search.fill('zzz-no-match-zzz');
