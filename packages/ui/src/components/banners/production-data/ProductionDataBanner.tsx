@@ -17,8 +17,19 @@ function isLocalhost(): boolean {
   );
 }
 
-const PLAYWRIGHT_TEST_COOKIE = '__playwright_test=true';
-const PLAYWRIGHT_BANNER_COOKIE = '__genfeed_playwright_banner=1';
+const PLAYWRIGHT_TEST_COOKIE_NAME = '__playwright_test';
+const PLAYWRIGHT_BANNER_COOKIE_NAME = '__genfeed_playwright_banner';
+
+function hasCookie(name: string): boolean {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  return document.cookie.split(';').some((part) => {
+    const trimmed = part.trim();
+    return trimmed === name || trimmed.startsWith(`${name}=`);
+  });
+}
 
 function isEnabledPublicEnv(
   name: 'NEXT_PUBLIC_PLAYWRIGHT_TEST' | 'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
@@ -46,10 +57,9 @@ function isPlaywrightRun(): boolean {
     return false;
   }
 
-  const cookies = document.cookie;
   return (
-    cookies.includes(PLAYWRIGHT_TEST_COOKIE) ||
-    cookies.includes(PLAYWRIGHT_BANNER_COOKIE)
+    hasCookie(PLAYWRIGHT_TEST_COOKIE_NAME) ||
+    hasCookie(PLAYWRIGHT_BANNER_COOKIE_NAME)
   );
 }
 

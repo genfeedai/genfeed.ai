@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +14,8 @@ function clearDocumentCookies(): void {
     if (name) {
       // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the banner cookie guard
       document.cookie = `${name}=; path=/; max-age=0`;
+      // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the banner cookie guard
+      document.cookie = `${name}=; max-age=0`;
     }
   }
 }
@@ -58,6 +60,7 @@ describe('ProductionDataBanner', () => {
       value: originalLocation,
       writable: true,
     });
+    cleanup();
     clearPlaywrightBannerMarkers();
     vi.restoreAllMocks();
   });
@@ -142,7 +145,7 @@ describe('ProductionDataBanner', () => {
 
   it('does not fetch db-mode when the mocked Playwright cookie is set', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the mocked-suite marker
-    document.cookie = '__playwright_test=true';
+    document.cookie = '__playwright_test=true; path=/';
     const fetchSpy = mockDbModeFetch();
 
     render(<ProductionDataBanner />);
@@ -152,7 +155,7 @@ describe('ProductionDataBanner', () => {
 
   it('does not fetch db-mode when the authenticated Playwright banner cookie is set', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom fixture for the authed banner marker
-    document.cookie = '__genfeed_playwright_banner=1';
+    document.cookie = '__genfeed_playwright_banner=1; path=/';
     const fetchSpy = mockDbModeFetch();
 
     render(<ProductionDataBanner />);
