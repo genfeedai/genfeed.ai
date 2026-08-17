@@ -1116,14 +1116,6 @@
       "code": 2739,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "92089dc3f18bdce07481",
-      "message": "Type '{ organizationId: string; }' is missing the following properties from type 'ModelsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "f670328ec54c4211ac34",
       "message": "Type '{ registryStatus: \"pending\"; }' is missing the following properties from type 'ModelsQueryDto': page, limit, isDeleted, sort",
       "workspace": "api"
