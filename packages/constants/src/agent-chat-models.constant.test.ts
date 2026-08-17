@@ -13,6 +13,7 @@ import {
   resolveAgentChatModelKey,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
 
 describe('calculateAgentRoundCredits', () => {
   it('derives credits from list price, prompt and completion tokens both', () => {
@@ -86,6 +87,7 @@ describe('AGENT_CHAT_MODELS', () => {
   it('catalogues both defaults so they always have a price', () => {
     expect(getAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toBeDefined();
     expect(getAgentChatModel(LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY)).toBeDefined();
+    expect(getAgentChatModel(LOWEST_COST_AGENT_CHAT_MODEL_KEY)).toBeDefined();
   });
 });
 

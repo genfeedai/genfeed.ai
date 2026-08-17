@@ -240,7 +240,7 @@ describe('AssetsOperationsController', () => {
         { isDeleted: true },
       );
       expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         expect.objectContaining({
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
@@ -251,7 +251,7 @@ describe('AssetsOperationsController', () => {
         mockOrgId.toString(),
       );
       expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         expect.any(Object),
       );
       expect(assetsService.patch).toHaveBeenCalledWith(mockAssetId, {

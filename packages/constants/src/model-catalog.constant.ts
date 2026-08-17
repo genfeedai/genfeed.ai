@@ -21,6 +21,11 @@ import {
   getAgentChatModel,
   RETIRED_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import {
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+} from './lowest-cost-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
@@ -268,3 +273,59 @@ export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
 })();
 
 export const UNIFIED_MODEL_CATALOG_COUNT = UNIFIED_MODEL_CATALOG.length;
+
+function applyLowestCostDefaults(
+  catalog: readonly ModelCatalogSeedEntry[],
+): ModelCatalogSeedEntry[] {
+  return catalog.map((entry) => {
+    if (entry.category === ModelCategory.IMAGE) {
+      const isLowestCost = entry.key === LOWEST_COST_IMAGE_MODEL_KEY;
+
+      return {
+        ...entry,
+        isActive: isLowestCost ? true : entry.isActive,
+        isDefault: isLowestCost,
+      };
+    }
+
+    if (entry.category === ModelCategory.VIDEO) {
+      const isLowestCost = entry.key === LOWEST_COST_VIDEO_MODEL_KEY;
+
+      return {
+        ...entry,
+        isActive: isLowestCost ? true : entry.isActive,
+        isDefault: isLowestCost,
+      };
+    }
+
+    if (entry.capabilities?.includes(AGENT_CHAT_CAPABILITY)) {
+      const isLowestCost = entry.key === LOWEST_COST_AGENT_CHAT_MODEL_KEY;
+
+      return {
+        ...entry,
+        isDefault: isLowestCost,
+        isHighlighted: isLowestCost,
+      };
+    }
+
+    return entry;
+  });
+}
+
+/**
+ * Catalogue the seed writes for a deployment.
+ *
+ * Cloud production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
+ * Local, self-hosted, and e2e (`useCloudQualityDefaults === false`) promote
+ * the lowest-cost image / video / chat rows so a generate does not bill
+ * Seedance / Nano Banana / a mid-tier chat model.
+ */
+export function getModelCatalogForDeployment(
+  useCloudQualityDefaults: boolean,
+): readonly ModelCatalogSeedEntry[] {
+  if (useCloudQualityDefaults) {
+    return UNIFIED_MODEL_CATALOG;
+  }
+
+  return applyLowestCostDefaults(UNIFIED_MODEL_CATALOG);
+}

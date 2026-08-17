@@ -7,13 +7,24 @@
  * provider survive every subsequent boot.
  */
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
+  getModelCatalogForDeployment,
   type ModelCatalogSeedEntry,
-  UNIFIED_MODEL_CATALOG,
+  shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+
+function resolveSeedCatalog(): readonly ModelCatalogSeedEntry[] {
+  return getModelCatalogForDeployment(
+    !shouldUseLowestCostModelDefaults({
+      isCloud: isCloudDeployment(),
+      nodeEnv: process.env.NODE_ENV,
+    }),
+  );
+}
 
 @Injectable()
 export class ModelCatalogSeedService implements OnApplicationBootstrap {
@@ -36,10 +47,12 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     }
   }
 
-  async reconcileCatalog(): Promise<number> {
+  async reconcileCatalog(
+    catalog: readonly ModelCatalogSeedEntry[] = resolveSeedCatalog(),
+  ): Promise<number> {
     let upserted = 0;
 
-    for (const entry of UNIFIED_MODEL_CATALOG) {
+    for (const entry of catalog) {
       await this.upsertEntry(entry);
       upserted += 1;
     }
@@ -139,16 +152,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.isDefault ? { isActive: true, isDefault: true } : {}),
     };
 
-    // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
-    await this.prisma.model.upsert({
-      create: createData,
-      update: updateData,
-      where: { key: entry.key },
-    });
-
-    // Exactly one default per category: when the catalog promotes a default,
-    // demote any other live default in that category so the router cannot
-    // pick a stale discovery row (e.g. an old Veo default after Seedance 2.5).
+    // Exactly one default per category (`models_global_default_category_key`).
+    // Demote the previous default *before* upserting, or promoting a new key
+    // (local/e2e cheapest defaults) hits the unique index.
     if (entry.isDefault) {
       // tenant-scope-ignore: platform registry has no organizationId
       await this.prisma.model.updateMany({
@@ -161,5 +167,12 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         },
       });
     }
+
+    // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
+    await this.prisma.model.upsert({
+      create: createData,
+      update: updateData,
+      where: { key: entry.key },
+    });
   }
 }

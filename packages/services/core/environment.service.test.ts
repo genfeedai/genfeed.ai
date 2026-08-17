@@ -175,6 +175,28 @@ describe('EnvironmentService', () => {
     });
   });
 
+  describe('MODELS_DEFAULT', () => {
+    it('uses the lowest-cost image and video models in development', () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      vi.stubEnv('GENFEED_CLOUD', '');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+
+      expect(EnvironmentService.MODELS_DEFAULT.image).toBe(
+        'black-forest-labs/flux-schnell',
+      );
+      expect(EnvironmentService.MODELS_DEFAULT.video).toBe('prunaai/p-video');
+    });
+
+    it('uses the lowest-cost image and video models in test', () => {
+      vi.stubEnv('NODE_ENV', 'test');
+
+      expect(EnvironmentService.MODELS_DEFAULT.image).toBe(
+        'black-forest-labs/flux-schnell',
+      );
+      expect(EnvironmentService.MODELS_DEFAULT.video).toBe('prunaai/p-video');
+    });
+  });
+
   describe('Constants', () => {
     it('has correct default values', () => {
       expect(EnvironmentService.CREDITS_LABEL).toBe('GEN');

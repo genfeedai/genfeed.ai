@@ -5,9 +5,15 @@ import {
   RETIRED_AGENT_CHAT_MODELS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import {
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+} from './lowest-cost-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import {
   AGENT_CHAT_CAPABILITY,
+  getModelCatalogForDeployment,
   UNIFIED_MODEL_CATALOG,
 } from './model-catalog.constant';
 
@@ -117,6 +123,38 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(videoDefaults[0]?.pricingType).toBe('per-second');
     // Bill time multiplies this USD/s by duration then applyMargin(admin).
     expect(videoDefaults[0]?.providerCostUsd).toBeGreaterThanOrEqual(0.2);
+  });
+
+  it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {
+    const catalog = getModelCatalogForDeployment(false);
+    const imageDefaults = catalog.filter(
+      (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,
+    );
+    const videoDefaults = catalog.filter(
+      (entry) => entry.category === ModelCategory.VIDEO && entry.isDefault,
+    );
+    const chatDefaults = catalog.filter(
+      (entry) =>
+        entry.capabilities?.includes(AGENT_CHAT_CAPABILITY) && entry.isDefault,
+    );
+
+    expect(imageDefaults).toHaveLength(1);
+    expect(imageDefaults[0]?.key).toBe(LOWEST_COST_IMAGE_MODEL_KEY);
+    expect(imageDefaults[0]?.isActive).toBe(true);
+    expect(imageDefaults[0]?.providerCostUsd).toBe(0.003);
+
+    expect(videoDefaults).toHaveLength(1);
+    expect(videoDefaults[0]?.key).toBe(LOWEST_COST_VIDEO_MODEL_KEY);
+    expect(videoDefaults[0]?.isActive).toBe(true);
+    expect(videoDefaults[0]?.providerCostUsd).toBe(0.02);
+
+    expect(chatDefaults).toHaveLength(1);
+    expect(chatDefaults[0]?.key).toBe(LOWEST_COST_AGENT_CHAT_MODEL_KEY);
+    expect(chatDefaults[0]?.isActive).toBe(true);
+  });
+
+  it('keeps cloud quality defaults when useCloudQualityDefaults is true', () => {
+    expect(getModelCatalogForDeployment(true)).toBe(UNIFIED_MODEL_CATALOG);
   });
 
   it('seeds curated media rows with providerCostUsd for live-margin billing', () => {
