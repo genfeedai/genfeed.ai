@@ -515,11 +515,23 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     description: 'Compose prompts from templates with variable substitution',
     icon: 'FileText',
     inputs: {
+      avoidTopics: {
+        label: 'Avoid Topics',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
       listingTier: { label: 'Listing Tier', required: false, type: 'text' },
       propertyType: { label: 'Property Type', required: false, type: 'text' },
       roomType: { label: 'Room Type', required: false, type: 'text' },
       stylePreset: { label: 'Style Preset', required: false, type: 'text' },
       targetSpace: { label: 'Target Space', required: false, type: 'text' },
+      topHooks: {
+        label: 'Top Hooks',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
     },
     label: 'Prompt Constructor',
     outputs: {
@@ -1457,13 +1469,18 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       schedule: {
         default: 'immediate',
         label: 'Schedule',
-        options: ['immediate', 'scheduled'],
+        options: ['immediate', 'scheduled', 'optimal'],
         type: 'select',
       },
     },
     description: 'Publish content to social media platforms',
     icon: 'Share2',
     inputs: {
+      bestPostingTimes: {
+        label: 'Best Posting Times',
+        required: false,
+        type: 'any',
+      },
       media: { label: 'Media', type: 'any' },
     },
     label: 'Publish to Social',

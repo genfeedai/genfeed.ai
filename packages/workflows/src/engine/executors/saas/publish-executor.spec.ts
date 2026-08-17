@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import type { ExecutorInput } from '../base-executor';
@@ -6,6 +6,7 @@ import {
   createPublishExecutor,
   type PublishExecutor,
   type PublishResolver,
+  resolveOptimalScheduleTime,
 } from './publish-executor';
 
 function makeInput(
@@ -175,5 +176,94 @@ describe('PublishExecutor', () => {
       const result = await executor.execute(input);
       expect(result.metadata?.scheduledFor).toBeTruthy();
     });
+
+    describe('optimal schedule', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('schedules for the highest-engagement posting slot from bestPostingTimes', async () => {
+        vi.useFakeTimers();
+        // Monday 2026-08-17T09:00:00Z
+        vi.setSystemTime(new Date('2026-08-17T09:00:00.000Z'));
+
+        const input = makeInput(
+          {
+            platforms: { twitter: true },
+            schedule: { type: 'optimal' },
+          },
+          {
+            bestPostingTimes: [
+              { avgEngagement: 3.1, dayOfWeek: 3, hour: 14 },
+              { avgEngagement: 9.4, dayOfWeek: 5, hour: 17 },
+            ],
+            brand: { brandId: 'b-1' },
+            media: 'img',
+          },
+        );
+
+        const result = await executor.execute(input);
+
+        expect(result.metadata?.scheduleType).toBe('optimal');
+        expect(result.metadata?.scheduledFor).toBe('2026-08-21T17:00:00.000Z');
+        expect(resolver).toHaveBeenCalledWith(
+          expect.objectContaining({
+            scheduledFor: new Date('2026-08-21T17:00:00.000Z'),
+          }),
+        );
+      });
+
+      it('falls back to immediate publish when no best posting times are available', async () => {
+        const input = makeInput(
+          { platforms: { twitter: true }, schedule: { type: 'optimal' } },
+          { brand: { brandId: 'b-1' }, media: 'img' },
+        );
+
+        const result = await executor.execute(input);
+
+        expect(result.metadata?.scheduleType).toBe('optimal');
+        expect(result.metadata?.scheduledFor).toBeNull();
+      });
+    });
+  });
+});
+
+describe('resolveOptimalScheduleTime', () => {
+  it('picks the slot with the highest average engagement', () => {
+    const now = new Date('2026-08-17T09:00:00.000Z'); // Monday
+    const resolved = resolveOptimalScheduleTime(
+      [
+        { avgEngagement: 5, dayOfWeek: 2, hour: 10 },
+        { avgEngagement: 12, dayOfWeek: 4, hour: 20 },
+        { avgEngagement: 8, dayOfWeek: 1, hour: 8 },
+      ],
+      now,
+    );
+
+    expect(resolved?.toISOString()).toBe('2026-08-20T20:00:00.000Z');
+  });
+
+  it('rolls over to next week when the slot already passed this week', () => {
+    // Monday 2026-08-17T09:00:00Z, slot is Monday 08:00 (already passed).
+    const now = new Date('2026-08-17T09:00:00.000Z');
+    const resolved = resolveOptimalScheduleTime(
+      [{ avgEngagement: 1, dayOfWeek: 1, hour: 8 }],
+      now,
+    );
+
+    expect(resolved?.toISOString()).toBe('2026-08-24T08:00:00.000Z');
+  });
+
+  it('returns null when there are no posting times', () => {
+    expect(resolveOptimalScheduleTime(undefined, new Date())).toBeNull();
+    expect(resolveOptimalScheduleTime([], new Date())).toBeNull();
+  });
+
+  it('returns null for an out-of-range slot instead of throwing', () => {
+    const resolved = resolveOptimalScheduleTime(
+      [{ avgEngagement: 1, dayOfWeek: 9, hour: 8 }],
+      new Date('2026-08-17T09:00:00.000Z'),
+    );
+    expect(resolved).toBeNull();
   });
 });
