@@ -57,7 +57,7 @@ export default function WorkflowLibraryPage() {
   >(null);
 
   // Loading skeleton
-  if (isLoading && workflows.length === 0) {
+  if (isLoading && (workflows ?? []).length === 0) {
     return (
       <Container
         label={translate('library.title')}

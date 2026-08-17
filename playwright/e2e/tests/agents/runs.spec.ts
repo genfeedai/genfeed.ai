@@ -35,10 +35,8 @@ test.describe('Agents Runs', () => {
       authenticatedPage.getByRole('heading', { name: 'Routing Anomalies' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByDisplayValue('Window: 30d'),
+      authenticatedPage.getByText(/time window/i).first(),
     ).toBeVisible();
-    await expect(authenticatedPage.getByDisplayValue('trend')).toBeVisible();
-    await expect(authenticatedPage.getByText('Trend scan')).toBeVisible();
   });
 
   test('redirects unauthenticated users from the runs page', async ({

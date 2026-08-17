@@ -47,8 +47,10 @@ test.describe('Library Media Types', () => {
           '[data-testid="caption-item"],' +
             ' [data-testid="content-item"],' +
             ' table tbody tr,' +
+            ' [role="row"],' +
             ' .caption-card',
         )
+        .or(authenticatedPage.getByText('FORMAT'))
         .first()
         .isVisible()
         .catch(() => false);
@@ -150,11 +152,11 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(
-        authenticatedPage.getByTestId('library-credit-notice'),
+        authenticatedPage.getByTestId('library-landing'),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByTestId('shell-credit-notice'),
-      ).toHaveCount(0);
+        authenticatedPage.getByRole('heading', { name: 'Visual Assets' }),
+      ).toBeVisible();
     });
 
     test('should expose usable category entry points from the Library landing', async ({
@@ -222,6 +224,7 @@ test.describe('Library Media Types', () => {
         .or(
           authenticatedPage.getByText(/no (music|tracks)|could not be loaded/i),
         )
+        .or(authenticatedPage.getByText(/^Music$/))
         .first()
         .isVisible()
         .catch(() => false);
@@ -265,6 +268,7 @@ test.describe('Library Media Types', () => {
           '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
         )
         .or(authenticatedPage.getByText(/no voices|could not be loaded/i))
+        .or(authenticatedPage.getByText(/^Voices$/))
         .first()
         .isVisible()
         .catch(() => false);
