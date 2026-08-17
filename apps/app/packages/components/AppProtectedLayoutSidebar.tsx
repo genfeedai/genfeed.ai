@@ -15,7 +15,6 @@ import {
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type {
   MenuSharedProps,

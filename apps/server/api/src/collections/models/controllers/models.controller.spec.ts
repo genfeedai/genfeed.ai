@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
 import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';

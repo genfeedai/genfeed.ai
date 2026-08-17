@@ -15,7 +15,6 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   AssetScope,
   IngredientCategory,
-  IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
 import type {

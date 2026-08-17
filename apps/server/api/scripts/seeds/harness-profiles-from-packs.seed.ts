@@ -18,12 +18,10 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import process from 'node:process';
-import type { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import {
   type HarnessPackSeed,
   packSeedMatchesBrand,
 } from '@api/services/harness/harness-profile-seed.util';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 
 type SeedArgs = {

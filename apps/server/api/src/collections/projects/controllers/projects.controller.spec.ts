@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ProjectsController } from '@api/collections/projects/controllers/projects.controller';
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

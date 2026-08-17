@@ -2,10 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
-import {
-  FontFamily,
-  type FontFamilyDocument,
-} from '@api/collections/font-families/schemas/font-family.schema';
+import { type FontFamilyDocument } from '@api/collections/font-families/schemas/font-family.schema';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

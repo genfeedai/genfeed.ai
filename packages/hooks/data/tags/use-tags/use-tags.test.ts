@@ -1,6 +1,5 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { TagCategory } from '@genfeedai/enums';
-import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTags } from '@hooks/data/tags/use-tags/use-tags';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';

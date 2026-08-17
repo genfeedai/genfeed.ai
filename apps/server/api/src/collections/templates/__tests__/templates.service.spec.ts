@@ -3,7 +3,6 @@ import { TemplateMetadataService } from '@api/collections/template-metadata/serv
 import { TemplateUsageService } from '@api/collections/template-usage/services/template-usage.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { type Template } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';

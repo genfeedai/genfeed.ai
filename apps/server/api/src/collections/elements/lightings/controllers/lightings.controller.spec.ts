@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLightingsController } from '@api/collections/elements/lightings/controllers/lightings.controller';
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';

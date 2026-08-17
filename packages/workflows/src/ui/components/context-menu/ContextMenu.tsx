@@ -9,10 +9,7 @@ import {
 } from 'react';
 import { ContextMenuItem } from './ContextMenuItem';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
-import {
-  type ContextMenuItemConfig,
-  createSeparator,
-} from './context-menu-config';
+import type { ContextMenuItemConfig } from './context-menu-config';
 
 interface ContextMenuProps {
   x: number;

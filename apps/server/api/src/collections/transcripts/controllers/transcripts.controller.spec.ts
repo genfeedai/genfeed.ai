@@ -3,10 +3,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TranscriptsController } from '@api/collections/transcripts/controllers/transcripts.controller';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import type { TranscriptEntity } from '@api/collections/transcripts/entities/transcript.entity';

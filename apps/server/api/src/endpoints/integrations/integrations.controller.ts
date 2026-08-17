@@ -2,7 +2,6 @@ import { UploadIntegrationMediaDto } from '@api/endpoints/integrations/dto/uploa
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { FileInputType, IntegrationPlatform } from '@genfeedai/enums';
-import type { OrgIntegration } from '@genfeedai/prisma';
 import { Public } from '@libs/decorators/public.decorator';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiParam } from '@nestjs/swagger';

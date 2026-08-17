@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsScenesController } from '@api/collections/elements/scenes/controllers/scenes.controller';
 import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/create-scene.dto';
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';

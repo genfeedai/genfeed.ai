@@ -4,7 +4,6 @@ import {
   BatchWorkflowItemStatus,
   BatchWorkflowJobStatus,
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

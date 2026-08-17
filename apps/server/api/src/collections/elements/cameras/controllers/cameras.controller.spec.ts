@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsCamerasController } from '@api/collections/elements/cameras/controllers/cameras.controller';
 import { CreateElementCameraDto } from '@api/collections/elements/cameras/dto/create-camera.dto';
 import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/update-camera.dto';
