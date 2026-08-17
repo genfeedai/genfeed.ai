@@ -7,7 +7,6 @@ import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.dec
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('CreditsController', () => {
   let controller: CreditsController;
@@ -89,7 +88,9 @@ describe('CreditsController', () => {
     );
   });
 
-  const mockReq = { originalUrl: '/credits/usage' } as Request;
+  const mockReq = {
+    originalUrl: '/credits/usage',
+  } as unknown as RequestWithContext;
 
   afterEach(() => {
     vi.clearAllMocks();

@@ -6,9 +6,11 @@ import { ModelsController } from '@api/collections/models/controllers/models.con
 import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -44,12 +46,6 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
     },
   };
 });
-
-type RequestWithContext = {
-  context?: IRequestContext;
-  originalUrl: string;
-  query: Record<string, unknown>;
-};
 
 vi.mock('@helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -116,6 +112,19 @@ describe('ModelsController', () => {
     originalUrl: '/api/models',
     query: {},
   } as unknown as RequestWithContext;
+
+  const emptyPaginateResult = {
+    docs: [],
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10,
+    nextPage: null,
+    page: 1,
+    pagingCounter: 1,
+    prevPage: null,
+    totalDocs: 0,
+    totalPages: 1,
+  } as AggregatePaginateResult<ModelDocument>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -404,8 +413,7 @@ describe('ModelsController', () => {
         'getOrganizationSettingsService',
       ).mockReturnValue(moduleRefMock);
 
-      const mockModels = { docs: [], totalDocs: 0 };
-      modelsService.findAll.mockResolvedValue(mockModels);
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
       const query: ModelsQueryDto = {
         organizationId: foreignOrgId.toString(),
@@ -451,7 +459,7 @@ describe('ModelsController', () => {
         'getOrganizationSettingsService',
       ).mockReturnValue(settingsService);
 
-      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: mockOrgId,
@@ -484,7 +492,7 @@ describe('ModelsController', () => {
         'getOrganizationSettingsService',
       ).mockReturnValue(settingsService);
 
-      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: mockOrgId,
@@ -513,7 +521,7 @@ describe('ModelsController', () => {
         'getOrganizationSettingsService',
       ).mockReturnValue(settingsService);
 
-      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: foreignOrgId,
