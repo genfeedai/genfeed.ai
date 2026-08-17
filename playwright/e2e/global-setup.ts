@@ -49,6 +49,8 @@ function validateEnvironment(): void {
   // Set default test environment variables
   process.env.NODE_ENV = process.env.NODE_ENV || 'test';
   process.env.PLAYWRIGHT_TEST = 'true';
+  process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST =
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true';
 
   // Log that test mode is active
   console.log(

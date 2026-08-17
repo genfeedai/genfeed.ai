@@ -5,6 +5,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 test.describe('Agents Skills', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -39,10 +40,7 @@ test.describe('Agents Skills', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
-    test.skip(
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
-      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
-    );
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
       waitUntil: 'domcontentloaded',
     });

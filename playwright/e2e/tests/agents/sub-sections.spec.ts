@@ -8,6 +8,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for Agents Sub-Routes
@@ -154,10 +155,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    test.skip(
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
-      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
-    );
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
@@ -170,10 +168,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach sequence routes', async ({
     unauthenticatedPage,
   }) => {
-    test.skip(
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
-      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
-    );
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
 
     await unauthenticatedPage.waitForURL(/\/login/, {

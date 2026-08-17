@@ -3503,7 +3503,7 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
  * Mock for library content data
  */
 export async function mockLibraryData(page: Page): Promise<void> {
-  await page.route('**/api.genfeed.ai/v1/captions**', async (route) => {
+  const fulfillCaptions = async (route: Route): Promise<void> => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify({
@@ -3535,7 +3535,10 @@ export async function mockLibraryData(page: Page): Promise<void> {
       return;
     }
     await route.continue();
-  });
+  };
+
+  await page.route('**/api.genfeed.ai/v1/captions**', fulfillCaptions);
+  await page.route('**/v1/captions**', fulfillCaptions);
 
   await page.route('**/api.genfeed.ai/v1/ingredients**', async (route) => {
     if (route.request().method() === 'GET') {

@@ -6,6 +6,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for Library Media Types
@@ -53,7 +54,11 @@ test.describe('Library Media Types', () => {
         .catch(() => false);
 
       const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
+        .locator(
+          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
+        )
+        .or(authenticatedPage.getByText(/no captions found/i))
+        .first()
         .isVisible()
         .catch(() => false);
 
@@ -92,7 +97,11 @@ test.describe('Library Media Types', () => {
         .catch(() => false);
 
       const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
+        .locator(
+          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
+        )
+        .or(authenticatedPage.getByText(/no (gifs|gif)/i))
+        .first()
         .isVisible()
         .catch(() => false);
 
@@ -203,7 +212,11 @@ test.describe('Library Media Types', () => {
         .catch(() => false);
 
       const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
+        .locator(
+          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
+        )
+        .or(authenticatedPage.getByText(/no (music|tracks)/i))
+        .first()
         .isVisible()
         .catch(() => false);
 
@@ -242,7 +255,11 @@ test.describe('Library Media Types', () => {
         .catch(() => false);
 
       const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
+        .locator(
+          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
+        )
+        .or(authenticatedPage.getByText(/no voices/i))
+        .first()
         .isVisible()
         .catch(() => false);
 
@@ -297,6 +314,7 @@ test.describe('Library Media Types', () => {
     test('should redirect unauthenticated user from library captions', async ({
       unauthenticatedPage,
     }) => {
+      skipIfPlaywrightAuthBypassed();
       await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
 
       // Should redirect to login
@@ -309,6 +327,7 @@ test.describe('Library Media Types', () => {
     test('should redirect unauthenticated user from library voices', async ({
       unauthenticatedPage,
     }) => {
+      skipIfPlaywrightAuthBypassed();
       await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VOICES));
 
       // Should redirect to login

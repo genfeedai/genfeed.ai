@@ -14,6 +14,7 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * The editor toolbar back-link renders `href(APP_ROUTES.AUTOMATE.WORKFLOWS)`
@@ -105,6 +106,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow editor routes', async ({
     unauthenticatedPage,
   }) => {
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
@@ -118,6 +120,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow executions', async ({
     unauthenticatedPage,
   }) => {
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
       waitUntil: 'domcontentloaded',
     });
