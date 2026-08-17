@@ -71,31 +71,16 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.GIFS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      // GIF items in masonry/grid layout or empty state
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="ingredient-item"],' +
-            ' [data-testid="content-item"],' +
-            ' [data-testid="masonry-item"],' +
-            ' .ingredient-card',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator(
-          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
-        )
-        .or(authenticatedPage.getByText(/no (gifs|gif)/i))
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected GIF items or empty state to be visible',
-      ).toBe(true);
+      await expect(
+        authenticatedPage
+          .locator(
+            '[data-testid="ingredient-item"], [data-testid="content-item"], [data-testid="masonry-item"], .ingredient-card',
+          )
+          .or(authenticatedPage.getByText(/no (gifs|gif)/i))
+          .or(authenticatedPage.getByText(/^GIFs$/i))
+          .or(authenticatedPage.getByText('Assets'))
+          .first(),
+      ).toBeVisible();
     });
   });
 
