@@ -1,6 +1,11 @@
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -167,5 +172,153 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
         }),
       }),
     );
+  });
+});
+
+describe('BatchGenerationReviewService harness review feedback', () => {
+  const batch = {
+    findFirst: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const batchItem = {
+    upsert: vi.fn().mockResolvedValue({}),
+  };
+  const summaryService = {
+    toBatchSummary: vi.fn((row) => row),
+  };
+  const postLifecycleService = { transition: vi.fn().mockResolvedValue({}) };
+  const publishApprovalsService = {
+    invalidatePost: vi.fn().mockResolvedValue(undefined),
+  };
+  const harnessReviewFeedbackService = {
+    recordReviewDecision: vi.fn().mockResolvedValue(undefined),
+  };
+
+  let service: BatchGenerationReviewService;
+
+  const createBatchRecord = (items: unknown[]) => ({
+    brandId: 'brand-1',
+    id: 'batch-1',
+    items,
+    organizationId: 'org-1',
+    status: BatchStatus.PENDING,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    batch.updateMany.mockResolvedValue({ count: 1 });
+    service = new BatchGenerationReviewService(
+      { batch, batchItem } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      postLifecycleService as never,
+      publishApprovalsService as never,
+      summaryService as never,
+      harnessReviewFeedbackService as never,
+    );
+  });
+
+  it('feeds a rejected item back to the harness profile with the batch brand + item id', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          caption: 'Buy now, limited time only!!!',
+          id: 'item-1',
+          postId: 'post-1',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+
+    await service.rejectItems(
+      'batch-1',
+      ['item-1'],
+      'org-1',
+      'Too salesy for our voice.',
+      'user-1',
+    );
+
+    expect(
+      harnessReviewFeedbackService.recordReviewDecision,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      content: 'Buy now, limited time only!!!',
+      decision: ReviewDecision.REJECTED,
+      organizationId: 'org-1',
+      reason: 'Too salesy for our voice.',
+      sourceId: 'item-1',
+      sourceType: 'batch_item',
+    });
+  });
+
+  it('feeds a request-changes item back to the harness profile', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          id: 'item-2',
+          postId: 'post-2',
+          prompt: 'A generic stock-photo style render.',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+
+    await service.requestChanges(
+      'batch-1',
+      ['item-2'],
+      'org-1',
+      'Needs a more distinctive visual.',
+    );
+
+    expect(
+      harnessReviewFeedbackService.recordReviewDecision,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      content: 'A generic stock-photo style render.',
+      decision: ReviewDecision.REQUEST_CHANGES,
+      organizationId: 'org-1',
+      reason: 'Needs a more distinctive visual.',
+      sourceId: 'item-2',
+      sourceType: 'batch_item',
+    });
+  });
+
+  it('skips items with no caption or prompt content', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        { id: 'item-3', postId: 'post-3', status: BatchItemStatus.COMPLETED },
+      ]),
+    );
+
+    await service.rejectItems('batch-1', ['item-3'], 'org-1');
+
+    expect(
+      harnessReviewFeedbackService.recordReviewDecision,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('never fails the review action when no harness feedback service is wired', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          caption: 'Rejected copy',
+          id: 'item-4',
+          postId: 'post-4',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+    const bareService = new BatchGenerationReviewService(
+      { batch, batchItem } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      postLifecycleService as never,
+      publishApprovalsService as never,
+      summaryService as never,
+    );
+
+    await expect(
+      bareService.rejectItems('batch-1', ['item-4'], 'org-1'),
+    ).resolves.toBeDefined();
   });
 });
