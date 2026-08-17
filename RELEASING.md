@@ -9,6 +9,36 @@ This repo is trunk-based. `master` is the single trunk.
 - Production release automation should only run from commits that already landed on `master`.
 - `staging` and `production` are deploy environments, not promotion branches.
 
+## Version contract
+
+Vocabulary is defined in [CONTEXT.md](CONTEXT.md) (Repo version, Changelog,
+Upgrade note).
+
+- **One repo version.** The semver in the root `package.json` is the version of
+  the repository and of the Community bundle. The `Release` workflow tags it
+  `v<version>` and that tag names the GHCR image, the self-hosted bundle, and
+  the GitHub release. `v1.0.0` marks Launch.
+- **Independent surfaces.** `desktop-v*`, `mobile-v*`, and
+  `extension-browser-v*` version independently, as do the published npm
+  packages (`@genfeedai/cli`, `@genfeedai/create`) — each has its own
+  `package.json` version bumped in a normal PR. Matching numbers across
+  surfaces are a convenience, not a requirement.
+- **`0.x` semantics.** Before `v1.0.0`, minor releases may contain breaking
+  changes for self-hosters. Every such release carries an **Upgrade note**
+  section at the top of the release body that names the breaking change, the
+  Prisma migration(s) involved, and the manual step if any. From `v1.0.0`
+  semver is strict: breaking changes only in a major.
+- **No cadence.** Releases ship from `master` when the maintainer decides
+  they are ready. There is no weekly/monthly schedule and no release train.
+- **Changelog is generated, never hand-edited.** `CHANGELOG.md` is produced by
+  git-cliff from Conventional Commit subjects (which, under squash-only merge,
+  are the PR titles) inside the `Release` workflow, and the same section is the
+  GitHub release body. Write good PR titles; that is the changelog. Wiring of
+  the git-cliff step is tracked in
+  [#3001](https://github.com/genfeedai/genfeed.ai/issues/3001).
+- **Security fixes** ship as a normal release; the advisory is published with
+  it (see [SECURITY.md](SECURITY.md)).
+
 ## Main Production Release
 
 Use this when shipping the hosted product and self-hosted image.

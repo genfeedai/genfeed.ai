@@ -1,55 +1,95 @@
 # Genfeed.ai
 
-**The open-source AI OS for content creation.**
+**The open-source AI OS for content creation.** Generate images, video, text,
+and voice; manage brands and libraries; schedule and publish to your connected
+accounts — from the web app, the CLI, or any AI agent over MCP.
 
+[![CI](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/genfeedai/genfeed.ai?label=release)](https://github.com/genfeedai/genfeed.ai/releases/latest)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/genfeedai/genfeed.ai?style=social)](https://github.com/genfeedai/genfeed.ai)
 [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/genfeedai/genfeed.ai?utm_source=oss&utm_medium=github&utm_campaign=genfeedai%2Fgenfeed.ai&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
 > [!WARNING]
-> Genfeed is under active development. Features and APIs can change between releases.
+> Genfeed is `0.x` and under active development. Breaking changes ship with an
+> **Upgrade note** in the release body; semver becomes strict at `v1.0.0`.
 
-Genfeed is a full-stack platform for building AI-assisted content workflows. The
-repository contains a self-hosted Community distribution, the hosted web product,
-and source workspaces for desktop, mobile, browser, and IDE clients.
+Self-host it in a minute (**Community**), run it on your Mac (**Desktop**), or
+use the hosted product at [app.genfeed.ai](https://app.genfeed.ai) (**SaaS**).
+Same code, three deployment modes — see [Deployment Modes](docs/deployment-modes.md).
+
+## Quick start (self-hosted)
+
+Prerequisites: Docker Engine with Docker Compose v2, or Docker Desktop.
+
+```bash
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256   # macOS: shasum -a 256 -c …
+tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
+cp .env.example .env
+docker compose --env-file .env -f compose.yml up -d
+```
+
+Or let the create package download, verify, and start the same bundle:
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
+| Surface    | Local URL               |
+| ---------- | ----------------------- |
+| Web UI     | `http://localhost:3000` |
+| REST API   | `http://localhost:3010` |
+| MCP server | `http://localhost:3014` |
+
+The bundle pins the image for its release, applies Prisma migrations, and seeds
+one local user, organization, and brand. The default configuration has no login
+wall and needs no Genfeed Cloud account. Add a provider key to `.env` when you
+want to run generation. Auth, providers, and upgrades:
+[self-hosting guide](docs/self-hosting.md).
+
+<!--
+Screenshots / GIF: produced at the Contributor-ready gate (#3002).
+Place assets under docs/assets/readme/ and reference them here.
+-->
+
+## What you get
+
+- Visual workflow authoring with local or bring-your-own-key execution
+- Image, video, text, voice, and audio provider adapters
+- Content library, brand, scheduling, and publishing modules
+- REST API with OpenAPI, typed client packages, an MCP server, and a terminal CLI
+- PostgreSQL persistence via Prisma; Redis/BullMQ background work
+- A Community Docker distribution that excludes the commercial `ee/` tree
+
+Availability differs by deployment mode and configured provider. Read
+[Deployment Modes](docs/deployment-modes.md) and
+[Execution Boundaries](docs/execution-boundaries.md) before relying on a feature
+for a specific distribution. Organization billing is gated twice — at build
+time (the Community image contains no `ee/` billing code) and at runtime
+(`GENFEED_CLOUD` / EE licence); the
+[build flavors section](docs/deployment-modes.md#build-flavors-how-billing-code-gets-into-or-stays-out-of-an-image)
+explains both gates.
 
 ## Distribution status
 
 | Surface               | What this repository ships                                                                                                                                                    |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cloud**             | The hosted web and server source plus deployment automation. Operational availability and account plans are managed outside this repository.                                  |
+| **SaaS**              | The hosted web and server source plus deployment automation. Operational availability and account plans are managed outside this repository.                                  |
 | **Community**         | Release automation for a checksummed Compose bundle pinned to a GHCR image. It runs a single-tenant web app, REST API, MCP server, PostgreSQL, and embedded Redis.            |
 | **Desktop**           | A macOS-first Electron client. The release workflow builds signed macOS DMG/ZIP artifacts from `desktop-v*` tags; this repository does not claim Windows or Linux installers. |
 | **Mobile**            | Expo/React Native source. `eas.json` marks the client disabled/not actively developed; the dormant build workflow is not evidence of an App Store or Google Play release.     |
 | **Browser extension** | Chrome extension source plus build and Chrome Web Store submission automation. No public store listing is linked here.                                                        |
 | **IDE extension**     | VS Code extension source plus a manual CI workflow that packages a VSIX artifact. There is no marketplace publishing workflow.                                                |
 
-## Shipped capabilities
-
-- Visual workflow authoring and local/BYOK execution
-- Image, video, text, voice, and audio provider adapters
-- Content library, brand, scheduling, and publishing modules
-- REST API with OpenAPI documentation, typed client packages, an MCP server, and
-  a terminal CLI
-- PostgreSQL persistence via Prisma and Redis/BullMQ background work
-- Community Docker distribution that excludes commercial `ee/` source
-
-Availability can differ by deployment mode and configured provider. See
-[Deployment Modes](docs/deployment-modes.md) and
-[Execution Boundaries](docs/execution-boundaries.md) before relying on a feature
-for a specific distribution. Organization billing in particular is gated twice
-— at build time (the community image contains no `ee/` billing code) and at
-runtime (`GENFEED_CLOUD` / EE license); the
-[build flavors section](docs/deployment-modes.md#build-flavors-how-billing-code-gets-into-or-stays-out-of-an-image)
-explains both gates and the guards that keep them honest.
-
-## Agent integration
+## Drive it from an agent
 
 Genfeed is drivable by an AI agent, not only by the web app, and the agent
-surface covers the full loop rather than read-only reporting: the same
-connection that generates an image, video, or article can also draft a post,
-schedule a release, and publish it to a connected account. Writes are bounded by
-API-key scopes and, on MCP, by a human approval gate.
+surface covers the full loop: the same connection that generates an image,
+video, or article can draft a post, schedule a release, and publish it to a
+connected account. Writes are bounded by API-key scopes and, on MCP, by a human
+approval gate.
 
 | Surface          | What it is                                          | Where                                             |
 | ---------------- | --------------------------------------------------- | ------------------------------------------------- |
@@ -109,8 +149,6 @@ pass the key as a command-line flag (`-k` / `--key` lands in `process.argv`).
 
 ### Call the API directly
 
-The API is REST/OpenAPI and takes the same bearer key:
-
 ```bash
 curl -H "Authorization: Bearer $GENFEED_API_KEY" https://api.genfeed.ai/v1/brands
 ```
@@ -120,43 +158,21 @@ OpenAPI document; `@genfeedai/client` publishes the shared request/response
 models. Neither package is an HTTP client — both are typing layers over your own
 `fetch`.
 
-## Community quick start
+## Stack
 
-Prerequisites: Docker Engine with Docker Compose v2, or Docker Desktop.
+Declared, not debated per-PR. Each item has a one-line reason; replacing one
+requires an accepted ADR **before** code lands (see [GOVERNANCE.md](GOVERNANCE.md)).
 
-```bash
-curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
-curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
-sha256sum -c genfeed-selfhosted.tar.gz.sha256
-tar -xzf genfeed-selfhosted.tar.gz
-cd genfeed-selfhosted-v*
-cp .env.example .env
-docker compose --env-file .env -f compose.yml up -d
-```
-
-On macOS, replace the checksum command with
-`shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256`.
-
-The release bundle pins the image associated with its GitHub release, applies
-Prisma migrations, and seeds one local user, organization, and brand. The
-default configuration has no login wall and does not require a Genfeed Cloud or
-Better Auth account.
-
-Alternatively, the create package downloads and verifies the same bundle:
-
-```bash
-npx @genfeedai/create my-genfeed
-```
-
-| Surface    | Local URL               |
-| ---------- | ----------------------- |
-| Web UI     | `http://localhost:3000` |
-| REST API   | `http://localhost:3010` |
-| MCP server | `http://localhost:3014` |
-
-Add your own provider key to `.env` when you want to run generation. See
-the [self-hosting guide](docs/self-hosting.md) for auth, provider, and update
-configuration.
+| Layer          | Choice                          | Why                                                                                    |
+| -------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
+| Runtime + PM   | **Bun** + **Turborepo**         | One toolchain for install, scripts, tests, and bundling; cached task graph across 40+ workspaces |
+| Web            | **Next.js 16** + **React 19**   | App Router, RSC, and the same client for SaaS, Community, and Desktop                   |
+| API            | **NestJS 11**                   | DI, guards, and modules keep tenancy and auth enforcement uniform across services       |
+| Data           | **Prisma 7** + **PostgreSQL**   | One schema, typed queries, migrations shipped with every release                        |
+| Queues         | **Redis** + **BullMQ**          | Generation, publishing, and scheduling are background work with retries and priorities  |
+| Auth           | **Better Auth**                 | Self-hostable, org-aware, no vendor account required for Community                      |
+| Quality        | **Biome**, **Vitest**, **Playwright** | Format+lint in one pass; colocated unit tests; E2E tiers per distribution          |
+| Distribution   | **Docker Compose** + GHCR       | Checksummed bundle pinned to an image; same artifact for install smoke and release      |
 
 ## Architecture
 
@@ -186,34 +202,86 @@ ee/packages/              Commercial billing and harness packages
 docker/                   Community and hosted image definitions
 ```
 
+More: [Architecture](docs/architecture.md) ·
+[Deployment Modes](docs/deployment-modes.md) ·
+[Execution Boundaries](docs/execution-boundaries.md).
+
+## How agents work in this repo
+
+This repository is agent-native: most of its code is written by AI agents under
+human direction, and it is laid out so an agent can be productive from a cold
+clone.
+
+- **[AGENTS.md](AGENTS.md)** and **[CLAUDE.md](CLAUDE.md)** — the operating rules
+  every agent (and human) follows: type safety, UI primitives, serializers,
+  tenancy filters, commit conventions.
+- **[CONTEXT.md](CONTEXT.md)** — the glossary. One spelling per concept, used
+  in code, issues, docs, and PRs.
+- **`.agents/memory/`** — durable project memory: rules, ADRs
+  (`architecture/ADR-*.md`), specs and decisions per issue. `MEMORY.md` is the
+  index.
+- **`.agents/skills/`** — build/dev skills for working *on* the app.
+  **`skills/`** — product/content skills the app *ships*. Never confuse the two.
+- **Issues carry EARS acceptance criteria** (`WHEN … THE SYSTEM SHALL …`) so an
+  agent can pick one up and know what "done" means. Triage rewrites weak
+  criteria; it never bounces.
+- **PRs are reviewed by an automated pipeline first**, then by the maintainer,
+  who alone merges. Agent-authored PRs from outside are welcome when disclosed —
+  see [CONTRIBUTING.md](CONTRIBUTING.md#agent-authored-prs).
+
+## Develop and contribute
+
+Development is supported on macOS and Linux (Windows via WSL2). Node.js 24,
+Bun 1.3.14, and Docker for Postgres/Redis:
+
+```bash
+bun install && cp .env.example .env.local
+bun run env:sync local --prune-legacy
+docker compose -f docker/local/docker-compose.yml up -d postgres redis
+bun run dev:debug:backend:min      # then, in a second terminal:
+bun run dev:debug:app              # → http://genfeed.localhost:3000
+```
+
+Everything else — the issue forms, the PR contract (squash + conventional
+title + linked issue), DCO sign-off, and focused verification — is in
+[CONTRIBUTING.md](CONTRIBUTING.md). Governance is one maintainer plus an AI
+review pipeline: [GOVERNANCE.md](GOVERNANCE.md). Help and questions:
+[SUPPORT.md](SUPPORT.md). Security reports follow [SECURITY.md](SECURITY.md),
+never a public issue.
+
+## Documentation
+
+- **[`docs/`](docs/) in this repository** — for contributors and self-hosters:
+  [self-hosting](docs/self-hosting.md), [deployment modes](docs/deployment-modes.md),
+  [architecture](docs/architecture.md), [agent surface](docs/agent-surface.md),
+  runbooks.
+- **[docs.genfeed.ai](https://docs.genfeed.ai)** — the product and API
+  documentation for people using Genfeed.
+
+Each side links the other; neither duplicates the other.
+
 ## Enterprise boundary
 
-The current `ee/` tree contains the commercial billing provider package and an
-enterprise harness package. It is covered by [its own commercial license](ee/LICENSE)
-and excluded from the Community image. Broader Cloud/Enterprise product
-boundaries are documented in [Architecture](docs/architecture.md); those
-boundaries are not a claim that every listed product capability is implemented
-inside `ee/` today.
+The `ee/` tree contains the commercial billing provider package and an
+enterprise harness package. It is covered by [its own commercial license](ee/LICENSE),
+excluded from the Community image, and maintainer-only — contributor PRs do not
+modify it. Broader Cloud/Enterprise product boundaries are documented in
+[Architecture](docs/architecture.md); those boundaries are not a claim that
+every listed capability is implemented inside `ee/` today.
 
-## Development and contribution
-
-Development requires Node.js 24, Bun 1.3.14, and the local dependencies for the
-workspace you change. Start with [CONTRIBUTING.md](CONTRIBUTING.md); it contains
-the supported setup, focused verification commands, and pull-request process.
-
-Security reports should follow [SECURITY.md](SECURITY.md), not a public issue.
-
-## License
+## License and trademark
 
 - Repository default: [GNU Affero General Public License v3.0 or later](LICENSE)
 - Code under `ee/`: [Genfeed commercial license](ee/LICENSE)
+- Contributions: [Developer Certificate of Origin](https://developercertificate.org/) — no CLA
+- Name and logo: [TRADEMARK.md](TRADEMARK.md) — the licence covers the code, not the brand
 
 Independently published packages and skills may declare their own license in
 their package metadata.
 
 ## Links
 
-- [Website](https://genfeed.ai)
-- [Documentation](https://docs.genfeed.ai)
-- [Hosted app](https://app.genfeed.ai)
-- [Issues](https://github.com/genfeedai/genfeed.ai/issues)
+- [Website](https://genfeed.ai) · [Hosted app](https://app.genfeed.ai) · [Product docs](https://docs.genfeed.ai)
+- [Releases](https://github.com/genfeedai/genfeed.ai/releases) · [Project board](https://github.com/orgs/genfeedai/projects/12)
+- [Issues](https://github.com/genfeedai/genfeed.ai/issues) · [Discussions](https://github.com/genfeedai/genfeed.ai/discussions)
+- [Sponsor](https://github.com/sponsors/genfeedai)
