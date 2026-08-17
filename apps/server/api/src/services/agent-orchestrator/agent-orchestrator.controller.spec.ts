@@ -7,12 +7,11 @@ import type { AgentChatModelRegistryService } from '@api/services/agent-orchestr
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const identity = vi.hoisted(() => ({
-  metadataUserId: testId('user'),
-  organizationId: testId('org'),
+  metadataUserId: 'cuser000000000000000000001',
+  organizationId: 'corg000000000000000000001',
 }));
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
