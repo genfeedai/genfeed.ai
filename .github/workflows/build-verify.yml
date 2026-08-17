@@ -16,6 +16,10 @@ concurrency:
   group: build-verify-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
+# Least-privilege default token; jobs that need more request it explicitly.
+permissions:
+  contents: read
+
 env:
   IMAGE_NAME: genfeed-server-verify
 
