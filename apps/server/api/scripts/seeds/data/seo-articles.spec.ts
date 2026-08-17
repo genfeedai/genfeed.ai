@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { articleArtwork } from './article-artwork';
 import { UPCOMING_SEO_ARTICLES } from './seo-articles';
 
 describe('upcoming SEO article catalog', () => {
@@ -33,9 +34,8 @@ describe('upcoming SEO article catalog', () => {
         'Sources and further reading',
       );
       expect(article.content, article.slug).toContain('https://genfeed.ai/');
-      expect(article.coverImageUrl).toBe(
-        `https://genfeed.ai/assets/cards/articles/${article.slug}.webp`,
-      );
+      expect(article.coverImageUrl).toBe(articleArtwork(article.slug));
+      expect(article.coverImageUrl).not.toContain(article.slug);
     }
   });
 });

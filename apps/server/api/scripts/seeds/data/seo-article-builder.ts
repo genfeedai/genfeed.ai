@@ -1,6 +1,6 @@
 import { ArticleCategory } from '@genfeedai/enums';
+import { articleArtwork } from './article-artwork';
 import type { SeedArticle } from './launch-articles';
-import { articleArtwork } from './launch-articles';
 
 type DecisionRow = {
   choice: string;

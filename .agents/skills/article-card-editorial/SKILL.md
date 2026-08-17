@@ -15,14 +15,23 @@ Generate one article-specific image that works as both the article cover and OG 
 - Article label, summary, sections, and publication date from the seed catalog
 - Vincent identity reference
 - Authentic Genfeed G mark
-- Approved style reference: `assets/approved-dark-editorial-reference.png`
+- Private approved style reference: `~/.codex/artifacts/genfeed-article-cards/references/ref-0001.png`
 
 ## Sources of truth
 
 - Published launch articles: `apps/server/api/scripts/seeds/data/launch-articles.ts`
 - Scheduled SEO articles: `apps/server/api/scripts/seeds/data/seo-articles-wave-*.ts`
-- Shared artwork URL convention: `articleArtwork(slug)` in `launch-articles.ts`
-- Repository assets: `apps/website/public/assets/cards/articles/<slug>.webp`
+- Stable identity map and URL builder: `apps/server/api/scripts/seeds/data/article-artwork.ts`
+- Production objects: `s3://cdn.genfeed.ai/assets/cards/articles/<artwork-id>.webp`
+- Public URLs: `https://cdn.genfeed.ai/assets/cards/articles/<artwork-id>.webp`
+
+## Asset identity
+
+- Allocate the next unused `card-####` value in `ARTICLE_ARTWORK_IDS` before generating a new article card.
+- Treat the value as permanent and never recycle it.
+- A title change requires no asset change.
+- A slug change moves the existing map entry to the new slug while preserving its `card-####` value.
+- Keep titles, slugs, headlines, and other mutable copy out of S3 filenames.
 
 ## Card system
 
@@ -73,18 +82,19 @@ Constraints: preserve Vincent's identity; exact authentic G silhouette; solid ph
 
 ## Asset delivery
 
-1. Keep the original generated PNG for traceability.
+1. Keep the original generated PNG under `~/.codex/artifacts/genfeed-article-cards/<artwork-id>/` for traceability.
 2. Resize and crop to exactly `1280 x 720`.
 3. Convert to WebP with a visually lossless/high-quality setting.
-4. Save as `apps/website/public/assets/cards/articles/<slug>.webp`.
-5. Confirm the seed uses `articleArtwork('<slug>')`.
-6. Inspect the final WebP directly before committing.
+4. Upload to `s3://cdn.genfeed.ai/assets/cards/articles/<artwork-id>.webp` with `Content-Type: image/webp`, server-side encryption, and `Cache-Control: public, max-age=31536000, immutable`.
+5. When replacing an existing WebP key, invalidate that exact CloudFront path before visual verification.
+6. Confirm the article slug resolves to its permanent id through `articleArtwork('<slug>')`.
+7. Verify the public URL returns HTTP 200, `image/webp`, and the uploaded byte length.
+8. Inspect the public CDN image directly. Keep CDN binaries out of application `public/` folders.
 
 ## Verification
 
-- Every published/scheduled article in scope has a matching WebP filename.
+- Every published/scheduled article in scope has a matching S3 WebP object and public CDN URL.
 - Every image is `1280 x 720`, WebP, and visually legible at card size.
 - The headline has no terminal punctuation or small copy.
 - The illustration metaphor is traceable to the actual article content.
 - The Genfeed mark and Vincent identity references were attached to generation.
-
