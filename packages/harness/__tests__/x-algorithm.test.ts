@@ -3,6 +3,7 @@ import {
   isXPlatform,
   scoreXPublicMetrics,
   scoreXPublicMetricsPer1k,
+  X_HEAVY_RANKER_WEIGHTS_2023,
   X_PLATFORM_HARNESS_PACK,
 } from '../src/platforms/x-algorithm';
 import type {
@@ -42,6 +43,19 @@ describe('scoreXPublicMetrics', () => {
     const shares = scoreXPublicMetrics({ shares: 10 });
     expect(saves).toBeGreaterThan(likesOnly);
     expect(shares).toBeGreaterThan(likesOnly);
+  });
+
+  it('weights author closed loops as the strongest positive signal', () => {
+    const loopPost = scoreXPublicMetrics({ authorClosedLoops: 2, likes: 5 });
+    const likeFarm = scoreXPublicMetrics({ likes: 200 });
+    const commentHeavy = scoreXPublicMetrics({ comments: 10 });
+    expect(loopPost).toBeGreaterThan(likeFarm);
+    expect(loopPost).toBeGreaterThan(commentHeavy);
+  });
+
+  it('derives the closed-loop weight from the Heavy Ranker table', () => {
+    const oneLoop = scoreXPublicMetrics({ authorClosedLoops: 1 });
+    expect(oneLoop).toBe(X_HEAVY_RANKER_WEIGHTS_2023.replyEngagedByAuthor);
   });
 
   it('normalizes by views when present', () => {

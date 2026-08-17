@@ -39,25 +39,3 @@ export function mergeAuthorClosedLoopData(
       : {}),
   };
 }
-
-/**
- * Prefer posts with more author closed loops when ranking X winners.
- * Falls back to engagement rate when closed-loop counts are equal/missing.
- */
-export function closedLoopBoostScore(params: {
-  authorClosedLoops?: number | null;
-  engagementRate?: number | null;
-}): number {
-  const loops =
-    typeof params.authorClosedLoops === 'number' &&
-    Number.isFinite(params.authorClosedLoops)
-      ? Math.max(0, params.authorClosedLoops)
-      : 0;
-  const rate =
-    typeof params.engagementRate === 'number' &&
-    Number.isFinite(params.engagementRate)
-      ? params.engagementRate
-      : 0;
-  // One closed loop outweighs a few points of engagement rate.
-  return loops * 25 + rate;
-}

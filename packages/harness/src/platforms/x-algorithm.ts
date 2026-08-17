@@ -34,10 +34,15 @@ export const X_HEAVY_RANKER_WEIGHTS_2023 = {
 
 /**
  * Map available ContentPerformance-style public metrics onto approx. action
- * weights. We do not observe author-reply loops or 2-minute dwell in API
- * metrics; comments ≈ replies, shares ≈ reposts, saves ≈ bookmarks/high intent.
+ * weights. Comments ≈ replies, shares ≈ reposts, saves ≈ bookmarks/high
+ * intent. Author closed loops (the brand replying into its own comment
+ * section, counted by the reply bot) are our local observation of
+ * `replyEngagedByAuthor` — the largest positive weight in the table. Dwell
+ * and negative feedback (report/block/mute) remain unobservable in API
+ * metrics and are handled as craft guardrails, not score terms.
  */
 export const X_PUBLIC_METRIC_WEIGHTS = {
+  authorClosedLoops: X_HEAVY_RANKER_WEIGHTS_2023.replyEngagedByAuthor,
   comments: X_HEAVY_RANKER_WEIGHTS_2023.reply,
   likes: X_HEAVY_RANKER_WEIGHTS_2023.fav,
   saves: X_HEAVY_RANKER_WEIGHTS_2023.goodClickV2,
@@ -45,6 +50,7 @@ export const X_PUBLIC_METRIC_WEIGHTS = {
 } as const;
 
 export type XPublicMetrics = {
+  authorClosedLoops?: number | null;
   comments?: number | null;
   likes?: number | null;
   saves?: number | null;
@@ -76,12 +82,14 @@ export function scoreXPublicMetrics(metrics: XPublicMetrics): number {
   const comments = nonNegative(metrics.comments);
   const shares = nonNegative(metrics.shares);
   const saves = nonNegative(metrics.saves);
+  const authorClosedLoops = nonNegative(metrics.authorClosedLoops);
 
   return (
     likes * X_PUBLIC_METRIC_WEIGHTS.likes +
     comments * X_PUBLIC_METRIC_WEIGHTS.comments +
     shares * X_PUBLIC_METRIC_WEIGHTS.shares +
-    saves * X_PUBLIC_METRIC_WEIGHTS.saves
+    saves * X_PUBLIC_METRIC_WEIGHTS.saves +
+    authorClosedLoops * X_PUBLIC_METRIC_WEIGHTS.authorClosedLoops
   );
 }
 

@@ -1,7 +1,4 @@
-import {
-  closedLoopBoostScore,
-  mergeAuthorClosedLoopData,
-} from '@api/services/reply-bot/author-closed-loop.util';
+import { mergeAuthorClosedLoopData } from '@api/services/reply-bot/author-closed-loop.util';
 import { describe, expect, it } from 'vitest';
 
 describe('mergeAuthorClosedLoopData', () => {
@@ -30,19 +27,5 @@ describe('mergeAuthorClosedLoopData', () => {
       { commentId: 'c2' },
     );
     expect(merged.authorClosedLoops).toBe(4);
-  });
-});
-
-describe('closedLoopBoostScore', () => {
-  it('ranks closed loops above engagement rate alone', () => {
-    const withLoops = closedLoopBoostScore({
-      authorClosedLoops: 2,
-      engagementRate: 1,
-    });
-    const likeFarm = closedLoopBoostScore({
-      authorClosedLoops: 0,
-      engagementRate: 20,
-    });
-    expect(withLoops).toBeGreaterThan(likeFarm);
   });
 });
