@@ -27,7 +27,7 @@ test.describe('Overview Compatibility Redirect', () => {
       /\/workspace\/overview(?:$|[?#])/,
     );
     await expect(
-      authenticatedPage.getByTestId('workspace-new-task'),
+      authenticatedPage.getByTestId('sidebar-shell').first(),
     ).toBeVisible();
   });
 

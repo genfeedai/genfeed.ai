@@ -119,12 +119,9 @@ test.describe('Workspace — deep interactions', () => {
 
     await expect(
       authenticatedPage.getByTestId('workspace-new-task'),
-    ).toBeVisible();
+    ).toHaveCount(0);
 
-    // Cycle the task composer output-type toggles to cover routing branches.
-    await tryClick(authenticatedPage, 'button:has-text("Image")');
-    await tryClick(authenticatedPage, 'button:has-text("Video")');
-    await tryClick(authenticatedPage, 'button:has-text("Caption")');
+    await tryClick(authenticatedPage, '[data-testid="sidebar-primary-action"]');
 
     // Touch the snapshot + recent-output panels.
     await tryClick(

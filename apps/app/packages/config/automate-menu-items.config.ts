@@ -88,7 +88,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AUTOPILOT,
     label: 'Autopilot',
-    matchPaths: [APP_ROUTES.AUTOMATE.AUTOPILOT, APP_ROUTES.AUTOMATE.STRATEGIES],
+    matchPaths: [APP_ROUTES.AUTOMATE.AUTOPILOT],
     outline: Rocket,
     solid: Rocket,
   },

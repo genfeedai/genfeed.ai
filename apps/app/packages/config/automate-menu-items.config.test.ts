@@ -83,6 +83,22 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
+  it('does not keep a Strategies nav alias', () => {
+    const autopilot = AUTOMATE_MENU_ITEMS.find(
+      (item) => item.label === 'Autopilot',
+    );
+
+    expect(autopilot?.href).toBe('/automate/autopilot');
+    expect(autopilot?.matchPaths).toEqual(['/automate/autopilot']);
+    expect(
+      AUTOMATE_MENU_ITEMS.some(
+        (item) =>
+          item.href === '/automate/strategies' ||
+          item.matchPaths?.includes('/automate/strategies'),
+      ),
+    ).toBe(false);
+  });
+
   it('does not host a duplicate Analytics surface (measurement lives in Analytics app)', () => {
     expect(AUTOMATE_MENU_ITEMS.some((item) => item.label === 'Analytics')).toBe(
       false,
@@ -110,6 +126,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     '/automate/new',
     '/automate/workflows/templates',
     '/automate/workflows/new',
+    '/automate/autopilot',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATE_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),

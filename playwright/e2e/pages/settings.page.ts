@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { orgSettingsRoute } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Settings Page
@@ -95,7 +96,7 @@ export class SettingsPage {
       'a[href*="profile"], button:has-text("Profile"), [data-testid="profile-tab"]',
     );
     this.billingTab = page.locator(
-      'a[href*="billing"], button:has-text("Billing"), [data-testid="billing-tab"]',
+      `a[href*="${APP_ROUTES.SETTINGS.CREDITS}"], a[href*="billing"], button:has-text("Credits"), button:has-text("Billing"), [data-testid="billing-tab"]`,
     );
     this.notificationsTab = page.locator(
       'a[href*="notifications"], button:has-text("Notifications"), [data-testid="notifications-tab"]',
@@ -135,9 +136,11 @@ export class SettingsPage {
     );
 
     // Billing section
-    this.billingSection = page.locator('[data-testid="billing-section"]');
+    this.billingSection = page.locator(
+      '[data-testid="billing-section"], main, [data-testid="main-content"]',
+    );
     this.currentPlanDisplay = page.locator(
-      '[data-testid="current-plan"], [data-plan]',
+      '[data-testid="current-plan"], [data-plan], h1:has-text("Credits")',
     );
     this.upgradeButton = page.locator(
       'button:has-text("Upgrade"), a:has-text("Upgrade"), [data-testid="upgrade-button"]',
@@ -156,10 +159,10 @@ export class SettingsPage {
       '[data-testid="invoice-item"], [data-invoice]',
     );
     this.creditBalance = page.locator(
-      '[data-testid="credit-balance"], [data-credits]',
+      '[data-testid="credit-balance"], [data-credits], text=Credits Left',
     );
     this.buyCreditsButton = page.locator(
-      'button:has-text("Buy Credits"), [data-testid="buy-credits"]',
+      'button:has-text("Buy Credits"), button:has-text("Add credits"), [data-testid="buy-credits"]',
     );
 
     // Notifications section
@@ -282,8 +285,11 @@ export class SettingsPage {
   }
 
   async goToBilling(): Promise<void> {
-    await this.billingTab.click();
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.goto(orgSettingsRoute(APP_ROUTES.SETTINGS.CREDITS), {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await this.waitForPageLoad();
   }
 
   async goToOrganization(): Promise<void> {

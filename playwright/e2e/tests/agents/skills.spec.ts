@@ -4,6 +4,7 @@ import {
   mockSkillsCatalog,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 
 test.describe('Agents Skills', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -17,14 +18,14 @@ test.describe('Agents Skills', () => {
   test('loads the skills catalog for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.SKILLS), {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/skills(?:$|[?#])/);
     await expect(
       authenticatedPage.getByRole('heading', {
-        name: 'Brand content behavior',
+        name: /Brand content behavior/i,
       }),
     ).toBeVisible();
     await expect(
@@ -38,25 +39,15 @@ test.describe('Agents Skills', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
+    test.skip(
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
+      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
+    );
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 
-    try {
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 5000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
-      return;
-    } catch {
-      // Local keyless dev mode intentionally skips auth enforcement.
-    }
-
-    await expect(unauthenticatedPage).toHaveURL(/\/automate\/skills/);
-    await expect(
-      unauthenticatedPage.getByRole('heading', {
-        name: 'Brand content behavior',
-      }),
-    ).toBeVisible();
+    await unauthenticatedPage.waitForURL(/\/login/, { timeout: 15000 });
+    expect(unauthenticatedPage.url()).toMatch(/\/login/);
   });
 });

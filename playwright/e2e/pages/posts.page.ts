@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { brandPath } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Posts Management Page
@@ -89,18 +90,26 @@ export class PostsPage {
     );
 
     // Tabs
-    this.draftsTab = page.locator(
-      'a[href="/publish"], [role="tab"]:has-text("Drafts")',
-    );
-    this.scheduledTab = page.locator(
-      'a[href="/publish/scheduled"], a[href$="/publish/scheduled"], a[href="/publish?status=scheduled"], [role="tab"]:has-text("Scheduled")',
-    );
-    this.publishedTab = page.locator(
-      'a[href="/publish/published"], a[href$="/publish/published"], a[href="/publish?status=public"], [role="tab"]:has-text("Published")',
-    );
-    this.engageTab = page.locator(
-      'a[href="/analytics/posts"], [role="tab"]:has-text("Analytics")',
-    );
+    this.draftsTab = page
+      .locator(
+        `a[href$="${APP_ROUTES.PUBLISH.ROOT}"], a[href$="${APP_ROUTES.PUBLISH.OVERVIEW}"], a[href$="${APP_ROUTES.PUBLISH.POSTS}"], [role="tab"]:has-text("Drafts")`,
+      )
+      .first();
+    this.scheduledTab = page
+      .locator(
+        `a[href$="${APP_ROUTES.PUBLISH.SCHEDULED}"], a[href*="${APP_ROUTES.PUBLISH.SCHEDULED}"], [role="tab"]:has-text("Scheduled")`,
+      )
+      .first();
+    this.publishedTab = page
+      .locator(
+        `a[href$="${APP_ROUTES.PUBLISH.PUBLISHED}"], a[href*="${APP_ROUTES.PUBLISH.PUBLISHED}"], [role="tab"]:has-text("Published")`,
+      )
+      .first();
+    this.engageTab = page
+      .locator(
+        `a[href$="${APP_ROUTES.ANALYTICS.POSTS}"], a[href*="${APP_ROUTES.ANALYTICS.POSTS}"], [role="tab"]:has-text("Analytics")`,
+      )
+      .first();
 
     // View toggles
     this.gridViewButton = page.locator(
@@ -235,37 +244,39 @@ export class PostsPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoDrafts(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.ROOT);
+    await this.page.goto(
+      `${brandPath(APP_ROUTES.PUBLISH.POSTS)}?publicationState=not-posted`,
+    );
     await this.waitForPageLoad();
   }
 
   async gotoScheduled(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.SCHEDULED);
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISH.SCHEDULED));
     await this.waitForPageLoad();
   }
 
   async gotoPublished(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.PUBLISHED);
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISH.PUBLISHED));
     await this.waitForPageLoad();
   }
 
   async gotoEngage(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ANALYTICS.POSTS);
+    await this.page.goto(brandPath(APP_ROUTES.ANALYTICS.POSTS));
     await this.waitForPageLoad();
   }
 
   async gotoReview(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.REVIEW);
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISH.REVIEW));
     await this.waitForPageLoad();
   }
 
   async gotoCalendar(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.CALENDAR);
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISH.CALENDAR));
     await this.waitForPageLoad();
   }
 
   async gotoPostDetail(postId: string): Promise<void> {
-    await this.page.goto(`/publish/posts/${postId}`);
+    await this.page.goto(brandPath(`/publish/posts/${postId}`));
     await this.waitForPageLoad();
   }
 
@@ -374,7 +385,7 @@ export class PostsPage {
   // ── Assertions ─────────────────────────────────────────
 
   async assertOnDraftsTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/publish(?:\?|$)/);
+    await expect(this.page).toHaveURL(/\/publish(?:\/posts)?(?:\?|$)/);
   }
 
   async assertOnScheduledTab(): Promise<void> {

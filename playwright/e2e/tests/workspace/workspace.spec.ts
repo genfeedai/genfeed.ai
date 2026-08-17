@@ -74,7 +74,7 @@ test.describe('Workspace', () => {
     await expect(authenticatedPage.getByTestId('workspace-nav')).toHaveCount(0);
     await expect(
       authenticatedPage.getByTestId('workspace-new-task'),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       authenticatedPage.getByTestId('workspace-task-list'),
     ).toBeVisible();
@@ -101,50 +101,7 @@ test.describe('Workspace', () => {
     ).toBeVisible();
   });
 
-  test('creates image, video, and caption tasks with the expected routing paths', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(
-      authenticatedPage.getByTestId('workspace-new-task'),
-    ).toBeVisible();
-
-    const requestInput = authenticatedPage.locator('#workspace-task-request');
-
-    await authenticatedPage.getByRole('button', { name: 'Image' }).click();
-    await requestInput.fill('Create a hero image for the April launch.');
-    await authenticatedPage
-      .getByRole('button', { name: 'Create Task' })
-      .click();
-    await expect(
-      authenticatedPage.getByText(/routed it to the image generation path/i),
-    ).toBeVisible();
-
-    await authenticatedPage.getByRole('button', { name: 'Video' }).click();
-    await requestInput.fill('Create a short launch reel for social.');
-    await authenticatedPage
-      .getByRole('button', { name: 'Create Task' })
-      .click();
-    await expect(
-      authenticatedPage.getByText(/routed it to the video generation path/i),
-    ).toBeVisible();
-
-    await authenticatedPage.getByRole('button', { name: 'Caption' }).click();
-    await requestInput.fill('Write a caption for the launch post.');
-    await authenticatedPage
-      .getByRole('button', { name: 'Create Task' })
-      .click();
-    await expect(
-      authenticatedPage.getByText(
-        /routed it to the caption generation path for review/i,
-      ),
-    ).toBeVisible();
-  });
-
-  test('opens the task composer from the workspace sidebar quick action', async ({
+  test('sidebar primary action stays a conversation handoff, not a retired task composer', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX_UNREAD, {
@@ -155,13 +112,11 @@ test.describe('Workspace', () => {
       'sidebar-primary-action',
     );
 
-    await expect(sidebarPrimaryAction).toContainText('New Task');
-    await sidebarPrimaryAction.click();
-
-    await expect(authenticatedPage).toHaveURL(
-      /\/workspace\/overview#new-task$/,
-    );
-    await expect(authenticatedPage.getByText('Start a task')).toBeVisible();
+    await expect(sidebarPrimaryAction).toBeVisible();
+    await expect(sidebarPrimaryAction).not.toContainText('New Task');
+    await expect(
+      authenticatedPage.getByTestId('workspace-new-task'),
+    ).toHaveCount(0);
   });
 
   test('supports inbox tabs and review actions from the workspace', async ({

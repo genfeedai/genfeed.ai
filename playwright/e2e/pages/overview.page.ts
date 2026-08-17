@@ -36,9 +36,7 @@ export class OverviewPage {
     this.page = page;
 
     this.mainContent = page.locator('main, [data-testid="main-content"]');
-    this.sidebar = page.locator(
-      '[data-testid="sidebar"], aside, nav[role="navigation"]',
-    );
+    this.sidebar = page.getByTestId('sidebar-shell').first();
     this.topbar = page.locator('[data-testid="topbar"], header');
     this.topStats = page.locator('[data-testid="overview-top-stats"]');
     this.performancePanel = page.locator(

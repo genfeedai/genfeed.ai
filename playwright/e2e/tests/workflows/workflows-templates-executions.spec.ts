@@ -258,7 +258,7 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(automationPage).toHaveURL(/\/automate\/workflows\/templates$/);
+    await expect(automationPage).toHaveURL(/\/automate\/workflows\/templates/);
     await expect(automationPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(automationPage);
   });

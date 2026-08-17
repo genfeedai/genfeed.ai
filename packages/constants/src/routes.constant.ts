@@ -122,7 +122,6 @@ export const APP_ROUTES = {
     ROOT: '/automate',
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
-    STRATEGIES: '/automate/strategies',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
      * UI label is "Programs"; path kept for deep-link stability.

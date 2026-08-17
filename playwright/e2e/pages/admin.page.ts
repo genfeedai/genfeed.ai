@@ -54,7 +54,7 @@ export class AdminPage {
     // Layout
     this.mainContent = page.locator('main, [data-testid="main-content"]');
     this.heading = page.getByRole('heading').first();
-    this.sidebar = page.locator('[data-testid="sidebar"], aside, nav');
+    this.sidebar = page.getByTestId('sidebar-shell').first();
 
     // KPI / Overview
     this.kpiCards = page.locator(

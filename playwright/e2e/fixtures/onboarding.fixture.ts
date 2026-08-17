@@ -282,6 +282,24 @@ async function setupAuthCookies(context: BrowserContext): Promise<void> {
   await context.addCookies([
     {
       domain: 'localhost',
+      httpOnly: false,
+      name: '__playwright_test',
+      path: '/',
+      sameSite: 'Lax',
+      secure: false,
+      value: 'true',
+    },
+    {
+      domain: '127.0.0.1',
+      httpOnly: false,
+      name: '__playwright_test',
+      path: '/',
+      sameSite: 'Lax',
+      secure: false,
+      value: 'true',
+    },
+    {
+      domain: 'localhost',
       httpOnly: true,
       name: '__session',
       path: '/',

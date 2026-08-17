@@ -12,17 +12,19 @@ import { logger } from '@services/core/logger.service';
 import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 
-const isServerBootstrapBypassed = cache(async (): Promise<boolean> => {
-  const cookieStore = await cookies();
+export const isProtectedBootstrapBypassed = cache(
+  async (): Promise<boolean> => {
+    const cookieStore = await cookies();
 
-  return (
-    process.env.PLAYWRIGHT_TEST === 'true' ||
-    cookieStore.get('__playwright_test')?.value === 'true'
-  );
-});
+    return (
+      process.env.PLAYWRIGHT_TEST === 'true' ||
+      cookieStore.get('__playwright_test')?.value === 'true'
+    );
+  },
+);
 
 export const getServerAuthToken = cache(async (): Promise<string> => {
-  if (await isServerBootstrapBypassed()) {
+  if (await isProtectedBootstrapBypassed()) {
     return '';
   }
 
@@ -65,7 +67,7 @@ export function shouldSkipCloudBootstrap(
 
 export const loadProtectedBootstrap = cache(
   async (): Promise<ProtectedBootstrapData | null> => {
-    if (await isServerBootstrapBypassed()) {
+    if (await isProtectedBootstrapBypassed()) {
       return null;
     }
 

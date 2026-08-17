@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockPostsList,
@@ -9,8 +9,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: /edit/:type/:id, /publish/newsletters,
- *         /publish/remix, /publish/review
+ * Covers: retired /publish/newsletters redirect, /publish/remix,
+ *         /publish/review
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -24,32 +24,15 @@ test.describe('Posts — Content Types', () => {
     await mockPostsList(authenticatedPage);
   });
 
-  test('newsletters page loads newsletter list', async ({
+  test('retired newsletters path redirects to the agent composer', async ({
     authenticatedPage,
   }) => {
-    // Mock newsletters API endpoint so the page doesn't hit real backend
-    await authenticatedPage.route('**/newsletters**', async (route) => {
-      if (route.request().method() === 'GET') {
-        await route.fulfill({
-          body: JSON.stringify({
-            data: [],
-            meta: { page: 1, pageSize: 10, totalCount: 0 },
-          }),
-          contentType: 'application/json',
-          status: 200,
-        });
-        return;
-      }
-      await route.continue();
-    });
+    await authenticatedPage.goto(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS);
 
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.NEWSLETTERS);
-
-    await expect(authenticatedPage).toHaveURL(/publish\/newsletters/);
-    // Page should render newsletter-specific content
-    await expect(
-      authenticatedPage.getByText(/newsletter/i).first(),
-    ).toBeVisible();
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.NEW}|${APP_ROUTES.PUBLISH.POSTS}`),
+    );
+    await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {

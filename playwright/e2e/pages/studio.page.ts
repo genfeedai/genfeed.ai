@@ -64,7 +64,7 @@ export class StudioPage {
     this.page = page;
 
     // Layout
-    this.sidebar = page.locator('[data-testid="sidebar"], aside, nav');
+    this.sidebar = page.getByTestId('sidebar-shell').first();
     this.topbar = page.locator('[data-testid="topbar"], header');
     this.mainContent = page.locator('main, [data-testid="main-content"]');
 

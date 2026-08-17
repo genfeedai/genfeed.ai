@@ -1058,8 +1058,10 @@ const ADMIN_ROUTE_REGISTRATIONS = [
 /**
  * Canonical application-owned inventory for the protected route patterns
  * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
- * its 206-route snapshot. The two intentional hard cuts (`/:orgSlug/~/workspace/*` and
- * `/:orgSlug/~/settings/organization/*`) are deliberately absent.
+ * its 206-route snapshot. The two inventory hard cuts (`/:orgSlug/~/workspace/*`
+ * and `/:orgSlug/~/settings/organization/*`) are deliberately absent. Retired
+ * `/automate/strategies` is a third hard cut: the `:agentId` pattern must not
+ * treat that slug as a live agent.
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
   ...PERSONAL_ROUTE_REGISTRATIONS,
@@ -1230,6 +1232,16 @@ function decodeRouteParam(value: string): string {
   }
 }
 
+function isWorkspaceShellHardCut(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  return (
+    segments.length === 4 &&
+    segments[1] !== '~' &&
+    segments[2] === 'automate' &&
+    segments[3] === 'strategies'
+  );
+}
+
 function hasRequiredPathScope(
   pathname: string,
   scope: WorkspaceShellScopeRequirement,
@@ -1261,7 +1273,7 @@ export function resolveWorkspaceShellRoute(
   hrefOrPathname: string,
 ): ResolvedWorkspaceShellRoute | null {
   const pathname = getPathname(hrefOrPathname);
-  if (!pathname) {
+  if (!pathname || isWorkspaceShellHardCut(pathname)) {
     return null;
   }
 

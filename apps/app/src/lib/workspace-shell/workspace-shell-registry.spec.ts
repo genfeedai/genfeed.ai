@@ -207,6 +207,9 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
     expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/strategies'),
+    ).toBeNull();
+    expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({
       mode: 'canvas',
@@ -311,6 +314,9 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/strategies'),
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });

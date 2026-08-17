@@ -70,7 +70,10 @@ export class LoginPage {
     );
 
     // Error messages
-    this.errorMessage = page.locator('[role="alert"], .text-destructive');
+    this.errorMessage = page
+      .locator('[role="alert"]:not(span), [data-testid="form-error"]')
+      .or(page.getByRole('alert'))
+      .first();
 
     // Links
     this.signUpLink = page.locator(

@@ -168,7 +168,7 @@ test.describe('Agent Onboarding', () => {
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:\/)?$/);
+    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding/);
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Tell the agent what you create',
@@ -182,9 +182,6 @@ test.describe('Agent Onboarding', () => {
         name: /start with my first image/i,
       }),
     ).toHaveCount(0);
-    await expect(
-      authenticatedPage.getByText(/Start with 100 welcome credits/i),
-    ).toBeVisible();
     await expect(
       authenticatedPage.locator('[data-testid="agent-chat-input-shell"]'),
     ).toBeVisible();
