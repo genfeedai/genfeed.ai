@@ -10,5 +10,6 @@ describe('app robots.txt', () => {
     expect(body).toContain(
       'Content-Signal: ai-train=no, search=no, ai-input=no',
     );
+    expect(body).toContain('Sitemap: https://app.genfeed.ai/sitemap.xml');
   });
 });
