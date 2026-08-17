@@ -20,8 +20,6 @@
 
 - [Agent Orchestration](https://docs.genfeed.ai/core-loop/agent-orchestration): Agent and workflow execution model.
 - [Trend Ingestion](https://docs.genfeed.ai/core-loop/trend-ingestion): Reference and trend ingestion.
-- [Corpus Health](https://docs.genfeed.ai/core-loop/corpus-health): Corpus freshness and diagnostics.
-- [Prelaunch Corpus Backfill](https://docs.genfeed.ai/core-loop/prelaunch-corpus-backfill): Launch corpus preparation.
 
 ## Optional
 
