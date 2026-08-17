@@ -15,7 +15,12 @@ Sentry.init({
     /Could not establish connection\. Receiving end does not exist/i,
   ],
 
-  integrations: [Sentry.replayIntegration()],
+  integrations: [
+    Sentry.replayIntegration({
+      maskAllInputs: true,
+      maskAllText: true,
+    }),
+  ],
 
   replaysOnErrorSampleRate: 1.0,
 

@@ -58,7 +58,7 @@ describe('getSentryConfig', () => {
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
       release: '1.0.0',
-      sendDefaultPii: true,
+      sendDefaultPii: false,
     });
   });
 
@@ -71,7 +71,22 @@ describe('getSentryConfig', () => {
 
     expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
       dsn: 'https://dev@sentry.io/1',
-      sendDefaultPii: true,
+      sendDefaultPii: false,
     });
+  });
+
+  it('keeps sendDefaultPii false in every non-production environment', () => {
+    vi.stubEnv('SENTRY_ENABLED', 'true');
+    vi.stubEnv('SENTRY_DEV', 'true');
+    vi.stubEnv('SENTRY_DSN', 'https://shared@sentry.io/1');
+    vi.stubEnv('SENTRY_DSN_API', '');
+
+    for (const nodeEnv of ['development', 'test', 'staging'] as const) {
+      vi.stubEnv('NODE_ENV', nodeEnv);
+
+      expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
+        sendDefaultPii: false,
+      });
+    }
   });
 });
