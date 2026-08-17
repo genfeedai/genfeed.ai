@@ -2,6 +2,7 @@ import type { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.g
 import type { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
@@ -125,7 +126,7 @@ describe('CombinedAuthGuard', () => {
     // still empty when the token is verified — the guard must fill it in.
     const authenticatedUser = {
       id: 'user_1',
-      organizationId: 'cmptu23g70001zixnzwbzwp2e',
+      organizationId: testId('org'),
       userId: 'user_1',
     };
     const mockRequest: { headers: object; user?: object; context?: object } = {

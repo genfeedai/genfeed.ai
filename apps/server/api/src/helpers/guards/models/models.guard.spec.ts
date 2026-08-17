@@ -160,7 +160,7 @@ describe('ModelsGuard', () => {
     vi.spyOn(reflector, 'get').mockReturnValue({
       category: ModelCategory.IMAGE,
     });
-    const orgId = 'cmptu23g70001zixnzwbzwp2e';
+    const orgId = testId('org');
     const req: Record<string, unknown> = {
       body: { model: 'stable-diffusion' },
       selectedModel: undefined,

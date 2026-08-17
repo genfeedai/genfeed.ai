@@ -181,8 +181,8 @@ describe('CreditsInterceptor', () => {
       } as CreditsConfig;
       mockRequest.user = {
         id: 'user_123',
-        organizationId: '507f1f77bcf86cd799439013',
-        userId: '507f1f77bcf86cd799439012',
+        organizationId,
+        userId,
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
@@ -201,10 +201,10 @@ describe('CreditsInterceptor', () => {
                   pricingType: 'per-second',
                   providerCostUsd: 0.24,
                 },
-                organizationId: '507f1f77bcf86cd799439013',
+                organizationId,
                 source: ActivitySource.SCRIPT,
                 type: 'deduct-credits',
-                userId: '507f1f77bcf86cd799439012',
+                userId,
               });
               resolve();
             }, 10);
