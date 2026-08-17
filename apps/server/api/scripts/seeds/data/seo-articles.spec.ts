@@ -34,7 +34,7 @@ describe('upcoming SEO article catalog', () => {
       );
       expect(article.content, article.slug).toContain('https://genfeed.ai/');
       expect(article.coverImageUrl).toBe(
-        `https://genfeed.ai/assets/cards/articles/${article.slug}.webp`,
+        `https://cdn.genfeed.ai/assets/cards/articles/${article.slug}.webp`,
       );
     }
   });

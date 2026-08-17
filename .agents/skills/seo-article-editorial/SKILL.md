@@ -85,9 +85,9 @@ For a two-per-week cadence, leave several days between posts and avoid publishin
 
 Generate the artwork with `$article-card-editorial`. Save it as:
 
-`apps/website/public/assets/cards/articles/<slug>.webp`
+`s3://cdn.genfeed.ai/assets/cards/articles/<slug>.webp`
 
-The builder uses `articleArtwork(brief.slug)`, so the slug is the contract between content, cover, and OG metadata.
+The builder uses `articleArtwork(brief.slug)` through `cdnAsset()`, so the slug is the contract between the brief, S3 object, public CDN URL, cover, and OG metadata.
 
 ## Completion criteria
 
@@ -96,7 +96,7 @@ The builder uses `articleArtwork(brief.slug)`, so the slug is the contract betwe
 - Volatile claims were checked against current primary sources.
 - No unearned first-person or launch claim remains.
 - The publication timestamp and catalog export are correct.
-- The slug has one matching `1280 x 720` WebP card.
+- The slug has one matching `1280 x 720` WebP card at `https://cdn.genfeed.ai/assets/cards/articles/<slug>.webp`.
 - The article remains hidden before `publishedAt` and public afterward.
 - Focused repository checks pass in CI; do not claim completion from prose review alone.
 

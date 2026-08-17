@@ -19,6 +19,8 @@ import { ArticleCategory } from '@genfeedai/enums';
 // `@genfeedai/helpers` barrel resolves to the package's prebuilt `dist`, so a
 // seed run would depend on that build being current — it is not, on a checkout
 // where the package has not been rebuilt since the helper was added.
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
+
 export type SeedArticle = {
   category: ArticleCategory;
   /** Sanitized HTML body. See the module note above — this is not markdown. */
@@ -42,7 +44,7 @@ export type SeedArticle = {
  * never a per-env or localhost one.
  */
 function articleArtwork(slug: string): string {
-  return `https://genfeed.ai/assets/cards/articles/${slug}.webp`;
+  return cdnAsset(`/assets/cards/articles/${slug}.webp`);
 }
 
 const CLEAR_FRAMEWORK = `

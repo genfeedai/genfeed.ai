@@ -22,7 +22,8 @@ Generate one article-specific image that works as both the article cover and OG 
 - Published launch articles: `apps/server/api/scripts/seeds/data/launch-articles.ts`
 - Scheduled SEO articles: `apps/server/api/scripts/seeds/data/seo-articles-wave-*.ts`
 - Shared artwork URL convention: `articleArtwork(slug)` in `launch-articles.ts`
-- Repository assets: `apps/website/public/assets/cards/articles/<slug>.webp`
+- Production objects: `s3://cdn.genfeed.ai/assets/cards/articles/<slug>.webp`
+- Public URLs: `https://cdn.genfeed.ai/assets/cards/articles/<slug>.webp`
 
 ## Card system
 
@@ -73,18 +74,19 @@ Constraints: preserve Vincent's identity; exact authentic G silhouette; solid ph
 
 ## Asset delivery
 
-1. Keep the original generated PNG for traceability.
+1. Keep the original generated PNG under `~/.codex/artifacts/genfeed-article-cards/<slug>/` for traceability.
 2. Resize and crop to exactly `1280 x 720`.
 3. Convert to WebP with a visually lossless/high-quality setting.
-4. Save as `apps/website/public/assets/cards/articles/<slug>.webp`.
-5. Confirm the seed uses `articleArtwork('<slug>')`.
-6. Inspect the final WebP directly before committing.
+4. Upload to `s3://cdn.genfeed.ai/assets/cards/articles/<slug>.webp` with `Content-Type: image/webp`, server-side encryption, and `Cache-Control: public, max-age=31536000, immutable`.
+5. When replacing an existing WebP key, invalidate that exact CloudFront path before visual verification.
+6. Confirm the seed uses `articleArtwork('<slug>')` and therefore resolves through `cdnAsset()`.
+7. Verify the public URL returns HTTP 200, `image/webp`, and the uploaded byte length.
+8. Inspect the public CDN image directly. Keep CDN binaries out of application `public/` folders.
 
 ## Verification
 
-- Every published/scheduled article in scope has a matching WebP filename.
+- Every published/scheduled article in scope has a matching S3 WebP object and public CDN URL.
 - Every image is `1280 x 720`, WebP, and visually legible at card size.
 - The headline has no terminal punctuation or small copy.
 - The illustration metaphor is traceable to the actual article content.
 - The Genfeed mark and Vincent identity references were attached to generation.
-
