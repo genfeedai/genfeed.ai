@@ -3,6 +3,10 @@ import type {
   SocialConversationDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { SocialInboxPage } from '@api/collections/social-inbox/services/social-inbox.types';
+import {
+  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+  LINKEDIN_DM_UNAVAILABLE_REASON,
+} from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import { Platform, SocialConversationType } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
@@ -25,8 +29,8 @@ const MAX_PAGE_SIZE = 100;
 const DM_POST_REPLY_REASON =
   'Direct message threads have no post or comment to reply on';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
-const LINKEDIN_DM_REASON =
-  'LinkedIn messaging is not available on the connected account';
+
+export { LINKEDIN_DM_NOT_IMPLEMENTED_REASON, LINKEDIN_DM_UNAVAILABLE_REASON };
 
 export function normalizePlatform(platform: string): string {
   return platform.trim().toLowerCase();
@@ -130,7 +134,7 @@ export function getAvailability(params: {
         canPostReply: false,
         canSendDm: false,
         postReplyReason: DM_POST_REPLY_REASON,
-        sendDmReason: LINKEDIN_DM_REASON,
+        sendDmReason: LINKEDIN_DM_UNAVAILABLE_REASON,
       };
     }
 
@@ -140,7 +144,7 @@ export function getAvailability(params: {
       postReplyReason: params.externalParentId
         ? undefined
         : 'LinkedIn reply requires a comment id',
-      sendDmReason: LINKEDIN_DM_REASON,
+      sendDmReason: LINKEDIN_DM_UNAVAILABLE_REASON,
     };
   }
 

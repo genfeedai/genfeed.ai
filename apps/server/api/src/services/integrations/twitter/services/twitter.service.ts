@@ -83,6 +83,11 @@ export type TwitterInboxDmThread = {
   messages: TwitterInboxDmMessage[];
 };
 
+export type TwitterDirectMessageListing = {
+  nextToken?: string;
+  threads: TwitterInboxDmThread[];
+};
+
 type TwitterUserInclude = {
   id: string;
   username?: string;
@@ -112,6 +117,7 @@ type TwitterDmEventsResponse = {
     dm_conversation_id?: string;
   }>;
   includes?: { users?: TwitterUserInclude[] };
+  meta?: { next_token?: string; result_count?: number };
 };
 
 function toGraphDate(value?: string): Date {
@@ -1023,22 +1029,31 @@ export class TwitterService {
     const accessToken = EncryptionUtil.decrypt(
       requireString(credential.accessToken, 'accessToken'),
     );
+    const accountId = requireString(credential.externalId, 'externalId');
     const replies = await this.getTweetReplies(tweetId, {
       accessToken,
       maxResults: options.limit,
       sinceId: options.sinceId,
     });
 
-    return replies.map((reply) => ({
-      authorId: reply.authorId,
-      authorName: reply.authorName,
-      authorUsername: reply.authorUsername,
-      conversationId: tweetId,
-      createdAt: reply.createdAt ?? new Date(),
-      inReplyToId: reply.inReplyToId,
-      text: reply.text,
-      tweetId: reply.id,
-    }));
+    return replies.flatMap((reply) => {
+      if (reply.authorId === accountId) {
+        return [];
+      }
+
+      return [
+        {
+          authorId: reply.authorId,
+          authorName: reply.authorName,
+          authorUsername: reply.authorUsername,
+          conversationId: tweetId,
+          createdAt: reply.createdAt ?? new Date(),
+          inReplyToId: reply.inReplyToId,
+          text: reply.text,
+          tweetId: reply.id,
+        } satisfies TwitterInboxTweet,
+      ];
+    });
   }
 
   /**
@@ -1049,7 +1064,7 @@ export class TwitterService {
     organizationId: string,
     brandId: string,
     options: { limit?: number; paginationToken?: string } = {},
-  ): Promise<TwitterInboxDmThread[]> {
+  ): Promise<TwitterDirectMessageListing> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const credential = await this.refreshToken(organizationId, brandId);
     const accessToken = EncryptionUtil.decrypt(
@@ -1077,12 +1092,13 @@ export class TwitterService {
         params,
       )) as TwitterDmEventsResponse;
       const threads = toInboxDmThreads(result, accountId);
+      const nextToken = result.meta?.next_token;
 
       this.loggerService.log(`${caller} found ${threads.length} DM threads`, {
         accountId,
         paginationToken: options.paginationToken,
       });
-      return threads;
+      return nextToken ? { nextToken, threads } : { threads };
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;

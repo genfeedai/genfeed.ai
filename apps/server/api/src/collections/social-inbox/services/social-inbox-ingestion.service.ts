@@ -9,6 +9,7 @@ import {
   boundLimit,
   clamp,
   getAvailability,
+  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
   normalizePlatform,
   sanitizeBody,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
@@ -33,9 +34,33 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
+const X_DM_MAX_PAGES = 5;
+
+type ConnectedCredentialAccount = {
+  externalHandle?: string | null;
+  externalId?: string | null;
+  externalName?: string | null;
+  label?: string | null;
+  userId?: string | null;
+  username?: string | null;
+};
+
+function accountFieldsFromCredential(
+  credential: ConnectedCredentialAccount,
+  fallbackUserId?: string,
+) {
+  return {
+    accountExternalId: credential.externalId ?? undefined,
+    accountHandle:
+      credential.externalHandle ?? credential.username ?? undefined,
+    accountName: credential.externalName ?? credential.label ?? undefined,
+    userId: credential.userId ?? fallbackUserId,
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -77,6 +102,8 @@ export class SocialInboxIngestionService {
     private readonly realtimeService: SocialInboxRealtimeService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    @Optional()
+    private readonly logger?: LoggerService,
   ) {}
 
   async ingestInboundMessage(
@@ -266,11 +293,7 @@ export class SocialInboxIngestionService {
 
           await this.ingestSyncedMessage(
             {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: comment.text,
               brandId: post.brandId,
               conversationType: SocialConversationType.COMMENT,
@@ -293,7 +316,6 @@ export class SocialInboxIngestionService {
               sourceContentUrl:
                 post.url ??
                 `https://www.youtube.com/watch?v=${post.externalId}`,
-              userId: credential.userId ?? scope.userId,
             },
             existing.messagesByExternalId.get(comment.commentId),
             existing.conversationsByExternalId.get(comment.threadId),
@@ -367,11 +389,7 @@ export class SocialInboxIngestionService {
 
           await this.ingestSyncedMessage(
             {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: comment.text,
               brandId: post.brandId,
               conversationType: SocialConversationType.COMMENT,
@@ -391,7 +409,6 @@ export class SocialInboxIngestionService {
               sourceContentTitle: post.label ?? post.description.slice(0, 120),
               sourceContentType: 'media',
               sourceContentUrl: post.url ?? undefined,
-              userId: credential.userId ?? scope.userId,
             },
             existing.messagesByExternalId.get(comment.commentId),
             existing.conversationsByExternalId.get(comment.threadId),
@@ -473,11 +490,7 @@ export class SocialInboxIngestionService {
 
           await this.ingestSyncedMessage(
             {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: message.text,
               brandId,
               conversationType: SocialConversationType.DM,
@@ -493,7 +506,6 @@ export class SocialInboxIngestionService {
                 message.senderUsername ?? thread.participantUsername,
               participantName: message.senderName ?? thread.participantName,
               platform: Platform.INSTAGRAM,
-              userId: credential.userId ?? scope.userId,
             },
             existing.messagesByExternalId.get(message.messageId),
             existing.conversationsByExternalId.get(thread.conversationId),
@@ -557,11 +569,7 @@ export class SocialInboxIngestionService {
       await this.ingestBatch(
         mentions.map((mention) => ({
           input: {
-            accountExternalId: credential.externalId ?? undefined,
-            accountHandle:
-              credential.externalHandle ?? credential.username ?? undefined,
-            accountName:
-              credential.externalName ?? credential.label ?? undefined,
+            ...accountFieldsFromCredential(credential, scope.userId),
             body: mention.text,
             brandId,
             conversationType: SocialConversationType.COMMENT,
@@ -583,7 +591,6 @@ export class SocialInboxIngestionService {
             sourceContentUrl: mention.authorUsername
               ? `https://x.com/${mention.authorUsername}/status/${mention.tweetId}`
               : `https://x.com/i/status/${mention.tweetId}`,
-            userId: credential.userId ?? scope.userId,
           },
           messageId: mention.tweetId,
           threadId: mention.conversationId,
@@ -628,11 +635,7 @@ export class SocialInboxIngestionService {
         await this.ingestBatch(
           replies.map((reply) => ({
             input: {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: reply.text,
               brandId: post.brandId,
               conversationType: SocialConversationType.COMMENT,
@@ -655,7 +658,6 @@ export class SocialInboxIngestionService {
               sourceContentType: 'tweet',
               sourceContentUrl:
                 post.url ?? `https://x.com/i/status/${post.externalId}`,
-              userId: credential.userId ?? scope.userId,
             },
             messageId: reply.tweetId,
             threadId: reply.conversationId,
@@ -688,55 +690,63 @@ export class SocialInboxIngestionService {
         continue;
       }
 
-      const cursor = await this.findLatestExternalMessageId({
-        credentialId: credential.id,
-        messageType: SocialMessageType.DM,
-        organizationId: scope.organizationId,
-        platform: Platform.TWITTER,
-      });
-      const threads = await this.pollProvider(Platform.TWITTER, cursor, () =>
-        this.twitterService.listDirectMessages(scope.organizationId, brandId, {
-          limit,
-        }),
-      );
-
-      for (const thread of threads) {
-        const orderedMessages = [...thread.messages].sort(
-          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-        );
-
-        await this.ingestBatch(
-          orderedMessages.map((message) => ({
-            input: {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
-              body: message.text,
-              brandId,
-              conversationType: SocialConversationType.DM,
-              createdAt: message.createdAt,
-              credentialId: credential.id,
-              externalConversationId: thread.conversationId,
-              externalMessageId: message.messageId,
-              externalThreadId: thread.conversationId,
-              organizationId: scope.organizationId,
-              participantExternalId:
-                message.senderId ?? thread.participantExternalId,
-              participantHandle:
-                message.senderUsername ?? thread.participantUsername,
-              participantName: message.senderName ?? thread.participantName,
-              platform: Platform.TWITTER,
-              userId: credential.userId ?? scope.userId,
-            },
-            messageId: message.messageId,
-            threadId: thread.conversationId,
-          })),
-          scope.organizationId,
+      // X dm_events paginate with the provider next_token, not a stored
+      // message id. Walk newest-first until a page adds nothing new.
+      let paginationToken: string | undefined;
+      for (let page = 0; page < X_DM_MAX_PAGES; page++) {
+        const listing = await this.pollProvider(
           Platform.TWITTER,
-          counts,
+          paginationToken,
+          () =>
+            this.twitterService.listDirectMessages(
+              scope.organizationId,
+              brandId,
+              {
+                limit,
+                ...(paginationToken ? { paginationToken } : {}),
+              },
+            ),
         );
+        const createdBefore = counts.messagesCreated;
+
+        for (const thread of listing.threads) {
+          const orderedMessages = [...thread.messages].sort(
+            (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+          );
+
+          await this.ingestBatch(
+            orderedMessages.map((message) => ({
+              input: {
+                ...accountFieldsFromCredential(credential, scope.userId),
+                body: message.text,
+                brandId,
+                conversationType: SocialConversationType.DM,
+                createdAt: message.createdAt,
+                credentialId: credential.id,
+                externalConversationId: thread.conversationId,
+                externalMessageId: message.messageId,
+                externalThreadId: thread.conversationId,
+                organizationId: scope.organizationId,
+                participantExternalId:
+                  message.senderId ?? thread.participantExternalId,
+                participantHandle:
+                  message.senderUsername ?? thread.participantUsername,
+                participantName: message.senderName ?? thread.participantName,
+                platform: Platform.TWITTER,
+              },
+              messageId: message.messageId,
+              threadId: thread.conversationId,
+            })),
+            scope.organizationId,
+            Platform.TWITTER,
+            counts,
+          );
+        }
+
+        paginationToken = listing.nextToken;
+        if (!paginationToken || counts.messagesCreated === createdBefore) {
+          break;
+        }
       }
     }
 
@@ -794,11 +804,7 @@ export class SocialInboxIngestionService {
         await this.ingestBatch(
           comments.map((comment) => ({
             input: {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: comment.text,
               brandId: post.brandId,
               conversationType: SocialConversationType.COMMENT,
@@ -817,7 +823,6 @@ export class SocialInboxIngestionService {
               sourceContentTitle: post.label ?? post.description.slice(0, 120),
               sourceContentType: 'post',
               sourceContentUrl: post.url ?? undefined,
-              userId: credential.userId ?? scope.userId,
             },
             messageId: comment.commentId,
             threadId: comment.threadId,
@@ -838,7 +843,7 @@ export class SocialInboxIngestionService {
    */
   async ingestLinkedInDms(
     scope: SocialInboxScope,
-    options: { credentialId?: string; limit?: number } = {},
+    options: { credentialId?: string } = {},
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     const credentials = await this.findConnectedCredentials(
       scope,
@@ -867,6 +872,13 @@ export class SocialInboxIngestionService {
         continue;
       }
 
+      if (listing.isImplemented === false) {
+        throw new SocialInboxProviderError(
+          listing.reason ?? LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+          { platform: Platform.LINKEDIN },
+        );
+      }
+
       for (const thread of listing.threads) {
         const orderedMessages = [...thread.messages].sort(
           (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
@@ -875,11 +887,7 @@ export class SocialInboxIngestionService {
         await this.ingestBatch(
           orderedMessages.map((message) => ({
             input: {
-              accountExternalId: credential.externalId ?? undefined,
-              accountHandle:
-                credential.externalHandle ?? credential.username ?? undefined,
-              accountName:
-                credential.externalName ?? credential.label ?? undefined,
+              ...accountFieldsFromCredential(credential, scope.userId),
               body: message.text,
               brandId,
               conversationType: SocialConversationType.DM,
@@ -893,7 +901,6 @@ export class SocialInboxIngestionService {
                 message.senderExternalId ?? thread.participantExternalId,
               participantName: message.senderName ?? thread.participantName,
               platform: Platform.LINKEDIN,
-              userId: credential.userId ?? scope.userId,
             },
             messageId: message.messageId,
             threadId: thread.conversationId,
@@ -1039,11 +1046,18 @@ export class SocialInboxIngestionService {
     try {
       return await list();
     } catch (error: unknown) {
+      const isRateLimited = isProviderRateLimit(error);
+      this.logger?.warn('Social inbox provider poll failed', {
+        cursor,
+        isRateLimited,
+        platform,
+      });
       throw new SocialInboxProviderError(
         error instanceof Error ? error.message : String(error),
         {
+          cause: error,
           cursor,
-          isRateLimited: isProviderRateLimit(error),
+          isRateLimited,
           platform,
         },
       );

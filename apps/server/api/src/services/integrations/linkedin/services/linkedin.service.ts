@@ -2,6 +2,10 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import {
+  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+  LINKEDIN_DM_UNAVAILABLE_REASON,
+} from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import {
   type ChannelTargetSettings,
@@ -69,6 +73,7 @@ export type LinkedInInboxDmThread = {
 };
 
 export type LinkedInDirectMessageListing = {
+  isImplemented?: boolean;
   isPermitted: boolean;
   reason?: string;
   threads: LinkedInInboxDmThread[];
@@ -988,6 +993,7 @@ export class LinkedInService {
               'X-Restli-Protocol-Version': '2.0.0',
             },
             params: { count, start },
+            timeout: 30000,
           },
         ),
       );
@@ -1054,12 +1060,19 @@ export class LinkedInService {
     if (!isPermitted) {
       return {
         isPermitted: false,
-        reason: 'LinkedIn messaging is not available on the connected account',
+        reason: LINKEDIN_DM_UNAVAILABLE_REASON,
         threads: [],
       };
     }
 
-    return { isPermitted: true, threads: [] };
+    // Mailbox scope is granted, but the partner messaging API is not wired.
+    // Report unavailable so a granted scope is never a successful empty inbox.
+    return {
+      isImplemented: false,
+      isPermitted: true,
+      reason: LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+      threads: [],
+    };
   }
 
   /**

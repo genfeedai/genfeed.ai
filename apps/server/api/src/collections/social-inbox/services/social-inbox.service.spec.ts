@@ -110,6 +110,9 @@ type PrismaMock = {
 
 type TestContext = {
   conversations: StoreConversation[];
+  logger: {
+    warn: ReturnType<typeof vi.fn>;
+  };
   messages: StoreMessage[];
   notificationsPublisher: {
     emit: ReturnType<typeof vi.fn>;
@@ -429,6 +432,9 @@ function createContext(): TestContext {
   const notificationsPublisher = {
     emit: vi.fn().mockResolvedValue(undefined),
   };
+  const logger = {
+    warn: vi.fn(),
+  };
   const queryService = new SocialInboxQueryService(prisma as never);
   const realtimeService = new SocialInboxRealtimeService(
     notificationsPublisher as never,
@@ -441,6 +447,7 @@ function createContext(): TestContext {
     linkedInService as never,
     realtimeService,
     queueService as never,
+    logger as never,
   );
   const actionService = new SocialInboxActionService(
     prisma as never,
@@ -454,6 +461,7 @@ function createContext(): TestContext {
     conversations,
     instagramService,
     linkedInService,
+    logger,
     messages,
     notificationsPublisher,
     prisma: prisma as unknown as PrismaMock,
@@ -1896,14 +1904,16 @@ describe('SocialInboxService', () => {
 
       await context.service.ingestXComments(scope, { limit: 50 });
       const cursor = '1980000000000000002';
-      context.twitterService.listMentions.mockRejectedValue({
+      const providerError = {
         message: 'Too Many Requests',
         status: 429,
-      });
+      };
+      context.twitterService.listMentions.mockRejectedValue(providerError);
 
       await expect(
         context.service.ingestXComments(scope, { limit: 50 }),
       ).rejects.toMatchObject({
+        cause: providerError,
         cursor,
         isRateLimited: true,
         name: SocialInboxProviderError.name,
@@ -1912,6 +1922,14 @@ describe('SocialInboxService', () => {
         'org-1',
         'brand-1',
         { limit: 50, sinceId: cursor },
+      );
+      expect(context.logger.warn).toHaveBeenCalledWith(
+        'Social inbox provider poll failed',
+        {
+          cursor,
+          isRateLimited: true,
+          platform: Platform.TWITTER,
+        },
       );
       expect(context.messages).toHaveLength(3);
     });
@@ -1931,32 +1949,34 @@ describe('SocialInboxService', () => {
           username: 'genfeedai',
         },
       ]);
-      context.twitterService.listDirectMessages.mockResolvedValue([
-        {
-          conversationId: 'x-dm-thread-1',
-          messages: [
-            {
-              createdAt: new Date('2026-08-01T11:01:00.000Z'),
-              messageId: 'x-dm-2',
-              senderId: '2244994945',
-              senderName: 'Taylor',
-              senderUsername: 'taylor',
-              text: 'Following up',
-            },
-            {
-              createdAt: new Date('2026-08-01T11:00:00.000Z'),
-              messageId: 'x-dm-1',
-              senderId: '2244994945',
-              senderName: 'Taylor',
-              senderUsername: 'taylor',
-              text: 'Can we chat about pricing?',
-            },
-          ],
-          participantExternalId: '2244994945',
-          participantName: 'Taylor',
-          participantUsername: 'taylor',
-        },
-      ]);
+      context.twitterService.listDirectMessages.mockResolvedValue({
+        threads: [
+          {
+            conversationId: 'x-dm-thread-1',
+            messages: [
+              {
+                createdAt: new Date('2026-08-01T11:01:00.000Z'),
+                messageId: 'x-dm-2',
+                senderId: '2244994945',
+                senderName: 'Taylor',
+                senderUsername: 'taylor',
+                text: 'Following up',
+              },
+              {
+                createdAt: new Date('2026-08-01T11:00:00.000Z'),
+                messageId: 'x-dm-1',
+                senderId: '2244994945',
+                senderName: 'Taylor',
+                senderUsername: 'taylor',
+                text: 'Can we chat about pricing?',
+              },
+            ],
+            participantExternalId: '2244994945',
+            participantName: 'Taylor',
+            participantUsername: 'taylor',
+          },
+        ],
+      });
     }
 
     it('keys DM threads by the X conversation id with no post anchor', async () => {
@@ -1997,6 +2017,123 @@ describe('SocialInboxService', () => {
 
       expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
       expect(context.messages).toHaveLength(2);
+    });
+
+    it('pages older DMs with the provider next token, not a stored message id', async () => {
+      const context = createContext();
+      seedSweep(context);
+      context.twitterService.listDirectMessages
+        .mockResolvedValueOnce({
+          nextToken: 'x-dm-next-1',
+          threads: [
+            {
+              conversationId: 'x-dm-thread-1',
+              messages: [
+                {
+                  createdAt: new Date('2026-08-01T11:01:00.000Z'),
+                  messageId: 'x-dm-2',
+                  senderId: '2244994945',
+                  senderName: 'Taylor',
+                  senderUsername: 'taylor',
+                  text: 'Following up',
+                },
+              ],
+              participantExternalId: '2244994945',
+              participantName: 'Taylor',
+              participantUsername: 'taylor',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          threads: [
+            {
+              conversationId: 'x-dm-thread-2',
+              messages: [
+                {
+                  createdAt: new Date('2026-08-01T10:00:00.000Z'),
+                  messageId: 'x-dm-older',
+                  senderId: '783214',
+                  senderName: 'Jordan',
+                  senderUsername: 'jordan',
+                  text: 'Older thread',
+                },
+              ],
+              participantExternalId: '783214',
+              participantName: 'Jordan',
+              participantUsername: 'jordan',
+            },
+          ],
+        });
+
+      const result = await context.service.ingestXDms(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 25 },
+      );
+
+      expect(result).toEqual({ conversationsCreated: 2, messagesCreated: 2 });
+      expect(context.twitterService.listDirectMessages).toHaveBeenNthCalledWith(
+        1,
+        'org-1',
+        'brand-1',
+        { limit: 25 },
+      );
+      expect(context.twitterService.listDirectMessages).toHaveBeenNthCalledWith(
+        2,
+        'org-1',
+        'brand-1',
+        { limit: 25, paginationToken: 'x-dm-next-1' },
+      );
+      expect(
+        context.messages.map((message) => message.externalMessageId),
+      ).toEqual(['x-dm-2', 'x-dm-older']);
+    });
+
+    it('does not send a stored DM message id as the X pagination token', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestXDms(scope, { limit: 25 });
+      context.twitterService.listDirectMessages.mockClear();
+      context.twitterService.listDirectMessages.mockResolvedValue({
+        threads: [
+          {
+            conversationId: 'x-dm-thread-1',
+            messages: [
+              {
+                createdAt: new Date('2026-08-01T11:01:00.000Z'),
+                messageId: 'x-dm-2',
+                senderId: '2244994945',
+                senderName: 'Taylor',
+                senderUsername: 'taylor',
+                text: 'Following up',
+              },
+            ],
+            participantExternalId: '2244994945',
+            participantName: 'Taylor',
+            participantUsername: 'taylor',
+          },
+        ],
+      });
+
+      await context.service.ingestXDms(scope, { limit: 25 });
+
+      expect(context.twitterService.listDirectMessages).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        { limit: 25 },
+      );
+      expect(
+        context.twitterService.listDirectMessages,
+      ).not.toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        expect.objectContaining({ paginationToken: 'x-dm-2' }),
+      );
     });
   });
 
@@ -2169,6 +2306,34 @@ describe('SocialInboxService', () => {
       });
 
       expect(result).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(0);
+    });
+
+    it('reports an unimplemented mailbox grant instead of a successful empty ingest', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          id: 'credential-li',
+          userId: 'user-1',
+        },
+      ]);
+      context.linkedInService.listDirectMessages.mockResolvedValue({
+        isImplemented: false,
+        isPermitted: true,
+        reason: 'LinkedIn mailbox ingestion is not implemented',
+        threads: [],
+      });
+
+      await expect(
+        context.service.ingestLinkedInDms({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+        }),
+      ).rejects.toMatchObject({
+        name: SocialInboxProviderError.name,
+        platform: Platform.LINKEDIN,
+      });
       expect(context.messages).toHaveLength(0);
     });
   });

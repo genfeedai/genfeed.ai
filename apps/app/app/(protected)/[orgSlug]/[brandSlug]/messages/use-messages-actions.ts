@@ -19,8 +19,11 @@ import {
 import type { MessagesSurface } from './messages-conversation-sidebar';
 import {
   getMessagesErrorMessage,
+  getMessagesSyncFeedback,
   type MessagesBusyAction,
+  type MessagesSyncJob,
   STATUS_LABELS,
+  settleMessagesSyncJobs,
 } from './messages-page.helpers';
 import {
   createMessagesIdempotencyKey,
@@ -225,30 +228,34 @@ export function useMessagesActions({
 
     try {
       const service = await getMessagesService();
-      if (conversationType === SocialConversationType.DM) {
-        await Promise.all([
-          service.syncInstagramDms(),
-          service.syncXDms(),
-          service.syncLinkedInDms(),
-        ]);
-        setNotice(
-          'Direct message sync started. New threads will appear here once the background job finishes.',
-        );
-      } else {
-        // The comments surface spans every connected platform, so one sync
-        // sweeps them all rather than making the operator pick.
-        await Promise.all([
-          service.syncYoutube(),
-          service.syncInstagram(),
-          service.syncX(),
-          service.syncLinkedIn(),
-        ]);
-        setNotice(
-          'Comment sync started. New comments will appear here once the background jobs finish.',
-        );
-      }
+      const isDirectMessage = conversationType === SocialConversationType.DM;
+      // One rejected enqueue must not hide the rest: a brand often has only
+      // some platforms connected, and the other jobs are already queued.
+      const jobs: MessagesSyncJob[] = isDirectMessage
+        ? [
+            { platform: 'Instagram', run: () => service.syncInstagramDms() },
+            { platform: 'X', run: () => service.syncXDms() },
+            { platform: 'LinkedIn', run: () => service.syncLinkedInDms() },
+          ]
+        : [
+            { platform: 'YouTube', run: () => service.syncYoutube() },
+            { platform: 'Instagram', run: () => service.syncInstagram() },
+            { platform: 'X', run: () => service.syncX() },
+            { platform: 'LinkedIn', run: () => service.syncLinkedIn() },
+          ];
+      const outcome = await settleMessagesSyncJobs(jobs);
       await loadConversations();
-      captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
+      const feedback = getMessagesSyncFeedback({
+        failedPlatforms: outcome.failedPlatforms,
+        hasSuccess: outcome.hasSuccess,
+        isDirectMessage,
+      });
+      setError(feedback.error);
+      setNotice(feedback.notice);
+      captureMessagesSurfaceEvent({
+        action,
+        outcome: outcome.hasSuccess ? 'succeeded' : 'failed',
+      });
     } catch (err: unknown) {
       setError(getMessagesErrorMessage(err));
       captureMessagesSurfaceEvent({ action, outcome: 'failed' });

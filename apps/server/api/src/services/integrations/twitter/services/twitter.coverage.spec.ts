@@ -1331,22 +1331,123 @@ describe('TwitterService (coverage)', () => {
           pagination_token: 'cursor-1',
         }),
       );
+      expect(result).toEqual({
+        threads: [
+          {
+            conversationId: 'x-dm-thread-1',
+            messages: [
+              {
+                createdAt: new Date('2026-08-01T11:00:00.000Z'),
+                messageId: 'x-dm-1',
+                senderId: '2244994945',
+                senderName: 'Taylor',
+                senderUsername: 'taylor',
+                text: 'Can we chat about pricing?',
+              },
+            ],
+            participantExternalId: '2244994945',
+            participantName: 'Taylor',
+            participantUsername: 'taylor',
+          },
+        ],
+      });
+    });
+
+    it('returns the provider next token so ingestion can page older DMs', async () => {
+      mockV2Get.mockResolvedValue({
+        data: [
+          {
+            created_at: '2026-08-01T11:00:00.000Z',
+            dm_conversation_id: 'x-dm-thread-1',
+            event_type: 'MessageCreate',
+            id: 'x-dm-1',
+            sender_id: '2244994945',
+            text: 'Can we chat about pricing?',
+          },
+        ],
+        includes: {
+          users: [{ id: '2244994945', name: 'Taylor', username: 'taylor' }],
+        },
+        meta: { next_token: 'x-dm-next-1', result_count: 1 },
+      });
+
+      const result = await service.listDirectMessages('org', 'brand');
+
+      expect(result.nextToken).toBe('x-dm-next-1');
+      expect(result.threads).toHaveLength(1);
+    });
+  });
+
+  describe('listPostReplies', () => {
+    beforeEach(() => {
+      vi.spyOn(service, 'refreshToken').mockResolvedValue(
+        makeCredential({
+          accessToken: 'enc-access-token',
+          externalId: 'brand-user-id',
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+      );
+    });
+
+    it('maps inbound replies and drops the connected account', async () => {
+      mockV2Get.mockResolvedValue({
+        data: [
+          {
+            author_id: '2244994945',
+            created_at: '2026-08-01T10:10:00.000Z',
+            id: '1980000000000000101',
+            referenced_tweets: [
+              { id: '1970000000000000100', type: 'replied_to' },
+            ],
+            text: 'Shipping this week?',
+          },
+          {
+            author_id: 'brand-user-id',
+            created_at: '2026-08-01T10:11:00.000Z',
+            id: '1980000000000000102',
+            referenced_tweets: [
+              { id: '1970000000000000100', type: 'replied_to' },
+            ],
+            text: 'Thanks — shipping Friday',
+          },
+          {
+            author_id: 'brand-user-id',
+            created_at: '2026-08-01T10:00:00.000Z',
+            id: '1970000000000000100',
+            text: 'Launch tweet',
+          },
+        ],
+        includes: {
+          users: [
+            { id: '2244994945', name: 'Taylor', username: 'taylor' },
+            { id: 'brand-user-id', name: 'Genfeed', username: 'genfeedai' },
+          ],
+        },
+      });
+
+      const result = await service.listPostReplies(
+        'org',
+        'brand',
+        '1970000000000000100',
+        { limit: 25, sinceId: '1970000000000000000' },
+      );
+
+      expect(mockV2Get).toHaveBeenCalledWith(
+        'tweets/search/recent',
+        expect.objectContaining({
+          query: 'conversation_id:1970000000000000100',
+          since_id: '1970000000000000000',
+        }),
+      );
       expect(result).toEqual([
         {
-          conversationId: 'x-dm-thread-1',
-          messages: [
-            {
-              createdAt: new Date('2026-08-01T11:00:00.000Z'),
-              messageId: 'x-dm-1',
-              senderId: '2244994945',
-              senderName: 'Taylor',
-              senderUsername: 'taylor',
-              text: 'Can we chat about pricing?',
-            },
-          ],
-          participantExternalId: '2244994945',
-          participantName: 'Taylor',
-          participantUsername: 'taylor',
+          authorId: '2244994945',
+          authorName: 'Taylor',
+          authorUsername: 'taylor',
+          conversationId: '1970000000000000100',
+          createdAt: new Date('2026-08-01T10:10:00.000Z'),
+          inReplyToId: '1970000000000000100',
+          text: 'Shipping this week?',
+          tweetId: '1980000000000000101',
         },
       ]);
     });

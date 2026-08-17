@@ -97,6 +97,61 @@ export function getMessagesErrorMessage(error: unknown): string {
     : 'Messages could not be loaded.';
 }
 
+export type MessagesSyncJob = {
+  platform: string;
+  run: () => Promise<unknown>;
+};
+
+export type MessagesSyncOutcome = {
+  failedPlatforms: string[];
+  hasSuccess: boolean;
+};
+
+export type MessagesSyncFeedback = {
+  error: string | null;
+  notice: string | null;
+};
+
+export async function settleMessagesSyncJobs(
+  jobs: readonly MessagesSyncJob[],
+): Promise<MessagesSyncOutcome> {
+  const results = await Promise.allSettled(jobs.map((job) => job.run()));
+  const failedPlatforms = jobs.flatMap((job, index) =>
+    results[index]?.status === 'rejected' ? [job.platform] : [],
+  );
+
+  return {
+    failedPlatforms,
+    hasSuccess: failedPlatforms.length < jobs.length,
+  };
+}
+
+export function getMessagesSyncFeedback(params: {
+  failedPlatforms: readonly string[];
+  hasSuccess: boolean;
+  isDirectMessage: boolean;
+}): MessagesSyncFeedback {
+  if (!params.hasSuccess) {
+    return {
+      error: `Sync failed to queue for ${params.failedPlatforms.join(', ')}.`,
+      notice: null,
+    };
+  }
+
+  const started = params.isDirectMessage
+    ? 'Direct message sync started. New threads will appear here once the background job finishes.'
+    : 'Comment sync started. New comments will appear here once the background jobs finish.';
+
+  if (params.failedPlatforms.length === 0) {
+    return { error: null, notice: started };
+  }
+
+  return {
+    error: null,
+    notice: `${started} Partial failure: ${params.failedPlatforms.join(', ')} failed to queue.`,
+  };
+}
+
 export function formatMessageTime(value?: string | null): string {
   if (!value) {
     return 'No activity';
