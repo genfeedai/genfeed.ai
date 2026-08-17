@@ -227,13 +227,18 @@ export class ModelsController extends BaseCRUDController<
 
     // Add organization filtering if organizationId is provided
     if (query.organizationId) {
-      const organizationSettings =
-        await this.getOrganizationSettingsService().findOne({
-          organizationId: query.organizationId,
-        });
+      const organizationSettingsService = this.getOrganizationSettingsService();
+      const organizationSettings = await organizationSettingsService.findOne({
+        organizationId: query.organizationId,
+      });
+      const seededSettings = organizationSettings
+        ? await organizationSettingsService.ensureEnabledModelIds(
+            organizationSettings,
+          )
+        : organizationSettings;
 
       const rawEnabledModelIds = (
-        organizationSettings as Record<string, unknown> | undefined
+        seededSettings as Record<string, unknown> | undefined
       )?.enabledModelIds;
       const enabledModelIds = Array.isArray(rawEnabledModelIds)
         ? rawEnabledModelIds.filter(

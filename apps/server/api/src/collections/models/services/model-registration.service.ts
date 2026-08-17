@@ -36,14 +36,21 @@ export class ModelRegistrationService {
       throw new ForbiddenException('Model not available for this organization');
     }
 
-    // Organization enabled-model allowlist check.
+    // Organization enabled-model allowlist check. Seed an empty allowlist
+    // first (same contract as settings GET) so Demo/legacy orgs are not
+    // enable-none until someone opens Org Settings. A non-empty list is an
+    // explicit choice and ensureEnabledModelIds leaves it untouched.
     const orgSettings = await this.orgSettingsService.findOne({
       organizationId,
     });
+    const ensuredSettings = orgSettings
+      ? await this.orgSettingsService.ensureEnabledModelIds(orgSettings)
+      : orgSettings;
     const enabledModelIds = Array.isArray(
-      (orgSettings as Record<string, unknown> | null)?.enabledModelIds,
+      (ensuredSettings as Record<string, unknown> | null)?.enabledModelIds,
     )
-      ? ((orgSettings as Record<string, unknown>).enabledModelIds as string[])
+      ? ((ensuredSettings as Record<string, unknown>)
+          .enabledModelIds as string[])
       : [];
     const isEnabled = enabledModelIds.includes(model.id);
 

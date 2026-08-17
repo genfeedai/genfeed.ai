@@ -383,12 +383,18 @@ describe('ModelsController', () => {
       const scopedOrganizationId = mockOrgId;
       const foreignOrgId = testId('org', 2);
       const enabledModelId = testId('model');
+      const organizationSettings = {
+        enabledModelIds: [enabledModelId],
+        organizationId: foreignOrgId,
+      };
 
       const moduleRefMock = {
-        findOne: vi.fn().mockResolvedValue({
-          enabledModelIds: [enabledModelId],
-          organizationId: foreignOrgId,
-        }),
+        ensureEnabledModelIds: vi
+          .fn()
+          .mockImplementation((settings: typeof organizationSettings) =>
+            Promise.resolve(settings),
+          ),
+        findOne: vi.fn().mockResolvedValue(organizationSettings),
       };
 
       // Temporarily override getOrganizationSettingsService
@@ -421,6 +427,78 @@ describe('ModelsController', () => {
       expect(queryArg).toMatchObject({
         where: {
           id: { in: [enabledModelId] },
+        },
+      });
+    });
+
+    it('seeds an empty allowlist before filtering by organizationId', async () => {
+      const queryOrganizationId = testId('org', 3);
+      const seededModelId = testId('model', 3);
+      const emptySettings = {
+        enabledModelIds: [],
+        id: testId('setting'),
+        organizationId: queryOrganizationId,
+      };
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn().mockResolvedValue({
+          ...emptySettings,
+          enabledModelIds: [seededModelId],
+        }),
+        findOne: vi.fn().mockResolvedValue(emptySettings),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: queryOrganizationId,
+      });
+
+      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
+        emptySettings,
+      );
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: {
+          id: { in: [seededModelId] },
+        },
+      });
+    });
+
+    it('keeps enable-none when seed still returns an empty allowlist', async () => {
+      const queryOrganizationId = testId('org', 4);
+      const emptySettings = {
+        enabledModelIds: [],
+        id: testId('setting'),
+        organizationId: queryOrganizationId,
+      };
+      const settingsService = {
+        ensureEnabledModelIds: vi.fn().mockResolvedValue(emptySettings),
+        findOne: vi.fn().mockResolvedValue(emptySettings),
+      };
+
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(settingsService);
+
+      modelsService.findAll.mockResolvedValue({ docs: [], totalDocs: 0 });
+
+      await controller.findAll(mockRequest, mockRegularUser, {
+        organizationId: queryOrganizationId,
+      });
+
+      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
+        emptySettings,
+      );
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: {
+          id: { in: [] },
         },
       });
     });
