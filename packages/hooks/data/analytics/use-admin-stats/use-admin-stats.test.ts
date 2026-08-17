@@ -45,7 +45,7 @@ describe('useAdminStats', () => {
     expect(result.current).toHaveProperty('refresh');
   });
 
-  it('returns default stats when data is null', async () => {
+  it('returns null stats when data is missing instead of a zeroed object', async () => {
     mockFindAll.mockResolvedValue(null);
 
     const { result } = renderHook(() => useAdminStats(), {
@@ -56,8 +56,7 @@ describe('useAdminStats', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.stats).toHaveProperty('totalPosts');
-    expect(result.current.stats?.totalPosts).toBe(0);
+    expect(result.current.stats).toBeNull();
   });
 
   it('returns empty arrays for leaderboard and timeseries when null', async () => {

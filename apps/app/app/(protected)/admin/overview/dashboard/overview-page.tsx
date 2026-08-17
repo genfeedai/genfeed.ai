@@ -291,25 +291,25 @@ export default function OverviewPage() {
       icon: Users,
       label: 'Total Users',
       trend: monthlyGrowth > 0 ? 12 : -5,
-      value: formatNumber(stats?.totalUsers || 0),
+      value: stats ? formatNumber(stats.totalUsers) : '—',
     },
     {
       icon: Building2,
       label: 'Organizations',
       trend: monthlyGrowth > 0 ? 8 : -3,
-      value: formatNumber(stats?.totalOrganizations || 0),
+      value: stats ? formatNumber(stats.totalOrganizations) : '—',
     },
     {
       icon: Newspaper,
       label: 'Total Posts',
       trend: monthlyGrowth > 0 ? 24 : monthlyGrowth,
-      value: formatNumber(stats?.totalPosts || 0),
+      value: stats ? formatNumber(stats.totalPosts) : '—',
     },
     {
       icon: CreditCard,
       label: 'Subscriptions',
       trend: monthlyGrowth > 0 ? 15 : -2,
-      value: formatNumber(stats?.totalSubscriptions || 0),
+      value: stats ? formatNumber(stats.totalSubscriptions) : '—',
     },
   ];
 
