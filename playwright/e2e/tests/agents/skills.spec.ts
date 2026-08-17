@@ -39,25 +39,15 @@ test.describe('Agents Skills', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
+    test.skip(
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
+      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
+    );
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 
-    try {
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 5000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
-      return;
-    } catch {
-      // Local keyless dev mode intentionally skips auth enforcement.
-    }
-
-    await expect(unauthenticatedPage).toHaveURL(/\/automate\/skills/);
-    await expect(
-      unauthenticatedPage.getByRole('heading', {
-        name: 'Brand content behavior',
-      }),
-    ).toBeVisible();
+    await unauthenticatedPage.waitForURL(/\/login/, { timeout: 15000 });
+    expect(unauthenticatedPage.url()).toMatch(/\/login/);
   });
 });

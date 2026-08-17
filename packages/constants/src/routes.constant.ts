@@ -122,6 +122,11 @@ export const APP_ROUTES = {
     ROOT: '/automate',
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
+    /**
+     * @deprecated Dead URL. Agent strategies are the generic automation
+     * policies; the shipped desk is AUTOMATE.AUTOPILOT. This alias permanently
+     * redirects there.
+     */
     STRATEGIES: '/automate/strategies',
     /**
      * Agent Programs (budget/quota wrappers around strategies).

@@ -14,7 +14,8 @@ import { brandPath } from '../../utils/app-chrome';
  *
  * Covers: /automate/campaigns (Programs), /automate/campaigns/new,
  *         /messages/outreach, /messages/outreach/new, /automate/runs,
- *         /automate/strategies, /workflows, /workflows/new, /workflows/templates
+ *         /automate/autopilot (legacy /automate/strategies redirects here),
+ *         /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -85,7 +86,7 @@ test.describe('Agents — Sub-Sections', () => {
     ).toBeVisible();
   });
 
-  test('strategies page shows strategy cards', async ({
+  test('retired strategies URL folds into Autopilot', async ({
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
@@ -93,8 +94,10 @@ test.describe('Agents — Sub-Sections', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/automate\/strategies/);
-    await expect(authenticatedPage.getByText(/strateg/i).first()).toBeVisible();
+    await expect(authenticatedPage).toHaveURL(/\/automate\/autopilot/);
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /autopilot/i }).first(),
+    ).toBeVisible();
   });
 
   test('workflows page shows workflow list', async ({ authenticatedPage }) => {
@@ -152,34 +155,31 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
+    test.skip(
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
+      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
+    );
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
-
-    try {
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 5000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
-      return;
-    } catch {
-      // Local keyless dev mode intentionally skips auth enforcement.
-    }
-
-    await expect(unauthenticatedPage).toHaveURL(/automate\/campaigns/);
-    await expect(
-      unauthenticatedPage.getByRole('heading', { name: 'Programs' }),
-    ).toBeVisible();
+    await unauthenticatedPage.waitForURL(/\/login/, {
+      timeout: 15000,
+    });
+    expect(unauthenticatedPage.url()).toMatch(/\/login/);
   });
 
   test('unauthenticated user is redirected from outreach sequence routes', async ({
     unauthenticatedPage,
   }) => {
+    test.skip(
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true',
+      'Mocked app-core builds skip Better Auth in proxy.ts; login redirect is covered by app-authed.',
+    );
     await unauthenticatedPage.goto(APP_ROUTES.MESSAGES.OUTREACH);
 
-    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+    await unauthenticatedPage.waitForURL(/\/login/, {
       timeout: 15000,
     });
-    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    expect(unauthenticatedPage.url()).toMatch(/\/login/);
   });
 });

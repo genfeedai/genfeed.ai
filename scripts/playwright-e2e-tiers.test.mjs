@@ -189,7 +189,7 @@ test('summary records discovered, executed, and quarantined inventory', () => {
   assert.equal(summary.status, 'failed');
 });
 
-test('summary without a Playwright report no longer pretends zero tests ran', () => {
+test('summary without a Playwright report leaves executed as n/a', () => {
   const summary = buildPlaywrightE2eTierSummary({
     plan: {
       discoveredFiles: ['a.spec.ts'],
@@ -200,8 +200,8 @@ test('summary without a Playwright report no longer pretends zero tests ran', ()
     status: 'failed',
   });
 
-  assert.equal(summary.executedFileCount, 0);
-  assert.equal(summary.failedFileCount, 0);
+  assert.equal(summary.executedFileCount, null);
+  assert.equal(summary.failedFileCount, null);
 });
 
 test('summary merges shard JSON reports instead of the first missing report', () => {

@@ -841,6 +841,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       // /automate/analytics permanently redirects to Analytics Overview
       '/:orgSlug/:brandSlug/automate/analytics',
       '/:orgSlug/:brandSlug/automate/autopilot',
+      // /automate/strategies permanently redirects to Autopilot
+      '/:orgSlug/:brandSlug/automate/strategies',
       '/:orgSlug/:brandSlug/automate/runs',
       '/:orgSlug/:brandSlug/automate/skills',
       '/:orgSlug/:brandSlug/automate/campaigns',

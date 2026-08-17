@@ -207,6 +207,9 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
     expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/strategies'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
+    expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({
       mode: 'canvas',
@@ -310,6 +313,9 @@ describe('workspace shell trusted registry', () => {
     // first-class automate family. Compose's `/write` alias retired with it.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
+    ).toMatchObject({ productClass: 'control-plane' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/strategies'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),

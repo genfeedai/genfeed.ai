@@ -325,9 +325,6 @@ export function buildPlaywrightE2eTierSummary({
     if (merged.executed > 0 || reports.length > 0) {
       executedFileCount = merged.executed;
       failedFileCount = merged.failed;
-    } else {
-      executedFileCount = 0;
-      failedFileCount = 0;
     }
   }
 

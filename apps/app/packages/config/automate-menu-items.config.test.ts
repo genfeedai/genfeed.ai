@@ -110,6 +110,8 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     '/automate/new',
     '/automate/workflows/templates',
     '/automate/workflows/new',
+    '/automate/autopilot',
+    '/automate/strategies',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATE_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),
