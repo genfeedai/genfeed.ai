@@ -15,6 +15,7 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
 } from '@genfeedai/constants';
 import { MemberRole } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -163,7 +164,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
             ? {}
             : { defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY }),
         },
-        where: { id: brand.id },
+        where: scopedWhere(organizationId, { id: brand.id }),
       });
     }
   }

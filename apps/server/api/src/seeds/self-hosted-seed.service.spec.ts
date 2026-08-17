@@ -164,7 +164,11 @@ describe('SelfHostedSeedService', () => {
         defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
         defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
       },
-      where: { id: 'brand_default' },
+      where: {
+        id: 'brand_default',
+        isDeleted: false,
+        organizationId,
+      },
     });
   });
 
