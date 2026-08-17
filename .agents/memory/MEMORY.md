@@ -21,6 +21,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
 - [claim_work_before_starting](claim_work_before_starting.md) — search open PRs before branching or spawning a fix; push early to claim
+- [feedback_pr_closes_one_issue_per_keyword](feedback_pr_closes_one_issue_per_keyword.md) — one `Closes #N` line per issue; a comma list only auto-closes the first
 - [feedback_no_new_ci_guard_steps](feedback_no_new_ci_guard_steps.md) — no new named CI guard steps; #2946 owns YAML-ratchet cleanup
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [feedback_strategy_lives_in_vault](feedback_strategy_lives_in_vault.md) — competitive strategy lives in private `genfeedai/vault`, not this public repo or board
