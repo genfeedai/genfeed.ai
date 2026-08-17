@@ -3097,14 +3097,6 @@
       "workspace": "api"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/services/content-optimization/content-optimization.service.spec.ts",
-      "fingerprint": "d32b6220af854263f855",
-      "message": "Object literal may only specify known properties, and 'generatePerformanceContext' does not exist in type '{ getWeeklySummary: Mock<Procedure | Constructable>; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "apps/server/api/src/services/content-optimization/content-optimization.service.spec.ts",
