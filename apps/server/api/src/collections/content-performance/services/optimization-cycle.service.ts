@@ -3,7 +3,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
-import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -89,10 +88,7 @@ export interface RankedContentResult {
 
 @Injectable()
 export class OptimizationCycleService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly performanceSummaryService: PerformanceSummaryService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Run a full optimization cycle: analyze past performance, extract patterns,
@@ -120,65 +116,6 @@ export class OptimizationCycleService {
     );
 
     return { cycleStats, nextBatchSuggestions, recommendations, topPatterns };
-  }
-
-  /**
-   * Generate next batch of content prompts biased toward what works.
-   */
-  async generateNextBatchPrompts(
-    organizationId: string,
-    brandId: string,
-    count: number = 5,
-  ): Promise<GenerationSuggestion[]> {
-    const [cycleResult, performanceContext] = await Promise.all([
-      this.runOptimizationCycle(organizationId, brandId),
-      this.performanceSummaryService.generatePerformanceContext(
-        organizationId,
-        brandId,
-      ),
-    ]);
-
-    const { topPatterns, recommendations } = cycleResult;
-
-    const suggestions: GenerationSuggestion[] = [];
-
-    const topHooks = topPatterns.hooks.slice(0, Math.max(count, 3));
-    const bestPlatform = topPatterns.platforms[0]?.platform || 'instagram';
-    const bestHour = topPatterns.postingTimes[0]?.hour ?? 12;
-    const bestContentType = topPatterns.contentTypes[0]?.contentType || 'post';
-
-    const styleRecs = recommendations
-      .filter((r) => r.category === 'style')
-      .map((r) => r.recommendation);
-
-    const timingStr = this.formatHour(bestHour);
-
-    for (let i = 0; i < count; i++) {
-      const hookInsight = topHooks[i % topHooks.length];
-      const hookText = hookInsight?.pattern || '';
-
-      const prompt = [
-        `Create a ${bestContentType} for ${bestPlatform}.`,
-        hookText ? `Use a hook similar to: "${hookText}"` : '',
-        styleRecs.length > 0 ? `Style guidance: ${styleRecs[0]}` : '',
-        `Performance context: ${performanceContext}`,
-        `Optimize for engagement.`,
-      ]
-        .filter(Boolean)
-        .join(' ');
-
-      suggestions.push({
-        confidence: hookInsight
-          ? Math.min(hookInsight.avgEngagementRate / 10, 1)
-          : 0.5,
-        prompt,
-        suggestedHook: hookText,
-        suggestedPlatform: bestPlatform,
-        suggestedPostTime: timingStr,
-      });
-    }
-
-    return suggestions;
   }
 
   /**
