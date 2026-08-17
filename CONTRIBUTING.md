@@ -165,15 +165,15 @@ Keywords: `WHEN` (event), `WHILE` (state), `WHERE` (feature/mode), `IF … THEN`
 (unwanted condition), always followed by `THE SYSTEM SHALL …`. This repository
 is worked by agents as much as by people, and agents need testable requirements
 to act. **You will not be bounced for imperfect syntax** — write your best
-attempt; triage rewrites weak criteria (label `needs-ears`) rather than closing
+attempt; triage rewrites weak criteria (label `needs:ears`) rather than closing
 the issue.
 
 **What happens next (triage, within 7 days):**
 
-- The issue opens with `needs-triage`. The maintainer or a triage agent confirms
+- The issue opens with `needs:triage`. The maintainer or a triage agent confirms
   or rewrites the acceptance criteria, applies labels, and places it on
   [Project #12](https://github.com/orgs/genfeedai/projects/12).
-- Public labels you may see: `needs-triage`, `needs-ears`, `needs-info`,
+- Public labels you may see: `needs:triage`, `needs:ears`, `needs:info`,
   `good first issue`, `help wanted`, plus the type label. **Priority is a project
   field, never a label.**
 - Labels prefixed `shipcode:` are internal automation state. They are visible

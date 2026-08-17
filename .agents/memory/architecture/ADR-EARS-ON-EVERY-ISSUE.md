@@ -8,7 +8,7 @@ Accepted · 2026-08-16
 
 Every issue form (bug, feature, task) requires EARS acceptance criteria
 (`WHEN/WHILE/WHERE/IF … THE SYSTEM SHALL …`) as a required field. Enforcement is
-**rewrite, not bounce**: triage labels weak criteria `needs-ears` and an agent (or the
+**rewrite, not bounce**: triage labels weak criteria `needs:ears` and an agent (or the
 maintainer) rewrites them; an issue is never closed for syntax.
 
 ## Trade-off
