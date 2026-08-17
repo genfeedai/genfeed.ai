@@ -895,8 +895,15 @@ Return ONLY valid JSON.`;
     payload: OptimizationSuggestionPayload,
     key: 'preferredTime' | 'preferredFormat' | 'hook',
   ): string | null {
-    const record = payload as Record<string, unknown>;
-    const value = record[key];
+    const value =
+      key === 'preferredTime' && 'preferredTime' in payload
+        ? payload.preferredTime
+        : key === 'preferredFormat' && 'preferredFormat' in payload
+          ? payload.preferredFormat
+          : key === 'hook' && 'hook' in payload
+            ? payload.hook
+            : null;
+
     return typeof value === 'string' && value.trim().length > 0
       ? value.trim()
       : null;
