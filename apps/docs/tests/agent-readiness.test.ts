@@ -4,6 +4,10 @@ import { GET as getRobots } from '../app/robots.txt/route';
 import config from '../next.config.mjs';
 
 describe('docs agent readiness', () => {
+  it('serves pre-optimized CDN images without Vercel transformations', () => {
+    expect(config.images?.unoptimized).toBe(true);
+  });
+
   it('advertises its sitemap and markdown index in response headers', async () => {
     const headers = await config.headers?.();
     const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');

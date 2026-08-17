@@ -11,6 +11,10 @@ const withNextra = nextra({
 
 export default withNextra({
   agentRules: false,
+  images: {
+    // Documentation media is delivered by the existing CDN pipeline.
+    unoptimized: true,
+  },
   headers: async () => [
     {
       headers: [

@@ -58,6 +58,10 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       ],
     },
     images: {
+      // Media is pre-optimized and delivered through the Genfeed CloudFront
+      // estate. Keep Next/Image layout semantics without routing requests
+      // through Vercel Image Optimization and its separate usage billing.
+      unoptimized: true,
       remotePatterns: [
         { hostname: '*.genfeed.ai' },
         // Portless serves ingredients from files.genfeed.localhost. Linked
