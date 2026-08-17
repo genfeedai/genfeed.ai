@@ -255,6 +255,8 @@ that you wrote the change or have the right to submit it under the repository
 licence. Use a real name and a reachable email. The DCO check on the PR fails
 if any commit lacks the trailer; fix it with `git rebase --signoff` (or
 `git commit --amend -s` for the last commit) and force-push your branch.
+Members of the `genfeedai` organization are exempt (`.github/dco.yml`): the
+maintainer already holds the licence, so only inbound contributions certify.
 
 ## Focused verification
 
