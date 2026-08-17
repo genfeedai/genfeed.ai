@@ -149,7 +149,12 @@ export class AgentPrepareToolHandler {
     const clonedVoices = this.voicesService
       ? await this.voicesService.findAll(
           {
-            where: scopedWhere(ctx.organizationId, { isCloned: true }),
+            where: scopedWhere(ctx.organizationId, {
+              OR: [
+                { isCloned: true },
+                { externalVoiceCatalogId: { not: null } },
+              ],
+            }),
             orderBy: { createdAt: -1 },
           },
           {},

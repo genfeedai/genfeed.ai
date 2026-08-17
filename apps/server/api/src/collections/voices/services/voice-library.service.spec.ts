@@ -47,7 +47,6 @@ describe('VoiceLibraryService', () => {
             },
           ],
           OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
-          brandId,
           category: 'VOICE',
           isDeleted: false,
           isVoiceActive: { not: false },
@@ -66,7 +65,8 @@ describe('VoiceLibraryService', () => {
     } as unknown as VoicesQueryDto);
 
     const query = voicesService.findAll.mock.calls[0]?.[0];
-    expect(query.where).toMatchObject({ brandId, organizationId });
+    expect(query.where).toMatchObject({ organizationId });
+    expect(query.where).not.toHaveProperty('brandId');
   });
 
   it('scopes cloned voices by organizationId', async () => {
