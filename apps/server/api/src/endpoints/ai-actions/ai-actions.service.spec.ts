@@ -13,6 +13,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AiActionsService', () => {
   let service: AiActionsService;
+  let contextAssemblyService: vi.Mocked<AgentContextAssemblyService>;
   let openRouterService: vi.Mocked<OpenRouterService>;
   let byokService: vi.Mocked<ByokService>;
   let loggerService: vi.Mocked<LoggerService>;
@@ -51,6 +52,7 @@ describe('AiActionsService', () => {
     }).compile();
 
     service = module.get<AiActionsService>(AiActionsService);
+    contextAssemblyService = module.get(AgentContextAssemblyService);
     openRouterService = module.get(OpenRouterService);
     byokService = module.get(ByokService);
     loggerService = module.get(LoggerService);
@@ -73,6 +75,39 @@ describe('AiActionsService', () => {
       await expect(service.execute('org_123', dto)).rejects.toThrow(
         'Unknown action type: unknown_action',
       );
+    });
+
+    it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.REWRITE,
+        content: 'Test content',
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(null);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Result' } }],
+        usage: { total_tokens: 50 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      // ai-actions is a single-turn helper with no thread history or
+      // memories, so it has the most budget headroom of any
+      // AgentContextAssemblyService caller — worth enabling recentPosts too,
+      // since most actions operate on content the brand is about to
+      // publish. ragContext stays off: no `query` is threaded through this
+      // call (dto.content is the artifact being transformed, not a
+      // retrieval query).
+      expect(contextAssemblyService.assembleContext).toHaveBeenCalledWith({
+        layers: {
+          brandGuidance: true,
+          brandIdentity: true,
+          brandMemory: true,
+          performancePatterns: true,
+          recentPosts: true,
+        },
+        organizationId: 'org_123',
+      });
     });
 
     it('should execute action without BYOK successfully', async () => {

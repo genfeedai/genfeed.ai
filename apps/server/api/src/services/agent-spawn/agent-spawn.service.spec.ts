@@ -106,6 +106,69 @@ describe('AgentSpawnService', () => {
     });
   });
 
+  it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
+    const chat = vi.fn().mockResolvedValue({
+      creditsUsed: 0,
+      message: {
+        content: 'done',
+        metadata: {},
+        role: 'assistant',
+      },
+      threadId: 'thread-123',
+      toolCalls: [],
+    });
+    const assembleContext = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      brandName: 'Brand',
+      layersUsed: ['brandIdentity'],
+    });
+
+    const service = new AgentSpawnService(
+      { log: vi.fn() } as unknown as LoggerService,
+      {
+        assembleContext,
+        buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
+      } as unknown as AgentContextAssemblyService,
+      {
+        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+      } as never,
+      { get: vi.fn() } as never,
+    );
+
+    (
+      service as unknown as {
+        orchestratorService: { chat: typeof chat };
+      }
+    ).orchestratorService = { chat };
+
+    await service.spawnSubAgent({
+      agentType: AgentType.X_CONTENT,
+      credentialId: 'credential-1',
+      parentContext: {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      task: 'Draft an X thread',
+    });
+
+    // Every spawned sub-agent type is a content-creation specialist, so it
+    // should never be feedback-blind: brandMemory + performancePatterns are
+    // on, and recentPosts is on to avoid repeating what the brand just
+    // shipped. ragContext stays off because this call site never threads a
+    // `query`, which would make the flag an inert no-op.
+    expect(assembleContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        layers: {
+          brandGuidance: true,
+          brandIdentity: true,
+          brandMemory: true,
+          performancePatterns: true,
+          recentPosts: true,
+        },
+      }),
+    );
+  });
+
   it('uses the brand default model when the brand context provides one', async () => {
     const chat = vi.fn().mockResolvedValue({
       creditsUsed: 0,
