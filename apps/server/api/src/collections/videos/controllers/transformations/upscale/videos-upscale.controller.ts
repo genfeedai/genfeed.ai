@@ -118,8 +118,6 @@ export class VideosUpscaleController {
       'videos',
     );
     // Hard-cap to a predictable cost tier (1080p @ 30fps) until dynamic pricing is added.
-    // const targetFps = videoEditDto.targetFps || 60;
-    // const targetResolution = videoEditDto.targetResolution || '4k';
     const targetFps = 30;
     const targetResolution = '1080p';
 

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-// Mock the component - adjust import path as needed
-// import ModalWatchlist from '@ui/modals/ModalWatchlist';
-
 describe('ModalWatchlist', () => {
   describe('rendering', () => {
     it('renders modal when open', () => {

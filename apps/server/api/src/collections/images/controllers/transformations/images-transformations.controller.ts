@@ -454,7 +454,6 @@ export class ImagesTransformationsController {
       );
     }
 
-    // const parentMetadata = parent.metadata  as Metadata;
     const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
 
     // Model selection: user-provided > system default

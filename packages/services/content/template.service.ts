@@ -42,14 +42,6 @@ export class TemplateService extends BaseService<IContentTemplate> {
           params.category = filter.category.join(',');
         }
 
-        // if (filter.industry?.length) {
-        //   params.industry = filter.industry.join(',');
-        // }
-
-        // if (filter.type?.length) {
-        //   params.type = filter.type.join(',');
-        // }
-
         if (filter.difficulty?.length) {
           params.difficulty = filter.difficulty.join(',');
         }

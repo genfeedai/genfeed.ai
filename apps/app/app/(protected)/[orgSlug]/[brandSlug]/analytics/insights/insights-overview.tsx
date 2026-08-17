@@ -76,13 +76,11 @@ const InsightsOverview = memo(function InsightsOverview({
   );
 
   const handleAnomalyDismiss = useCallback((_anomalyId: string) => {
-    // For now, just log - in production this would call an API
-    // logger.info('Anomaly dismissed', { id });
+    // No-op until the anomaly dismiss API exists.
   }, []);
 
   const handleSuggestionApply = useCallback((_suggestionId: string) => {
-    // For now, just log - in production this would trigger content creation
-    // logger.info('Suggestion applied', { id });
+    // No-op until suggestion apply triggers content creation.
   }, []);
 
   const [activeInsightAction, setActiveInsightAction] = useState<string | null>(
