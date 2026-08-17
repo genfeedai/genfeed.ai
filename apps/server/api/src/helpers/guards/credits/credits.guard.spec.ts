@@ -160,6 +160,43 @@ describe('CreditsGuard', () => {
     setRuntimeMarginMultiplier(1);
   });
 
+  it('stamps the pricing audit metadata onto creditsConfig for resolved models', async () => {
+    const { setRuntimeMarginMultiplier } = await import('@genfeedai/pricing');
+    setRuntimeMarginMultiplier(1.2);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({
+      cost: 999,
+      key: 'priced-model',
+      pricingType: 'flat',
+      providerCostUsd: 0.15,
+    });
+
+    const ctx = createContext({ model: 'priced-model' });
+    await guard.canActivate(ctx);
+
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(req.creditsConfig).toMatchObject({
+      pricingMetadata: {
+        marginMultiplier: 1.2,
+        pricingType: 'flat',
+        providerCostUsd: 0.15,
+      },
+    });
+
+    setRuntimeMarginMultiplier(1);
+  });
+
+  it('omits pricing audit metadata when no model row was resolved', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 10 });
+    const ctx = createContext();
+    await guard.canActivate(ctx);
+
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(
+      (req.creditsConfig as Record<string, unknown>).pricingMetadata,
+    ).toBeUndefined();
+  });
+
   it('scales providerCostUsd by duration for per-second video models', async () => {
     const { applyMargin, setRuntimeMarginMultiplier } = await import(
       '@genfeedai/pricing'

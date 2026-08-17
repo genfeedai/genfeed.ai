@@ -164,6 +164,51 @@ describe('CreditsInterceptor', () => {
       });
     });
 
+    it('should forward the pricing audit stamp as deduction metadata', async () => {
+      mockRequest.creditsConfig = {
+        amount: 120,
+        description: 'Video generation',
+        pricingMetadata: {
+          marginMultiplier: 1.2,
+          pricingType: 'per-second',
+          providerCostUsd: 0.24,
+        },
+        source: ActivitySource.SCRIPT,
+      } as CreditsConfig;
+      mockRequest.user = {
+        id: 'user_123',
+        organizationId: '507f1f77bcf86cd799439013',
+        userId: '507f1f77bcf86cd799439012',
+      };
+
+      const result = interceptor.intercept(mockContext, mockHandler);
+
+      await new Promise<void>((resolve) => {
+        result.subscribe({
+          next: () => {
+            setTimeout(() => {
+              expect(
+                creditDeductionQueueService.queueDeduction,
+              ).toHaveBeenCalledWith({
+                amount: 120,
+                description: 'Video generation',
+                metadata: {
+                  marginMultiplier: 1.2,
+                  pricingType: 'per-second',
+                  providerCostUsd: 0.24,
+                },
+                organizationId: '507f1f77bcf86cd799439013',
+                source: ActivitySource.SCRIPT,
+                type: 'deduct-credits',
+                userId: '507f1f77bcf86cd799439012',
+              });
+              resolve();
+            }, 10);
+          },
+        });
+      });
+    });
+
     it('should queue BYOK usage when isByokBypass is true', async () => {
       mockRequest.creditsConfig = {
         amount: 5,

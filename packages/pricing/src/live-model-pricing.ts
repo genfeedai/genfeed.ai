@@ -1,6 +1,7 @@
 import { PricingType } from '@genfeedai/enums';
+import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
 
-import { applyMargin } from './plans-pricing';
+import { applyMargin, getRuntimeMarginMultiplier } from './plans-pricing';
 
 /**
  * Fields needed to compute customer-facing credits from raw provider USD.
@@ -147,6 +148,24 @@ export function resolveLiveModelCreditPricing(
     cost: unitCredits,
     costPerUnit: null,
     minCost: unitCredits,
+  };
+}
+
+/**
+ * Audit stamp for a charge priced against this model: the margin multiplier in
+ * force right now plus the model's provider-cost inputs. Callers attach it to
+ * the credit transaction so the charge stays reconstructable after margin or
+ * provider-cost changes.
+ */
+export function buildPricingAuditStamp(
+  model: Pick<ModelLivePricingInput, 'pricingType' | 'providerCostUsd'>,
+): CreditsPricingMetadata {
+  return {
+    marginMultiplier: getRuntimeMarginMultiplier(),
+    pricingType: model.pricingType ?? null,
+    providerCostUsd: hasProviderCostUsd(model.providerCostUsd)
+      ? model.providerCostUsd
+      : null,
   };
 }
 

@@ -1,4 +1,5 @@
 import { PricingType } from '@genfeedai/enums';
+import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
 
 export const FALLBACK_GENERATION_CREDIT_COST = 5;
 export const DEFAULT_GENERATION_WIDTH = 1920;
@@ -15,6 +16,7 @@ export type DeferredCreditsConfig = {
   amount?: number;
   deferred?: boolean;
   modelKey?: string;
+  pricingMetadata?: CreditsPricingMetadata;
 };
 
 export type DeferredCreditsRequest = {
@@ -31,12 +33,14 @@ export function commitDeferredCredits(
   request: DeferredCreditsRequest,
   amount: number,
   modelKey: string,
+  pricingMetadata?: CreditsPricingMetadata,
 ): void {
   request.creditsConfig = {
     ...request.creditsConfig,
     amount,
     deferred: false,
     modelKey,
+    ...(pricingMetadata ? { pricingMetadata } : {}),
   };
 }
 

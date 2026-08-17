@@ -2,6 +2,7 @@ import { PricingType } from '@genfeedai/enums';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   billCreditsFromProviderCost,
+  buildPricingAuditStamp,
   resolveLiveModelCreditPricing,
   resolveProviderCostUnits,
   withLiveModelCreditPricing,
@@ -75,6 +76,32 @@ describe('live model credit pricing', () => {
     ).toBe(12);
     expect(resolveProviderCostUnits(PricingType.PER_SECOND, 5)).toBe(5);
     expect(resolveProviderCostUnits(PricingType.FLAT)).toBe(1);
+  });
+
+  it('buildPricingAuditStamp captures the runtime margin and model inputs', () => {
+    setRuntimeMarginMultiplier(1.4);
+    expect(
+      buildPricingAuditStamp({
+        pricingType: PricingType.PER_SECOND,
+        providerCostUsd: 0.24,
+      }),
+    ).toEqual({
+      marginMultiplier: 1.4,
+      pricingType: PricingType.PER_SECOND,
+      providerCostUsd: 0.24,
+    });
+  });
+
+  it('buildPricingAuditStamp nulls legacy-priced models', () => {
+    setRuntimeMarginMultiplier(1);
+    expect(buildPricingAuditStamp({})).toEqual({
+      marginMultiplier: 1,
+      pricingType: null,
+      providerCostUsd: null,
+    });
+    expect(
+      buildPricingAuditStamp({ providerCostUsd: 0 }).providerCostUsd,
+    ).toBeNull();
   });
 
   it('withLiveModelCreditPricing projects fields without dropping others', () => {
