@@ -7,6 +7,7 @@ import type {
   ContentCalendarProps,
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import type {
   CalendarOptions,
   DatesSetInfo,
@@ -71,8 +72,10 @@ function isSameDateRange(
   );
 }
 
-function FullCalendarHost({ options }: FullCalendarHostProps) {
-  const [loadError, setLoadError] = useState<Error | null>(null);
+function FullCalendarMount({
+  onError,
+  options,
+}: FullCalendarHostProps & { onError: (error: Error) => void }) {
   const calendarRef = useRef<FullCalendarInstance | null>(null);
   const elementRef = useRef<HTMLDivElement | null>(null);
 
@@ -85,8 +88,6 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
       if (!elementRef.current || signal.aborted) {
         return;
       }
-
-      setLoadError(null);
 
       try {
         const [
@@ -125,7 +126,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
         if (signal.aborted) {
           return;
         }
-        setLoadError(
+        onError(
           error instanceof Error
             ? error
             : new Error('Unable to load FullCalendar component'),
@@ -142,13 +143,36 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
         calendarRef.current = null;
       }
     };
-  }, [options]);
-
-  if (loadError) {
-    throw loadError;
-  }
+  }, [onError, options]);
 
   return <div ref={elementRef} />;
+}
+
+function FullCalendarHost({ options }: FullCalendarHostProps) {
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  if (loadError) {
+    return (
+      <ErrorFallback
+        description="The schedule grid could not start. Try again, or open the list view."
+        error={loadError}
+        resetErrorBoundary={() => {
+          setLoadError(null);
+          setRetryCount((count) => count + 1);
+        }}
+        title="Calendar failed to load"
+      />
+    );
+  }
+
+  return (
+    <FullCalendarMount
+      key={retryCount}
+      onError={setLoadError}
+      options={options}
+    />
+  );
 }
 
 export default function ContentCalendar<T extends CalendarItem>({

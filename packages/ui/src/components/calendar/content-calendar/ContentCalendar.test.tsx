@@ -1,5 +1,6 @@
 import type { CalendarItem } from '@genfeedai/props/components/calendar.props';
-import { act, render, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,12 +14,16 @@ const calendarMocks = vi.hoisted(() => {
 
   let importBarrier: Promise<void> | null = null;
   let releaseImportBarrier: (() => void) | null = null;
+  let shouldThrowOnConstruct = false;
 
   class MockCalendar {
     destroy = vi.fn();
     options: CalendarOptions;
 
     constructor(_element: HTMLElement, options: CalendarOptions) {
+      if (shouldThrowOnConstruct) {
+        throw new Error('Unable to load FullCalendar component');
+      }
       this.options = options;
       instances.push(this);
     }
@@ -66,7 +71,13 @@ const calendarMocks = vi.hoisted(() => {
         await importBarrier;
       }
     },
+    failNextConstruct() {
+      shouldThrowOnConstruct = true;
+    },
     instances,
+    resetConstructFailure() {
+      shouldThrowOnConstruct = false;
+    },
   };
 });
 
@@ -115,6 +126,7 @@ vi.mock('fullcalendar/themes/classic', async () => {
 describe('ContentCalendar', () => {
   beforeEach(() => {
     calendarMocks.instances.length = 0;
+    calendarMocks.resetConstructFailure();
   });
 
   // Must run first while fullcalendar mocks are still cold so the import gate can delay.
@@ -543,6 +555,28 @@ describe('ContentCalendar', () => {
     expect(
       expectDomNode(content).querySelector('.gen-calendar-event-time'),
     ).toBeNull();
+  });
+
+  it('renders an inline error instead of throwing when FullCalendar fails to start', async () => {
+    calendarMocks.failNextConstruct();
+
+    render(
+      <ContentCalendar
+        items={[makeItem()]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Calendar failed to load' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/the schedule grid could not start/i),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
+    expect(calendarMocks.instances).toHaveLength(0);
   });
 
   it('falls back to default rendering when an item has no badge', async () => {
