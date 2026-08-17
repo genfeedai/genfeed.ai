@@ -415,9 +415,9 @@ describe('ModelsController', () => {
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
-      const query: ModelsQueryDto = {
+      const query = {
         organizationId: foreignOrgId.toString(),
-      };
+      } as ModelsQueryDto;
 
       await controller.findAll(mockRequest, mockRegularUser, query);
 
@@ -463,7 +463,7 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: mockOrgId,
-      });
+      } as ModelsQueryDto);
 
       expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
         emptySettings,
@@ -496,7 +496,7 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: mockOrgId,
-      });
+      } as ModelsQueryDto);
 
       expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
         emptySettings,
@@ -525,7 +525,7 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, {
         organizationId: foreignOrgId,
-      });
+      } as ModelsQueryDto);
 
       expect(settingsService.findOne).not.toHaveBeenCalled();
       expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
