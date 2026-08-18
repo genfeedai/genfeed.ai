@@ -5,7 +5,7 @@ dependency management, and workflow execution tracking.
  */
 
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -50,7 +50,7 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -70,7 +70,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes
@@ -91,7 +91,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowService,
     WorkflowStepRunnerService,
     SystemWorkflowCatalogService,
-    WorkflowsService,
+    WorkflowsCoreModule,
     WorkflowRunControlService,
     WorkflowSchedulerService,
     WorkflowTemplateSeederService,
@@ -104,38 +104,39 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowGenerationService,
   ],
   imports: [
-    forwardRef(() => AgentThreadsModule),
-    forwardRef(() => BrandsModule),
+    WorkflowsCoreModule,
+    AgentThreadsModule,
+    BrandsCoreModule,
     CaptionsModule,
-    forwardRef(() => ContentPerformanceModule),
+    ContentPerformanceModule,
     CredentialsCoreModule,
     CreditsModule,
     ElevenLabsModule,
     HeyGenModule,
     IngredientsModule,
-    forwardRef(() => InstagramModule),
-    forwardRef(() => MarketplaceIntegrationModule),
+    InstagramModule,
+    MarketplaceIntegrationModule,
     MetadataModule,
-    forwardRef(() => MusicsModule),
-    forwardRef(() => NewslettersModule),
+    MusicsModule,
+    NewslettersModule,
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
-    forwardRef(() => PostsModule),
-    forwardRef(() => ReplyBotConfigsModule),
-    forwardRef(() => ReplyBotModule),
-    forwardRef(() => SocialInboxModule),
+    PostsModule,
+    ReplyBotConfigsModule,
+    ReplyBotModule,
+    SocialInboxModule,
     SourcePostsModule,
     SharedModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
     HttpModule,
-    forwardRef(() => TwitterModule),
-    forwardRef(() => YoutubeModule),
-    forwardRef(() => VideoGenerationModule),
-    forwardRef(() => VideosModule),
+    TwitterModule,
+    YoutubeModule,
+    VideoGenerationModule,
+    VideosModule,
     WhisperModule,
-    forwardRef(() => WorkflowExecutionsModule),
-    forwardRef(() => WorkflowExecutorModule),
+    WorkflowExecutionsModule,
+    WorkflowExecutorModule,
 
     BullModule.registerQueue({
       defaultJobOptions: {
@@ -179,7 +180,6 @@ import { forwardRef, Module } from '@nestjs/common';
     SystemWorkflowCatalogService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
-    WorkflowsService,
   ],
 })
 export class WorkflowsModule {}

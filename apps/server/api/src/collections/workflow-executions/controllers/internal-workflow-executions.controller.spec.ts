@@ -7,6 +7,7 @@ import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -48,8 +49,14 @@ describe('InternalWorkflowExecutionsController', () => {
       controllers: [InternalWorkflowExecutionsController],
       providers: [
         {
-          provide: WorkflowExecutorService,
-          useValue: mockWorkflowExecutorService,
+          provide: ModuleRef,
+          useValue: {
+            get: vi.fn((token: unknown) =>
+              token === WorkflowExecutorService
+                ? mockWorkflowExecutorService
+                : undefined,
+            ),
+          },
         },
         {
           provide: WorkflowExecutionsService,

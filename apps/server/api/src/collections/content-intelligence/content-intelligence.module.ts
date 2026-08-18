@@ -16,13 +16,13 @@ import { PatternStoreService } from '@api/collections/content-intelligence/servi
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
-import { PersonasModule } from '@api/collections/personas/personas.module';
+import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -41,13 +41,13 @@ import { forwardRef, Module } from '@nestjs/common';
     TopPerformerPromptContextService,
   ],
   imports: [
-    forwardRef(() => AgentContextAssemblyModule),
+    AgentContextAssemblyModule,
     ApifyModule,
-    forwardRef(() => ContentPerformanceModule),
+    ContentPerformanceModule,
     ContentHarnessModule,
     HttpModule,
     OpenRouterModule,
-    forwardRef(() => PersonasModule),
+    PersonasCoreModule,
   ],
   providers: [
     ContentGeneratorService,

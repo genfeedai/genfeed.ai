@@ -4,7 +4,7 @@
 mood-based music selection, and audio file storage.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -25,7 +25,7 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -36,7 +36,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [MusicsService],
   imports: [
     ActivitiesModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     FailedGenerationModule,
@@ -46,7 +46,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelsModule,
     OrganizationSettingsModule,
     PromptBuilderModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
     ReplicateModule,
     RouterModule,
     IngredientCompletionModule,

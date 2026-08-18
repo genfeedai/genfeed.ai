@@ -2,7 +2,7 @@ import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-cam
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
+import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
@@ -10,16 +10,16 @@ import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
-import { ImagesModule } from '@api/collections/images/images.module';
+import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
@@ -84,7 +84,7 @@ import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrato
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
-import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
@@ -94,62 +94,62 @@ import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.mo
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
   exports: [AgentOrchestratorService],
   imports: [
-    forwardRef(() => AgentCampaignsModule),
-    forwardRef(() => AgentGoalsModule),
-    forwardRef(() => AgentStrategiesModule),
-    forwardRef(() => AgentContextAssemblyModule),
-    forwardRef(() => AgentThreadsModule),
+    AgentCampaignsModule,
+    AgentGoalsModule,
+    AgentStrategiesModule,
+    AgentContextAssemblyModule,
+    AgentThreadsModule,
     AgentMemoriesModule,
     AgentMessageBusModule,
     AgentMessagesModule,
-    forwardRef(() => AgentThreadingModule),
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => AiActionsModule),
+    AgentThreadingCoreModule,
+    AgentRunsCoreModule,
+    AiActionsModule,
     AdsResearchModule,
-    forwardRef(() => AgentStreamPublisherModule),
-    forwardRef(() => AnalyticsModule),
-    forwardRef(() => ArticlesModule),
-    forwardRef(() => BatchGenerationModule),
+    AgentStreamPublisherModule,
+    AnalyticsModule,
+    ArticlesModule,
+    BatchGenerationModule,
     BrandInterviewModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     BotsModule,
-    forwardRef(() => OutreachCampaignsModule),
+    OutreachCampaignsModule,
     ConfigModule,
-    forwardRef(() => ContentIntelligenceModule),
-    forwardRef(() => ContentQualityModule),
+    ContentIntelligenceModule,
+    ContentQualityModule,
     CredentialsCoreModule,
     CreditsModule,
     DashboardLayoutsModule,
     HttpModule,
-    forwardRef(() => ImagesModule),
+    ImagesCoreModule,
     IngredientsModule,
     InstagramInspirationModule,
     LoggerModule,
     LlmDispatcherModule,
-    forwardRef(() => MarketplaceIntegrationModule),
+    MarketplaceIntegrationModule,
     OrganizationSettingsModule,
-    forwardRef(() => OrganizationsModule),
+    OrganizationsCoreModule,
     PostGroupsModule,
-    forwardRef(() => PostsModule),
+    PostsModule,
     QueuesModule,
     SettingsModule,
-    forwardRef(() => SocialInboxModule),
-    forwardRef(() => TrendsModule),
-    forwardRef(() => UsersModule),
+    SocialInboxModule,
+    TrendsModule,
+    UsersModule,
     VoicesModule,
     VotesModule,
-    forwardRef(() => WorkflowExecutionsModule),
-    forwardRef(() => WorkflowsModule),
-    forwardRef(() => AgentSpawnModule),
+    WorkflowExecutionsModule,
+    WorkflowsModule,
+    AgentSpawnModule,
     AgentChatModelRegistryModule,
     SeoModule,
-    forwardRef(() => SkillRuntimeModule),
+    SkillRuntimeModule,
   ],
   providers: [
     AgentCompletionCardBuilderService,

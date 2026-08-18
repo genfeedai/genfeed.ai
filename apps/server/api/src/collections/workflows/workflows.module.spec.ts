@@ -1,7 +1,23 @@
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
 
-describe('WorkflowsModule', () => {
-  it('should be defined', () => {
-    expect(WorkflowsModule).toBeDefined();
+const source = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), 'workflows.module.ts'),
+  'utf8',
+);
+
+describe('WorkflowsModule optional executor imports', () => {
+  it('imports fat PostsModule so AnalyticsSyncWorkflowService is constructible', () => {
+    expect(source).toContain("from '@api/collections/posts/posts.module'");
+    expect(source).toContain('PostsModule');
+    expect(source).not.toContain('PostsCoreModule');
+  });
+
+  it('imports fat VideosModule so VideoMusicOrchestrationService is constructible', () => {
+    expect(source).toContain("from '@api/collections/videos/videos.module'");
+    expect(source).toContain('VideosModule');
+    expect(source).not.toContain('VideosCoreModule');
   });
 });

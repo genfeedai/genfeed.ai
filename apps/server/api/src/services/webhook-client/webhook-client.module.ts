@@ -1,5 +1,5 @@
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
@@ -8,7 +8,7 @@ import { WorkflowEventWebhookService } from '@api/services/webhook-client/workfl
 import { WEBHOOK_CLIENT_QUEUE } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 export { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 export { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
@@ -36,7 +36,7 @@ export const WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS = {
   imports: [
     HttpModule,
     OrganizationSettingsModule,
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     BullModule.registerQueue({
       defaultJobOptions: WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS,
       name: WEBHOOK_CLIENT_QUEUE,

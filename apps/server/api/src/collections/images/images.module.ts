@@ -5,18 +5,18 @@ S3 storage, style/mood application, and image processing workflows.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
+import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
-import { ImagesService } from '@api/collections/images/services/images.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
@@ -53,7 +53,7 @@ import { FailedGenerationModule } from '@api/shared/services/failed-generation/f
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -63,9 +63,10 @@ import { forwardRef, Module } from '@nestjs/common';
     ImagesTransformationsController,
     ImagesUploadsController,
   ],
-  exports: [ImagesService],
+  exports: [ImagesCoreModule],
   imports: [
-    forwardRef(() => BrandsModule),
+    ImagesCoreModule,
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     HttpModule,
@@ -74,7 +75,7 @@ import { forwardRef, Module } from '@nestjs/common';
     OrganizationSettingsModule,
 
     ActivitiesModule,
-    forwardRef(() => AssetsModule),
+    AssetsModule,
     ConfigModule,
     ComfyUIModule,
     FailedGenerationModule,
@@ -87,7 +88,7 @@ import { forwardRef, Module } from '@nestjs/common';
     NotificationsModule,
     IngredientCompletionModule,
     PromptBuilderModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
     ReplicateModule,
     RouterModule,
     SolanaModule,
@@ -95,12 +96,11 @@ import { forwardRef, Module } from '@nestjs/common';
     TrainingsModule,
     UploadsModule,
     VotesModule,
-    forwardRef(() => WebhookClientModule),
+    WebhookClientModule,
   ],
   providers: [
     FalImageGenerationProviderAdapter,
     GenfeedAiImageGenerationProviderAdapter,
-    ImagesService,
     ImageGenerationCreditsService,
     ImageGenerationProviderDispatchService,
     ImageGenerationProviderRegistryService,

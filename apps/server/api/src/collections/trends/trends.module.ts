@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -31,7 +31,7 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -46,18 +46,18 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     ApifyModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CacheModule,
     ConfigModule,
     CreditsModule,
     CredentialsCoreModule,
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
+    InstagramModule,
+    LinkedInModule,
     ModelsModule,
     ReplicateModule,
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
+    TiktokModule,
+    TwitterModule,
     XaiModule,
   ],
   providers: [

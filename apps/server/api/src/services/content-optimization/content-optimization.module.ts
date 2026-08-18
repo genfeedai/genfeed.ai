@@ -8,7 +8,7 @@ import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-ll
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentOptimizationController],
@@ -17,9 +17,9 @@ import { forwardRef, Module } from '@nestjs/common';
     ConfigModule,
     LoggerModule,
     BrandMemoryModule,
-    forwardRef(() => ContentPerformanceModule),
+    ContentPerformanceModule,
     OpenAiLlmModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

@@ -1,10 +1,10 @@
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
+import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
-import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * Facade over run create + queue + thread provenance for automation callers
@@ -13,10 +13,10 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [AgentRuntimeService],
   imports: [
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => AgentThreadsModule),
+    AgentRunsCoreModule,
+    AgentThreadsModule,
     QueuesModule,
-    forwardRef(() => AgentThreadingModule),
+    AgentThreadingCoreModule,
     LoggerModule,
   ],
   providers: [AgentRuntimeService],

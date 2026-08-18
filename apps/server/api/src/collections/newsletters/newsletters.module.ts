@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -9,12 +9,12 @@ import {
 } from '@genfeedai/server';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [NewslettersController],
   exports: [NewslettersService],
-  imports: [forwardRef(() => BrandsModule), LoggerModule, OpenRouterModule],
+  imports: [BrandsCoreModule, LoggerModule, OpenRouterModule],
   providers: [
     AgentArtifactReferenceService,
     NewslettersService,

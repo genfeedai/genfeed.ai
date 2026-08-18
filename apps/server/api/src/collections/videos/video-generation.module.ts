@@ -5,7 +5,7 @@
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -15,7 +15,7 @@ import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { VideosModule } from '@api/collections/videos/videos.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
@@ -30,25 +30,25 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AvatarVideoController, BatchInterpolationController],
   exports: [AvatarVideoGenerationService],
   imports: [
     // Core video module for VideosService
-    forwardRef(() => VideosModule),
+    VideosCoreModule,
 
     // Data modules
     ActivitiesModule,
-    forwardRef(() => AssetsModule),
-    forwardRef(() => BrandsModule),
+    AssetsModule,
+    BrandsCoreModule,
     ConfigModule,
     CreditsModule,
     IngredientsModule,
     MetadataModule,
     ModelsModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
 
     // Service modules
     ElevenLabsModule,

@@ -36,8 +36,8 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  Optional,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 const WORKFLOW_CONFIG_FIELDS = [
   'comfyuiTemplate',
@@ -83,18 +83,62 @@ export class WorkflowsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
-    @Optional()
-    private readonly workflowStepRunner?: WorkflowStepRunnerService,
-    @Optional()
-    private readonly workflowExecutorService?: WorkflowExecutorService,
-    @Optional()
-    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
-    @Optional()
-    private readonly marketplaceApiClient?: MarketplaceApiClient,
-    @Optional()
-    private readonly systemWorkflowCatalogService?: SystemWorkflowCatalogService,
+    private readonly moduleRef: ModuleRef,
   ) {
     super(prisma, 'workflow', logger);
+  }
+
+  /**
+   * Fat WorkflowsModule owns step-runner / executor / catalog / marketplace.
+   * Look them up at call time so WorkflowsCore can construct this service
+   * without importing those siblings.
+   */
+  private get workflowStepRunner(): WorkflowStepRunnerService | undefined {
+    try {
+      return this.moduleRef.get(WorkflowStepRunnerService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private get workflowExecutorService(): WorkflowExecutorService | undefined {
+    try {
+      return this.moduleRef.get(WorkflowExecutorService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private get workflowExecutionQueueService():
+    | WorkflowExecutionQueueService
+    | undefined {
+    try {
+      return this.moduleRef.get(WorkflowExecutionQueueService, {
+        strict: false,
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private get marketplaceApiClient(): MarketplaceApiClient | undefined {
+    try {
+      return this.moduleRef.get(MarketplaceApiClient, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private get systemWorkflowCatalogService():
+    | SystemWorkflowCatalogService
+    | undefined {
+    try {
+      return this.moduleRef.get(SystemWorkflowCatalogService, {
+        strict: false,
+      });
+    } catch {
+      return undefined;
+    }
   }
 
   private assertWorkflowMutable(workflow: Pick<WorkflowDocument, 'metadata'>) {

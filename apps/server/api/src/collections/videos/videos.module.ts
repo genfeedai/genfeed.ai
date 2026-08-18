@@ -6,7 +6,7 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -15,7 +15,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
@@ -33,7 +33,7 @@ import { VideoGenerationPreparationService } from '@api/collections/videos/servi
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
@@ -53,7 +53,7 @@ import { WebhookClientModule } from '@api/services/webhook-client/webhook-client
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -67,13 +67,14 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     VideoMusicOrchestrationService,
     VideoProvenanceService,
-    VideosService,
+    VideosCoreModule,
   ],
   imports: [
+    VideosCoreModule,
     ActivitiesModule,
-    forwardRef(() => AssetsModule),
+    AssetsModule,
     BookmarksModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CaptionsModule,
     CreditsModule,
@@ -87,17 +88,17 @@ import { forwardRef, Module } from '@nestjs/common';
     KlingAIModule,
     MetadataModule,
     ModelsModule,
-    forwardRef(() => MusicsModule),
+    MusicsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
     IngredientCompletionModule,
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     PromptBuilderModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
     ReplicateModule,
     RouterModule,
     VotesModule,
-    forwardRef(() => WebhookClientModule),
+    WebhookClientModule,
     WhisperModule,
   ],
   providers: [
@@ -116,7 +117,6 @@ import { forwardRef, Module } from '@nestjs/common';
     VideoGenerationService,
     VideoMusicOrchestrationService,
     VideoProvenanceService,
-    VideosService,
   ],
 })
 export class VideosModule {}

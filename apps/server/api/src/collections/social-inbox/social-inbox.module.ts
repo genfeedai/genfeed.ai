@@ -8,26 +8,26 @@ import { SocialInboxRealtimeService } from '@api/collections/social-inbox/servic
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [SocialInboxController, SocialReplyCampaignController],
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
-    forwardRef(() => InstagramModule),
+    InstagramModule,
     LinkedInModule,
     NotificationsPublisherModule,
     QueuesModule,
     TwitterModule,
-    forwardRef(() => WorkflowsModule),
-    forwardRef(() => YoutubeModule),
+    WorkflowsCoreModule,
+    YoutubeModule,
   ],
   providers: [
     SocialInboxActionService,

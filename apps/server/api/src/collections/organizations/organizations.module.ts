@@ -3,7 +3,7 @@
  * Multi-tenant organization management: org profiles, settings, billing,
 and member access control.
  */
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -14,21 +14,21 @@ import { OrganizationsIntegrationsController } from '@api/collections/organizati
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
-import { UsersModule } from '@api/collections/users/users.module';
-import { VideosModule } from '@api/collections/videos/videos.module';
+import { UsersCoreModule } from '@api/collections/users/users-core.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -38,10 +38,10 @@ import { forwardRef, Module } from '@nestjs/common';
     OrganizationsRelationshipsController,
     OrganizationsSettingsController,
   ],
-  exports: [OrganizationsService],
+  exports: [OrganizationsCoreModule],
   imports: [
-    // Core modules
-    forwardRef(() => BrandsModule),
+    OrganizationsCoreModule,
+    BrandsCoreModule,
     ByokModule,
     CommonModule,
     CredentialsCoreModule,
@@ -52,15 +52,15 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelsModule,
     OrganizationSettingsModule,
     // PostsModule exports AnalyticsAggregationService for org analytics duals
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     RolesModule,
     SettingsModule,
     SubscriptionsModule,
     TagsModule,
-    forwardRef(() => UsersModule),
-    forwardRef(() => VideosModule),
-    forwardRef(() => WebhookClientModule),
+    UsersCoreModule,
+    VideosCoreModule,
+    WebhookClientModule,
   ],
-  providers: [OrganizationsService, MemberCreditsGuard],
+  providers: [MemberCreditsGuard],
 })
 export class OrganizationsModule {}

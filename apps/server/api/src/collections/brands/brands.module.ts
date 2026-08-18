@@ -5,18 +5,12 @@
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
-import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
-import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
-import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
-import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
-import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
@@ -32,13 +26,10 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { CommonModule } from '@api/common/common.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -53,48 +44,37 @@ import { forwardRef, Module } from '@nestjs/common';
   // signup-prefill worker composes the same scrape → analyze → persist
   // primitives as interactive brand setup instead of duplicating the graph.
   exports: [
-    BrandsService,
-    DefaultRecurringContentService,
-    BrandDataMapper,
+    BrandsCoreModule,
     BrandPersistenceService,
     MasterPromptGeneratorService,
   ],
   imports: [
+    BrandsCoreModule,
     CommonModule,
     ActivitiesModule,
-    forwardRef(() => ArticlesModule),
-    BrandScraperModule,
+    ArticlesModule,
     ByokModule,
     CredentialsCoreModule,
     CreditsModule,
-    FilesClientModule,
-    forwardRef(() => ImagesModule),
+    ImagesModule,
     IngredientsModule,
     LinksModule,
-    LlmDispatcherModule,
     ModelsModule,
-    forwardRef(() => MusicsModule),
+    MusicsModule,
     OrganizationSettingsModule,
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PostsModule),
+    OrganizationsModule,
+    PostsModule,
     ReplicateModule,
-    forwardRef(() => VideosModule),
-    forwardRef(() => WorkflowsModule),
+    VideosModule,
+    WorkflowsModule,
   ],
   providers: [
-    BrandsService,
-    DefaultRecurringContentService,
     // Brand-setup orchestration (scrape → analyze → guidance → slug sync),
     // dissolved out of OnboardingModule per REST audit #1354 so the brand write
     // routes no longer round-trip back through OnboardingService and close an
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
-    BrandGenerationService,
-    BrandKitAssetsService,
-    BrandKitDraftService,
     BrandPersistenceService,
-    BrandRelocationService,
-    BrandDataMapper,
     MasterPromptGeneratorService,
     CreditsGuard,
     CreditsInterceptor,
