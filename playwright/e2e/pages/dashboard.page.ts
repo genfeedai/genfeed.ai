@@ -3,6 +3,11 @@ import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { E2E_BRAND_BASE, sidebarLocator } from '../utils/app-chrome';
 
+/** Singular workspace activity route (`APP_ROUTES.WORKSPACE.ACTIVITY`). */
+export const ACTIVITY_URL = new RegExp(
+  `${APP_ROUTES.WORKSPACE.ACTIVITY.replaceAll('/', '\\/')}(?:[/?#]|$)`,
+);
+
 /**
  * Page Object Model for the Dashboard/Overview Page
  *
@@ -279,7 +284,7 @@ export class DashboardPage {
     await this.#gotoOrClick(
       this.navActivities,
       APP_ROUTES.WORKSPACE.ACTIVITY,
-      /activit/,
+      ACTIVITY_URL,
     );
   }
 
@@ -422,11 +427,10 @@ export class DashboardPage {
   }
 
   async assertNavigationWorks(): Promise<void> {
-    // Test that we can navigate away and back
     const currentUrl = this.page.url();
 
     await this.navigateToActivities();
-    await expect(this.page).toHaveURL(/activities/);
+    await expect(this.page).toHaveURL(ACTIVITY_URL);
 
     await this.page.goto(currentUrl);
     await expect(this.page).toHaveURL(currentUrl);

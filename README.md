@@ -161,8 +161,8 @@ bun run dev:debug:app              # → http://genfeed.localhost:3000
 
 That is the contributor dev path (fixed ports, no admin rights). Everything
 else — issue forms and **EARS** criteria, the PR contract (squash +
-conventional title + linked issue), the one-time **CLA**, agent-authored PR
-disclosure, and focused verification — is in
+conventional title + linked issue), the **CLA** (once per GitHub account per
+CLA version), agent-authored PR disclosure, and focused verification — is in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Governance is one maintainer plus an AI review pipeline:
@@ -174,8 +174,9 @@ Security reports follow [SECURITY.md](SECURITY.md), never a public issue.
 - Code: [GNU Affero General Public License v3.0 or later](LICENSE) — the whole
   repository
 - Contributions: [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement)
-  (FSFE FLA 2.1: [ICLA.md](ICLA.md) / [CCLA.md](CCLA.md)), signed once via CLA
-  Assistant
+  (FSFE FLA 2.1: [ICLA.md](ICLA.md) / [CCLA.md](CCLA.md)), signed once per
+  GitHub account per CLA version via CLA Assistant. A newer CLA version applies
+  to future contributions; prior contributions keep prior rights.
 - Name and logo: [TRADEMARK.md](TRADEMARK.md) — the licence covers the code,
   not the brand
 

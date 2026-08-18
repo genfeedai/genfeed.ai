@@ -1620,7 +1620,8 @@ export async function setupApiMocks(
 
   await routeApi('/images/**', handleImageRoutes);
 
-  await routeApi('/musics/**', handleMusicRoutes);
+  // Collection-root `GET /musics?...` does not match `/musics/**`.
+  await routeApi('/musics**', handleMusicRoutes);
 
   await routeApi('/avatars/**', handleAvatarRoutes);
 

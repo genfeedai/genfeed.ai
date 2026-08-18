@@ -7,10 +7,17 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import { OpenRouterService } from './openrouter.service';
 
-const makeAxiosResponse = <T>(data: T) => ({ data });
+const makeAxiosResponse = <T>(data: T): AxiosResponse<T> => ({
+  config: {} as AxiosResponse<T>['config'],
+  data,
+  headers: {},
+  status: 200,
+  statusText: 'OK',
+});
 
 describe('OpenRouterService', () => {
   let service: OpenRouterService;
@@ -21,6 +28,7 @@ describe('OpenRouterService', () => {
   const defaultParams: OpenRouterChatCompletionParams = {
     messages: [{ content: 'Hello', role: 'user' }],
     model: 'anthropic/claude-sonnet-5',
+    provider: { data_collection: 'deny', zdr: true },
   };
 
   const mockResponse: OpenRouterChatCompletionResponse = {
@@ -103,6 +111,46 @@ describe('OpenRouterService', () => {
 
       const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
       expect(body.stream).toBe(false);
+    });
+
+    it('posts OpenRouter zdr and deny data_collection on first-party requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection when a BYOK key is supplied', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams, 'override-key');
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('overwrites weaker caller provider prefs with the first-party policy', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      const params: OpenRouterChatCompletionParams = {
+        ...defaultParams,
+        provider: { data_collection: 'allow', zdr: false },
+      };
+
+      await service.chatCompletion(params);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
     });
 
     it('includes correct Authorization header', async () => {
@@ -205,6 +253,30 @@ describe('OpenRouterService', () => {
       expect(body.stream).toBe(true);
     });
 
+    it('posts OpenRouter zdr and deny data_collection on stream requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection on BYOK stream requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams, 'stream-key');
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
     it('uses responseType: stream in request config', async () => {
       httpService.post.mockReturnValue(of(makeAxiosResponse({})));
 
@@ -286,6 +358,37 @@ describe('OpenRouterService', () => {
       const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
       expect(body.stream).toBe(true);
       expect(body.usage).toEqual({ include: true });
+    });
+
+    it('posts OpenRouter zdr and deny data_collection on aggregated stream requests', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+      );
+
+      await service.streamChatCompletionAggregated(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection on BYOK aggregated stream requests', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+      );
+
+      await service.streamChatCompletionAggregated(
+        defaultParams,
+        'aggregated-key',
+      );
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
     });
 
     it('accumulates tool-call fragments split across SSE chunks', async () => {

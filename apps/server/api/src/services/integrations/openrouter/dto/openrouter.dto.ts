@@ -44,12 +44,30 @@ export interface OpenRouterMessage {
   tool_call_id?: string;
 }
 
+/**
+ * OpenRouter per-request provider routing. Documented vendor fields only:
+ * https://openrouter.ai/docs/guides/features/zdr
+ * https://openrouter.ai/docs/guides/routing/provider-selection
+ */
+export type OpenRouterDataCollectionPolicy = 'allow' | 'deny';
+
+export interface OpenRouterProviderPreferences {
+  data_collection: OpenRouterDataCollectionPolicy;
+  zdr: boolean;
+}
+
+export const OPENROUTER_FIRST_PARTY_PROVIDER_POLICY = {
+  data_collection: 'deny',
+  zdr: true,
+} as const satisfies OpenRouterProviderPreferences;
+
 export interface OpenRouterChatCompletionParams {
   model: string;
   messages: OpenRouterMessage[];
   temperature?: number;
   max_tokens?: number;
   plugins?: OpenRouterPlugin[];
+  provider?: OpenRouterProviderPreferences;
   stream?: boolean;
   tools?: OpenRouterTool[];
   tool_choice?:

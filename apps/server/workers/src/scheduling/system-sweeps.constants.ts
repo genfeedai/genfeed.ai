@@ -1,3 +1,5 @@
+import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
+
 /**
  * System sweep scheduling manifest.
  *
@@ -17,6 +19,7 @@ export const SYSTEM_SWEEP_JOBS = {
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout-sweep',
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
+  TRANSCRIPT_PURGE: 'transcript-purge-sweep',
   YOUTUBE_STATUS: 'youtube-status-sweep',
 } as const;
 
@@ -68,6 +71,13 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
     // instead of forever.
     jobName: SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE,
     pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // Soft-deleted agent transcripts keep prompt text until this daily wipe
+    // (30-day retention). Live threads are never touched (#3030).
+    jobName: SYSTEM_SWEEP_JOBS.TRANSCRIPT_PURGE,
+    pattern: TRANSCRIPT_PURGE_SCHEDULE,
     timezone: 'UTC',
   },
 ];

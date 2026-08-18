@@ -9,7 +9,7 @@ export { AgentPage } from './agent.page';
 export { AnalyticsPage } from './analytics.page';
 export { BrandsPage } from './brands.page';
 export { CalendarPage } from './calendar.page';
-export { DashboardPage } from './dashboard.page';
+export { ACTIVITY_URL, DashboardPage } from './dashboard.page';
 export { DiscoverPage } from './discover.page';
 export { LoginPage } from './login.page';
 export { MarketplacePage } from './marketplace.page';
@@ -18,4 +18,7 @@ export { OverviewPage } from './overview.page';
 export { PostsPage } from './posts.page';
 export { SettingsPage } from './settings.page';
 export { StudioPage } from './studio.page';
-export { WorkflowPage } from './workflow.page';
+export {
+  executionsHistoryLocator,
+  WorkflowPage,
+} from './workflow.page';

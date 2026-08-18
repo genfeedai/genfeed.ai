@@ -34,7 +34,7 @@ Full contract: CONTRIBUTING.md → Pull-request contract.
 
 ## Checklist
 
-- [ ] I have signed the CLA (once per GitHub account — the CLA Assistant bot links it on your first PR; `ICLA.md` for individuals, `CCLA.md` for companies).
+- [ ] I have signed the CLA (once per GitHub account per CLA version — a newer version applies to future contributions and does not change rights for prior contributions; the CLA Assistant bot links it on your first PR or when the CLA text changes; `ICLA.md` for individuals, `CCLA.md` for companies).
 - [ ] The title is a Conventional Commits subject and describes the whole squash.
 - [ ] I reviewed the final diff for unrelated changes.
 - [ ] I ran the relevant focused checks or documented why they were left to CI.

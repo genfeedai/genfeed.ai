@@ -116,7 +116,7 @@ test.describe('Core Automation Loop', () => {
     await workflowPage.gotoExecutions();
 
     await expect(automationPage).toHaveURL(/\/automate\/workflows\/executions/);
-    await expect(automationPage.getByText('Execution History')).toBeVisible();
+    await workflowPage.assertExecutionListVisible();
     await expect(automationPage.getByText('Completed').first()).toBeVisible();
     await expect(automationPage.getByText('Failed').first()).toBeVisible();
 
