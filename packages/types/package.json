@@ -1,4 +1,7 @@
 {
+  "dependencies": {
+    "@genfeedai/constants": "workspace:*"
+  },
   "description": "Type definitions for Genfeed workflow engine",
   "devDependencies": {
     "@xyflow/react": "12.11.3",

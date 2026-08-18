@@ -1,11 +1,23 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isCloudDeployment: vi.fn(() => false),
+  };
+});
+
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
@@ -74,6 +86,8 @@ describe('RouterService', () => {
   });
 
   afterEach(() => {
+    vi.mocked(isCloudDeployment).mockReturnValue(false);
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -1247,6 +1261,72 @@ describe('RouterService', () => {
         source: 'fallback-constant',
       });
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('keeps Nano Banana and Seedance 2.5 when the cloud-production registry is empty', async () => {
+      vi.mocked(isCloudDeployment).mockReturnValue(true);
+      vi.stubEnv('NODE_ENV', 'production');
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const image = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+      const video = await service.resolveModelKey({
+        category: ModelCategory.VIDEO,
+      });
+
+      expect(image).toEqual({
+        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+        source: 'fallback-constant',
+      });
+      expect(video).toEqual({
+        key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        source: 'fallback-constant',
+      });
+    });
+
+    it('uses lowest-cost image and video keys when cloud staging has an empty registry', async () => {
+      vi.mocked(isCloudDeployment).mockReturnValue(true);
+      vi.stubEnv('NODE_ENV', 'staging');
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const image = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+      const video = await service.resolveModelKey({
+        category: ModelCategory.VIDEO,
+      });
+
+      expect(image).toEqual({
+        key: LOWEST_COST_IMAGE_MODEL_KEY,
+        source: 'fallback-constant',
+      });
+      expect(video).toEqual({
+        key: LOWEST_COST_VIDEO_MODEL_KEY,
+        source: 'fallback-constant',
+      });
+    });
+
+    it('uses lowest-cost image and video keys when NODE_ENV is unset', async () => {
+      vi.mocked(isCloudDeployment).mockReturnValue(true);
+      vi.stubEnv('NODE_ENV', '');
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const image = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+      const video = await service.resolveModelKey({
+        category: ModelCategory.VIDEO,
+      });
+
+      expect(image).toEqual({
+        key: LOWEST_COST_IMAGE_MODEL_KEY,
+        source: 'fallback-constant',
+      });
+      expect(video).toEqual({
+        key: LOWEST_COST_VIDEO_MODEL_KEY,
+        source: 'fallback-constant',
+      });
     });
   });
 

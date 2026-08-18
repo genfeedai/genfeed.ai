@@ -316,14 +316,14 @@ function applyLowestCostDefaults(
  * Catalogue the seed writes for a deployment.
  *
  * Cloud production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
- * Local, self-hosted, and e2e (`useCloudQualityDefaults === false`) promote
- * the lowest-cost image / video / chat rows so a generate does not bill
- * Seedance / Nano Banana / a mid-tier chat model.
+ * Local, self-hosted, and e2e (`isCloudQualityDefaultsEnabled === false`)
+ * promote the lowest-cost image / video / chat rows so a generate does not
+ * bill Seedance / Nano Banana / a mid-tier chat model.
  */
 export function getModelCatalogForDeployment(
-  useCloudQualityDefaults: boolean,
+  isCloudQualityDefaultsEnabled: boolean,
 ): readonly ModelCatalogSeedEntry[] {
-  if (useCloudQualityDefaults) {
+  if (isCloudQualityDefaultsEnabled) {
     return UNIFIED_MODEL_CATALOG;
   }
 

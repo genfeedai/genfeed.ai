@@ -14,7 +14,7 @@ export default defineConfig({
     replicate: 'src/replicate/index.ts',
     workflow: 'src/workflow.ts',
   },
-  external: ['@xyflow/react'],
+  external: ['@xyflow/react', '@genfeedai/constants'],
   format: ['esm'],
   sourcemap: true,
   splitting: true,

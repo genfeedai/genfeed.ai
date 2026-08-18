@@ -1160,6 +1160,9 @@
     "packages/types": {
       "name": "@genfeedai/types",
       "version": "0.3.2",
+      "dependencies": {
+        "@genfeedai/constants": "workspace:*",
+      },
       "devDependencies": {
         "@typescript/native": "npm:typescript@7.0.2",
         "@xyflow/react": "12.11.3",

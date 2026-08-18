@@ -153,7 +153,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(chatDefaults[0]?.isActive).toBe(true);
   });
 
-  it('keeps cloud quality defaults when useCloudQualityDefaults is true', () => {
+  it('keeps cloud quality defaults when isCloudQualityDefaultsEnabled is true', () => {
     expect(getModelCatalogForDeployment(true)).toBe(UNIFIED_MODEL_CATALOG);
   });
 

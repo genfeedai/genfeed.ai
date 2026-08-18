@@ -9,18 +9,17 @@ import type {
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
-  LOWEST_COST_IMAGE_MODEL_KEY,
-  LOWEST_COST_VIDEO_MODEL_KEY,
+  getFallbackImageModelKey,
+  getFallbackVideoModelKey,
+  type LowestCostModelDefaultsInput,
   MODEL_KEYS,
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-const DEFAULT_IMAGE_MODEL = LOWEST_COST_IMAGE_MODEL_KEY;
-const DEFAULT_VIDEO_MODEL = LOWEST_COST_VIDEO_MODEL_KEY;
 
 /**
  * Last-resort keys for a registry that holds nothing usable in a category.
@@ -29,19 +28,29 @@ const DEFAULT_VIDEO_MODEL = LOWEST_COST_VIDEO_MODEL_KEY;
  * catalogue: nothing reads it until `resolveModelKey` has failed to find an
  * active, non-legacy registry row, and reaching it is logged at error level so
  * the install gets fixed rather than silently running on constants (#2422).
+ *
+ * Image / video keys follow the deployment matrix: cloud production keeps
+ * Nano Banana and Seedance 2.5; every other context uses the lowest-cost keys.
  */
-const FALLBACK_MODEL_KEYS: Record<ModelCategory, string> = {
-  [ModelCategory.EMBEDDING]: DEFAULT_CONTEXT_EMBEDDING_MODEL,
-  [ModelCategory.IMAGE]: DEFAULT_IMAGE_MODEL,
-  [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-  [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-  [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
-  [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
-  [ModelCategory.VIDEO]: DEFAULT_VIDEO_MODEL,
-  [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-  [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-  [ModelCategory.VOICE]: 'elevenlabs',
-};
+function resolveFallbackModelKeys(): Record<ModelCategory, string> {
+  const input: LowestCostModelDefaultsInput = {
+    isCloud: isCloudDeployment(),
+    nodeEnv: process.env.NODE_ENV,
+  };
+
+  return {
+    [ModelCategory.EMBEDDING]: DEFAULT_CONTEXT_EMBEDDING_MODEL,
+    [ModelCategory.IMAGE]: getFallbackImageModelKey(input),
+    [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+    [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+    [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
+    [ModelCategory.VIDEO]: getFallbackVideoModelKey(input),
+    [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
+    [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+    [ModelCategory.VOICE]: 'elevenlabs',
+  };
+}
 
 @Injectable()
 export class RouterService {
@@ -226,7 +235,7 @@ export class RouterService {
     }
 
     const fallback =
-      FALLBACK_MODEL_KEYS[request.category] ?? DEFAULT_TEXT_MODEL;
+      resolveFallbackModelKeys()[request.category] ?? DEFAULT_TEXT_MODEL;
 
     this.logger.error(`${RouterService.name} resolveModelKey empty registry`, {
       category: request.category,
