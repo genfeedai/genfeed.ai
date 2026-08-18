@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { AGENT_CHAT_MODEL_KEYS } from './agent-chat-models.constant';
 import {
+  CLOUD_QUALITY_IMAGE_MODEL_KEY,
+  CLOUD_QUALITY_VIDEO_MODEL_KEY,
+  getFallbackImageModelKey,
+  getFallbackVideoModelKey,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
+  type LowestCostModelDefaultsInput,
   shouldUseLowestCostModelDefaults,
 } from './lowest-cost-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';
@@ -20,9 +25,27 @@ describe('lowest-cost model keys', () => {
       AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     );
   });
+
+  it('pins cloud-production quality image and video keys', () => {
+    expect(CLOUD_QUALITY_IMAGE_MODEL_KEY).toBe(
+      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+    );
+    expect(CLOUD_QUALITY_VIDEO_MODEL_KEY).toBe(
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    );
+  });
 });
 
 describe('shouldUseLowestCostModelDefaults', () => {
+  it('accepts the named LowestCostModelDefaultsInput contract', () => {
+    const input: LowestCostModelDefaultsInput = {
+      isCloud: true,
+      nodeEnv: 'production',
+    };
+
+    expect(shouldUseLowestCostModelDefaults(input)).toBe(false);
+  });
+
   it('is true for local development even when GENFEED_CLOUD is on', () => {
     expect(
       shouldUseLowestCostModelDefaults({
@@ -50,6 +73,23 @@ describe('shouldUseLowestCostModelDefaults', () => {
     ).toBe(true);
   });
 
+  it('is true for cloud staging so preview deploys stay on cheapest keys', () => {
+    expect(
+      shouldUseLowestCostModelDefaults({
+        isCloud: true,
+        nodeEnv: 'staging',
+      }),
+    ).toBe(true);
+  });
+
+  it('is true when nodeEnv is unset, even on cloud', () => {
+    expect(
+      shouldUseLowestCostModelDefaults({
+        isCloud: true,
+      }),
+    ).toBe(true);
+  });
+
   it('is false only for cloud production', () => {
     expect(
       shouldUseLowestCostModelDefaults({
@@ -57,5 +97,38 @@ describe('shouldUseLowestCostModelDefaults', () => {
         nodeEnv: 'production',
       }),
     ).toBe(false);
+  });
+});
+
+describe('deployment fallback media keys', () => {
+  it('keeps Nano Banana and Seedance 2.5 for cloud production', () => {
+    const input: LowestCostModelDefaultsInput = {
+      isCloud: true,
+      nodeEnv: 'production',
+    };
+
+    expect(getFallbackImageModelKey(input)).toBe(
+      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+    );
+    expect(getFallbackVideoModelKey(input)).toBe(
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    );
+  });
+
+  it('uses lowest-cost keys for cloud staging', () => {
+    const input: LowestCostModelDefaultsInput = {
+      isCloud: true,
+      nodeEnv: 'staging',
+    };
+
+    expect(getFallbackImageModelKey(input)).toBe(LOWEST_COST_IMAGE_MODEL_KEY);
+    expect(getFallbackVideoModelKey(input)).toBe(LOWEST_COST_VIDEO_MODEL_KEY);
+  });
+
+  it('uses lowest-cost keys when nodeEnv is unset', () => {
+    const input: LowestCostModelDefaultsInput = { isCloud: true };
+
+    expect(getFallbackImageModelKey(input)).toBe(LOWEST_COST_IMAGE_MODEL_KEY);
+    expect(getFallbackVideoModelKey(input)).toBe(LOWEST_COST_VIDEO_MODEL_KEY);
   });
 });
