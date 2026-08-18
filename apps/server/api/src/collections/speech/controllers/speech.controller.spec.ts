@@ -12,10 +12,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SpeechController } from '@api/collections/speech/controllers/speech.controller';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

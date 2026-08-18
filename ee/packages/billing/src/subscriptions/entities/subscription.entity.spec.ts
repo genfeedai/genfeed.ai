@@ -9,11 +9,4 @@ describe('SubscriptionEntity', () => {
     const entity = new SubscriptionEntity();
     expect(entity).toBeInstanceOf(SubscriptionEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new SubscriptionEntity();
-  //     // Test properties
-  //   });
-  // });
 });

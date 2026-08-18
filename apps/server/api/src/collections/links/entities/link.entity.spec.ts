@@ -9,11 +9,4 @@ describe('LinkEntity', () => {
     const entity = new LinkEntity();
     expect(entity).toBeInstanceOf(LinkEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new LinkEntity();
-  //     // Test properties
-  //   });
-  // });
 });

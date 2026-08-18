@@ -10,12 +10,5 @@ describe('UploadPostDto', () => {
       const dto = new UploadPostDto();
       expect(dto).toBeInstanceOf(UploadPostDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UploadPostDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

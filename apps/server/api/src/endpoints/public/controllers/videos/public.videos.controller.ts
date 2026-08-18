@@ -14,7 +14,6 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   IngredientCategory,
-  IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
 import type {

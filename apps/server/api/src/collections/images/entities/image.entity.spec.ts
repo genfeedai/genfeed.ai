@@ -9,11 +9,4 @@ describe('ImageEntity', () => {
     const entity = new ImageEntity();
     expect(entity).toBeInstanceOf(ImageEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new ImageEntity();
-  //     // Test properties
-  //   });
-  // });
 });

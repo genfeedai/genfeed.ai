@@ -10,12 +10,5 @@ describe('UpdateMusicDto', () => {
       const dto = new UpdateMusicDto();
       expect(dto).toBeInstanceOf(UpdateMusicDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new UpdateMusicDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

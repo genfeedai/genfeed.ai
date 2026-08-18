@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsMoodsController } from '@api/collections/elements/moods/controllers/moods.controller';
 import { CreateElementMoodDto } from '@api/collections/elements/moods/dto/create-mood.dto';
 import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update-mood.dto';

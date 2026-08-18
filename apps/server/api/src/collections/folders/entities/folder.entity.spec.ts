@@ -9,11 +9,4 @@ describe('FolderEntity', () => {
     const entity = new FolderEntity();
     expect(entity).toBeInstanceOf(FolderEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new FolderEntity();
-  //     // Test properties
-  //   });
-  // });
 });

@@ -156,10 +156,6 @@ export class ImagesController {
       'exists',
     );
 
-    // const references = isEntityId(query.references)
-    //   ? query.references
-    //   : { not: null };
-
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
       query.parentId,

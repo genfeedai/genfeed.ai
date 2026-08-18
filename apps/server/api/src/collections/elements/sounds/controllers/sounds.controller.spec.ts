@@ -1,7 +1,4 @@
-import type {
-  AuthenticatedUser,
-  AuthenticatedUser as User,
-} from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsSoundsController } from '@api/collections/elements/sounds/controllers/sounds.controller';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';

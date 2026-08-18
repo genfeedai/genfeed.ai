@@ -9,11 +9,4 @@ describe('AssetEntity', () => {
     const entity = new AssetEntity();
     expect(entity).toBeInstanceOf(AssetEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new AssetEntity();
-  //     // Test properties
-  //   });
-  // });
 });

@@ -10,12 +10,5 @@ describe('GenerateAssetDto', () => {
       const dto = new GenerateAssetDto();
       expect(dto).toBeInstanceOf(GenerateAssetDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new GenerateAssetDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

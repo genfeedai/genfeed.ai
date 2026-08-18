@@ -9,11 +9,4 @@ describe('VoteEntity', () => {
     const entity = new VoteEntity();
     expect(entity).toBeInstanceOf(VoteEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new VoteEntity();
-  //     // Test properties
-  //   });
-  // });
 });

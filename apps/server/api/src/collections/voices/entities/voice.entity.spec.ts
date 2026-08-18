@@ -9,11 +9,4 @@ describe('VoiceEntity', () => {
     const entity = new VoiceEntity();
     expect(entity).toBeInstanceOf(VoiceEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new VoiceEntity();
-  //     // Test properties
-  //   });
-  // });
 });

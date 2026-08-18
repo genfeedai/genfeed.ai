@@ -117,10 +117,6 @@ export default function ModalVideo({
                         video.ingredientUrl ||
                         `${EnvironmentService.ingredientsEndpoint}/videos/${video.id}`
                       }
-                      // thumbnail={
-                      //   video.thumbnailUrl ||
-                      //   `${EnvironmentService.ingredientsEndpoint}/videos/${video.id}/thumbnail`
-                      // }
                       config={{
                         controls: false,
                         loop: false,

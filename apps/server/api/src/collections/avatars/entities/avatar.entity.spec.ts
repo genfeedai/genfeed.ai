@@ -9,11 +9,4 @@ describe('AvatarEntity', () => {
     const entity = new AvatarEntity();
     expect(entity).toBeInstanceOf(AvatarEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new AvatarEntity();
-  //     // Test properties
-  //   });
-  // });
 });

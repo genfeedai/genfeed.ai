@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-// Mock the component - adjust import path as needed
-// import ModalTrim from '@ui/modals/ModalTrim';
-
 describe('ModalTrim', () => {
   describe('rendering', () => {
     it('renders modal when open', () => {

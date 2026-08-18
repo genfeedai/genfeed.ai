@@ -10,12 +10,5 @@ describe('ImageEditDto', () => {
       const dto = new ImageEditDto();
       expect(dto).toBeInstanceOf(ImageEditDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new ImageEditDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });

@@ -19,14 +19,6 @@ export class CreateCaptionDto {
   })
   readonly language!: string;
 
-  // Generate by Whisper. not needed in the video creation body.
-  // @IsString()
-  // @ApiProperty({
-  //   description: 'The caption content (SRT format text)',
-  //   required: false,
-  // })
-  // readonly content!: string;
-
   @IsString()
   @IsEnum(CaptionFormat)
   @ApiProperty({

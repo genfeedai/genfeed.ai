@@ -18,7 +18,6 @@ interface GenfeedRuntimeConfig {
 declare global {
   // Injected by the Next.js root layout so a prebuilt self-hosted image can
   // honor runtime .env changes for auth mode instead of freezing them at build.
-  // eslint-disable-next-line no-var
   var __GENFEED_RUNTIME_CONFIG__: GenfeedRuntimeConfig | undefined;
 }
 

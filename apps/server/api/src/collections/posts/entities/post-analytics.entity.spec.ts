@@ -9,11 +9,4 @@ describe('PostAnalyticsEntity', () => {
     const entity = new PostAnalyticsEntity();
     expect(entity).toBeInstanceOf(PostAnalyticsEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new PostAnalyticsEntity();
-  //     // Test properties
-  //   });
-  // });
 });

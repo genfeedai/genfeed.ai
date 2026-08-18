@@ -136,24 +136,6 @@ export default function RichTextEditor({
   const shouldShowBlockquote = true;
   const shouldShowCodeBlock = !isMinimalToolbar;
 
-  // const addLink = useCallback(() => {
-  //   if (!editor) return;
-
-  //   const url = window.prompt('Enter URL:');
-  //   if (url) {
-  //     editor.chain().focus().setLink({ href: url }).run();
-  //   }
-  // }, [editor]);
-
-  // const addImage = useCallback(() => {
-  //   if (!editor) return;
-
-  //   const url = window.prompt('Enter image URL:');
-  //   if (url) {
-  //     editor.chain().focus().setImage({ src: url }).run();
-  //   }
-  // }, [editor]);
-
   if (!editor) {
     return null;
   }

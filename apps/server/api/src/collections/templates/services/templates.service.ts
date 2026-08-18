@@ -9,7 +9,6 @@ import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto'
 import type { TemplateDocument } from '@api/collections/templates/schemas/template.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

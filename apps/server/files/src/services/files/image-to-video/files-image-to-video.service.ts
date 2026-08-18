@@ -47,11 +47,6 @@ export class FilesImageToVideoService extends FilesService {
       throw new Error('No clip files found in the specified directory');
     }
 
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'audio',
-    //   status: IngredientStatus.PROCESSING,
-    // });
-
     const outputDir = this.getPath('output', ingredientId);
     let finalVideoPath = path.join(outputDir, `merged.mp4`);
 
@@ -70,16 +65,6 @@ export class FilesImageToVideoService extends FilesService {
         ),
       ),
     );
-
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'audio',
-    //   status: 'completed',
-    // });
-
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'clips',
-    //   status: IngredientStatus.PROCESSING,
-    // });
 
     // If there's only one clip, merge it with background music if available
     if (processedClips.length === 1) {
@@ -111,11 +96,6 @@ export class FilesImageToVideoService extends FilesService {
         finalVideoPath,
       );
     }
-
-    // await this.websocketService.emit(websocketURL, {
-    //   step: 'clips',
-    //   status: 'completed',
-    // });
 
     if (isWatermarkEnabled) {
       finalVideoPath = await this.addWatermark(finalVideoPath, dimensions);
@@ -259,11 +239,6 @@ export class FilesImageToVideoService extends FilesService {
       });
 
       this.loggerService.log(`Finished audio processing for clip ${index}`);
-
-      // await this.websocketService.emit(websocketURL, {
-      //   step: 'audio',
-      //   status: 'completed',
-      // });
     } catch (error: unknown) {
       this.loggerService.error(`Error adding audio to clip ${index}`, error);
       throw error instanceof Error ? error : new Error(String(error));
@@ -297,11 +272,6 @@ export class FilesImageToVideoService extends FilesService {
       });
 
       this.loggerService.log('Finished clips merge');
-
-      // await this.websocketService.emit(websocketURL, {
-      //   step: 'clips',
-      //   status: 'completed',
-      // });
     } catch (error: unknown) {
       this.loggerService.error('Error in final merge', error);
 

@@ -274,7 +274,6 @@ export function useAgentCliTerminal(
       // No session yet for new thread — spawn one
       startSession('shell');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeThreadId, // No session yet for new thread — spawn one
     startSession,
@@ -511,7 +510,6 @@ export function useAgentCliTerminal(
       socketRef.current = null;
       sessionIdRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     apiService,
     authReady,

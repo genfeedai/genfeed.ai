@@ -9,11 +9,4 @@ describe('FontFamilyEntity', () => {
     const entity = new FontFamilyEntity();
     expect(entity).toBeInstanceOf(FontFamilyEntity);
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new FontFamilyEntity();
-  //     // Test properties
-  //   });
-  // });
 });

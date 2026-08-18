@@ -10,12 +10,5 @@ describe('CreateSocialMediaPostDto', () => {
       const dto = new CreateSocialMediaPostDto();
       expect(dto).toBeInstanceOf(CreateSocialMediaPostDto);
     });
-
-    // it('should validate successfully with valid data', async () => {
-    //   const dto = new CreateSocialMediaPostDto();
-    //   // Add test data
-    //   const errors = await validate(dto);
-    //   expect(errors.length).toBe(0);
-    // });
   });
 });
