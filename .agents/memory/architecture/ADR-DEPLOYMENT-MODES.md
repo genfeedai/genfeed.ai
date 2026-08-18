@@ -6,11 +6,11 @@ Accepted
 
 ## Spec Version
 
-v1.2.1
+v1.3.0
 
 ## Last Updated
 
-2026-07-06
+2026-08-18
 
 ## Canonical Source
 
@@ -76,9 +76,9 @@ Client features gate on **mode**, never on raw auth signals.
 
 ### 4. Tenancy
 
-**Multi-tenant org isolation is a SaaS / EE feature** as a product boundary. Community and Desktop are **single-tenant** (one org per instance). Multi-tenancy is the SaaS differentiator and is not given away in OSS.
+**Multi-tenant org isolation is a SaaS-mode feature** as a product boundary. Community and Desktop are **single-tenant** (one org per instance). Multi-tenancy is the SaaS differentiator and is not given away in OSS.
 
-> There is no `ee/packages/multi-tenancy` package (scaffold deleted — #1093, successor to #87). Enforcement code (CombinedAuthGuard, request-context middleware, inline org-scoped query filters) lives in the OSS API and is deployment-mode-driven; no separable EE code unit exists. "Multi-tenant" remains the SaaS-only intent and Community's single-org model is the only path wired end-to-end.
+> There is no separable multi-tenancy package (scaffold deleted — #1093, successor to #87). Enforcement code (CombinedAuthGuard, request-context middleware, inline org-scoped query filters) lives in the API and is deployment-mode-driven. "Multi-tenant" remains the SaaS-only intent and Community's single-org model is the only path wired end-to-end.
 
 ### 5. Billing & generation
 
@@ -93,8 +93,8 @@ Client features gate on **mode**, never on raw auth signals.
 
 | Mode | Build | Ship |
 |---|---|---|
-| SaaS | `docker/Dockerfile.server` (includes `ee/`) | ECS/Fargate + Vercel |
-| Community | `docker/Dockerfile.selfhosted` (excludes `ee/`) | GHCR `:latest`; `docker compose -f docker-compose.selfhosted.yml up` |
+| SaaS | `docker/Dockerfile.server` | ECS/Fargate + Vercel |
+| Community | `docker/Dockerfile.selfhosted` (same AGPL source; billing gated at runtime) | GHCR `:latest`; `docker compose -f docker-compose.selfhosted.yml up` |
 | Desktop | Electron (`desktop-v*` tags) | DMG/ZIP installers |
 
 ### 7. Canonical mode source of truth
@@ -117,7 +117,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 4. **CI** → fast PRs; heavy gates at release-cut; self-hosted E2E nightly-only; community build split from SaaS deploy (#744).
 5. **Community "just works"** → fix docs/ports/compose + healthcheck (#745).
 6. **Release-stage QA** → consolidated gate + post-deploy smoke (#746).
-7. **EE extraction (#87)** → credits/subscriptions/Stripe/multi-tenancy → `ee/packages/*`; multi-tenancy stays the SaaS line.
+7. **Billing (#87 → #3091)** → credits/subscriptions/Stripe live in the API under AGPL, gated at runtime by `hasOrganizationBilling()`; multi-tenancy stays the SaaS line.
 
 ## Related
 
@@ -125,7 +125,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 - **Epic #735** — Better Auth (self-hostable auth, all modes)
 - **Epic #740** — Deployment modes (canonical split, switcher, CI, community, QA)
 - Supersedes the **auth half** of the closed One-API epic #95
-- Issue #87 — EE billing / multi-tenancy extraction
+- Issue #87 — billing / multi-tenancy extraction (superseded by #3091: billing open-sourced under AGPL, `ee/` removed)
 
 ## Revision Log
 
@@ -133,3 +133,4 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 | ------- | ---------- | ------- |
 | v1.1.0  | 2026-06-22 | Initial accepted deployment-mode and auth direction |
 | v1.2.0  | 2026-06-29 | Better Auth cutover is active baseline; platform admin access uses `users.platformRole` |
+| v1.3.0  | 2026-08-18 | Billing open-sourced under AGPL in the API; `ee/` and build flavors removed; Cloud-only billing is a runtime gate (#3091) |

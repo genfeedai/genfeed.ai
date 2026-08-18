@@ -22,7 +22,6 @@ import * as esbuild from 'esbuild';
 const WORKSPACE_ROOT = path.resolve(import.meta.dir, '../..');
 const SERVER_ROOT = path.join(WORKSPACE_ROOT, 'apps/server');
 const PACKAGES_ROOT = path.join(WORKSPACE_ROOT, 'packages');
-const EE_PACKAGES_ROOT = path.join(WORKSPACE_ROOT, 'ee/packages');
 
 interface NestFastDevApp {
   /** nest project name / dist folder under apps/server/dist/apps */
@@ -94,21 +93,6 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
     aliases[`@${entry.name}`] = appSrc;
   }
 
-  const eeBillingSrc = path.join(EE_PACKAGES_ROOT, 'billing/src');
-  const hasEE = fs.existsSync(eeBillingSrc);
-  const ossBilling = path.join(
-    SERVER_ROOT,
-    'api/src/common/subscriptions/billing.providers.oss.ts',
-  );
-
-  aliases['@billing-providers'] = hasEE
-    ? path.join(eeBillingSrc, 'billing.providers.ee.ts')
-    : ossBilling;
-
-  if (hasEE) {
-    aliases['@genfeedai/ee-billing'] = eeBillingSrc;
-  }
-
   aliases['@config'] = path.join(PACKAGES_ROOT, 'config/src');
   aliases['@helpers'] = path.join(PACKAGES_ROOT, 'helpers/src');
   aliases['@libs'] = path.join(PACKAGES_ROOT, 'libs');
@@ -125,15 +109,12 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
 function isWorkspacePath(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, '/');
   return (
-    normalized.includes('/packages/') ||
-    normalized.includes('/apps/server/') ||
-    normalized.includes('/ee/packages/')
+    normalized.includes('/packages/') || normalized.includes('/apps/server/')
   );
 }
 
 function shouldBundleImport(id: string): boolean {
   if (id.startsWith('.') || path.isAbsolute(id)) return true;
-  if (id === '@billing-providers') return true;
   if (id.startsWith('@genfeedai/')) return true;
   if (id.startsWith('@api')) return true;
   if (id.startsWith('@libs/')) return true;
@@ -148,7 +129,6 @@ function shouldBundleImport(id: string): boolean {
   if (id.startsWith('@workers/')) return true;
   if (id.startsWith('@notifications/')) return true;
   if (id.startsWith('@mcp/')) return true;
-  if (id.startsWith('@genfeedai/ee-billing')) return true;
   return false;
 }
 

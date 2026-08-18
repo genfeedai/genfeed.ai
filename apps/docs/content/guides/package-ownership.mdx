@@ -1,5 +1,5 @@
 ---
-description: 'Understand where Genfeed packages, backend services, frontends, and enterprise code live, plus how package publishing ownership is enforced.'
+description: 'Understand where Genfeed packages, backend services, and frontends live, plus how package publishing ownership is enforced.'
 ---
 
 # Package Ownership and Publish Boundaries
@@ -12,9 +12,8 @@ Genfeed.ai is a single TypeScript monorepo at [`genfeedai/genfeed.ai`](https://g
 
 - **Shared packages** live under `packages/*` (for example `packages/types`, `packages/serializers`, `packages/cli`).
 - **Backend services** live under `apps/server/*` and **frontends** under `apps/*`. These are applications, not published packages.
-- **Enterprise packages** live under `ee/packages/*` and use the commercial
-  `ee/` license. The repository default outside `ee/` is AGPL-3.0-or-later, but
-  package-specific license notices can apply instead.
+- The repository default license is AGPL-3.0-or-later, but package-specific
+  license notices can apply instead.
 
 ## Public package source of truth
 
@@ -28,13 +27,15 @@ The `packages/` workspace is the canonical source for the shared `@genfeedai/*` 
 
 Each package name maps to exactly one directory under `packages/`. There is no second home for any package name.
 
-## Enterprise boundary
+## Cloud boundary
 
-The current `ee/packages/*` tree contains billing and harness packages. Those
-packages may consume public packages from `packages/*`, but the Community build
-must not import commercial runtime code from `ee/`.
-
-Enterprise packages extend public contracts (for example workflow extension layers built on `@genfeedai/workflows`) rather than forking them.
+Organization billing lives in the API at `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`
+and ships in every image. Whether it is live is decided at runtime by
+`hasOrganizationBilling()` — see
+[Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate).
+Cloud-only product surfaces (managed credits, multi-tenant organization
+management) are gated by deployment mode and configuration, not by a separate
+licensed package tree.
 
 ## Release ordering
 
@@ -50,4 +51,3 @@ Because everything ships from one repo, releases are coordinated as a single wor
 - Avoid `file:` dependencies for shared packages; use `workspace:*` within the monorepo.
 - Treat `workspace:*` as internal only and rewrite to published versions before any external publish.
 - Keep package metadata (`exports`, `files`, `repository`, `license`) publish-safe.
-- Community packages must not depend on enterprise (`ee/`) runtime packages.

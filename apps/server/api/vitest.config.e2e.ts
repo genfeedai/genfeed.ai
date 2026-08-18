@@ -203,36 +203,12 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/libs'),
       },
       {
-        find: /^@genfeedai\/ee-billing\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../ee/packages/billing/src/$1',
-        ),
-      },
-      {
-        find: '@genfeedai/ee-billing',
-        replacement: path.resolve(
-          serviceDir,
-          '../../../ee/packages/billing/src',
-        ),
-      },
-      {
         find: '@test',
         replacement: path.resolve(serviceDir, './test'),
       },
       {
         find: /^@test\/(.*)$/,
         replacement: path.resolve(serviceDir, './test/$1'),
-      },
-      {
-        // Mirrors the webpack/tsconfig `@billing-providers` alias for API E2E:
-        // OSS CI resolves billing collection modules to the in-tree stub
-        // fragment while EE billing remains covered by its own package tests.
-        find: '@billing-providers',
-        replacement: path.resolve(
-          serviceDir,
-          './src/common/subscriptions/billing.providers.oss.ts',
-        ),
       },
     ],
   },

@@ -61,16 +61,15 @@ Place assets under docs/assets/readme/ and reference them here.
 - Content library, brand, scheduling, and publishing modules
 - REST API with OpenAPI, typed client packages, an MCP server, and a terminal CLI
 - PostgreSQL persistence via Prisma; Redis/BullMQ background work
-- A Community Docker distribution that excludes the commercial `ee/` tree
+- A Community Docker distribution built from the same AGPL source as the hosted image
 
 Availability differs by deployment mode and configured provider. Read
 [Deployment Modes](docs/deployment-modes.md) and
 [Execution Boundaries](docs/execution-boundaries.md) before relying on a feature
-for a specific distribution. Organization billing is gated twice — at build
-time (the Community image contains no `ee/` billing code) and at runtime
-(`GENFEED_CLOUD` / EE licence); the
-[build flavors section](docs/deployment-modes.md#build-flavors-how-billing-code-gets-into-or-stays-out-of-an-image)
-explains both gates.
+for a specific distribution. Organization billing ships in every image and is
+gated at runtime (`GENFEED_CLOUD` / self-host licence); the
+[billing section](docs/deployment-modes.md#billing-one-build-a-runtime-gate)
+explains the gate.
 
 ## Distribution status
 
@@ -198,7 +197,6 @@ apps/
   extensions/browser/app/ Chrome extension source
   extensions/ide/app/     VS Code extension source
 packages/                 Shared @genfeedai/* packages
-ee/packages/              Commercial billing and harness packages
 docker/                   Community and hosted image definitions
 ```
 
@@ -260,19 +258,17 @@ never a public issue.
 
 Each side links the other; neither duplicates the other.
 
-## Enterprise boundary
+## Cloud boundary
 
-The `ee/` tree contains the commercial billing provider package and an
-enterprise harness package. It is covered by [its own commercial license](ee/LICENSE),
-excluded from the Community image, and maintainer-only — contributor PRs do not
-modify it. Broader Cloud/Enterprise product boundaries are documented in
-[Architecture](docs/architecture.md); those boundaries are not a claim that
-every listed capability is implemented inside `ee/` today.
+The whole repository, billing included, is AGPL. Cloud/Enterprise product
+boundaries (managed credits, multi-tenant organization management) are
+deployment-mode features gated at runtime, not a separately licensed subtree;
+they are documented in [Architecture](docs/architecture.md). Managed inference
+infrastructure and Fleet/LoRA operations live outside this public repository.
 
 ## License and trademark
 
-- Repository default: [GNU Affero General Public License v3.0 or later](LICENSE)
-- Code under `ee/`: [Genfeed commercial license](ee/LICENSE)
+- Code: [GNU Affero General Public License v3.0 or later](LICENSE) — the whole repository
 - Contributions: [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement)
   (FSFE FLA 2.1: [ICLA.md](ICLA.md) / [CCLA.md](CCLA.md)), signed once via CLA Assistant
 - Name and logo: [TRADEMARK.md](TRADEMARK.md) — the licence covers the code, not the brand

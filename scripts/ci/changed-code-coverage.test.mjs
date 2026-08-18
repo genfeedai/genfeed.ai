@@ -99,7 +99,7 @@ test('policy keeps the near-misses that carry real first-party logic', () => {
     'apps/app/proxy.ts',
     'apps/app/app/(protected)/[orgSlug]/content.tsx',
     'apps/server/api/src/services/brands/brands.service.ts',
-    'ee/packages/billing/src/stripe.provider.ts',
+    'apps/server/api/src/collections/subscriptions/services/subscriptions.service.ts',
     'packages/workflows/src/engine/runner.ts',
     'apps/app/lib/generated-content-helpers.ts',
   ];

@@ -5,8 +5,10 @@ description: 'Learn what the open-source, single-tenant Genfeed Community Docker
 # Genfeed Community
 
 Community is the open-source, single-tenant Genfeed distribution. It combines
-the web product, REST API, MCP server, PostgreSQL, and embedded Redis in a Docker
-stack that excludes `ee/` source.
+the web product, REST API, MCP server, PostgreSQL, and embedded Redis in a
+Docker stack. Organization billing ships in the same image but stays inactive
+at runtime unless `hasOrganizationBilling()` resolves true (Cloud or a
+licensed self-host).
 
 ## What it is for
 
@@ -42,7 +44,7 @@ Cloud/Enterprise product boundaries.
 ## License
 
 The repository default is AGPL-3.0-or-later. Package-specific license notices
-can apply instead, and `ee/` uses its separate commercial license.
+can apply instead.
 
 ## Documentation
 

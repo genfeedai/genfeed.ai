@@ -30,12 +30,12 @@ Genfeed.ai aims to be the open-source operating system for AI-powered content op
 1. Fully autonomous content operations requiring only strategic configuration
 2. AI-driven content optimization based on performance data
 3. Community marketplace for content templates, workflows, and agent configurations
-4. Enterprise-grade team operations via `ee/` with advanced permissions and audit trails
+4. Enterprise-grade team operations in Cloud / SaaS mode with advanced permissions and audit trails
 
 ## Open-Source Model
 
 - **Core (AGPL-3.0)**: Full self-hosted deployment, BYOK execution, all content features
-- **Enterprise (`ee/`)**: Multi-tenancy, SSO, billing, analytics, team collaboration (commercial license)
+- **Cloud / SaaS mode**: Multi-tenancy, SSO, organization billing, analytics, team collaboration (same AGPL code, runtime-gated)
 - Community contributions welcome — integrations, workflow nodes, agent types
 
 ## Design Philosophy

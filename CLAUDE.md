@@ -109,7 +109,8 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 
 - **Green-field.** Delete dead code aggressively. No legacy support, no backward compatibility,
   no deprecation — it's in git history.
-- **License:** root AGPL-3.0; `ee/` under a commercial license (`ee/LICENSE`).
+- **License:** AGPL-3.0, whole repo. Billing is open source; Cloud-only behaviour is a runtime
+  gate (`hasOrganizationBilling()`), not a separate tree.
 - **Tracking:** GitHub Issues/Projects are canonical. Do not create local task markdown files.
   Before opening an issue:
   `gh issue list --state all --search "<keywords>" --repo genfeedai/genfeed.ai`

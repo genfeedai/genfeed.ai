@@ -2,7 +2,7 @@
 
 ## Overview
 
-Genfeed.ai is designed for self-hosted single-tenant deployment by default. Enterprise multi-tenancy is available via the `ee/` directory under commercial license.
+Genfeed.ai is designed for self-hosted single-tenant deployment by default. Multi-tenant organization management is a SaaS deployment-mode surface of the same AGPL codebase.
 
 ## Deployment Resources
 
@@ -15,7 +15,7 @@ This file provides context for AI agents working on deployment-related tasks. It
 ## Architecture Notes
 
 - **Single-tenant default:** One organization per deployment. Auth/request context still flows through the OSS API guard stack; self-hosted product behavior should not expose org switching as a multi-tenant product surface.
-- **Enterprise multi-tenancy:** SaaS/EE product controls belong in `ee/`; deployment-mode-agnostic org guards and query filters live in the OSS API. There is no `ee/packages/multi-tenancy` package on `origin/master`.
+- **Multi-tenancy:** a SaaS product surface gated at runtime by deployment mode; org guards and query filters live in the API for every mode. There is no separable multi-tenancy package.
 - **Server apps:** `apps/server/{api,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`. `apps/server/clips/` is not currently a package workspace.
 - **Frontend apps:** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, and `apps/extensions/{browser,ide}/app`
 - **Database:** PostgreSQL via Prisma

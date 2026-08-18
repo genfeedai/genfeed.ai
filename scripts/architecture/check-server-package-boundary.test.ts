@@ -27,7 +27,6 @@ describe('check-server-package-boundary', () => {
         export { Two } from '@api-root/two';
         import type { Three } from '@api-test/three';
         import { Four } from '@genfeedai/api/four';
-        import { BillingProviders } from '@billing-providers';
       `,
     );
 
@@ -38,7 +37,6 @@ describe('check-server-package-boundary', () => {
       '@api-root/two',
       '@api-test/three',
       '@genfeedai/api/four',
-      '@billing-providers',
     ]);
   });
 

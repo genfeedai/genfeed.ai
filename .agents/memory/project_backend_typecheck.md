@@ -36,9 +36,8 @@ that is **never** the runtime config.
   spot (#1105) returns: `api ← apps/server/files/src`, `workers ← apps/server/api/src`.
   Root `type-check` task also lists `$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json`
   so compiler-option changes bust all caches.
-- `ee-billing`'s explicit `--filter` shim + `$TURBO_ROOT$` inputs stay: it validates the EE
-  billing contract via `@api/*`, which api's own (OSS-flavor) task does not subsume, and
-  `--affected` won't select it on api-only changes.
+- Billing collections live inside `apps/server/api`, so api's own `type-check` task covers
+  them; there is no separate billing workspace or `--filter` shim.
 
 ## Worker API-import ratchet (2026-07-06)
 

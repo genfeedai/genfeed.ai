@@ -4,21 +4,20 @@ import type {
 } from '@genfeedai/interfaces/billing';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
-function enterpriseBillingUnavailable(): never {
+function organizationBillingUnavailable(): never {
   throw new ForbiddenException(
-    'Organization subscription billing is not available on this API. ' +
-      'This build bundles the OSS billing stub — a hosted *.genfeed.ai API must be built from an image containing ee/packages/billing ' +
-      '(docker/Dockerfile.server; verify with `bun run check:billing-flavor`) AND run with GENFEED_CLOUD=true. ' +
-      'Self-hosted community builds use managed credits checkout instead of org Stripe subscriptions. ' +
-      'See docs/deployment-modes.md#build-flavors.',
+    'Organization subscription billing is not enabled on this deployment. ' +
+      'Hosted *.genfeed.ai APIs run with GENFEED_CLOUD=true; a licensed self-host sets GENFEED_LICENSE_KEY. ' +
+      'Self-hosted community deployments use managed credits checkout instead of org Stripe subscriptions. ' +
+      'See docs/deployment-modes.md.',
   );
 }
 
 /**
- * OSS no-op implementation of {@link IUserSubscriptionsService}.
+ * Community no-op implementation of {@link IUserSubscriptionsService}.
  *
- * Bound to the `USER_SUBSCRIPTIONS_SERVICE` token when no enterprise license is
- * present.
+ * Bound to the `USER_SUBSCRIPTIONS_SERVICE` token when organization billing is not
+ * live at runtime (`hasOrganizationBilling()` is false).
  *
  * - `findByUser` (read path) and `updateFromStripeSession` (always-on webhook)
  *   return domain-safe values and NEVER throw.
@@ -36,7 +35,7 @@ export class OssUserSubscriptionsService implements IUserSubscriptionsService {
   async getOrCreateSubscription(
     _userId: string,
   ): Promise<IUserSubscriptionOssReadModel> {
-    return enterpriseBillingUnavailable();
+    return organizationBillingUnavailable();
   }
 
   async updateFromStripeSession(

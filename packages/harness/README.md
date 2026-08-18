@@ -4,8 +4,9 @@ OSS contracts and registry helpers for brand-aware content generation.
 
 This package is intentionally split into:
 
-- OSS contracts and composition helpers
-- `ee/` packs inside this monorepo
+- contracts and composition helpers
+- built-in packs (`CORE_CONTENT_HARNESS_PACK`, `X_PLATFORM_HARNESS_PACK`,
+  `BRAND_FIDELITY_HARNESS_PACK`)
 - external private packs loaded by package name at runtime
 
 ## Install

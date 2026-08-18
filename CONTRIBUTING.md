@@ -237,7 +237,7 @@ are welcome on three conditions:
    description being accurate and the verification being real. "The agent said
    it passed" is not verification — run the checks and paste the output.
 3. **Same rules as everyone.** Signed CLA, conventional title, linked issue,
-   scope discipline, no `ee/` changes.
+   scope discipline.
 
 Undisclosed agent-authored PRs are closed when detected. Bulk, low-effort, or
 templated PRs (drive-by dependency bumps, mass rewording, unrequested
@@ -310,10 +310,6 @@ request, list exactly what you ran and any checks left to CI.
 - `apps/` contains product, server, and client applications.
 - `packages/` contains shared packages. Check each package's own metadata for
   its license and public API.
-- **`ee/` is maintainer-only.** It contains commercially licensed packages
-  ([`ee/LICENSE`](ee/LICENSE)) and is excluded from the Community image.
-  Contributor PRs that modify `ee/` are closed; `.github/CODEOWNERS` enforces
-  review. Rationale: `.agents/memory/architecture/ADR-CLA-FLA-2-1.md`.
 - Managed inference infrastructure, customer model assignments, and Fleet/LoRA
   operations are outside this public repository.
 - The Genfeed name and logo are trademarks — see [TRADEMARK.md](TRADEMARK.md).

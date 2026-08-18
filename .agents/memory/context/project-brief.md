@@ -28,9 +28,9 @@ Content creation at scale is operationally complex — coordinating AI generatio
 1. Stable self-hosted deployment via Docker with clear setup documentation
 2. Autonomous agent-driven content pipelines working end-to-end
 3. Active open-source community contributing integrations and improvements
-4. Enterprise adopters using `ee/` features for multi-tenant team operations
+4. Genfeed Cloud teams using SaaS-mode multi-tenant team operations
 
 ## Product Boundary
 
 - **Core (AGPL-3.0)**: Self-hosted, BYOK execution, full feature set for individual and team use
-- **Enterprise (`ee/`)**: Multi-tenancy, SSO, billing, analytics, team collaboration (commercial license)
+- **Cloud / SaaS mode**: Multi-tenancy, SSO, organization billing, analytics, team collaboration (same AGPL code, runtime-gated)

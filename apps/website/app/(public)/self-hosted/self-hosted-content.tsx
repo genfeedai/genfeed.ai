@@ -74,7 +74,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'The repository is licensed AGPL-3.0. Enterprise features under ee/ carry a separate commercial license. Self-hosting the core for your own use is fully covered by the open-source license.',
+      'The repository is licensed AGPL-3.0. Self-hosting for your own use is fully covered by the open-source license.',
     question: 'What is the license?',
   },
   {

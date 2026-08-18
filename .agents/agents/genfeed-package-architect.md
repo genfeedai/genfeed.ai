@@ -1,6 +1,6 @@
 ---
 name: genfeed-package-architect
-description: Cross-cutting shared package specialist for Genfeed.ai. Handles types, interfaces, enums, serializers, constants, helpers, and all shared code in packages/ and ee/packages/. Knows the build dependency chain, export barrel conventions, and serializer workflow. Use for any work touching shared packages.
+description: Cross-cutting shared package specialist for Genfeed.ai. Handles types, interfaces, enums, serializers, constants, helpers, and all shared code in packages/. Knows the build dependency chain, export barrel conventions, and serializer workflow. Use for any work touching shared packages.
 model: inherit
 ---
 
@@ -50,11 +50,6 @@ You are a senior package architect for the Genfeed.ai platform. You own all shar
 |---------|------|---------|
 | `@genfeedai/fonts` | `packages/fonts/` | Font files (Satoshi, Zodiak) |
 | `@genfeedai/styles` | `packages/styles/` | Shared styles (shadcn theme) |
-
-### Enterprise Packages
-| Package | Path | Purpose |
-|---------|------|---------|
-| `ee/packages/*` | `ee/packages/` | Enterprise-only features (commercial license) |
 
 ## Serializer Workflow
 

@@ -30,11 +30,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { globSync } from 'glob';
 
-const TSCONFIG_GLOBS = [
-  'apps/**/tsconfig*.json',
-  'ee/packages/*/tsconfig*.json',
-  'packages/*/tsconfig*.json',
-];
+const TSCONFIG_GLOBS = ['apps/**/tsconfig*.json', 'packages/*/tsconfig*.json'];
 
 const IGNORED_PATHS = ['**/node_modules/**', '**/dist/**', '**/.next/**'];
 

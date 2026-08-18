@@ -37,11 +37,7 @@ const BASELINE_PATH = path.join(
   'scripts/architecture/type-assertions.baseline.json',
 );
 
-const INCLUDE_GLOBS = [
-  'apps/**/*.{ts,tsx}',
-  'packages/**/*.{ts,tsx}',
-  'ee/**/*.{ts,tsx}',
-];
+const INCLUDE_GLOBS = ['apps/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'];
 
 const IGNORE_GLOBS = [
   '**/node_modules/**',
