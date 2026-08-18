@@ -12,14 +12,26 @@ import { logger } from '@services/core/logger.service';
 import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 
+/**
+ * Isolated Playwright builds only. Matches `isPlaywrightBypassRequest` in
+ * `proxy.ts`: trusted env signal AND `__playwright_test=true`. The cookie
+ * alone is not authorization.
+ */
 export const isProtectedBootstrapBypassed = cache(
   async (): Promise<boolean> => {
-    const cookieStore = await cookies();
+    const isPlaywrightTestBuild =
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' ||
+      process.env.PLAYWRIGHT_TEST === 'true';
 
-    return (
-      process.env.PLAYWRIGHT_TEST === 'true' ||
-      cookieStore.get('__playwright_test')?.value === 'true'
-    );
+    if (!isPlaywrightTestBuild) {
+      return false;
+    }
+
+    const cookieStore = await cookies();
+    const hasPlaywrightBypassCookie =
+      cookieStore.get('__playwright_test')?.value === 'true';
+
+    return hasPlaywrightBypassCookie;
   },
 );
 
