@@ -6,8 +6,10 @@
  * `uses: actions/checkout@${{ env.CHECKOUT_VERSION }}` is rejected at workflow
  * parse time — the ref has to be a literal in every file that needs it. There
  * is no `package.json` to read it from and no way to build one: the version
- * lives in 70-odd places by design, and `bun run deps:update`
- * (npm-check-updates) never sees any of them.
+ * lives in 70-odd places by design, and npm-check-updates never sees any of
+ * them. `bun run deps:update` therefore also runs
+ * `scripts/architecture/update-github-action-versions.ts` so package bumps and
+ * Action pins stay on one command.
  *
  * What replaces a single source of truth is a single *rule*: an action pinned
  * by tag resolves to exactly one version across the repository. That needs no

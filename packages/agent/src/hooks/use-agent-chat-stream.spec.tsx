@@ -1,7 +1,10 @@
 'use client';
 
 import { useAgentThreadList } from '@genfeedai/agent/components/useAgentThreadList';
-import { resetAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
+import {
+  getAgentStreamRuntime,
+  resetAgentStreamRuntime,
+} from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -346,6 +349,75 @@ describe('useAgentChatStream', () => {
     });
     expect(refreshListener).not.toHaveBeenCalled();
     window.removeEventListener('agent:threads:refresh', refreshListener);
+  });
+
+  it('does not adopt a stream owned by a different thread', () => {
+    const streamRuntime = getAgentStreamRuntime();
+    const ownedUnsub = vi.fn();
+    streamRuntime.activeStreamThreadRef.current = 'thread-a';
+    streamRuntime.unsubscribersRef.current = [ownedUnsub];
+    streamRuntime.pendingCompletionRef.current = {
+      initiatedAt: 1,
+      preAssistantIds: new Set(),
+      runId: 'run-a',
+      startedAt: '2026-08-16T10:00:00.000Z',
+      threadId: 'thread-a',
+    };
+
+    useAgentChatStore.setState({
+      activeRunId: 'run-a',
+      activeThreadId: 'thread-b',
+      runStartedAt: '2026-08-16T10:00:00.000Z',
+      stream: {
+        activeToolCalls: [],
+        isStreaming: true,
+        pendingUiActions: [],
+        streamingContent: 'partial from A',
+        streamingReasoning: '',
+      },
+    });
+
+    renderHook(() =>
+      useAgentChatStream({
+        apiService: createApiService({}),
+      }),
+    );
+
+    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-a');
+    expect(streamRuntime.pendingCompletionRef.current?.threadId).toBe(
+      'thread-a',
+    );
+    expect(streamRuntime.unsubscribersRef.current).toEqual([ownedUnsub]);
+    expect(socketHandlers.size).toBe(0);
+  });
+
+  it('adopts a live stream when no thread owns it yet', () => {
+    const streamRuntime = getAgentStreamRuntime();
+
+    useAgentChatStore.setState({
+      activeRunId: 'run-orphan',
+      activeThreadId: 'thread-orphan',
+      runStartedAt: '2026-08-16T10:00:00.000Z',
+      stream: {
+        activeToolCalls: [],
+        isStreaming: true,
+        pendingUiActions: [],
+        streamingContent: '',
+        streamingReasoning: '',
+      },
+    });
+
+    renderHook(() =>
+      useAgentChatStream({
+        apiService: createApiService({}),
+      }),
+    );
+
+    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-orphan');
+    expect(streamRuntime.pendingCompletionRef.current?.threadId).toBe(
+      'thread-orphan',
+    );
+    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
   });
 
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {

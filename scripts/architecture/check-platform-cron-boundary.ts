@@ -254,6 +254,13 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
   },
   {
+    file: 'apps/server/workers/src/crons/transcript-purge/cron.transcript-purge.service.ts',
+    id: 'transcript-purge-sweep',
+    methodName: 'purgeExpiredTranscripts',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; #3030 daily wipe of soft-deleted agent transcripts.',
+  },
+  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
     id: 'youtube-status-sweep',
     methodName: 'checkScheduledYoutubeVideos',

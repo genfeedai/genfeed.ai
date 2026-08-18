@@ -190,8 +190,9 @@ the issue.
 2. Make **one focused change**. Aim for **≤ 400 changed lines** excluding
    lockfiles and generated files; split larger work into stacked PRs. This is a
    soft limit — say why when you exceed it.
-3. Sign the [CLA](#contributor-license-agreement) once, when the bot asks on your
-   first PR.
+3. Sign the [CLA](#contributor-license-agreement) once per GitHub account per CLA
+   version, when the bot asks. A newer version applies to future contributions;
+   prior contributions keep prior rights.
 4. Run [focused checks](#focused-verification) for what you changed.
 5. Open the PR against `genfeedai/genfeed.ai:master` and fill in the template.
 
@@ -258,12 +259,13 @@ Material available under a Free Software / Open Source licence
   Have an authorized representative accept it and list the employees who
   contribute on the entity's behalf.
 
-You sign **once per GitHub account, per CLA version**. When you open your first
+You sign **once per GitHub account per CLA version**. When you open your first
 PR the CLA Assistant bot comments with a link; accept it there and the
-`license/cla` check turns green for that PR and every later one. If the CLA text
-ever changes, the bot asks you to accept the new version before your next
-contribution; contributions already accepted stay under the version you signed.
-Commits do not need a `Signed-off-by:` trailer.
+`license/cla` check turns green for that PR and every later one under the same
+version. A newer CLA version applies to future contributions; prior
+contributions keep prior rights. If the CLA text ever changes, the bot asks you
+to accept the new version before your next contribution. Commits do not need a
+`Signed-off-by:` trailer.
 
 ## Focused verification
 

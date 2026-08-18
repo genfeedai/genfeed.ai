@@ -21,6 +21,10 @@ import type {
   ArticleReviewRubric,
 } from '@api/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
+import {
+  assertArticleOwnershipIds,
+  readNonEmptyString,
+} from '@api/collections/articles/utils/article-input-boundary.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -50,13 +54,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -89,31 +87,6 @@ export class ArticlesService extends BaseService<
     private readonly cacheInvalidationService?: CacheInvalidationService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  /**
-   * Assert that the caller-scoping identifiers are all present and non-blank.
-   * Single home for the id-validation triad previously inlined across
-   * createArticle/findOneArticle/update/removeArticle.
-   */
-  private assertArticleOwnershipIds(
-    userId: string,
-    organizationId: string,
-    brandId: string,
-  ): void {
-    if (!userId || userId.trim() === '') {
-      throw new BadRequestException('Invalid userId');
-    }
-    if (!organizationId || organizationId.trim() === '') {
-      throw new BadRequestException('Invalid organizationId');
-    }
-    if (!brandId || brandId.trim() === '') {
-      throw new BadRequestException('Invalid brandId');
-    }
   }
 
   /**
@@ -216,7 +189,7 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} create`, { createArticleDto });
 
-    this.assertArticleOwnershipIds(userId, organizationId, brandId);
+    assertArticleOwnershipIds(userId, organizationId, brandId);
 
     // `tags` is a Tag[] relation, not a scalar column — Prisma create rejects a
     // raw string[] (#2870). Convert tag IDs into a nested `connect` write.
@@ -256,7 +229,7 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} findOne`, { id });
 
-    this.assertArticleOwnershipIds(userId, organizationId, brandId);
+    assertArticleOwnershipIds(userId, organizationId, brandId);
 
     const result = await super.findOne(
       scopedWhere(organizationId, { id, brandId, userId }),
@@ -303,7 +276,7 @@ export class ArticlesService extends BaseService<
         updateArticleDto,
       });
 
-      this.assertArticleOwnershipIds(userId, organizationId, brandId);
+      assertArticleOwnershipIds(userId, organizationId, brandId);
 
       const updateData = ArticleFilterUtil.toArticlePersistenceData({
         ...updateArticleDto,
@@ -447,14 +420,14 @@ export class ArticlesService extends BaseService<
         : undefined;
       // `articles.label` is NOT NULL, so the update result always carries it.
       const articleLabel = String(result.label);
-      const articleSlug = this.readString(result.slug) ?? result.id;
+      const articleSlug = readNonEmptyString(result.slug) ?? result.id;
 
       await this.notificationsService.sendArticleNotification({
-        category: this.readString(result.category),
+        category: readNonEmptyString(result.category),
         label: articleLabel,
         publicUrl,
         slug: articleSlug,
-        summary: this.readString(result.summary),
+        summary: readNonEmptyString(result.summary),
       });
 
       this.logger.log(
@@ -485,7 +458,7 @@ export class ArticlesService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} remove`, { id });
 
-      this.assertArticleOwnershipIds(userId, organizationId, brandId);
+      assertArticleOwnershipIds(userId, organizationId, brandId);
 
       // First verify the article exists and belongs to the user
       const article = await super.findOne(

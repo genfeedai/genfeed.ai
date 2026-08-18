@@ -3,7 +3,7 @@ import {
   mockAnalyticsData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { DashboardPage } from '../../pages/dashboard.page';
+import { ACTIVITY_URL, DashboardPage } from '../../pages/dashboard.page';
 
 const AUTH_SKIP_MSG =
   'Auth mocking did not prevent login redirect — fix Better Auth auth mocking';
@@ -83,7 +83,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToActivities();
-      await expect(authenticatedPage).toHaveURL(/activit/);
+      await expect(authenticatedPage).toHaveURL(ACTIVITY_URL);
     });
 
     test('should navigate to the Studio Edit timeline', async ({

@@ -163,28 +163,7 @@ export class WebSocketGateway
       return;
     }
 
-    // Store client info
-    const clientInfo: ClientInfo = {
-      organizationId,
-      socketId: client.id,
-      userId,
-    };
-
-    this.clients.set(client.id, clientInfo);
-
-    // Track user's sockets (user can have multiple connections)
-    if (!this.userToSocket.has(userId)) {
-      this.userToSocket.set(userId, new Set());
-    }
-    this.userToSocket.get(userId)?.add(client.id);
-
-    // Join user-specific room
-    // Room name uses getUserRoomName for consistency across cloud and self-hosted
-    await client.join(getUserRoomName(userId));
-
-    if (organizationId) {
-      await client.join(`org-${organizationId}`);
-    }
+    await this.bindClientIdentity(client, userId, organizationId);
 
     this.logger.log(`Client ${client.id} connected for user ${userId}`, {
       organizationId,
@@ -228,6 +207,43 @@ export class WebSocketGateway
     }
   }
 
+  private unbindClientMaps(client: Socket, clientInfo: ClientInfo): void {
+    const userSockets = this.userToSocket.get(clientInfo.userId);
+    if (userSockets) {
+      userSockets.delete(client.id);
+      if (userSockets.size === 0) {
+        this.userToSocket.delete(clientInfo.userId);
+      }
+    }
+
+    this.clients.delete(client.id);
+  }
+
+  private async bindClientIdentity(
+    client: Socket,
+    userId: string,
+    organizationId?: string,
+  ): Promise<void> {
+    const clientInfo: ClientInfo = {
+      organizationId,
+      socketId: client.id,
+      userId,
+    };
+
+    this.clients.set(client.id, clientInfo);
+
+    if (!this.userToSocket.has(userId)) {
+      this.userToSocket.set(userId, new Set());
+    }
+    this.userToSocket.get(userId)?.add(client.id);
+
+    await client.join(getUserRoomName(userId));
+
+    if (organizationId) {
+      await client.join(`org-${organizationId}`);
+    }
+  }
+
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
     if (!this.betterAuthVerifier) {
       const configuredUrl = this.configService.get('BETTER_AUTH_URL');
@@ -258,21 +274,12 @@ export class WebSocketGateway
 
     return undefined;
   }
+
   handleDisconnect(client: Socket) {
     const clientInfo = this.clients.get(client.id);
 
     if (clientInfo) {
-      // Remove from user's socket set
-      const userSockets = this.userToSocket.get(clientInfo.userId);
-      if (userSockets) {
-        userSockets.delete(client.id);
-        if (userSockets.size === 0) {
-          this.userToSocket.delete(clientInfo.userId);
-        }
-      }
-
-      // Remove client info
-      this.clients.delete(client.id);
+      this.unbindClientMaps(client, clientInfo);
 
       this.logger.log(
         `Client ${client.id} disconnected for user ${clientInfo.userId}`,

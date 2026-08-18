@@ -1,5 +1,6 @@
 import { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { readNonEmptyString } from '@api/collections/articles/utils/article-input-boundary.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ArticleCategory, ArticleScope, ArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -52,13 +53,13 @@ export class ArticleRemixService {
       category:
         this.normalizeArticleCategory(originalArticle.category) ??
         ArticleCategory.POST,
-      content: this.readString(originalArticle.content),
+      content: readNonEmptyString(originalArticle.content),
       label: remixTitle,
       scope:
         this.normalizeArticleScope(originalArticle.scope) ?? ArticleScope.USER,
       slug: remixSlug,
       status: ArticleStatus.DRAFT,
-      summary: this.readString(originalArticle.summary) ?? '',
+      summary: readNonEmptyString(originalArticle.summary) ?? '',
       tags: this.readStringArray(originalArticle.tags),
     };
 
@@ -73,10 +74,6 @@ export class ArticleRemixService {
       remixArticleId: remixArticle.id,
     });
     return remixArticle;
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private readStringArray(value: unknown): string[] {

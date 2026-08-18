@@ -88,6 +88,33 @@ function assertExactSha(label, sha) {
   }
 }
 
+export async function assertMarketplaceSourceReachable({
+  ghApi,
+  marketplaceRepository = MARKETPLACE_REPOSITORY,
+  marketplaceSourceSha,
+}) {
+  assertExactSha('marketplace source', marketplaceSourceSha);
+
+  const compare = await ghApi(
+    'GET',
+    `repos/${marketplaceRepository}/compare/${marketplaceSourceSha}...master`,
+  );
+  if (compare.status < 200 || compare.status >= 300) {
+    throw new Error(
+      `Could not verify ${marketplaceRepository} source ${marketplaceSourceSha} against master (HTTP ${compare.status || 'unknown'}).`,
+    );
+  }
+
+  const status = compare.json?.status ?? '';
+  if (status !== 'identical' && status !== 'ahead') {
+    throw new Error(
+      `marketplace_source_sha ${marketplaceSourceSha} is not reachable from ${marketplaceRepository} master (compare status: ${status || 'unknown'}).`,
+    );
+  }
+
+  return marketplaceSourceSha;
+}
+
 function requireOk({ status, json }) {
   if (status >= 200 && status < 300) {
     return json;
@@ -105,6 +132,7 @@ export async function preflightAndDispatch({
   consoleRepository = CONSOLE_REPOSITORY,
   consoleWorkflow = CONSOLE_WORKFLOW,
   marketplaceRepository = MARKETPLACE_REPOSITORY,
+  marketplaceSourceSha,
   releaseSha,
   runId,
   runAttempt,
@@ -130,17 +158,24 @@ export async function preflightAndDispatch({
   );
   requireOk(workflow);
 
-  const marketplaceCommit = await ghApi(
-    'GET',
-    `repos/${marketplaceRepository}/commits/master`,
-  );
-  if (marketplaceCommit.status < 200 || marketplaceCommit.status >= 300) {
-    throw new Error(
-      `Could not resolve ${marketplaceRepository} master for the hosted-SaaS handoff (HTTP ${marketplaceCommit.status || 'unknown'}).`,
+  let resolvedMarketplaceSourceSha = marketplaceSourceSha ?? '';
+  if (!resolvedMarketplaceSourceSha) {
+    const marketplaceCommit = await ghApi(
+      'GET',
+      `repos/${marketplaceRepository}/commits/master`,
     );
+    if (marketplaceCommit.status < 200 || marketplaceCommit.status >= 300) {
+      throw new Error(
+        `Could not resolve ${marketplaceRepository} master for the hosted-SaaS handoff (HTTP ${marketplaceCommit.status || 'unknown'}).`,
+      );
+    }
+    resolvedMarketplaceSourceSha = marketplaceCommit.json?.sha ?? '';
   }
-  const marketplaceSourceSha = marketplaceCommit.json?.sha ?? '';
-  assertExactSha('marketplace source', marketplaceSourceSha);
+  await assertMarketplaceSourceReachable({
+    ghApi,
+    marketplaceRepository,
+    marketplaceSourceSha: resolvedMarketplaceSourceSha,
+  });
 
   const dispatch = await ghApi(
     'POST',
@@ -150,14 +185,18 @@ export async function preflightAndDispatch({
       inputs: {
         release_sha: releaseSha,
         source_sha: releaseSha,
-        marketplace_source_sha: marketplaceSourceSha,
+        marketplace_source_sha: resolvedMarketplaceSourceSha,
         correlation_id: correlationId,
       },
     },
   );
   requireOk(dispatch);
 
-  return { correlationId, expectedTitle, marketplaceSourceSha };
+  return {
+    correlationId,
+    expectedTitle,
+    marketplaceSourceSha: resolvedMarketplaceSourceSha,
+  };
 }
 
 function githubApiErrorMessage(stderr, stdout) {
@@ -228,6 +267,7 @@ export async function runCli({
       consoleWorkflow: env.CONSOLE_WORKFLOW ?? CONSOLE_WORKFLOW,
       marketplaceRepository:
         env.MARKETPLACE_REPOSITORY ?? MARKETPLACE_REPOSITORY,
+      marketplaceSourceSha: env.MARKETPLACE_SOURCE_SHA ?? '',
       releaseSha: env.RELEASE_SHA ?? '',
       runId: env.GITHUB_RUN_ID ?? '0',
       runAttempt: env.GITHUB_RUN_ATTEMPT ?? '1',

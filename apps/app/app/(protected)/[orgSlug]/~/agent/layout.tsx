@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AgentConversationRouteHost } from './AgentConversationRouteHost';
+import AgentConversationRouteHost from './AgentConversationRouteHost';
 
 // The conversation lives in the layout so it survives `/agent/[id]` changes;
 // the pages below only carry route intent (reset, malformed-id redirect).

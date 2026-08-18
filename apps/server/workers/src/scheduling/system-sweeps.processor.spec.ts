@@ -6,6 +6,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
+import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { SYSTEM_SWEEP_JOBS } from '@workers/scheduling/system-sweeps.constants';
 import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.processor';
@@ -24,6 +25,9 @@ describe('SystemSweepsProcessor', () => {
   };
   let streaksService: { processStreaks: ReturnType<typeof vi.fn> };
   let tiktokService: { checkPendingTiktokPosts: ReturnType<typeof vi.fn> };
+  let transcriptPurgeService: {
+    purgeExpiredTranscripts: ReturnType<typeof vi.fn>;
+  };
   let youtubeService: { checkScheduledYoutubeVideos: ReturnType<typeof vi.fn> };
   let configService: { isDevSchedulersEnabled: boolean };
   let logger: {
@@ -44,6 +48,7 @@ describe('SystemSweepsProcessor', () => {
     reviewGateService = { resolveTimedOutReviewGates: vi.fn() };
     streaksService = { processStreaks: vi.fn() };
     tiktokService = { checkPendingTiktokPosts: vi.fn() };
+    transcriptPurgeService = { purgeExpiredTranscripts: vi.fn() };
     youtubeService = { checkScheduledYoutubeVideos: vi.fn() };
     configService = { isDevSchedulersEnabled: true };
     logger = { debug: vi.fn(), warn: vi.fn() };
@@ -63,6 +68,10 @@ describe('SystemSweepsProcessor', () => {
         },
         { provide: CronStreaksService, useValue: streaksService },
         { provide: CronTiktokStatusService, useValue: tiktokService },
+        {
+          provide: CronTranscriptPurgeService,
+          useValue: transcriptPurgeService,
+        },
         { provide: CronYoutubeStatusService, useValue: youtubeService },
         { provide: LoggerService, useValue: logger },
       ],
@@ -116,6 +125,14 @@ describe('SystemSweepsProcessor', () => {
 
     expect(
       batchGenerationService.reconcileSettlementShortfalls,
+    ).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the transcript purge sweep', async () => {
+    await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.TRANSCRIPT_PURGE));
+
+    expect(
+      transcriptPurgeService.purgeExpiredTranscripts,
     ).toHaveBeenCalledOnce();
   });
 

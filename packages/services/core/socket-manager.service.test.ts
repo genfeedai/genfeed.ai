@@ -5,6 +5,7 @@ const mockSocketOn = vi.fn();
 const mockSocketOff = vi.fn();
 const mockSocketConnect = vi.fn();
 const mockSocketDisconnect = vi.fn();
+const mockSocketEmit = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
 const mockManagerOn = vi.fn();
 const mockManagerOff = vi.fn();
@@ -21,8 +22,10 @@ vi.mock('socket.io-client', () => ({
       return socketState.connected;
     },
     disconnect: mockSocketDisconnect,
+    emit: mockSocketEmit,
     id: 'mock-socket-id',
     io: {
+      engine: { close: vi.fn() },
       off: mockManagerOff,
       on: mockManagerOn,
       opts: {},
