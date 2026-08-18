@@ -1,6 +1,9 @@
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
-import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
+import {
+  getToolDefinitionByName,
+  getToolDefinitions,
+} from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolByName, getToolsForSurface } from '@genfeedai/tools';
 
@@ -51,6 +54,33 @@ describe('agent-tool-registry', () => {
       .sort((a, b) => a.localeCompare(b));
 
     expect(shipped).toEqual(curated);
+  });
+
+  it('should preserve representative core and ads extension schemas', () => {
+    expect(getToolDefinitionByName(AgentToolName.CREATE_POST)).toMatchObject({
+      creditCost: 0,
+      parameters: {
+        properties: {
+          confirmed: { type: 'boolean' },
+          platforms: { items: { type: 'string' }, type: 'array' },
+        },
+        type: 'object',
+      },
+    });
+    expect(
+      getToolDefinitionByName(AgentToolName.LIST_ADS_RESEARCH),
+    ).toMatchObject({
+      creditCost: 0,
+      parameters: {
+        properties: {
+          source: {
+            enum: ['public', 'my_accounts', 'all'],
+            type: 'string',
+          },
+        },
+        type: 'object',
+      },
+    });
   });
 
   it('should ship the previously uncataloged cloud tools from the catalog', () => {
