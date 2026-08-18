@@ -22,8 +22,10 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: subscriptions.exports,
   imports: [
     ...(subscriptions.imports ?? []),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CustomersModule),
+    CreditsModule,
+    CustomersModule,
+    // These two already import SubscriptionsModule. Keep the ring on
+    // forwardRef so Nest can resolve it; do not wrap one-way imports.
     forwardRef(() => OrganizationsModule),
     forwardRef(() => StripeModule),
   ],

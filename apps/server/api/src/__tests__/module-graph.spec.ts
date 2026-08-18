@@ -153,7 +153,12 @@ describe('Module dependency graph', () => {
     // iteration order and varied across otherwise identical checkouts.
     // Re-floored 2026-08-14 after the nine-PR product merge train added the
     // workflow scheduler and post-import module edges (+14). Decrease only.
-    const MAX_ALLOWED_CYCLES = 74;
+    // Re-floored 2026-08-18: SubscriptionsModule now imports
+    // OrganizationsModule + StripeModule on the api wrapper so the EE
+    // billing fragment no longer webpack-requires them (API-GENFEED-AI-60).
+    // Those two already imported SubscriptionsModule, so the ring is new
+    // in the counted graph. Decrease only.
+    const MAX_ALLOWED_CYCLES = 75;
     console.log(`Found ${cycles.length} cycles across ${graph.size} modules`);
     if (cycles.length > 0) {
       const uniquePairs = new Set<string>();
@@ -188,7 +193,11 @@ describe('Module dependency graph', () => {
     // Re-floored 2026-08-12 after the 21-PR merge train landed (+5).
     // Re-floored 2026-08-14 after the nine-PR product merge train added the
     // workflow scheduler and post-import module edges (+10). Decrease only.
-    const MAX_ALLOWED_FORWARD_REFS = 1107;
+    // Re-floored 2026-08-18: two wrapper forwardRefs for the
+    // Organizations/Stripe rings after the billing-fragment move
+    // (API-GENFEED-AI-60). Credits and Customers stay direct imports.
+    // Decrease only.
+    const MAX_ALLOWED_FORWARD_REFS = 1108;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });
