@@ -893,7 +893,7 @@ jobs:
         timeout-minutes: 20
         continue-on-error: true
         run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
+          BASE="$CI_BASE_SHA"
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
             --shard=${{ matrix.shard }}/${{ matrix.total }} \
@@ -949,7 +949,7 @@ jobs:
         timeout-minutes: 20
         continue-on-error: true
         run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
+          BASE="$CI_BASE_SHA"
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
             --shard=${{ matrix.shard }}/${{ matrix.total }} \
@@ -1017,7 +1017,7 @@ jobs:
         shell: bash
         run: |
           node scripts/ci/changed-code-coverage.mjs \
-            --base "${{ github.event.pull_request.base.sha }}" \
+            --base "$CI_BASE_SHA" \
             --head HEAD \
             --surface "app=${APP_RESULT}=.changed-coverage/app" \
             --surface "api=${API_RESULT}=.changed-coverage/api" \
