@@ -15,7 +15,6 @@ import {
   buildStalledJobLogContext,
   extractBullMqNamedEvents,
   MAX_STALLED_JOB_IDS,
-  resolveWorkerIdentity,
   STALLED_JOB_LOG_MESSAGE,
 } from '@workers/monitoring/queue-stall';
 import { Queue } from 'bullmq';
@@ -58,7 +57,6 @@ interface AggregateQueueSnapshot {
 export class QueueMetricsService implements OnModuleDestroy {
   private readonly cloudWatch: CloudWatchClient;
   private readonly context = { service: QueueMetricsService.name };
-  private readonly workerIdentity = resolveWorkerIdentity();
   private collecting = false;
   private queues: Queue[] = [];
 
@@ -313,7 +311,6 @@ export class QueueMetricsService implements OnModuleDestroy {
           queueName,
           service: this.context.service,
           stalledEvents,
-          worker: this.workerIdentity,
         }),
       );
       return;
@@ -326,7 +323,6 @@ export class QueueMetricsService implements OnModuleDestroy {
           jobId,
           queueName,
           service: this.context.service,
-          worker: this.workerIdentity,
         }),
       );
     }

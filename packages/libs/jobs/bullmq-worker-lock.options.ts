@@ -2,11 +2,15 @@
  * BullMQ worker lock defaults for multi-minute processors.
  *
  * Library defaults are lockDuration=30s, stalledInterval=30s, maxStalledCount=1.
- * Long jobs (agent-run, workflow execution, clip/video pipelines, generation)
+ * Long workers-service jobs (agent-run, workflow execution, clip/generation)
  * routinely exceed 30s. Locks renew while the event loop is healthy; a 30s
  * lease still stalls when renewal is delayed by event-loop pressure or a brief
  * Redis blip. A 2-minute lease plus maxStalledCount=2 absorbs one deploy-time
  * stall without hiding a dead worker (stalledInterval stays 30s).
+ *
+ * Do not apply this preset on the files service. `setupGracefulShutdown()`
+ * still `process.exit(0)` on SIGTERM, so a longer lock does not drain or
+ * extend leases there.
  */
 export const BULLMQ_LONG_JOB_LOCK_DURATION_MS = 120_000;
 export const BULLMQ_LONG_JOB_LOCK_RENEW_TIME_MS = 30_000;

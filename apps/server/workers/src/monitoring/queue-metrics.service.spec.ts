@@ -408,9 +408,20 @@ describe('QueueMetricsService', () => {
       expect.objectContaining({
         jobId: 'job-stalled-1',
         queueName: 'default',
-        worker: expect.stringMatching(/:\d+$/),
       }),
     );
+    const stallContexts = mockLogger.warn.mock.calls
+      .filter((call) => call[0] === 'BullMQ job stalled')
+      .map((call) => call[1]);
+    expect(stallContexts.length).toBeGreaterThan(0);
+    expect(
+      stallContexts.every(
+        (context) =>
+          context !== null &&
+          typeof context === 'object' &&
+          !Object.hasOwn(context, 'worker'),
+      ),
+    ).toBe(true);
     expect(
       mockLogger.warn.mock.calls.some((call) =>
         JSON.stringify(call).includes('must-not-leak'),

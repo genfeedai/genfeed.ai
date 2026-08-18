@@ -18,9 +18,10 @@ sum includes every workers queue **and** the files-owned queues
 When it fires, identify the queue in this order:
 
 1. **Worker logs** in the same 5-minute window. Search for
-   `BullMQ job stalled`. Each line includes `queueName`, `jobId`, and
-   `worker` (`HOSTNAME:pid`). Job payloads, tenant data, and secrets are
-   never logged.
+   `BullMQ job stalled`. Each line includes `queueName` and `jobId`.
+   That collector process is not the processing worker; do not treat a
+   hostname or pid on the metrics replica as the job owner. Job payloads,
+   tenant data, and secrets are never logged.
 2. **Per-queue CloudWatch series.** `StalledJobs5m` is also published with
    dimensions `Service=workers` **and** `Queue=<queue-name>` when that queue
    recorded at least one stall in the window.
@@ -34,8 +35,9 @@ jobs on one queue.
 ### Recurring 2026-08-16..18 stalls (#3065)
 
 Observed: 3 stalled jobs on 2026-08-16, 2 on 2026-08-17, 2 on 2026-08-18.
-The alarm recovered to OK each time. This lane could not query CloudWatch;
-the hypothesis below is from repo evidence.
+The alarm recovered to OK each time. CloudWatch correlation is still
+open — this lane could not query the alarm timestamps or name the
+affected queues.
 
 **Verified from code**
 
@@ -47,32 +49,27 @@ the hypothesis below is from repo evidence.
   `video-processing` / `youtube-processing`) can exceed a 30s lock. Locks
   renew while the event loop is healthy; a 30s lease still stalls when
   renewal is delayed by event-loop pressure or a brief Redis blip.
-- Workers do graceful `SIGTERM` → `app.close()`. If the platform stop
-  timeout is shorter than an active long job, the process is killed and
-  BullMQ marks those jobs stalled, then redelivers them. That matches a
-  small daily count that recovers without a backlog.
+- Workers do `SIGTERM` → `app.close()`. Files does not: `setupGracefulShutdown()`
+  logs and `process.exit(0)` immediately, so Nest/BullMQ never drain.
+  A longer files lock would not remediate those deploy stalls.
 - Stall telemetry was aggregate-only. Snapshots dropped `stalledEvents`,
   so operators could not name the queue from the alarm.
 
-**Hypothesis.** The daily 2–3 recovered stalls are almost certainly
-worker replacement (deploy / ECS recycle / SIGKILL after stop timeout)
-or a short lock-renewal gap on a long job — not a permanently hung
-processor. A hung job would stay active or fail, not recover the alarm
-on its own.
+**Open follow-up (not claimed as root cause).** If the next named-queue
+window lines up with an ECS workers/files task replacement, raise the
+service stop timeout. Files also needs a Nest/BullMQ drain before any
+lock-duration change there. If the timestamps do not line up, inspect
+the processor named by `queueName` + `jobId`.
 
-**Code mitigation shipped for #3065**
+**Observability shipped (Part of #3065)**
 
-- Long-job workers now use a 120s lock, 30s renew/stall check, and
-  `maxStalledCount=2`.
-- Each stall is logged with queue, job id, and worker identity.
+- Each stall is logged with `queueName` and `jobId` only. No processing
+  worker identity is invented from the metrics collector replica.
 - Per-queue `StalledJobs5m` and Redis `stalledJobIds` identify the
   affected queue on the next alarm.
-
-**Next check if it recurs.** Correlate the alarm timestamp with an ECS
-workers/files task replacement. If they line up, raise the service stop
-timeout above the longest in-flight job instead of raising lock duration
-again. If they do not line up, use the new `queueName` + `jobId` logs to
-inspect that processor's completion path.
+- Workers-service long jobs use a 120s lock, 30s renew/stall check, and
+  `maxStalledCount=2`. Files queues stay on BullMQ defaults until a drain
+  + ECS stop-timeout follow-up lands.
 
 Before deleting queue data:
 

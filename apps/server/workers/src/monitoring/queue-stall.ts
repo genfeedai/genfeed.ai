@@ -1,6 +1,3 @@
-import { hostname } from 'node:os';
-import process from 'node:process';
-
 export const STALLED_JOB_LOG_MESSAGE = 'BullMQ job stalled';
 export const MAX_STALLED_JOB_IDS = 20;
 
@@ -14,16 +11,6 @@ export interface StalledJobLogContext {
   queueName: string;
   service: string;
   stalledEvents?: number;
-  worker: string;
-}
-
-export function resolveWorkerIdentity(
-  env: NodeJS.ProcessEnv = process.env,
-  host = hostname(),
-  pid = process.pid,
-): string {
-  const workerHost = env.HOSTNAME?.trim() || host;
-  return `${workerHost}:${pid}`;
 }
 
 export function extractBullMqNamedEvents(
@@ -67,7 +54,6 @@ export function buildStalledJobLogContext(input: {
   queueName: string;
   service: string;
   stalledEvents?: number;
-  worker: string;
 }): StalledJobLogContext {
   return {
     ...(input.jobId ? { jobId: input.jobId } : {}),
@@ -76,6 +62,5 @@ export function buildStalledJobLogContext(input: {
       : {}),
     queueName: input.queueName,
     service: input.service,
-    worker: input.worker,
   };
 }

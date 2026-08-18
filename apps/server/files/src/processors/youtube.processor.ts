@@ -9,7 +9,6 @@ import {
   JobResult,
   YoutubeJobData as YoutubeUploadJobData,
 } from '@files/shared/interfaces/job.interface';
-import { BULLMQ_LONG_JOB_WORKER_OPTIONS } from '@libs/jobs/bullmq-worker-lock.options';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -45,7 +44,7 @@ interface YoutubeMetadata {
   tags?: string[];
 }
 
-@Processor(QUEUE_NAMES.YOUTUBE_PROCESSING, BULLMQ_LONG_JOB_WORKER_OPTIONS)
+@Processor(QUEUE_NAMES.YOUTUBE_PROCESSING)
 export class YoutubeProcessor extends WorkerHost {
   private readonly logger = new Logger(YoutubeProcessor.name);
 
