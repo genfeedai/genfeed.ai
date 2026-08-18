@@ -13,10 +13,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [OutreachCampaignsController],
   exports: [OutreachCampaignsService],
-  imports: [
-    forwardRef(() => CampaignModule),
-    forwardRef(() => CampaignTargetsModule),
-  ],
+  imports: [forwardRef(() => CampaignModule), CampaignTargetsModule],
   providers: [OutreachCampaignsService],
 })
 export class OutreachCampaignsModule {}

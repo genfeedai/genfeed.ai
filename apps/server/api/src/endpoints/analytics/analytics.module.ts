@@ -4,7 +4,7 @@
  * and export functionality.
  */
 import { BotsModule } from '@api/collections/bots/bots.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -21,7 +21,7 @@ import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leader
 import { CacheModule } from '@api/services/cache/cache.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
-import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
@@ -32,17 +32,17 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AnalyticsService],
   imports: [
     // Core modules
-    forwardRef(() => CacheModule),
+    CacheModule,
 
     // Data modules (needed for controller and service)
-    forwardRef(() => BotsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => ModelsModule),
+    BotsModule,
+    BrandsCoreModule,
+    CreditsModule,
+    IngredientsModule,
+    ModelsModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
-    forwardRef(() => SubscriptionsModule),
+    SubscriptionsModule,
     forwardRef(() => UsersModule),
     forwardRef(() => WorkflowsModule),
 
@@ -50,8 +50,9 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => InstagramModule),
     forwardRef(() => PinterestModule),
     // Stripe is read-only here: BusinessAnalyticsService prefers real charge
-    // data for revenue when a Stripe client is configured.
-    forwardRef(() => StripeModule),
+    // data for revenue when a Stripe client is configured. Use the leaf
+    // client module so analytics does not close a StripeModule ring.
+    StripeCoreModule,
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),

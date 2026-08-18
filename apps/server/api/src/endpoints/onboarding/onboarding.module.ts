@@ -21,29 +21,29 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [OnboardingController],
   exports: [OnboardingService],
   imports: [
-    forwardRef(() => BatchGenerationModule),
-    forwardRef(() => BrandScraperModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => ComfyUIModule),
-    forwardRef(() => CommonModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => LinksModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PostsModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => RolesModule),
-    forwardRef(() => UserSetupModule),
-    forwardRef(() => UsersModule),
+    BatchGenerationModule,
+    BrandScraperModule,
+    BrandsModule,
+    ComfyUIModule,
+    CommonModule,
+    CreditsModule,
+    FilesClientModule,
+    LinksModule,
+    MembersModule,
+    ModelsModule,
+    OrganizationSettingsModule,
+    OrganizationsModule,
+    PostsModule,
+    ReplicateModule,
+    RolesModule,
+    UserSetupModule,
+    UsersModule,
   ],
   providers: [
     OnboardingService,

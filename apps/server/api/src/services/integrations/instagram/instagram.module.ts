@@ -10,9 +10,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(InstagramService, {
   additionalImports: [
-    forwardRef(() => HttpModule),
+    HttpModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
   ],
 });
 

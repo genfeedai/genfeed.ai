@@ -15,9 +15,9 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AgentThreadsModule),
-    forwardRef(() => QueuesModule),
+    QueuesModule,
     forwardRef(() => AgentThreadingModule),
-    forwardRef(() => LoggerModule),
+    LoggerModule,
   ],
   providers: [AgentRuntimeService],
 })

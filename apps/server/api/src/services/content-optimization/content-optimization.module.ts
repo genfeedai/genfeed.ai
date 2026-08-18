@@ -14,11 +14,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [ContentOptimizationController],
   exports: [ContentOptimizationService, ContentOptimizationQueueService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => BrandMemoryModule),
+    ConfigModule,
+    LoggerModule,
+    BrandMemoryModule,
     forwardRef(() => ContentPerformanceModule),
-    forwardRef(() => OpenAiLlmModule),
+    OpenAiLlmModule,
     forwardRef(() => TrendsModule),
     BullModule.registerQueue({
       defaultJobOptions: {

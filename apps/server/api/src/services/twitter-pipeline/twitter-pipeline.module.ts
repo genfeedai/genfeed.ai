@@ -6,17 +6,17 @@ import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { TwitterPipelineController } from '@api/services/twitter-pipeline/twitter-pipeline.controller';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [TwitterPipelineController],
   exports: [TwitterPipelineService],
   imports: [
-    forwardRef(() => CredentialsCoreModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => ReplyBotModule),
-    forwardRef(() => TwitterModule),
+    CredentialsCoreModule,
+    LoggerModule,
+    OpenRouterModule,
+    ReplyBotModule,
+    TwitterModule,
   ],
   providers: [TwitterPipelineService, SystemWorkflowProvenanceService],
 })

@@ -22,7 +22,7 @@ import { NewsletterImportFeedService } from '@api/endpoints/public/services/news
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -39,17 +39,17 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [],
   imports: [
-    forwardRef(() => ArticlesModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => ImagesModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => LinksModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => MusicsModule),
+    ArticlesModule,
+    BrandsModule,
+    FilesClientModule,
+    ImagesModule,
+    IngredientsModule,
+    LinksModule,
+    ModelsModule,
+    MusicsModule,
     NewslettersModule,
-    forwardRef(() => PostsModule),
-    forwardRef(() => VideosModule),
+    PostsModule,
+    VideosModule,
   ],
   providers: [NewsletterImportFeedService, PublicMediaService, RssService],
 })

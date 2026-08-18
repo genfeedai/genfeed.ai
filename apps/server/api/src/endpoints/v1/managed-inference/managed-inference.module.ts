@@ -11,22 +11,22 @@ import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.modu
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ManagedInferenceController],
   exports: [ManagedInferenceClientService],
   imports: [
-    forwardRef(() => ApiKeysModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => FalModule),
-    forwardRef(() => FleetModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => LeonardoAIModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => PollUntilModule),
-    forwardRef(() => ReplicateModule),
+    ApiKeysModule,
+    ConfigModule,
+    CreditsModule,
+    FalModule,
+    FleetModule,
+    HttpModule,
+    LeonardoAIModule,
+    LoggerModule,
+    PollUntilModule,
+    ReplicateModule,
   ],
   providers: [ManagedInferenceClientService, ManagedInferenceService],
 })

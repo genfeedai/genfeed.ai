@@ -13,19 +13,19 @@ import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.c
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [TelegramBotController],
   exports: [TelegramBotService],
   imports: [
-    forwardRef(() => ApiKeysModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => FalModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => RunsModule),
+    ApiKeysModule,
+    ConfigModule,
+    FalModule,
+    FilesClientModule,
+    LoggerModule,
+    ReplicateModule,
+    RunsModule,
   ],
   providers: [TelegramBotService],
 })

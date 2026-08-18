@@ -5,14 +5,10 @@ import { GoogleSearchConsoleService } from '@api/services/integrations/google-se
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(GoogleSearchConsoleService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
   additionalProviders: [GoogleSearchConsoleOAuthService],
 });
 

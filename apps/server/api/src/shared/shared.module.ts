@@ -5,13 +5,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
-import {
-  forwardRef,
-  Global,
-  Injectable,
-  Module,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Global, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
 @Injectable()
@@ -43,18 +37,18 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
 @Global()
 @Module({
   exports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => NotificationsPublisherModule),
+    ConfigModule,
+    HttpModule,
+    MembersModule,
+    NotificationsPublisherModule,
     SharedService,
     TaskQueueClientService,
   ],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => NotificationsPublisherModule),
+    ConfigModule,
+    HttpModule,
+    MembersModule,
+    NotificationsPublisherModule,
   ],
   providers: [
     AxiosErrorInterceptorSetup,

@@ -4,7 +4,7 @@ import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.mo
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * Consumer half of signup prefill — the actual scrape → analyze → persist →
@@ -16,8 +16,8 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     LoggerModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => BrandScraperModule),
+    BrandsModule,
+    BrandScraperModule,
     HarnessProfilesModule,
   ],
   providers: [SignupPrefillService],

@@ -22,15 +22,14 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [StripeCoreModule, ManagedStripeCheckoutService],
   imports: [
     StripeCoreModule,
-    forwardRef(() => CreditsModule),
-    // Customers and UserSubscriptions import nothing back; plain imports.
+    CreditsModule,
     CustomersModule,
-    forwardRef(() => MembersModule),
+    MembersModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => SubscriptionsModule),
     UserSubscriptionsModule,
     forwardRef(() => UsersModule),
-    forwardRef(() => LifecycleEmailsModule),
+    LifecycleEmailsModule,
   ],
   providers: [ManagedStripeCheckoutService],
 })

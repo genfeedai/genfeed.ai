@@ -5,7 +5,7 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * This module is a leaf that most of the graph imports, so it must not reach
@@ -21,7 +21,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CredentialPublishingReadinessService,
     CredentialsService,
   ],
-  imports: [forwardRef(() => FilesClientModule), PublishingProviderSetupModule],
+  imports: [FilesClientModule, PublishingProviderSetupModule],
   providers: [
     AccountHealthService,
     AccountPublishingContextService,

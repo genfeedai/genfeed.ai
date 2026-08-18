@@ -10,12 +10,12 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [TelegramDistributionService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => CredentialsCoreModule),
+    ConfigModule,
+    HttpModule,
+    LoggerModule,
+    CredentialsCoreModule,
     forwardRef(() => DistributionsModule),
-    forwardRef(() => QueuesModule),
+    QueuesModule,
   ],
   providers: [TelegramDistributionService],
 })

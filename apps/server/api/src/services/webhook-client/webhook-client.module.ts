@@ -34,8 +34,8 @@ export const WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS = {
     WorkflowEventWebhookService,
   ],
   imports: [
-    forwardRef(() => HttpModule),
-    forwardRef(() => OrganizationSettingsModule),
+    HttpModule,
+    OrganizationSettingsModule,
     forwardRef(() => PostsModule),
     BullModule.registerQueue({
       defaultJobOptions: WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS,

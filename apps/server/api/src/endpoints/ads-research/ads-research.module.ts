@@ -11,9 +11,9 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [AdsResearchController],
   exports: [AdsResearchService],
   imports: [
-    forwardRef(() => AdPerformanceModule),
-    forwardRef(() => CreativePatternsModule),
-    forwardRef(() => CredentialsCoreModule),
+    AdPerformanceModule,
+    CreativePatternsModule,
+    CredentialsCoreModule,
     forwardRef(() => AdsGatewayModule),
     forwardRef(() => WorkflowsModule),
   ],

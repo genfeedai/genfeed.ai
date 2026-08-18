@@ -2,7 +2,7 @@
  * ClipProjectsCoreModule
  *
  * Minimal module providing ClipProjectsService + schema registration only.
- * Intentionally has NO dependency on ClipAnalyzeModule or forwardRef(() => ClipFactoryModule),
+ * Intentionally has NO dependency on ClipAnalyzeModule or ClipFactoryModule,
  * allowing queue modules to import it without creating circular references.
  *
  * ClipProjectsModule re-exports everything from here and adds the queue modules.
@@ -24,7 +24,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -38,14 +38,14 @@ import { forwardRef, Module } from '@nestjs/common';
     RawCutClipService,
   ],
   imports: [
-    forwardRef(() => CaptionsModule),
-    forwardRef(() => ClipResultsModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => AvatarVideoModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => FileQueueModule),
+    CaptionsModule,
+    ClipResultsModule,
+    CreditsModule,
+    IngredientsModule,
+    MetadataModule,
+    AvatarVideoModule,
+    OpenRouterModule,
+    FileQueueModule,
   ],
   providers: [
     ClipProjectsService,

@@ -14,11 +14,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [NewslettersController],
   exports: [NewslettersService],
-  imports: [
-    forwardRef(() => BrandsModule),
-    LoggerModule,
-    forwardRef(() => OpenRouterModule),
-  ],
+  imports: [forwardRef(() => BrandsModule), LoggerModule, OpenRouterModule],
   providers: [
     AgentArtifactReferenceService,
     NewslettersService,

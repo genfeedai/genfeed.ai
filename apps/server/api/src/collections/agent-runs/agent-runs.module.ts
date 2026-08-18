@@ -25,10 +25,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ThreadRunsController,
   ],
   exports: [AgentRunsService],
-  imports: [
-    forwardRef(() => AgentThreadingModule),
-    forwardRef(() => QueuesModule),
-  ],
+  imports: [forwardRef(() => AgentThreadingModule), QueuesModule],
   providers: [
     AgentArtifactReferenceService,
     AgentRunsOperationsService,

@@ -115,6 +115,34 @@ function findCycles(graph: Map<string, ModuleNode>): string[][] {
   return cycles;
 }
 
+function canReach(
+  graph: Map<string, ModuleNode>,
+  from: string,
+  target: string,
+): boolean {
+  const seen = new Set<string>();
+  const stack = [from];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (node === undefined) {
+      break;
+    }
+    if (node === target) {
+      return true;
+    }
+    if (seen.has(node)) {
+      continue;
+    }
+    seen.add(node);
+    for (const dep of graph.get(node)?.imports ?? []) {
+      if (graph.has(dep)) {
+        stack.push(dep);
+      }
+    }
+  }
+  return false;
+}
+
 function countForwardRefs(): number {
   const files = walkModuleFiles(SRC_ROOT);
   let count = 0;
@@ -189,14 +217,29 @@ describe('Module dependency graph', () => {
     // Re-floored 2026-08-08 after the merge train landed (+3). Decrease only.
     // Re-floored 2026-08-09 after the publish/posts batch reached master (+4).
     // Re-floored 2026-08-12 after the 21-PR merge train landed (+5).
-    // Re-floored 2026-08-14 after the nine-PR product merge train added the
-    // workflow scheduler and post-import module edges (+10). Decrease only.
-    // 2026-08-18 (#3091): the billing modules moved into the api tree (+4) and
-    // the Subscriptions/Stripe imports that had no cycle behind them dropped
-    // their forwardRef wrappers (-4); pinned exact at 1106.
-    const MAX_ALLOWED_FORWARD_REFS = 1106;
+    // Target is zero. 2026-08-18 stripped 908 one-way wrappers that did not
+    // sit on a cycle. The remaining 198 are only edges that still close a
+    // ring. Do not raise this. Split the ring (core module / ModuleRef)
+    // instead of wrapping a one-way import.
+    const MAX_ALLOWED_FORWARD_REFS = 198;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
+  });
+
+  it('must not wrap a one-way import in forwardRef', () => {
+    const cargo: string[] = [];
+    for (const [name, node] of graph) {
+      const content = readFileSync(node.filePath, 'utf-8');
+      for (const match of content.matchAll(
+        /forwardRef\(\(\)\s*=>\s*(\w+)\)/g,
+      )) {
+        const target = match[1];
+        if (!canReach(graph, target, name)) {
+          cargo.push(`${name} -> ${target}`);
+        }
+      }
+    }
+    expect(cargo).toEqual([]);
   });
 
   it('leaf modules must not take part in any dependency cycle', () => {

@@ -4,11 +4,11 @@ import { ArgilService } from '@api/services/integrations/argil/services/argil.se
 import { ArgilWebhookTokenService } from '@api/services/integrations/argil/services/argil-webhook-token.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ArgilService, {
   additionalExports: [ArgilWebhookTokenService],
-  additionalImports: [HttpModule, forwardRef(() => ByokModule)],
+  additionalImports: [HttpModule, ByokModule],
   additionalProviders: [ArgilWebhookTokenService],
 });
 

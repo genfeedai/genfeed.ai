@@ -7,7 +7,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [SkillsController],
   exports: [SkillsService],
-  imports: [forwardRef(() => BrandsModule), forwardRef(() => ByokModule)],
+  imports: [forwardRef(() => BrandsModule), ByokModule],
   providers: [SkillsService],
 })
 export class SkillsModule {}

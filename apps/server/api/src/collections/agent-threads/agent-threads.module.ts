@@ -16,10 +16,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [AgentThreadsController],
   exports: [AgentScopeContextService, AgentThreadsService],
-  imports: [
-    forwardRef(() => AgentMessagesModule),
-    forwardRef(() => UsersModule),
-  ],
+  imports: [AgentMessagesModule, forwardRef(() => UsersModule)],
   providers: [
     AgentThreadsService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },

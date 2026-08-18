@@ -15,12 +15,12 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [AdsGatewayController],
   exports: [AdsGatewayService],
   imports: [
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
     forwardRef(() => MetaAdsModule),
     forwardRef(() => GoogleAdsModule),
-    forwardRef(() => TikTokAdsModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
+    TikTokAdsModule,
+    ConfigModule,
+    LoggerModule,
   ],
   providers: [
     AdsGatewayService,

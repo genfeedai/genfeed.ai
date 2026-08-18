@@ -42,11 +42,11 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => AgentContextAssemblyModule),
-    forwardRef(() => ApifyModule),
+    ApifyModule,
     forwardRef(() => ContentPerformanceModule),
-    forwardRef(() => ContentHarnessModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => OpenRouterModule),
+    ContentHarnessModule,
+    HttpModule,
+    OpenRouterModule,
     forwardRef(() => PersonasModule),
   ],
   providers: [

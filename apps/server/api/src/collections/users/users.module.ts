@@ -20,12 +20,12 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [UsersService],
   imports: [
     forwardRef(() => BrandsModule),
-    forwardRef(() => CommonModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => MembersModule),
+    CommonModule,
+    FilesClientModule,
+    MembersModule,
     forwardRef(() => OrganizationsModule),
-    forwardRef(() => SettingsModule),
-    forwardRef(() => SubscriptionsModule),
+    SettingsModule,
+    SubscriptionsModule,
   ],
   providers: [UsersService],
 })

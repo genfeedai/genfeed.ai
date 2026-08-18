@@ -4,12 +4,12 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [NotificationsPublisherService],
   imports: [
-    forwardRef(() => NotificationsModule),
+    NotificationsModule,
     RedisModule.forRoot({
       configModule: ConfigModule,
       configService: ConfigService,

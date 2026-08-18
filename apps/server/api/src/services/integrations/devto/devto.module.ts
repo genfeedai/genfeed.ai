@@ -5,14 +5,14 @@ import { DevtoController } from '@api/services/integrations/devto/controllers/de
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(DevtoService, {
   additionalImports: [
     HttpModule,
-    forwardRef(() => ArticlesModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    ArticlesModule,
+    BrandsModule,
+    CredentialsCoreModule,
   ],
 });
 

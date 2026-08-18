@@ -11,21 +11,21 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AiInfluencerController],
   exports: [AiInfluencerService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => PersonasModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => FalModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => PersonaContentModule),
+    ConfigModule,
+    LoggerModule,
+    PersonasModule,
+    IngredientsModule,
+    FalModule,
+    OpenRouterModule,
+    InstagramModule,
+    TwitterModule,
+    PersonaContentModule,
   ],
   providers: [AiInfluencerService, IpWhitelistGuard, SuperAdminGuard],
 })

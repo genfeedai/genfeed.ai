@@ -9,10 +9,10 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(LinkedInService, {
   additionalImports: [
-    forwardRef(() => HttpModule),
-    forwardRef(() => BrandScraperModule),
+    HttpModule,
+    BrandScraperModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
   ],
 });
 

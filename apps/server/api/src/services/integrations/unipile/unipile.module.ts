@@ -4,14 +4,10 @@ import { UnipileService } from '@api/services/integrations/unipile/services/unip
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(UnipileService, {
-  additionalImports: [
-    CredentialsCoreModule,
-    forwardRef(() => HttpModule),
-    PrismaModule,
-  ],
+  additionalImports: [CredentialsCoreModule, HttpModule, PrismaModule],
 });
 
 @Module({

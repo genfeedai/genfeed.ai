@@ -17,25 +17,25 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { usesMeteredCredits } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [CreditsController],
   exports: [
     CreditBalanceService,
-    forwardRef(() => CreditDeductionModule),
+    CreditDeductionModule,
     CreditTransactionsService,
     CreditsUtilsService,
   ],
   imports: [
-    forwardRef(() => ByokModule),
-    forwardRef(() => CommonModule),
-    forwardRef(() => CreditDeductionModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => HttpModule),
+    ByokModule,
+    CommonModule,
+    CreditDeductionModule,
+    NotificationsPublisherModule,
+    OrganizationSettingsModule,
+    HttpModule,
 
-    forwardRef(() => TransactionModule),
+    TransactionModule,
   ],
   providers: [
     CreditBalanceService,

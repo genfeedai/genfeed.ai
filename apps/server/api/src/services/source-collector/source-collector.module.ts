@@ -7,15 +7,11 @@ import {
 } from '@api/services/source-collector/providers/twitter-official.provider';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [SourceCollectorService],
-  imports: [
-    forwardRef(() => LoggerModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => ApifyModule),
-  ],
+  imports: [LoggerModule, TwitterModule, ApifyModule],
   providers: [
     TwitterBrandOAuthProvider,
     TwitterAppBearerProvider,

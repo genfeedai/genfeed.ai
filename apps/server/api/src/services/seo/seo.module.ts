@@ -1,6 +1,5 @@
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
-import { forwardRef } from '@nestjs/common';
 
 import { SeoScorerService } from './seo-scorer.service';
 
@@ -9,5 +8,5 @@ import { SeoScorerService } from './seo-scorer.service';
  * OpenRouterModule supplies the LLM client for the qualitative layer.
  */
 export const SeoModule = createServiceModule(SeoScorerService, {
-  additionalImports: [forwardRef(() => OpenRouterModule)],
+  additionalImports: [OpenRouterModule],
 });

@@ -10,17 +10,17 @@ import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [ArgilAvatarProvider, AvatarVideoService, HeygenAvatarProvider],
   imports: [
-    forwardRef(() => ArgilModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => ByokModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => ApiKeyHelperModule),
+    ArgilModule,
+    HeyGenModule,
+    ByokModule,
+    HttpModule,
+    LoggerModule,
+    ApiKeyHelperModule,
   ],
   providers: [
     ArgilAvatarProvider,

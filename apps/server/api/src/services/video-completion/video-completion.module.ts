@@ -7,19 +7,19 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { RedisModule } from '@libs/redis/redis.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [VideoCompletionService],
   imports: [
     RedisModule,
     ClipProjectsCoreModule,
-    forwardRef(() => EditorProjectsModule),
-    forwardRef(() => FileQueueModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => WebhookClientModule),
+    EditorProjectsModule,
+    FileQueueModule,
+    IngredientsModule,
+    MetadataModule,
+    NotificationsPublisherModule,
+    WebhookClientModule,
   ],
   providers: [VideoCompletionService],
 })

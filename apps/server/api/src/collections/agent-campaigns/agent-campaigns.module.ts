@@ -19,7 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => AgentStrategiesModule),
     forwardRef(() => AgentRunsModule),
-    forwardRef(() => QueuesModule),
+    QueuesModule,
     forwardRef(() => UsersModule),
     forwardRef(() => AgentRuntimeModule),
   ],

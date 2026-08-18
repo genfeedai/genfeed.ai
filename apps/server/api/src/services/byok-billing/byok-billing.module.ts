@@ -3,15 +3,15 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [ByokBillingService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => StripeModule),
-    forwardRef(() => SubscriptionsModule),
+    ConfigModule,
+    OrganizationSettingsModule,
+    StripeModule,
+    SubscriptionsModule,
   ],
   providers: [ByokBillingService],
 })

@@ -1,8 +1,8 @@
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [forwardRef(() => PostsModule), forwardRef(() => ThreadsModule)],
+  imports: [PostsModule, ThreadsModule],
 })
 export class AnalyticsThreadsModule {}

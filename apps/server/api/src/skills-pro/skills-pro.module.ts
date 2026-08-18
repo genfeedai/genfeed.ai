@@ -6,7 +6,7 @@ import { SkillRegistryController } from '@api/skills-pro/controllers/skill-regis
 import { SkillCheckoutService } from '@api/skills-pro/services/skill-checkout.service';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -15,10 +15,7 @@ import { forwardRef, Module } from '@nestjs/common';
     SkillRegistryController,
   ],
   exports: [SkillCheckoutService, SkillDownloadService, SkillRegistryService],
-  imports: [
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => StripeModule),
-  ],
+  imports: [FilesClientModule, StripeModule],
   providers: [SkillCheckoutService, SkillDownloadService, SkillRegistryService],
 })
 export class SkillsProModule {}

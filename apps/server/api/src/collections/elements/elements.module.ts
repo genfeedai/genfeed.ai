@@ -9,21 +9,21 @@ import { ElementsMoodsModule } from '@api/collections/elements/moods/moods.modul
 import { ElementsScenesModule } from '@api/collections/elements/scenes/scenes.module';
 import { ElementsSoundsModule } from '@api/collections/elements/sounds/sounds.module';
 import { ElementsStylesModule } from '@api/collections/elements/styles/styles.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ElementsController],
   exports: [ElementsService],
   imports: [
-    forwardRef(() => ElementsBlacklistsModule),
-    forwardRef(() => ElementsCameraMovementsModule),
-    forwardRef(() => ElementsCamerasModule),
-    forwardRef(() => ElementsLensesModule),
-    forwardRef(() => ElementsLightingsModule),
-    forwardRef(() => ElementsMoodsModule),
-    forwardRef(() => ElementsScenesModule),
-    forwardRef(() => ElementsSoundsModule),
-    forwardRef(() => ElementsStylesModule),
+    ElementsBlacklistsModule,
+    ElementsCameraMovementsModule,
+    ElementsCamerasModule,
+    ElementsLensesModule,
+    ElementsLightingsModule,
+    ElementsMoodsModule,
+    ElementsScenesModule,
+    ElementsSoundsModule,
+    ElementsStylesModule,
   ],
   providers: [ElementsService],
 })

@@ -16,19 +16,19 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [TemplatesController],
   exports: [TemplatesService],
   imports: [
-    forwardRef(() => ByokModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => TemplateMetadataModule),
-    forwardRef(() => TemplateUsageModule),
+    ByokModule,
+    ConfigModule,
+    CreditsModule,
+    ModelsModule,
+    ReplicateModule,
+    TemplateMetadataModule,
+    TemplateUsageModule,
   ],
   providers: [TemplatesService, CreditsGuard, CreditsInterceptor],
 })
