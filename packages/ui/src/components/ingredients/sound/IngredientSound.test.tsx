@@ -24,13 +24,14 @@ describe('IngredientSound', () => {
   const setIngredients = vi.fn();
 
   it('should render without crashing', () => {
-    const { container } = render(
+    const { container, getByTestId } = render(
       <IngredientSound
         ingredients={ingredients}
         setIngredients={setIngredients}
       />,
     );
     expect(container.firstChild).toBeInTheDocument();
+    expect(getByTestId('ingredient-sound-item')).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {

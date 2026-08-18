@@ -172,9 +172,7 @@ test.describe('Library Media Types', () => {
 
       await expect(
         authenticatedPage
-          .locator(
-            '[data-testid="music-item"], [data-testid="ingredient-item"], [data-testid="content-item"], [data-testid="masonry-item"], .music-card, .track-item',
-          )
+          .getByTestId('ingredient-sound-item')
           .or(
             authenticatedPage.getByText(
               /no (music|tracks|results found)|could not be loaded/i,
