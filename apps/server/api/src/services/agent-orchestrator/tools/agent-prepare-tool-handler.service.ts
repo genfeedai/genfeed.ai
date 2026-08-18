@@ -1,7 +1,9 @@
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import { toVoiceCatalogWireFormat } from '@api/collections/voices/utils/voice-provider.util';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import {
   AGENT_NEXT_STEP_DESTINATIONS,
@@ -41,6 +43,8 @@ export class AgentPrepareToolHandler {
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional()
     private readonly voicesService?: VoicesService,
+    @Optional()
+    private readonly externalVoiceCatalogService?: ExternalVoiceCatalogService,
   ) {}
   prepareGeneration(params: Record<string, unknown>): AgentToolResult {
     const generationType = params.generationType as 'image' | 'video';
@@ -161,7 +165,7 @@ export class AgentPrepareToolHandler {
         )
       : { docs: [] };
 
-    const existingVoices =
+    let existingVoices =
       clonedVoices.docs?.map((voice: unknown) => {
         const v = voice as Record<string, unknown>;
         return {
@@ -174,6 +178,21 @@ export class AgentPrepareToolHandler {
           provider: (v.provider as string | undefined) ?? undefined,
         };
       }) ?? [];
+
+    if (existingVoices.length === 0 && this.externalVoiceCatalogService) {
+      const catalog = await this.externalVoiceCatalogService.findAll({
+        isActive: true,
+      });
+      existingVoices = catalog.map((voice) => {
+        const wire = toVoiceCatalogWireFormat(voice);
+        return {
+          cloneStatus: VoiceCloneStatus.READY,
+          id: wire.externalVoiceId,
+          label: wire.name,
+          provider: wire.provider,
+        };
+      });
+    }
 
     const readyVoices = existingVoices.filter(
       (voice) => voice.cloneStatus?.toUpperCase() === VoiceCloneStatus.READY,
@@ -203,8 +222,8 @@ export class AgentPrepareToolHandler {
           canUseExisting: existingVoices.length > 0,
           description:
             existingVoices.length > 0
-              ? 'Use an existing cloned voice or upload a new audio sample.'
-              : 'No cloned voices found. Upload an audio sample to start cloning.',
+              ? 'Use an existing voice or upload a new audio sample.'
+              : 'No voices found. Upload an audio sample to start cloning.',
           existingVoices,
           id: `voice-clone-${Date.now()}`,
           recommendedVoiceId,
