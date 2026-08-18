@@ -42,6 +42,7 @@ import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dt
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
@@ -591,7 +592,9 @@ describe('Library asset lifecycle', () => {
         { settleElevenLabsCloneCredits: vi.fn() } as never,
         voicesService,
       ),
-      new VoiceLibraryService(voicesService),
+      new VoiceLibraryService(voicesService, {
+        findAll: vi.fn().mockResolvedValue([]),
+      } as unknown as ExternalVoiceCatalogService),
     );
     avatarsController = new AvatarsController(
       logger,
