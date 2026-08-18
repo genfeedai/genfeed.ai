@@ -14,13 +14,13 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
-import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
-import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
+import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
@@ -122,7 +122,7 @@ import { Module } from '@nestjs/common';
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
-    PostsCoreModule,
+    PostsModule,
     ReplyBotConfigsModule,
     ReplyBotModule,
     SocialInboxModule,
@@ -133,7 +133,7 @@ import { Module } from '@nestjs/common';
     TwitterModule,
     YoutubeModule,
     VideoGenerationModule,
-    VideosCoreModule,
+    VideosModule,
     WhisperModule,
     WorkflowExecutionsModule,
     WorkflowExecutorModule,

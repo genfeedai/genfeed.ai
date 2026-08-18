@@ -446,7 +446,9 @@ function createContext(): TestContext {
     twitterService as never,
     linkedInService as never,
     realtimeService,
-    queueService as never,
+    {
+      get: vi.fn(() => queueService),
+    } as never,
     logger as never,
   );
   const actionService = new SocialInboxActionService(

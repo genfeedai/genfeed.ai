@@ -19,7 +19,7 @@ import type {
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
-import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -36,6 +36,7 @@ import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prism
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
 const X_DM_MAX_PAGES = 5;
@@ -100,11 +101,22 @@ export class SocialInboxIngestionService {
     private readonly twitterService: TwitterService,
     private readonly linkedInService: LinkedInService,
     private readonly realtimeService: SocialInboxRealtimeService,
-    @Optional()
-    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    private readonly moduleRef: ModuleRef,
     @Optional()
     private readonly logger?: LoggerService,
   ) {}
+
+  private get workflowExecutionQueueService():
+    | WorkflowExecutionQueueService
+    | undefined {
+    try {
+      return this.moduleRef.get(WorkflowExecutionQueueService, {
+        strict: false,
+      });
+    } catch {
+      return undefined;
+    }
+  }
 
   async ingestInboundMessage(
     input: InboundSocialMessageInput,
