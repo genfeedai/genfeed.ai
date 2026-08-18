@@ -17,7 +17,7 @@ import {
   billingControllers,
   subscriptionsServiceProvider,
 } from '@api/common/subscriptions/billing.providers';
-import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -25,12 +25,13 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: billingControllers([SubscriptionsController]),
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
   imports: [
-    // Credits and Customers never import this module back; only Organizations
-    // and Stripe form real cycles and need forwardRef.
+    // Credits and Customers never import this module back; Organizations
+    // still does. Billing needs the Stripe client only — StripeCoreModule
+    // is the leaf that does not import SubscriptionsModule.
     CreditsModule,
     CustomersModule,
     forwardRef(() => OrganizationsModule),
-    forwardRef(() => StripeModule),
+    StripeCoreModule,
   ],
   providers: [SubscriptionsService, subscriptionsServiceProvider()],
 })
