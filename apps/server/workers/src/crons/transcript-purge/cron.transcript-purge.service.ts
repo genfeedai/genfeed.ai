@@ -1,0 +1,237 @@
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { Injectable } from '@nestjs/common';
+import { TRANSCRIPT_PURGE_RETENTION_DAYS } from '@workers/crons/transcript-purge/transcript-purge.constants';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const EMPTY_JSON = {} as Prisma.InputJsonValue;
+
+export type TranscriptPurgeTotals = {
+  agentMessages: number;
+  agentRuns: number;
+  agentThreadEvents: number;
+  agentThreadSnapshots: number;
+  agentThreads: number;
+  organizations: number;
+  threadContextStates: number;
+};
+
+/**
+ * Time-bounded wipe of prompt/transcript text on soft-deleted agent rows.
+ *
+ * Live (`isDeleted: false`) threads stay intact so conversation history still
+ * works. Tombstone instant is `updatedAt` (there is no `deletedAt`). Follow-up
+ * from ADR prompt-moderation stance (#3012) / issue #3030.
+ */
+@Injectable()
+export class CronTranscriptPurgeService {
+  private readonly context = 'CronTranscriptPurgeService';
+
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async purgeExpiredTranscripts(
+    now = new Date(),
+  ): Promise<TranscriptPurgeTotals> {
+    const cutoff = CronTranscriptPurgeService.cutoffFrom(now);
+    const organizationIds = await this.listOrganizationIds(cutoff);
+    const totals = emptyTotals();
+    totals.organizations = organizationIds.length;
+
+    for (const organizationId of organizationIds) {
+      try {
+        const purged = await this.purgeOrganization(organizationId, cutoff);
+        addTotals(totals, purged);
+      } catch (error: unknown) {
+        this.logger.error('Transcript purge failed for organization', {
+          context: this.context,
+          error: getErrorMessage(error),
+          organizationId,
+        });
+      }
+    }
+
+    this.logger.log('CronTranscriptPurgeService completed', {
+      ...totals,
+      context: this.context,
+      cutoff: cutoff.toISOString(),
+      retentionDays: TRANSCRIPT_PURGE_RETENTION_DAYS,
+    });
+
+    return totals;
+  }
+
+  static cutoffFrom(now: Date): Date {
+    return new Date(
+      now.getTime() - TRANSCRIPT_PURGE_RETENTION_DAYS * MS_PER_DAY,
+    );
+  }
+
+  private async listOrganizationIds(cutoff: Date): Promise<string[]> {
+    const expiredTombstone = {
+      isDeleted: true,
+      updatedAt: { lt: cutoff },
+    };
+
+    const [threads, messages, events, runs, snapshots, contexts] =
+      await Promise.all([
+        this.prisma.agentThread.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+        this.prisma.agentMessage.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+        this.prisma.agentThreadEvent.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+        this.prisma.agentRun.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+        this.prisma.agentThreadSnapshot.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+        this.prisma.threadContextState.findMany({
+          distinct: ['organizationId'],
+          select: { organizationId: true },
+          where: expiredTombstone,
+        }),
+      ]);
+
+    return [
+      ...new Set(
+        [
+          ...threads,
+          ...messages,
+          ...events,
+          ...runs,
+          ...snapshots,
+          ...contexts,
+        ].map((row) => row.organizationId),
+      ),
+    ];
+  }
+
+  private async purgeOrganization(
+    organizationId: string,
+    cutoff: Date,
+  ): Promise<Omit<TranscriptPurgeTotals, 'organizations'>> {
+    const expiredRow = scopedWhere(organizationId, {
+      isDeleted: true,
+      updatedAt: { lt: cutoff },
+    });
+    const expiredThread = {
+      organizationId,
+      thread: scopedWhere(organizationId, {
+        isDeleted: true,
+        updatedAt: { lt: cutoff },
+      }),
+    };
+
+    const [
+      expiredThreads,
+      expiredMessages,
+      threadMessages,
+      expiredEvents,
+      threadEvents,
+      expiredRuns,
+      threadRuns,
+      expiredSnapshots,
+      threadSnapshots,
+      expiredContexts,
+      threadContexts,
+    ] = await Promise.all([
+      this.prisma.agentThread.updateMany({
+        data: { systemPrompt: null },
+        where: expiredRow,
+      }),
+      this.prisma.agentMessage.updateMany({
+        data: { content: null },
+        where: expiredRow,
+      }),
+      this.prisma.agentMessage.updateMany({
+        data: { content: null },
+        where: expiredThread,
+      }),
+      this.prisma.agentThreadEvent.updateMany({
+        data: { data: Prisma.DbNull },
+        where: expiredRow,
+      }),
+      this.prisma.agentThreadEvent.updateMany({
+        data: { data: Prisma.DbNull },
+        where: expiredThread,
+      }),
+      this.prisma.agentRun.updateMany({
+        data: { objective: null },
+        where: expiredRow,
+      }),
+      this.prisma.agentRun.updateMany({
+        data: { objective: null },
+        where: expiredThread,
+      }),
+      this.prisma.agentThreadSnapshot.updateMany({
+        data: { data: EMPTY_JSON },
+        where: expiredRow,
+      }),
+      this.prisma.agentThreadSnapshot.updateMany({
+        data: { data: EMPTY_JSON },
+        where: expiredThread,
+      }),
+      this.prisma.threadContextState.updateMany({
+        data: { data: EMPTY_JSON },
+        where: expiredRow,
+      }),
+      this.prisma.threadContextState.updateMany({
+        data: { data: EMPTY_JSON },
+        where: expiredThread,
+      }),
+    ]);
+
+    return {
+      agentMessages: expiredMessages.count + threadMessages.count,
+      agentRuns: expiredRuns.count + threadRuns.count,
+      agentThreadEvents: expiredEvents.count + threadEvents.count,
+      agentThreadSnapshots: expiredSnapshots.count + threadSnapshots.count,
+      agentThreads: expiredThreads.count,
+      threadContextStates: expiredContexts.count + threadContexts.count,
+    };
+  }
+}
+
+function emptyTotals(): TranscriptPurgeTotals {
+  return {
+    agentMessages: 0,
+    agentRuns: 0,
+    agentThreadEvents: 0,
+    agentThreadSnapshots: 0,
+    agentThreads: 0,
+    organizations: 0,
+    threadContextStates: 0,
+  };
+}
+
+function addTotals(
+  target: TranscriptPurgeTotals,
+  increment: Omit<TranscriptPurgeTotals, 'organizations'>,
+): void {
+  target.agentMessages += increment.agentMessages;
+  target.agentRuns += increment.agentRuns;
+  target.agentThreadEvents += increment.agentThreadEvents;
+  target.agentThreadSnapshots += increment.agentThreadSnapshots;
+  target.agentThreads += increment.agentThreads;
+  target.threadContextStates += increment.threadContextStates;
+}

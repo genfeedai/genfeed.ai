@@ -7,6 +7,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
+import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import {
   SYSTEM_SWEEP_JOBS,
@@ -31,6 +32,7 @@ export class SystemSweepsProcessor extends WorkerHost {
     private readonly cronReviewGateTimeoutService: CronReviewGateTimeoutService,
     private readonly cronStreaksService: CronStreaksService,
     private readonly cronTiktokStatusService: CronTiktokStatusService,
+    private readonly cronTranscriptPurgeService: CronTranscriptPurgeService,
     private readonly cronYoutubeStatusService: CronYoutubeStatusService,
     private readonly logger: LoggerService,
   ) {
@@ -73,6 +75,10 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.BATCH_CREDIT_SETTLEMENT_RECONCILE:
         await this.cronBatchGenerationReconcileService.reconcileSettlementShortfalls();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.TRANSCRIPT_PURGE:
+        await this.cronTranscriptPurgeService.purgeExpiredTranscripts();
         return;
 
       default:

@@ -6,11 +6,11 @@ Accepted
 
 ## Spec Version
 
-v1.0.0
+v1.1.0
 
 ## Last Updated
 
-2026-08-17
+2026-08-18
 
 ## Canonical Source
 
@@ -29,9 +29,9 @@ Enforcement is product-scope language, untrusted-data fencing, turn-endpoint
 bounds, and provider-side media safety checkers — not a Genfeed-operated
 review desk.
 
-Telemetry stays privacy-preserving. Soft-deleted transcript retention is
-deferred to #3030. OpenRouter vendor retention flags are a documented client
-gap, tracked in #3029.
+Telemetry stays privacy-preserving. Soft-deleted transcript text is purged
+after 30 days (#3030). OpenRouter vendor retention flags are a documented
+client gap, tracked in #3029.
 
 ## Why
 
@@ -59,7 +59,7 @@ without changing this file first.
 | Trained-model / LoRA Replicate `disable_safety_checker: true` | Keep — personal-likeness LoRAs trip Replicate's NSFW checker; rationale owned by #3013 |
 | First-party prompt text in PostHog / Sentry / session replay | No |
 | OpenRouter `provider.zdr` / `provider.data_collection` on first-party requests | Gap — #3029 |
-| Time-bounded purge of soft-deleted agent transcripts | Deferred — #3030 |
+| Time-bounded purge of soft-deleted agent transcripts | Yes — 30 days, #3030 |
 
 ## Enforcement (what we do instead)
 
@@ -121,18 +121,32 @@ is #3029.
 ## Retention
 
 Live threads persist full prompt text so the product conversation works.
-Soft-deleted rows currently keep that text forever in at least:
 
+Soft-deleted agent transcript fields are purged **30 days** after the
+tombstone instant (`updatedAt` on `isDeleted: true` rows). There is no
+separate `deletedAt` column. The window is the product default for this
+stance; it is not configurable per tenant.
+
+Purged fields (null/empty, rows kept):
+
+- `AgentThread.systemPrompt`
 - `AgentMessage.content`
 - `AgentThreadEvent.data`
 - `AgentRun.objective`
+- `AgentThreadSnapshot.data`
+- `ThreadContextState.data`
 
-Related JSON snapshots (`AgentThreadSnapshot.data`,
-`ThreadContextState.data`) can also retain transcript-shaped payloads after
-soft delete.
+Eligibility:
 
-A time-bounded purge of soft-deleted agent transcripts is **deferred**. Do
-not implement it in the #3012 PR. Implementation is #3030.
+- Independently soft-deleted rows whose `updatedAt` is older than 30 days.
+- Child transcript rows of a soft-deleted thread whose thread `updatedAt` is
+  older than 30 days (thread delete does not cascade `isDeleted` to children).
+
+Live (`isDeleted: false`) threads and in-window tombstones are untouched.
+The daily `transcript-purge-sweep` system sweep (`15 2 * * *` UTC) owns the
+job. No staff review UI. No hard-delete of live threads.
+
+Implemented by #3030.
 
 ## Public privacy docs
 
@@ -151,7 +165,8 @@ source until then.
 - A staff conversation-review / audit-reading UI
 - Expanding Better Auth impersonation into a review desk
 - Implementing OpenRouter ZDR in this change (#3029)
-- Implementing a soft-delete purge in this change (#3030)
+- Changing the 30-day soft-delete transcript retention window without a new
+  ADR revision (#3030 owns the current default)
 - Changing Replicate LoRA `disable_safety_checker` (owned by #3013)
 - Changing Sentry replay / PII settings (owned by #3014)
 - Rewriting the public marketing privacy page
@@ -174,8 +189,8 @@ source until then.
   impersonation and user-visible artifacts.
 - Abuse that slips past prompt-scope language, fencing, and rate limits is
   not classified or queued for human review inside Genfeed.
-- Soft-deleted transcripts remain in Postgres until #3030 ships. That is an
-  accepted interim risk, not an invitation to build a review UI around them.
+- Soft-deleted transcripts stay in Postgres for 30 days, then prompt text is
+  wiped. That is a retention window, not a license to build a review UI.
 - First-party OpenRouter traffic follows account-level vendor defaults until
   #3029 sets per-request ZDR / deny-collection flags.
 - Downstream PRs in #3007 implement the enforcement list. They do not reopen
@@ -192,10 +207,10 @@ source until then.
 | #3013 | Document or replace LoRA `disable_safety_checker: true` |
 | #3014 | Explicit Sentry replay masking + `sendDefaultPii: false` |
 | #3029 | Set OpenRouter `provider.zdr` and `provider.data_collection` |
-| #3030 | Time-bounded purge of soft-deleted agent transcripts |
+| #3030 | Time-bounded purge of soft-deleted agent transcripts (30 days) |
 
-#3029 and #3030 were filed from this ADR. #3013 and #3014 remain sibling
-work on epic #3007.
+#3029 and #3030 were filed from this ADR. #3030 is implemented. #3013 and
+#3014 remain sibling work on epic #3007.
 
 ## Related ADRs
 
@@ -217,4 +232,5 @@ work on epic #3007.
 
 | Version | Date       | Summary                                                                 |
 | ------- | ---------- | ----------------------------------------------------------------------- |
+| v1.1.0  | 2026-08-18 | #3030: purge soft-deleted transcript fields after 30 days             |
 | v1.0.0  | 2026-08-17 | Accepted no-review stance; OpenRouter ZDR gap #3029; retention #3030 |
