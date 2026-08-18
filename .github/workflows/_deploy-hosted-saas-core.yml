@@ -30,6 +30,13 @@ on:
         required: false
         default: false
         type: boolean
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      NEXT_PUBLIC_POSTHOG_KEY:
+        required: true
+      TURBO_TOKEN:
+        required: false
 
 permissions:
   id-token: write
@@ -509,7 +516,10 @@ jobs:
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
     with:
       source_sha: ${{ inputs.source_sha }}
-    secrets: inherit
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
   post-deploy-smoke:
     name: Post-deploy smoke
