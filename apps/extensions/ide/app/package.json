@@ -301,7 +301,7 @@
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
-    "@types/node": "24.13.3",
+    "@types/node": "26.2.0",
     "@types/vscode": "1.125.0",
     "@vscode/vsce": "3.9.2",
     "bun-types": "latest",

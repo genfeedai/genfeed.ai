@@ -64,7 +64,7 @@
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@types/node": "24.13.3",
+    "@types/node": "26.2.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "electron": "43.4.0",
     "electron-builder": "26.15.3",
