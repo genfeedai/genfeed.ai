@@ -4,7 +4,7 @@ Contributions to the open-source tree are welcome through pull requests to
 `master`, the repository's single trunk. This guide is the contract: how to set
 up, how to open an issue, how to open a PR, and what happens after.
 
-Shared vocabulary (Maintainer, Contributor, Community, EARS, DCO sign-off, …)
+Shared vocabulary (Maintainer, Contributor, Community, EARS, CLA, …)
 lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 [GOVERNANCE.md](GOVERNANCE.md).
 
@@ -17,7 +17,7 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 - [Opening an issue](#opening-an-issue)
 - [Pull-request contract](#pull-request-contract)
 - [Agent-authored PRs](#agent-authored-prs)
-- [DCO sign-off](#dco-sign-off)
+- [Contributor License Agreement](#contributor-license-agreement)
 - [Focused verification](#focused-verification)
 - [Code standards](#code-standards)
 - [Repository boundaries](#repository-boundaries)
@@ -190,7 +190,8 @@ the issue.
 2. Make **one focused change**. Aim for **≤ 400 changed lines** excluding
    lockfiles and generated files; split larger work into stacked PRs. This is a
    soft limit — say why when you exceed it.
-3. Sign off every commit ([DCO](#dco-sign-off)).
+3. Sign the [CLA](#contributor-license-agreement) once, when the bot asks on your
+   first PR.
 4. Run [focused checks](#focused-verification) for what you changed.
 5. Open the PR against `genfeedai/genfeed.ai:master` and fill in the template.
 
@@ -235,31 +236,32 @@ are welcome on three conditions:
 2. **A named human is accountable.** The PR author is responsible for the
    description being accurate and the verification being real. "The agent said
    it passed" is not verification — run the checks and paste the output.
-3. **Same rules as everyone.** DCO sign-off, conventional title, linked issue,
+3. **Same rules as everyone.** Signed CLA, conventional title, linked issue,
    scope discipline, no `ee/` changes.
 
 Undisclosed agent-authored PRs are closed when detected. Bulk, low-effort, or
 templated PRs (drive-by dependency bumps, mass rewording, unrequested
 refactors) are closed without review regardless of authorship.
 
-## DCO sign-off
+## Contributor License Agreement
 
-Contributions are accepted under the
-[Developer Certificate of Origin](https://developercertificate.org/). There is
-no CLA. Sign off every commit:
+Contributions are accepted under a Contributor License Agreement based on the
+FSFE [Fiduciary License Agreement 2.1](https://fsfe.org/activities/fla/): you
+grant Genfeed AI, Inc. an exclusive licence to your contribution, receive a
+full licence back, keep your moral rights, and Genfeed commits to keep the
+Material available under a Free Software / Open Source licence
+(AGPL-3.0-or-later today). Rationale:
+`.agents/memory/architecture/ADR-CLA-FLA-2-1.md`.
 
-```bash
-git commit -s -m "fix(api): return 401 for revoked keys"
-```
+- Contributing as an individual: [ICLA.md](ICLA.md).
+- Contributing on behalf of a company or other legal entity: [CCLA.md](CCLA.md).
+  Have an authorized representative accept it and list the employees who
+  contribute on the entity's behalf.
 
-This adds a `Signed-off-by: Your Name <you@example.com>` trailer certifying
-that you wrote the change or have the right to submit it under the repository
-licence. Use a real name and a reachable email. For outside contributors the
-DCO check on the PR fails if any commit lacks the trailer; fix it with
-`git rebase --signoff` (or `git commit --amend -s` for the last commit) and
-force-push your branch. Members of the `genfeedai` organization are exempt
-(`.github/dco.yml`): the maintainer already holds the licence, so only inbound
-contributions certify.
+You sign **once per GitHub account**. When you open your first PR the CLA
+Assistant bot comments with a link; accept it there and the `license/cla`
+check turns green for that PR and every later one. Commits do not need a
+`Signed-off-by:` trailer.
 
 ## Focused verification
 
@@ -309,7 +311,7 @@ request, list exactly what you ran and any checks left to CI.
 - **`ee/` is maintainer-only.** It contains commercially licensed packages
   ([`ee/LICENSE`](ee/LICENSE)) and is excluded from the Community image.
   Contributor PRs that modify `ee/` are closed; `.github/CODEOWNERS` enforces
-  review. Rationale: `.agents/memory/architecture/ADR-DCO-NOT-CLA.md`.
+  review. Rationale: `.agents/memory/architecture/ADR-CLA-FLA-2-1.md`.
 - Managed inference infrastructure, customer model assignments, and Fleet/LoRA
   operations are outside this public repository.
 - The Genfeed name and logo are trademarks — see [TRADEMARK.md](TRADEMARK.md).

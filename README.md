@@ -243,7 +243,7 @@ bun run dev:debug:app              # → http://genfeed.localhost:3000
 ```
 
 Everything else — the issue forms, the PR contract (squash + conventional
-title + linked issue), DCO sign-off, and focused verification — is in
+title + linked issue), the one-time CLA, and focused verification — is in
 [CONTRIBUTING.md](CONTRIBUTING.md). Governance is one maintainer plus an AI
 review pipeline: [GOVERNANCE.md](GOVERNANCE.md). Help and questions:
 [SUPPORT.md](SUPPORT.md). Security reports follow [SECURITY.md](SECURITY.md),
@@ -273,7 +273,8 @@ every listed capability is implemented inside `ee/` today.
 
 - Repository default: [GNU Affero General Public License v3.0 or later](LICENSE)
 - Code under `ee/`: [Genfeed commercial license](ee/LICENSE)
-- Contributions: [Developer Certificate of Origin](https://developercertificate.org/) — no CLA
+- Contributions: [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement)
+  (FSFE FLA 2.1: [ICLA.md](ICLA.md) / [CCLA.md](CCLA.md)), signed once via CLA Assistant
 - Name and logo: [TRADEMARK.md](TRADEMARK.md) — the licence covers the code, not the brand
 
 Independently published packages and skills may declare their own license in
