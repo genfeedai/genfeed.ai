@@ -30,6 +30,17 @@ describe('CreateCheckoutSessionDto — quantity validation', () => {
     expect(Object.keys(quantityError?.constraints ?? {})).toContain('min');
   });
 
+  it('passes validation when quantity is at or above the minimum', async () => {
+    const instance = plainToInstance(CreateCheckoutSessionDto, {
+      quantity: 1500,
+      stripePriceId: 'price_abc123',
+    });
+
+    const errors = await validate(instance);
+
+    expect(errors.some((error) => error.property === 'quantity')).toBe(false);
+  });
+
   it('passes validation when quantity is omitted', async () => {
     const instance = plainToInstance(CreateCheckoutSessionDto, {
       stripePriceId: 'price_abc123',

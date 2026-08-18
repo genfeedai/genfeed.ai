@@ -36,7 +36,7 @@ Full contract: CONTRIBUTING.md → Pull-request contract.
 
 - [ ] Every commit is signed off (`git commit -s`, DCO). No CLA is required. Members of the `genfeedai` organization are exempt.
 - [ ] The title is a Conventional Commits subject and describes the whole squash.
-- [ ] I reviewed the final diff for unrelated changes and it does not touch `ee/`.
+- [ ] I reviewed the final diff for unrelated changes.
 - [ ] I ran the relevant focused checks or documented why they were left to CI.
 - [ ] I updated relevant documentation or explained why no documentation change is needed.
 - [ ] I documented migrations, release steps, or external configuration changes, or marked them not applicable. Breaking changes for self-hosters name their Upgrade note.

@@ -51,7 +51,6 @@ const CHECK_FILES = new Set([
 
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/**/*.{cjs,js,mjs,ts,tsx}',
-  'ee/**/*.{cjs,js,mjs,ts,tsx}',
   'packages/**/*.{cjs,js,mjs,ts,tsx}',
   'scripts/**/*.{cjs,js,mjs,ts,tsx}',
 ];

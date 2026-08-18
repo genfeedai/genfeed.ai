@@ -3,9 +3,6 @@ import type { ActivitySource } from '@genfeedai/enums';
 /**
  * Contract for the credits utility service.
  *
- * Layer 1 of the Phase C EE extraction split (see issue #87 and
- * `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b).
- *
  * This contract describes every method OSS code calls on the credits utility
  * layer. A repo-wide grep of `creditsUtilsService\.` across `apps/server/api/
  * src/` identifies 9 methods used by 40+ call sites spanning controllers,
@@ -13,9 +10,8 @@ import type { ActivitySource } from '@genfeedai/enums';
  * included here so `implements ICreditsUtilsService` on the concrete class
  * gives real compiler enforcement instead of silently allowing drift.
  *
- * The concrete implementation currently lives at
- * `apps/server/api/src/collections/credits/services/credits.utils.service.ts`
- * and will be moved to `ee/packages/billing/` in a follow-up PR (Phase C Layer 2).
+ * The concrete implementation lives at
+ * `apps/server/api/src/collections/credits/services/credits.utils.service.ts`.
  *
  * When `usesMeteredCredits() === false` (community self-host / desktop — not
  * Cloud SaaS), OSS ships a no-op that treats the deployment as having unlimited
@@ -90,7 +86,7 @@ export interface ICreditsUtilsService {
    * match the concrete implementation, which forwards the value into activity
    * writes validated against the enum. Typing it as a free `string` would
    * compile at the interface boundary but fail at runtime when the activity
-   * layer validates. Layer 2 EE implementations MUST preserve this constraint;
+   * layer validates. Every implementation MUST preserve this constraint;
    * the OSS no-op simply ignores the value.
    *
    * OSS no-op is a no-op (resolves successfully).

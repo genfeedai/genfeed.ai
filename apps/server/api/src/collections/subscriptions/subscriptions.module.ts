@@ -1,17 +1,35 @@
 /**
- * Subscriptions collection module.
+ * Subscriptions Module
+ * Organization (Stripe) subscription plans: manage tiers, features, billing
+ * cycles, and subscription status tracking.
  *
- * OSS-native: the module class lives in the api tree and never imports
- * enterprise billing code. Its `@Module()` metadata is composed from the
- * `@billing-providers` alias, which webpack swaps for the EE fragment
- * (`billing.providers.ee.ts`) in the SaaS image or the OSS stub fragment
- * (`billing.providers.oss.ts`) in the community image. Nest reads decorator
- * metadata at definition time, so handing it the imported fragment object is
- * equivalent to writing the metadata inline.
+ * SaaS and community images ship this same module. Whether the routes exist
+ * and whether the shared `SUBSCRIPTIONS_SERVICE` token resolves to the real
+ * Stripe-backed service or the community stub is decided at boot by the
+ * runtime gate in `@api/common/subscriptions/billing.providers`.
  */
+import { CreditsModule } from '@api/collections/credits/credits.module';
+import { CustomersModule } from '@api/collections/customers/customers.module';
+import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { SubscriptionsController } from '@api/collections/subscriptions/controllers/subscriptions.controller';
+import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
+import {
+  billingControllers,
+  subscriptionsServiceProvider,
+} from '@api/common/subscriptions/billing.providers';
+import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { forwardRef, Module } from '@nestjs/common';
 
-import { subscriptions } from '@billing-providers';
-import { Module } from '@nestjs/common';
-
-@Module(subscriptions)
+@Module({
+  controllers: billingControllers([SubscriptionsController]),
+  exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
+  imports: [
+    forwardRef(() => CreditsModule),
+    forwardRef(() => CustomersModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => StripeModule),
+  ],
+  providers: [SubscriptionsService, subscriptionsServiceProvider()],
+})
 export class SubscriptionsModule {}

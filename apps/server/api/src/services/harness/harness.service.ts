@@ -1,10 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import process from 'node:process';
-import { pathToFileURL } from 'node:url';
-import { isEEEnabled } from '@genfeedai/config';
 import {
+  BRAND_FIDELITY_HARNESS_PACK,
   CORE_CONTENT_HARNESS_PACK,
   type ContentHarnessBrief,
   type ContentHarnessInput,
@@ -29,29 +28,9 @@ type PackageJsonName = {
 
 type RuntimeRequireContext = {
   require: NodeJS.Require;
-  workspaceRoot: string | null;
 };
-
-type WorkspacePackPaths = {
-  packageJson: string;
-  sourceEntry: string;
-};
-
-const runtimeImport = new Function('specifier', 'return import(specifier)') as (
-  specifier: string,
-) => Promise<unknown>;
 
 const API_PACKAGE_NAME = '@genfeedai/api';
-const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
-  '@genfeedai/ee-harness': {
-    packageJson: 'ee/packages/harness/package.json',
-    sourceEntry: 'ee/packages/harness/src/index.ts',
-  },
-};
-
-async function nativeImport(specifier: string): Promise<PackModule> {
-  return (await runtimeImport(specifier)) as PackModule;
-}
 
 function runtimeRequireModule(
   requireFn: NodeJS.Require,
@@ -91,9 +70,6 @@ function createRuntimeRequireContext(): RuntimeRequireContext {
 
   return {
     require: createRequire(packageJsonPath ?? import.meta.url),
-    workspaceRoot: packageJsonPath
-      ? resolve(dirname(packageJsonPath), '../../..')
-      : null,
   };
 }
 
@@ -156,15 +132,8 @@ export class ContentHarnessService {
     registry.registerPack(CORE_CONTENT_HARNESS_PACK);
     // X/Twitter craft rules from open-source ranking signals (no-op off-platform).
     registry.registerPack(X_PLATFORM_HARNESS_PACK);
-
-    if (isEEEnabled()) {
-      const eePack = await this.loadPackFromModuleSpecifier(
-        '@genfeedai/ee-harness',
-      );
-      if (eePack) {
-        registry.registerPack(eePack);
-      }
-    }
+    // Stricter brand-fidelity / anti-genericity directives.
+    registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
 
     for (const specifier of this.getExternalPackSpecifiers()) {
       const pack = await this.loadPackFromModuleSpecifier(specifier);
@@ -200,7 +169,7 @@ export class ContentHarnessService {
     specifier: string,
   ): Promise<ContentHarnessPack | null> {
     try {
-      const imported = await this.loadRuntimePackModule(specifier);
+      const imported = this.loadRuntimePackModule(specifier);
       const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
@@ -224,68 +193,15 @@ export class ContentHarnessService {
     }
   }
 
-  private async loadRuntimePackModule(specifier: string): Promise<PackModule> {
+  private loadRuntimePackModule(specifier: string): PackModule {
     const resolvedSpecifier = resolveModuleSpecifier(
       this.runtimeRequireContext.require,
       specifier,
     );
 
-    if (resolvedSpecifier) {
-      return runtimeRequireModule(
-        this.runtimeRequireContext.require,
-        resolvedSpecifier,
-      );
-    }
-
-    const workspacePackPaths = this.getWorkspacePackPaths(specifier);
-
-    if (!workspacePackPaths) {
-      return runtimeRequireModule(
-        this.runtimeRequireContext.require,
-        specifier,
-      );
-    }
-
-    const workspaceRequire = createRequire(workspacePackPaths.packageJson);
-    const resolvedWorkspaceSpecifier = resolveModuleSpecifier(
-      workspaceRequire,
-      specifier,
+    return runtimeRequireModule(
+      this.runtimeRequireContext.require,
+      resolvedSpecifier ?? specifier,
     );
-
-    if (resolvedWorkspaceSpecifier) {
-      return runtimeRequireModule(workspaceRequire, resolvedWorkspaceSpecifier);
-    }
-
-    try {
-      return runtimeRequireModule(
-        workspaceRequire,
-        workspacePackPaths.sourceEntry,
-      );
-    } catch {
-      return await nativeImport(
-        pathToFileURL(workspacePackPaths.sourceEntry).href,
-      );
-    }
-  }
-
-  private getWorkspacePackPaths(specifier: string): WorkspacePackPaths | null {
-    const workspacePackPaths = WORKSPACE_PACK_PATHS[specifier];
-
-    if (!workspacePackPaths || !this.runtimeRequireContext.workspaceRoot) {
-      return null;
-    }
-
-    const packageJsonPath = resolve(
-      this.runtimeRequireContext.workspaceRoot,
-      workspacePackPaths.packageJson,
-    );
-    const sourceEntryPath = resolve(
-      this.runtimeRequireContext.workspaceRoot,
-      workspacePackPaths.sourceEntry,
-    );
-
-    return existsSync(packageJsonPath) && existsSync(sourceEntryPath)
-      ? { packageJson: packageJsonPath, sourceEntry: sourceEntryPath }
-      : null;
   }
 }

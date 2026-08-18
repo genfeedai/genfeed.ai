@@ -26,8 +26,7 @@ The maintainer:
 - cuts releases from `master` (see [RELEASING.md](RELEASING.md));
 - accepts or rejects architecture decisions, recorded as ADRs;
 - enforces the [Code of Conduct](CODE_OF_CONDUCT.md);
-- is the only party who may change `ee/`, `LICENSE`, `ee/LICENSE`,
-  `TRADEMARK.md`, and this file.
+- is the only party who may change `LICENSE`, `TRADEMARK.md`, and this file.
 
 ### AI review pipeline
 
@@ -88,9 +87,7 @@ no release cadence — releases ship from `master` when ready.
 
 ### Licensing and boundaries
 
-- The repository root is AGPL-3.0-or-later. `ee/` is under a separate
-  commercial licence and is maintainer-only; contributor PRs that touch `ee/`
-  are closed. Rationale: `.agents/memory/architecture/ADR-DCO-NOT-CLA.md`.
+- The whole repository is AGPL-3.0-or-later.
 - Contributions are accepted under the Developer Certificate of Origin. There
   is no CLA and there will not be one; adding a CLA later would require every
   past contributor's consent, so the decision is made once, here.

@@ -24,11 +24,9 @@ on:
     paths:
       - 'apps/server/**'
       - 'packages/**'
-      - 'ee/**'
       - 'docker/Dockerfile.server'
-      # Bundler config decides which billing flavor lands in the image
-      # (#2751), so a change here must republish server:<sha> even when no
-      # server source changed.
+      # Bundler config decides what lands in the server bundles, so a change
+      # here must republish server:<sha> even when no server source changed.
       - 'webpack.base.config.js'
       - 'tsconfig.json'
       - 'tsconfig.server.decorators.json'

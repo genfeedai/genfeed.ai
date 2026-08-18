@@ -343,9 +343,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SocialWarmupEnrollmentsModule,
     SourcePostsModule,
     StreaksModule,
-    // Billing collection modules — OSS-native (compose from `@billing-providers`,
-    // which the webpack alias swaps to the EE fragment at build time). Registered
-    // in every flavor: their string tokens back always-on webhook/stripe paths.
+    // Billing collection modules — same code in every image; the runtime gate
+    // in `@api/common/subscriptions/billing.providers` picks real vs community
+    // bindings. Always registered: their string tokens back always-on
+    // webhook/stripe paths.
     SubscriptionAttributionsModule,
     SubscriptionsModule,
     UserSubscriptionsModule,

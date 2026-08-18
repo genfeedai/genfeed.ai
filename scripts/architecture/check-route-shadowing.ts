@@ -62,11 +62,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 
-const DEFAULT_INCLUDE_GLOBS = [
-  'apps/server/**/*.ts',
-  'ee/**/*.ts',
-  'packages/libs/**/*.ts',
-];
+const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts', 'packages/libs/**/*.ts'];
 
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
@@ -590,7 +586,7 @@ function routesWithInherited(
  * Each `apps/server/*` workspace is its own Nest application on its own port,
  * so `images` and `voices` both serving `POST /train` is not a collision —
  * they never share a route table. Controllers outside an app workspace
- * (`packages/libs/*`, `ee/*`) are registered into whichever app imports their
+ * (`packages/libs/*`) are registered into whichever app imports their
  * module, so they are compared against every app.
  */
 export function appRootFor(file: string): string | null {

@@ -3,10 +3,8 @@
 
 *                     @VincentShipsIt
 
-# Maintainer-only trees and legal/policy files (see ADR-DCO-NOT-CLA).
-ee/**                 @VincentShipsIt
+# Legal/policy files (see ADR-DCO-NOT-CLA).
 LICENSE               @VincentShipsIt
-ee/LICENSE            @VincentShipsIt
 TRADEMARK.md          @VincentShipsIt
 GOVERNANCE.md         @VincentShipsIt
 SECURITY.md           @VincentShipsIt

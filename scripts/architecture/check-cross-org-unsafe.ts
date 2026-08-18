@@ -21,11 +21,7 @@ import {
 
 const HATCH_NAME = 'crossOrgUnsafe';
 
-const DEFAULT_INCLUDE_GLOBS = [
-  'apps/**/*.ts',
-  'ee/**/*.ts',
-  'packages/**/*.ts',
-];
+const DEFAULT_INCLUDE_GLOBS = ['apps/**/*.ts', 'packages/**/*.ts'];
 
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',

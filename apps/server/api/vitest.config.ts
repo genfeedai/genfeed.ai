@@ -187,17 +187,6 @@ export default defineConfig({
         ),
       },
       {
-        // Mirrors the webpack/tsconfig `@billing-providers` alias for the api's
-        // own unit tests: with ee/packages/billing out of the api graph, the
-        // billing collection modules resolve to the in-tree OSS fragment. The EE
-        // fragment is exercised by ee/packages/billing's own vitest run.
-        find: '@billing-providers',
-        replacement: path.resolve(
-          serviceDir,
-          './src/common/subscriptions/billing.providers.oss.ts',
-        ),
-      },
-      {
         find: '@credits',
         replacement: path.resolve(serviceDir, './src/collections/credits'),
       },
@@ -385,20 +374,6 @@ export default defineConfig({
       {
         find: '@libs',
         replacement: path.resolve(serviceDir, '../../../packages/libs'),
-      },
-      {
-        find: /^@genfeedai\/ee-billing\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../ee/packages/billing/src/$1',
-        ),
-      },
-      {
-        find: '@genfeedai/ee-billing',
-        replacement: path.resolve(
-          serviceDir,
-          '../../../ee/packages/billing/src',
-        ),
       },
       {
         find: '@test',

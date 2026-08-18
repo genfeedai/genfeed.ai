@@ -31,9 +31,9 @@ The monorepo already has the OSS harness **contracts + registry + compose path**
 | Layer | Location | Role |
 | --- | --- | --- |
 | **OSS contracts** | `packages/harness` (`@genfeedai/harness`) | Types, `ContentHarnessRegistry`, `composeContentHarnessBrief`, `CORE_CONTENT_HARNESS_PACK` |
-| **Runtime loader** | `apps/server/api/src/services/harness/` | Loads core + EE + `CONTENT_HARNESS_PACKAGES` external packs |
+| **Runtime loader** | `apps/server/api/src/services/harness/` | Loads core + brand-fidelity + `CONTENT_HARNESS_PACKAGES` external packs |
 | **Brand profile UI/API** | settings `/harness`, `HarnessProfilesModule` | Operator-editable voice/thesis/examples per brand |
-| **EE pack** | `ee/packages/harness` | Generic enterprise fidelity guardrails |
+| **Brand-fidelity pack** | `packages/harness` (`BRAND_FIDELITY_HARNESS_PACK`) | Generic brand fidelity guardrails, built in |
 | **Private packs** | `github.com/genfeedai/harness` → `@genfeedai/private-harness` | Vincent / genfeed / shipshit / shipshitshow packs |
 
 Private pack env contract (from private README):
@@ -115,7 +115,7 @@ These are **real production assets** and should stay:
 ## Target architecture (north star)
 
 ```
-Brand profile (DB) + Private packs (genfeedai/harness) + CORE/EE packs
+Brand profile (DB) + Private packs (genfeedai/harness) + core/brand-fidelity packs
         │
         ▼
  ContentHarnessService.composeBrief(intent: text | image | video | ad)
@@ -151,7 +151,7 @@ Not “more models.” Operators should observe:
 ### Phase 1 — wire text fully (monorepo)
 
 - Verify `CONTENT_HARNESS_PACKAGES` in cloud deploy env.
-- Fail loud in logs when private pack fails to load in EE/cloud.
+- Fail loud in logs when private pack fails to load in cloud.
 - Agent tools that generate **copy** always pass brandId → harness brief.
 
 ### Phase 2 — visual harness (monorepo)

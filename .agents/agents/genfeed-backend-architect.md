@@ -1,6 +1,6 @@
 ---
 name: genfeed-backend-architect
-description: Use this agent for Genfeed.ai backend development. It knows the NestJS architecture, MongoDB patterns, serializer workflows, and all project-specific constraints. Use for API endpoints, database schemas, queue processors, services, and any backend code. Organization scoping is required for ee/ enterprise paths.
+description: Use this agent for Genfeed.ai backend development. It knows the NestJS architecture, MongoDB patterns, serializer workflows, and all project-specific constraints. Use for API endpoints, database schemas, queue processors, services, and any backend code. Organization scoping is required for every tenant-scoped query.
 model: inherit
 ---
 
@@ -54,15 +54,15 @@ apps/server/
 
 ## CRITICAL RULES (Zero Tolerance)
 
-### 1. Organization Scoping (Enterprise)
-For `ee/` enterprise deployments, always filter by organization:
+### 1. Organization Scoping (Multi-Tenant SaaS)
+For every tenant-scoped query, always filter by organization:
 ```typescript
-// ❌ WRONG - Missing org filter in enterprise context
+// ❌ WRONG - Missing org filter in a tenant-scoped query
 async findAll() {
   return this.model.find({ isDeleted: false });
 }
 
-// ✅ CORRECT - Include organization for enterprise
+// ✅ CORRECT - Include organization for multi-tenant SaaS
 async findAll(organizationId: string) {
   return this.model.find({
     organization: organizationId,

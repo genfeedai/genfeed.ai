@@ -3,7 +3,7 @@
  *
  * Deliberately a narrow OSS read model rather than the full JSON:API
  * `ISubscription` shape. It describes the canonical scalar fields shared by
- * the enterprise Prisma service and the OSS no-op.
+ * the Stripe-backed Prisma service and the community no-op.
  */
 
 /**
@@ -61,11 +61,11 @@ export interface ISubscriptionFindAllOptions {
 
 /**
  * Result of the `findAll` aggregation. OSS reads `.total` from the analytics
- * endpoint and `.docs` from the Stripe webhook reconciliation path; enterprise
+ * endpoint and `.docs` from the Stripe webhook reconciliation path; billing
  * call sites may read more, which is fine — the index signature keeps the type
  * open.
  *
- * `docs` mirrors `AggregatePaginateResult<T>.docs` on the concrete EE service
+ * `docs` mirrors `AggregatePaginateResult<T>.docs` on the concrete service
  * (`BaseService.findAll`). `total` is required for OSS-facing consumers, while
  * `totalDocs` preserves the concrete paginated service shape. The OSS no-op
  * returns both count fields as zero.
@@ -108,7 +108,7 @@ export interface ISubscriptionsService {
    * Aggregation query; OSS reads `.total`. OSS no-op returns
    * `{ docs: [], total: 0, totalDocs: 0 }`.
    *
-   * `options` is required so OSS and enterprise implementations share one
+   * `options` is required so the stub and concrete implementations share one
    * pagination contract.
    * `enableCache` must stay in the contract: the Stripe webhook passes `false`
    * to bypass the read cache during reconciliation.
@@ -126,8 +126,8 @@ export interface ISubscriptionsService {
    * NOT throw: webhooks fire continuously and a throw here would 500 the
    * webhook even on a self-hosted install that never provisioned billing.
    *
-   * `data` is `unknown` so OSS never has to import the enterprise
-   * `UpdateSubscriptionDto`; the concrete EE service narrows it internally.
+   * `data` is `unknown` so consumers never have to import the concrete
+   * `UpdateSubscriptionDto`; the concrete service narrows it internally.
    */
   patch(id: string, data: unknown): Promise<ISubscriptionOssReadModel | null>;
 
@@ -142,7 +142,7 @@ export interface ISubscriptionsService {
   /**
    * Reconcile a local subscription against Stripe. Always-on webhook path.
    * Takes and returns the OSS read model so neither side depends on the
-   * enterprise `SubscriptionDocument`. OSS no-op echoes its argument.
+   * concrete `SubscriptionDocument`. OSS no-op echoes its argument.
    */
   syncWithStripe(
     subscription: ISubscriptionOssReadModel,
@@ -165,9 +165,9 @@ export interface ISubscriptionsService {
 
   /**
    * Persist subscription state to the DB (OrganizationSetting.subscriptionTier).
-   * Always-on webhook path. Returns `void`; the OSS no-op is a no-op (enterprise
+   * Always-on webhook path. Returns `void`; the OSS no-op is a no-op (org
    * billing state is only relevant on paid installs). `subscription` is `unknown`
-   * so OSS never imports the enterprise sync shape.
+   * so OSS never imports the concrete sync shape.
    */
   syncSubscriptionState(
     subscription: ISubscriptionOssReadModel | null,

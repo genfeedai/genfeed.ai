@@ -20,8 +20,8 @@ The published Community image contains:
 - visual workflow authoring and local/BYOK execution; and
 - brand and content-library surfaces used by the product UI.
 
-Community is single-tenant. It excludes `ee/` source and can start without a
-login wall or Cloud account.
+Community is single-tenant and can start without a login wall or Cloud
+account.
 
 ## Generation providers
 
@@ -44,9 +44,11 @@ managed analytics. Exact availability depends on the active deployment and
 commercial entitlement; this page does not promise a plan, quota, SLA, or
 certification.
 
-The repository's current `ee/` tree contains billing and harness packages. It
-does not contain the private managed inference servers or customer Fleet/LoRA
-operations.
+Organization billing ships in every image and is gated at runtime by
+`hasOrganizationBilling()`; see
+[Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate).
+The repository does not contain the private managed inference servers or
+customer Fleet/LoRA operations.
 
 ## Client source
 

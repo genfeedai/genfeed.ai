@@ -60,8 +60,10 @@ SELFHOSTED_API_PORT=3010
 SELFHOSTED_MCP_PORT=3014
 ```
 
-The Community image excludes `ee/`; setting a license-key environment variable
-does not add commercial packages to that image.
+Setting a license-key environment variable does not add hosted, Cloud-only
+product features to the Community image; it only unlocks the runtime billing
+gate for a licensed self-host (see
+[Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate)).
 
 ## Secret handling
 

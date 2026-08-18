@@ -17,7 +17,7 @@ author: Claude Code PM System
 ### Secondary: Creators & Marketing Teams
 - Content creators using AI-augmented workflows
 - Marketing teams generating and distributing AI content at scale
-- Agencies managing multiple brands (via enterprise `ee/` multi-tenancy)
+- Agencies managing multiple brands (via SaaS-mode multi-tenancy)
 
 ## Core User Needs
 
@@ -42,4 +42,4 @@ author: Claude Code PM System
 ## Product Model
 
 - **Open-source (AGPL-3.0)**: Full self-hosted deployment, BYOK execution, community-driven
-- **Enterprise (`ee/`)**: Multi-tenancy, SSO, advanced analytics, billing, team collaboration (commercial license)
+- **Cloud / SaaS mode**: Multi-tenancy, SSO, advanced analytics, organization billing, team collaboration (same AGPL code, runtime-gated)

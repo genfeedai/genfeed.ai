@@ -1,6 +1,17 @@
 import { ContentHarnessService } from '@api/services/harness/harness.service';
+import type { ContentHarnessPack } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+
+const EXTERNAL_PACK_SPECIFIER = '@acme/harness-pack';
+
+const EXTERNAL_PACK: ContentHarnessPack = {
+  capabilities: ['acme-tone'],
+  contribute: () => ({ styleDirectives: ['Sound like Acme.'] }),
+  description: 'External pack loaded by package name.',
+  id: 'acme-tone',
+  version: '1.0.0',
+};
 
 function createService(contentHarnessPackages?: string) {
   const configService = {
@@ -22,42 +33,56 @@ function createService(contentHarnessPackages?: string) {
   };
 }
 
+function injectRuntimeRequire(
+  service: ContentHarnessService,
+  runtimeRequire: NodeJS.Require,
+): void {
+  (
+    service as unknown as {
+      runtimeRequireContext: { require: NodeJS.Require };
+    }
+  ).runtimeRequireContext.require = runtimeRequire;
+}
+
 describe('ContentHarnessService', () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
   });
 
-  it('loads the core harness pack by default', async () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', '');
-
+  it('loads the built-in harness packs by default', async () => {
     const { service } = createService();
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
       'platform-x',
+      'brand-fidelity',
     ]);
   });
 
-  it('loads configured workspace packs through the runtime resolver', async () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', '');
-
+  it('loads configured external packs once through the runtime resolver', async () => {
     const { logger, service } = createService(
-      '@genfeedai/ee-harness, @genfeedai/ee-harness',
+      `${EXTERNAL_PACK_SPECIFIER}, ${EXTERNAL_PACK_SPECIFIER}`,
     );
+    const runtimeRequire = vi.fn(() => ({
+      default: EXTERNAL_PACK,
+    })) as unknown as NodeJS.Require;
+    runtimeRequire.resolve = vi.fn(() => '/virtual/acme/dist/index.js');
+    injectRuntimeRequire(service, runtimeRequire);
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
       'platform-x',
-      'ee-brand-fidelity',
+      'brand-fidelity',
+      'acme-tone',
     ]);
+    expect(runtimeRequire).toHaveBeenCalledTimes(1);
+    expect(runtimeRequire).toHaveBeenCalledWith('/virtual/acme/dist/index.js');
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it('does not fall back to workspace source when a resolved pack fails while loading', async () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', '');
-
-    const { logger, service } = createService('@genfeedai/ee-harness');
+  it('warns and skips a resolved pack that fails while loading', async () => {
+    const { logger, service } = createService(EXTERNAL_PACK_SPECIFIER);
     const moduleLoadError = Object.assign(
       new Error("Cannot find module 'transitive-package'"),
       { code: 'MODULE_NOT_FOUND' },
@@ -65,23 +90,47 @@ describe('ContentHarnessService', () => {
     const runtimeRequire = vi.fn(() => {
       throw moduleLoadError;
     }) as unknown as NodeJS.Require;
-    runtimeRequire.resolve = vi.fn(() => '/virtual/ee-harness/dist/index.js');
-
-    (
-      service as unknown as {
-        runtimeRequireContext: { require: NodeJS.Require };
-      }
-    ).runtimeRequireContext.require = runtimeRequire;
+    runtimeRequire.resolve = vi.fn(() => '/virtual/acme/dist/index.js');
+    injectRuntimeRequire(service, runtimeRequire);
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
       'platform-x',
+      'brand-fidelity',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
       'ContentHarnessService failed to load content harness pack',
       {
         error: "Cannot find module 'transitive-package'",
-        specifier: '@genfeedai/ee-harness',
+        specifier: EXTERNAL_PACK_SPECIFIER,
+      },
+    );
+  });
+
+  it('warns and skips an unresolvable pack specifier', async () => {
+    const { logger, service } = createService('@acme/missing-pack');
+    const notFound = Object.assign(
+      new Error("Cannot find module '@acme/missing-pack'"),
+      { code: 'MODULE_NOT_FOUND' },
+    );
+    const runtimeRequire = vi.fn(() => {
+      throw notFound;
+    }) as unknown as NodeJS.Require;
+    runtimeRequire.resolve = vi.fn(() => {
+      throw notFound;
+    });
+    injectRuntimeRequire(service, runtimeRequire);
+
+    await expect(service.listLoadedPackIds()).resolves.toEqual([
+      'core-baseline',
+      'platform-x',
+      'brand-fidelity',
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'ContentHarnessService failed to load content harness pack',
+      {
+        error: "Cannot find module '@acme/missing-pack'",
+        specifier: '@acme/missing-pack',
       },
     );
   });

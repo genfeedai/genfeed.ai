@@ -61,8 +61,6 @@ genfeed.ai/                             ← Monorepo root
 │   ├── fonts/                          ← Font files
 │   ├── styles/                         ← Shared styles
 │   └── ...                             ← Additional shared packages
-└── ee/
-    └── packages/                       ← Enterprise features (commercial license)
 ```
 
 ## Task Decomposition Protocol
@@ -117,7 +115,7 @@ packages → update all consumers (backend + frontend parallel) → QA
 
 Before marking ANY task as complete, verify ALL of these:
 
-1. **Organization scoping**: Enterprise (`ee/`) queries have `{ organization: orgId, isDeleted: false }`
+1. **Organization scoping**: Every tenant-scoped (SaaS multi-tenant) query has `{ organization: orgId, isDeleted: false }`; self-hosted single-tenant may omit it
 2. **No `any` types**: All TypeScript is properly typed
 3. **No inline interfaces**: All interfaces in `packages/props/` or `packages/interfaces/`
 4. **Path aliases only**: No relative imports (`../../../`)

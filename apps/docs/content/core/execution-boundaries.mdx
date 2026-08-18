@@ -46,9 +46,10 @@ Genfeed Cloud owns managed services:
 - Cross-workflow analytics, optimization loops, and managed scheduling.
 - Marketplace and hosted distribution surfaces.
 
-Cloud-only services do not run inside Community unless they are delivered in a
-separate commercial artifact or called through an explicit Cloud API
-integration. The published Community image excludes `ee/`.
+Cloud-only services do not run inside Community unless they are called through
+an explicit Cloud API integration. Organization billing code ships in the
+Community image but stays inactive at runtime unless `hasOrganizationBilling()`
+resolves true.
 
 ## Workflow and Runtime Package Boundary
 

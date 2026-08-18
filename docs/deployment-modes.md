@@ -35,44 +35,35 @@ Code must read these axes through `@genfeedai/config/deployment`; direct mode
 checks against the environment are rejected by the architecture guard. Boolean
 mode flags accept trimmed, case-insensitive `1` or `true` values.
 
-## Build flavors: how billing code gets into (or stays out of) an image
+## Billing: one build, a runtime gate
 
-Deployment mode is a **runtime** axis (`GENFEED_CLOUD`), but organization
-billing is also a **build-time** axis. The two must agree, and each is gated
-separately:
+SaaS and community images ship the **same** billing code. Organization
+subscription billing lives in the API under
+`apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`
+and is AGPL like the rest of the repository — there is no commercial subtree
+and no build flavor.
 
-1. **Build time — which billing fragment is bundled.** The server bundle
-   imports its billing DI fragment through `@billing-providers`. The flavor
-   resolver plugin in `webpack.base.config.js` points that import at
-   `ee/packages/billing/src/billing.providers.ee.ts` when that directory exists
-   in the build (`docker/Dockerfile.server`, the SaaS image), and at the OSS
-   no-op fragment `apps/server/api/src/common/subscriptions/billing.providers.oss.ts`
-   when it does not (`docker/Dockerfile.selfhosted`, the community image, which
-   omits `ee/*` entirely). The community image therefore has **no** enterprise
-   billing routes or code — not disabled, absent.
-2. **Runtime — whether org billing is live.** In an EE-flavored bundle,
-   `hasOrganizationBilling()` (SaaS via `GENFEED_CLOUD` / a public
-   `*.genfeed.ai` URL, or a self-host EE license) decides whether the shared
-   billing tokens bind the real EE services or the OSS stubs.
+Which implementation is live is decided **at boot**, in
+`apps/server/api/src/common/subscriptions/billing.providers.ts`, by
+`hasOrganizationBilling()` (SaaS via `GENFEED_CLOUD` / a public `*.genfeed.ai`
+URL, or a licensed self-host via `GENFEED_LICENSE_KEY`):
 
-Sharp edges, learned the hard way (#2748):
+- **Organization billing live** — the shared billing tokens
+  (`SUBSCRIPTIONS_SERVICE`, `USER_SUBSCRIPTIONS_SERVICE`,
+  `SUBSCRIPTION_ATTRIBUTIONS_SERVICE`) bind the Stripe-backed services and the
+  billing controllers are registered.
+- **Community self-host** — the tokens bind the colocated community stubs
+  (`apps/server/api/src/common/subscriptions/oss-*.service.ts`) and no billing
+  routes are registered. Always-on webhook/read paths return domain-safe values;
+  user-initiated org billing throws an explicit 403 pointing here. Hosted
+  credits go through the managed checkout
+  (`/v1/services/stripe/managed/checkout`) instead.
 
-- `apps/server/api/tsconfig.json` maps `@billing-providers` to the **OSS**
-  fragment. That mapping exists for `tsc` only — the OSS file carries the
-  shared fragment types, and type-checking must work without `ee/`. It must
-  never decide bundling: `TsconfigPathsPlugin` outranks `resolve.alias` in
-  webpack's resolver, so trusting it shipped OSS billing stubs inside the SaaS
-  image while every runtime flag was correct — production checkout 403'd with
-  "billing is not available" until the flavor resolver plugin made bundling
-  independent of tsconfig paths.
-- **Guards:** `bun run check:billing-flavor` (CI) asserts resolver-level flavor
-  correctness; `docker/Dockerfile.server` fails the image build if the api
-  bundle lacks the EE fragment; the OSS stubs themselves throw an explicit 403
-  naming this document's fix if a misflavored build ever reaches users.
-- A community build that sees `GENFEED_CLOUD=true` still has no EE code to
-  bind — user-initiated org billing throws 403 by design, and hosted credits
-  go through the managed checkout (`/v1/services/stripe/managed/checkout`)
-  instead.
+`initializeLicenseVerification()` runs in `main.ts` before the app module is
+imported, so reading the gate from `@Module()` metadata is safe — the same
+pattern `CreditsModule` uses for `usesMeteredCredits()`. The gate is covered
+by `billing.providers.spec.ts`, which asserts the SaaS, community, and
+licensed-self-host bindings.
 
 ## Key rules
 

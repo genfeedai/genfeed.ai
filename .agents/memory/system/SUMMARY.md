@@ -24,7 +24,6 @@ apps/
   mobile/app/  React Native / Expo
   extensions/  Browser + IDE extensions
 packages/     Shared packages (@genfeedai/*)
-ee/packages/  Enterprise features (commercial license)
 docker/       Self-hosted deployment
 docs/         Documentation
 ```

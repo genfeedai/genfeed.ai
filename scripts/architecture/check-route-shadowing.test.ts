@@ -215,9 +215,6 @@ describe('appRootFor', () => {
 
   it('returns null for code shared across apps', () => {
     expect(appRootFor('packages/libs/health/health.controller.ts')).toBeNull();
-    expect(
-      appRootFor('ee/packages/billing/src/billing.controller.ts'),
-    ).toBeNull();
   });
 });
 
