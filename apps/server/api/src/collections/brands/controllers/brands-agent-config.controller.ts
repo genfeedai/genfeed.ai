@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
+import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
@@ -8,7 +9,6 @@ import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-bran
 import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -19,7 +19,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
@@ -120,7 +119,7 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() dto: CrawlBrandKitDto,
   ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
     const organizationId = this.requireOrganizationId(user);
     const draft = await this.brandsService.crawlWebsiteBrandKitDraft(
       id,
@@ -140,7 +139,7 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() dto: ApplyBrandKitDto,
   ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
     const organizationId = this.requireOrganizationId(user);
     const result = await this.brandsService.applyBrandKitDraft(
       id,
@@ -160,7 +159,7 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() dto: ManualBrandKitDto,
   ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
     const organizationId = this.requireOrganizationId(user);
     const draft = await this.brandsService.buildManualBrandKitDraft(
       id,
@@ -180,7 +179,7 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() dto: ImportBrandKitAssetsDto,
   ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
 
     const organizationId = user.organizationId?.toString();
     const userId = (user.userId ?? user.id)?.toString();
@@ -306,40 +305,5 @@ export class BrandsAgentConfigController {
     }
 
     return organizationId;
-  }
-
-  private async verifyBrandAccess(
-    brandId: string,
-    user: User,
-  ): Promise<BrandDocument> {
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
-
-    if (brand) {
-      return brand;
-    }
-
-    if (!getIsSuperAdmin(user)) {
-      throw new HttpException(
-        {
-          detail: 'Access denied to this brand',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    throw new HttpException(
-      {
-        detail: 'Brand not found',
-        title: 'Not Found',
-      },
-      HttpStatus.NOT_FOUND,
-    );
   }
 }

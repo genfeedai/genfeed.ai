@@ -9,7 +9,7 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
@@ -21,23 +21,13 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
   AnalyticSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
 } from '@genfeedai/serializers';
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -50,45 +40,6 @@ export class BrandsRelationshipsController {
     private readonly credentialsService: CredentialsService,
   ) {}
 
-  /**
-   * Verify user has access to this brand
-   * Throws HttpException if access is denied
-   */
-  private async verifyBrandAccess(
-    brandId: string,
-    user: User,
-  ): Promise<BrandDocument> {
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
-
-    if (!brand) {
-      if (!getIsSuperAdmin(user)) {
-        throw new HttpException(
-          {
-            detail: 'Access denied to this brand',
-            title: 'Forbidden',
-          },
-          HttpStatus.FORBIDDEN,
-        );
-      }
-
-      throw new HttpException(
-        {
-          detail: 'Brand not found',
-          title: 'Not Found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    return brand;
-  }
-
   @Get(':brandId/analytics')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandAnalytics(
@@ -97,8 +48,7 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Verify user has access to this brand
-    await this.verifyBrandAccess(brandId, user);
+    await verifyBrandAccess(this.brandsService, brandId, user);
 
     // Count connected brands (credentials for this brand)
     const countResult = await this.credentialsService.findAll(
@@ -143,8 +93,7 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Verify user has access to this brand
-    await this.verifyBrandAccess(brandId, user);
+    await verifyBrandAccess(this.brandsService, brandId, user);
 
     // Get platform-specific analytics for this brand
     const startDate = query.startDate;
@@ -171,8 +120,7 @@ export class BrandsRelationshipsController {
     @Query() query: TimeSeriesQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    // Verify user has access to this brand
-    await this.verifyBrandAccess(brandId, user);
+    await verifyBrandAccess(this.brandsService, brandId, user);
 
     // Get time series data with platform breakdown
     const startDate = query.startDate;

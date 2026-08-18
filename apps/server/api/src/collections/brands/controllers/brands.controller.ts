@@ -3,6 +3,7 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
+import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { WebsitePreviewDto } from '@api/collections/brands/dto/website-preview.dto';
@@ -215,7 +216,7 @@ export class BrandsController extends BaseCRUDController<
     // service, so this flag cannot rename an established organization.
     const label = (rest as { label?: string }).label;
     if (syncOrganizationName && typeof label === 'string' && label.trim()) {
-      await this.verifyBrandAccess(id, user);
+      await verifyBrandAccess(this.brandsService, id, user);
       const onboardingProfileOptions = {
         ...(typeof rest.agentConfig === 'object' && rest.agentConfig !== null
           ? { agentConfig: rest.agentConfig }
@@ -340,7 +341,7 @@ export class BrandsController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() dto: BrandSetupDto,
   ) {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
     return this.brandSetupService.setupBrand(id, dto, user);
   }
 
@@ -356,47 +357,8 @@ export class BrandsController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() dto: AddReferenceImagesDto,
   ) {
-    await this.verifyBrandAccess(id, user);
+    await verifyBrandAccess(this.brandsService, id, user);
     return this.brandSetupService.addReferenceImages(id, dto.images, user);
-  }
-
-  /**
-   * Verify user has access to this brand
-   * Throws HttpException if access is denied
-   */
-  private async verifyBrandAccess(
-    brandId: string,
-    user: User,
-  ): Promise<BrandDocument> {
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
-
-    if (!brand) {
-      if (!getIsSuperAdmin(user)) {
-        throw new HttpException(
-          {
-            detail: 'Access denied to this brand',
-            title: 'Forbidden',
-          },
-          HttpStatus.FORBIDDEN,
-        );
-      }
-
-      throw new HttpException(
-        {
-          detail: 'Brand not found',
-          title: 'Not Found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    return brand;
   }
 
   @Post()
@@ -598,8 +560,7 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ): Promise<JsonApiSingleResponse> {
-    // Verify user has access to this brand
-    await this.verifyBrandAccess(brandId, user);
+    await verifyBrandAccess(this.brandsService, brandId, user);
 
     // Call parent implementation without caching
     return super.findOne(request, user, brandId);
