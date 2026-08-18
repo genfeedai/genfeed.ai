@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { Clapperboard, Film, Layers, Scissors, Zap } from 'lucide-react';
+import { Clapperboard, Film, Layers, Mic, Scissors, Zap } from 'lucide-react';
 
 /**
  * Studio ships production surfaces only. One-off media generation moved to the
@@ -45,6 +45,16 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.STUDIO.FASTLANE],
     outline: Zap,
     solid: Zap,
+  },
+  {
+    // One-off /studio/audio retired. Audio/voices live in Library — link
+    // there directly so Studio nav does not 404 or bounce.
+    group: '',
+    href: APP_ROUTES.LIBRARY.VOICES,
+    label: 'Audio',
+    matchPaths: [APP_ROUTES.LIBRARY.VOICES, APP_ROUTES.STUDIO.AUDIO],
+    outline: Mic,
+    solid: Mic,
   },
   {
     // Remotion timeline. Path stays `/studio/edit` (Editor → Studio Edit surface);

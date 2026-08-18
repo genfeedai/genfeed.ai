@@ -669,6 +669,17 @@ describe('AppSwitcher', () => {
       );
     });
 
+    it('labels the current FUD News brand and keeps Workspace on that brand', () => {
+      render(<AppSwitcher orgSlug="demo" brandSlug="FUDNEWS" />);
+
+      expect(screen.getByText('FUDNEWS')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/demo/FUDNEWS/workspace',
+      );
+      expect(screen.queryByText('Boxingcouple')).not.toBeInTheDocument();
+    });
+
     it('links to correct route for analytics app', () => {
       render(<AppSwitcher orgSlug="acme" />);
 

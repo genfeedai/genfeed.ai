@@ -9,6 +9,7 @@ import {
   createOrganizationAppRoute,
   createPlatformHomeRoute,
   LEGACY_APP_ROUTES,
+  parseScopedAppPath,
   resolveArtifactEditorBackHref,
   withArtifactEditorReturn,
   withPlatformQuery,
@@ -191,5 +192,24 @@ describe('routes.constant', () => {
       '/genfeed-ai/~/billing',
     );
     expect(createOrganizationAppRoute('genfeed-ai')).toBe('/genfeed-ai/~');
+  });
+
+  it('parses org/brand scope from the URL when layout params are missing', () => {
+    expect(parseScopedAppPath('/demo/FUDNEWS/library/images')).toEqual({
+      brandSlug: 'FUDNEWS',
+      orgSlug: 'demo',
+    });
+    expect(parseScopedAppPath('/demo/~/settings/credits')).toEqual({
+      brandSlug: '',
+      orgSlug: 'demo',
+    });
+    expect(parseScopedAppPath('/admin/organization')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
+    expect(parseScopedAppPath('/library/assets')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
   });
 });

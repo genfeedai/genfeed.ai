@@ -11,6 +11,7 @@ describe('STUDIO_MENU_ITEMS', () => {
       'Clips',
       'Batch',
       'Fastlane',
+      'Audio',
       'Edit',
     ]);
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
@@ -19,6 +20,7 @@ describe('STUDIO_MENU_ITEMS', () => {
       '/studio/clips',
       '/studio/batch',
       '/studio/fastlane',
+      '/library/voices',
       '/studio/edit',
     ]);
   });
@@ -30,6 +32,8 @@ describe('STUDIO_MENU_ITEMS', () => {
 
     expect(hrefs).toContain('/studio/clips');
     expect(hrefs).toContain('/studio/edit');
+    expect(hrefs).toContain('/library/voices');
+    expect(hrefs).not.toContain('/studio/audio');
   });
 
   it('carries no Edit/Automation subgroup headers', () => {

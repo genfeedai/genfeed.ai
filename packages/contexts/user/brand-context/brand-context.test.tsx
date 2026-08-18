@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useAuthMock = vi.fn();
 const useParamsMock = vi.fn();
+const usePathnameMock = vi.fn(() => '');
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 const loadClientProtectedBootstrapMock = vi.hoisted(() => vi.fn());
@@ -34,6 +35,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => useParamsMock(),
+  usePathname: () => usePathnameMock(),
 }));
 
 vi.mock('../internal/context-authed-service', () => ({
@@ -145,6 +147,7 @@ describe('BrandProvider', () => {
     loadClientProtectedBootstrapMock.mockResolvedValue(null);
     authServiceGetInstanceMock.mockReturnValue({});
     useParamsMock.mockReturnValue({});
+    usePathnameMock.mockReturnValue('');
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
@@ -437,6 +440,65 @@ describe('BrandProvider', () => {
       expect(screen.getByTestId('brand-id')).toHaveTextContent('');
       expect(screen.getByTestId('organization-id')).toHaveTextContent(
         'org_route',
+      );
+    });
+  });
+
+  it('prefers the pathname brand over a stale JWT brand when layout params are missing', async () => {
+    useParamsMock.mockReturnValue({});
+    usePathnameMock.mockReturnValue('/demo/FUDNEWS/library/images');
+
+    const demoBootstrap = {
+      ...initialBootstrap,
+      brandId: 'brand_boxing',
+      brands: [
+        {
+          id: 'brand_boxing',
+          label: 'Boxing Couple',
+          organization: {
+            id: 'org_demo',
+            slug: 'demo',
+          },
+          slug: 'boxingcouple',
+        },
+        {
+          id: 'brand_fud',
+          label: 'FUD News',
+          organization: {
+            id: 'org_demo',
+            slug: 'demo',
+          },
+          slug: 'FUDNEWS',
+        },
+      ],
+      organizationId: 'org_demo',
+    };
+
+    function Consumer() {
+      const { brandId, selectedBrand } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId}</span>
+          <span data-testid="selected-brand">{selectedBrand?.label}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={demoBootstrap as never}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-id')).toHaveTextContent('brand_fud');
+      expect(screen.getByTestId('selected-brand')).toHaveTextContent(
+        'FUD News',
       );
     });
   });

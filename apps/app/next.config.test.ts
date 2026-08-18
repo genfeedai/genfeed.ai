@@ -169,6 +169,25 @@ describe('app next.config', () => {
     });
   });
 
+  it('redirects /studio/audio to /library/voices in three scopes', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/library/voices',
+      permanent: true,
+      source: '/studio/audio',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/library/voices',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/studio/audio',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/library/voices',
+      permanent: true,
+      source: '/:orgSlug/~/studio/audio',
+    });
+  });
+
   it('redirects brand-scoped and org-scoped /admin to the platform dashboard', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({

@@ -8,10 +8,10 @@ describe('app/(protected)/admin/organization/page.tsx', () => {
     'utf8',
   );
 
-  it('redirects the incomplete Organizations landing path to live org analytics', () => {
+  it('renders the organizations list on the landing path instead of bouncing', () => {
     expect(source).toContain('if (!id)');
-    expect(source).toContain('redirect');
-    expect(source).toContain('ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS');
+    expect(source).not.toContain('redirect');
+    expect(source).toContain('AdminOrganizationsLanding');
   });
 
   it('keeps the ?id= organization settings surface', () => {

@@ -9,6 +9,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   LEGACY_APP_ROUTES,
+  parseScopedAppPath,
 } from '@genfeedai/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -150,7 +151,9 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.AUTOMATE.ROOT, APP_ROUTES.AUTOMATE.OVERVIEW],
   [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.OVERVIEW],
+  ['/library/assets', APP_ROUTES.LIBRARY.VIDEOS],
   [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.OVERVIEW],
+  [APP_ROUTES.STUDIO.AUDIO, APP_ROUTES.LIBRARY.VOICES],
   [APP_ROUTES.DISCOVER.DISCOVERY, APP_ROUTES.DISCOVER.OVERVIEW],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.STORYBOARD],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
@@ -473,6 +476,43 @@ type WorkspaceSlugResolutionOptions = {
   skipSlugCookie?: boolean;
 };
 
+function resolveRefererWorkspaceSlugs(
+  req?: NextRequest,
+): WorkspaceSlugs | null {
+  if (!req) {
+    return null;
+  }
+
+  const referer = req.headers.get('referer');
+  if (!referer) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(referer);
+    const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
+    if (parsed.origin !== requestOrigin) {
+      return null;
+    }
+
+    const scope = parseScopedAppPath(parsed.pathname);
+    if (!scope.orgSlug || !SLUG_RE.test(scope.orgSlug)) {
+      return null;
+    }
+    if (scope.brandSlug && !SLUG_RE.test(scope.brandSlug)) {
+      return null;
+    }
+
+    return {
+      brandCount: scope.brandSlug ? 1 : 0,
+      brandSlug: scope.brandSlug || undefined,
+      orgSlug: scope.orgSlug,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
@@ -481,6 +521,12 @@ async function resolveActiveWorkspaceSlugs(
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
   const skipSlugCookie = options?.skipSlugCookie === true;
+  const fromReferer = resolveRefererWorkspaceSlugs(req);
+  if (fromReferer && (!preferAvailableBrand || fromReferer.brandSlug)) {
+    const cookieValue = await encodeSlugCookie(fromReferer);
+    return { cookieValue, slugs: fromReferer };
+  }
+
   const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
   if (cached && (!preferAvailableBrand || cached.brandSlug)) {
     return { cookieValue: null, slugs: cached };

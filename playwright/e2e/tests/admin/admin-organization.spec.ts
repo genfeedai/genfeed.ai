@@ -12,7 +12,11 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 test.describe('Admin Organization', () => {
   test.setTimeout(60_000);
 
-  const routes = [APP_ROUTES.ADMIN.ORGANIZATION, APP_ROUTES.ADMIN.FOLDERS];
+  const routes = [
+    APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    APP_ROUTES.ADMIN.ORGANIZATION,
+    APP_ROUTES.ADMIN.FOLDERS,
+  ];
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ adminPage }) => {
@@ -20,11 +24,12 @@ test.describe('Admin Organization', () => {
     });
   }
 
-  test('organization admin lands on the live organizations analytics page', async ({
+  test('organization admin list href stays on the organizations page', async ({
     adminPage,
   }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATION);
-    expect(adminPage.url()).toContain(
+    expect(adminPage.url()).toContain(APP_ROUTES.ADMIN.ORGANIZATION);
+    expect(adminPage.url()).not.toContain(
       APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
     );
   });

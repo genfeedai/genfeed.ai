@@ -60,6 +60,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     factory('token'),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/demo/FUDNEWS${path}`,
+  }),
+}));
+
 vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: (...args: unknown[]) => mockUseVoiceCatalog(...args),
 }));
@@ -115,6 +121,12 @@ vi.mock('@services/social/brands.service', () => ({
       updateAgentConfig: serviceMocks.updateAgentConfig,
     }),
   },
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -282,9 +294,12 @@ describe('LibraryVoicesPage', () => {
     expect(screen.getByText('No voices available yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Clone your first voice from an uploaded or recorded sample.',
+        'Generate a voice with Agent or clone one from an uploaded or recorded sample.',
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Generate Voice' }),
+    ).toHaveAttribute('href', '/demo/FUDNEWS/agent/new');
     expect(
       screen.getByRole('button', { name: 'Clone Voice' }),
     ).toBeInTheDocument();

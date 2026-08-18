@@ -1,5 +1,6 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { parseScopedAppPath } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import type { IBrand, ICredential } from '@genfeedai/interfaces';
@@ -16,7 +17,7 @@ import {
   getPlaywrightAuthState,
 } from '@helpers/auth/auth.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import {
   startTransition,
   useCallback,
@@ -48,6 +49,8 @@ export function useBrandProviderState({
   initialBootstrap = null,
 }: UseBrandProviderStateParams) {
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const pathname = usePathname();
+  const pathScope = parseScopedAppPath(pathname ?? '');
   const {
     isLoaded: isAuthLoaded,
     isSignedIn,
@@ -211,9 +214,12 @@ export function useBrandProviderState({
 
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const routeOrgSlug =
-    typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+    (typeof params?.orgSlug === 'string' ? params.orgSlug : '') ||
+    pathScope.orgSlug;
   const routeBrandSlug =
-    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
+    typeof params?.brandSlug === 'string'
+      ? params.brandSlug
+      : pathScope.brandSlug;
   const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
   const selectedBrand = useMemo(
     () => brands.find((brand: Brand) => getBrandEntityId(brand) === brandId),

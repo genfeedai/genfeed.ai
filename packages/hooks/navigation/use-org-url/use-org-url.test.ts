@@ -14,8 +14,13 @@ const { mockBrandState, mockUseParams } = vi.hoisted(() => ({
   })),
 }));
 
+const mockUsePathname = vi.hoisted(() =>
+  vi.fn(() => '/genfeed-ai/my-brand/workspace'),
+);
+
 vi.mock('next/navigation', () => ({
   useParams: mockUseParams,
+  usePathname: mockUsePathname,
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -36,6 +41,7 @@ describe('useOrgUrl', () => {
       brandSlug: 'my-brand',
       orgSlug: 'genfeed-ai',
     });
+    mockUsePathname.mockReturnValue('/genfeed-ai/my-brand/workspace');
   });
 
   it('should return orgSlug and brandSlug from params', () => {
@@ -66,6 +72,7 @@ describe('useOrgUrl', () => {
 
   it('falls back to brand context slugs when route params are missing', () => {
     mockUseParams.mockReturnValue({});
+    mockUsePathname.mockReturnValue('/admin/organization');
     const { result } = renderHook(() => useOrgUrl());
 
     expect(result.current.orgSlug).toBe('fallback-org');
@@ -80,6 +87,7 @@ describe('useOrgUrl', () => {
 
   it('keeps org-scoped routes brandless when a selected brand exists', () => {
     mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
+    mockUsePathname.mockReturnValue('/genfeed-ai/~/library/videos');
     mockBrandState.selectedBrand = {
       organization: { slug: 'genfeed-ai' },
       slug: 'selected-brand',
@@ -99,6 +107,7 @@ describe('useOrgUrl', () => {
 
   it('builds canonical org overview href when no active brand is available', () => {
     mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
+    mockUsePathname.mockReturnValue('/genfeed-ai/~/overview');
     mockBrandState.selectedBrand = null;
 
     const { result } = renderHook(() => useOrgUrl());
@@ -108,5 +117,21 @@ describe('useOrgUrl', () => {
     expect(result.current.activeHref('/agent/new')).toBe(
       '/genfeed-ai/~/agent/new',
     );
+  });
+
+  it('reads org/brand from the pathname when layout params are missing', () => {
+    mockUseParams.mockReturnValue({});
+    mockUsePathname.mockReturnValue('/demo/FUDNEWS/library/images');
+    mockBrandState.selectedBrand = {
+      organization: { slug: 'demo' },
+      slug: 'boxingcouple',
+    };
+
+    const { result } = renderHook(() => useOrgUrl());
+
+    expect(result.current.orgSlug).toBe('demo');
+    expect(result.current.brandSlug).toBe('FUDNEWS');
+    expect(result.current.href('/agent/new')).toBe('/demo/FUDNEWS/agent/new');
+    expect(result.current.href('/workspace')).toBe('/demo/FUDNEWS/workspace');
   });
 });

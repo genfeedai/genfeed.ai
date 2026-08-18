@@ -3,10 +3,11 @@
 import {
   createBrandAppRoute,
   createOrganizationAppRoute,
+  parseScopedAppPath,
 } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IBrand } from '@genfeedai/interfaces';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
 export interface OrgUrlContext {
   orgSlug: string;
@@ -37,9 +38,10 @@ function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
 /**
  * Central navigation utility for org-scoped URLs.
  *
- * Reads `orgSlug` and `brandSlug` from the current route params.
- * Falls back to the active brand from context only when route params are
- * unavailable. Org-level routes with `/:orgSlug/~/...` stay brandless.
+ * Reads `orgSlug` and `brandSlug` from the current route params, then the
+ * pathname (parent layouts sit above `[orgSlug]/[brandSlug]` and cannot see
+ * those params). Falls back to the active brand from context only when the
+ * URL has no org/brand. Org-level routes with `/:orgSlug/~/...` stay brandless.
  *
  * @example
  * ```tsx
@@ -51,11 +53,17 @@ function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
  */
 export function useOrgUrl(): OrgUrlContext {
   const params = useParams<{ orgSlug: string; brandSlug: string }>();
+  const pathname = usePathname();
   const { selectedBrand } = useBrand();
+  const pathScope = parseScopedAppPath(pathname ?? '');
 
-  const routeOrgSlug = typeof params.orgSlug === 'string' ? params.orgSlug : '';
+  const routeOrgSlug =
+    (typeof params.orgSlug === 'string' ? params.orgSlug : '') ||
+    pathScope.orgSlug;
   const routeBrandSlug =
-    typeof params.brandSlug === 'string' ? params.brandSlug : '';
+    typeof params.brandSlug === 'string'
+      ? params.brandSlug
+      : pathScope.brandSlug;
 
   const orgSlug = routeOrgSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = routeBrandSlug || (routeOrgSlug ? '' : selectedBrand?.slug);

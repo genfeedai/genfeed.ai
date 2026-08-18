@@ -351,6 +351,11 @@ export const APP_ROUTES = {
    * image/video/avatar/music tabs were retired.
    */
   STUDIO: {
+    /**
+     * Retired one-off audio tab. Permanently redirects to Library Voices.
+     * Studio nav "Audio" links to LIBRARY.VOICES directly (no bounce).
+     */
+    AUDIO: '/studio/audio',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
     EDIT: '/studio/edit',
@@ -463,6 +468,49 @@ export function createBrandAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/${brandSlug}${normalizeScopedRoutePath(path)}`;
+}
+
+/**
+ * Inverse of {@link createBrandAppRoute} / {@link createOrganizationAppRoute}.
+ * Parent layouts sit above `[orgSlug]/[brandSlug]`, so `useParams()` there
+ * cannot see the current brand. Parse the URL instead.
+ */
+const RESERVED_APP_ROOT_SEGMENTS = new Set(
+  [
+    ...Object.values(APP_ROUTE_PREFIXES).map(
+      (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
+    ),
+    APP_ROUTES.CONNECT.replace(/^\//, ''),
+    APP_ROUTES.LOGIN.replace(/^\//, ''),
+    APP_ROUTES.LOGOUT.replace(/^\//, ''),
+    APP_ROUTES.SIGN_UP.replace(/^\//, ''),
+    APP_ROUTES.OAUTH.replace(/^\//, ''),
+    'desktop',
+    'forgot-password',
+    'managed-credits',
+    'onboarding',
+    'reset-password',
+    'serwist',
+    'sign-in',
+  ].filter(Boolean),
+);
+
+export function parseScopedAppPath(pathname: string): {
+  brandSlug: string;
+  orgSlug: string;
+} {
+  const parts = pathname.split('/').filter(Boolean);
+  const first = parts[0];
+
+  if (!first || RESERVED_APP_ROOT_SEGMENTS.has(first)) {
+    return { brandSlug: '', orgSlug: '' };
+  }
+
+  if (parts[1] === '~') {
+    return { brandSlug: '', orgSlug: first };
+  }
+
+  return { brandSlug: parts[1] ?? '', orgSlug: first };
 }
 
 /** Brand-relative path to a destination hub: `/platforms/instagram`. */
