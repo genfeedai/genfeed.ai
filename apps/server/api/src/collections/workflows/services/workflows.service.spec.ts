@@ -337,10 +337,15 @@ describe('WorkflowsService executeWorkflow ModuleRef', () => {
       moduleRef as never,
     );
 
-    const created = await service.createWorkflow('user-1', 'org-1', {
-      sourceType: 'system-catalog',
-      templateId: 'release-loop',
-    } as never);
+    const created = await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        sourceType: 'system-catalog',
+        templateId: 'release-loop',
+      } as never,
+      'brand-1',
+    );
 
     expect(install).toHaveBeenCalledWith({
       brandId: 'brand-1',
