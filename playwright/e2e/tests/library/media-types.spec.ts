@@ -177,11 +177,9 @@ test.describe('Library Media Types', () => {
           )
           .or(
             authenticatedPage.getByText(
-              /no (music|tracks|results found)|could not be loaded|audio tracks/i,
+              /no (music|tracks|results found)|could not be loaded/i,
             ),
           )
-          .or(authenticatedPage.getByText(/^Music$/))
-          .or(authenticatedPage.getByText('Assets'))
           .or(
             authenticatedPage.locator(
               '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
