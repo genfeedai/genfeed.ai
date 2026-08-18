@@ -30,21 +30,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: app.genfeed.ai
-            project_id: prj_1iMHTqANXgCLd3wALOFcWNtgrdAc
-            repository: genfeedai/genfeed.ai
+          - label: app
+            project_id: ${{ vars.VERCEL_PROJECT_APP }}
+            repository: ${{ github.repository }}
             source_sha: ${{ inputs.source_sha }}
-          - label: genfeed.ai
-            project_id: prj_77xnWYm4Fp3ngF1SpeuF5lwhOG7I
-            repository: genfeedai/genfeed.ai
+          - label: web
+            project_id: ${{ vars.VERCEL_PROJECT_WEB }}
+            repository: ${{ github.repository }}
             source_sha: ${{ inputs.source_sha }}
-          - label: docs.genfeed.ai
-            project_id: prj_SdDiBAjBgxhqmsbDBZ6mmIOAnqUL
-            repository: genfeedai/genfeed.ai
+          - label: docs
+            project_id: ${{ vars.VERCEL_PROJECT_DOCS }}
+            repository: ${{ github.repository }}
             source_sha: ${{ inputs.source_sha }}
-          - label: marketplace.genfeed.ai
-            project_id: prj_Ai18wq7yeWFy02jLGu0ulq1pfexS
-            repository: genfeedai/marketplace.genfeed.ai
+          - label: marketplace
+            project_id: ${{ vars.VERCEL_PROJECT_MARKETPLACE }}
+            repository: ${{ vars.MARKETPLACE_REPOSITORY }}
             source_sha: ${{ inputs.marketplace_source_sha }}
     env:
       # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
@@ -53,7 +53,7 @@ jobs:
       # feed the exact selected source commit SHA as BUILD_ID (apps/app's next.config reads
       # it first). The other frontends ignore this and keep Next's default buildId.
       BUILD_ID: ${{ matrix.source_sha }}
-      VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
@@ -62,7 +62,12 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
+      - name: Skip unset frontend
+        if: ${{ matrix.project_id == '' }}
+        run: echo "No Vercel project configured for ${{ matrix.label }}; skipping."
+
       - name: Checkout exact frontend source
+        if: ${{ matrix.project_id != '' }}
         uses: actions/checkout@v7.0.1
         with:
           repository: ${{ matrix.repository }}
@@ -70,17 +75,21 @@ jobs:
           persist-credentials: false
           token: ${{ github.token }}
 
-      - uses: ./.github/actions/setup-bun-env
+      - if: ${{ matrix.project_id != '' }}
+        uses: ./.github/actions/setup-bun-env
         with:
           install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Vercel CLI
+        if: ${{ matrix.project_id != '' }}
         run: bun add --global vercel@54.4.1
 
       - name: Pull Vercel production environment
+        if: ${{ matrix.project_id != '' }}
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Validate and inject production frontend environment
+        if: ${{ matrix.project_id != '' }}
         run: |
           env_file=".vercel/.env.production.local"
           if [ ! -f "$env_file" ]; then
@@ -99,7 +108,7 @@ jobs:
             printf 'NEXT_PUBLIC_POSTHOG_HOST=%s\n' "$NEXT_PUBLIC_POSTHOG_HOST"
           } >> "${env_file}.tmp"
 
-          if [ "$VERCEL_PROJECT_ID" = "prj_1iMHTqANXgCLd3wALOFcWNtgrdAc" ]; then
+          if [ "${{ matrix.label }}" = "app" ]; then
             awk '!/^NEXT_PUBLIC_GENFEED_CLOUD=/' "${env_file}.tmp" > "${env_file}.app"
             printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n' >> "${env_file}.app"
             mv "${env_file}.app" "$env_file"
@@ -108,6 +117,7 @@ jobs:
           fi
 
       - name: Preserve runner PATH for local Vercel build
+        if: ${{ matrix.project_id != '' }}
         run: |
           env_file=".vercel/.env.production.local"
           if [ -f "$env_file" ] && grep -q '^PATH=' "$env_file"; then
@@ -120,9 +130,11 @@ jobs:
           command -v vercel
 
       - name: Build ${{ matrix.label }}
+        if: ${{ matrix.project_id != '' }}
         run: vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy ${{ matrix.label }}
+        if: ${{ matrix.project_id != '' }}
         id: deploy
         run: |
           url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
@@ -130,4 +142,5 @@ jobs:
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       - name: Deployment URL
+        if: ${{ matrix.project_id != '' }}
         run: echo "${{ matrix.label }} -> ${{ steps.deploy.outputs.url }}"

@@ -124,10 +124,29 @@ The engine deploys Vercel frontends after the API rollout and smokes the
 live estate. A missing, timed-out, cancelled, or failed SaaS deploy leaves
 the public release as a draft and prevents `latest` and npm promotion.
 
-The default `monorepo` lane does not use `CONSOLE_DEPLOY_TOKEN`. It uses
-this repository's `AWS_DEPLOY_ROLE_ARN` / `AWS_REGION` variables and
-`VERCEL_TOKEN` / `NEXT_PUBLIC_POSTHOG_KEY` secrets (already configured for
-the public production environment).
+The default `monorepo` lane does not use `CONSOLE_DEPLOY_TOKEN`. Site
+identity is **not** in the repo. Put it on the `production` GitHub
+environment and the workflow fails closed if a required value is empty.
+
+Required environment variables:
+
+- `DOMAIN`, `PROJECT`, `VPC_ID`, `PUBLIC_SUBNET_IDS`, `NAT_PUBLIC_SUBNET_ID`
+- `RDS_INSTANCE_ID`, `SSM_PATH`, `CDN_BUCKET`
+- `TF_STATE_BUCKET`, `TF_STATE_KEY`
+- `SERVER_IMAGE_REPOSITORY`, `ECR_REPOSITORY_NAME`
+- `HOSTED_OWNER_EMAIL`, `HOSTED_ORGANIZATION_LABEL`
+- `APP_HOST`, `WEB_HOST`
+- `VERCEL_ORG_ID`, `VERCEL_PROJECT_APP`, `VERCEL_PROJECT_WEB`
+
+Optional: `DOCS_HOST`, `MARKETPLACE_HOST`, `MARKETPLACE_REPOSITORY`,
+`VERCEL_PROJECT_DOCS`, `VERCEL_PROJECT_MARKETPLACE`. Empty Vercel project
+ids skip that frontend.
+
+Required repository variables: `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN`.
+Required secrets: `VERCEL_TOKEN`, `NEXT_PUBLIC_POSTHOG_KEY`.
+
+A fork can deploy its own hosted SaaS by filling that environment. There
+are no `genfeed.ai` / `genfeed-data` / VPC defaults in the apply path.
 
 `CONSOLE_DEPLOY_TOKEN` is only required for `saas_lane=operations`.
 

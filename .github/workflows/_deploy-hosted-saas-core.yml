@@ -44,6 +44,22 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TF_DIR: infra/tofu/hosted-saas
   DEPLOY_SCRIPTS_DIR: scripts/deploy/hosted-saas
+  SERVER_IMAGE_REPOSITORY: ${{ vars.SERVER_IMAGE_REPOSITORY }}
+  ECR_REPOSITORY_NAME: ${{ vars.ECR_REPOSITORY_NAME }}
+  RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+  PUBLIC_SUBNET_IDS: ${{ vars.PUBLIC_SUBNET_IDS }}
+  TF_VAR_region: ${{ vars.AWS_REGION }}
+  TF_VAR_project: ${{ vars.PROJECT }}
+  TF_VAR_domain: ${{ vars.DOMAIN }}
+  TF_VAR_vpc_id: ${{ vars.VPC_ID }}
+  TF_VAR_nat_public_subnet_id: ${{ vars.NAT_PUBLIC_SUBNET_ID }}
+  TF_VAR_rds_instance_id: ${{ vars.RDS_INSTANCE_ID }}
+  TF_VAR_ssm_path: ${{ vars.SSM_PATH }}
+  TF_VAR_owner_email: ${{ vars.HOSTED_OWNER_EMAIL }}
+  TF_VAR_organization_label: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+  TF_VAR_cdn_bucket: ${{ vars.CDN_BUCKET }}
 
 jobs:
   deploy:
@@ -55,6 +71,50 @@ jobs:
       cancel-in-progress: false
     environment: production
     steps:
+      - name: Require hosted SaaS site variables
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          PROJECT: ${{ vars.PROJECT }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          VPC_ID: ${{ vars.VPC_ID }}
+          NAT_PUBLIC_SUBNET_ID: ${{ vars.NAT_PUBLIC_SUBNET_ID }}
+          SSM_PATH: ${{ vars.SSM_PATH }}
+          HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
+          HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+          CDN_BUCKET: ${{ vars.CDN_BUCKET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in \
+            AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT DOMAIN VPC_ID PUBLIC_SUBNET_IDS \
+            NAT_PUBLIC_SUBNET_ID RDS_INSTANCE_ID SSM_PATH TF_STATE_BUCKET TF_STATE_KEY \
+            SERVER_IMAGE_REPOSITORY ECR_REPOSITORY_NAME HOSTED_OWNER_EMAIL \
+            HOSTED_ORGANIZATION_LABEL CDN_BUCKET
+          do
+            eval "value=\${$name-}"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required hosted SaaS variable: ${name}"
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::Set these on the production GitHub environment. There are no genfeed.ai defaults in this workflow."
+            exit 1
+          fi
+
+      - name: Materialize list variables
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >>"${GITHUB_ENV}"
+          import json
+          import os
+
+          ids = [part.strip() for part in os.environ["PUBLIC_SUBNET_IDS"].split(",") if part.strip()]
+          if len(ids) < 1:
+              raise SystemExit("PUBLIC_SUBNET_IDS must contain at least one subnet id")
+          print(f"TF_VAR_public_subnet_ids={json.dumps(ids)}")
+          PY
+
       - name: Checkout public deploy engine
         uses: actions/checkout@v7.0.1
         with:
@@ -136,7 +196,7 @@ jobs:
           REQUESTED_TAG: ${{ steps.tag.outputs.sha }}
         run: |
           set -euo pipefail
-          REPO="ghcr.io/genfeedai/genfeed.ai/server"
+          REPO="${SERVER_IMAGE_REPOSITORY}"
 
           image_exists() {
             docker buildx imagetools inspect "${REPO}:$1" >/dev/null 2>&1
@@ -232,9 +292,9 @@ jobs:
       - name: Copy server:<sha> GHCR -> ECR (no rebuild)
         run: |
           SHA="${{ steps.image.outputs.sha }}"
-          ECR="$(aws ecr describe-repositories --repository-names genfeed/server \
+          ECR="$(aws ecr describe-repositories --repository-names "${ECR_REPOSITORY_NAME}" \
                  --query 'repositories[0].repositoryUri' --output text)"
-          docker buildx imagetools create -t "${ECR}:${SHA}" "ghcr.io/genfeedai/genfeed.ai/server:${SHA}"
+          docker buildx imagetools create -t "${ECR}:${SHA}" "${SERVER_IMAGE_REPOSITORY}:${SHA}"
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
@@ -245,7 +305,11 @@ jobs:
 
       - name: Tofu init
         working-directory: ops/${{ env.TF_DIR }}
-        run: tofu init -input=false
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=${TF_STATE_KEY}" \
+            -backend-config="region=${AWS_REGION}"
 
       - name: Register migration, backfill, and boot-smoke task definitions
         working-directory: ops/${{ env.TF_DIR }}
@@ -268,8 +332,7 @@ jobs:
 
       - name: Snapshot RDS before migrations (fail-closed)
         env:
-          # Source of truth: infra/tofu/hosted-saas/data.tf (data.aws_db_instance.genfeed).
-          RDS_INSTANCE_ID: genfeed-data
+          RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
           # Read via env, never interpolate ${{ }} into the script body directly.
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
         run: |
@@ -373,7 +436,7 @@ jobs:
       - name: Print workers boot-smoke logs on failure
         if: ${{ failure() && steps.worker-boot-smoke.outcome == 'failure' }}
         run: |
-          aws logs tail "/ecs/genfeed-production/worker-boot-smoke" \
+          aws logs tail "/ecs/${TF_VAR_project}-production/worker-boot-smoke" \
             --since 30m --format short | tail -n 300 || true
 
       - name: Tofu apply (roll services to new image)
@@ -404,7 +467,7 @@ jobs:
               --query 'services[0].desiredCount' --output text 2>/dev/null || echo 0)
             [ "$desired" = "0" ] && continue
             echo "::group::Recent CloudWatch logs — $svc"
-            aws logs tail "/ecs/genfeed-production/$svc" \
+            aws logs tail "/ecs/${TF_VAR_project}-production/$svc" \
               --since 30m --format short | tail -n 160 || true
             echo "::endgroup::"
           done
@@ -455,6 +518,7 @@ jobs:
     needs: [deploy, deploy-vercel-frontends]
     if: ${{ always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
+    environment: production
     # Worst-case sequential retry budget across the 6 URLs is ~20m
     # (7 attempts x 20s max-time + 6 x 10s retry-delay per URL); keep the timeout
     # above it so an unresponsive endpoint surfaces as a failure, not a silent cancel.
@@ -463,6 +527,12 @@ jobs:
       contents: read
     steps:
       - name: Smoke live production endpoints
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+          APP_HOST: ${{ vars.APP_HOST }}
+          WEB_HOST: ${{ vars.WEB_HOST }}
+          DOCS_HOST: ${{ vars.DOCS_HOST }}
+          MARKETPLACE_HOST: ${{ vars.MARKETPLACE_HOST }}
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/post-deploy-smoke"
@@ -492,13 +562,17 @@ jobs:
             } >> "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
           }
 
-          smoke_url api-ready "https://api.genfeed.ai/v1/health/ready" '"status":"ready"'
-          smoke_url mcp-health "https://mcp.genfeed.ai/v1/health" '"status":"ok"'
-          smoke_url notifications-health "https://notifications.genfeed.ai/v1/health" '"status":"ok"'
-          smoke_url app-login "https://app.genfeed.ai/login"
-          smoke_url website-home "https://genfeed.ai"
-          smoke_url docs-home "https://docs.genfeed.ai"
-          smoke_url marketplace-home "https://marketplace.genfeed.ai"
+          smoke_url api-ready "https://api.${DOMAIN}/v1/health/ready" '"status":"ready"'
+          smoke_url mcp-health "https://mcp.${DOMAIN}/v1/health" '"status":"ok"'
+          smoke_url notifications-health "https://notifications.${DOMAIN}/v1/health" '"status":"ok"'
+          smoke_url app-login "https://${APP_HOST}/login"
+          smoke_url website-home "https://${WEB_HOST}"
+          if [ -n "${DOCS_HOST}" ]; then
+            smoke_url docs-home "https://${DOCS_HOST}"
+          fi
+          if [ -n "${MARKETPLACE_HOST}" ]; then
+            smoke_url marketplace-home "https://${MARKETPLACE_HOST}"
+          fi
 
           {
             echo "## Post-deploy smoke"
@@ -532,14 +606,7 @@ jobs:
               `- Failed run: ${runUrl}`,
               `- Public source SHA: \`${{ inputs.source_sha }}\``,
               ``,
-              `Checked endpoints:`,
-              `- https://api.genfeed.ai/v1/health/ready`,
-              `- https://mcp.genfeed.ai/v1/health`,
-              `- https://notifications.genfeed.ai/v1/health`,
-              `- https://app.genfeed.ai/login`,
-              `- https://genfeed.ai`,
-              `- https://docs.genfeed.ai`,
-              `- https://marketplace.genfeed.ai`,
+              `See the smoke job log on the failed run for the checked hosts.`,
               ``,
               `This means the production deploy completed but the live public surface did not pass smoke verification.`,
             ].join('\n');

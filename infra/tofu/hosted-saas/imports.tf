@@ -5,5 +5,5 @@
 # resource is already tracked in state. Safe to remove in a later cleanup.
 import {
   to = aws_ssm_parameter.redis_password
-  id = "/genfeed/production/REDIS_PASSWORD"
+  id = "${var.ssm_path}/REDIS_PASSWORD"
 }

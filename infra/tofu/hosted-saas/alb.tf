@@ -1,4 +1,4 @@
-# ── ACM cert for api.genfeed.ai (DNS-validated via Route53) ──────────
+# ── ACM cert for the public API hostname (DNS-validated via Route53) ─
 resource "aws_acm_certificate" "api" {
   domain_name       = local.fqdn
   validation_method = "DNS"

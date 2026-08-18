@@ -1,6 +1,6 @@
 locals {
   name_prefix = "${var.project}-${var.environment}"
-  fqdn        = "${var.api_subdomain}.${var.domain}" # api.genfeed.ai
+  fqdn        = "${var.api_subdomain}.${var.domain}"
 
   public_backend_service_names = ["mcp", "notifications"]
   public_service_hostnames = merge(

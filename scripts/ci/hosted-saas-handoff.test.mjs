@@ -157,6 +157,51 @@ test('in-repo engine never clones console and keeps OpenTofu off the entry workf
   assert.doesNotMatch(publicDeployVercel, /secrets\.CONSOLE_DEPLOY_TOKEN/);
 });
 
+test('hosted SaaS site identity comes from GitHub environment variables', () => {
+  const tofuVariables = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/variables.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const tofuIam = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/iam.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const tofuProviders = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/providers.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  assert.match(publicDeployCore, /Require hosted SaaS site variables/);
+  assert.match(
+    publicDeployCore,
+    /-backend-config="bucket=\$\{TF_STATE_BUCKET\}"/,
+  );
+  assert.match(publicDeployCore, /vars\.RDS_INSTANCE_ID/);
+  assert.match(
+    publicDeployCore,
+    /https:\/\/api\.\$\{DOMAIN\}\/v1\/health\/ready/,
+  );
+  assert.doesNotMatch(publicDeployCore, /vpc-[0-9a-f]{8,}/);
+  assert.doesNotMatch(publicDeployCore, /prj_[A-Za-z0-9]+/);
+  assert.doesNotMatch(publicDeployCore, /genfeed-data/);
+  assert.doesNotMatch(publicDeployVercel, /prj_[A-Za-z0-9]+/);
+  assert.doesNotMatch(publicDeployVercel, /team_[A-Za-z0-9]+/);
+  assert.match(publicDeployVercel, /vars\.VERCEL_PROJECT_APP/);
+  assert.match(tofuVariables, /variable "rds_instance_id"/);
+  assert.doesNotMatch(tofuVariables, /default\s*=\s*"genfeed\.ai"/);
+  assert.doesNotMatch(tofuVariables, /vpc-[0-9a-f]{8,}/);
+  assert.doesNotMatch(tofuVariables, /genfeed-data/);
+  assert.doesNotMatch(tofuIam, /cdn\.genfeed\.ai/);
+  assert.match(tofuProviders, /backend "s3"/);
+  assert.doesNotMatch(tofuProviders, /bucket\s*=\s*"genfeed-tfstate"/);
+});
+
 test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {
   for (const jobId of [
     'promote-community',
