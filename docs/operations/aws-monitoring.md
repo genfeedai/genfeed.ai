@@ -67,9 +67,10 @@ the processor named by `queueName` + `jobId`.
   worker identity is invented from the metrics collector replica.
 - Per-queue `StalledJobs5m` and Redis `stalledJobIds` identify the
   affected queue on the next alarm.
-- Workers-service long jobs use a 120s lock, 30s renew/stall check, and
-  `maxStalledCount=2`. Files queues stay on BullMQ defaults until a drain
-  + ECS stop-timeout follow-up lands.
+- Workers-service long jobs use a 120s lock and 30s renew/stall check.
+  `maxStalledCount` stays at BullMQ's default of 1 so a side-effecting
+  job is not run a third time after two stalls. Files queues stay on
+  BullMQ defaults until a drain + ECS stop-timeout follow-up lands.
 
 Before deleting queue data:
 
