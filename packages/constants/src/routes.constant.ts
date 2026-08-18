@@ -485,6 +485,8 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
     APP_ROUTES.OAUTH.replace(/^\//, ''),
+    LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
+    LEGACY_APP_ROUTES.LAB_CRON_JOBS.replace(/^\//, '').split('/')[0] ?? '',
     'desktop',
     'forgot-password',
     'managed-credits',
@@ -502,7 +504,10 @@ export function parseScopedAppPath(pathname: string): {
   const parts = pathname.split('/').filter(Boolean);
   const first = parts[0];
 
-  if (!first || RESERVED_APP_ROOT_SEGMENTS.has(first)) {
+  // Inverse of createBrandAppRoute / createOrganizationAppRoute: scope always
+  // has two segments (`/:org/:brand` or `/:org/~`). A lone product root is not
+  // an org slug.
+  if (!first || RESERVED_APP_ROOT_SEGMENTS.has(first) || parts.length < 2) {
     return { brandSlug: '', orgSlug: '' };
   }
 

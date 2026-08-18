@@ -447,6 +447,12 @@ describe('BrandProvider', () => {
   it('prefers the pathname brand over a stale JWT brand when layout params are missing', async () => {
     useParamsMock.mockReturnValue({});
     usePathnameMock.mockReturnValue('/demo/FUDNEWS/library/images');
+    const patchMeBrand = vi.fn().mockResolvedValue({});
+    useAuthedServiceMock.mockResolvedValue({
+      findAllMeBrands: vi.fn().mockResolvedValue([]),
+      patchMeBrand,
+    });
+    loadClientProtectedBootstrapMock.mockResolvedValue(null);
 
     const demoBootstrap = {
       ...initialBootstrap,
@@ -500,6 +506,11 @@ describe('BrandProvider', () => {
       expect(screen.getByTestId('selected-brand')).toHaveTextContent(
         'FUD News',
       );
+    });
+    await waitFor(() => {
+      expect(patchMeBrand).toHaveBeenCalledWith('brand_fud', {
+        isSelected: true,
+      });
     });
   });
 

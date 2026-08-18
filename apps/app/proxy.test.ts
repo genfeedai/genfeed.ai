@@ -1412,6 +1412,34 @@ describe('proxy', () => {
     );
   });
 
+  it('writes the URL brand into gf_ws so a later unscoped hop stays on FUD News', async () => {
+    vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
+    const { default: proxy } = await import('./proxy');
+
+    const scopedResponse = await proxy(
+      makeSignedInRequest('/demo/FUDNEWS/library/images'),
+      {} as never,
+    );
+
+    expect(scopedResponse.headers.get('location')).toBeNull();
+    const cookieValue = (scopedResponse.headers.get('set-cookie') ?? '')
+      .match(/gf_ws=([^;]+)/)
+      ?.at(1);
+    expect(cookieValue).toBeTruthy();
+
+    const unscopedResponse = await proxy(
+      makeSignedInRequest('/library/assets', {
+        extraCookies: { gf_ws: cookieValue ?? '' },
+      }),
+      {} as never,
+    );
+
+    expect(unscopedResponse.status).toBe(307);
+    expect(unscopedResponse.headers.get('location')).toBe(
+      'http://localhost:3000/demo/FUDNEWS/library/videos',
+    );
+  });
+
   it('redirects signed-in flat agent to org scope when no brand exists', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

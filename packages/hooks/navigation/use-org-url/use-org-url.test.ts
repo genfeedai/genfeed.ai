@@ -133,5 +133,11 @@ describe('useOrgUrl', () => {
     expect(result.current.brandSlug).toBe('FUDNEWS');
     expect(result.current.href('/agent/new')).toBe('/demo/FUDNEWS/agent/new');
     expect(result.current.href('/workspace')).toBe('/demo/FUDNEWS/workspace');
+    expect(result.current.activeHref('/workspace')).toBe(
+      '/demo/FUDNEWS/workspace',
+    );
+    expect(result.current.activeHref('/agent/new')).toBe(
+      '/demo/FUDNEWS/agent/new',
+    );
   });
 });

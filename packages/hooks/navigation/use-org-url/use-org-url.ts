@@ -67,7 +67,9 @@ export function useOrgUrl(): OrgUrlContext {
 
   const orgSlug = routeOrgSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = routeBrandSlug || (routeOrgSlug ? '' : selectedBrand?.slug);
-  const activeBrandSlug = selectedBrand?.slug || routeBrandSlug;
+  // URL brand wins. selectedBrand is only the last-used payload when the URL
+  // has no brand (org `~` routes and unscoped leftovers like /agent/new).
+  const activeBrandSlug = routeBrandSlug || selectedBrand?.slug;
 
   const orgHref = (path: string) => createOrganizationAppRoute(orgSlug, path);
 

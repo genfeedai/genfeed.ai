@@ -211,5 +211,13 @@ describe('routes.constant', () => {
       brandSlug: '',
       orgSlug: '',
     });
+    expect(parseScopedAppPath('/tasks')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
+    expect(parseScopedAppPath('/agent/new')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
   });
 });

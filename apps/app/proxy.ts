@@ -185,8 +185,11 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
 }
 
-/** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
-const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+/**
+ * Slug segments are alphanumeric + hyphens (Demo brand `FUDNEWS` is uppercase).
+ * Reject `/`, `//`, and dots so slugs cannot become open redirects.
+ */
+const SLUG_RE = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
 
 function canonicalizeLegacyScopedProtectedPath(
   pathname: string,
@@ -279,16 +282,8 @@ function getTopLevelSegment(pathname: string): string | null {
   return segment ?? null;
 }
 
-/**
- * Validate a workspace slug to prevent open redirects.
- * Slugs must start with a lowercase letter or digit and consist only of
- * lowercase letters, digits, and hyphens. A slug starting with "/" or
- * containing "//" could create cross-origin redirect vectors.
- */
-const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
-
 function isValidSlug(slug: string | undefined): slug is string {
-  return typeof slug === 'string' && SLUG_PATTERN.test(slug);
+  return typeof slug === 'string' && SLUG_RE.test(slug);
 }
 
 function isBareProtectedPath(pathname: string): boolean {
@@ -476,6 +471,22 @@ type WorkspaceSlugResolutionOptions = {
   skipSlugCookie?: boolean;
 };
 
+function slugsFromPathname(pathname: string): WorkspaceSlugs | null {
+  const scope = parseScopedAppPath(pathname);
+  if (!scope.orgSlug || !isValidSlug(scope.orgSlug)) {
+    return null;
+  }
+  if (scope.brandSlug && !isValidSlug(scope.brandSlug)) {
+    return null;
+  }
+
+  return {
+    brandCount: scope.brandSlug ? 1 : 0,
+    brandSlug: scope.brandSlug || undefined,
+    orgSlug: scope.orgSlug,
+  };
+}
+
 function resolveRefererWorkspaceSlugs(
   req?: NextRequest,
 ): WorkspaceSlugs | null {
@@ -495,22 +506,28 @@ function resolveRefererWorkspaceSlugs(
       return null;
     }
 
-    const scope = parseScopedAppPath(parsed.pathname);
-    if (!scope.orgSlug || !SLUG_RE.test(scope.orgSlug)) {
-      return null;
-    }
-    if (scope.brandSlug && !SLUG_RE.test(scope.brandSlug)) {
-      return null;
-    }
-
-    return {
-      brandCount: scope.brandSlug ? 1 : 0,
-      brandSlug: scope.brandSlug || undefined,
-      orgSlug: scope.orgSlug,
-    };
+    return slugsFromPathname(parsed.pathname);
   } catch {
     return null;
   }
+}
+
+async function continueWithCurrentWorkspace(
+  req: NextRequest,
+  cacheKey?: string | null,
+): Promise<NextResponse> {
+  const slugs = slugsFromPathname(req.nextUrl.pathname);
+  if (!slugs) {
+    return NextResponse.next();
+  }
+
+  writeWorkspaceSlugCache(cacheKey, slugs);
+  const cookieValue = await encodeSlugCookie(slugs);
+  const response = NextResponse.next();
+  if (cookieValue) {
+    setSlugCookie(response, cookieValue);
+  }
+  return response;
 }
 
 async function resolveActiveWorkspaceSlugs(
@@ -521,6 +538,13 @@ async function resolveActiveWorkspaceSlugs(
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
   const skipSlugCookie = options?.skipSlugCookie === true;
+  const fromRequestPath =
+    req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
+  if (fromRequestPath && (!preferAvailableBrand || fromRequestPath.brandSlug)) {
+    const cookieValue = await encodeSlugCookie(fromRequestPath);
+    return { cookieValue, slugs: fromRequestPath };
+  }
+
   const fromReferer = resolveRefererWorkspaceSlugs(req);
   if (fromReferer && (!preferAvailableBrand || fromReferer.brandSlug)) {
     const cookieValue = await encodeSlugCookie(fromReferer);
@@ -1243,10 +1267,10 @@ async function routeBetterAuthRequest(
       return response;
     }
 
-    return NextResponse.next();
+    return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
-  return NextResponse.next();
+  return continueWithCurrentWorkspace(req, sessionCookie);
 }
 
 export async function proxy(req: NextRequest) {
