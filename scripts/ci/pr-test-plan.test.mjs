@@ -7,12 +7,24 @@ import {
   classifyChangedFiles,
   createPrTestPlan,
   createShardMatrix,
+  isChangeRunEvent,
   parseTurboDryRun,
   parseVitestList,
   readChangedFiles,
   selectCoverageShardCount,
   selectShardCount,
 } from './pr-test-plan.mjs';
+
+test('scopes surfaces by diff on pull requests and merge-queue runs, forces them elsewhere', () => {
+  // A merge-queue run diffs the PR against the *current* master (its queue
+  // base), so the classification is at least as precise as the PR run's; only
+  // landed-trunk and release events lose the diff and force every surface.
+  assert.equal(isChangeRunEvent('pull_request'), true);
+  assert.equal(isChangeRunEvent('merge_group'), true);
+  assert.equal(isChangeRunEvent('push'), false);
+  assert.equal(isChangeRunEvent('workflow_dispatch'), false);
+  assert.equal(isChangeRunEvent(undefined), false);
+});
 
 test('classifies direct and shared pull-request surfaces conservatively', () => {
   assert.deepEqual(classifyChangedFiles(['docs/testing.md']), {
@@ -327,14 +339,69 @@ test('workspace-group jobs gate on planner outputs alone, so pushes run them', (
     );
   }
 
-  // The --affected run steps need a diff base on push events too. Four
-  // workspace-group jobs plus the changed app/API shards resolve it from the
-  // PR base with a push fallback.
-  const baseFallbacks = workflow.match(
-    /github\.event\.pull_request\.base\.sha \|\| github\.event\.before/g,
+  // The --affected run steps need a diff base on push and merge-queue events
+  // too. One workflow-level `CI_BASE_SHA` resolves it per event (queue base →
+  // PR base → previous master head) and every step reads that variable, so a
+  // new event type is wired in exactly one place.
+  assert.match(
+    workflow,
+    /CI_BASE_SHA: \$\{\{ github\.event_name == 'merge_group' && github\.event\.merge_group\.base_sha \|\| github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/,
+    'CI_BASE_SHA must resolve merge_group → pull_request → push in that order',
   );
+  const baseReads = workflow.match(/BASE="\$CI_BASE_SHA"/g);
   assert.ok(
-    (baseFallbacks?.length ?? 0) >= 6,
-    'every --affected/--changed run step must fall back to github.event.before on push',
+    (baseReads?.length ?? 0) >= 6,
+    'every --affected/--changed run step must read its diff base from CI_BASE_SHA',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /BASE="\$\{\{ github\.event\.pull_request\.base\.sha/,
+    'no run step may resolve its own diff base from the PR payload',
+  );
+  assert.match(
+    workflow,
+    /pr-test-plan\.mjs --event "\$\{\{ github\.event_name \}\}" --base "\$CI_BASE_SHA"/,
+    'the planner must diff against CI_BASE_SHA',
+  );
+});
+
+test('the merge queue re-runs the gate on the queue merge commit', () => {
+  const workflowPath = fileURLToPath(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+  );
+  const workflow = readFileSync(workflowPath, 'utf8');
+
+  // #3143: `master` merges through the GitHub merge queue. Without a
+  // `merge_group` trigger no required context ever reports on the queue's
+  // temporary merge commit and every entry times out; without the change-run
+  // gates a queue run would either skip its affected paths or diff against
+  // the wrong base.
+  assert.match(
+    workflow,
+    /^on:\n(?:.*\n)*? {2}merge_group:\n {4}types: \[checks_requested\]\n/m,
+    'ci.yml must subscribe to merge_group checks_requested',
+  );
+  assert.match(
+    workflow,
+    /CI_IS_CHANGE_RUN: \$\{\{ github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \}\}/,
+    'affected-only paths must treat merge_group like pull_request',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /if \[ "\$\{\{ github\.event_name \}\}" = "pull_request" \]/,
+    'run steps must gate on CI_IS_CHANGE_RUN, not on the raw event name',
+  );
+  // The gate that the ruleset requires must publish on queue runs as well as
+  // PRs and pushes, or the queue never sees a verdict.
+  assert.match(
+    workflow,
+    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}/,
+    'tests-gate must run on merge_group',
+  );
+  // A merge-queue run is never cancelled: each queue entry already has a
+  // unique ref, and a cancelled run drops the entry out of the queue.
+  assert.match(
+    workflow,
+    /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/,
   );
 });
