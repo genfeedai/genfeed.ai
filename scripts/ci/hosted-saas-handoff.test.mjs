@@ -122,14 +122,27 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
     /aws-actions\/configure-aws-credentials/,
   );
   assert.doesNotMatch(publicDeployWorkflow, /VERCEL_ORG_ID|vercel build/);
+  assert.match(
+    readFileSync(
+      fileURLToPath(
+        new URL('../../infra/tofu/hosted-saas/providers.tf', import.meta.url),
+      ),
+      'utf8',
+    ),
+    /backend "s3"/,
+  );
 });
 
-test('in-repo engine checks out console operations and keeps OpenTofu off the entry workflow', () => {
-  assert.match(publicDeployCore, /repository: genfeedai\/console\.genfeed\.ai/);
-  assert.match(
+test('in-repo engine never clones console and keeps OpenTofu off the entry workflow', () => {
+  assert.doesNotMatch(
+    publicDeployCore,
+    /repository: genfeedai\/console\.genfeed\.ai/,
+  );
+  assert.doesNotMatch(
     publicDeployCore,
     /token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
   );
+  assert.match(publicDeployCore, /Checkout public deploy engine/);
   assert.match(publicDeployCore, /environment: production/);
   assert.match(publicDeployCore, /aws-actions\/configure-aws-credentials/);
   assert.match(
@@ -141,10 +154,7 @@ test('in-repo engine checks out console operations and keeps OpenTofu off the en
     /uses: genfeedai\/console\.genfeed\.ai\//,
   );
   assert.match(publicDeployVercel, /environment: production/);
-  assert.match(
-    publicDeployVercel,
-    /matrix\.repository == 'genfeedai\/marketplace\.genfeed\.ai' && secrets\.CONSOLE_DEPLOY_TOKEN/,
-  );
+  assert.doesNotMatch(publicDeployVercel, /secrets\.CONSOLE_DEPLOY_TOKEN/);
 });
 
 test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {

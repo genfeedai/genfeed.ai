@@ -68,7 +68,7 @@ jobs:
           repository: ${{ matrix.repository }}
           ref: ${{ matrix.source_sha }}
           persist-credentials: false
-          token: ${{ matrix.repository == 'genfeedai/marketplace.genfeed.ai' && secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
+          token: ${{ github.token }}
 
       - uses: ./.github/actions/setup-bun-env
         with:

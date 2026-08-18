@@ -1,11 +1,8 @@
 name: Deploy hosted SaaS
 run-name: Deploy hosted SaaS | ${{ inputs.source_sha }} | ${{ inputs.correlation_id || 'manual' }}
 
-# Public-repo hosted SaaS lane. Jobs run here so GitHub bills the public
-# repository (standard public runners are free). Do not `uses:` a private
-# reusable workflow — GitHub Team cannot resolve console.genfeed.ai from this
-# public repo (422 workflow was not found). OpenTofu stays in console and is
-# checked out at runtime by the local engine.
+# Public-repo hosted SaaS lane. Jobs, OpenTofu, and deploy scripts all live
+# here so GitHub bills free public minutes. Do not clone console.genfeed.ai.
 on:
   workflow_dispatch:
     inputs:

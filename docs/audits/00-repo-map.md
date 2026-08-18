@@ -125,10 +125,9 @@ Full inventory verified per-package (package.json + entry read). Highlights:
 
 - **Public boundary:** application source, release validation, Community
   artifacts, and immutable server images remain here.
-- **Private boundary:** hosted OpenTofu, credentials, recovery runbooks,
-  production monitoring, and operational topology stay in
-  `genfeedai/console.genfeed.ai`. Deploy jobs run in this public repository
-  and check that private tree out at runtime.
+- **Private boundary:** fleet, LoRA, recovery runbooks, and operator
+  console stay in `genfeedai/console.genfeed.ai`. Hosted SaaS OpenTofu and
+  deploy jobs run in this public repository.
 - **Release path:** the manual stable `release.yml` pins one `master` SHA, runs
   the public verification and Community lanes, then runs public
   `Deploy hosted SaaS` for that SHA before advancing release channels.
