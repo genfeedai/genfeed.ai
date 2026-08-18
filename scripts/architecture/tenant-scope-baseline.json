@@ -491,14 +491,6 @@
     {
       "delegate": "creativePattern",
       "file": "apps/server/api/src/collections/creative-patterns/creative-patterns.service.ts",
-      "fingerprint": "00fcb8edb9e10226b054",
-      "method": "findMany",
-      "model": "CreativePattern",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creativePattern",
-      "file": "apps/server/api/src/collections/creative-patterns/creative-patterns.service.ts",
       "fingerprint": "c46d1fa17766b507b0f2",
       "method": "update",
       "model": "CreativePattern",
