@@ -12,9 +12,10 @@
 
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
+import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { subscriptions } from '@billing-providers';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: subscriptions.controllers,
@@ -23,6 +24,9 @@ import { Module } from '@nestjs/common';
     ...(subscriptions.imports ?? []),
     CreditsModule,
     CustomersModule,
+    // Real cycle: OrganizationsModule imports SubscriptionsModule, and
+    // SubscriptionsController injects OrganizationsService.
+    forwardRef(() => OrganizationsModule),
     StripeCoreModule,
   ],
   providers: subscriptions.providers,
