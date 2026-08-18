@@ -16,6 +16,83 @@ export default mergeConfig(
     resolve: {
       alias: [
         {
+          find: /^@components\/buttons\/refresh\/button-refresh\/ButtonRefresh$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
+          ),
+        },
+        {
+          find: /^@components\/cards\/KpiCard$/,
+          replacement: path.resolve(
+            __dirname,
+            './packages/components/admin/cards/KpiCard.tsx',
+          ),
+        },
+        {
+          find: /^@components\/lazy\/LazyModal$/,
+          replacement: path.resolve(
+            __dirname,
+            './packages/components/admin/lazy/LazyModal.ts',
+          ),
+        },
+        {
+          find: /^@components\/lazy\/modal\/LazyModal$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
+          ),
+        },
+        {
+          find: /^@components\/loading\/fallback\/LazyLoadingFallback$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
+          ),
+        },
+        {
+          find: /^@components\/loading\/skeleton\/SkeletonFallbacks$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
+          ),
+        },
+        {
+          find: /^@components\/modals\/actions\/ModalActions$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/modals/actions/ModalActions.tsx',
+          ),
+        },
+        {
+          find: /^@components\/modals\/modal\/Modal$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/ui/src/components/modals/modal/Modal.tsx',
+          ),
+        },
+        {
+          find: /^@components\/modals\/ModalRole$/,
+          replacement: path.resolve(
+            __dirname,
+            './packages/components/admin/modals/ModalRole.tsx',
+          ),
+        },
+        {
+          find: /^@components\/modals\/ModalSubscription$/,
+          replacement: path.resolve(
+            __dirname,
+            './packages/components/admin/modals/ModalSubscription.tsx',
+          ),
+        },
+        {
+          find: /^@components\/social\/SocialLinks$/,
+          replacement: path.resolve(
+            __dirname,
+            './packages/components/admin/social/SocialLinks.tsx',
+          ),
+        },
+        {
           // Resolve Better Auth to a timer-free test implementation before
           // dependency externalization. Runtime vi.mock interception no longer
           // covers the package-local realpath used by Better Auth 1.6.23.

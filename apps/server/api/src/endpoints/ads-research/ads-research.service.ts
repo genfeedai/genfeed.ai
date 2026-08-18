@@ -111,7 +111,7 @@ export class AdsResearchService {
     const publicAds =
       normalized.source === 'my_accounts'
         ? []
-        : await this.getPublicAds(normalized);
+        : await this.getPublicAds(organizationId, normalized);
     const connectedAds =
       normalized.source === 'public'
         ? []
@@ -136,7 +136,7 @@ export class AdsResearchService {
     params: DetailContext,
   ): Promise<AdsResearchDetail> {
     if (params.source === 'public') {
-      const item = await this.getPublicAdDetail(params.id);
+      const item = await this.getPublicAdDetail(organizationId, params.id);
       if (!item) {
         throw new BadRequestException(`Public ad ${params.id} was not found`);
       }
@@ -340,6 +340,7 @@ export class AdsResearchService {
   }
 
   private async getPublicAds(
+    organizationId: string,
     filters: AdsResearchFilters,
   ): Promise<AdsResearchItem[]> {
     const items = await this.adPerformanceService.findTopPerformers({
@@ -350,10 +351,13 @@ export class AdsResearchService {
       scope: 'public',
     });
 
-    return Promise.all(items.map((item) => this.mapPublicItem(item)));
+    return Promise.all(
+      items.map((item) => this.mapPublicItem(organizationId, item)),
+    );
   }
 
   private async getPublicAdDetail(
+    organizationId: string,
     id: string,
   ): Promise<AdsResearchDetail | null> {
     const item = await this.adPerformanceService.findPublicById(id);
@@ -361,7 +365,7 @@ export class AdsResearchService {
       return null;
     }
 
-    const base = await this.mapPublicItem(item);
+    const base = await this.mapPublicItem(organizationId, item);
     return {
       ...base,
       creative: {
@@ -479,11 +483,13 @@ export class AdsResearchService {
   }
 
   private async mapPublicItem(
+    organizationId: string,
     item: AdPerformanceDocument,
   ): Promise<AdsResearchItem> {
     const platform = this.normalizePlatform(String(item.adPlatform || 'meta'));
     const patterns = await this.getPatternSummary({
       industry: item.industry as string | undefined,
+      organizationId,
       platform,
     });
     const imageUrls = Array.isArray(item.imageUrls)
@@ -594,10 +600,12 @@ export class AdsResearchService {
   }
 
   private async getPatternSummary(params: {
+    organizationId: string;
     platform: AdsResearchPlatform;
     industry?: string;
   }) {
     const patterns = await this.creativePatternsService.findAll({
+      organizationId: params.organizationId,
       platform: this.toPatternPlatform(params.platform),
       scope: 'public',
     });

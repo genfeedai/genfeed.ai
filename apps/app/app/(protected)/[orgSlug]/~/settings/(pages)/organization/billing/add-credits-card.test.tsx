@@ -6,10 +6,12 @@ import type { InputHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddCreditsCard from './add-credits-card';
 
-const { createCheckoutSessionMock, notificationErrorMock } = vi.hoisted(() => ({
-  createCheckoutSessionMock: vi.fn(),
-  notificationErrorMock: vi.fn(),
-}));
+const { createCheckoutSessionMock, loggerErrorMock, notificationErrorMock } =
+  vi.hoisted(() => ({
+    createCheckoutSessionMock: vi.fn(),
+    loggerErrorMock: vi.fn(),
+    notificationErrorMock: vi.fn(),
+  }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
@@ -26,7 +28,7 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: loggerErrorMock },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -73,6 +75,7 @@ describe('AddCreditsCard', () => {
 
   beforeEach(() => {
     createCheckoutSessionMock.mockReset();
+    loggerErrorMock.mockReset();
     notificationErrorMock.mockReset();
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
@@ -164,5 +167,30 @@ describe('AddCreditsCard', () => {
     });
 
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
+  });
+
+  it('does not report a workspace 403 checkout to Sentry', async () => {
+    const forbidden = Object.assign(
+      new Error('Request failed with status 403'),
+      {
+        status: 403,
+      },
+    );
+    createCheckoutSessionMock.mockRejectedValueOnce(forbidden);
+
+    render(<AddCreditsCard />);
+    fireEvent.click(screen.getByText('$50'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add credit' }));
+
+    await waitFor(() => {
+      expect(notificationErrorMock).toHaveBeenCalledWith(
+        "Checkout isn't available for this workspace.",
+      );
+    });
+
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      'Failed to start credit top-up checkout',
+      expect.objectContaining({ reportToSentry: false }),
+    );
   });
 });

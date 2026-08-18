@@ -65,11 +65,11 @@ _Avoid_: acceptance criteria (unqualified), AC, user story.
 `ci`, `perf`). Because merges are squash-only, the title becomes the commit subject.
 _Avoid_: commit message (contributors do not control the squash commit body).
 
-**DCO sign-off**: The `Signed-off-by:` trailer (`git commit -s`) certifying the Developer
-Certificate of Origin. Required on every commit in an outside contributor's PR; checked by the DCO
-app. Members of the `genfeedai` organization are exempt.
-There is no CLA.
-_Avoid_: CLA, contributor agreement.
+**CLA**: The Contributor License Agreement — FSFE Fiduciary License Agreement 2.1, `ICLA.md` for
+individuals and `CCLA.md` for legal entities — signed once per GitHub account through the CLA
+Assistant bot on a contributor's first PR; enforced by the `license/cla` check. Replaces DCO
+sign-off (2026-08-18); no `Signed-off-by:` trailer is required.
+_Avoid_: DCO, sign-off, contributor agreement (unqualified).
 
 **Triage**: The maintainer (or triage agent) reading a new issue, confirming or rewriting its EARS
 acceptance criteria, labelling it, and placing it in Project #12. Promised within 7 days of opening.

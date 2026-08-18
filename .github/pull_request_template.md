@@ -34,7 +34,7 @@ Full contract: CONTRIBUTING.md → Pull-request contract.
 
 ## Checklist
 
-- [ ] Every commit is signed off (`git commit -s`, DCO). No CLA is required. Members of the `genfeedai` organization are exempt.
+- [ ] I have signed the CLA (once per GitHub account — the CLA Assistant bot links it on your first PR; `ICLA.md` for individuals, `CCLA.md` for companies).
 - [ ] The title is a Conventional Commits subject and describes the whole squash.
 - [ ] I reviewed the final diff for unrelated changes.
 - [ ] I ran the relevant focused checks or documented why they were left to CI.

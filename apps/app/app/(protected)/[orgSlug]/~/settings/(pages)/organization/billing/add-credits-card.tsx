@@ -50,9 +50,20 @@ export default function AddCreditsCard({
 
       throw new Error('Checkout session did not return a URL');
     } catch (error) {
-      logger.error('Failed to start credit top-up checkout', error);
+      const isForbidden =
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        (error as { status?: number }).status === 403;
+
+      logger.error('Failed to start credit top-up checkout', {
+        error,
+        reportToSentry: !isForbidden,
+      });
       NotificationsService.getInstance().error(
-        'Failed to start checkout. Please try again.',
+        isForbidden
+          ? "Checkout isn't available for this workspace."
+          : 'Failed to start checkout. Please try again.',
       );
       setIsStartingCheckout(false);
     }

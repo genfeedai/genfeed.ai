@@ -104,7 +104,7 @@ export default function SubscriptionsList() {
       header: 'Balance',
       key: 'balance',
       render: (subscription: Subscription) =>
-        subscription?.organization.balance ?? 0,
+        subscription.organization?.balance ?? 0,
     },
 
     {
@@ -155,8 +155,12 @@ export default function SubscriptionsList() {
           },
           {
             icon: <Pencil />,
-            onClick: (subscription: Subscription) =>
-              openSubscriptionModal(subscription?.organization.id),
+            onClick: (subscription: Subscription) => {
+              const organizationId = subscription.organization?.id;
+              if (organizationId) {
+                openSubscriptionModal(organizationId);
+              }
+            },
             size: ButtonSize.SM,
             tooltip: 'Edit',
             tooltipPosition: 'left',

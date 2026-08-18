@@ -110,7 +110,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [ADR-AGENT-NATIVE-REPO-PUBLIC](architecture/ADR-AGENT-NATIVE-REPO-PUBLIC.md) — `.agents/`, CLAUDE.md, AGENTS.md are public by design; unfit content never enters the tree
 - [ADR-EARS-ON-EVERY-ISSUE](architecture/ADR-EARS-ON-EVERY-ISSUE.md) — EARS required on every public issue form; triage rewrites, never bounces
 - [ADR-OSS-DISCOVERY-BOUNDARY](architecture/ADR-OSS-DISCOVERY-BOUNDARY.md) — homepage never mentions OSS; discovery via docs + footer; Sponsors on the org
-- [ADR-DCO-NOT-CLA](architecture/ADR-DCO-NOT-CLA.md) — DCO sign-off, no CLA, `ee/` maintainer-only
+- [ADR-CLA-FLA-2-1](architecture/ADR-CLA-FLA-2-1.md) — FSFE FLA 2.1 CLA via CLA Assistant (`ICLA.md`/`CCLA.md`), DCO retired, `ee/` maintainer-only
 - Glossary for OSS launch vocabulary lives at repo root [CONTEXT.md](../../CONTEXT.md)
 
 ## Specs and decisions (per issue)

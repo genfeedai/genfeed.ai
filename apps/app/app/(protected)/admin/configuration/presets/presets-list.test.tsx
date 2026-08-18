@@ -360,6 +360,21 @@ describe('PresetsList', () => {
     expect(mocks.openModal).toHaveBeenCalled();
   });
 
+  it('renders a platform default when a preset has no organization', () => {
+    mockPresetsQuery([
+      makePreset({
+        id: 'preset-platform',
+        label: 'Platform Default',
+        organization: undefined,
+      }),
+    ]);
+
+    render(<PresetsList scope={PageScope.SUPERADMIN} />);
+
+    expect(screen.getByText('Platform Default')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed.ai')).toBeInTheDocument();
+  });
+
   it('toggles active presets and reports update failures', async () => {
     render(<PresetsList scope={PageScope.SUPERADMIN} />);
 

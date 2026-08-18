@@ -52,6 +52,12 @@ function createDelayResumeData(): DelayResumeJobData {
   };
 }
 
+describe('workflowSchedulerId', () => {
+  it('keeps the shipped colon scheduler id so production leases are not forked', () => {
+    expect(workflowSchedulerId('wf-1')).toBe('workflow-schedule:wf-1');
+  });
+});
+
 describe('WorkflowExecutionQueueService', () => {
   let service: WorkflowExecutionQueueService;
   let mockQueue: ReturnType<typeof createMockQueue>;

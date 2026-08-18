@@ -3,8 +3,10 @@
 
 *                     @VincentShipsIt
 
-# Legal/policy files (see ADR-DCO-NOT-CLA).
+# Legal/policy files (see ADR-CLA-FLA-2-1).
 LICENSE               @VincentShipsIt
+ICLA.md               @VincentShipsIt
+CCLA.md               @VincentShipsIt
 TRADEMARK.md          @VincentShipsIt
 GOVERNANCE.md         @VincentShipsIt
 SECURITY.md           @VincentShipsIt

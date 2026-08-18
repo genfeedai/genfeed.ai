@@ -130,6 +130,7 @@ describe('AdsResearchService', () => {
     // Creative patterns are keyed by the storage platform name, which is
     // `tiktok` for TikTok (unlike meta → facebook, google → google_ads).
     expect(creativePatternsService.findAll).toHaveBeenCalledWith({
+      organizationId: 'org-1',
       platform: 'tiktok',
       scope: 'public',
     });

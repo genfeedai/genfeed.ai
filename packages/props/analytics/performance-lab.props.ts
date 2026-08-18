@@ -10,7 +10,7 @@ export interface UsePatternButtonProps {
 
 export interface PatternLabFilters {
   platform?: string;
-  patternType?: string;
+  patternType?: PatternType | '';
   scope?: string;
 }
 
