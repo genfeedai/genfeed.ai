@@ -15,7 +15,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@types/pg": "8.21.0"
+    "@types/pg": "8.23.1"
   },
   "scripts": {
     "check:model-metadata": "node scripts/generate-model-metadata.mjs && bunx biome check --write src/enum-field-map.ts && git diff --exit-code src/enum-field-map.ts",

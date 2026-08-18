@@ -151,9 +151,13 @@ describe('desktop release config', () => {
       ),
     ) as DesktopPackageJson;
 
-    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.5.4');
+    // Bumping this pin is a deliberate database-format decision: move both
+    // packages and this test together, and keep the PGlite integration suite
+    // (restart persistence, pre-release discard, newer-schema preservation)
+    // green on the new version in the same PR.
+    expect(packageJson.dependencies?.['@electric-sql/pglite']).toBe('0.5.5');
     expect(desktopPrismaPackage.dependencies?.['@electric-sql/pglite']).toBe(
-      '0.5.4',
+      '0.5.5',
     );
   });
 });

@@ -2,8 +2,9 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PGlite } from '@electric-sql/pglite';
+import type { PGlite } from '@electric-sql/pglite';
 import { DesktopPgliteService } from './pglite.service';
+import { bootPGlite } from './pglite-boot.util';
 
 const dataDir = fs.mkdtempSync(
   path.join(os.tmpdir(), 'genfeed-pglite-integration-'),
@@ -49,8 +50,7 @@ describe('DesktopPgliteService integration', () => {
       let unsupported: PGlite | null = null;
 
       try {
-        unsupported = new PGlite({ dataDir: unsupportedDataDir });
-        await unsupported.waitReady;
+        unsupported = await bootPGlite({ dataDir: unsupportedDataDir });
         await unsupported.exec(`
         CREATE TABLE pre_release_data (value TEXT NOT NULL);
         INSERT INTO pre_release_data (value) VALUES ('discard-me');
@@ -119,8 +119,7 @@ describe('DesktopPgliteService integration', () => {
       let service: DesktopPgliteService | null = null;
 
       try {
-        setup = new PGlite({ dataDir: newerDataDir });
-        await setup.waitReady;
+        setup = await bootPGlite({ dataDir: newerDataDir });
         await setup.exec(`
           CREATE TABLE desktop_schema_metadata (
             singleton_key TEXT PRIMARY KEY,
@@ -140,8 +139,7 @@ describe('DesktopPgliteService integration', () => {
         );
         expect(service.didResetUnsupportedDatabase()).toBe(false);
 
-        verification = new PGlite({ dataDir: newerDataDir });
-        await verification.waitReady;
+        verification = await bootPGlite({ dataDir: newerDataDir });
         const baseline = await verification.query<{
           baseline_version: number;
         }>(
