@@ -20,15 +20,13 @@ test.describe('Admin Organization', () => {
     });
   }
 
-  test('organization settings surface stays interactive', async ({
+  test('organization admin lands on the live organizations analytics page', async ({
     adminPage,
   }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATION);
-    await expect(
-      adminPage.locator('[data-testid="organization-settings-surface"]'),
-    ).toBeVisible();
-    await tryClick(adminPage, 'button');
-    await expect(adminPage.locator('body')).toBeVisible();
+    expect(adminPage.url()).toContain(
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    );
   });
 
   test('folders view stays interactive', async ({ adminPage }) => {
