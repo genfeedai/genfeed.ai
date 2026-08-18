@@ -34,11 +34,55 @@ const publicDeployVercel = readFileSync(
   'utf8',
 );
 
+const ENTRY_SECRETS = [
+  'CONSOLE_DEPLOY_TOKEN',
+  'VERCEL_TOKEN',
+  'NEXT_PUBLIC_POSTHOG_KEY',
+  'TURBO_TOKEN',
+];
+const ENGINE_SECRETS = [
+  'VERCEL_TOKEN',
+  'NEXT_PUBLIC_POSTHOG_KEY',
+  'TURBO_TOKEN',
+];
+
 function jobBlock(jobId) {
   const match = releaseWorkflow.match(
     new RegExp(`^  ${jobId}:\\n((?:    .*?(?:\\n|$)|\\n)+)`, 'm'),
   );
   assert.ok(match, `release.yml must define the ${jobId} job`);
+  return match[1];
+}
+
+function workflowCallSecrets(yaml) {
+  const match = yaml.match(
+    /workflow_call:\n(?:[ \t].*\n)*?[ \t]secrets:\n((?:[ \t]+.+\n)+)/,
+  );
+  assert.ok(match, 'workflow_call must declare secrets');
+  return [...match[1].matchAll(/^[ \t]+([A-Z][A-Z0-9_]+):/gm)].map(
+    (item) => item[1],
+  );
+}
+
+function jobSecretMapping(jobYaml) {
+  assert.doesNotMatch(jobYaml, /secrets:\s*inherit/);
+  const match = jobYaml.match(/^[ \t]*secrets:\n((?:[ \t]+.+\n)+)/m);
+  assert.ok(match, 'job must map secrets explicitly');
+  return [
+    ...match[1].matchAll(
+      /^[ \t]+([A-Z][A-Z0-9_]+):[ \t]*\$\{\{ secrets\.\1 \}\}/gm,
+    ),
+  ].map((item) => item[1]);
+}
+
+function reusableCallBlock(yaml, workflowPath) {
+  const escaped = workflowPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = yaml.match(
+    new RegExp(
+      `uses: ${escaped}\\n((?:[ \\t]+.*(?:\\n|$))+?)(?=\\n  [A-Za-z]|\\n[A-Za-z]|$)`,
+    ),
+  );
+  assert.ok(match, `workflow must call ${workflowPath}`);
   return match[1];
 }
 
@@ -56,7 +100,7 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
     deploy,
     /source_sha: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
   );
-  assert.match(deploy, /secrets: inherit/);
+  assert.deepEqual(jobSecretMapping(deploy), ENGINE_SECRETS);
   assert.doesNotMatch(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
   assert.doesNotMatch(deploy, /CONSOLE_DEPLOY_TOKEN/);
 });
@@ -107,7 +151,6 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
     publicDeployWorkflow,
     /Hosted SaaS deploys must run from refs\/heads\/master/,
   );
-  assert.doesNotMatch(publicDeployWorkflow, /marketplace\.genfeed\.ai/);
   assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
   assert.doesNotMatch(
     publicDeployWorkflow,
@@ -123,6 +166,76 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
     ),
     /backend "s3"/,
   );
+});
+
+test('validates public and marketplace source reachability before handoff', () => {
+  const dispatchScript = readFileSync(
+    fileURLToPath(new URL('./dispatch-hosted-saas.mjs', import.meta.url)),
+    'utf8',
+  );
+
+  assert.match(
+    publicDeployWorkflow,
+    /source_sha must be an exact lowercase 40-character Git commit SHA/,
+  );
+  assert.match(
+    publicDeployWorkflow,
+    /marketplace_source_sha must be an exact lowercase 40-character Git commit SHA/,
+  );
+  assert.match(publicDeployWorkflow, /\^\[0-9a-f\]\{40\}\$/);
+  assert.match(
+    publicDeployWorkflow,
+    /git -C public-source merge-base --is-ancestor "\$\{SOURCE_SHA\}" origin\/master/,
+  );
+  assert.match(
+    publicDeployWorkflow,
+    /git -C marketplace-source merge-base --is-ancestor "\$\{marketplace_sha\}" origin\/master/,
+  );
+  assert.match(
+    publicDeployWorkflow,
+    /marketplace_source_sha \$\{marketplace_sha\} is not reachable from genfeedai\/marketplace\.genfeed\.ai master/,
+  );
+  assert.match(
+    publicDeployWorkflow,
+    /https:\/\/github\.com\/genfeedai\/marketplace\.genfeed\.ai\.git/,
+  );
+  assert.match(
+    dispatchScript,
+    /compare\/\$\{marketplaceSourceSha\}\.\.\.master/,
+  );
+  assert.match(
+    dispatchScript,
+    /not reachable from \$\{marketplaceRepository\} master/,
+  );
+  assert.match(dispatchScript, /\/\^\[0-9a-f\]\{40\}\$\//);
+});
+
+test('maps only declared hosted SaaS secrets across each workflow boundary', () => {
+  assert.deepEqual(workflowCallSecrets(publicDeployWorkflow), ENTRY_SECRETS);
+  assert.deepEqual(workflowCallSecrets(publicDeployCore), ENGINE_SECRETS);
+  assert.deepEqual(workflowCallSecrets(publicDeployVercel), ENGINE_SECRETS);
+
+  assert.deepEqual(
+    jobSecretMapping(
+      reusableCallBlock(
+        publicDeployWorkflow,
+        './.github/workflows/_deploy-hosted-saas-core.yml',
+      ),
+    ),
+    ENGINE_SECRETS,
+  );
+  assert.deepEqual(
+    jobSecretMapping(
+      reusableCallBlock(
+        publicDeployCore,
+        './.github/workflows/_deploy-hosted-saas-vercel.yml',
+      ),
+    ),
+    ENGINE_SECRETS,
+  );
+  assert.doesNotMatch(publicDeployWorkflow, /secrets:\s*inherit/);
+  assert.doesNotMatch(publicDeployCore, /secrets:\s*inherit/);
+  assert.doesNotMatch(publicDeployVercel, /secrets:\s*inherit/);
 });
 
 test('in-repo engine never clones console and keeps OpenTofu off the entry workflow', () => {

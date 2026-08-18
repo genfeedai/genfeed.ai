@@ -12,6 +12,13 @@ on:
         description: "exact public genfeed.ai source commit to build"
         required: true
         type: string
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      NEXT_PUBLIC_POSTHOG_KEY:
+        required: true
+      TURBO_TOKEN:
+        required: false
 permissions:
   contents: read
 

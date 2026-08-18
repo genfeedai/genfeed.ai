@@ -120,6 +120,13 @@ There are two hosted SaaS lanes:
   consumes paid private Actions minutes.
 
 Both lanes require the pinned SHA to remain reachable from public `master`.
+When a `marketplace_source_sha` is handed off, it must be an exact
+lowercase 40-character SHA reachable from `marketplace.genfeed.ai` `master`
+or the workflow fails before deploy. The operations lane always resolves
+that SHA and proves ancestry before dispatch. Hosted SaaS reusable-workflow
+calls map only the declared deploy secrets (`VERCEL_TOKEN`,
+`NEXT_PUBLIC_POSTHOG_KEY`, optional `TURBO_TOKEN`) and never inherit the
+full secret set.
 The engine deploys Vercel frontends after the API rollout and smokes the
 live estate. A missing, timed-out, cancelled, or failed SaaS deploy leaves
 the public release as a draft and prevents `latest` and npm promotion.
