@@ -1,11 +1,11 @@
 variable "region" {
-  type    = string
-  default = "us-west-1"
+  type        = string
+  description = "AWS region for the hosted SaaS stack. Supplied by CI (no account default)."
 }
 
 variable "project" {
-  type    = string
-  default = "genfeed"
+  type        = string
+  description = "Short name used in resource prefixes and the ECR repository (${project}/server)."
 }
 
 variable "environment" {
@@ -13,22 +13,20 @@ variable "environment" {
   default = "production"
 }
 
-# ── Network (genfeedai-vpc; no default VPC in this account) ──────────
+# ── Network (existing VPC in the caller's account) ───────────────────
 variable "vpc_id" {
-  type    = string
-  default = "vpc-0e7522e453a642bd8" # genfeedai-vpc (10.0.8.0/21)
+  type        = string
+  description = "Existing VPC to attach the ALB, NAT, and private subnets to."
 }
 
-# Existing public subnets (IGW route) — used for the internet-facing ALB + NAT.
 variable "public_subnet_ids" {
-  type    = list(string)
-  default = ["subnet-04dfe8480e85f0a47", "subnet-07aec43af6ded15f0"] # 1b, 1c
+  type        = list(string)
+  description = "Existing public subnets (IGW route) for the internet-facing ALB and NAT."
 }
 
-# NAT lives in this public subnet (1b).
 variable "nat_public_subnet_id" {
-  type    = string
-  default = "subnet-04dfe8480e85f0a47"
+  type        = string
+  description = "Public subnet that hosts the NAT gateway."
 }
 
 # New private subnets created by this stack for ECS tasks/instances + cache
@@ -44,8 +42,8 @@ variable "private_subnet_cidrs" {
 
 # ── DNS / TLS ────────────────────────────────────────────────────────
 variable "domain" {
-  type    = string
-  default = "genfeed.ai"
+  type        = string
+  description = "Apex domain for public service hostnames (api/mcp/notifications.<domain>)."
 }
 
 variable "api_subdomain" {
@@ -56,7 +54,7 @@ variable "api_subdomain" {
 variable "route53_zone_id" {
   type        = string
   default     = ""
-  description = "Hosted zone for genfeed.ai. Empty = look up by name (assumes the zone is in Route53)."
+  description = "Route53 hosted zone id. Empty = look up the zone named var.domain."
 }
 
 # DNS cutover gate. FALSE (default): build everything EXCEPT public service
@@ -100,12 +98,31 @@ variable "asg_desired" {
 variable "image_tag" {
   type        = string
   default     = "latest"
-  description = "ECR tag of genfeed/server to deploy (private CI passes the immutable public source/image SHA)."
+  description = "ECR tag of the server image to deploy (CI passes the immutable source SHA)."
 }
 
 # ── Secrets ──────────────────────────────────────────────────────────
 variable "ssm_path" {
   type        = string
-  default     = "/genfeed/production"
   description = "SSM path whose params are injected as task secrets (one env var per param)."
+}
+
+variable "rds_instance_id" {
+  type        = string
+  description = "Existing RDS instance identifier to snapshot before migrations."
+}
+
+variable "owner_email" {
+  type        = string
+  description = "Platform owner email passed to the articles-seed one-off task."
+}
+
+variable "organization_label" {
+  type        = string
+  description = "Organization label passed to the articles-seed one-off task."
+}
+
+variable "cdn_bucket" {
+  type        = string
+  description = "S3 bucket name the task role may read/write for published media."
 }

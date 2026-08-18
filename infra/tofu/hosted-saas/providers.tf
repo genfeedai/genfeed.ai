@@ -1,7 +1,7 @@
 # ┌─────────────────────────────────────────────────────────────────────────┐
 # │ ⚠  DO NOT run a bare `terraform/tofu apply` on this stack from a laptop.  │
 # └─────────────────────────────────────────────────────────────────────────┘
-# This private config is CI-first. Two inputs are supplied at deploy time by GitHub
+# This config is CI-first. Two inputs are supplied at deploy time by GitHub
 # Actions and are NOT hardcoded here — their file defaults are placeholders that
 # only exist so the config parses:
 #
@@ -26,10 +26,9 @@ terraform {
 
   # S3-native state locking (use_lockfile) — no DynamoDB. Bucket created by the
   # bootstrap stack and intentionally hard-coded there too.
+  # Bucket, key, and region come from `tofu init -backend-config=...` in CI.
+  # Do not hardcode an account's state location in this tree.
   backend "s3" {
-    bucket       = "genfeed-tfstate"
-    key          = "genfeed-prod/terraform.tfstate"
-    region       = "us-west-1"
     encrypt      = true
     use_lockfile = true
   }

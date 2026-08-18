@@ -61,8 +61,8 @@ data "aws_iam_policy_document" "task" {
       "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket",
     ]
     resources = [
-      "arn:aws:s3:::cdn.genfeed.ai",
-      "arn:aws:s3:::cdn.genfeed.ai/*",
+      "arn:aws:s3:::${var.cdn_bucket}",
+      "arn:aws:s3:::${var.cdn_bucket}/*",
     ]
   }
 

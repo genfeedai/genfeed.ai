@@ -13,6 +13,7 @@ topics: [deployment, production, ci, github-actions]
 
 **How to apply:**
 - Default `saas_lane=monorepo`. Jobs, OpenTofu, and ECS scripts live in this repo.
+- Site identity lives on the `production` GitHub environment. Do not hardcode VPC, RDS, domain, or Vercel project ids in the tree.
 - Do not check out `genfeedai/console.genfeed.ai` from a public deploy job.
 - Do not add `uses: genfeedai/console.genfeed.ai/.github/workflows/...`.
 - Fleet and LoRA stay in console. Do not copy those.

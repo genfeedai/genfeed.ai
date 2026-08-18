@@ -107,15 +107,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
     publicDeployWorkflow,
     /Hosted SaaS deploys must run from refs\/heads\/master/,
   );
-  assert.match(
-    publicDeployWorkflow,
-    /marketplace\.genfeed\.ai\/commits\/master/,
-  );
-  assert.match(
-    publicDeployWorkflow,
-    /Pass marketplace_source_sha, or set CONSOLE_DEPLOY_TOKEN/,
-  );
-  assert.match(publicDeployWorkflow, /secrets\.CONSOLE_DEPLOY_TOKEN/);
+  assert.doesNotMatch(publicDeployWorkflow, /marketplace\.genfeed\.ai/);
   assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
   assert.doesNotMatch(
     publicDeployWorkflow,
@@ -155,6 +147,57 @@ test('in-repo engine never clones console and keeps OpenTofu off the entry workf
   );
   assert.match(publicDeployVercel, /environment: production/);
   assert.doesNotMatch(publicDeployVercel, /secrets\.CONSOLE_DEPLOY_TOKEN/);
+});
+
+test('hosted SaaS site identity comes from GitHub environment variables', () => {
+  const tofuVariables = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/variables.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const tofuIam = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/iam.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const tofuProviders = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/providers.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  assert.match(publicDeployCore, /Require hosted SaaS site variables/);
+  assert.match(
+    publicDeployCore,
+    /-backend-config="bucket=\$\{TF_STATE_BUCKET\}"/,
+  );
+  assert.match(publicDeployCore, /vars\.RDS_INSTANCE_ID/);
+  assert.match(
+    publicDeployCore,
+    /https:\/\/api\.\$\{DOMAIN\}\/v1\/health\/ready/,
+  );
+  assert.doesNotMatch(publicDeployCore, /vpc-[0-9a-f]{8,}/);
+  assert.doesNotMatch(publicDeployCore, /prj_[A-Za-z0-9]+/);
+  assert.doesNotMatch(publicDeployCore, /genfeed-data/);
+  assert.doesNotMatch(publicDeployVercel, /prj_[A-Za-z0-9]+/);
+  assert.doesNotMatch(publicDeployVercel, /team_[A-Za-z0-9]+/);
+  assert.match(publicDeployVercel, /vars\.VERCEL_PROJECT_APP/);
+  assert.match(publicDeployVercel, /Require app and web Vercel project ids/);
+  const vercelMatrix = publicDeployVercel.slice(
+    publicDeployVercel.indexOf('strategy:'),
+    publicDeployVercel.indexOf('env:'),
+  );
+  assert.doesNotMatch(vercelMatrix, /vars\.VERCEL_PROJECT_/);
+  assert.match(tofuVariables, /variable "rds_instance_id"/);
+  assert.doesNotMatch(tofuVariables, /default\s*=\s*"genfeed\.ai"/);
+  assert.doesNotMatch(tofuVariables, /vpc-[0-9a-f]{8,}/);
+  assert.doesNotMatch(tofuVariables, /genfeed-data/);
+  assert.doesNotMatch(tofuIam, /cdn\.genfeed\.ai/);
+  assert.match(tofuProviders, /backend "s3"/);
+  assert.doesNotMatch(tofuProviders, /bucket\s*=\s*"genfeed-tfstate"/);
 });
 
 test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {

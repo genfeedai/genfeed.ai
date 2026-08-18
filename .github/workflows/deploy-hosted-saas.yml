@@ -10,11 +10,6 @@ on:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
         type: string
-      marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai SHA (empty = current marketplace master)"
-        required: false
-        default: ""
-        type: string
       image_tag:
         description: "optional existing server image tag (defaults to source_sha)"
         required: false
@@ -35,11 +30,6 @@ on:
       source_sha:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
-        type: string
-      marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai SHA (empty = current marketplace master)"
-        required: false
-        default: ""
         type: string
       image_tag:
         description: "optional existing server image tag (defaults to source_sha)"
@@ -70,7 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      marketplace_source_sha: ${{ steps.resolve.outputs.marketplace_source_sha }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
     steps:
       - name: Require master for production deploys
@@ -81,13 +70,11 @@ jobs:
             exit 1
           fi
 
-      - name: Validate inputs and resolve marketplace SHA
+      - name: Validate inputs
         id: resolve
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
-          MARKETPLACE_SOURCE_SHA: ${{ inputs.marketplace_source_sha }}
           CORRELATION_ID: ${{ inputs.correlation_id }}
-          GH_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -100,19 +87,6 @@ jobs:
             exit 1
           fi
 
-          marketplace_sha="${MARKETPLACE_SOURCE_SHA}"
-          if [ -z "${marketplace_sha}" ]; then
-            if [ -z "${GH_TOKEN}" ]; then
-              echo "::error::Pass marketplace_source_sha, or set CONSOLE_DEPLOY_TOKEN with access to marketplace.genfeed.ai."
-              exit 1
-            fi
-            marketplace_sha="$(gh api repos/genfeedai/marketplace.genfeed.ai/commits/master --jq .sha)"
-          fi
-          if ! printf '%s' "${marketplace_sha}" | grep -Eq '^[0-9a-f]{40}$'; then
-            echo "::error::marketplace_source_sha must be an exact lowercase 40-character Git commit SHA."
-            exit 1
-          fi
-
           git init public-source
           git -C public-source remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -C public-source fetch --no-tags --filter=blob:none origin master
@@ -122,10 +96,7 @@ jobs:
             exit 1
           fi
 
-          {
-            echo "source_sha=${SOURCE_SHA}"
-            echo "marketplace_source_sha=${marketplace_sha}"
-          } >>"${GITHUB_OUTPUT}"
+          echo "source_sha=${SOURCE_SHA}" >>"${GITHUB_OUTPUT}"
 
   deploy:
     name: Deploy hosted SaaS
@@ -138,7 +109,6 @@ jobs:
     uses: ./.github/workflows/_deploy-hosted-saas-core.yml
     with:
       source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
-      marketplace_source_sha: ${{ needs.validate-and-resolve.outputs.marketplace_source_sha }}
       image_tag: ${{ inputs.image_tag }}
       allow_rollback: ${{ inputs.allow_rollback }}
     secrets: inherit
