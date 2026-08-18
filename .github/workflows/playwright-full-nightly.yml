@@ -210,8 +210,9 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
+          # Every artifact contains results.json; separate directories prevent
+          # later shards from overwriting earlier ones before recursive summary.
           pattern: playwright-full-json-*
-          merge-multiple: true
           path: playwright/artifacts/report/shards/
 
       - name: Write discovered / executed / quarantined summary
