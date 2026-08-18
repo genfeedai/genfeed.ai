@@ -1,12 +1,16 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
-import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import {
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
+import {
+  buildLinkedInLiveTrendTopics,
+  buildLinkedInPublicReferenceTopics,
+  type LinkedInTrendTopic,
+  resolveLinkedInTrendSourceUrls,
+} from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingString,
@@ -28,20 +32,6 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';
 import { firstValueFrom } from 'rxjs';
-
-interface LinkedInTrendTopic {
-  growthRate: number;
-  mentions: number;
-  metadata: {
-    sampleContent?: string;
-    source: 'public-reference' | 'public-scrape';
-    sourceClassification?: TrendSourceClassification;
-    thumbnailUrl?: string;
-    trendType: 'hashtag' | 'topic';
-    urls?: string[];
-  };
-  topic: string;
-}
 
 interface LinkedInCredential {
   id: string;
@@ -108,63 +98,7 @@ type LinkedInReactionCounts = {
   curious?: number;
 };
 
-interface LinkedInTrendCandidate {
-  sampleContent?: string;
-  sourceUrls: Set<string>;
-  thumbnailUrl?: string;
-  totalSignal: number;
-  uniqueSources: Set<string>;
-}
-
-const DEFAULT_LINKEDIN_TREND_SOURCE_URLS = [
-  'https://www.linkedin.com/company/openai/',
-  'https://www.linkedin.com/company/anthropic-ai/',
-  'https://www.linkedin.com/company/hubspot/',
-  'https://www.linkedin.com/company/canva/',
-  'https://www.linkedin.com/company/notionhq/',
-  'https://www.linkedin.com/company/figma/',
-  'https://www.linkedin.com/company/linearapp/',
-  'https://www.linkedin.com/company/stripe/',
-] as const;
-
-const LINKEDIN_TREND_MAX_TOPICS = 20;
 const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
-const LINKEDIN_TREND_STOP_WORDS = new Set([
-  'about',
-  'after',
-  'again',
-  'also',
-  'been',
-  'between',
-  'build',
-  'built',
-  'could',
-  'first',
-  'from',
-  'have',
-  'into',
-  'just',
-  'more',
-  'most',
-  'next',
-  'only',
-  'over',
-  'same',
-  'than',
-  'that',
-  'their',
-  'there',
-  'these',
-  'they',
-  'this',
-  'today',
-  'using',
-  'what',
-  'when',
-  'which',
-  'with',
-  'your',
-]);
 
 /**
  * LinkedIn's member-network visibility for this release.
@@ -699,21 +633,16 @@ export class LinkedInService {
     }
   }
 
-  /**
-   * Derive LinkedIn trend signals from public company pages.
-   *
-   * The official LinkedIn integration does not expose a public trending-topics
-   * endpoint, so we derive live-ish signals from recent public posts on known
-   * public pages and fall back to the configured public reference sources when
-   * scraping does not yield enough signal.
-   */
+  /** LinkedIn has no public trend endpoint; derive public signals with reference fallback. */
   public async getTrends(
     organizationId?: string,
     brandId?: string,
   ): Promise<LinkedInTrendTopic[]> {
     const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
 
-    const sourceUrls = this.getTrendSourceUrls();
+    const sourceUrls = resolveLinkedInTrendSourceUrls(
+      this.configService.get('LINKEDIN_TREND_SOURCE_URLS'),
+    );
 
     try {
       const scrapedSources = await Promise.allSettled(
@@ -729,7 +658,7 @@ export class LinkedInService {
         }),
       );
 
-      const liveTopics = this.buildLiveTrendTopics(scrapedSources);
+      const liveTopics = buildLinkedInLiveTrendTopics(scrapedSources);
       if (liveTopics.length > 0) {
         this.loggerService.log(
           `${url} - returning public LinkedIn trend signals`,
@@ -752,212 +681,7 @@ export class LinkedInService {
       );
     }
 
-    return this.getPublicReferenceTopics(sourceUrls);
-  }
-
-  private getTrendSourceUrls(): string[] {
-    const configured = this.configService.get('LINKEDIN_TREND_SOURCE_URLS');
-    if (typeof configured === 'string' && configured.trim().length > 0) {
-      const parsed = configured
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-      if (parsed.length > 0) {
-        return parsed;
-      }
-    }
-
-    return [...DEFAULT_LINKEDIN_TREND_SOURCE_URLS];
-  }
-
-  private buildLiveTrendTopics(
-    scrapedSources: PromiseSettledResult<{
-      logoUrl?: string;
-      recentPosts: string[];
-      sourceUrl: string;
-    }>[],
-  ): LinkedInTrendTopic[] {
-    const candidates = new Map<string, LinkedInTrendCandidate>();
-    const fulfilledSources = scrapedSources
-      .filter(
-        (
-          result,
-        ): result is PromiseFulfilledResult<{
-          logoUrl?: string;
-          recentPosts: string[];
-          sourceUrl: string;
-        }> => result.status === 'fulfilled',
-      )
-      .map((result) => result.value)
-      .filter((result) => result.recentPosts.length > 0);
-
-    if (fulfilledSources.length === 0) {
-      return [];
-    }
-
-    for (const source of fulfilledSources) {
-      source.recentPosts.forEach((post, index) => {
-        const signalWeight = Math.max(1, source.recentPosts.length - index);
-        const terms = this.extractTrendTerms(post);
-
-        for (const term of terms) {
-          const existing = candidates.get(term) ?? {
-            sampleContent: post,
-            sourceUrls: new Set<string>(),
-            thumbnailUrl: source.logoUrl,
-            totalSignal: 0,
-            uniqueSources: new Set<string>(),
-          };
-
-          existing.sampleContent ||= post;
-          existing.thumbnailUrl ||= source.logoUrl;
-          existing.sourceUrls.add(source.sourceUrl);
-          existing.totalSignal += signalWeight;
-          existing.uniqueSources.add(source.sourceUrl);
-          candidates.set(term, existing);
-        }
-      });
-    }
-
-    return Array.from(candidates.entries())
-      .filter(([, candidate]) => candidate.totalSignal >= 2)
-      .sort((left, right) => {
-        const sourceCoverageDelta =
-          right[1].uniqueSources.size - left[1].uniqueSources.size;
-        if (sourceCoverageDelta !== 0) {
-          return sourceCoverageDelta;
-        }
-
-        return right[1].totalSignal - left[1].totalSignal;
-      })
-      .slice(0, LINKEDIN_TREND_MAX_TOPICS)
-      .map(([topic, candidate]) => ({
-        growthRate: this.calculateGrowthRate(
-          candidate,
-          fulfilledSources.length,
-        ),
-        mentions: candidate.totalSignal,
-        metadata: {
-          sampleContent: candidate.sampleContent,
-          source: 'public-scrape',
-          sourceClassification: this.buildSourceClassification({
-            capturedAt: new Date(),
-            confidence: 'medium',
-            sourceLabel: 'LinkedIn public posts',
-            sourceTopic: topic,
-          }),
-          thumbnailUrl: candidate.thumbnailUrl,
-          trendType: topic.startsWith('#') ? 'hashtag' : 'topic',
-          urls: Array.from(candidate.sourceUrls),
-        },
-        topic,
-      }));
-  }
-
-  private extractTrendTerms(post: string): string[] {
-    const hashtags = Array.from(
-      new Set(
-        (post.match(/#[a-zA-Z0-9_]+/g) || []).map((value) =>
-          value.trim().toLowerCase(),
-        ),
-      ),
-    );
-
-    if (hashtags.length > 0) {
-      return hashtags.slice(0, 3);
-    }
-
-    const tokens = post
-      .toLowerCase()
-      .replace(/https?:\/\/\S+/g, ' ')
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter(
-        (token) => token.length >= 4 && !LINKEDIN_TREND_STOP_WORDS.has(token),
-      );
-
-    return Array.from(new Set(tokens)).slice(0, 3);
-  }
-
-  private calculateGrowthRate(
-    candidate: LinkedInTrendCandidate,
-    totalSources: number,
-  ): number {
-    const sourceCoverage =
-      totalSources > 0 ? candidate.uniqueSources.size / totalSources : 0;
-    const signalStrength = Math.min(candidate.totalSignal / 10, 1);
-
-    return Math.round(sourceCoverage * 60 + signalStrength * 40);
-  }
-
-  private getPublicReferenceTopics(sourceUrls: string[]): LinkedInTrendTopic[] {
-    const capturedAt = new Date();
-    const seenTopics = new Set<string>();
-
-    return sourceUrls.flatMap((sourceUrl, index) => {
-      const sourceLabel = this.getPublicReferenceLabel(sourceUrl);
-      const topic = this.toReferenceTopic(sourceLabel, index);
-      if (seenTopics.has(topic)) {
-        return [];
-      }
-      seenTopics.add(topic);
-
-      return [
-        {
-          growthRate: 20,
-          mentions: 1,
-          metadata: {
-            sampleContent: `Public LinkedIn reference source for ${sourceLabel}.`,
-            source: 'public-reference',
-            sourceClassification: this.buildSourceClassification({
-              capturedAt,
-              confidence: 'low',
-              sourceLabel,
-              sourceTopic: topic,
-            }),
-            trendType: 'topic',
-            urls: [sourceUrl],
-          },
-          topic,
-        },
-      ];
-    });
-  }
-
-  private buildSourceClassification(input: {
-    capturedAt: Date;
-    confidence: TrendSourceClassification['confidence'];
-    sourceLabel: string;
-    sourceTopic: string;
-  }): TrendSourceClassification {
-    return buildPublicPlatformReferenceClassification({
-      capturedAt: input.capturedAt,
-      confidence: input.confidence,
-      platform: 'linkedin',
-      sourceLabel: input.sourceLabel,
-      sourceTimestamp: input.capturedAt,
-      sourceTopic: input.sourceTopic,
-    });
-  }
-
-  private getPublicReferenceLabel(sourceUrl: string): string {
-    try {
-      const parsed = new URL(sourceUrl);
-      const pathParts = parsed.pathname.split('/').filter(Boolean);
-      const slug = pathParts[pathParts.length - 1] || parsed.hostname;
-      return slug
-        .replace(/[-_]+/g, ' ')
-        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
-        .trim();
-    } catch {
-      return sourceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    }
-  }
-
-  private toReferenceTopic(sourceLabel: string, index: number): string {
-    const token = sourceLabel.toLowerCase().replace(/[^a-z0-9]+/g, '');
-    return token ? `#${token}` : `#linkedinreference${index + 1}`;
+    return buildLinkedInPublicReferenceTopics(sourceUrls);
   }
 
   /**
