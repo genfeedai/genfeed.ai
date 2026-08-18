@@ -1,8 +1,17 @@
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowStatus, WorkflowStepStatus } from '@genfeedai/enums';
+import {
+  WorkflowExecutionTrigger,
+  WorkflowStatus,
+  WorkflowStepStatus,
+} from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const emptyModuleRef = { get: vi.fn(() => undefined) };
 
 describe('WorkflowsService template creation', () => {
   const logger = {
@@ -21,6 +30,7 @@ describe('WorkflowsService template creation', () => {
     service = new WorkflowsService(
       { brand: { findFirst: brandFindFirst } } as never,
       logger as never,
+      emptyModuleRef as never,
     );
     vi.spyOn(service, 'create').mockResolvedValue({
       id: 'workflow-1',
@@ -244,6 +254,104 @@ describe('WorkflowsService template creation', () => {
   });
 });
 
+describe('WorkflowsService executeWorkflow ModuleRef', () => {
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  it('runs a node workflow through ModuleRef WorkflowExecutorService', async () => {
+    const executeManualWorkflow = vi.fn().mockResolvedValue({
+      executionId: 'ex-1',
+    });
+    const moduleRef = {
+      get: vi.fn((token: unknown) => {
+        if (token === WorkflowExecutorService) {
+          return { executeManualWorkflow };
+        }
+        return undefined;
+      }),
+    };
+    const service = new WorkflowsService(
+      { brand: { findFirst: vi.fn() } } as never,
+      logger as never,
+      moduleRef as never,
+    );
+    vi.spyOn(service, 'findOne').mockResolvedValue({
+      id: 'wf-1',
+      nodes: [{ id: 'n1', type: 'llm' }],
+    } as never);
+
+    await expect(
+      service.executeWorkflow('wf-1', 'user-1', 'org-1', { title: 'x' }),
+    ).resolves.toEqual({ executionId: 'ex-1', mode: 'node' });
+    expect(executeManualWorkflow).toHaveBeenCalledWith(
+      'wf-1',
+      'user-1',
+      'org-1',
+      { title: 'x' },
+      undefined,
+      WorkflowExecutionTrigger.MANUAL,
+    );
+  });
+
+  it('throws when ModuleRef cannot resolve the node executor', async () => {
+    const service = new WorkflowsService(
+      { brand: { findFirst: vi.fn() } } as never,
+      logger as never,
+      { get: vi.fn(() => undefined) } as never,
+    );
+    vi.spyOn(service, 'findOne').mockResolvedValue({
+      id: 'wf-1',
+      nodes: [{ id: 'n1', type: 'llm' }],
+    } as never);
+
+    await expect(
+      service.executeWorkflow('wf-1', 'user-1', 'org-1'),
+    ).rejects.toThrow(
+      'Workflow executor service is not available - cannot execute node workflow',
+    );
+  });
+
+  it('installs a system-catalog workflow through ModuleRef catalog', async () => {
+    const install = vi.fn().mockResolvedValue({
+      id: 'installed-1',
+      label: 'Catalog',
+      metadata: {},
+    });
+    const moduleRef = {
+      get: vi.fn((token: unknown) => {
+        if (token === SystemWorkflowCatalogService) {
+          return { install };
+        }
+        return undefined;
+      }),
+    };
+    const service = new WorkflowsService(
+      {
+        brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+      } as never,
+      logger as never,
+      moduleRef as never,
+    );
+
+    const created = await service.createWorkflow('user-1', 'org-1', {
+      sourceType: 'system-catalog',
+      templateId: 'release-loop',
+    } as never);
+
+    expect(install).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      canonicalId: 'release-loop',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(created.id).toBe('installed-1');
+  });
+});
+
 describe('WorkflowsService system workflow guardrails', () => {
   const logger = {
     debug: vi.fn(),
@@ -261,6 +369,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     service = new WorkflowsService(
       { brand: { findFirst: brandFindFirst } } as never,
       logger as never,
+      emptyModuleRef as never,
     );
   });
 
@@ -308,9 +417,13 @@ describe('WorkflowsService system workflow guardrails', () => {
     const guardedService = new WorkflowsService(
       prisma as never,
       logger as never,
-      undefined,
-      undefined,
-      workflowExecutionQueueService as never,
+      {
+        get: vi.fn((token: unknown) =>
+          token === WorkflowExecutionQueueService
+            ? workflowExecutionQueueService
+            : undefined,
+        ),
+      } as never,
     );
 
     await expect(guardedService.remove('system-workflow-1')).rejects.toThrow(
@@ -536,7 +649,11 @@ describe('WorkflowsService.publishToMarketplace', () => {
     vi.clearAllMocks();
     // No marketplaceApiClient wired (it's @Optional()) — verifies the guard +
     // patch path runs standalone without requiring the marketplace client.
-    service = new WorkflowsService({} as never, logger as never);
+    service = new WorkflowsService(
+      {} as never,
+      logger as never,
+      emptyModuleRef as never,
+    );
   });
 
   it('guards ownership, flips isPublic/isTemplate, and returns the updated entity', async () => {

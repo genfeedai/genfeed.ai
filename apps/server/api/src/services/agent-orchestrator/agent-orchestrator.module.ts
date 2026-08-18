@@ -30,7 +30,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
-import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
@@ -145,7 +145,7 @@ import { Module } from '@nestjs/common';
     VoicesModule,
     VotesModule,
     WorkflowExecutionsModule,
-    WorkflowsCoreModule,
+    WorkflowsModule,
     AgentSpawnModule,
     AgentChatModelRegistryModule,
     SeoModule,

@@ -9,6 +9,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
+import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -27,6 +28,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -41,7 +43,11 @@ import { Module } from '@nestjs/common';
   // BrandPersistenceService + MasterPromptGeneratorService are exported so the
   // signup-prefill worker composes the same scrape → analyze → persist
   // primitives as interactive brand setup instead of duplicating the graph.
-  exports: [BrandsCoreModule],
+  exports: [
+    BrandsCoreModule,
+    BrandPersistenceService,
+    MasterPromptGeneratorService,
+  ],
   imports: [
     BrandsCoreModule,
     CommonModule,
@@ -68,6 +74,8 @@ import { Module } from '@nestjs/common';
     // routes no longer round-trip back through OnboardingService and close an
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
+    BrandPersistenceService,
+    MasterPromptGeneratorService,
     CreditsGuard,
     CreditsInterceptor,
   ],
