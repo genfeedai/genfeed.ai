@@ -17,7 +17,7 @@ import { ArticleTranscriptService } from '@api/collections/articles/services/art
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
@@ -53,7 +53,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [ArticleAnalyticsService, ArticlesContentService, ArticlesService],
   imports: [
     ActivitiesModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

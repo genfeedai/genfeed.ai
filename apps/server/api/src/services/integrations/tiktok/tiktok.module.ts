@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
@@ -6,14 +6,10 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TiktokService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    CredentialsCoreModule,
-  ],
+  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
 });
 
 @Module({

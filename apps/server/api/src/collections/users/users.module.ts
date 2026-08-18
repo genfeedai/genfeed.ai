@@ -3,30 +3,30 @@
  * User brand management: user profiles, authentication integration,
  * user preferences, and activity tracking.
  */
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { MembersModule } from '@api/collections/members/members.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
-import { UsersService } from '@api/collections/users/services/users.service';
+import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [UsersRelationshipsController, UsersController],
-  exports: [UsersService],
+  exports: [UsersCoreModule],
   imports: [
-    forwardRef(() => BrandsModule),
+    UsersCoreModule,
+    BrandsCoreModule,
     CommonModule,
     FilesClientModule,
     MembersModule,
-    forwardRef(() => OrganizationsModule),
+    OrganizationsCoreModule,
     SettingsModule,
     SubscriptionsModule,
   ],
-  providers: [UsersService],
 })
 export class UsersModule {}

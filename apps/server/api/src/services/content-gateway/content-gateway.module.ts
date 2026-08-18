@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
@@ -10,7 +10,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [ContentGatewayController],
   exports: [ContentGatewayService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     forwardRef(() => PostsModule),
     forwardRef(() => SkillsModule),
     forwardRef(() => SkillExecutorModule),

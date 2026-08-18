@@ -4,13 +4,13 @@
 prompt templates, and generation history.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { PromptsCoreModule } from '@api/collections/prompts/prompts-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -20,18 +20,19 @@ import { OpenRouterModule } from '@api/services/integrations/openrouter/openrout
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [PromptsController, PromptsOperationsController],
-  exports: [PromptsService],
+  exports: [PromptsCoreModule],
   imports: [
+    PromptsCoreModule,
     ActivitiesModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     IngredientsModule,
-    forwardRef(() => MarketplaceIntegrationModule),
+    MarketplaceIntegrationModule,
     ModelsModule,
     OpenRouterModule,
     PromptBuilderModule,
@@ -39,6 +40,6 @@ import { forwardRef, Module } from '@nestjs/common';
     TemplatesModule,
     WhisperModule,
   ],
-  providers: [PromptsService, CreditsGuard, CreditsInterceptor],
+  providers: [CreditsGuard, CreditsInterceptor],
 })
 export class PromptsModule {}

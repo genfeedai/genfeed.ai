@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
@@ -6,14 +6,10 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(InstagramService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    CredentialsCoreModule,
-  ],
+  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
 });
 
 @Module({

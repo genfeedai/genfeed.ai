@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -46,7 +46,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     ApifyModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CacheModule,
     ConfigModule,

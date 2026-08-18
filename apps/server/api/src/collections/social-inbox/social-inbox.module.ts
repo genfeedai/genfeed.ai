@@ -8,7 +8,7 @@ import { SocialInboxRealtimeService } from '@api/collections/social-inbox/servic
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
@@ -26,7 +26,7 @@ import { forwardRef, Module } from '@nestjs/common';
     NotificationsPublisherModule,
     QueuesModule,
     TwitterModule,
-    forwardRef(() => WorkflowsModule),
+    WorkflowsCoreModule,
     forwardRef(() => YoutubeModule),
   ],
   providers: [

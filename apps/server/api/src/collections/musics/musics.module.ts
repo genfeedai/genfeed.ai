@@ -4,7 +4,7 @@
 mood-based music selection, and audio file storage.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -36,7 +36,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [MusicsService],
   imports: [
     ActivitiesModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     FailedGenerationModule,

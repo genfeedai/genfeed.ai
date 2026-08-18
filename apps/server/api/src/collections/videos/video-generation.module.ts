@@ -5,7 +5,7 @@
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -42,7 +42,7 @@ import { forwardRef, Module } from '@nestjs/common';
     // Data modules
     ActivitiesModule,
     forwardRef(() => AssetsModule),
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ConfigModule,
     CreditsModule,
     IngredientsModule,

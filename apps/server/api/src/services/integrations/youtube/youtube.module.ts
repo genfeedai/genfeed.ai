@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
@@ -10,13 +10,13 @@ import { YoutubeUploadService } from '@api/services/integrations/youtube/service
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { TagResolutionModule } from '@api/shared/services/tag-resolution/tag-resolution.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(YoutubeService, {
   additionalImports: [
     FileQueueModule,
     TagResolutionModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     CredentialsCoreModule,
   ],
   additionalProviders: [

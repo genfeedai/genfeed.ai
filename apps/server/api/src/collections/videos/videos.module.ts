@@ -6,7 +6,7 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -73,7 +73,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ActivitiesModule,
     forwardRef(() => AssetsModule),
     BookmarksModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CaptionsModule,
     CreditsModule,

@@ -5,7 +5,7 @@ S3 storage, style/mood application, and image processing workflows.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
@@ -65,7 +65,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [ImagesService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     HttpModule,

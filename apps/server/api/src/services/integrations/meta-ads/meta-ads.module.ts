@@ -4,7 +4,7 @@ import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-
 import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
 import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
@@ -14,7 +14,7 @@ import { AdBulkUploadService } from '@api/services/integrations/meta-ads/service
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { SERVER_TOKENS } from '@server/server.dependencies';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
@@ -29,7 +29,7 @@ import { MetaAdsService } from '@server/services/integrations/meta-ads/services/
     HttpModule,
     LoggerModule,
     AdBulkUploadJobsModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     CredentialsCoreModule,
     QueuesModule,
     AdCreativeMappingsModule,

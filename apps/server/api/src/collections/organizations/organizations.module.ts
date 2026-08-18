@@ -3,7 +3,7 @@
  * Multi-tenant organization management: org profiles, settings, billing,
 and member access control.
  */
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -14,13 +14,13 @@ import { OrganizationsIntegrationsController } from '@api/collections/organizati
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
-import { UsersModule } from '@api/collections/users/users.module';
+import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { CommonModule } from '@api/common/common.module';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
@@ -38,10 +38,10 @@ import { forwardRef, Module } from '@nestjs/common';
     OrganizationsRelationshipsController,
     OrganizationsSettingsController,
   ],
-  exports: [OrganizationsService],
+  exports: [OrganizationsCoreModule],
   imports: [
-    // Core modules
-    forwardRef(() => BrandsModule),
+    OrganizationsCoreModule,
+    BrandsCoreModule,
     ByokModule,
     CommonModule,
     CredentialsCoreModule,
@@ -57,10 +57,10 @@ import { forwardRef, Module } from '@nestjs/common';
     SettingsModule,
     SubscriptionsModule,
     TagsModule,
-    forwardRef(() => UsersModule),
+    UsersCoreModule,
     forwardRef(() => VideosModule),
     forwardRef(() => WebhookClientModule),
   ],
-  providers: [OrganizationsService, MemberCreditsGuard],
+  providers: [MemberCreditsGuard],
 })
 export class OrganizationsModule {}

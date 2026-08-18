@@ -7,7 +7,7 @@ folder organization, and asset tagging system.
 import { AssetsController } from '@api/collections/assets/controllers/assets.controller';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -19,13 +19,13 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AssetsController, AssetsOperationsController],
   exports: [AssetsService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ByokModule,
     CreditsModule,
     FilesClientModule,

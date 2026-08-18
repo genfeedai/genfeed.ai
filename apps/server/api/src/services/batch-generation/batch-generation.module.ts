@@ -1,9 +1,9 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
@@ -36,7 +36,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => AgentStreamPublisherModule),
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     ConfigModule,
     ContentHarnessModule,
     forwardRef(() => ContentIntelligenceModule),
@@ -44,7 +44,7 @@ import { forwardRef, Module } from '@nestjs/common';
     HarnessProfilesModule,
     LoggerModule,
     PostLifecycleModule,
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     PublishApprovalsModule,
   ],
   providers: [

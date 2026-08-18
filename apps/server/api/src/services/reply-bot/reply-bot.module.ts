@@ -17,7 +17,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/monitored-accounts.module';
 import { ProcessedTweetsModule } from '@api/collections/processed-tweets/processed-tweets.module';
-import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
+import { ReplyBotConfigsCoreModule } from '@api/collections/reply-bot-configs/reply-bot-configs-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
@@ -68,7 +68,7 @@ import { forwardRef, Module } from '@nestjs/common';
     MonitoredAccountsModule,
     ProcessedTweetsModule,
     // Collection modules
-    forwardRef(() => ReplyBotConfigsModule),
+    ReplyBotConfigsCoreModule,
 
     PromptBuilderModule,
     ReplicateModule,

@@ -10,7 +10,7 @@ import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -84,7 +84,7 @@ import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrato
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
-import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
@@ -108,7 +108,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentMemoriesModule,
     AgentMessageBusModule,
     AgentMessagesModule,
-    forwardRef(() => AgentThreadingModule),
+    AgentThreadingCoreModule,
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiActionsModule),
     AdsResearchModule,
@@ -117,7 +117,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ArticlesModule),
     forwardRef(() => BatchGenerationModule),
     BrandInterviewModule,
-    forwardRef(() => BrandsModule),
+    BrandsCoreModule,
     BotsModule,
     forwardRef(() => OutreachCampaignsModule),
     ConfigModule,

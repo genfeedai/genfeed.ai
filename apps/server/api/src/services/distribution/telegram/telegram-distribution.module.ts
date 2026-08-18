@@ -1,11 +1,11 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { DistributionsModule } from '@api/collections/distributions/distributions.module';
+import { DistributionsCoreModule } from '@api/collections/distributions/distributions-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [TelegramDistributionService],
@@ -14,7 +14,7 @@ import { forwardRef, Module } from '@nestjs/common';
     HttpModule,
     LoggerModule,
     CredentialsCoreModule,
-    forwardRef(() => DistributionsModule),
+    DistributionsCoreModule,
     QueuesModule,
   ],
   providers: [TelegramDistributionService],

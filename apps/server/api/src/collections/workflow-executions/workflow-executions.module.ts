@@ -7,7 +7,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -19,7 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [WorkflowExecutionsService],
   imports: [
-    forwardRef(() => WorkflowsModule),
+    WorkflowsCoreModule,
     forwardRef(() => UsersModule),
     forwardRef(() => WebhookClientModule),
   ],
