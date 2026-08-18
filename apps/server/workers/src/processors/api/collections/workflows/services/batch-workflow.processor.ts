@@ -12,15 +12,19 @@ import {
   BatchWorkflowItemJobData,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
-@Processor(BATCH_WORKFLOW_QUEUE, {
-  concurrency: 2,
-  limiter: { duration: 60000, max: 10 },
-})
+@Processor(
+  BATCH_WORKFLOW_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: 2,
+    limiter: { duration: 60000, max: 10 },
+  }),
+)
 export class BatchWorkflowProcessor extends WorkerHost {
   private readonly logContext = 'BatchWorkflowProcessor';
 

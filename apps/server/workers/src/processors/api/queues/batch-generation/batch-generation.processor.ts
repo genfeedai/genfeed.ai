@@ -20,12 +20,13 @@ import {
   type BatchGenerationJobData,
 } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
-@Processor(BATCH_GENERATION_QUEUE, { concurrency: 3 })
+@Processor(BATCH_GENERATION_QUEUE, withLongJobWorkerOptions({ concurrency: 3 }))
 export class BatchGenerationProcessor extends WorkerHost {
   private readonly logContext = 'BatchGenerationProcessor';
 

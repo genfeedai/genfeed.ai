@@ -31,6 +31,7 @@ import {
   ClipAnalyzeJobData,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -82,10 +83,13 @@ function unavailableReferenceFrames(
   };
 }
 
-@Processor(CLIP_ANALYZE_QUEUE, {
-  concurrency: CLIP_ANALYZE_CONCURRENCY,
-  limiter: { duration: 60_000, max: 5 },
-})
+@Processor(
+  CLIP_ANALYZE_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: CLIP_ANALYZE_CONCURRENCY,
+    limiter: { duration: 60_000, max: 5 },
+  }),
+)
 export class ClipAnalyzeProcessor extends WorkerHost {
   private readonly logContext = 'ClipAnalyzeProcessor';
 

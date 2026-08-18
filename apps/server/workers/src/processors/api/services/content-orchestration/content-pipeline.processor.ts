@@ -7,14 +7,18 @@ import {
   CONTENT_PIPELINE_QUEUE,
   type ContentPipelineJobData,
 } from '@genfeedai/queue-contracts';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor(CONTENT_PIPELINE_QUEUE, {
-  concurrency: 3,
-  limiter: { duration: 60000, max: 5 },
-})
+@Processor(
+  CONTENT_PIPELINE_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: 3,
+    limiter: { duration: 60000, max: 5 },
+  }),
+)
 export class ContentqueryProcessor extends WorkerHost {
   private readonly logContext = 'ContentqueryProcessor';
 

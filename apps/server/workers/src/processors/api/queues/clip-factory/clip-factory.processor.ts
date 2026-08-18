@@ -22,6 +22,7 @@ import {
   ClipFactoryJobData,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -30,10 +31,13 @@ import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/cli
 import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
-@Processor(CLIP_FACTORY_QUEUE, {
-  concurrency: CLIP_FACTORY_CONCURRENCY,
-  limiter: { duration: 60_000, max: 5 },
-})
+@Processor(
+  CLIP_FACTORY_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: CLIP_FACTORY_CONCURRENCY,
+    limiter: { duration: 60_000, max: 5 },
+  }),
+)
 export class ClipFactoryProcessor extends WorkerHost {
   private readonly logContext = 'ClipFactoryProcessor';
 

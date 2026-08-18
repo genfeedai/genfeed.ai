@@ -16,6 +16,7 @@ import {
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
 import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
+import { BULLMQ_LONG_JOB_WORKER_OPTIONS } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -43,7 +44,7 @@ function isRawCutJob(job: Job<VideoJobData>): boolean {
   return String(job.id).startsWith(RAW_CUT_JOB_PREFIX);
 }
 
-@Processor(QUEUE_NAMES.VIDEO_PROCESSING)
+@Processor(QUEUE_NAMES.VIDEO_PROCESSING, BULLMQ_LONG_JOB_WORKER_OPTIONS)
 export class VideoProcessor extends WorkerHost {
   constructor(
     @Inject(FFmpegService) private ffmpegService: FFmpegService,

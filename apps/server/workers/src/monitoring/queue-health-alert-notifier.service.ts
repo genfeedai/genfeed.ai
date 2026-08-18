@@ -81,6 +81,7 @@ export class QueueHealthAlertNotifierService {
       `active=${snapshot.active}`,
       `delayed=${snapshot.delayed}`,
       `failed=${snapshot.failed}`,
+      `stalledEvents=${snapshot.stalledEvents}`,
       `oldestWaitingSeconds=${snapshot.oldestWaitingAgeSeconds}`,
       breachSummary ? `thresholds: ${breachSummary}` : null,
       `capturedAt=${snapshot.capturedAt}`,

@@ -11,6 +11,13 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
 import type { OperationalQueueHealthSnapshot } from '@workers/monitoring/queue-health.types';
 import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
+import {
+  buildStalledJobLogContext,
+  extractBullMqNamedEvents,
+  MAX_STALLED_JOB_IDS,
+  resolveWorkerIdentity,
+  STALLED_JOB_LOG_MESSAGE,
+} from '@workers/monitoring/queue-stall';
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 
@@ -38,7 +45,6 @@ const MONITORED_QUEUE_NAMES = [
 
 interface OperationalQueueSnapshot extends OperationalQueueHealthSnapshot {
   failedEvents: number;
-  stalledEvents: number;
 }
 
 interface AggregateQueueSnapshot {
@@ -52,6 +58,7 @@ interface AggregateQueueSnapshot {
 export class QueueMetricsService implements OnModuleDestroy {
   private readonly cloudWatch: CloudWatchClient;
   private readonly context = { service: QueueMetricsService.name };
+  private readonly workerIdentity = resolveWorkerIdentity();
   private collecting = false;
   private queues: Queue[] = [];
 
@@ -176,6 +183,12 @@ export class QueueMetricsService implements OnModuleDestroy {
       ),
     ]);
     const oldestWaitingTimestamp = oldestWaitingJobs[0]?.timestamp;
+    const stalled = extractBullMqNamedEvents(events, 'stalled');
+    const stalledJobIds = stalled.jobIds.slice(0, MAX_STALLED_JOB_IDS);
+
+    if (stalled.count > 0) {
+      this.logStalledEvents(queue.name, stalled.count, stalledJobIds);
+    }
 
     return {
       active: counts.active ?? 0,
@@ -187,7 +200,8 @@ export class QueueMetricsService implements OnModuleDestroy {
         ? Math.max(0, Math.floor((now - oldestWaitingTimestamp) / 1000))
         : 0,
       queueName: queue.name,
-      stalledEvents: this.countEvents(events, 'stalled'),
+      stalledEvents: stalled.count,
+      stalledJobIds,
       waiting: counts.waiting ?? 0,
     };
   }
@@ -215,7 +229,10 @@ export class QueueMetricsService implements OnModuleDestroy {
 
     await this.cloudWatch.send(
       new PutMetricDataCommand({
-        MetricData: this.buildMetricData(totals),
+        MetricData: [
+          ...this.buildMetricData(totals),
+          ...this.buildPerQueueStalledMetrics(snapshots),
+        ],
         Namespace: METRIC_NAMESPACE,
       }),
     );
@@ -265,5 +282,53 @@ export class QueueMetricsService implements OnModuleDestroy {
       Dimensions: dimensions,
       StorageResolution: 60,
     }));
+  }
+
+  private buildPerQueueStalledMetrics(
+    snapshots: OperationalQueueSnapshot[],
+  ): MetricDatum[] {
+    return snapshots
+      .filter((snapshot) => snapshot.stalledEvents > 0)
+      .map((snapshot) => ({
+        Dimensions: [
+          { Name: 'Service', Value: 'workers' },
+          { Name: 'Queue', Value: snapshot.queueName },
+        ],
+        MetricName: 'StalledJobs5m',
+        StorageResolution: 60,
+        Unit: 'Count',
+        Value: snapshot.stalledEvents,
+      }));
+  }
+
+  private logStalledEvents(
+    queueName: string,
+    stalledEvents: number,
+    stalledJobIds: string[],
+  ): void {
+    if (stalledJobIds.length === 0) {
+      this.logger.warn(
+        STALLED_JOB_LOG_MESSAGE,
+        buildStalledJobLogContext({
+          queueName,
+          service: this.context.service,
+          stalledEvents,
+          worker: this.workerIdentity,
+        }),
+      );
+      return;
+    }
+
+    for (const jobId of stalledJobIds) {
+      this.logger.warn(
+        STALLED_JOB_LOG_MESSAGE,
+        buildStalledJobLogContext({
+          jobId,
+          queueName,
+          service: this.context.service,
+          worker: this.workerIdentity,
+        }),
+      );
+    }
   }
 }
