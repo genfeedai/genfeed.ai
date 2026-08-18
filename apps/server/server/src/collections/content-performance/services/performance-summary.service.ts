@@ -2,6 +2,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import { DateRangeUtil } from '@server/helpers/utils/date-range/date-range.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export interface WeeklySummaryOptions {
   topN?: number;
@@ -394,13 +395,13 @@ export class PerformanceSummaryService {
     sortDirection: 'asc' | 'desc',
     minViews?: number,
   ): Promise<PerformanceContentItem[]> {
-    const where: Prisma.PostAnalyticsWhereInput =
-      minViews === undefined
-        ? matchFilter
-        : {
-            ...matchFilter,
-            totalViews: { gte: minViews },
-          };
+    const organizationId = String(matchFilter.organizationId ?? '');
+    const activePostScope = scopedWhere(organizationId);
+    const where: Prisma.PostAnalyticsWhereInput = {
+      ...matchFilter,
+      ...(minViews === undefined ? {} : { totalViews: { gte: minViews } }),
+      post: activePostScope,
+    };
 
     const analytics = await this.prisma.postAnalytics.findMany({
       where,
@@ -419,7 +420,7 @@ export class PerformanceSummaryService {
               publicationDate: true,
             },
             take: postIds.length,
-            where: { id: { in: postIds } },
+            where: scopedWhere(organizationId, { id: { in: postIds } }),
           })
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
