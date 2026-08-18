@@ -12,9 +12,7 @@
     "outDir": "./dist",
     "paths": {
       "@genfeedai/enums": ["../enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../enums/src/*"],
-      "@genfeedai/types": ["../types/src/index.ts"],
-      "@genfeedai/types/*": ["../types/src/*"]
+      "@genfeedai/enums/*": ["../enums/src/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,

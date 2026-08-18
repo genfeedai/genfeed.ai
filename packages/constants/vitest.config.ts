@@ -6,7 +6,6 @@ export default defineConfig({
     alias: {
       '@genfeedai/constants': path.resolve(__dirname, 'src'),
       '@genfeedai/enums': path.resolve(__dirname, '../enums/src'),
-      '@genfeedai/types': path.resolve(__dirname, '../types/src'),
     },
   },
   test: {

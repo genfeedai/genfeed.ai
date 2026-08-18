@@ -14,10 +14,10 @@ import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
   getFallbackImageModelKey,
   getFallbackVideoModelKey,
+  type LowestCostModelDefaultsInput,
   MODEL_KEYS,
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
-import type { LowestCostModelDefaultsInput } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

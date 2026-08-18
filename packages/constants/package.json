@@ -1,7 +1,6 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/types": "workspace:*"
+    "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
     "@typescript/native": "npm:typescript@7.0.2"

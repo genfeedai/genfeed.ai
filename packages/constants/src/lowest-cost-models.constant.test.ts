@@ -1,4 +1,3 @@
-import type { LowestCostModelDefaultsInput } from '@genfeedai/types';
 import { describe, expect, it } from 'vitest';
 import { AGENT_CHAT_MODEL_KEYS } from './agent-chat-models.constant';
 import {
@@ -9,6 +8,7 @@ import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
+  type LowestCostModelDefaultsInput,
   shouldUseLowestCostModelDefaults,
 } from './lowest-cost-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';

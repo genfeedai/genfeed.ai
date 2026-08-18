@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
+      '@genfeedai/constants': path.resolve(__dirname, '../constants/src'),
+      '@genfeedai/enums': path.resolve(__dirname, '../enums/src'),
       '@genfeedai/types': path.resolve(__dirname, 'src/index.ts'),
     },
   },
