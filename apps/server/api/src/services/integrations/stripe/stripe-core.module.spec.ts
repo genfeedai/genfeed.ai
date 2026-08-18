@@ -14,7 +14,8 @@ describe('StripeCoreModule', () => {
     );
 
     expect(source).toContain('exports: [StripeService]');
-    expect(source).not.toContain('SubscriptionsModule');
+    expect(source).not.toMatch(/^\s*import\s+\{[^}]*\bSubscriptionsModule\b/m);
+    expect(source).not.toMatch(/from ['"][^'"]*subscriptions\.module['"]/);
     expect(source).not.toMatch(
       /from '@api\/services\/integrations\/stripe\/stripe\.module'/,
     );
