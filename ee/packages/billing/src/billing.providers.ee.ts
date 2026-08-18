@@ -92,7 +92,9 @@ export const subscriptions: BillingProviderFragment = {
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
   // Nest module imports live on the api wrapper
   // (`apps/server/api/src/collections/subscriptions/subscriptions.module.ts`).
-  // A webpack-visible `require()` of those modules here re-enters this file
+  // That wrapper imports `StripeCoreModule`, not `StripeModule`, so billing
+  // can use the Stripe client without closing a Subscriptions ring.
+  // A webpack-visible `require()` of api modules here re-enters this file
   // before `userSubscriptions` is assigned and crashes SaaS workers
   // (API-GENFEED-AI-60).
   imports: [],

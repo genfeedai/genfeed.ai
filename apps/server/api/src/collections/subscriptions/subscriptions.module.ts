@@ -12,10 +12,9 @@
 
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { subscriptions } from '@billing-providers';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: subscriptions.controllers,
@@ -24,10 +23,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ...(subscriptions.imports ?? []),
     CreditsModule,
     CustomersModule,
-    // These two already import SubscriptionsModule. Keep the ring on
-    // forwardRef so Nest can resolve it; do not wrap one-way imports.
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => StripeModule),
+    StripeCoreModule,
   ],
   providers: subscriptions.providers,
 })
