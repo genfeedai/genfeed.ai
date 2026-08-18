@@ -1,0 +1,144 @@
+name: Deploy hosted SaaS
+run-name: Deploy hosted SaaS | ${{ inputs.source_sha }} | ${{ inputs.correlation_id || 'manual' }}
+
+# Public-repo hosted SaaS lane. Jobs run as this caller, so GitHub bills the
+# public repository (standard public runners are free). The private operations
+# engine stays in genfeedai/console.genfeed.ai and is invoked as a reusable
+# workflow — this file must not grow private infra or frontend deploy steps.
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "exact public genfeed.ai source SHA to deploy (must be on master)"
+        required: true
+        type: string
+      marketplace_source_sha:
+        description: "exact marketplace.genfeed.ai SHA (empty = current marketplace master)"
+        required: false
+        default: ""
+        type: string
+      image_tag:
+        description: "optional existing server image tag (defaults to source_sha)"
+        required: false
+        default: ""
+        type: string
+      allow_rollback:
+        description: "allow image_tag to differ from source_sha"
+        required: false
+        default: false
+        type: boolean
+      correlation_id:
+        description: "optional unique release/orchestrator correlation id"
+        required: false
+        default: ""
+        type: string
+  workflow_call:
+    inputs:
+      source_sha:
+        description: "exact public genfeed.ai source SHA to deploy (must be on master)"
+        required: true
+        type: string
+      marketplace_source_sha:
+        description: "exact marketplace.genfeed.ai SHA (empty = current marketplace master)"
+        required: false
+        default: ""
+        type: string
+      image_tag:
+        description: "optional existing server image tag (defaults to source_sha)"
+        required: false
+        default: ""
+        type: string
+      allow_rollback:
+        description: "allow image_tag to differ from source_sha"
+        required: false
+        default: false
+        type: boolean
+      correlation_id:
+        description: "optional unique release/orchestrator correlation id"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: deploy-hosted-saas
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-resolve:
+    name: Validate public source
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      marketplace_source_sha: ${{ steps.resolve.outputs.marketplace_source_sha }}
+      source_sha: ${{ steps.resolve.outputs.source_sha }}
+    steps:
+      - name: Require master for production deploys
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Hosted SaaS deploys must run from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Validate inputs and resolve marketplace SHA
+        id: resolve
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          MARKETPLACE_SOURCE_SHA: ${{ inputs.marketplace_source_sha }}
+          CORRELATION_ID: ${{ inputs.correlation_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::source_sha must be an exact lowercase 40-character Git commit SHA."
+            exit 1
+          fi
+          if [ -n "${CORRELATION_ID}" ] && ! printf '%s' "${CORRELATION_ID}" | grep -Eq '^[A-Za-z0-9._:-]{1,128}$'; then
+            echo "::error::correlation_id contains unsupported characters or exceeds 128 characters."
+            exit 1
+          fi
+
+          marketplace_sha="${MARKETPLACE_SOURCE_SHA}"
+          if [ -z "${marketplace_sha}" ]; then
+            marketplace_sha="$(gh api repos/genfeedai/marketplace.genfeed.ai/commits/master --jq .sha)"
+          fi
+          if ! printf '%s' "${marketplace_sha}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::marketplace_source_sha must be an exact lowercase 40-character Git commit SHA."
+            exit 1
+          fi
+
+          git init public-source
+          git -C public-source remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C public-source fetch --no-tags --filter=blob:none origin master
+          git -C public-source fetch --no-tags --filter=blob:none origin "${SOURCE_SHA}"
+          if ! git -C public-source merge-base --is-ancestor "${SOURCE_SHA}" origin/master; then
+            echo "::error::source_sha ${SOURCE_SHA} is not reachable from ${GITHUB_REPOSITORY} master."
+            exit 1
+          fi
+
+          {
+            echo "source_sha=${SOURCE_SHA}"
+            echo "marketplace_source_sha=${marketplace_sha}"
+          } >>"${GITHUB_OUTPUT}"
+
+  deploy:
+    name: Deploy hosted SaaS
+    needs: validate-and-resolve
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+      issues: write
+    uses: genfeedai/console.genfeed.ai/.github/workflows/deploy-hosted-saas.yml@master
+    with:
+      release_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
+      source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
+      marketplace_source_sha: ${{ needs.validate-and-resolve.outputs.marketplace_source_sha }}
+      image_tag: ${{ inputs.image_tag }}
+      allow_rollback: ${{ inputs.allow_rollback }}
+      correlation_id: ${{ inputs.correlation_id }}
+    secrets: inherit
