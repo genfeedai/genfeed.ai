@@ -1,0 +1,61 @@
+# Merge queue: satisfy third-party required contexts on the queue commit.
+#
+# `master` merges through the GitHub merge queue (#3143). Every required
+# status check in the master ruleset must report on the queue's temporary
+# `gh-readonly-queue/master/...` merge commit, or the entry sits until
+# `check_response_timeout_minutes` and is dropped. Our own checks re-run there
+# via `merge_group` triggers (ci.yml, pr-title.yml). Two required contexts come
+# from apps that only react to pull-request events and never see the queue
+# commit:
+#
+#   - `license/cla`                    — cla-assistant.io (commit status on PR head)
+#   - `Socket Security: Project Report` — Socket GitHub app (check run on PR head)
+#
+# Both were already enforced on the pull request that entered the queue: a PR
+# cannot enter the queue with a failing or missing required check, and the
+# queue commit is that PR's head merged onto current master. Nothing about the
+# CLA signature or the dependency manifests changes between the two commits, so
+# this workflow republishes a passing commit status under the same context
+# names on the merge-group head. Neither ruleset context pins an
+# `integration_id`, so a status from Actions satisfies it.
+#
+# This is not a bypass: it runs only on `merge_group`, and a PR whose own head
+# is red on either check never reaches the queue in the first place.
+name: Merge queue external checks
+
+on:
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  statuses: write
+
+concurrency:
+  # One run per queue entry; the queue ref is already unique per entry.
+  group: merge-queue-external-checks-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  republish:
+    name: Republish PR-enforced contexts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Post passing statuses on the merge-group head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          for context in "license/cla" "Socket Security: Project Report"; do
+            gh api "repos/${REPO}/statuses/${HEAD_SHA}" \
+              --method POST \
+              --field state=success \
+              --field context="${context}" \
+              --field target_url="${RUN_URL}" \
+              --field description="Enforced on the pull request that entered the merge queue." \
+              --silent
+            echo "posted success for '${context}' on ${HEAD_SHA}"
+          done

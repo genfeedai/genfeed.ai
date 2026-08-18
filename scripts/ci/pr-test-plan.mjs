@@ -32,6 +32,17 @@ const FORCE_FULL_PATTERNS = [
 // also requires its workflow-level `vars.ENABLE_*_CI` gate in ci.yml.
 export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
 
+// Events whose checkout is a proposed change diffed against a known base: the
+// pull request against its base, or the merge queue's merge commit against the
+// current master (`merge_group.base_sha`, #3143). Only these may narrow the
+// app/API surfaces by classification; every other event (master push, release
+// dispatch) forces both surfaces on and relies on the changed-file list alone.
+const CHANGE_RUN_EVENTS = new Set(['pull_request', 'merge_group']);
+
+export function isChangeRunEvent(eventName) {
+  return CHANGE_RUN_EVENTS.has(eventName);
+}
+
 const TURBO_TEST_GROUPS = {
   extensions: [
     '--filter=@genfeedai/extension-browser',
@@ -461,7 +472,7 @@ async function runCli() {
   const changedFiles = await readChangedFiles(base);
   const classification = classifyChangedFiles(changedFiles);
   const forceFull = args.runHeavy || classification.forceFull;
-  const forceAllSurfaces = args.event !== 'pull_request';
+  const forceAllSurfaces = !isChangeRunEvent(args.event);
 
   const appTestsPromise =
     !forceFull && (forceAllSurfaces || classification.app)

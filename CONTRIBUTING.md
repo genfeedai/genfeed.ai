@@ -170,16 +170,25 @@ the issue.
 
 **What happens next (triage, within 7 days):**
 
-- The issue opens with `needs:triage`. The maintainer or a triage agent confirms
-  or rewrites the acceptance criteria, applies labels, and places it on
+- The issue opens with `needs:triage` (every form applies it on submit). The
+  maintainer or a triage agent confirms or rewrites the acceptance criteria,
+  applies labels, and places it on
   [Project #12](https://github.com/orgs/genfeedai/projects/12).
-- Public labels you may see: `needs:triage`, `needs:ears`, `needs:info`,
-  `good first issue`, `help wanted`, plus the type label. **Priority is a project
-  field, never a label.**
-- Labels prefixed `shipcode:` are internal automation state. They are visible
-  but not for contributors to set.
+- **Priority is a Project #12 field, never a label.**
 - If you want to work on an issue, say so in a comment. Issues labelled
   `good first issue` and `help wanted` are pre-scoped for outside contributors.
+
+**Intake labels**
+
+| Label | Meaning |
+| ----- | ------- |
+| `needs:triage` | Applied automatically when any form is submitted. Removed after triage (within 7 days). |
+| `needs:ears` | Acceptance criteria need rewriting into testable EARS form. Triage rewrites; the issue is never closed for syntax. |
+| `needs:info` | Waiting on the reporter for details. |
+| `good first issue` | Pre-scoped for first-time contributors. Small, specified, no architecture decisions. |
+| `help wanted` | Maintainer-scoped work that outside contributors can pick up. |
+| `bug` / `enhancement` / `task` | Type label set by the matching issue form. |
+| `shipcode:*` | Internal automation — do not apply. |
 
 ## Pull-request contract
 
@@ -322,8 +331,9 @@ request, list exactly what you ran and any checks left to CI.
   the thread.
 - The maintainer applies `run-ci` and approves the workflow run after a first
   read.
-- Once CI is green and review is approved, the maintainer squash-merges using
-  your PR title as the commit subject.
+- Once CI is green and review is approved, the maintainer adds the PR to the
+  `master` merge queue; it squash-merges with your PR title as the commit
+  subject after CI passes again on top of the current `master`.
 - Merged work ships in the next Community release cut from `master`
   ([RELEASING.md](RELEASING.md)); the generated release notes credit the PR
   by number and title.
