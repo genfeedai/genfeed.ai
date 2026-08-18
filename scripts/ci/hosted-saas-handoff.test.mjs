@@ -113,7 +113,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
   );
   assert.match(
     publicDeployWorkflow,
-    /marketplace\.genfeed\.ai\/compare\/\$\{marketplace_sha\}\.\.\.master/,
+    /Pass marketplace_source_sha, or set CONSOLE_DEPLOY_TOKEN/,
   );
   assert.match(publicDeployWorkflow, /secrets\.CONSOLE_DEPLOY_TOKEN/);
   assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
