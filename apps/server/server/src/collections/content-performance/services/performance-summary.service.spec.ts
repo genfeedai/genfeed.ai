@@ -64,6 +64,7 @@ describe('PerformanceSummaryService', () => {
       const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
       expect(where.organizationId).toBe('org-1');
       expect(where.brandId).toBe('brand-1');
+      expect(where.post).toEqual({ isDeleted: false, organizationId: 'org-1' });
       expect(where.date.gte).toBeInstanceOf(Date);
       expect(where.date.lte).toBeInstanceOf(Date);
     });
@@ -142,7 +143,11 @@ describe('PerformanceSummaryService', () => {
       expect(postFindMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 2,
-          where: { id: { in: ['post-1', 'post-2'] } },
+          where: {
+            id: { in: ['post-1', 'post-2'] },
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
         }),
       );
     });
@@ -168,39 +173,63 @@ describe('PerformanceSummaryService', () => {
       totalViews: 0,
     });
 
+    type RankingQuery = {
+      orderBy?: { engagementRate?: 'asc' | 'desc' };
+      take?: number;
+      where?: {
+        organizationId?: string;
+        post?: { isDeleted?: boolean; organizationId?: string };
+        totalViews?: { gte?: number };
+      };
+    };
+
+    type PostLookupQuery = {
+      where?: {
+        id?: { in?: string[] };
+        isDeleted?: boolean;
+        organizationId?: string;
+      };
+    };
+
+    function rankAnalyticsRows(
+      rows: ReturnType<typeof makeAnalytics>[],
+      query?: RankingQuery,
+      deletedPostIds: ReadonlySet<string> = new Set(),
+    ) {
+      const minViews = query?.where?.totalViews?.gte;
+      const excludeDeleted = query?.where?.post?.isDeleted === false;
+      const eligible = rows.filter((row) => {
+        if (excludeDeleted && deletedPostIds.has(String(row.postId))) {
+          return false;
+        }
+        return minViews === undefined || Number(row.totalViews) >= minViews;
+      });
+      const direction = query?.orderBy?.engagementRate === 'asc' ? 1 : -1;
+      return [...eligible]
+        .sort(
+          (left, right) =>
+            (Number(left.engagementRate) - Number(right.engagementRate)) *
+            direction,
+        )
+        .slice(0, query?.take ?? eligible.length);
+    }
+
     function stubMixedAnalytics() {
-      analyticsFindMany.mockImplementation(
-        (query?: {
-          orderBy?: { engagementRate?: 'asc' | 'desc' };
-          take?: number;
-          where?: { totalViews?: { gte?: number } };
-        }) => {
-          const minViews = query?.where?.totalViews?.gte;
-          const rows = [topRow, worstReachedRow, zeroReachRow].filter(
-            (row) =>
-              minViews === undefined || Number(row.totalViews) >= minViews,
-          );
-          const direction = query?.orderBy?.engagementRate === 'asc' ? 1 : -1;
-          const sorted = [...rows].sort(
-            (left, right) =>
-              (Number(left.engagementRate) - Number(right.engagementRate)) *
-              direction,
-          );
-          return Promise.resolve(sorted.slice(0, query?.take ?? sorted.length));
-        },
-      );
-      postFindMany.mockImplementation(
-        (query?: { where?: { id?: { in?: string[] } } }) => {
-          const ids = new Set(query?.where?.id?.in ?? []);
-          return Promise.resolve(
-            [
-              makePost({ id: 'top-post', label: 'Winning hook' }),
-              makePost({ id: 'worst-reached', label: 'Generic AI tips' }),
-              makePost({ id: 'zero-reach', label: 'Unpublished draft' }),
-            ].filter((post) => ids.has(post.id)),
-          );
-        },
-      );
+      analyticsFindMany.mockImplementation((query?: RankingQuery) => {
+        return Promise.resolve(
+          rankAnalyticsRows([topRow, worstReachedRow, zeroReachRow], query),
+        );
+      });
+      postFindMany.mockImplementation((query?: PostLookupQuery) => {
+        const ids = new Set(query?.where?.id?.in ?? []);
+        return Promise.resolve(
+          [
+            makePost({ id: 'top-post', label: 'Winning hook' }),
+            makePost({ id: 'worst-reached', label: 'Generic AI tips' }),
+            makePost({ id: 'zero-reach', label: 'Unpublished draft' }),
+          ].filter((post) => ids.has(post.id)),
+        );
+      });
     }
 
     it('scopes the query to the organization, brand and date range', async () => {
@@ -264,6 +293,121 @@ describe('PerformanceSummaryService', () => {
           }),
         }),
       );
+    });
+
+    it('applies the post soft-delete filter on the analytics query before take', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 2);
+
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { engagementRate: 'asc' },
+          take: 2,
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            post: { isDeleted: false, organizationId: 'org-1' },
+            totalViews: { gte: DEFAULT_WORST_PERFORMER_MIN_VIEWS },
+          }),
+        }),
+      );
+    });
+
+    it('excludes soft-deleted posts from mixed fixtures and keeps active ranking order', async () => {
+      const deletedLowest = makeAnalytics({
+        engagementRate: 0.05,
+        postId: 'deleted-lowest',
+        totalViews: 400,
+      });
+      const deletedNext = makeAnalytics({
+        engagementRate: 0.1,
+        postId: 'deleted-next',
+        totalViews: 500,
+      });
+      const activeWorst = makeAnalytics({
+        engagementRate: 0.5,
+        postId: 'active-worst',
+        totalViews: 300,
+      });
+      const activeNext = makeAnalytics({
+        engagementRate: 1.2,
+        postId: 'active-next',
+        totalViews: 800,
+      });
+      const deletedPostIds = new Set(['deleted-lowest', 'deleted-next']);
+
+      analyticsFindMany.mockImplementation((query?: RankingQuery) => {
+        return Promise.resolve(
+          rankAnalyticsRows(
+            [deletedLowest, deletedNext, activeWorst, activeNext],
+            query,
+            deletedPostIds,
+          ),
+        );
+      });
+      postFindMany.mockImplementation((query?: PostLookupQuery) => {
+        const ids = new Set(query?.where?.id?.in ?? []);
+        const excludeDeleted = query?.where?.isDeleted === false;
+        return Promise.resolve(
+          [
+            makePost({ id: 'deleted-lowest', label: 'Deleted anti-pattern' }),
+            makePost({ id: 'deleted-next', label: 'Also deleted' }),
+            makePost({ id: 'active-worst', label: 'Active worst' }),
+            makePost({ id: 'active-next', label: 'Active next' }),
+          ].filter((post) => {
+            if (!ids.has(post.id)) {
+              return false;
+            }
+            return !excludeDeleted || !deletedPostIds.has(post.id);
+          }),
+        );
+      });
+
+      const worst = await service.getWorstPerformers('org-1', 'brand-1', 2);
+
+      expect(worst.map((item) => item.postId)).toEqual([
+        'active-worst',
+        'active-next',
+      ]);
+      expect(worst.map((item) => item.title)).toEqual([
+        'Active worst',
+        'Active next',
+      ]);
+      expect(postFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: { in: ['active-worst', 'active-next'] },
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
+        }),
+      );
+    });
+
+    it('returns an empty list when every ranking candidate is soft-deleted', async () => {
+      const deletedOnly = [
+        makeAnalytics({
+          engagementRate: 0.05,
+          postId: 'deleted-a',
+          totalViews: 400,
+        }),
+        makeAnalytics({
+          engagementRate: 0.2,
+          postId: 'deleted-b',
+          totalViews: 900,
+        }),
+      ];
+      const deletedPostIds = new Set(['deleted-a', 'deleted-b']);
+
+      analyticsFindMany.mockImplementation((query?: RankingQuery) => {
+        return Promise.resolve(
+          rankAnalyticsRows(deletedOnly, query, deletedPostIds),
+        );
+      });
+
+      await expect(
+        service.getWorstPerformers('org-1', 'brand-1', 5),
+      ).resolves.toEqual([]);
+      expect(postFindMany).not.toHaveBeenCalled();
     });
   });
 

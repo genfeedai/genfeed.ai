@@ -3283,22 +3283,6 @@
     {
       "delegate": "post",
       "file": "apps/server/server/src/collections/content-performance/services/performance-summary.service.ts",
-      "fingerprint": "c6ec55f6a67a3cd24c2c",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/collections/content-performance/services/performance-summary.service.ts",
-      "fingerprint": "5a0c12d19e225dacbf6f",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/collections/content-performance/services/performance-summary.service.ts",
       "fingerprint": "f9e8dc5848568f3fbfd5",
       "method": "findMany",
       "model": "Post",
