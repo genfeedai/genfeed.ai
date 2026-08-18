@@ -82,6 +82,24 @@ function decodeJwtPayloadSegment(
   }
 }
 
+function closeSocketEngine(socket: Socket): void {
+  const manager: unknown = socket.io;
+  if (!manager || typeof manager !== 'object' || !('engine' in manager)) {
+    return;
+  }
+
+  const engine = manager.engine;
+  if (!engine || typeof engine !== 'object' || !('close' in engine)) {
+    return;
+  }
+
+  if (typeof engine.close !== 'function') {
+    return;
+  }
+
+  engine.close();
+}
+
 function decodeBase64Url(segment: string): string {
   const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
@@ -235,10 +253,9 @@ export class SocketService {
    * token while a live connection stays untouched.
    *
    * Cross-identity replacement (logout → login in the same JS heap) is the
-   * exception: the live socket is still in the previous user/org rooms.
-   * Disconnect first so those rooms cannot deliver, then handshake the new
-   * token. A fire-and-forget rotate emit would leave a window where the UI
-   * is the new account and the socket still receives the old identity.
+   * exception: abort any live session or in-flight CONNECT, then handshake
+   * the latest token. A second swap while reconnecting must not keep the
+   * intermediate identity's handshake.
    */
   private updateToken(token: string): void {
     const shouldRebindIdentity = isCrossIdentitySocketRotation(
@@ -257,9 +274,8 @@ export class SocketService {
       };
     }
 
-    if (shouldRebindIdentity && this.socket.connected) {
-      this.socket.disconnect();
-      this.socket.connect();
+    if (shouldRebindIdentity) {
+      this.restartIdentityHandshake();
       return;
     }
 
@@ -268,6 +284,32 @@ export class SocketService {
     if (!this.socket.connected && !this.socket.active) {
       this.socket.connect();
     }
+  }
+
+  /**
+   * Abort a live session or in-flight CONNECT, then handshake the latest
+   * token. A second identity swap while `connected` is false and `active` is
+   * true would otherwise keep the intermediate handshake.
+   */
+  private restartIdentityHandshake(): void {
+    if (this.socket.connected || this.socket.active) {
+      this.abortSocketTransport();
+    }
+
+    this.socket.connect();
+  }
+
+  private abortSocketTransport(): void {
+    if (this.socket.connected) {
+      this.socket.disconnect();
+      return;
+    }
+
+    // Mid-handshake: `socket.disconnect()` does not close the engine when
+    // CONNECT has not completed. Close the transport so the intermediate
+    // token cannot finish the handshake.
+    this.socket.disconnect();
+    closeSocketEngine(this.socket);
   }
 
   public connect(): void {

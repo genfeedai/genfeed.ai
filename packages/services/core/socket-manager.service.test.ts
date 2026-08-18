@@ -25,6 +25,7 @@ vi.mock('socket.io-client', () => ({
     emit: mockSocketEmit,
     id: 'mock-socket-id',
     io: {
+      engine: { close: vi.fn() },
       off: mockManagerOff,
       on: mockManagerOn,
       opts: {},

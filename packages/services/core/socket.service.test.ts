@@ -7,6 +7,7 @@ const mockSocketDisconnect = vi.fn();
 const mockSocketEmit = vi.fn();
 const mockSocketOff = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
+const mockEngineClose = vi.fn();
 const socketEventHandlers = new Map<string, (...args: unknown[]) => void>();
 const socketState = vi.hoisted(() => ({ active: true, connected: false }));
 const mockIo = vi.hoisted(() => vi.fn());
@@ -33,7 +34,10 @@ vi.mock('socket.io-client', () => ({
         },
         disconnect: mockSocketDisconnect,
         emit: mockSocketEmit,
-        io: { opts: { extraHeaders: config.extraHeaders } },
+        io: {
+          engine: { close: mockEngineClose },
+          opts: { extraHeaders: config.extraHeaders },
+        },
         off: mockSocketOff,
         on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
           socketEventHandlers.set(event, handler);
@@ -193,6 +197,74 @@ describe('SocketService', () => {
       expect(mockSocketDisconnect.mock.invocationCallOrder[0]).toBeLessThan(
         mockSocketConnect.mock.invocationCallOrder[0],
       );
+    });
+
+    it('restarts an in-flight handshake when identity changes again during reconnect', () => {
+      socketState.connected = true;
+      socketState.active = true;
+      const tokenA = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      const tokenB = makeJwt({
+        organizationId: 'org-b',
+        sub: 'user-b',
+      });
+      const tokenC = makeJwt({
+        organizationId: 'org-c',
+        sub: 'user-c',
+      });
+      const order: string[] = [];
+
+      mockSocketDisconnect.mockImplementation(() => {
+        order.push('disconnect');
+        socketState.connected = false;
+        socketState.active = false;
+      });
+      mockEngineClose.mockImplementation(() => {
+        order.push('engine-close');
+        socketState.connected = false;
+        socketState.active = false;
+      });
+      mockSocketConnect.mockImplementation(() => {
+        order.push('connect');
+        socketState.connected = false;
+        socketState.active = true;
+      });
+
+      const service = SocketService.getInstance(tokenA);
+      SocketService.getInstance(tokenB);
+      SocketService.getInstance(tokenC);
+
+      expect(order).toEqual([
+        'disconnect',
+        'connect',
+        'disconnect',
+        'engine-close',
+        'connect',
+      ]);
+      expect(service.socket.auth).toEqual({ token: tokenC });
+      expect(mockIo).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps same-user refresh in place while a reconnect is in flight', () => {
+      socketState.connected = false;
+      socketState.active = true;
+      const previous = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      const next = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      SocketService.getInstance(previous);
+
+      SocketService.getInstance(next);
+
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+      expect(mockEngineClose).not.toHaveBeenCalled();
     });
   });
 
