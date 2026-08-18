@@ -562,6 +562,17 @@ function InspectorToggleFixture() {
   );
 }
 
+/** Stands in for the topbar's below-`xl` drawer opener. */
+function MobileInspectorOpenFixture() {
+  const inspector = useWorkspaceInspector();
+
+  return (
+    <button type="button" onClick={() => inspector?.setIsMobileOpen(true)}>
+      Open inspector drawer
+    </button>
+  );
+}
+
 describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
     navigation.pathname = '/acme/~/agent/thread-1';
@@ -1133,14 +1144,27 @@ describe('UniversalWorkspaceShell', () => {
     navigation.searchParams = new URLSearchParams();
 
     render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Workspace overview</div>
-      </UniversalWorkspaceShell>,
+      <WorkspaceInspectorProvider>
+        <MobileInspectorOpenFixture />
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <div>Workspace overview</div>
+        </UniversalWorkspaceShell>
+      </WorkspaceInspectorProvider>,
     );
 
     expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
+    // The shell paints no sub-navbar of its own — the drawer opens from the
+    // topbar toggle only.
+    expect(
+      screen.queryByRole('button', { name: 'Inspector' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Conversation' }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Inspector' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open inspector drawer' }),
+    );
 
     // Still exactly one: both inspector hosts stay in the DOM, so a second copy
     // here would portal a second prompt bar into the one shell composer slot.

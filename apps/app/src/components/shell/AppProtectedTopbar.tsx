@@ -338,33 +338,49 @@ function AppProtectedTopbarContent({
             />
           ) : null}
 
-          {/* Last control in the bar, always: the inspector rail collapses to
-              zero width, so its only toggle lives here — and pinning it to the
-              extreme right means it never shifts between the two states. The
-              icon itself carries the state (panel closing vs opening). */}
+          {/* Last control in the bar, always: the inspector's only opener
+              lives here — and pinning it to the extreme right means it never
+              shifts between states. At `xl` and up it collapses/expands the
+              rail; below `xl` the rail is display:none, so the same slot
+              swaps to a variant that opens the inspector drawer instead. */}
           {workspaceInspector?.isRegistered ? (
-            <Button
-              aria-controls="workspace-context-inspector"
-              aria-expanded={workspaceInspector.isOpen}
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="hidden size-8 xl:inline-flex"
-              data-active={workspaceInspector.isOpen ? 'true' : 'false'}
-              data-testid="topbar-inspector-toggle"
-              ariaLabel={
-                workspaceInspector.isOpen
-                  ? 'Collapse workspace inspector'
-                  : 'Expand workspace inspector'
-              }
-              onClick={workspaceInspector.toggle}
-            >
-              {workspaceInspector.isOpen ? (
-                <PanelRightClose className="size-4" />
-              ) : (
+            <>
+              <Button
+                aria-controls="workspace-context-inspector"
+                aria-expanded={workspaceInspector.isOpen}
+                type="button"
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
+                className="hidden size-8 xl:inline-flex"
+                data-active={workspaceInspector.isOpen ? 'true' : 'false'}
+                data-testid="topbar-inspector-toggle"
+                ariaLabel={
+                  workspaceInspector.isOpen
+                    ? 'Collapse workspace inspector'
+                    : 'Expand workspace inspector'
+                }
+                onClick={workspaceInspector.toggle}
+              >
+                {workspaceInspector.isOpen ? (
+                  <PanelRightClose className="size-4" />
+                ) : (
+                  <PanelRightOpen className="size-4" />
+                )}
+              </Button>
+              <Button
+                aria-controls="workspace-context-inspector-drawer"
+                aria-expanded={workspaceInspector.isMobileOpen}
+                type="button"
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
+                className="inline-flex size-8 xl:hidden"
+                data-testid="topbar-inspector-drawer-toggle"
+                ariaLabel="Open workspace inspector"
+                onClick={() => workspaceInspector.setIsMobileOpen(true)}
+              >
                 <PanelRightOpen className="size-4" />
-              )}
-            </Button>
+              </Button>
+            </>
           ) : null}
         </div>
       </div>

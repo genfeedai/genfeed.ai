@@ -14,8 +14,10 @@ const mockAccessState = vi.hoisted(() => ({
 }));
 const workspaceInspectorState = vi.hoisted(() => ({
   value: null as {
+    isMobileOpen: boolean;
     isOpen: boolean;
     isRegistered: boolean;
+    setIsMobileOpen: (isMobileOpen: boolean) => void;
     toggle: () => void;
   } | null,
 }));
@@ -496,8 +498,10 @@ describe('AppProtectedTopbar', () => {
   it('exposes the inspector toggle as a controlled disclosure', () => {
     const toggle = vi.fn();
     workspaceInspectorState.value = {
+      isMobileOpen: false,
       isOpen: true,
       isRegistered: true,
+      setIsMobileOpen: vi.fn(),
       toggle,
     };
 
@@ -515,6 +519,35 @@ describe('AppProtectedTopbar', () => {
 
     fireEvent.click(inspectorToggle);
     expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the inspector drawer from the below-xl toggle variant', () => {
+    const setIsMobileOpen = vi.fn();
+    workspaceInspectorState.value = {
+      isMobileOpen: false,
+      isOpen: true,
+      isRegistered: true,
+      setIsMobileOpen,
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(drawerToggle).toHaveAccessibleName('Open workspace inspector');
+    expect(drawerToggle).toHaveAttribute(
+      'aria-controls',
+      'workspace-context-inspector-drawer',
+    );
+    expect(drawerToggle).toHaveAttribute('aria-expanded', 'false');
+    // The two variants split by viewport: rail toggle at xl+, drawer below.
+    expect(screen.getByTestId('topbar-inspector-toggle').className).toContain(
+      'xl:inline-flex',
+    );
+    expect(drawerToggle.className).toContain('xl:hidden');
+
+    fireEvent.click(drawerToggle);
+    expect(setIsMobileOpen).toHaveBeenCalledWith(true);
   });
 
   it('clears the visible brand on explicit organization routes', () => {

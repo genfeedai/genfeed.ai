@@ -11,9 +11,11 @@ import {
 } from 'react';
 
 type WorkspaceInspectorContextValue = {
+  readonly isMobileOpen: boolean;
   readonly isOpen: boolean;
   readonly isRegistered: boolean;
   readonly registerInspector: () => () => void;
+  readonly setIsMobileOpen: (isMobileOpen: boolean) => void;
   readonly setIsOpen: (isOpen: boolean) => void;
   readonly toggle: () => void;
 };
@@ -78,6 +80,10 @@ export function WorkspaceInspectorProvider({
   readonly children: ReactNode;
 }) {
   const [isOpen, setIsOpenState] = useState(DEFAULT_INSPECTOR_OPEN);
+  // Below `xl` the rail is display:none and the inspector lives in a drawer
+  // instead. That open state is per-session chrome, never persisted — a page
+  // load always starts with the drawer closed.
+  const [isMobileOpen, setIsMobileOpenState] = useState(false);
   const [isPreferenceLoaded, setIsPreferenceLoaded] = useState(false);
   const [registeredCount, setRegisteredCount] = useState(0);
 
@@ -101,6 +107,10 @@ export function WorkspaceInspectorProvider({
     setIsOpenState(nextOpen);
   }, []);
 
+  const setIsMobileOpen = useCallback((nextOpen: boolean) => {
+    setIsMobileOpenState(nextOpen);
+  }, []);
+
   const registerInspector = useCallback(() => {
     setRegisteredCount((count) => count + 1);
 
@@ -115,13 +125,23 @@ export function WorkspaceInspectorProvider({
 
   const value = useMemo(
     () => ({
+      isMobileOpen,
       isOpen,
       isRegistered: registeredCount > 0,
       registerInspector,
+      setIsMobileOpen,
       setIsOpen,
       toggle,
     }),
-    [isOpen, registerInspector, registeredCount, setIsOpen, toggle],
+    [
+      isMobileOpen,
+      isOpen,
+      registerInspector,
+      registeredCount,
+      setIsMobileOpen,
+      setIsOpen,
+      toggle,
+    ],
   );
 
   return (
