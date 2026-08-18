@@ -97,15 +97,17 @@ describe('OptimizationCycleService', () => {
     it('scopes the contentPerformance query to the organization and brand', async () => {
       await service.runOptimizationCycle('org-1', 'brand-1');
 
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            brandId: 'brand-1',
-            isDeleted: false,
-            organizationId: 'org-1',
-          }),
+      const expectedQuery = expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          isDeleted: false,
+          organizationId: 'org-1',
         }),
-      );
+      });
+
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(findMany).toHaveBeenNthCalledWith(1, expectedQuery);
+      expect(findMany).toHaveBeenNthCalledWith(2, expectedQuery);
     });
   });
 });
