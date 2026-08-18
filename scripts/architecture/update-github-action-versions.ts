@@ -162,14 +162,14 @@ export async function fetchLatestReleaseTag(
     return null;
   }
 
-  // Optional API auth for rate limits. This file is not a Turbo task.
-  // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
-  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'User-Agent': 'genfeedai-deps-update',
     'X-GitHub-Api-Version': '2022-11-28',
   };
+
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
+  const token = process.env.GITHUB_TOKEN;
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
