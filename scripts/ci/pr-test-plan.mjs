@@ -37,7 +37,7 @@ const TURBO_TEST_GROUPS = {
     '--filter=@genfeedai/extension-browser',
     '--filter=extension-ide',
   ],
-  packages: ['--filter=./packages/*', '--filter=./ee/packages/*'],
+  packages: ['--filter=./packages/*'],
   server: ['--filter=./apps/server/*', '--filter=!@genfeedai/api'],
   web: [
     '--filter=@genfeedai/website',
@@ -65,7 +65,6 @@ export function classifyChangedFiles(changedFiles) {
   const app = matchesAny(changedFiles, [/^apps\/app(?:\/|$)/, /^packages\//]);
   const api = matchesAny(changedFiles, [
     /^apps\/server\/api(?:\/|$)/,
-    /^ee\//,
     /^packages\//,
   ]);
 

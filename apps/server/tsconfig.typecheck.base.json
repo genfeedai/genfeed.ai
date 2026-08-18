@@ -14,9 +14,6 @@
       "@api-test/*": ["./api/test/*"],
       "@api-types/*": ["../../packages/api-types/src/*"],
       "@api/*": ["./api/src/*"],
-      "@billing-providers": [
-        "./api/src/common/subscriptions/billing.providers.oss.ts"
-      ],
       "@clips/*": ["./clips/src/*"],
       "@cloud-types/*": ["../../packages/types/src/*"],
       "@config/*": ["../../packages/config/src/*"],
@@ -31,7 +28,6 @@
       "@genfeedai/config/*": ["../../packages/config/src/*"],
       "@genfeedai/constants": ["../../packages/constants/dist/index"],
       "@genfeedai/constants/*": ["../../packages/constants/dist/*"],
-      "@genfeedai/ee-harness": ["../../ee/packages/harness/src/index.ts"],
       "@genfeedai/enums": ["../../packages/enums/dist/index"],
       "@genfeedai/enums/*": ["../../packages/enums/dist/*"],
       "@genfeedai/harness": ["../../packages/harness/src/index.ts"],

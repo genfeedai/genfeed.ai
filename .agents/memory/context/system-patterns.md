@@ -14,11 +14,11 @@ via `buildSerializer('server', config)`. Never return a raw Prisma record.
 **Modules** — `createServiceModule()` factory (pulls in ConfigModule + LoggerModule).
 Circular deps use `forwardRef(() => Module)`.
 
-**Multi-tenancy** — an EE/SaaS *product* boundary, enforced in the OSS API by design: the global
+**Multi-tenancy** — a SaaS *product* boundary, enforced in the API by design: the global
 `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) plus inline
-`{ organizationId, isDeleted: false }` filters. `@Public()` opts out of auth. No
-`ee/packages/multi-tenancy` package exists and none should — resolved in #1093. Single-tenant
-self-hosted needs only `{ isDeleted: false }`.
+`{ organizationId, isDeleted: false }` filters. `@Public()` opts out of auth. No separable
+multi-tenancy package exists and none should — resolved in #1093. Single-tenant self-hosted
+needs only `{ isDeleted: false }`.
 
 **Scheduling** — product-facing recurring automation is workflow-backed via
 `WorkflowSchedulerService` + workflow trigger records. The `cron-jobs` collection,
@@ -34,10 +34,13 @@ platform/maintenance jobs and is guarded by `bun run check:cron-boundary`.
 handler → UI label → test. Read-only tools go in `SHARED_READ_TOOLS`; the rest in the specific
 `AgentType` config.
 
-**Credits** — billing providers in `ee/packages/billing/` via the webpack `@billing-providers`
-alias (OSS resolves `apps/server/api/src/common/subscriptions/billing.providers.oss.ts`). Credits
-collections/controllers stay OSS at `apps/server/api/src/collections/credits/`. One balance pool
-per org; transactions carry `source`. Indexes are `@@index` in `packages/prisma/prisma/schema.prisma`.
+**Billing** — one AGPL codebase, runtime-gated. Subscriptions live in
+`apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`;
+`apps/server/api/src/common/subscriptions/billing.providers.ts` binds each billing token to the
+Stripe-backed service when `hasOrganizationBilling()` (SaaS or licensed self-host) and to the
+colocated `oss-*.service.ts` stub otherwise, and registers billing controllers only when live.
+Credits stay at `apps/server/api/src/collections/credits/`. One balance pool per org; transactions
+carry `source`. Indexes are `@@index` in `packages/prisma/prisma/schema.prisma`.
 
 ## Frontend
 

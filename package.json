@@ -31,8 +31,7 @@
     "apps/mobile/app",
     "apps/extensions/browser/app",
     "apps/extensions/ide/app",
-    "packages/*",
-    "ee/packages/*"
+    "packages/*"
   ],
   "packageManager": "bun@1.3.14",
   "engines": {
@@ -65,7 +64,6 @@
     "check:action-versions": "bun run scripts/architecture/check-github-action-versions.ts",
     "check:agent-tool-dispatch": "bun run scripts/architecture/check-agent-tool-dispatch.ts",
     "check:architecture": "bun run scripts/check-architecture.ts",
-    "check:billing-flavor": "bun run scripts/check-billing-flavor.ts",
     "check:bull-board-parity": "bun run scripts/architecture/check-bull-board-queue-parity.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",

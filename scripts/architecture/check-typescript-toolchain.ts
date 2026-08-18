@@ -43,7 +43,6 @@ const manifestPaths = globSync(
   [
     'package.json',
     'apps/**/package.json',
-    'ee/**/package.json',
     'packages/**/package.json',
     'scripts/**/package.json',
   ],

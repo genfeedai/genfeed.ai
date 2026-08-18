@@ -173,12 +173,15 @@ supported API flows that call a local ComfyUI instance, configure:
 FLEET_COMFYUI_URL=http://your-comfyui-host:8188
 ```
 
-## Commercial Builds
+## Organization Billing
 
-The published Community image excludes all `ee/` source. Setting
-`GENFEED_LICENSE_KEY` does not add commercial packages to that image. The
-current public `ee/` tree contains billing and harness packages; commercial
-build artifacts and entitlements are separate from the Community quick start.
+Organization billing code ships in the same image as everything else — there
+is no separate commercial build. Whether it is live is decided at runtime by
+`hasOrganizationBilling()`: Cloud detects itself via `GENFEED_CLOUD` or a
+`*.genfeed.ai` public URL, and a licensed self-host opts in by setting
+`GENFEED_LICENSE_KEY`. A stock Community install without that key gets no-op
+billing stubs and no billing routes. See
+[Billing: one build, a runtime gate](./deployment-modes.md#billing-one-build-a-runtime-gate).
 
 ## Connect to Genfeed Cloud
 

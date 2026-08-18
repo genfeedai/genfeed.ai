@@ -13,7 +13,7 @@ author: Claude Code PM System
 - Successfully migrated and consolidated from separate `cloud` + `core` repositories into a single `genfeed.ai` monorepo
 - All pages, tests, and features ported over
 - Cloud-only services (fanvue, llm, twitch) and apps (chatgpt, marketplace, shared) removed
-- Enterprise features isolated into `ee/packages/` under commercial license
+- Billing lives in the API collections under AGPL; Cloud-only behaviour is a runtime gate, not a separate tree
 
 ### CI/CD
 - GitHub Actions configured for CI/CD, E2E, release QA, and production deploy pipelines

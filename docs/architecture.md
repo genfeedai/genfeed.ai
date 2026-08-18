@@ -39,15 +39,17 @@ collaboration, and governance layer.
 - Collaborative memory, shared review, approval workflows, and team governance are
   Cloud or Enterprise surfaces.
 
-## Current `ee/` contents
+## Where Cloud-only code lives
 
-The current commercial tree contains billing and harness packages. Generic
-request context and organization-scoped query enforcement live in the public API
-because they are deployment-mode infrastructure; this does not make
+There is no separately licensed subtree. Organization billing lives in the API
+(`apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`)
+and is switched at runtime by `hasOrganizationBilling()` — see
+[Deployment Modes](deployment-modes.md#billing-one-build-a-runtime-gate). Generic
+request context and organization-scoped query enforcement also live in the public
+API because they are deployment-mode infrastructure; this does not make
 multi-tenant organization management a Community product surface.
 
 ## License
 
-The repository default is AGPL-3.0-or-later. Package-specific notices can apply
-instead. Enterprise code under `ee/` uses the commercial license in
-`ee/LICENSE`.
+The whole repository is AGPL-3.0-or-later. Package-specific notices can apply
+instead.

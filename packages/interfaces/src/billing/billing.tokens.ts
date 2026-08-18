@@ -1,12 +1,13 @@
 /**
  * Dependency-injection tokens for the billing service contracts.
  *
- * These are plain string tokens, not class references, so OSS modules can
+ * These are plain string tokens, not class references, so consumers can
  * `@Inject(SUBSCRIPTIONS_SERVICE)` against the {@link ISubscriptionsService}
- * interface without importing the enterprise class. The concrete provider —
- * the EE service under `ee/packages/billing/` or the OSS no-op stub — is bound
- * to the token by the `@billing-providers` alias-swapped provider module
- * (see `billing.providers.ee.ts` / `billing.providers.oss.ts`).
+ * interface without importing the concrete class. The concrete provider —
+ * the Stripe-backed service under
+ * `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`
+ * or the community no-op stub — is bound to the token at boot by the runtime
+ * gate in `apps/server/api/src/common/subscriptions/billing.providers.ts`.
  *
  * Tokens are namespaced (`billing.*`) to avoid collisions in the global Nest
  * provider registry.

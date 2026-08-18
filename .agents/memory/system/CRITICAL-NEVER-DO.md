@@ -33,9 +33,9 @@ Pattern: `.agents/sessions/YYYY-MM-DD.md`. Multiple sessions same day -> add to 
 
 ## Coding Violations
 
-### Keep Organization Multi-Tenancy Guards (Enterprise Only)
+### Keep Organization Multi-Tenancy Guards
 
-Multi-tenant data isolation is an enterprise feature (`ee/`). When working in `ee/packages/` or enterprise modules, every organization-scoped data access must include organization scope and `isDeleted: false`. Security -- data MUST be isolated by organization.
+Multi-tenant data isolation is a SaaS deployment-mode surface of the one AGPL codebase. Every tenant-scoped data access must include organization scope and `isDeleted: false` (enforced by `bun run check:tenant-scope`). Security -- data MUST be isolated by organization.
 
 For single-tenant self-hosted deployments, the default organization is used implicitly but the query pattern remains the same for forward compatibility.
 

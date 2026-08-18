@@ -40,7 +40,7 @@ Genfeed follows a hybrid OSS + SaaS model:
 | Scheduling/cron orchestration                   | No                        | Yes                    |
 | Social publishing connectors                    | Manual export/upload      | Managed integrations   |
 | Cross-workflow analytics and optimization loops | Limited local insight     | Full managed analytics |
-| Team/org controls, billing, quotas              | Enterprise only (`ee/`)   | Yes                    |
+| Team/org controls, billing, quotas              | Runtime-gated off         | Yes                    |
 | Skill model and local attachment                | Yes                       | Yes                    |
 | Personal feedback memory                        | Yes                       | Yes                    |
 | Routine engine and workflow-backed scheduling   | Yes                       | Yes                    |
@@ -54,9 +54,9 @@ Genfeed follows a hybrid OSS + SaaS model:
 4. Workflow portability between OSS and Cloud remains a required direction.
 5. Cloud account sync is explicit. Core local records do not replicate to Cloud without a dedicated import, export, or API action.
 
-## Enterprise Multi-Tenancy
+## Multi-Tenancy
 
-Multi-tenant organization controls are a SaaS/EE product boundary. Current implementation after #1093 keeps deployment-mode-agnostic org enforcement in the OSS API (`CombinedAuthGuard`, request context, inline `organizationId` filters); there is no separable `ee/packages/multi-tenancy` package. Commercial-only entitlements, billing, quotas, and advanced org controls remain in `ee/`.
+Multi-tenant organization controls are a SaaS product boundary. Current implementation after #1093 keeps deployment-mode-agnostic org enforcement in the API (`CombinedAuthGuard`, request context, inline `organizationId` filters); there is no separable multi-tenancy package. Organization billing, quotas, and advanced org controls live in the same AGPL API and switch on at runtime via `hasOrganizationBilling()` (SaaS or licensed self-host); the whole repository is AGPL-3.0-or-later.
 
 ## Related ADRs
 

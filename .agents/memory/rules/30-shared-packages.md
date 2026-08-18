@@ -2,7 +2,6 @@
 description: Shared package constraints for genfeed.ai packages.
 paths:
   - "packages/**"
-  - "ee/packages/**"
 ---
 
 - Maintain strict TypeScript types and avoid `any`.

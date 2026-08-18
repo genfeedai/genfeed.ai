@@ -653,37 +653,6 @@
         "typescript": "6.0.3",
       },
     },
-    "ee/packages/billing": {
-      "name": "@genfeedai/ee-billing",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/config": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/pricing": "workspace:*",
-        "@genfeedai/prisma": "workspace:*",
-        "@genfeedai/serializers": "workspace:*",
-      },
-      "devDependencies": {
-        "@nestjs/testing": "11.1.29",
-        "@types/multer": "^2.2.0",
-        "@types/node": "24.13.3",
-        "@typescript/native": "npm:typescript@7.0.2",
-        "unplugin-swc": "1.5.11",
-        "vitest": "4.1.10",
-      },
-    },
-    "ee/packages/harness": {
-      "name": "@genfeedai/ee-harness",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/harness": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/node": "24.13.3",
-        "@typescript/native": "npm:typescript@7.0.2",
-      },
-    },
     "packages/agent": {
       "name": "@genfeedai/agent",
       "version": "1.0.0",
@@ -1983,10 +1952,6 @@
     "@genfeedai/discord": ["@genfeedai/discord@workspace:apps/server/discord"],
 
     "@genfeedai/docs": ["@genfeedai/docs@workspace:apps/docs"],
-
-    "@genfeedai/ee-billing": ["@genfeedai/ee-billing@workspace:ee/packages/billing"],
-
-    "@genfeedai/ee-harness": ["@genfeedai/ee-harness@workspace:ee/packages/harness"],
 
     "@genfeedai/enums": ["@genfeedai/enums@workspace:packages/enums"],
 

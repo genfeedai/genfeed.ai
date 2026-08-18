@@ -3,8 +3,8 @@
 **Effective:** 2026-08-17
 
 The Genfeed source code is licensed under the
-[GNU Affero General Public License v3.0 or later](LICENSE) (with `ee/` under a
-[commercial licence](ee/LICENSE)). Those licences grant rights to the **code**.
+[GNU Affero General Public License v3.0 or later](LICENSE). That licence grants
+rights to the **code**.
 They do not grant rights to the **Genfeed name, logo, or other brand assets**.
 This policy explains what you can and cannot do with the Genfeed marks.
 

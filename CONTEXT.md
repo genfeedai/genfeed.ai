@@ -10,15 +10,11 @@ the one spelling code, issues, docs, and PRs use. Deployment-mode terms are cano
 _Avoid_: Cloud edition, hosted version, managed Genfeed (as a mode name).
 
 **Community**: The self-hosted, single-org distribution: a checksummed Docker Compose bundle
-pinned to a GHCR image, built from this repository without `ee/`. AGPL-3.0-or-later.
+pinned to a GHCR image, built from this repository. AGPL-3.0-or-later.
 _Avoid_: OSS edition, open-source version, self-hosted edition, CE.
 
 **Desktop**: The Electron shell running the same app on a creator's own machine (macOS today).
 _Avoid_: local app, offline mode.
-
-**EE**: The commercially licensed `ee/` tree (`ee/LICENSE`) — billing and harness packages —
-compiled into SaaS images and excluded from Community.
-_Avoid_: enterprise edition, pro, premium.
 
 ## Launch milestones
 
@@ -72,8 +68,7 @@ _Avoid_: commit message (contributors do not control the squash commit body).
 **CLA**: The Contributor License Agreement — FSFE Fiduciary License Agreement 2.1, `ICLA.md` for
 individuals and `CCLA.md` for legal entities — signed once per GitHub account through the CLA
 Assistant bot on a contributor's first PR; enforced by the `license/cla` check. Replaces DCO
-sign-off (2026-08-18); no `Signed-off-by:` trailer is required. Contributor PRs may not modify
-`ee/`.
+sign-off (2026-08-18); no `Signed-off-by:` trailer is required.
 _Avoid_: DCO, sign-off, contributor agreement (unqualified).
 
 **Triage**: The maintainer (or triage agent) reading a new issue, confirming or rewriting its EARS

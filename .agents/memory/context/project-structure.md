@@ -9,7 +9,6 @@ full inventory; this file records only what `ls` cannot tell you.
 |---|---|
 | `apps/server/*` | backend service/server-tier workspaces (port table in CLAUDE.md) |
 | `apps/extensions/{browser,ide}/app` | browser + IDE extensions (v2 milestone) |
-| `ee/packages/*` | commercial-license packages |
 | `.agents/` | agent memory, sessions, build skills |
 
 ## Non-obvious facts
@@ -21,8 +20,9 @@ full inventory; this file records only what `ls` cannot tell you.
 - **`packages/workflows` is the only workflow package** (subpath exports `/contracts`, `/engine`,
   `/generation`, `/nodes`, `/ui`). `packages/core`, `workflow-engine`, `workflow-saas`, and
   `workflow-ui` are **deleted**; stale `dist/`/`node_modules/` residue may linger locally — delete it.
-- **Billing** reaches the API through the webpack `@billing-providers` alias; OSS builds resolve to
-  `billing.providers.oss.ts` stubs. Credits collections/controllers stay in the OSS API.
+- **Billing is in-tree and AGPL** — `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`,
+  runtime-gated by `apps/server/api/src/common/subscriptions/billing.providers.ts`. No `ee/`,
+  no build flavor.
 
 ## Conventions
 

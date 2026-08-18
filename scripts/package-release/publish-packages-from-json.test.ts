@@ -44,7 +44,7 @@ describe('publish package release planning', () => {
     const inventory = inventoryFor([]);
     expect(() =>
       normalizeReleaseRequests(
-        [{ path: 'ee/packages/billing', version: '1.0.0' }],
+        [{ path: 'apps/server/api', version: '1.0.0' }],
         inventory,
       ),
     ).toThrow('must be a direct package directory under packages/');

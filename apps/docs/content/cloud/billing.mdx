@@ -14,10 +14,15 @@ the source of truth before purchasing.
 
 ## Repository boundary
 
-- The public API contains generic credit and subscription contracts plus OSS
-  stubs used by Community.
-- The current `ee/` tree contains the commercial billing-provider package.
-- The Community image excludes `ee/` and does not sell managed credits locally.
+- The entire repository, billing included, is AGPL-3.0-or-later. Organization
+  billing code lives in the API at
+  `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`
+  and ships in every image.
+- Whether organization billing is live is decided at runtime by
+  `hasOrganizationBilling()` — see
+  [Billing: one build, a runtime gate](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md#billing-one-build-a-runtime-gate).
+  Community self-hosts get no-op stubs and no billing routes, and do not sell
+  managed credits locally.
 - A Community or desktop client can use managed inference only through an
   explicit Cloud API key and Cloud-credit authorization.
 

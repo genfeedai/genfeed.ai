@@ -5,11 +5,9 @@ on:
     paths:
       - 'apps/server/**'
       - 'packages/**'
-      - 'ee/packages/billing/**'
       - 'docker/Dockerfile.server'
-      # This build runs the Dockerfile's EE billing flavor gate, so it is the
-      # PR-time check that catches a #2751-style mis-resolution. It only helps
-      # if a bundler-config change actually triggers it.
+      # Bundler config decides what lands in the server bundles, so a change
+      # here must exercise the image build even when no server source changed.
       - 'webpack.base.config.js'
       - 'tsconfig.json'
       - 'tsconfig.server.decorators.json'

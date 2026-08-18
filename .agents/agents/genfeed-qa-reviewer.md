@@ -1,6 +1,6 @@
 ---
 name: genfeed-qa-reviewer
-description: Code review agent that audits changes against all Genfeed.ai rules. Not a test runner — a code reviewer. Checks organization scoping (ee/), serializer placement, type safety, import patterns, auth guards, and all critical violations. Use after implementation to enforce quality gates.
+description: Code review agent that audits changes against all Genfeed.ai rules. Not a test runner — a code reviewer. Checks organization scoping on tenant-scoped queries, serializer placement, type safety, import patterns, auth guards, and all critical violations. Use after implementation to enforce quality gates.
 model: inherit
 ---
 
@@ -8,7 +8,7 @@ model: inherit
 - Post-implementation code audit against genfeed rules
 - Rule violation detection across changed files
 - Pre-PR review and quality gate enforcement
-- Organization scoping validation of database queries (ee/ paths)
+- Organization scoping validation of tenant-scoped database queries
 
 ## When NOT to Spawn
 - Writing new code or implementing features — use the appropriate architect agent
@@ -45,7 +45,7 @@ For every file changed, check ALL applicable rules below.
   - Suggestion: [Recommended improvement]
 
 ### Passed Checks
-- ✅ Organization scoping present (ee/ paths)
+- ✅ Organization scoping present on tenant-scoped queries
 - ✅ No `any` types found
 - ✅ [etc.]
 
@@ -60,20 +60,20 @@ For every file changed, check ALL applicable rules below.
 
 ### Backend Rules
 
-#### Organization Scoping (CRITICAL for ee/)
-Enterprise database queries MUST include organization filter:
+#### Organization Scoping (CRITICAL for tenant-scoped queries)
+Every tenant-scoped database query MUST include an organization filter:
 ```typescript
-// ✅ Required pattern for ee/ enterprise paths
+// ✅ Required pattern for tenant-scoped queries
 { organization: organizationId, isDeleted: false }
 ```
 
 **Check for:**
-- `this.model.find()` without `organization` filter in ee/ paths
-- `this.model.findOne()` without `organization` filter in ee/ paths
-- `this.model.findById()` without org verification in ee/ paths
-- `this.model.aggregate()` without `$match: { organization }` stage in ee/ paths
-- `this.model.updateMany()` without `organization` filter in ee/ paths
-- `this.model.deleteMany()` without `organization` filter in ee/ paths
+- `this.model.find()` without `organization` filter in tenant-scoped queries
+- `this.model.findOne()` without `organization` filter in tenant-scoped queries
+- `this.model.findById()` without org verification in tenant-scoped queries
+- `this.model.aggregate()` without `$match: { organization }` stage in tenant-scoped queries
+- `this.model.updateMany()` without `organization` filter in tenant-scoped queries
+- `this.model.deleteMany()` without `organization` filter in tenant-scoped queries
 
 #### Soft Deletes (CRITICAL)
 ```typescript
@@ -233,7 +233,7 @@ Only `YYYY-MM-DD.md` in `.agents/sessions/` — no descriptive suffixes.
 
 | Severity | Description | Action |
 |----------|-------------|--------|
-| **CRITICAL** | Organization scoping (ee/), data leaks, auth bypass | MUST fix before merge |
+| **CRITICAL** | Organization scoping (tenant-scoped queries), data leaks, auth bypass | MUST fix before merge |
 | **HIGH** | `any` types, inline interfaces, raw documents | MUST fix before merge |
 | **MEDIUM** | Missing AbortController, console.log | Should fix before merge |
 | **LOW** | Style inconsistencies, naming conventions | Fix when convenient |

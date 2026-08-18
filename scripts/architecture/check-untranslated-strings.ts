@@ -44,11 +44,7 @@ const BASELINE_PATH = path.join(
   'scripts/architecture/untranslated-strings.baseline.json',
 );
 
-const INCLUDE_GLOBS = [
-  'apps/app/**/*.{jsx,tsx}',
-  'packages/**/*.{jsx,tsx}',
-  'ee/**/*.{jsx,tsx}',
-];
+const INCLUDE_GLOBS = ['apps/app/**/*.{jsx,tsx}', 'packages/**/*.{jsx,tsx}'];
 
 const IGNORE_GLOBS = [
   '**/node_modules/**',

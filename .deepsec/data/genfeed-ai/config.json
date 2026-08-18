@@ -19,7 +19,6 @@
     "apps/server/api/src/",
     "apps/server/workers/src/",
     "apps/server/notifications/src/",
-    "apps/extensions/",
-    "ee/packages/"
+    "apps/extensions/"
   ]
 }

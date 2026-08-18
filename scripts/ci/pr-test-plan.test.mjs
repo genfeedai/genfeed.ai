@@ -44,14 +44,6 @@ test('classifies direct and shared pull-request surfaces conservatively', () => 
       forceFull: false,
     },
   );
-  assert.deepEqual(
-    classifyChangedFiles(['ee/packages/billing/src/example.controller.ts']),
-    {
-      api: true,
-      app: false,
-      forceFull: false,
-    },
-  );
 });
 
 test('classifies docs, workflows, and CI scripts as out of the product test matrix', () => {

@@ -31,10 +31,6 @@ const REPOSITORY_CONTRACTS = [
     name: 'DI value imports',
   },
   {
-    command: ['bun', 'run', 'check:billing-flavor'],
-    name: 'billing flavor resolution',
-  },
-  {
     command: ['bun', 'run', 'check:untranslated-strings'],
     name: 'untranslated string ratchet',
   },

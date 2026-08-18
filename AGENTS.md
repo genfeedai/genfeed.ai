@@ -32,7 +32,7 @@ Then add a line to `.agents/memory/MEMORY.md` pointing at it. See `.agents/memor
 
 ## Project Overview
 
-Open-source AI OS for content creation. Self-hosted single-tenant by default, with enterprise multi-tenancy available via `ee/`.
+Open-source AI OS for content creation. Self-hosted single-tenant by default; SaaS deployments add multi-tenancy as a runtime product boundary, not a license or directory split.
 
 Detailed docs: `.agents/README.md`
 
@@ -45,8 +45,8 @@ Detailed docs: `.agents/README.md`
 5. Treat Prisma `users.id` as the canonical user reference. Never use legacy auth provider IDs (`authProviderId`) as DB foreign keys.
 6. Do not manually edit generated `dist/` artifacts.
 7. Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
-8. Enterprise code (`ee/`): enforce multi-tenancy query guards (`{ organizationId: orgId, isDeleted: false }`).
-9. Self-hosted code outside `ee/` is single-tenant by default; organization filtering is optional there.
+8. Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`.
+9. Self-hosted single-tenant deployments may omit the organization filter.
 10. Soft deletes use `isDeleted: boolean`, never `deletedAt`.
 
 ## Decorator Boundary Rules

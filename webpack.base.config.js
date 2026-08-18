@@ -70,87 +70,11 @@ module.exports = function createWebpackConfig({
   const workspaceRoot = path.resolve(nodeModulesDir, '..');
   const bunNodeModulesDir = path.resolve(nodeModulesDir, '.bun/node_modules');
   const cloudPackagesRoot = path.resolve(workspaceRoot, 'packages');
-  const enterprisePackagesRoot = path.resolve(workspaceRoot, 'ee/packages');
   const serverAppsRoot = path.resolve(workspaceRoot, 'apps/server');
-  const eeBillingSrc = path.resolve(enterprisePackagesRoot, 'billing/src');
-  // Open-core build flavor. `ee/packages/billing` ships only with the SaaS
-  // image; the community (selfhosted) image excludes `ee/` entirely. Every
-  // billing coupling point below keys off this single fs probe so the api
-  // webpack graph never compile-time depends on AGPL-incompatible EE code.
-  const hasEE = fs.existsSync(eeBillingSrc);
-  const eeFlavor = hasEE ? 'ee' : 'oss';
-  // `@billing-providers` resolves to the billing DI fragment for this flavor:
-  // the EE provider module (controllers + real services) when EE is present,
-  // the OSS no-op fragment (string-token stubs only) otherwise.
-  const ossBillingProviders = path.resolve(
-    serverAppsRoot,
-    'api/src/common/subscriptions/billing.providers.oss.ts',
-  );
-  const billingProvidersFile = hasEE
-    ? path.resolve(eeBillingSrc, 'billing.providers.ee.ts')
-    : ossBillingProviders;
-  // Flavor resolution MUST happen in `resolve.plugins`, registered BEFORE
-  // TsconfigPathsPlugin. `resolve.alias` alone loses this race:
-  // apps/server/api/tsconfig.json pins `@billing-providers` to the OSS file
-  // (tsc needs a static target, and the OSS fragment carries the shared
-  // types), and TsconfigPathsPlugin taps the same `described-resolve` hook the
-  // alias uses — with the tsconfig mapping winning. Every image built between
-  // the EE decouple and #2751 bundled the OSS stub because of exactly that,
-  // which 403'd all SaaS org billing in production. Registration order within
-  // one hook is execution order, so this plugin sitting first in
-  // `resolve.plugins` is the load-bearing guarantee; `check:billing-flavor`
-  // asserts it at the resolver level and Dockerfile.server asserts the
-  // resulting bundle content.
-  const billingProvidersFlavorResolver = {
-    apply(resolver) {
-      const target = resolver.ensureHook('resolve');
-      resolver
-        .getHook('described-resolve')
-        .tapAsync(
-          'BillingProvidersFlavorResolver',
-          (request, resolveContext, callback) => {
-            if (request.request !== '@billing-providers') {
-              return callback();
-            }
-            return resolver.doResolve(
-              target,
-              { ...request, request: billingProvidersFile },
-              `@billing-providers -> ${eeFlavor} flavor`,
-              resolveContext,
-              callback,
-            );
-          },
-        );
-    },
-  };
   const workspaceSourceAliases = {
     ...buildServerSourceAliases(serverAppsRoot),
     ...buildWorkspaceSourceAliases(cloudPackagesRoot),
     '@config': path.resolve(cloudPackagesRoot, 'config/src'),
-    // Kept in sync with billingProvidersFlavorResolver above; the resolver
-    // plugin is what actually wins against the tsconfig paths mapping.
-    '@billing-providers$': billingProvidersFile,
-    // Enterprise billing source aliases are wired only when the ee package is
-    // physically present. In the community image `ee/packages/billing` is
-    // absent, so these stay undefined and any stray `@genfeedai/ee-billing`
-    // import fails the build loudly instead of silently resolving to nothing.
-    ...(hasEE
-      ? {
-          '@genfeedai/ee-billing': eeBillingSrc,
-          '@genfeedai/ee-billing/subscription-attributions': path.resolve(
-            eeBillingSrc,
-            'subscription-attributions',
-          ),
-          '@genfeedai/ee-billing/subscriptions': path.resolve(
-            eeBillingSrc,
-            'subscriptions',
-          ),
-          '@genfeedai/ee-billing/user-subscriptions': path.resolve(
-            eeBillingSrc,
-            'user-subscriptions',
-          ),
-        }
-      : {}),
     '@genfeedai-types': path.resolve(cloudPackagesRoot, 'types/src'),
     '@api-types': path.resolve(cloudPackagesRoot, 'api-types/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
@@ -197,15 +121,11 @@ module.exports = function createWebpackConfig({
       cacheDirectory: path.resolve(
         nodeModulesDir,
         '.cache/webpack',
-        `${appName}-${eeFlavor}-${isProduction ? 'production' : 'development'}`,
+        `${appName}-${isProduction ? 'production' : 'development'}`,
       ),
       compression: isProduction ? 'gzip' : false, // Skip gzip in dev — write/read CPU > disk savings
       maxMemoryGenerations: isProduction ? 1 : 3, // Bound dev heap; keep last few rebuilds hot
-      name: `${appName}-${eeFlavor}-${isProduction ? 'production' : 'development'}`,
-      // Bust the cache when the EE billing graph appears/disappears: an ee build
-      // and an oss build resolve `@billing-providers` to different files, so they
-      // must never share a cached module graph.
-      version: eeFlavor,
+      name: `${appName}-${isProduction ? 'production' : 'development'}`,
       type: 'filesystem',
     },
     context: appDir,
@@ -216,9 +136,6 @@ module.exports = function createWebpackConfig({
       nodeExternals({
         // Allow workspace packages to be bundled
         allowlist: [
-          // `@billing-providers` is an alias to an in-tree source file, not a
-          // node_modules package — keep it bundled so the DI fragment is inlined.
-          /^@billing-providers$/,
           /^@genfeedai\//,
           /^@api-types\//,
           /^@cloud\//,
@@ -379,9 +296,6 @@ module.exports = function createWebpackConfig({
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.d.ts'],
       modules: [nodeModulesDir, bunNodeModulesDir, 'node_modules'],
       plugins: [
-        // MUST stay first: same described-resolve hook as TsconfigPathsPlugin,
-        // and registration order is execution order (see the flavor comment).
-        billingProvidersFlavorResolver,
         new TsconfigPathsPlugin({
           configFile: tsConfigPath,
           extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.d.ts'],
@@ -438,8 +352,6 @@ module.exports = function createWebpackConfig({
         '**/.cursor/**',
         '**/.shipcode/**',
         '**/.code-review-graph/**',
-        // Enterprise-only code paths not relevant to OSS dev
-        '**/ee/**',
         // TS incremental build info — not a real source dependency
         '**/tsconfig.tsbuildinfo',
         // Built artifacts inside packages

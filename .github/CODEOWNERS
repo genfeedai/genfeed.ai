@@ -3,10 +3,8 @@
 
 *                     @VincentShipsIt
 
-# Maintainer-only trees and legal/policy files (see ADR-CLA-FLA-2-1).
-ee/**                 @VincentShipsIt
+# Legal/policy files (see ADR-CLA-FLA-2-1).
 LICENSE               @VincentShipsIt
-ee/LICENSE            @VincentShipsIt
 ICLA.md               @VincentShipsIt
 CCLA.md               @VincentShipsIt
 TRADEMARK.md          @VincentShipsIt

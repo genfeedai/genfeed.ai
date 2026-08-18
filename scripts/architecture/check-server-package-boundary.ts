@@ -24,7 +24,7 @@ const DEFAULT_IGNORE_GLOBS = [
 ];
 
 const API_ALIAS_PATTERN =
-  /^(?:@api(?:\/|$)|@api-(?:root|scripts|test)(?:\/|$)|@billing-providers(?:\/|$)|@genfeedai\/api(?:\/|$))/;
+  /^(?:@api(?:\/|$)|@api-(?:root|scripts|test)(?:\/|$)|@genfeedai\/api(?:\/|$))/;
 
 const DEPENDENCY_SECTIONS = [
   'dependencies',

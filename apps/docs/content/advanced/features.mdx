@@ -22,8 +22,9 @@ commercial entitlement.
 - Community is a single-tenant web/API/MCP Docker distribution.
 - Cloud owns managed operations, multi-tenant governance, and managed
   publishing/analytics surfaces.
-- The current `ee/` tree contains billing and harness packages; broader managed
-  inference infrastructure is private and is not shipped here.
+- Organization billing ships in every image and is gated at runtime by
+  `hasOrganizationBilling()`; broader managed inference infrastructure is
+  private and is not shipped here.
 - Desktop is macOS-first. Mobile and extension workspaces do not imply public
   store listings.
 

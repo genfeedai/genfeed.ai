@@ -2,12 +2,14 @@
  * Contract for the per-user subscriptions service, as consumed by OSS core
  * code.
  *
- * The concrete implementation lives in EE billing; OSS binds the same
- * canonical contract to a no-op implementation.
+ * The concrete implementation lives in
+ * `apps/server/api/src/collections/user-subscriptions/`; community
+ * deployments bind the same canonical contract to a no-op implementation.
  */
 
 /**
- * Canonical per-user subscription read model shared by EE Prisma and OSS.
+ * Canonical per-user subscription read model shared by the Prisma service and
+ * the community stub.
  */
 export interface IUserSubscriptionOssReadModel {
   id: string;

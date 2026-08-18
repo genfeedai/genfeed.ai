@@ -55,9 +55,8 @@ RUN bun add --global turbo@2.10.7
 
 WORKDIR /ctx
 
-# The community image deliberately omits every ee/* workspace. Turbo derives
-# the complete OSS server + web closure and emits a matching pruned bun.lock,
-# replacing the mutable hand-maintained workspace rewrite.
+# Turbo derives the complete server + web closure and emits a matching pruned
+# bun.lock, replacing the mutable hand-maintained workspace rewrite.
 RUN --mount=type=bind,source=.,target=/ctx,ro \
     /root/.bun/bin/turbo prune \
       @genfeedai/api \
@@ -206,23 +205,6 @@ RUN set -e; \
 # files+notifications batch: that 2-way width is what the CI release publish runs
 # on a 7 GB ubuntu-latest runner, and a 3rd concurrent `nest build` risks OOM.
 RUN bun --filter @genfeedai/mcp build:prod
-
-# Flavor gate (community side of docker/Dockerfile.server's EE gate). This
-# image is AGPL and its pruned context omits every ee/* workspace, so the api
-# bundle must NOT carry the EE billing fragment — probed via the EE-only
-# controller route literal 'admin/credit-usage' (decorator strings survive
-# bundling). A hit means enterprise-licensed code leaked into the community
-# image, which is a licensing problem, not just a wrong feature set.
-RUN bundle="apps/server/dist/apps/api/main.js"; \
-    if [ ! -r "${bundle}" ]; then \
-      echo "❌ cannot inspect the community api bundle at ${bundle}" && exit 1; \
-    fi; \
-    grep -Fq "admin/credit-usage" "${bundle}"; status=$?; \
-    case "${status}" in \
-      0) echo "❌ community api bundle carries the EE billing fragment — ee/ code must never reach the AGPL image (see webpack.base.config.js flavor resolver + check:billing-flavor)" && exit 1 ;; \
-      1) echo "✅ community api bundle is OSS-flavored" ;; \
-      *) echo "❌ failed to inspect the community api bundle at ${bundle}" && exit "${status}" ;; \
-    esac
 
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/

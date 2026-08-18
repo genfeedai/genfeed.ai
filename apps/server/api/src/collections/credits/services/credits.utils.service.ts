@@ -23,11 +23,10 @@ import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
- * Enterprise credits utility service. The full implementation lives in OSS
- * today and moves to `ee/packages/billing/` in Phase C Layer 2 (tracked in
- * issue #87). The `implements ICreditsUtilsService` declaration locks the
- * OSS-callable surface so consumers can depend on the contract rather than
- * the concrete class.
+ * Metered credits utility service — the real ledger, bound when
+ * `usesMeteredCredits()` is true (SaaS cloud or licensed self-host). The
+ * `implements ICreditsUtilsService` declaration locks the callable surface so
+ * consumers depend on the contract rather than the concrete class.
  */
 @Injectable()
 export class CreditsUtilsService implements ICreditsUtilsService {
