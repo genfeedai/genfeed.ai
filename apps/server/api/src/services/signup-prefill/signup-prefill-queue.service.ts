@@ -7,6 +7,10 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
+export function signupPrefillJobId(userId: string): string {
+  return `signup-prefill-${userId}`;
+}
+
 @Injectable()
 export class SignupPrefillQueueService {
   private readonly context = { service: SignupPrefillQueueService.name };
@@ -25,7 +29,7 @@ export class SignupPrefillQueueService {
    * scraping and analyzing the brand twice.
    */
   async enqueuePrefill(data: SignupPrefillJobData): Promise<void> {
-    const jobId = `signup-prefill:${data.userId}`;
+    const jobId = signupPrefillJobId(data.userId);
 
     await this.queue.add('prefill-brand', data, {
       jobId,

@@ -32,12 +32,15 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import ArticleContent from './article-content';
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+  year: 'numeric',
+});
+
+export function formatArticlePublishedAt(dateString: string): string {
+  return articleDateFormatter.format(new Date(dateString));
 }
 
 interface SocialLinkItemProps {
@@ -286,7 +289,7 @@ export default function ArticleDetail({
                   <div className="flex items-center gap-2.5">
                     <Calendar className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="whitespace-nowrap">
-                      {formatDate(article.publishedAt)}
+                      {formatArticlePublishedAt(article.publishedAt)}
                     </span>
                   </div>
                 )}

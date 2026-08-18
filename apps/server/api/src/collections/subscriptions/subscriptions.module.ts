@@ -10,8 +10,23 @@
  * equivalent to writing the metadata inline.
  */
 
+import { CreditsModule } from '@api/collections/credits/credits.module';
+import { CustomersModule } from '@api/collections/customers/customers.module';
+import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { subscriptions } from '@billing-providers';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
-@Module(subscriptions)
+@Module({
+  controllers: subscriptions.controllers,
+  exports: subscriptions.exports,
+  imports: [
+    ...(subscriptions.imports ?? []),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => CustomersModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => StripeModule),
+  ],
+  providers: subscriptions.providers,
+})
 export class SubscriptionsModule {}

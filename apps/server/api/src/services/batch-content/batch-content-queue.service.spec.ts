@@ -90,10 +90,13 @@ describe('BatchContentQueueService', () => {
         expect.objectContaining({
           attempts: 3,
           backoff: { delay: 1000, type: 'exponential' },
+          jobId: expect.stringMatching(/^[^-]+-0$/),
           removeOnComplete: 100,
           removeOnFail: 50,
         }),
       );
+      const firstJobId = vi.mocked(queue.add).mock.calls[0]?.[2]?.jobId;
+      expect(firstJobId).toEqual(expect.not.stringContaining(':'));
     });
 
     it('should initialize batch status as queued', async () => {

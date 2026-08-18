@@ -149,7 +149,7 @@ describe('ContentProductionWorkflowService', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
-        idempotencyKey: 'autopilot:persona-1:2026-06-24T09',
+        idempotencyKey: 'autopilot-persona-1-2026-06-24T09',
         organizationId: 'org-1',
         personaId: 'persona-1',
         platforms: ['instagram'],

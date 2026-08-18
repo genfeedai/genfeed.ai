@@ -13,6 +13,8 @@ Sentry.init({
     /runtime\.sendMessage/i,
     /Extension context invalidated/i,
     /Could not establish connection\. Receiving end does not exist/i,
+    /Failed to register a ServiceWorker/i,
+    /serwist\/sw\.js/i,
   ],
 
   integrations: [

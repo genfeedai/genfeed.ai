@@ -29,6 +29,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { resolveFullCalendarConstructor } from './resolve-fullcalendar-constructor';
 
 interface FullCalendarHostProps {
   options: CalendarOptions;
@@ -111,7 +112,8 @@ function FullCalendarMount({
           return;
         }
 
-        calendar = new coreModule.Calendar(elementRef.current, {
+        const CalendarCtor = resolveFullCalendarConstructor(coreModule);
+        calendar = new CalendarCtor(elementRef.current, {
           ...options,
           plugins: [
             themeModule.default,
@@ -120,7 +122,7 @@ function FullCalendarMount({
             listModule.default,
             interactionModule.default,
           ],
-        });
+        }) as FullCalendarInstance;
         calendarRef.current = calendar;
         calendar.render();
       } catch (error) {

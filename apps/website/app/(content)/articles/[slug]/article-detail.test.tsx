@@ -1,7 +1,18 @@
 import type { Article } from '@models/content/article.model';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ArticleAbout } from './article-detail';
+import { ArticleAbout, formatArticlePublishedAt } from './article-detail';
+
+describe('formatArticlePublishedAt', () => {
+  it('formats publishedAt in UTC so SSR matches the client', () => {
+    expect(formatArticlePublishedAt('2026-07-21T00:00:00.000Z')).toBe(
+      'July 21, 2026',
+    );
+    expect(formatArticlePublishedAt('2026-07-21T23:00:00.000Z')).toBe(
+      'July 21, 2026',
+    );
+  });
+});
 
 describe('ArticleAbout', () => {
   it('renders Genfeed as the publisher when an article has no brand', () => {

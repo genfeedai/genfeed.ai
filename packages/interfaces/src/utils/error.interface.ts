@@ -67,6 +67,10 @@ export interface IStructuredError extends IError {
   category?: string;
   recoverable?: boolean;
   metadata?: Record<string, unknown>;
+  isAuthError?: boolean;
+  isCancelled?: boolean;
+  isNetworkError?: boolean;
+  isTimeout?: boolean;
 }
 
 export interface IValidationError extends IError {

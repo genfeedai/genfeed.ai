@@ -39,7 +39,6 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
-import { forwardRef } from '@nestjs/common';
 import { SubscriptionAttributionsController } from './subscription-attributions/controllers/subscription-attributions.controller';
 import { SubscriptionAttributionsService } from './subscription-attributions/services/subscription-attributions.service';
 import { SubscriptionsController } from './subscriptions/controllers/subscriptions.controller';
@@ -91,39 +90,12 @@ function subscriptionAttributionsServiceProvider() {
 export const subscriptions: BillingProviderFragment = {
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
-  imports: [
-    // Every API Nest module is resolved lazily here. This fragment is itself
-    // imported by the API's billing collection modules, so any eager module
-    // import can re-enter `@billing-providers` before these fragment exports
-    // initialize. The API bundle happened to tolerate the existing graph, but
-    // the workers bundle exposed the TDZ through its batch/agent import order.
-    // Keep these as explicit static-string require() calls so webpack includes
-    // the modules while Nest resolves them only after this file initializes.
-    forwardRef(
-      () =>
-        (
-          require('@api/collections/credits/credits.module') as typeof import('@api/collections/credits/credits.module')
-        ).CreditsModule,
-    ),
-    forwardRef(
-      () =>
-        (
-          require('@api/collections/customers/customers.module') as typeof import('@api/collections/customers/customers.module')
-        ).CustomersModule,
-    ),
-    forwardRef(
-      () =>
-        (
-          require('@api/collections/organizations/organizations.module') as typeof import('@api/collections/organizations/organizations.module')
-        ).OrganizationsModule,
-    ),
-    forwardRef(
-      () =>
-        (
-          require('@api/services/integrations/stripe/stripe.module') as typeof import('@api/services/integrations/stripe/stripe.module')
-        ).StripeModule,
-    ),
-  ],
+  // Nest module imports live on the api wrapper
+  // (`apps/server/api/src/collections/subscriptions/subscriptions.module.ts`).
+  // A webpack-visible `require()` of those modules here re-enters this file
+  // before `userSubscriptions` is assigned and crashes SaaS workers
+  // (API-GENFEED-AI-60).
+  imports: [],
   providers: [SubscriptionsService, subscriptionsServiceProvider()],
 };
 

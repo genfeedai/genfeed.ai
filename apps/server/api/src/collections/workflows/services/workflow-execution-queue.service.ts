@@ -68,7 +68,7 @@ export interface WorkflowSchedulerSyncRow {
  * idempotent, so BullMQ guarantees exactly one delayed fire per tick.
  */
 export function workflowSchedulerId(workflowId: string): string {
-  return `workflow-schedule:${workflowId}`;
+  return `workflow-schedule-${workflowId}`;
 }
 
 function requireQueueJobId(

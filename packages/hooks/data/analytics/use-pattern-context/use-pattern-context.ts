@@ -1,8 +1,11 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ICreativePattern } from '@genfeedai/interfaces';
 import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
+import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useEffect, useState } from 'react';
 
 export interface UsePatternContextReturn {
@@ -14,6 +17,10 @@ export interface UsePatternContextReturn {
 export function usePatternContext(
   filters?: PatternLabFilters,
 ): UsePatternContextReturn {
+  const { brandId } = useBrand();
+  const getCreativePatternsService = useAuthedService((token: string) =>
+    CreativePatternsService.getInstance(token),
+  );
   const [patterns, setPatterns] = useState<ICreativePattern[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,35 +28,41 @@ export function usePatternContext(
   useEffect(() => {
     const controller = new AbortController();
 
-    const params = new URLSearchParams();
-    if (filters?.platform) {
-      params.set('platform', filters.platform);
-    }
-    if (filters?.patternType) {
-      params.set('patternType', filters.patternType);
-    }
-    if (filters?.scope) {
-      params.set('scope', filters.scope);
-    }
-
     setIsLoading(true);
     setError(null);
 
-    fetch(`/api/creative-patterns?${params.toString()}`, {
-      signal: controller.signal,
-    })
-      .then((r) => r.json())
-      .then((data: { docs?: ICreativePattern[] }) => {
-        setPatterns(data.docs ?? []);
+    void getCreativePatternsService()
+      .then((service) =>
+        service.findAll(
+          {
+            brandId: brandId || undefined,
+            patternType: filters?.patternType,
+            platform: filters?.platform,
+            scope: filters?.scope,
+          },
+          controller.signal,
+        ),
+      )
+      .then((nextPatterns) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setPatterns(nextPatterns);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         if (err instanceof Error && err.name === 'AbortError') {
           return;
         }
         const message =
           err instanceof Error ? err.message : 'Failed to load patterns';
-        logger.error('usePatternContext: fetch failed', { error: err });
+        logger.error('usePatternContext: fetch failed', {
+          error: err,
+          reportToSentry: false,
+        });
         setError(message);
         setIsLoading(false);
       });
@@ -57,7 +70,13 @@ export function usePatternContext(
     return () => {
       controller.abort();
     };
-  }, [filters?.platform, filters?.patternType, filters?.scope]);
+  }, [
+    brandId,
+    filters?.platform,
+    filters?.patternType,
+    filters?.scope,
+    getCreativePatternsService,
+  ]);
 
   return { error, isLoading, patterns };
 }

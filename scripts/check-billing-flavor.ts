@@ -91,6 +91,21 @@ if (resolved !== expectedFile) {
   process.exit(1);
 }
 
+if (hasEE) {
+  const eeSource = fs.readFileSync(expectedFile, 'utf8');
+  const moduleRequire = /require\(\s*['"]@api\/[^'"]+\.module['"]\s*\)/;
+  if (moduleRequire.test(eeSource)) {
+    console.error(
+      'check:billing-flavor FAILED\n' +
+        '  ee/packages/billing/src/billing.providers.ee.ts must not require() API Nest modules.\n' +
+        '  Webpack treats those require()s as static edges and re-enters this file before\n' +
+        '  `userSubscriptions` initializes (API-GENFEED-AI-60). Put Nest imports on the\n' +
+        '  api collection wrapper instead.',
+    );
+    process.exit(1);
+  }
+}
+
 console.log(
   `check:billing-flavor OK — @billing-providers -> ${
     hasEE ? 'ee' : 'oss'

@@ -1,5 +1,23 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const findAllMock = vi.fn();
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-1' }),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    findAll: findAllMock,
+  }),
+}));
+
+vi.mock('@genfeedai/services/analytics/creative-patterns.service', () => ({
+  CreativePatternsService: {
+    getInstance: vi.fn(),
+  },
+}));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
@@ -13,76 +31,52 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 import { usePatternContext } from './use-pattern-context';
 
 describe('usePatternContext', () => {
-  const fetchMock = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('fetch', fetchMock);
+    findAllMock.mockResolvedValue([{ label: 'Hook' }]);
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('loads patterns without filters', async () => {
-    const patterns = [{ id: 'pattern-1' }];
-    fetchMock.mockResolvedValue({
-      json: () => Promise.resolve({ docs: patterns }),
-    });
-
+  it('loads patterns from the Nest creative-patterns collection', async () => {
     const { result } = renderHook(() => usePatternContext());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/creative-patterns?',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    expect(findAllMock).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1' }),
+      expect.any(AbortSignal),
     );
-    expect(result.current.patterns).toEqual(patterns);
+    expect(result.current.patterns).toEqual([{ label: 'Hook' }]);
     expect(result.current.error).toBeNull();
   });
 
-  it('passes filters as query parameters', async () => {
-    fetchMock.mockResolvedValue({
-      json: () => Promise.resolve({ docs: [] }),
-    });
-
+  it('passes filters to the collection service', async () => {
     renderHook(() =>
       usePatternContext({
-        patternType: 'hook',
+        patternType: 'hook_formula',
         platform: 'instagram',
-        scope: 'brand',
+        scope: 'public',
       }),
     );
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
+      expect(findAllMock).toHaveBeenCalled();
     });
 
-    const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toContain('platform=instagram');
-    expect(url).toContain('patternType=hook');
-    expect(url).toContain('scope=brand');
-  });
-
-  it('defaults to an empty list when docs are missing', async () => {
-    fetchMock.mockResolvedValue({
-      json: () => Promise.resolve({}),
-    });
-
-    const { result } = renderHook(() => usePatternContext());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.patterns).toEqual([]);
+    expect(findAllMock).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        patternType: 'hook_formula',
+        platform: 'instagram',
+        scope: 'public',
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it('captures the error message when the fetch fails', async () => {
-    fetchMock.mockRejectedValue(new Error('network down'));
+    findAllMock.mockRejectedValue(new Error('network down'));
 
     const { result } = renderHook(() => usePatternContext());
 
@@ -94,7 +88,7 @@ describe('usePatternContext', () => {
   });
 
   it('uses a fallback message for non-error rejections', async () => {
-    fetchMock.mockRejectedValue('boom');
+    findAllMock.mockRejectedValue('boom');
 
     const { result } = renderHook(() => usePatternContext());
 
@@ -108,18 +102,18 @@ describe('usePatternContext', () => {
   it('ignores abort errors on unmount', async () => {
     const abortError = new Error('aborted');
     abortError.name = 'AbortError';
-    let rejectFetch: ((reason: Error) => void) | undefined;
-    fetchMock.mockImplementation(
+    let rejectFind: ((reason: Error) => void) | undefined;
+    findAllMock.mockImplementation(
       () =>
         new Promise((_resolve, reject) => {
-          rejectFetch = reject;
+          rejectFind = reject;
         }),
     );
 
     const { result, unmount } = renderHook(() => usePatternContext());
 
     unmount();
-    rejectFetch?.(abortError);
+    rejectFind?.(abortError);
     await Promise.resolve();
 
     expect(result.current.error).toBeNull();
