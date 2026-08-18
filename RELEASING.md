@@ -138,9 +138,9 @@ Required environment variables:
 - `APP_HOST`, `WEB_HOST`
 - `VERCEL_ORG_ID`, `VERCEL_PROJECT_APP`, `VERCEL_PROJECT_WEB`
 
-Optional: `DOCS_HOST`, `MARKETPLACE_HOST`, `MARKETPLACE_REPOSITORY`,
-`VERCEL_PROJECT_DOCS`, `VERCEL_PROJECT_MARKETPLACE`. Empty Vercel project
-ids skip that frontend.
+Optional: `DOCS_HOST`, `VERCEL_PROJECT_DOCS`. Empty docs project id skips
+that frontend. Marketplace is a separate repository and is not deployed
+from this monorepo.
 
 Required repository variables: `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN`.
 Required secrets: `VERCEL_TOKEN`, `NEXT_PUBLIC_POSTHOG_KEY`.

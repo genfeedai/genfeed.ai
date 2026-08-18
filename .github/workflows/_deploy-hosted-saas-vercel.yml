@@ -12,11 +12,6 @@ on:
         description: "exact public genfeed.ai source commit to build"
         required: true
         type: string
-      marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai source commit to build"
-        required: true
-        type: string
-
 permissions:
   contents: read
 
@@ -29,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [app, web, docs, marketplace]
+        label: [app, web, docs]
     env:
       # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
       # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
@@ -38,11 +33,11 @@ jobs:
       # it first). The other frontends ignore this and keep Next's default buildId.
       # Resolve project ids here, after `environment: production`, not in strategy.matrix
       # — environment vars are empty during matrix expansion.
-      BUILD_ID: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
-      FRONTEND_REPOSITORY: ${{ matrix.label == 'marketplace' && vars.MARKETPLACE_REPOSITORY || github.repository }}
-      FRONTEND_SHA: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
+      BUILD_ID: ${{ inputs.source_sha }}
+      FRONTEND_REPOSITORY: ${{ github.repository }}
+      FRONTEND_SHA: ${{ inputs.source_sha }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || matrix.label == 'marketplace' && vars.VERCEL_PROJECT_MARKETPLACE || '' }}
+      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || '' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
@@ -50,6 +45,14 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
+      - name: Require Vercel token
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::error::VERCEL_TOKEN is missing on this repository. Public deploys used secrets.VERCEL_TOKEN here before #2844; it was moved to console and never restored."
+            exit 1
+          fi
+
       - name: Require app and web Vercel project ids
         if: ${{ matrix.label == 'app' || matrix.label == 'web' }}
         run: |
@@ -66,7 +69,7 @@ jobs:
           LABEL: ${{ matrix.label }}
 
       - name: Skip optional frontend
-        if: ${{ (matrix.label == 'docs' || matrix.label == 'marketplace') && env.VERCEL_PROJECT_ID == '' }}
+        if: ${{ matrix.label == 'docs' && env.VERCEL_PROJECT_ID == '' }}
         run: echo "No Vercel project configured for ${{ matrix.label }}; skipping."
 
       - name: Checkout exact frontend source

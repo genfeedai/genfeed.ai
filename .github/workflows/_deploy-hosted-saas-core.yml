@@ -20,10 +20,6 @@ on:
         description: "exact public genfeed.ai source commit to deploy"
         required: true
         type: string
-      marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai source commit to deploy"
-        required: true
-        type: string
       image_tag:
         description: "server image tag to deploy (default: current SHA)"
         required: false
@@ -513,7 +509,6 @@ jobs:
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
     with:
       source_sha: ${{ inputs.source_sha }}
-      marketplace_source_sha: ${{ inputs.marketplace_source_sha }}
     secrets: inherit
 
   post-deploy-smoke:
@@ -538,7 +533,6 @@ jobs:
           APP_HOST: ${{ vars.APP_HOST }}
           WEB_HOST: ${{ vars.WEB_HOST }}
           DOCS_HOST: ${{ vars.DOCS_HOST }}
-          MARKETPLACE_HOST: ${{ vars.MARKETPLACE_HOST }}
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/post-deploy-smoke"
@@ -575,9 +569,6 @@ jobs:
           smoke_url website-home "https://${WEB_HOST}"
           if [ -n "${DOCS_HOST}" ]; then
             smoke_url docs-home "https://${DOCS_HOST}"
-          fi
-          if [ -n "${MARKETPLACE_HOST}" ]; then
-            smoke_url marketplace-home "https://${MARKETPLACE_HOST}"
           fi
 
           {

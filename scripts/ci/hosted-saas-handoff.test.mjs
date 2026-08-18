@@ -107,15 +107,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
     publicDeployWorkflow,
     /Hosted SaaS deploys must run from refs\/heads\/master/,
   );
-  assert.match(
-    publicDeployWorkflow,
-    /marketplace\.genfeed\.ai\/commits\/master/,
-  );
-  assert.match(
-    publicDeployWorkflow,
-    /Pass marketplace_source_sha, or set CONSOLE_DEPLOY_TOKEN/,
-  );
-  assert.match(publicDeployWorkflow, /secrets\.CONSOLE_DEPLOY_TOKEN/);
+  assert.doesNotMatch(publicDeployWorkflow, /marketplace\.genfeed\.ai/);
   assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
   assert.doesNotMatch(
     publicDeployWorkflow,
