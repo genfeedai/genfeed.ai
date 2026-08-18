@@ -1,0 +1,72 @@
+# Weekly `bun run deps:update`. Replaces Dependabot so package bumps honor the
+# ncu rejects (typescript, better-auth, @types/node, …) and Action pins move
+# in the same PR.
+name: Deps Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Tuesday 6am UTC — same cadence Dependabot used
+    - cron: '0 6 * * 2'
+
+concurrency:
+  group: deps-update
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+
+jobs:
+  update:
+    name: Run deps:update
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "24.x"
+          install-command: "bun install"
+
+      - name: Update packages and Action pins
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run deps:update
+
+      - name: Open or refresh the weekly PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No dependency updates."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B chore/deps-update
+          git add -A
+          git commit -m "chore(deps): weekly deps:update"
+          git push --force origin chore/deps-update
+          if ! gh pr list --head chore/deps-update --json number --jq '.[0].number' | grep -q '[0-9]'; then
+            gh pr create \
+              --base master \
+              --head chore/deps-update \
+              --title "chore(deps): weekly deps:update" \
+              --body "$(cat <<'EOF'
+          Single weekly bump from `bun run deps:update`: npm-check-updates with the repo rejects, lockfile install, and GitHub Action tag pins.
+
+          Dependabot bun/actions PRs are retired so they stop fighting those rejects (`typescript`, `@types/node`, `better-auth`, …).
+          EOF
+          )"
+          fi
