@@ -198,6 +198,7 @@ function normalizeWorkflow(
     edges: workflow.edges,
     groups: [],
     id: workflow.id,
+    label: workflow.name,
     lifecycle: workflow.status,
     name: workflow.name,
     nodeCount: workflow.nodes.length,

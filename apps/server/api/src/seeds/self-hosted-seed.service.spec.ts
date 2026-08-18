@@ -105,6 +105,26 @@ describe('SelfHostedSeedService', () => {
       },
       where: { key: 'owner' },
     });
+    expect(prisma.role.upsert).toHaveBeenCalledWith({
+      create: {
+        key: 'admin',
+        label: 'Admin',
+      },
+      update: {
+        isDeleted: false,
+      },
+      where: { key: 'admin' },
+    });
+    expect(prisma.role.upsert).toHaveBeenCalledWith({
+      create: {
+        key: 'user',
+        label: 'User',
+      },
+      update: {
+        isDeleted: false,
+      },
+      where: { key: 'user' },
+    });
     expect(prisma.member.create).toHaveBeenCalledWith({
       data: {
         isActive: true,
@@ -126,6 +146,16 @@ describe('SelfHostedSeedService', () => {
 
     expect(prisma.member.create).not.toHaveBeenCalled();
     expect(prisma.member.update).not.toHaveBeenCalled();
+    expect(prisma.role.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'admin' },
+      }),
+    );
+    expect(prisma.role.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'user' },
+      }),
+    );
   });
 
   it('reactivates an inactive default workspace member', async () => {

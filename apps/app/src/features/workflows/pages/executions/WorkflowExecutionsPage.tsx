@@ -24,7 +24,7 @@ import {
   getStatusColor,
   getStatusIcon,
 } from '@/features/workflows/utils/status-helpers';
-import { getWorkflowLabel } from './get-workflow-label';
+import { catalogWorkflowLabels, getWorkflowLabel } from './get-workflow-label';
 
 type ExecutionsState = {
   executions: ExecutionResult[];
@@ -122,11 +122,7 @@ export default function WorkflowExecutionsPage() {
           type: 'FETCH_SUCCESS',
           executions: data,
           hasMore: data.length === EXECUTIONS_PER_PAGE,
-          workflowLabels: new Map(
-            workflows
-              .filter((workflow) => workflow.label.trim().length > 0)
-              .map((workflow) => [workflow.id, workflow.label]),
-          ),
+          workflowLabels: catalogWorkflowLabels(workflows),
         });
       } catch (err) {
         if (signal.aborted) {

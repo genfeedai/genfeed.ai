@@ -59,6 +59,7 @@ describe('UserSetupService', () => {
   };
 
   const mockRolesService = {
+    create: vi.fn(),
     findOne: vi.fn(),
   };
 
@@ -312,11 +313,38 @@ describe('UserSetupService', () => {
       );
     });
 
-    it('should throw if no role found at all', async () => {
-      mockRolesService.findOne.mockResolvedValue(null);
+    it('should fall back to owner when admin and user roles are missing', async () => {
+      const ownerRole = { id: 'role_owner', key: 'owner' };
+      mockRolesService.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(ownerRole);
 
-      await expect(service.initializeUserResources(userId)).rejects.toThrow(
-        /No valid role found/,
+      await service.initializeUserResources(userId);
+
+      expect(mockRolesService.findOne).toHaveBeenCalledTimes(3);
+      expect(mockRolesService.create).not.toHaveBeenCalled();
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleKey: 'owner' }),
+      );
+    });
+
+    it('should create an admin role when the catalog is empty', async () => {
+      const createdAdmin = { id: 'role_admin_created', key: 'admin' };
+      mockRolesService.findOne.mockResolvedValue(null);
+      mockRolesService.create.mockResolvedValue(createdAdmin);
+
+      await service.initializeUserResources(userId);
+
+      expect(mockRolesService.create).toHaveBeenCalledWith({
+        key: 'admin',
+        label: 'Admin',
+      });
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          roleId: 'role_admin_created',
+          roleKey: 'admin',
+        }),
       );
     });
 

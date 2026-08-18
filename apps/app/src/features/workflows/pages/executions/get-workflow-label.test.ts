@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { getWorkflowLabel } from './get-workflow-label';
+import { catalogWorkflowLabels, getWorkflowLabel } from './get-workflow-label';
+
+describe('catalogWorkflowLabels', () => {
+  it('keeps trimmed labels keyed by workflow id', () => {
+    expect(
+      catalogWorkflowLabels([
+        { id: 'wf-1', label: '  Daily digest  ' },
+        { id: 'wf-2', label: 'Weekly recap' },
+      ]),
+    ).toEqual(
+      new Map([
+        ['wf-1', 'Daily digest'],
+        ['wf-2', 'Weekly recap'],
+      ]),
+    );
+  });
+
+  it('skips rows whose label is missing, empty, or whitespace', () => {
+    expect(
+      catalogWorkflowLabels([
+        { id: 'wf-missing' },
+        { id: 'wf-null', label: null },
+        { id: 'wf-empty', label: '' },
+        { id: 'wf-blank', label: '   ' },
+        { id: 'wf-ok', label: 'Kept' },
+      ]),
+    ).toEqual(new Map([['wf-ok', 'Kept']]));
+  });
+});
 
 describe('getWorkflowLabel', () => {
   it('prefers the included workflow label', () => {

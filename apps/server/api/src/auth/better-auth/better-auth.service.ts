@@ -7,6 +7,7 @@ import {
 } from 'better-auth/cookies';
 import { toNodeHandler } from 'better-auth/node';
 import type { RequestHandler } from 'express';
+import { decodeProtectedHeader, importJWK, type JWK, jwtVerify } from 'jose';
 
 import {
   BETTER_AUTH_BASE_PATH,
@@ -27,6 +28,15 @@ interface CachedClaims {
 interface DesktopSessionEndpointResponse {
   expiresAt: Date | string;
   token: string;
+}
+
+interface IJwksPublicKey {
+  alg?: string;
+  kid?: string;
+}
+
+interface IJwksResponse {
+  keys?: IJwksPublicKey[];
 }
 
 function resolveDesktopSessionCookieExpiresAt(
@@ -177,9 +187,13 @@ export class BetterAuthService {
     let payload: Record<string, unknown> | null;
     try {
       const result = await this.instance.api.verifyJWT({ body: { token } });
-      payload = result?.payload ?? null;
+      payload = readVerifyJwtPayload(result);
     } catch {
-      throw new UnauthorizedException('Invalid token');
+      payload = null;
+    }
+
+    if (!payload || typeof payload.sub !== 'string') {
+      payload = await this.verifyTokenAgainstJwks(token);
     }
 
     if (!payload || typeof payload.sub !== 'string') {
@@ -212,4 +226,70 @@ export class BetterAuthService {
 
     this.claimsCache.set(token, { claims, expiresAtMs });
   }
+
+  /**
+   * better-auth's `verifyJWT` helper reads `getCurrentAuthContext()` instead of
+   * the endpoint `ctx`. When that ALS slot is empty (Nest guard / bundled API),
+   * `api.verifyJWT` returns a null payload for a token we just minted. The
+   * public JWKS endpoint uses the handler `ctx` directly — verify against it.
+   */
+  private async verifyTokenAgainstJwks(
+    token: string,
+  ): Promise<Record<string, unknown>> {
+    if (!this.instance) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    let kid: string | undefined;
+    let alg: string | undefined;
+    try {
+      const header = decodeProtectedHeader(token);
+      kid = header.kid;
+      alg = header.alg;
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    if (!kid) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    let keys: IJwksPublicKey[];
+    try {
+      const jwks = (await this.instance.api.getJwks()) as IJwksResponse;
+      keys = Array.isArray(jwks.keys) ? jwks.keys : [];
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    const jwk = keys.find((key) => key.kid === kid);
+    if (!jwk) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    try {
+      const cryptoKey = await importJWK(jwk as JWK, jwk.alg ?? alg ?? 'EdDSA');
+      const { payload } = await jwtVerify(token, cryptoKey);
+      return payload as Record<string, unknown>;
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+}
+
+function readVerifyJwtPayload(result: unknown): Record<string, unknown> | null {
+  if (!result || typeof result !== 'object') {
+    return null;
+  }
+
+  const record = result as { payload?: unknown; sub?: unknown };
+  if (record.payload && typeof record.payload === 'object') {
+    return record.payload as Record<string, unknown>;
+  }
+
+  if (typeof record.sub === 'string') {
+    return record as Record<string, unknown>;
+  }
+
+  return null;
 }

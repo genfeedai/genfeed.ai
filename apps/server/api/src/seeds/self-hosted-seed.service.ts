@@ -40,6 +40,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     });
 
     if (existingOrg) {
+      await this.ensureDefaultRoles();
       await this.ensureOwnerMembership(existingOrg.id, existingOrg.userId);
       await this.ensureLowestCostDefaultModels(existingOrg.id);
       this.logger.log(
@@ -99,6 +100,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       },
     });
 
+    await this.ensureDefaultRoles();
     await this.ensureOwnerMembership(org.id, user.id);
 
     await this.provisionDefaultWorkflows(user.id, org.id);
@@ -165,6 +167,32 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
             : { defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY }),
         },
         where: scopedWhere(organizationId, { id: brand.id }),
+      });
+    }
+  }
+
+  /**
+   * Signup member assignment looks up `admin` then `user`. Seeding only
+   * `owner` left those keys missing on a fresh self-hosted / E2E database,
+   * so UserSetupService could not create the first membership row.
+   */
+  private async ensureDefaultRoles(): Promise<void> {
+    const roles: ReadonlyArray<{ key: MemberRole; label: string }> = [
+      { key: MemberRole.OWNER, label: 'Owner' },
+      { key: MemberRole.ADMIN, label: 'Admin' },
+      { key: MemberRole.USER, label: 'User' },
+    ];
+
+    for (const role of roles) {
+      await this.prisma.role.upsert({
+        create: {
+          key: role.key,
+          label: role.label,
+        },
+        update: {
+          isDeleted: false,
+        },
+        where: { key: role.key },
       });
     }
   }
