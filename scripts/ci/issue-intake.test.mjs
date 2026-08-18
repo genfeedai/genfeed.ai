@@ -96,9 +96,6 @@ test('CONTRIBUTING documents intake labels and the rewrite-not-bounce rule', () 
   assert.match(contributing, /good first issue/);
   assert.match(contributing, /help wanted/);
   assert.match(contributing, /Internal automation — do not apply/);
-  assert.match(
-    contributing,
-    /You will not be bounced for imperfect syntax/,
-  );
+  assert.match(contributing, /You will not be bounced for imperfect syntax/);
   assert.match(contributing, /Priority is a Project #12 field, never a label/);
 });
