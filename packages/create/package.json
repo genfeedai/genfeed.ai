@@ -13,7 +13,7 @@
   "devDependencies": {
     "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "files": [
     "dist"
