@@ -34,7 +34,6 @@ function normalizeEdgeTypes(edges: WorkflowEdge[]): WorkflowEdge[] {
 /**
  * Hydrate workflow nodes with default data from NODE_DEFINITIONS.
  * Ensures all required fields exist even for nodes saved before new fields were added.
- * Inlined from @/lib/utils/nodeHydration to avoid app-specific import.
  */
 function hydrateWorkflowNodes(nodes: WorkflowNode[]): WorkflowNode[] {
   return nodes.map((node) => {
