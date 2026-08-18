@@ -42,9 +42,13 @@ import {
   EditorRenderTimeoutError,
   RemotionRendererService,
 } from '@files/services/remotion/remotion-renderer.service';
-import { EDITOR_RENDER_TIMEOUT_MS } from '@genfeedai/interfaces';
+import {
+  EDITOR_RENDER_TIMEOUT_MS,
+  EDITOR_RENDERER_VERSION,
+} from '@genfeedai/interfaces';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
+import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 describe('RemotionRendererService', () => {
   const params = BRANDED_AVATAR_RENDER_FIXTURE;
@@ -56,6 +60,12 @@ describe('RemotionRendererService', () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+  });
+
+  it('keeps the installed remotion version aligned with EDITOR_RENDERER_VERSION', () => {
+    expect(`remotion@${INSTALLED_REMOTION_VERSION}`).toBe(
+      EDITOR_RENDERER_VERSION,
+    );
   });
 
   it('selects and renders the pinned composition with bounded concurrency', async () => {

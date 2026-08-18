@@ -10,6 +10,8 @@ export const EDITOR_EXPORT_CONTRACT_VERSION = 1 as const;
  * Must track the `remotion` pin in `apps/server/files/package.json`.
  * `RemotionRendererService.render` refuses to run when the two disagree, so a
  * dependency bump that forgets this constant takes editor export down whole.
+ * Do not keep a `patchedDependencies` key for a different `@remotion/bundler`
+ * version — Bun drops that patch silently.
  */
 export const EDITOR_RENDERER_VERSION = 'remotion@4.0.513' as const;
 export const EDITOR_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
