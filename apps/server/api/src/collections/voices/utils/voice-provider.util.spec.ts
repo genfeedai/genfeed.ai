@@ -2,6 +2,7 @@ import {
   parseVoiceCatalogProvider,
   parseVoiceCatalogProviders,
   parseVoiceProviders,
+  toLibraryVoiceDocument,
   toVoiceCatalogWireFormat,
 } from '@api/collections/voices/utils/voice-provider.util';
 import { VoiceProvider } from '@genfeedai/enums';
@@ -54,6 +55,37 @@ describe('voice provider utilities', () => {
     expect(toVoiceCatalogWireFormat(voice)).toMatchObject({
       externalVoiceId: 'external-1',
       provider: VoiceProvider.HEYGEN,
+    });
+  });
+
+  it('maps catalog rows onto the library Voice read model', () => {
+    const voice = {
+      createdAt: new Date('2026-01-01'),
+      externalId: 'eleven-rachel',
+      externalProvider: DbVoiceProvider.ELEVENLABS,
+      id: 'catalog-1',
+      isActive: true,
+      isDefaultSelectable: true,
+      isFeatured: false,
+      language: 'en',
+      name: 'Rachel',
+      providerData: {},
+      sampleAudioUrl: 'https://example.test/rachel.mp3',
+      updatedAt: new Date('2026-01-02'),
+    } as ExternalVoice;
+
+    expect(toLibraryVoiceDocument(voice)).toMatchObject({
+      category: 'VOICE',
+      externalVoiceCatalogId: 'catalog-1',
+      externalVoiceId: 'eleven-rachel',
+      id: 'catalog-1',
+      isCloned: false,
+      isVoiceActive: true,
+      metadata: { label: 'Rachel' },
+      provider: VoiceProvider.ELEVENLABS,
+      sampleAudioUrl: 'https://example.test/rachel.mp3',
+      voiceProvider: VoiceProvider.ELEVENLABS,
+      voiceSource: 'catalog',
     });
   });
 });

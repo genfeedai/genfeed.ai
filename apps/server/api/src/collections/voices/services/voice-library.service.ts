@@ -1,20 +1,27 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { parseVoiceProviders } from '@api/collections/voices/utils/voice-provider.util';
+import {
+  parseVoiceProviders,
+  toLibraryVoiceDocument,
+} from '@api/collections/voices/utils/voice-provider.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class VoiceLibraryService {
-  constructor(private readonly voicesService: VoicesService) {}
+  constructor(
+    private readonly voicesService: VoicesService,
+    private readonly externalVoiceCatalogService: ExternalVoiceCatalogService,
+  ) {}
 
   async findAll(
     user: User,
@@ -72,16 +79,74 @@ export class VoiceLibraryService {
         ];
       }
 
-      return await this.voicesService.findAll(
+      const ingredientResult = await this.voicesService.findAll(
         { orderBy: handleQuerySort(sort), where },
         options,
       );
+
+      if ((ingredientResult.docs?.length ?? 0) > 0) {
+        return ingredientResult;
+      }
+
+      return this.paginateCatalogVoices({
+        isActive: query.isActive,
+        limit: options.limit,
+        page: options.page,
+        providers: requestedProviders,
+        search: normalizedSearch,
+      });
     } catch (_error: unknown) {
       throw new HttpException(
         'Failed to find voices',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private async paginateCatalogVoices(params: {
+    isActive?: boolean;
+    limit: number;
+    page: number;
+    providers: ReturnType<typeof parseVoiceProviders>;
+    search?: string;
+  }): Promise<AggregatePaginateResult<IngredientDocument>> {
+    const catalog = await this.externalVoiceCatalogService.findAll({
+      isActive: params.isActive,
+      search: params.search,
+    });
+    const allowedProviders = new Set<VoiceProvider>(params.providers);
+    const docs = catalog
+      .map((voice) => toLibraryVoiceDocument(voice))
+      .filter((voice) => {
+        if (allowedProviders.size === 0) {
+          return true;
+        }
+
+        return (
+          typeof voice.provider === 'string' &&
+          allowedProviders.has(voice.provider as VoiceProvider)
+        );
+      })
+      .map((voice) => voice as IngredientDocument);
+
+    const totalDocs = docs.length;
+    const totalPages = Math.max(1, Math.ceil(totalDocs / params.limit) || 1);
+    const page = Math.min(Math.max(params.page, 1), totalPages);
+    const start = (page - 1) * params.limit;
+    const pageDocs = docs.slice(start, start + params.limit);
+
+    return {
+      docs: pageDocs,
+      hasNextPage: page < totalPages && totalDocs > 0,
+      hasPrevPage: page > 1,
+      limit: params.limit,
+      nextPage: page < totalPages ? page + 1 : null,
+      page,
+      pagingCounter: totalDocs === 0 ? 0 : start + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs,
+      totalPages,
+    };
   }
 
   async findCloned(

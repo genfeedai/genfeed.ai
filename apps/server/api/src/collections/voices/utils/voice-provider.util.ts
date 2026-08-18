@@ -117,3 +117,25 @@ export function toVoiceCatalogWireFormat(
     updatedAt: voice.updatedAt,
   };
 }
+
+/**
+ * Shape a platform catalog row so GET /voices and the library Voice model
+ * can render it. Catalog entries are not ingredients; this is a read model
+ * for empty-org fallbacks, not a persisted copy.
+ */
+export function toLibraryVoiceDocument(
+  voice: ExternalVoice,
+): Record<string, unknown> {
+  const wire = toVoiceCatalogWireFormat(voice);
+
+  return {
+    ...wire,
+    category: 'VOICE',
+    externalVoiceCatalogId: voice.id,
+    isCloned: false,
+    isVoiceActive: voice.isActive,
+    metadata: { label: voice.name },
+    voiceProvider: wire.provider,
+    voiceSource: 'catalog',
+  };
+}
