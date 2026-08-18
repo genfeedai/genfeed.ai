@@ -193,6 +193,12 @@ test('hosted SaaS site identity comes from GitHub environment variables', () => 
   assert.doesNotMatch(publicDeployVercel, /prj_[A-Za-z0-9]+/);
   assert.doesNotMatch(publicDeployVercel, /team_[A-Za-z0-9]+/);
   assert.match(publicDeployVercel, /vars\.VERCEL_PROJECT_APP/);
+  assert.match(publicDeployVercel, /Require app and web Vercel project ids/);
+  const vercelMatrix = publicDeployVercel.slice(
+    publicDeployVercel.indexOf('strategy:'),
+    publicDeployVercel.indexOf('env:'),
+  );
+  assert.doesNotMatch(vercelMatrix, /vars\.VERCEL_PROJECT_/);
   assert.match(tofuVariables, /variable "rds_instance_id"/);
   assert.doesNotMatch(tofuVariables, /default\s*=\s*"genfeed\.ai"/);
   assert.doesNotMatch(tofuVariables, /vpc-[0-9a-f]{8,}/);

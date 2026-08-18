@@ -29,32 +29,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - label: app
-            project_id: ${{ vars.VERCEL_PROJECT_APP }}
-            repository: ${{ github.repository }}
-            source_sha: ${{ inputs.source_sha }}
-          - label: web
-            project_id: ${{ vars.VERCEL_PROJECT_WEB }}
-            repository: ${{ github.repository }}
-            source_sha: ${{ inputs.source_sha }}
-          - label: docs
-            project_id: ${{ vars.VERCEL_PROJECT_DOCS }}
-            repository: ${{ github.repository }}
-            source_sha: ${{ inputs.source_sha }}
-          - label: marketplace
-            project_id: ${{ vars.VERCEL_PROJECT_MARKETPLACE }}
-            repository: ${{ vars.MARKETPLACE_REPOSITORY }}
-            source_sha: ${{ inputs.marketplace_source_sha }}
+        label: [app, web, docs, marketplace]
     env:
       # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
       # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
       # An empty buildId makes the App Router hard-reload on every navigation, so
       # feed the exact selected source commit SHA as BUILD_ID (apps/app's next.config reads
       # it first). The other frontends ignore this and keep Next's default buildId.
-      BUILD_ID: ${{ matrix.source_sha }}
+      # Resolve project ids here, after `environment: production`, not in strategy.matrix
+      # — environment vars are empty during matrix expansion.
+      BUILD_ID: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
+      FRONTEND_REPOSITORY: ${{ matrix.label == 'marketplace' && vars.MARKETPLACE_REPOSITORY || github.repository }}
+      FRONTEND_SHA: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ matrix.project_id }}
+      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || matrix.label == 'marketplace' && vars.VERCEL_PROJECT_MARKETPLACE || '' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
@@ -62,34 +50,49 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
-      - name: Skip unset frontend
-        if: ${{ matrix.project_id == '' }}
+      - name: Require app and web Vercel project ids
+        if: ${{ matrix.label == 'app' || matrix.label == 'web' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_PROJECT_ID}" ]; then
+            echo "::error::VERCEL_PROJECT_${LABEL} is required on the production environment."
+            exit 1
+          fi
+          if [ -z "${VERCEL_ORG_ID}" ]; then
+            echo "::error::VERCEL_ORG_ID is required on the production environment."
+            exit 1
+          fi
+        env:
+          LABEL: ${{ matrix.label }}
+
+      - name: Skip optional frontend
+        if: ${{ (matrix.label == 'docs' || matrix.label == 'marketplace') && env.VERCEL_PROJECT_ID == '' }}
         run: echo "No Vercel project configured for ${{ matrix.label }}; skipping."
 
       - name: Checkout exact frontend source
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         uses: actions/checkout@v7.0.1
         with:
-          repository: ${{ matrix.repository }}
-          ref: ${{ matrix.source_sha }}
+          repository: ${{ env.FRONTEND_REPOSITORY }}
+          ref: ${{ env.FRONTEND_SHA }}
           persist-credentials: false
           token: ${{ github.token }}
 
-      - if: ${{ matrix.project_id != '' }}
+      - if: ${{ env.VERCEL_PROJECT_ID != '' }}
         uses: ./.github/actions/setup-bun-env
         with:
           install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Vercel CLI
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: bun add --global vercel@54.4.1
 
       - name: Pull Vercel production environment
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Validate and inject production frontend environment
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: |
           env_file=".vercel/.env.production.local"
           if [ ! -f "$env_file" ]; then
@@ -117,7 +120,7 @@ jobs:
           fi
 
       - name: Preserve runner PATH for local Vercel build
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: |
           env_file=".vercel/.env.production.local"
           if [ -f "$env_file" ] && grep -q '^PATH=' "$env_file"; then
@@ -130,11 +133,11 @@ jobs:
           command -v vercel
 
       - name: Build ${{ matrix.label }}
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy ${{ matrix.label }}
-        if: ${{ matrix.project_id != '' }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
         id: deploy
         run: |
           url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
@@ -142,5 +145,8 @@ jobs:
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       - name: Deployment URL
-        if: ${{ matrix.project_id != '' }}
-        run: echo "${{ matrix.label }} -> ${{ steps.deploy.outputs.url }}"
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
+        env:
+          LABEL: ${{ matrix.label }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: echo "${LABEL} -> ${DEPLOY_URL}"

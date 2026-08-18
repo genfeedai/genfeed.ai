@@ -82,6 +82,11 @@ jobs:
           HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
           HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
           CDN_BUCKET: ${{ vars.CDN_BUCKET }}
+          APP_HOST: ${{ vars.APP_HOST }}
+          WEB_HOST: ${{ vars.WEB_HOST }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_APP: ${{ vars.VERCEL_PROJECT_APP }}
+          VERCEL_PROJECT_WEB: ${{ vars.VERCEL_PROJECT_WEB }}
         run: |
           set -euo pipefail
           missing=0
@@ -89,7 +94,8 @@ jobs:
             AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT DOMAIN VPC_ID PUBLIC_SUBNET_IDS \
             NAT_PUBLIC_SUBNET_ID RDS_INSTANCE_ID SSM_PATH TF_STATE_BUCKET TF_STATE_KEY \
             SERVER_IMAGE_REPOSITORY ECR_REPOSITORY_NAME HOSTED_OWNER_EMAIL \
-            HOSTED_ORGANIZATION_LABEL CDN_BUCKET
+            HOSTED_ORGANIZATION_LABEL CDN_BUCKET APP_HOST WEB_HOST \
+            VERCEL_ORG_ID VERCEL_PROJECT_APP VERCEL_PROJECT_WEB
           do
             eval "value=\${$name-}"
             if [ -z "${value}" ]; then
