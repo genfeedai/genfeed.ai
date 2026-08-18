@@ -125,18 +125,21 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
 });
 
 test('in-repo engine checks out console operations and keeps OpenTofu off the entry workflow', () => {
+  assert.match(publicDeployCore, /repository: genfeedai\/console\.genfeed\.ai/);
   assert.match(
     publicDeployCore,
-    /repository: genfeedai\/console\.genfeed\.ai/,
+    /token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
   );
-  assert.match(publicDeployCore, /token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
   assert.match(publicDeployCore, /environment: production/);
   assert.match(publicDeployCore, /aws-actions\/configure-aws-credentials/);
   assert.match(
     publicDeployCore,
     /uses: \.\/\.github\/workflows\/_deploy-hosted-saas-vercel\.yml/,
   );
-  assert.doesNotMatch(publicDeployCore, /uses: genfeedai\/console\.genfeed\.ai\//);
+  assert.doesNotMatch(
+    publicDeployCore,
+    /uses: genfeedai\/console\.genfeed\.ai\//,
+  );
   assert.match(publicDeployVercel, /environment: production/);
   assert.match(
     publicDeployVercel,
