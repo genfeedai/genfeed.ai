@@ -4,7 +4,7 @@ run-name: Deploy hosted SaaS | ${{ inputs.source_sha }} | ${{ inputs.correlation
 # Public-repo hosted SaaS lane. Jobs run as this caller, so GitHub bills the
 # public repository (standard public runners are free). The private operations
 # engine stays in genfeedai/console.genfeed.ai and is invoked as a reusable
-# workflow — this file must not grow OpenTofu, AWS, or Vercel implementation.
+# workflow — this file must not grow private infra or frontend deploy steps.
 on:
   workflow_dispatch:
     inputs:

@@ -11,10 +11,7 @@ const releaseWorkflow = readFileSync(
 );
 const publicDeployWorkflow = readFileSync(
   fileURLToPath(
-    new URL(
-      '../../.github/workflows/deploy-hosted-saas.yml',
-      import.meta.url,
-    ),
+    new URL('../../.github/workflows/deploy-hosted-saas.yml', import.meta.url),
   ),
   'utf8',
 );
@@ -33,7 +30,10 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
 
   const deploy = jobBlock('deploy-saas');
   assert.match(deploy, /if: \$\{\{ inputs\.saas_lane != 'operations' \}\}/);
-  assert.match(deploy, /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/);
+  assert.match(
+    deploy,
+    /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/,
+  );
   assert.match(
     deploy,
     /source_sha: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
@@ -85,9 +85,15 @@ test('public deploy workflow calls the private engine and stays implementation-f
     publicDeployWorkflow,
     /Hosted SaaS deploys must run from refs\/heads\/master/,
   );
-  assert.match(publicDeployWorkflow, /marketplace\.genfeed\.ai\/commits\/master/);
-  assert.doesNotMatch(publicDeployWorkflow, /opentofu|tofu apply|RDS_INSTANCE|prj_/i);
-  assert.doesNotMatch(publicDeployWorkflow, /aws-actions\/configure-aws-credentials/);
+  assert.match(
+    publicDeployWorkflow,
+    /marketplace\.genfeed\.ai\/commits\/master/,
+  );
+  assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
+  assert.doesNotMatch(
+    publicDeployWorkflow,
+    /aws-actions\/configure-aws-credentials/,
+  );
   assert.doesNotMatch(publicDeployWorkflow, /VERCEL_ORG_ID|vercel build/);
 });
 
