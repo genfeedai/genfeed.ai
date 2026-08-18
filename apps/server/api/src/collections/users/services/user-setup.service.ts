@@ -24,7 +24,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { OrganizationCategory } from '@genfeedai/enums';
+import { MemberRole, OrganizationCategory } from '@genfeedai/enums';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -449,22 +449,7 @@ export class UserSetupService {
       return existing;
     }
 
-    // Look up admin role first, fallback to user role
-    let roleToAssign = await this.rolesService.findOne({
-      key: 'admin',
-    });
-
-    if (!roleToAssign) {
-      roleToAssign = await this.rolesService.findOne({
-        key: 'user',
-      });
-    }
-
-    if (!roleToAssign) {
-      throw new Error(
-        `No valid role found (admin or user) to assign to member for user ${userId}`,
-      );
-    }
+    const roleToAssign = await this.resolveSignupMemberRole();
 
     const member = await this.membersService.create({
       isActive: true,
@@ -480,5 +465,31 @@ export class UserSetupService {
     );
 
     return member;
+  }
+
+  /**
+   * Prefer admin, then user, then owner (the role self-hosted seed always
+   * creates). If the catalog is empty, create admin so first-time signup can
+   * still attach a membership row.
+   */
+  private async resolveSignupMemberRole(): Promise<{
+    id: string;
+    key: string;
+  }> {
+    const roleKeys = [MemberRole.ADMIN, MemberRole.USER, MemberRole.OWNER];
+
+    for (const key of roleKeys) {
+      const role = await this.rolesService.findOne({ key });
+      if (role?.id) {
+        return { id: String(role.id), key: role.key };
+      }
+    }
+
+    const created = await this.rolesService.create({
+      key: MemberRole.ADMIN,
+      label: 'Admin',
+    });
+
+    return { id: String(created.id), key: created.key };
   }
 }
