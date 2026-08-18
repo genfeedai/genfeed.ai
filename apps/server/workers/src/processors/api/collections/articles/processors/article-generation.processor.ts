@@ -1,6 +1,7 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { ARTICLE_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
+import { BULLMQ_LONG_JOB_WORKER_OPTIONS } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
@@ -12,7 +13,7 @@ interface ArticleGenerationJobData {
   brandId: string;
 }
 
-@Processor(ARTICLE_GENERATION_QUEUE)
+@Processor(ARTICLE_GENERATION_QUEUE, BULLMQ_LONG_JOB_WORKER_OPTIONS)
 export class ArticleGenerationProcessor extends WorkerHost {
   constructor(
     private readonly articlesService: ArticlesService,

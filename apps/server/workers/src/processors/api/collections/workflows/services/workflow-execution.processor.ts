@@ -10,6 +10,7 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { ActionOrigin } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -27,10 +28,13 @@ import { Job } from 'bullmq';
  * delay metadata. This processor detects it and schedules a new delayed job
  * via WorkflowExecutionQueueService.
  */
-@Processor(WORKFLOW_EXECUTION_QUEUE, {
-  concurrency: 5,
-  limiter: { duration: 60000, max: 20 },
-})
+@Processor(
+  WORKFLOW_EXECUTION_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: 5,
+    limiter: { duration: 60000, max: 20 },
+  }),
+)
 export class WorkflowExecutionProcessor extends WorkerHost {
   private readonly logContext = 'WorkflowExecutionProcessor';
 

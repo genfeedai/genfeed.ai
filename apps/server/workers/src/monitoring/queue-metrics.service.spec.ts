@@ -115,8 +115,8 @@ describe('QueueMetricsService', () => {
     mockRedisPublisher.expire.mockResolvedValue(1);
     mockRedisPublisher.del.mockResolvedValue(1);
     mockRedisPublisher.xrange.mockResolvedValue([
-      ['1-0', ['event', 'failed']],
-      ['2-0', ['event', 'stalled']],
+      ['1-0', ['event', 'failed', 'jobId', 'job-failed-1']],
+      ['2-0', ['event', 'stalled', 'jobId', 'job-stalled-1']],
     ]);
     mockCloudWatchSend.mockResolvedValue({});
     mockAlertNotifier.notify.mockResolvedValue(undefined);
@@ -185,6 +185,8 @@ describe('QueueMetricsService', () => {
       failed: 5,
       oldestWaitingAgeSeconds: 90,
       queueName: 'default',
+      stalledEvents: 1,
+      stalledJobIds: ['job-stalled-1'],
       waiting: 4,
     });
     expect(JSON.stringify(persisted)).not.toContain('must-not-leak');
@@ -351,16 +353,80 @@ describe('QueueMetricsService', () => {
       };
     };
 
+    const aggregateMetrics = command.input.MetricData.filter(
+      (metric) => metric.Dimensions.length === 1,
+    );
+
     expect(command.input.Namespace).toBe('Genfeed/Queues');
-    expect(command.input.MetricData).toHaveLength(5);
+    expect(aggregateMetrics).toHaveLength(5);
     expect(
-      command.input.MetricData.every(
+      aggregateMetrics.every(
         (metric) =>
-          metric.Dimensions.length === 1 &&
           metric.Dimensions[0]?.Name === 'Service' &&
           metric.Dimensions[0]?.Value === 'workers',
       ),
     ).toBe(true);
+  });
+
+  it('logs and publishes per-queue stall telemetry without job payloads', async () => {
+    mockGetJobs.mockImplementation(async (name: string) =>
+      name === 'default'
+        ? [{ data: { secret: 'must-not-leak' }, timestamp: Date.now() }]
+        : [],
+    );
+
+    await service.publishQueueMetrics();
+
+    const command = mockCloudWatchSend.mock.calls[0]?.[0] as {
+      input: {
+        MetricData: Array<{
+          Dimensions: Array<{ Name: string; Value: string }>;
+          MetricName: string;
+          Value: number;
+        }>;
+      };
+    };
+    const perQueueStalls = command.input.MetricData.filter(
+      (metric) =>
+        metric.MetricName === 'StalledJobs5m' &&
+        metric.Dimensions.some((dimension) => dimension.Name === 'Queue'),
+    );
+
+    expect(perQueueStalls.length).toBeGreaterThan(0);
+    expect(
+      perQueueStalls.every(
+        (metric) =>
+          metric.Dimensions.some(
+            (dimension) =>
+              dimension.Name === 'Service' && dimension.Value === 'workers',
+          ) &&
+          metric.Dimensions.some((dimension) => dimension.Name === 'Queue'),
+      ),
+    ).toBe(true);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'BullMQ job stalled',
+      expect.objectContaining({
+        jobId: 'job-stalled-1',
+        queueName: 'default',
+      }),
+    );
+    const stallContexts = mockLogger.warn.mock.calls
+      .filter((call) => call[0] === 'BullMQ job stalled')
+      .map((call) => call[1]);
+    expect(stallContexts.length).toBeGreaterThan(0);
+    expect(
+      stallContexts.every(
+        (context) =>
+          context !== null &&
+          typeof context === 'object' &&
+          !Object.hasOwn(context, 'worker'),
+      ),
+    ).toBe(true);
+    expect(
+      mockLogger.warn.mock.calls.some((call) =>
+        JSON.stringify(call).includes('must-not-leak'),
+      ),
+    ).toBe(false);
   });
 
   it('does not publish outside production', async () => {

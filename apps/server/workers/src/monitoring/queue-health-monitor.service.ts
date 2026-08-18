@@ -69,6 +69,8 @@ export class QueueHealthMonitorService {
         failed: snapshot.failed,
         oldestWaitingAgeSeconds: snapshot.oldestWaitingAgeSeconds,
         queueName: snapshot.queueName,
+        stalledEvents: snapshot.stalledEvents,
+        stalledJobIds: snapshot.stalledJobIds,
         waiting: snapshot.waiting,
       }),
       'EX',

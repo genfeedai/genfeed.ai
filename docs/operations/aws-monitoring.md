@@ -2,10 +2,75 @@
 
 ## Redis and BullMQ
 
-Queue-health alarms are emitted from aggregate BullMQ metrics published by the
-workers service. A stalled-job alarm can recover on its own after BullMQ
-redelivers the affected job, but an old-waiting alarm means work remains queued
-without making progress and needs queue-level investigation.
+Queue-health alarms are emitted from BullMQ metrics published by the workers
+service (`Genfeed/Queues`, dimension `Service=workers`). A stalled-job alarm
+can recover on its own after BullMQ redelivers the affected job, but an
+old-waiting alarm means work remains queued without making progress and needs
+queue-level investigation.
+
+### Identify the queue from `genfeed-production-queues-stalled`
+
+The CloudWatch alarm watches the **aggregate** `StalledJobs5m` metric. That
+sum includes every workers queue **and** the files-owned queues
+(`file-processing`, `image-processing`, `task-processing`, `video-processing`,
+`youtube-processing`). The alarm itself has no queue dimension.
+
+When it fires, identify the queue in this order:
+
+1. **Worker logs** in the same 5-minute window. Search for
+   `BullMQ job stalled`. Each line includes `queueName` and `jobId`.
+   That collector process is not the processing worker; do not treat a
+   hostname or pid on the metrics replica as the job owner. Job payloads,
+   tenant data, and secrets are never logged.
+2. **Per-queue CloudWatch series.** `StalledJobs5m` is also published with
+   dimensions `Service=workers` **and** `Queue=<queue-name>` when that queue
+   recorded at least one stall in the window.
+3. **Redis health snapshots** (15-minute TTL):
+   `genfeed:monitoring:queue-health:snapshot:<queue-name>`. The JSON now
+   includes `stalledEvents` and `stalledJobIds` (job ids only).
+
+Do not guess from the aggregate count. Two stalls can be two queues or two
+jobs on one queue.
+
+### Recurring 2026-08-16..18 stalls (#3065)
+
+Observed: 3 stalled jobs on 2026-08-16, 2 on 2026-08-17, 2 on 2026-08-18.
+The alarm recovered to OK each time. CloudWatch correlation is still
+open — this lane could not query the alarm timestamps or name the
+affected queues.
+
+**Verified from code**
+
+- No worker set `lockDuration`, `stalledInterval`, or `maxStalledCount`.
+  BullMQ defaults (`30s` / `30s` / `1`) applied everywhere.
+- Multi-minute processors (`agent-run`, `workflow-execution`,
+  `batch-workflow`, `batch-generation`, `clip-analyze`, `clip-factory`,
+  `article-generation`, `content-pipeline`, plus files
+  `video-processing` / `youtube-processing`) can exceed a 30s lock. Locks
+  renew while the event loop is healthy; a 30s lease still stalls when
+  renewal is delayed by event-loop pressure or a brief Redis blip.
+- Workers do `SIGTERM` → `app.close()`. Files does not: `setupGracefulShutdown()`
+  logs and `process.exit(0)` immediately, so Nest/BullMQ never drain.
+  A longer files lock would not remediate those deploy stalls.
+- Stall telemetry was aggregate-only. Snapshots dropped `stalledEvents`,
+  so operators could not name the queue from the alarm.
+
+**Open follow-up (not claimed as root cause).** If the next named-queue
+window lines up with an ECS workers/files task replacement, raise the
+service stop timeout. Files also needs a Nest/BullMQ drain before any
+lock-duration change there. If the timestamps do not line up, inspect
+the processor named by `queueName` + `jobId`.
+
+**Observability shipped (Part of #3065)**
+
+- Each stall is logged with `queueName` and `jobId` only. No processing
+  worker identity is invented from the metrics collector replica.
+- Per-queue `StalledJobs5m` and Redis `stalledJobIds` identify the
+  affected queue on the next alarm.
+- Workers-service long jobs use a 120s lock and 30s renew/stall check.
+  `maxStalledCount` stays at BullMQ's default of 1 so a side-effecting
+  job is not run a third time after two stalls. Files queues stay on
+  BullMQ defaults until a drain + ECS stop-timeout follow-up lands.
 
 Before deleting queue data:
 

@@ -7,6 +7,8 @@ export interface OperationalQueueHealthSnapshot {
   failed: number;
   oldestWaitingAgeSeconds: number;
   queueName: string;
+  stalledEvents: number;
+  stalledJobIds: string[];
   waiting: number;
 }
 

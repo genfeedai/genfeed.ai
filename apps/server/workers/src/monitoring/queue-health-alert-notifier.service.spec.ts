@@ -24,6 +24,8 @@ describe('QueueHealthAlertNotifierService', () => {
       failed: 4,
       oldestWaitingAgeSeconds: 60,
       queueName: 'default',
+      stalledEvents: 0,
+      stalledJobIds: [],
       waiting: 101,
     },
   };
@@ -74,6 +76,7 @@ describe('QueueHealthAlertNotifierService', () => {
     expect(Object.keys(payload)).toEqual(['text']);
     expect(payload.text).toContain('default');
     expect(payload.text).toContain('waiting=101');
+    expect(payload.text).toContain('stalledEvents=0');
     expect(payload.text).not.toContain('payload');
     expect(payload.text).not.toContain('credential');
   });

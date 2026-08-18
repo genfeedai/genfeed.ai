@@ -19,6 +19,7 @@ import { TaskOrchestratorService } from '@api/services/task-orchestration/task-o
 import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Optional } from '@nestjs/common';
@@ -86,10 +87,13 @@ function readNumber(value: unknown): number | undefined {
     : undefined;
 }
 
-@Processor(AGENT_RUN_QUEUE, {
-  concurrency: 3,
-  limiter: { duration: 60000, max: 20 },
-})
+@Processor(
+  AGENT_RUN_QUEUE,
+  withLongJobWorkerOptions({
+    concurrency: 3,
+    limiter: { duration: 60000, max: 20 },
+  }),
+)
 export class AgentRunProcessor extends WorkerHost {
   private readonly logContext = 'AgentRunProcessor';
 
