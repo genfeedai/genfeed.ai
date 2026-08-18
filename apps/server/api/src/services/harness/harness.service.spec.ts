@@ -33,6 +33,22 @@ function createService(contentHarnessPackages?: string) {
   };
 }
 
+/**
+ * Builds a mocked `require` whose `resolve` carries the full
+ * `NodeJS.RequireResolve` shape (including `paths`) so the fixture typechecks
+ * without widening casts.
+ */
+function createRuntimeRequire(
+  load: () => unknown,
+  resolve: () => string,
+): NodeJS.Require {
+  const runtimeRequire = vi.fn(load) as unknown as NodeJS.Require;
+  runtimeRequire.resolve = Object.assign(vi.fn(resolve), {
+    paths: vi.fn(() => null),
+  });
+  return runtimeRequire;
+}
+
 function injectRuntimeRequire(
   service: ContentHarnessService,
   runtimeRequire: NodeJS.Require,
@@ -64,10 +80,10 @@ describe('ContentHarnessService', () => {
     const { logger, service } = createService(
       `${EXTERNAL_PACK_SPECIFIER}, ${EXTERNAL_PACK_SPECIFIER}`,
     );
-    const runtimeRequire = vi.fn(() => ({
-      default: EXTERNAL_PACK,
-    })) as unknown as NodeJS.Require;
-    runtimeRequire.resolve = vi.fn(() => '/virtual/acme/dist/index.js');
+    const runtimeRequire = createRuntimeRequire(
+      () => ({ default: EXTERNAL_PACK }),
+      () => '/virtual/acme/dist/index.js',
+    );
     injectRuntimeRequire(service, runtimeRequire);
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
@@ -87,10 +103,12 @@ describe('ContentHarnessService', () => {
       new Error("Cannot find module 'transitive-package'"),
       { code: 'MODULE_NOT_FOUND' },
     );
-    const runtimeRequire = vi.fn(() => {
-      throw moduleLoadError;
-    }) as unknown as NodeJS.Require;
-    runtimeRequire.resolve = vi.fn(() => '/virtual/acme/dist/index.js');
+    const runtimeRequire = createRuntimeRequire(
+      () => {
+        throw moduleLoadError;
+      },
+      () => '/virtual/acme/dist/index.js',
+    );
     injectRuntimeRequire(service, runtimeRequire);
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([
@@ -113,12 +131,14 @@ describe('ContentHarnessService', () => {
       new Error("Cannot find module '@acme/missing-pack'"),
       { code: 'MODULE_NOT_FOUND' },
     );
-    const runtimeRequire = vi.fn(() => {
-      throw notFound;
-    }) as unknown as NodeJS.Require;
-    runtimeRequire.resolve = vi.fn(() => {
-      throw notFound;
-    });
+    const runtimeRequire = createRuntimeRequire(
+      () => {
+        throw notFound;
+      },
+      () => {
+        throw notFound;
+      },
+    );
     injectRuntimeRequire(service, runtimeRequire);
 
     await expect(service.listLoadedPackIds()).resolves.toEqual([

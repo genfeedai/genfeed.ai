@@ -3,6 +3,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -16,6 +17,13 @@ import { SubscriptionsController } from './subscriptions.controller';
 type MockFn = ReturnType<typeof vi.fn>;
 
 const ORGANIZATION_ID = 'org_1';
+
+const defaultQuery: BaseQueryDto = {
+  isDeleted: false,
+  limit: 10,
+  page: 1,
+  sort: 'createdAt: -1',
+};
 
 const mockUser = {
   brandId: 'brand_1',
@@ -107,7 +115,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       subscriptionsService.findAll.mockRejectedValue(new Error('db offline'));
 
       const error = await controller
-        .findAll({} as Request, {})
+        .findAll({} as Request, defaultQuery)
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
@@ -204,7 +212,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       subscriptionsService.findAll.mockRejectedValue(new Error('timeout'));
 
       const error = await controller
-        .getCreditUsage({})
+        .getCreditUsage(defaultQuery)
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
@@ -323,7 +331,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         { id: ORGANIZATION_ID, label: 'Acme Inc' },
       ]);
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
@@ -353,7 +361,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         totalPages: 1,
       });
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(organizationsService.find).not.toHaveBeenCalled();
       expect(

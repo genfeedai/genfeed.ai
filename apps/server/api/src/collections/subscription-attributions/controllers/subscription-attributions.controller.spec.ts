@@ -7,6 +7,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { Timeframe } from '@genfeedai/enums';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { SubscriptionAttributionsController } from './subscription-attributions.controller';
@@ -63,16 +64,21 @@ describe('SubscriptionAttributionsController', () => {
   describe('trackSubscription', () => {
     it('should track a subscription attribution', async () => {
       const dto: TrackSubscriptionDto = {
-        contentId: 'content123',
-        platform: 'youtube',
-        subscriberId: 'sub123',
+        amount: 2900,
+        email: 'subscriber@example.com',
+        plan: 'pro',
+        sourceContentId: 'content123',
+        sourcePlatform: 'youtube',
+        stripeCustomerId: 'cus_123',
+        stripeSubscriptionId: 'sub_123',
+        userId: mockUser.userId,
       };
 
       const tracked = {
-        contentId: dto.contentId,
         id: 'attribution123',
-        platform: dto.platform,
-        subscriberId: dto.subscriberId,
+        sourceContentId: dto.sourceContentId,
+        sourcePlatform: dto.sourcePlatform,
+        stripeSubscriptionId: dto.stripeSubscriptionId,
         trackedAt: new Date(),
       };
 
@@ -143,7 +149,7 @@ describe('SubscriptionAttributionsController', () => {
       expect(service.getTopContentBySubscriptions).toHaveBeenCalledWith({
         limit: 10,
         organizationId: mockUser.organizationId,
-        period: '30d',
+        period: Timeframe.D30,
       });
       expect(result).toEqual(topContent);
     });
@@ -154,12 +160,12 @@ describe('SubscriptionAttributionsController', () => {
         topContent,
       );
 
-      await controller.getTopContent('20', '7d', mockUser);
+      await controller.getTopContent('20', Timeframe.D7, mockUser);
 
       expect(service.getTopContentBySubscriptions).toHaveBeenCalledWith({
         limit: 20,
         organizationId: mockUser.organizationId,
-        period: '7d',
+        period: Timeframe.D7,
       });
     });
   });

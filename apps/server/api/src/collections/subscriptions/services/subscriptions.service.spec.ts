@@ -15,10 +15,16 @@ import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { SubscriptionsService } from './subscriptions.service';
 
 type MockFn = ReturnType<typeof vi.fn>;
+
+/** The customer row shape the provisioning helper below reads back. */
+interface CustomerRowFixture {
+  id: string;
+  stripeCustomerId: string | null;
+}
 
 interface Delegate {
   count: MockFn;
@@ -103,11 +109,23 @@ describe('SubscriptionsService', () => {
     retrieveCustomer: MockFn;
   };
   let customersService: {
-    findByOrganizationId: MockFn;
+    findByOrganizationId: Mock<
+      (organizationId: string) => Promise<CustomerRowFixture | null>
+    >;
     findByStripeCustomerId: MockFn;
-    patch: MockFn;
+    patch: Mock<
+      (
+        id: string,
+        data: { stripeCustomerId: string },
+      ) => Promise<CustomerRowFixture>
+    >;
     provisionForOrganization: MockFn;
-    upsertForOrganization: MockFn;
+    upsertForOrganization: Mock<
+      (
+        organizationId: string,
+        stripeCustomerId: string,
+      ) => Promise<CustomerRowFixture>
+    >;
   };
   let creditsUtilsService: { resetOrganizationCredits: MockFn };
   let configService: { get: MockFn };
@@ -211,7 +229,7 @@ describe('SubscriptionsService', () => {
   describe('syncSubscriptionState', () => {
     it('persists the tier onto OrganizationSetting scoped to the organization', async () => {
       await service.syncSubscriptionState(
-        { id: 'sub_row_1', organizationId: ORGANIZATION_ID },
+        buildSubscription(),
         'sub_stripe_1',
         'price_pro',
         'active',
@@ -229,10 +247,7 @@ describe('SubscriptionsService', () => {
     });
 
     it('skips the write when there is no tier to persist', async () => {
-      await service.syncSubscriptionState({
-        id: 'sub_row_1',
-        organizationId: ORGANIZATION_ID,
-      });
+      await service.syncSubscriptionState(buildSubscription());
 
       expect(organizationSettingDelegate.updateMany).not.toHaveBeenCalled();
       expect(logger.log).toHaveBeenCalledWith(
@@ -257,7 +272,7 @@ describe('SubscriptionsService', () => {
 
       await expect(
         service.syncSubscriptionState(
-          { id: 'sub_row_1', organizationId: ORGANIZATION_ID },
+          buildSubscription(),
           undefined,
           undefined,
           undefined,
@@ -582,11 +597,7 @@ describe('SubscriptionsService', () => {
   });
 
   describe('syncWithStripe', () => {
-    const readModel: ISubscriptionOssReadModel = {
-      customerId: 'cust_row_1',
-      id: 'sub_row_1',
-      organizationId: ORGANIZATION_ID,
-    };
+    const readModel: ISubscriptionOssReadModel = buildSubscription();
 
     it('returns the subscription once the Stripe customer resolves', async () => {
       customerDelegate.findFirst.mockResolvedValue({

@@ -160,21 +160,23 @@ export class SubscriptionsService
     subscriptionTier?: string,
   ) {
     try {
-      const organizationId = subscription?.organizationId;
+      const orgId = subscription?.organizationId;
 
-      if (organizationId && subscriptionTier) {
+      if (orgId && subscriptionTier) {
+        // OrganizationSetting.organizationId is unique, so this tenant-keyed
+        // updateMany touches at most one row.
         await this.prisma.organizationSetting.updateMany({
           data: { subscriptionTier },
-          where: { organizationId },
+          where: { organizationId: orgId },
         });
 
         this.logger.log('Subscription tier persisted to DB', {
-          organizationId,
+          organizationId: orgId,
           subscriptionTier,
         });
       } else {
         this.logger.log('Subscription state sync skipped (no tier to write)', {
-          hasOrganizationId: Boolean(organizationId),
+          hasOrganizationId: Boolean(orgId),
           hasSubscriptionTier: Boolean(subscriptionTier),
           subscriptionId: subscription?.id,
         });

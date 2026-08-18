@@ -5,6 +5,7 @@ import type { CreateSubscriptionPreviewDto } from '@api/collections/subscription
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -12,6 +13,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { SubscriptionsController } from './subscriptions.controller';
+
+const defaultQuery: BaseQueryDto = {
+  isDeleted: false,
+  limit: 10,
+  page: 1,
+  sort: 'createdAt: -1',
+};
 
 describe('SubscriptionsController', () => {
   let controller: SubscriptionsController;
@@ -127,7 +135,7 @@ describe('SubscriptionsController', () => {
         totalPages: 1,
       });
 
-      const result = await controller.findAll(request, {});
+      const result = await controller.findAll(request, defaultQuery);
 
       expect(subscriptionsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -145,7 +153,7 @@ describe('SubscriptionsController', () => {
         context: {
           organizationId: mockUser.organizationId,
         },
-      } as RequestWithContext;
+      } as unknown as RequestWithContext;
 
       mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue(
         updatedSubscription,
@@ -197,7 +205,7 @@ describe('SubscriptionsController', () => {
     it('should return credits breakdown with cycle metrics', async () => {
       const request = {
         context: { organizationId: mockUser.organizationId },
-      } as Request;
+      } as unknown as RequestWithContext;
       const creditsData = {
         credits: [
           {
@@ -245,7 +253,7 @@ describe('SubscriptionsController', () => {
     it('should fallback to total-based percentage when cycle window is unavailable', async () => {
       const request = {
         context: { organizationId: mockUser.organizationId },
-      } as Request;
+      } as unknown as RequestWithContext;
       const creditsData = {
         credits: [],
         total: 420,
@@ -268,7 +276,7 @@ describe('SubscriptionsController', () => {
     it('should use request context organizationId when user metadata is missing', async () => {
       const request = {
         context: { organizationId: 'org_from_context' },
-      } as Request;
+      } as unknown as RequestWithContext;
       const userWithoutOrganization = {
         ...mockUser,
         organizationId: '',
@@ -333,7 +341,7 @@ describe('SubscriptionsController', () => {
         6_000,
       );
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
@@ -373,7 +381,7 @@ describe('SubscriptionsController', () => {
         80_000,
       );
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
@@ -407,7 +415,7 @@ describe('SubscriptionsController', () => {
         0,
       );
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
@@ -440,7 +448,7 @@ describe('SubscriptionsController', () => {
           Promise.resolve(organizationId === 'org_maxed' ? 400 : 7_600),
       );
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       const maxedRow = result.data.find(
         (row) => row.organizationId === 'org_maxed',
@@ -475,7 +483,7 @@ describe('SubscriptionsController', () => {
         4_000,
       );
 
-      const result = await controller.getCreditUsage({});
+      const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
@@ -507,7 +515,7 @@ describe('SubscriptionsController', () => {
         1_000,
       );
 
-      await controller.getCreditUsage({});
+      await controller.getCreditUsage(defaultQuery);
 
       // No explicit `isDeleted: false` — #2429 moved soft-delete scoping into
       // the service layer, so call sites pass the filter alone. The guarantee

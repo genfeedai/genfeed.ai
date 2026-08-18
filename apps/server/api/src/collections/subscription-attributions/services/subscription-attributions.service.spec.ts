@@ -15,10 +15,18 @@ interface AttributionDelegate {
 
 const ORGANIZATION_ID = 'org_1';
 
+/**
+ * Prisma types `metadata` as `JsonValue`; specs hand in loose records (and a
+ * bad-data string) on purpose, so the override drops the strict shape.
+ */
+type AttributionOverrides = Partial<
+  Omit<SubscriptionAttributionDocument, 'metadata'>
+> & {
+  metadata?: Record<string, unknown> | string | null;
+};
+
 function buildAttribution(
-  overrides: Partial<SubscriptionAttributionDocument> & {
-    metadata?: Record<string, unknown> | string | null;
-  } = {},
+  overrides: AttributionOverrides = {},
 ): SubscriptionAttributionDocument {
   const { metadata, ...rest } = overrides;
 
