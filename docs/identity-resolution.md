@@ -96,9 +96,9 @@ Clerk-shaped `publicMetadata`.
   `/v1/organizations/mine` against `api.genfeed.ai` with a real session tell
   you what each resolution path believes. Disagreement between them localizes
   the bug (cache vs resolver vs endpoint query).
-- Hosted deployment and production recovery are operated from the private
-  `genfeedai/console.genfeed.ai` repository. Public stable releases hand off the
-  exact pinned source SHA and wait for that private operation to succeed.
+- Hosted deployment jobs run from the public `genfeedai/genfeed.ai`
+  `Deploy hosted SaaS` / `Release` workflows. OpenTofu and recovery runbooks
+  stay in private `genfeedai/console.genfeed.ai` and are checked out at runtime.
 
 ## Related documents
 

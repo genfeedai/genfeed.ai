@@ -125,13 +125,13 @@ Full inventory verified per-package (package.json + entry read). Highlights:
 
 - **Public boundary:** application source, release validation, Community
   artifacts, and immutable server images remain here.
-- **Private boundary:** hosted infrastructure, credentials, deployment and
-  rollback implementation, production monitoring, and operational topology are
-  owned by `genfeedai/console.genfeed.ai`.
+- **Private boundary:** hosted OpenTofu, credentials, recovery runbooks,
+  production monitoring, and operational topology stay in
+  `genfeedai/console.genfeed.ai`. Deploy jobs run in this public repository
+  and check that private tree out at runtime.
 - **Release path:** the manual stable `release.yml` pins one `master` SHA, runs
-  the public verification and Community lanes, dispatches that exact SHA with a
-  unique correlation ID to the private hosted deployment workflow, and waits
-  for its definitive success before advancing release channels.
+  the public verification and Community lanes, then runs public
+  `Deploy hosted SaaS` for that SHA before advancing release channels.
 - **Frontend policy:** application-local `vercel.json` files remain public and
   keep Git auto-deploy disabled; production credentials and orchestration remain
   private.

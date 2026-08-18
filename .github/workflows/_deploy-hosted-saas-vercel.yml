@@ -1,0 +1,133 @@
+name: Deploy hosted SaaS Vercel frontends
+
+# Canonical production deploy path for Vercel-hosted frontends.
+# Vercel Git auto-deploy is disabled in each app's vercel.json; production
+# frontends deploy only through this workflow, after the public hosted-SaaS
+# engine has migrated, boot-smoked, and rolled the API/services.
+#
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: "exact public genfeed.ai source commit to build"
+        required: true
+        type: string
+      marketplace_source_sha:
+        description: "exact marketplace.genfeed.ai source commit to build"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: app.genfeed.ai
+            project_id: prj_1iMHTqANXgCLd3wALOFcWNtgrdAc
+            repository: genfeedai/genfeed.ai
+            source_sha: ${{ inputs.source_sha }}
+          - label: genfeed.ai
+            project_id: prj_77xnWYm4Fp3ngF1SpeuF5lwhOG7I
+            repository: genfeedai/genfeed.ai
+            source_sha: ${{ inputs.source_sha }}
+          - label: docs.genfeed.ai
+            project_id: prj_SdDiBAjBgxhqmsbDBZ6mmIOAnqUL
+            repository: genfeedai/genfeed.ai
+            source_sha: ${{ inputs.source_sha }}
+          - label: marketplace.genfeed.ai
+            project_id: prj_Ai18wq7yeWFy02jLGu0ulq1pfexS
+            repository: genfeedai/marketplace.genfeed.ai
+            source_sha: ${{ inputs.marketplace_source_sha }}
+    env:
+      # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
+      # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
+      # An empty buildId makes the App Router hard-reload on every navigation, so
+      # feed the exact selected source commit SHA as BUILD_ID (apps/app's next.config reads
+      # it first). The other frontends ignore this and keep Next's default buildId.
+      BUILD_ID: ${{ matrix.source_sha }}
+      VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
+      VERCEL_PROJECT_ID: ${{ matrix.project_id }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      # Same remote cache as public CI. Empty token is a no-op (turbo still builds).
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    steps:
+      - name: Checkout exact frontend source
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.source_sha }}
+          persist-credentials: false
+          token: ${{ matrix.repository == 'genfeedai/marketplace.genfeed.ai' && secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
+
+      - uses: ./.github/actions/setup-bun-env
+        with:
+          install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Vercel CLI
+        run: bun add --global vercel@54.4.1
+
+      - name: Pull Vercel production environment
+        run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+
+      - name: Validate and inject production frontend environment
+        run: |
+          env_file=".vercel/.env.production.local"
+          if [ ! -f "$env_file" ]; then
+            echo "::error::Vercel production environment file is missing."
+            exit 1
+          fi
+
+          if ! printf '%s' "$NEXT_PUBLIC_POSTHOG_KEY" | grep -Eq '^phc_[A-Za-z0-9]+$'; then
+            echo "::error::NEXT_PUBLIC_POSTHOG_KEY must be a valid PostHog project token."
+            exit 1
+          fi
+
+          awk '!/^(NEXT_PUBLIC_POSTHOG_KEY|NEXT_PUBLIC_POSTHOG_HOST)=/' "$env_file" > "${env_file}.tmp"
+          {
+            printf 'NEXT_PUBLIC_POSTHOG_KEY=%s\n' "$NEXT_PUBLIC_POSTHOG_KEY"
+            printf 'NEXT_PUBLIC_POSTHOG_HOST=%s\n' "$NEXT_PUBLIC_POSTHOG_HOST"
+          } >> "${env_file}.tmp"
+
+          if [ "$VERCEL_PROJECT_ID" = "prj_1iMHTqANXgCLd3wALOFcWNtgrdAc" ]; then
+            awk '!/^NEXT_PUBLIC_GENFEED_CLOUD=/' "${env_file}.tmp" > "${env_file}.app"
+            printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n' >> "${env_file}.app"
+            mv "${env_file}.app" "$env_file"
+          else
+            mv "${env_file}.tmp" "$env_file"
+          fi
+
+      - name: Preserve runner PATH for local Vercel build
+        run: |
+          env_file=".vercel/.env.production.local"
+          if [ -f "$env_file" ] && grep -q '^PATH=' "$env_file"; then
+            awk '!/^PATH=/' "$env_file" > "${env_file}.tmp"
+            mv "${env_file}.tmp" "$env_file"
+            echo "Removed reserved PATH from ${env_file}"
+          fi
+          command -v sh
+          command -v bun
+          command -v vercel
+
+      - name: Build ${{ matrix.label }}
+        run: vercel build --prod --token="${VERCEL_TOKEN}"
+
+      - name: Deploy ${{ matrix.label }}
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
+          echo "${url}"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+      - name: Deployment URL
+        run: echo "${{ matrix.label }} -> ${{ steps.deploy.outputs.url }}"
