@@ -32,17 +32,17 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AnalyticsService],
   imports: [
     // Core modules
-    forwardRef(() => CacheModule),
+    CacheModule,
 
     // Data modules (needed for controller and service)
-    forwardRef(() => BotsModule),
+    BotsModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => ModelsModule),
+    CreditsModule,
+    IngredientsModule,
+    ModelsModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
-    forwardRef(() => SubscriptionsModule),
+    SubscriptionsModule,
     forwardRef(() => UsersModule),
     forwardRef(() => WorkflowsModule),
 

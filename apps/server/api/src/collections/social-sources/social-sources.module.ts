@@ -2,15 +2,12 @@ import { SocialSourcesController } from '@api/collections/social-sources/control
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { SourceCollectorModule } from '@api/services/source-collector/source-collector.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [SocialSourcesController],
   exports: [SocialSourcesService],
-  imports: [
-    forwardRef(() => SourceCollectorModule),
-    forwardRef(() => SourcePostsModule),
-  ],
+  imports: [SourceCollectorModule, SourcePostsModule],
   providers: [SocialSourcesService],
 })
 export class SocialSourcesModule {}

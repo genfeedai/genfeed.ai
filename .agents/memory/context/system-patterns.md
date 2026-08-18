@@ -12,7 +12,11 @@ Attributes via `createEntityAttributes()` (adds timestamps + `isDeleted`); confi
 via `buildSerializer('server', config)`. Never return a raw Prisma record.
 
 **Modules** — `createServiceModule()` factory (pulls in ConfigModule + LoggerModule).
-Circular deps use `forwardRef(() => Module)`.
+`forwardRef(() => Module)` is only for an import that sits on a real cycle.
+One-way imports stay direct. The counted target is zero `forwardRef`s;
+`module-graph.spec.ts` fails a one-way wrapper and ratchets the remaining
+cycle edges down only. Split the ring (core module / `ModuleRef`) instead
+of raising the ceiling.
 
 **Multi-tenancy** — an EE/SaaS *product* boundary, enforced in the OSS API by design: the global
 `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) plus inline

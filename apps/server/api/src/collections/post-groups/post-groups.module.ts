@@ -9,7 +9,7 @@ import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.modul
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [PostGroupsController],
@@ -17,7 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
   // creates draft channel targets and needs the shared group-status recalc.
   exports: [PostGroupPersistenceService, PostGroupsService],
   imports: [
-    forwardRef(() => QueuesModule),
+    QueuesModule,
     // Readiness derivation is shared with every read surface. This is a
     // downward edge into a leaf, so it stays a plain import.
     CredentialsCoreModule,

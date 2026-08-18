@@ -4,14 +4,11 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AnnouncementsController } from '@api/endpoints/admin/announcements/announcements.controller';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AnnouncementsController],
-  imports: [
-    forwardRef(() => AnnouncementsCollectionModule),
-    forwardRef(() => CredentialsCoreModule),
-  ],
+  imports: [AnnouncementsCollectionModule, CredentialsCoreModule],
   providers: [AdminAnnouncementsService, IpWhitelistGuard, SuperAdminGuard],
 })
 export class AdminAnnouncementsModule {}

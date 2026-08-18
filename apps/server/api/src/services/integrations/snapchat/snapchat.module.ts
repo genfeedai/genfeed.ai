@@ -4,14 +4,10 @@ import { SnapchatController } from '@api/services/integrations/snapchat/controll
 import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(SnapchatService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

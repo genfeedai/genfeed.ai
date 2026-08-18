@@ -11,9 +11,9 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AiActionsService],
   imports: [
     forwardRef(() => AgentContextAssemblyModule),
-    forwardRef(() => ByokModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => OpenRouterModule),
+    ByokModule,
+    LoggerModule,
+    OpenRouterModule,
   ],
   providers: [AiActionsService],
 })

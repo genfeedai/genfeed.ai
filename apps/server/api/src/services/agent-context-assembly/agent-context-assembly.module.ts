@@ -12,12 +12,12 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AgentContextAssemblyService],
   imports: [
     forwardRef(() => BrandsModule),
-    forwardRef(() => BrandMemoryModule),
-    forwardRef(() => ContextsModule),
-    forwardRef(() => PatternMatcherModule),
-    forwardRef(() => CredentialsCoreModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => LoggerModule),
+    BrandMemoryModule,
+    ContextsModule,
+    PatternMatcherModule,
+    CredentialsCoreModule,
+    OrganizationSettingsModule,
+    LoggerModule,
   ],
   providers: [AgentContextAssemblyService],
 })

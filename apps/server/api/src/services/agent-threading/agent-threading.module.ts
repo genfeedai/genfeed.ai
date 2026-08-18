@@ -26,12 +26,12 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => AgentThreadsModule),
-    forwardRef(() => AgentMemoriesModule),
-    forwardRef(() => AgentMessagesModule),
+    AgentMemoriesModule,
+    AgentMessagesModule,
     forwardRef(() => UsersModule),
     forwardRef(() => AgentOrchestratorModule),
-    forwardRef(() => LlmDispatcherModule),
-    forwardRef(() => LoggerModule),
+    LlmDispatcherModule,
+    LoggerModule,
   ],
   providers: [
     AgentExecutionLaneService,

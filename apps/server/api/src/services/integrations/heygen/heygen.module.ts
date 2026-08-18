@@ -3,10 +3,10 @@ import { HeyGenController } from '@api/services/integrations/heygen/controllers/
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(HeyGenService, {
-  additionalImports: [HttpModule, forwardRef(() => ApiKeyHelperModule)],
+  additionalImports: [HttpModule, ApiKeyHelperModule],
 });
 
 @Module({

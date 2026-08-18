@@ -13,16 +13,16 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [IngredientsController, IngredientsRelationshipsController],
   exports: [IngredientGenerationCancellationService, IngredientsService],
   imports: [
     FoldersModule,
-    forwardRef(() => FailedGenerationModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => ReplicateModule),
+    FailedGenerationModule,
+    MetadataModule,
+    ReplicateModule,
   ],
   providers: [
     AssetAccessGuard,

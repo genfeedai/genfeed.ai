@@ -1,7 +1,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { DevController } from '@api/endpoints/dev/dev.controller';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * Dev module for development-only endpoints
@@ -11,9 +11,6 @@ import { forwardRef, Module } from '@nestjs/common';
  */
 @Module({
   controllers: [DevController],
-  imports: [
-    forwardRef(() => NotificationsModule),
-    forwardRef(() => IngredientsModule),
-  ],
+  imports: [NotificationsModule, IngredientsModule],
 })
 export class DevModule {}

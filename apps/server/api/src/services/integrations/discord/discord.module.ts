@@ -5,15 +5,15 @@ import { DiscordService } from '@api/services/integrations/discord/services/disc
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [DiscordController],
   exports: [DiscordService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsModule,
     ConfigModule,
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
     HttpModule,
     LoggerModule,
   ],

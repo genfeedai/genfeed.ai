@@ -11,7 +11,7 @@ const BaseModule = createServiceModule(GoogleAdsService, {
   additionalImports: [
     HttpModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
   ],
   additionalProviders: [GoogleAdsOAuthService],
 });

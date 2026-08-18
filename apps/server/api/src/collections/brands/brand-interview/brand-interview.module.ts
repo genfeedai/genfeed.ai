@@ -9,14 +9,14 @@
 import { BrandInterviewController } from '@api/collections/brands/brand-interview/controllers/brand-interview.controller';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [BrandInterviewController],
   exports: [BrandInterviewService],
   imports: [
     // CreditsUtilsService — swapped to OSS no-op in community mode
-    forwardRef(() => CreditsModule),
+    CreditsModule,
     // PrismaService, CacheInvalidationService, and LoggerService are all @Global
     // (PrismaModule, CacheModule, LoggerModule) so no local import needed.
   ],

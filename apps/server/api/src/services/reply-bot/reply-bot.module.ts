@@ -59,24 +59,24 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     // Configuration
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
+    ConfigModule,
+    LoggerModule,
 
-    forwardRef(() => BotActivitiesModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => MonitoredAccountsModule),
-    forwardRef(() => ProcessedTweetsModule),
+    BotActivitiesModule,
+    CreditsModule,
+    ModelsModule,
+    MonitoredAccountsModule,
+    ProcessedTweetsModule,
     // Collection modules
     forwardRef(() => ReplyBotConfigsModule),
 
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => ReplicateModule),
+    PromptBuilderModule,
+    ReplicateModule,
     // AI generation dependencies
-    forwardRef(() => TemplatesModule),
+    TemplatesModule,
 
     // Apify for multi-platform social media scraping (reading)
-    forwardRef(() => ApifyModule),
+    ApifyModule,
 
     // Official X API for Following / timelines when bearer is configured
     forwardRef(() => TwitterModule),

@@ -4,16 +4,16 @@ import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [WhisperService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => FileQueueModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => ReplicateModule),
+    ConfigModule,
+    FileQueueModule,
+    HttpModule,
+    LoggerModule,
+    ReplicateModule,
   ],
   providers: [WhisperService],
 })

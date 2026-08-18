@@ -6,12 +6,12 @@
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [BotActivitiesController],
   exports: [BotActivitiesService],
-  imports: [forwardRef(() => FeatureFlagModule)],
+  imports: [FeatureFlagModule],
   providers: [BotActivitiesService],
 })
 export class BotActivitiesModule {}

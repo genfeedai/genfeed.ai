@@ -3,10 +3,10 @@ import { OpusProController } from '@api/services/integrations/opuspro/controller
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(OpusProService, {
-  additionalImports: [HttpModule, forwardRef(() => ApiKeyHelperModule)],
+  additionalImports: [HttpModule, ApiKeyHelperModule],
 });
 
 @Module({

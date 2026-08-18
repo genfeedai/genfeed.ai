@@ -38,7 +38,7 @@ import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -64,32 +64,32 @@ import { forwardRef, Module } from '@nestjs/common';
     YouTubePublisherService,
   ],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => HttpModule),
-    forwardRef(() => LoggerModule),
+    ConfigModule,
+    HttpModule,
+    LoggerModule,
 
     // Platform integration modules
-    forwardRef(() => BeehiivModule),
-    forwardRef(() => FacebookModule),
-    forwardRef(() => FanvueModule),
-    forwardRef(() => GhostModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
-    forwardRef(() => MastodonModule),
-    forwardRef(() => PinterestModule),
-    forwardRef(() => RedditModule),
-    forwardRef(() => ShopifyModule),
-    forwardRef(() => SnapchatModule),
-    forwardRef(() => ThreadsModule),
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => WhatsappModule),
-    forwardRef(() => WordpressModule),
-    forwardRef(() => YoutubeModule),
+    BeehiivModule,
+    FacebookModule,
+    FanvueModule,
+    GhostModule,
+    InstagramModule,
+    LinkedInModule,
+    MastodonModule,
+    PinterestModule,
+    RedditModule,
+    ShopifyModule,
+    SnapchatModule,
+    ThreadsModule,
+    TiktokModule,
+    TwitterModule,
+    WhatsappModule,
+    WordpressModule,
+    YoutubeModule,
 
     // Data modules
-    forwardRef(() => CredentialsCoreModule),
-    forwardRef(() => PostsModule),
+    CredentialsCoreModule,
+    PostsModule,
   ],
   providers: [
     BeehiivPublisherService,

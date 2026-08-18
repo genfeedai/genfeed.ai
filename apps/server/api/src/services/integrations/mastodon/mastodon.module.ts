@@ -4,14 +4,10 @@ import { MastodonController } from '@api/services/integrations/mastodon/controll
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(MastodonService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

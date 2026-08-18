@@ -15,23 +15,23 @@ import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
-    forwardRef(() => AvatarVideoModule),
-    forwardRef(() => WebhooksModule),
-    forwardRef(() => TasksModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => IngredientsModule),
+    AvatarVideoModule,
+    WebhooksModule,
+    TasksModule,
+    MetadataModule,
+    IngredientsModule,
   ],
   imports: [
-    forwardRef(() => LoggerModule),
-    forwardRef(() => AvatarVideoModule),
-    forwardRef(() => WebhooksModule),
-    forwardRef(() => TasksModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => IngredientsModule),
+    LoggerModule,
+    AvatarVideoModule,
+    WebhooksModule,
+    TasksModule,
+    MetadataModule,
+    IngredientsModule,
   ],
 })
 export class HeygenPollModule {}

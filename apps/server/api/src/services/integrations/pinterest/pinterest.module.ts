@@ -10,7 +10,7 @@ const BaseModule = createServiceModule(PinterestService, {
   additionalImports: [
     HttpModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
   ],
 });
 

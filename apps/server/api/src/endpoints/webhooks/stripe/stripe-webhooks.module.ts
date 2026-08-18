@@ -26,25 +26,25 @@ import { createServiceModule } from '@api/shared/service-module.factory';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';
-import { forwardRef, Module, type Provider } from '@nestjs/common';
+import { Module, type Provider } from '@nestjs/common';
 
 const BaseModule = createServiceModule(StripeWebhookService, {
   additionalImports: [
-    forwardRef(() => ActivitiesModule),
-    forwardRef(() => ApiKeysModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CommonModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CustomersModule),
-    forwardRef(() => LifecycleEmailsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => StripeModule),
-    forwardRef(() => SubscriptionAttributionsModule),
-    forwardRef(() => SubscriptionsModule),
-    forwardRef(() => UserSubscriptionsModule),
-    forwardRef(() => UserSetupModule),
-    forwardRef(() => UsersModule),
+    ActivitiesModule,
+    ApiKeysModule,
+    BrandsModule,
+    CommonModule,
+    CreditsModule,
+    CustomersModule,
+    LifecycleEmailsModule,
+    OrganizationSettingsModule,
+    OrganizationsModule,
+    StripeModule,
+    SubscriptionAttributionsModule,
+    SubscriptionsModule,
+    UserSubscriptionsModule,
+    UserSetupModule,
+    UsersModule,
     RedisModule.forRoot({
       configModule: ConfigModule,
       configService: ConfigService,

@@ -12,7 +12,7 @@ import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';
 import type { Provider } from '@nestjs/common';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(LlmDispatcherService, {
   additionalExports: [
@@ -20,10 +20,10 @@ const BaseModule = createServiceModule(LlmDispatcherService, {
     LlmVendorCostLedgerService,
   ],
   additionalImports: [
-    forwardRef(() => AnthropicModule),
-    forwardRef(() => OpenAiLlmModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => ByokModule),
+    AnthropicModule,
+    OpenAiLlmModule,
+    OpenRouterModule,
+    ByokModule,
   ],
   additionalProviders: [
     LlmCompletionTelemetryService,
@@ -39,7 +39,7 @@ const BaseModule = createServiceModule(LlmDispatcherService, {
       configModule: ConfigModule,
       configService: ConfigService,
     }),
-    forwardRef(() => PollUntilModule),
+    PollUntilModule,
   ],
   providers: [
     ...((BaseModule.providers ?? []) as Provider[]),

@@ -4,14 +4,10 @@ import { FanvueController } from '@api/services/integrations/fanvue/controllers/
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(FanvueService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

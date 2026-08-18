@@ -22,7 +22,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -35,17 +35,17 @@ import { forwardRef, Module } from '@nestjs/common';
     TriggerEvaluatorService,
   ],
   imports: [
-    forwardRef(() => LoggerModule),
-    forwardRef(() => AgentCampaignsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => AgentStrategiesModule),
-    forwardRef(() => AgentGoalsModule),
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => AgentMemoriesModule),
-    forwardRef(() => AnalyticsModule),
-    forwardRef(() => TrendsModule),
-    forwardRef(() => QueuesModule),
-    forwardRef(() => AgentRuntimeModule),
+    LoggerModule,
+    AgentCampaignsModule,
+    BrandsModule,
+    AgentStrategiesModule,
+    AgentGoalsModule,
+    AgentRunsModule,
+    AgentMemoriesModule,
+    AnalyticsModule,
+    TrendsModule,
+    QueuesModule,
+    AgentRuntimeModule,
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

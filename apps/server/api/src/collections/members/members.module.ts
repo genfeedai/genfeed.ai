@@ -11,7 +11,7 @@ import { InvitationService } from '@api/collections/members/services/invitation.
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -20,10 +20,7 @@ import { forwardRef, Module } from '@nestjs/common';
     TeamMentionsController,
   ],
   exports: [InvitationService, MembersService],
-  imports: [
-    forwardRef(() => NotificationsModule),
-    forwardRef(() => RolesModule),
-  ],
+  imports: [NotificationsModule, RolesModule],
   providers: [InvitationService, MembersService],
 })
 export class MembersModule {}

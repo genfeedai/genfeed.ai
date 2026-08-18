@@ -26,7 +26,7 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -36,19 +36,19 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [ExternalVoiceCatalogService, VoicesService],
   imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
+    IngredientsModule,
+    MetadataModule,
+    CreditsModule,
+    ModelsModule,
 
-    forwardRef(() => ByokModule),
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => FailedGenerationModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => FleetModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => VotesModule),
+    ByokModule,
+    ElevenLabsModule,
+    FailedGenerationModule,
+    FilesClientModule,
+    FleetModule,
+    HeyGenModule,
+    NotificationsPublisherModule,
+    VotesModule,
   ],
   providers: [
     ExternalVoiceCatalogService,

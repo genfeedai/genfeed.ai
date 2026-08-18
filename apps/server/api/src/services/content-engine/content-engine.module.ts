@@ -8,19 +8,19 @@ import { ContentPlannerService } from '@api/services/content-engine/content-plan
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentEngineController],
   exports: [ContentPlannerService, ContentExecutionService],
   imports: [
-    forwardRef(() => ContentPlansModule),
-    forwardRef(() => ContentPlanItemsModule),
-    forwardRef(() => PostsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => LlmDispatcherModule),
-    forwardRef(() => SkillExecutorModule),
-    forwardRef(() => ContentOrchestrationModule),
+    ContentPlansModule,
+    ContentPlanItemsModule,
+    PostsModule,
+    BrandsModule,
+    LlmDispatcherModule,
+    SkillExecutorModule,
+    ContentOrchestrationModule,
   ],
   providers: [ContentPlannerService, ContentExecutionService],
 })

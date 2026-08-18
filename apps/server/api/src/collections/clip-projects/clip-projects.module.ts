@@ -8,7 +8,7 @@ import { EditorProjectsModule } from '@api/collections/editor-projects/editor-pr
 import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { ClipFactoryModule } from '@api/queues/clip-factory/clip-factory.module';
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -18,13 +18,13 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [ClipProjectsCoreModule],
   imports: [
-    forwardRef(() => ClipProjectsCoreModule),
-    forwardRef(() => ClipResultsModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => EditorProjectsModule),
-    forwardRef(() => ClipAnalyzeModule),
-    forwardRef(() => ClipFactoryModule),
-    forwardRef(() => ClipOrchestratorModule),
+    ClipProjectsCoreModule,
+    ClipResultsModule,
+    CreditsModule,
+    EditorProjectsModule,
+    ClipAnalyzeModule,
+    ClipFactoryModule,
+    ClipOrchestratorModule,
   ],
 })
 export class ClipProjectsModule {}

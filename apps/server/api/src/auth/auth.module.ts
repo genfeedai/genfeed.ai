@@ -20,7 +20,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 @Module({
@@ -31,24 +31,24 @@ import { PassportModule } from '@nestjs/passport';
   ],
   exports: [PassportModule],
   imports: [
-    forwardRef(() => PassportModule),
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => ApiKeysModule),
-    forwardRef(() => BatchGenerationModule),
-    forwardRef(() => BetterAuthModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CommonModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CredentialsCoreModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => PostsModule),
-    forwardRef(() => StreaksModule),
-    forwardRef(() => SubscriptionsModule),
-    forwardRef(() => UserSetupModule),
-    forwardRef(() => UsersModule),
+    PassportModule,
+    AgentRunsModule,
+    ApiKeysModule,
+    BatchGenerationModule,
+    BetterAuthModule,
+    BrandsModule,
+    CommonModule,
+    ConfigModule,
+    CredentialsCoreModule,
+    CreditsModule,
+    MembersModule,
+    OrganizationsModule,
+    OrganizationSettingsModule,
+    PostsModule,
+    StreaksModule,
+    SubscriptionsModule,
+    UserSetupModule,
+    UsersModule,
   ],
   providers: [AuthBootstrapService, AuthDesktopService],
 })

@@ -9,10 +9,10 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [ContentQualityScorerService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => IngredientsModule),
+    ConfigModule,
+    LoggerModule,
+    OpenRouterModule,
+    IngredientsModule,
     forwardRef(() => PostsModule),
   ],
   providers: [ContentQualityScorerService],

@@ -7,16 +7,16 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [MCPController],
   imports: [
-    forwardRef(() => AnalyticsModule),
-    forwardRef(() => ByokModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => VideosModule),
+    AnalyticsModule,
+    ByokModule,
+    CreditsModule,
+    ModelsModule,
+    VideosModule,
   ],
   providers: [CreditsGuard, ModelsGuard, CreditsInterceptor],
 })

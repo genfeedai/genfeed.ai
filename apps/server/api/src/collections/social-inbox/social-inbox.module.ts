@@ -23,8 +23,8 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => InstagramModule),
     LinkedInModule,
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => QueuesModule),
+    NotificationsPublisherModule,
+    QueuesModule,
     TwitterModule,
     forwardRef(() => WorkflowsModule),
     forwardRef(() => YoutubeModule),

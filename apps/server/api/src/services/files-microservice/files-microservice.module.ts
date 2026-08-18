@@ -1,6 +1,6 @@
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * FilesMicroserviceModule
@@ -10,9 +10,6 @@ import { forwardRef, Module } from '@nestjs/common';
  */
 @Module({
   exports: [FilesClientModule, FileQueueModule],
-  imports: [
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => FileQueueModule),
-  ],
+  imports: [FilesClientModule, FileQueueModule],
 })
 export class FilesMicroserviceModule {}

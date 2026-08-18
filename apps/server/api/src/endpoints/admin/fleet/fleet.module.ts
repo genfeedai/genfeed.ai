@@ -31,7 +31,7 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -41,22 +41,22 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [AdminFleetService],
   imports: [
-    forwardRef(() => BrandsModule),
-    forwardRef(() => ContentIntelligenceModule),
-    forwardRef(() => PersonasModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => TrainingsModule),
-    forwardRef(() => CredentialsCoreModule),
-    forwardRef(() => FleetModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => ComfyUIModule),
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => FacebookModule),
+    BrandsModule,
+    ContentIntelligenceModule,
+    PersonasModule,
+    IngredientsModule,
+    ModelsModule,
+    OrganizationSettingsModule,
+    TrainingsModule,
+    CredentialsCoreModule,
+    FleetModule,
+    FilesClientModule,
+    ComfyUIModule,
+    ElevenLabsModule,
+    HeyGenModule,
+    InstagramModule,
+    TwitterModule,
+    FacebookModule,
   ],
   providers: [
     AdminFleetService,

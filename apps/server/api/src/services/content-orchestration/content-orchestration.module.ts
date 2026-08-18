@@ -18,27 +18,27 @@ import { SharedModule } from '@api/shared/shared.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentOrchestrationController],
   exports: [ContentOrchestrationService, ContentqueryQueueService],
   imports: [
-    forwardRef(() => ConfigModule),
-    forwardRef(() => LoggerModule),
-    forwardRef(() => ByokModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => FalModule),
-    forwardRef(() => FleetModule),
-    forwardRef(() => HiggsFieldModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => PersonaContentModule),
-    forwardRef(() => PersonasModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => SharedModule),
+    ConfigModule,
+    LoggerModule,
+    ByokModule,
+    BrandsModule,
+    ElevenLabsModule,
+    FalModule,
+    FleetModule,
+    HiggsFieldModule,
+    ReplicateModule,
+    PersonaContentModule,
+    PersonasModule,
+    IngredientsModule,
+    MetadataModule,
+    FilesClientModule,
+    SharedModule,
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

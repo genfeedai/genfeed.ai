@@ -11,7 +11,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContextsController],
@@ -21,11 +21,11 @@ import { forwardRef, Module } from '@nestjs/common';
     KnowledgeSourceService,
   ],
   imports: [
-    forwardRef(() => ByokModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => KnowledgeSourceIngestQueueModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => RouterModule),
+    ByokModule,
+    ConfigModule,
+    KnowledgeSourceIngestQueueModule,
+    ReplicateModule,
+    RouterModule,
   ],
   providers: [
     ContextsService,

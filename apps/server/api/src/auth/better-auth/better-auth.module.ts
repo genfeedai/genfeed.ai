@@ -13,7 +13,7 @@ import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
 // Value import: consumed through the `inject` array below, not just as a type.
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
 
@@ -46,12 +46,12 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
 @Module({
   exports: [BetterAuthService, BetterAuthStrategy, PassportModule],
   imports: [
-    forwardRef(() => PassportModule),
-    forwardRef(() => UsersModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => UserSetupModule),
+    PassportModule,
+    UsersModule,
+    OrganizationsModule,
+    BrandsModule,
+    MembersModule,
+    UserSetupModule,
     CacheModule,
     CommonModule,
     LifecycleEmailsModule,

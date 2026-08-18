@@ -14,10 +14,10 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(YoutubeService, {
   additionalImports: [
-    forwardRef(() => FileQueueModule),
-    forwardRef(() => TagResolutionModule),
+    FileQueueModule,
+    TagResolutionModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsCoreModule),
+    CredentialsCoreModule,
   ],
   additionalProviders: [
     YoutubeAuthService,
