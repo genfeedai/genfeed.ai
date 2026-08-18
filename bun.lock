@@ -159,7 +159,7 @@
         "tailwind-merge": "3.6.0",
         "tsconfig-paths-webpack-plugin": "4.2.0",
         "turbo": "2.10.9",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "unplugin-swc": "1.5.11",
         "vitest": "4.1.10",
         "webpack": "5.109.2",
@@ -215,7 +215,7 @@
         "@types/react-dom": "19.2.4",
         "@typescript/native": "npm:typescript@7.0.2",
         "esbuild": "0.28.2",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "apps/desktop/app": {
@@ -238,7 +238,7 @@
         "electron-builder": "26.15.3",
         "electron-updater": "6.8.9",
         "esbuild": "0.28.2",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "apps/docs": {
@@ -258,7 +258,7 @@
         "@types/react": "19.2.18",
         "@typescript/native": "npm:typescript@7.0.2",
         "prettier": "3.9.6",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "apps/extensions/browser/app": {
@@ -650,7 +650,7 @@
         "@types/react": "19.2.18",
         "@types/react-dom": "19.2.4",
         "@typescript/native": "npm:typescript@7.0.2",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "packages/agent": {
@@ -882,7 +882,7 @@
         "@types/node": "24.13.3",
         "@typescript/native": "npm:typescript@7.0.2",
         "tsup": "8.5.1",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "packages/fonts": {
@@ -902,7 +902,7 @@
         "@types/node": "24.13.3",
         "@typescript/native": "npm:typescript@7.0.2",
         "tsup": "8.5.1",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "packages/helpers": {
@@ -1167,7 +1167,7 @@
         "@typescript/native": "npm:typescript@7.0.2",
         "@xyflow/react": "12.11.3",
         "tsup": "8.5.1",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
       },
     },
     "packages/ui": {
@@ -1321,7 +1321,7 @@
         "react-compare-slider": "4.0.0",
         "react-dom": "19.2.8",
         "tsup": "8.5.1",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "vitest": "4.1.10",
         "zundo": "2.3.0",
         "zustand": "5.0.15",
@@ -7456,7 +7456,7 @@
 
     "types-ramda": ["types-ramda@0.30.1", "", { "dependencies": { "ts-toolbelt": "^9.6.0" } }, "sha512-1HTsf5/QVRmLzcGfldPFvkVsAdi1db1BBKzi7iW3KBUlOICg/nKnFS+jGqDJS3YD8VsWbAh7JiHeBvbsw8RPxA=="],
 
-    "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+    "typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
     "ua-parser-js": ["ua-parser-js@0.7.41", "", { "bin": { "ua-parser-js": "script/cli.js" } }, "sha512-O3oYyCMPYgNNHuO7Jjk3uacJWZF8loBgwrfd/5LE/HyZ3lUIOdniQ7DNXJcIgZbwioZxk0fLfI4EVnetdiX5jg=="],
 
@@ -8579,6 +8579,8 @@
     "@unrs/resolver-binding-wasm32-wasi/@emnapi/runtime": ["@emnapi/runtime@1.10.0", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA=="],
 
     "@unrs/resolver-binding-wasm32-wasi/@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.2", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.3", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.3" } }, "sha512-JfB4kuJQjaoHuCTseIINHtHWeJnvgEcxjwA5t/Y00ZgaOO1Crz3fjT/p8kT28zA/Caz7oiUMn3d6H2yOVCVwuw=="],
+
+    "@virmator/core/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "@visx/vendor/@types/d3-interpolate": ["@types/d3-interpolate@3.0.1", "", { "dependencies": { "@types/d3-color": "*" } }, "sha512-jx5leotSeac3jr0RePOH1KdR9rISG91QIE4Q2PYTu4OymLTZfA3SrnURSLzKH48HmXVUru50b8nje4E79oQSQw=="],
 

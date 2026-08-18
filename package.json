@@ -210,7 +210,7 @@
     "tailwind-merge": "3.6.0",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "turbo": "2.10.9",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "unplugin-swc": "1.5.11",
     "vitest": "4.1.10",
     "webpack": "5.109.2",
