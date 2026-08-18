@@ -30,14 +30,13 @@ function expiredTombstoneWhere(organizationId: string) {
   };
 }
 
-function expiredThreadWhere(organizationId: string) {
+function expiredThreadWhere(
+  organizationId: string,
+  threadIds: string[] = ['thread-expired-1'],
+) {
   return {
     organizationId,
-    thread: {
-      isDeleted: true,
-      organizationId,
-      updatedAt: { lt: CUTOFF },
-    },
+    threadId: { in: threadIds },
   };
 }
 
@@ -100,9 +99,9 @@ describe('CronTranscriptPurgeService', () => {
   });
 
   it('purges expired soft-deleted transcript fields per organization', async () => {
-    prisma.agentThread.findMany.mockResolvedValue([
-      { organizationId: 'org-1' },
-    ]);
+    prisma.agentThread.findMany
+      .mockResolvedValueOnce([{ organizationId: 'org-1' }])
+      .mockResolvedValueOnce([{ id: 'thread-expired-1' }]);
     prisma.agentMessage.updateMany
       .mockResolvedValueOnce({ count: 2 })
       .mockResolvedValueOnce({ count: 1 });
@@ -181,18 +180,18 @@ describe('CronTranscriptPurgeService', () => {
     for (const [args] of tombstoneCalls) {
       const where = args.where as {
         isDeleted?: boolean;
-        thread?: { isDeleted?: boolean; updatedAt?: { lt: Date } };
+        thread?: unknown;
+        threadId?: { in: string[] };
         updatedAt?: { lt: Date };
       };
 
       const isExpiredTombstone =
         where.isDeleted === true &&
         where.updatedAt?.lt.getTime() === CUTOFF.getTime();
-      const isExpiredDeletedThread =
-        where.thread?.isDeleted === true &&
-        where.thread.updatedAt?.lt.getTime() === CUTOFF.getTime();
+      const isExpiredDeletedThread = Array.isArray(where.threadId?.in);
 
       expect(isExpiredTombstone || isExpiredDeletedThread).toBe(true);
+      expect(where.thread).toBeUndefined();
       expect(where.isDeleted).not.toBe(false);
     }
   });
@@ -220,9 +219,10 @@ describe('CronTranscriptPurgeService', () => {
       { organizationId: 'org-a' },
       { organizationId: 'org-b' },
     ]);
-    prisma.agentThread.findMany.mockResolvedValue([
-      { organizationId: 'org-a' },
-    ]);
+    prisma.agentThread.findMany
+      .mockResolvedValueOnce([{ organizationId: 'org-a' }])
+      .mockResolvedValueOnce([{ id: 'thread-a' }])
+      .mockResolvedValueOnce([{ id: 'thread-b' }]);
 
     await service.purgeExpiredTranscripts(NOW);
 
@@ -246,10 +246,13 @@ describe('CronTranscriptPurgeService', () => {
   });
 
   it('isolates one organization failure and keeps purging the rest', async () => {
-    prisma.agentThread.findMany.mockResolvedValue([
-      { organizationId: 'org-bad' },
-      { organizationId: 'org-ok' },
-    ]);
+    prisma.agentThread.findMany
+      .mockResolvedValueOnce([
+        { organizationId: 'org-bad' },
+        { organizationId: 'org-ok' },
+      ])
+      .mockResolvedValueOnce([{ id: 'thread-bad' }])
+      .mockResolvedValueOnce([{ id: 'thread-ok' }]);
     prisma.agentMessage.updateMany.mockImplementation(
       ({ where }: { where: { organizationId: string } }) => {
         if (where.organizationId === 'org-bad') {

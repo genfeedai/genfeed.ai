@@ -134,13 +134,19 @@ export class CronTranscriptPurgeService {
       isDeleted: true,
       updatedAt: { lt: cutoff },
     });
-    const expiredThread = {
-      organizationId,
-      thread: scopedWhere(organizationId, {
-        isDeleted: true,
-        updatedAt: { lt: cutoff },
-      }),
-    };
+    const expiredThreadIds = (
+      await this.prisma.agentThread.findMany({
+        select: { id: true },
+        where: expiredRow,
+      })
+    ).map((row) => row.id);
+    const expiredThreadChildren =
+      expiredThreadIds.length > 0
+        ? {
+            organizationId,
+            threadId: { in: expiredThreadIds },
+          }
+        : null;
 
     const [
       expiredThreads,
@@ -163,42 +169,52 @@ export class CronTranscriptPurgeService {
         data: { content: null },
         where: expiredRow,
       }),
-      this.prisma.agentMessage.updateMany({
-        data: { content: null },
-        where: expiredThread,
-      }),
+      expiredThreadChildren
+        ? this.prisma.agentMessage.updateMany({
+            data: { content: null },
+            where: expiredThreadChildren,
+          })
+        : noRows,
       this.prisma.agentThreadEvent.updateMany({
         data: { data: Prisma.DbNull },
         where: expiredRow,
       }),
-      this.prisma.agentThreadEvent.updateMany({
-        data: { data: Prisma.DbNull },
-        where: expiredThread,
-      }),
+      expiredThreadChildren
+        ? this.prisma.agentThreadEvent.updateMany({
+            data: { data: Prisma.DbNull },
+            where: expiredThreadChildren,
+          })
+        : noRows,
       this.prisma.agentRun.updateMany({
         data: { objective: null },
         where: expiredRow,
       }),
-      this.prisma.agentRun.updateMany({
-        data: { objective: null },
-        where: expiredThread,
-      }),
+      expiredThreadChildren
+        ? this.prisma.agentRun.updateMany({
+            data: { objective: null },
+            where: expiredThreadChildren,
+          })
+        : noRows,
       this.prisma.agentThreadSnapshot.updateMany({
         data: { data: EMPTY_JSON },
         where: expiredRow,
       }),
-      this.prisma.agentThreadSnapshot.updateMany({
-        data: { data: EMPTY_JSON },
-        where: expiredThread,
-      }),
+      expiredThreadChildren
+        ? this.prisma.agentThreadSnapshot.updateMany({
+            data: { data: EMPTY_JSON },
+            where: expiredThreadChildren,
+          })
+        : noRows,
       this.prisma.threadContextState.updateMany({
         data: { data: EMPTY_JSON },
         where: expiredRow,
       }),
-      this.prisma.threadContextState.updateMany({
-        data: { data: EMPTY_JSON },
-        where: expiredThread,
-      }),
+      expiredThreadChildren
+        ? this.prisma.threadContextState.updateMany({
+            data: { data: EMPTY_JSON },
+            where: expiredThreadChildren,
+          })
+        : noRows,
     ]);
 
     return {
@@ -211,6 +227,8 @@ export class CronTranscriptPurgeService {
     };
   }
 }
+
+const noRows = Promise.resolve({ count: 0 });
 
 function emptyTotals(): TranscriptPurgeTotals {
   return {
