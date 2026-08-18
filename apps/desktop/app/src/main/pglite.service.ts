@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
-import { PGlite } from '@electric-sql/pglite';
+import type { PGlite } from '@electric-sql/pglite';
 import { runDesktopPrismaMigrations } from '@genfeedai/desktop-prisma';
+import { bootPGlite } from './pglite-boot.util';
 
 const DESKTOP_SCHEMA_BASELINE_VERSION = 1;
 type DesktopSchemaBaselineState = 'newer' | 'supported' | 'unsupported';
@@ -64,11 +65,9 @@ export class DesktopPgliteService {
   }
 
   private async openDatabase(): Promise<PGlite> {
-    let pglite = new PGlite({ dataDir: this.dataDir });
+    let pglite = await bootPGlite({ dataDir: this.dataDir });
 
     try {
-      await pglite.waitReady;
-
       const baselineState = await this.readBaselineState(pglite);
 
       if (baselineState === 'newer') {
@@ -81,8 +80,7 @@ export class DesktopPgliteService {
         await pglite.close();
         await fs.rm(this.dataDir, { force: true, recursive: true });
         this.resetUnsupportedDatabase = true;
-        pglite = new PGlite({ dataDir: this.dataDir });
-        await pglite.waitReady;
+        pglite = await bootPGlite({ dataDir: this.dataDir });
       }
 
       await runDesktopPrismaMigrations(pglite);

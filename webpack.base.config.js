@@ -163,6 +163,12 @@ module.exports = function createWebpackConfig({
       }),
       // Explicitly externalize NestJS optional peer dependencies and problematic modules
       {
+        // @better-auth/infra lazily imports its enterprise add-ons (SCIM
+        // catalog, SAML policy via @better-auth/sso) behind runtime guards.
+        // Neither package is installed here, so leave the guarded imports
+        // out of the bundle instead of failing resolution at build time.
+        '@better-auth/scim': 'commonjs @better-auth/scim',
+        '@better-auth/sso': 'commonjs @better-auth/sso',
         '@fastify/static': 'commonjs @fastify/static',
         '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
         '@grpc/proto-loader': 'commonjs @grpc/proto-loader',
