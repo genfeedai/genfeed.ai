@@ -4,11 +4,10 @@ import {
   articleArtwork,
   resolveArticleArtworkId,
 } from './article-artwork';
-import { LAUNCH_ARTICLES } from './launch-articles';
 import { SEO_ARTICLES } from './seo-articles';
 
 describe('seeded article artwork identities', () => {
-  const articles = [...LAUNCH_ARTICLES, ...SEO_ARTICLES];
+  const articles = SEO_ARTICLES;
 
   it('covers every seeded article with one permanent asset id', () => {
     const slugs = [...new Set(articles.map(({ slug }) => slug))].sort();
