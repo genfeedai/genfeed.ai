@@ -49,6 +49,25 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
   assert.match(workflow, /playwright-full-screenshots/);
   assert.match(workflow, /playwright-full-json-/);
   assert.match(workflow, /--playwright-reports-dir=/);
+
+  const shardJsonDownload = workflow.match(
+    /^ {6}- name: Download shard JSON reports\n((?: {8}.*\n|\n)+)/m,
+  );
+  assert.ok(
+    shardJsonDownload,
+    'the full-tier summary must download every shard JSON artifact',
+  );
+  assert.match(shardJsonDownload[0], /pattern: playwright-full-json-\*/);
+  assert.match(
+    shardJsonDownload[0],
+    /path: playwright\/artifacts\/report\/shards\//,
+  );
+  assert.doesNotMatch(
+    shardJsonDownload[0],
+    /merge-multiple:\s*true/,
+    'same-name results.json files must stay in per-artifact directories',
+  );
+
   assert.doesNotMatch(
     workflow,
     /--reporter=blob/,

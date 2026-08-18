@@ -32,13 +32,23 @@ import {
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { IChannelTargetError } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import {
+  createChannelTargetError,
+  createFailedPublishResult,
+  createPublishFailedActivity,
+  createQuotaExceededActivity,
+  getPublishErrorCode,
+  getPublishErrorMessage,
+  isRetryablePublishError,
+  type QueuedPostPublishSkip,
+  type QuotaCheckResult,
+} from '@workers/crons/posts/post-publish-error.util';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
@@ -49,17 +59,6 @@ import {
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
-
-type QuotaCheckResult = {
-  allowed: boolean;
-  currentCount: number;
-  dailyLimit: number;
-};
-
-type QueuedPostPublishSkip = {
-  reason: 'not_eligible';
-  skipped: true;
-};
 
 @Injectable()
 export class CronPostsService {
@@ -256,7 +255,7 @@ export class CronPostsService {
     );
     this.emitPublishFailedWebhook(post, errorMessage);
 
-    return this.createFailedResult('', errorMessage);
+    return createFailedPublishResult('', errorMessage);
   }
 
   private async persistPublishState(
@@ -281,51 +280,6 @@ export class CronPostsService {
       requestedState: update.executionState,
     });
     return false;
-  }
-
-  private createTargetError(
-    code: string,
-    message: string,
-    isRetryable: boolean,
-  ): IChannelTargetError {
-    return {
-      code,
-      failedAt: new Date().toISOString(),
-      isRetryable,
-      message,
-    };
-  }
-
-  private errorCode(error: unknown): string {
-    const message = this.errorMessage(error).toLowerCase();
-    const rawCode =
-      error && typeof error === 'object' && 'code' in error
-        ? String((error as { code?: unknown }).code ?? '').toLowerCase()
-        : '';
-    const classificationText = `${rawCode} ${message}`;
-    if (
-      classificationText.includes('rate limit') ||
-      classificationText.includes('429')
-    ) {
-      return 'rate_limited';
-    }
-    if (
-      classificationText.includes('timeout') ||
-      classificationText.includes('timed out') ||
-      classificationText.includes('etimedout')
-    ) {
-      return 'timeout';
-    }
-    if (/\b(500|502|503|504)\b/.test(classificationText)) {
-      return 'provider_unavailable';
-    }
-    return rawCode.replace(/[^a-z0-9]+/g, '_') || 'provider_error';
-  }
-
-  private errorMessage(error: unknown): string {
-    return error instanceof Error
-      ? error.message
-      : String(error || 'Post failed');
   }
 
   private async publishSinglePost(
@@ -365,7 +319,7 @@ export class CronPostsService {
         await this.persistPublishState(
           post,
           {
-            error: this.createTargetError(
+            error: createChannelTargetError(
               'credential_not_found',
               'Credential not found',
               false,
@@ -375,7 +329,7 @@ export class CronPostsService {
           'Credential not found',
         );
         this.emitPublishFailedWebhook(post, 'Credential not found');
-        return this.createFailedResult('', 'Credential not found');
+        return createFailedPublishResult('', 'Credential not found');
       }
 
       // Get organization
@@ -390,7 +344,7 @@ export class CronPostsService {
         await this.persistPublishState(
           post,
           {
-            error: this.createTargetError(
+            error: createChannelTargetError(
               'organization_not_found',
               'Organization not found',
               false,
@@ -400,7 +354,7 @@ export class CronPostsService {
           'Organization not found',
         );
         this.emitPublishFailedWebhook(post, 'Organization not found');
-        return this.createFailedResult('', 'Organization not found');
+        return createFailedPublishResult('', 'Organization not found');
       }
 
       // Re-derive readiness at consume time rather than trusting the verdict
@@ -440,7 +394,7 @@ export class CronPostsService {
             // `isRetryable` is recorded for operator tooling, not acted on:
             // retrying a disconnected channel three minutes later changes
             // nothing, so the target is failed outright either way.
-            error: this.createTargetError(
+            error: createChannelTargetError(
               blocking?.code ?? 'channel_not_ready',
               readinessError,
               readiness?.isRetryable ?? false,
@@ -455,7 +409,7 @@ export class CronPostsService {
           credential.platform,
         );
 
-        return this.createFailedResult(credential.platform, readinessError);
+        return createFailedPublishResult(credential.platform, readinessError);
       }
 
       // Check quota
@@ -474,7 +428,7 @@ export class CronPostsService {
         await this.persistPublishState(
           post,
           {
-            error: this.createTargetError(
+            error: createChannelTargetError(
               'quota_exceeded',
               'Quota exceeded',
               false,
@@ -483,10 +437,8 @@ export class CronPostsService {
           },
           'Quota exceeded',
         );
-        await this.logQuotaExceededActivity(
-          post,
-          quotaCheck,
-          credential.platform,
+        await this.activitiesService.create(
+          createQuotaExceededActivity(post, quotaCheck, credential.platform),
         );
         this.emitPublishFailedWebhook(
           post,
@@ -494,7 +446,7 @@ export class CronPostsService {
           credential.platform,
         );
 
-        return this.createFailedResult(credential.platform, 'Quota exceeded');
+        return createFailedPublishResult(credential.platform, 'Quota exceeded');
       }
 
       // Get publisher for platform
@@ -508,7 +460,7 @@ export class CronPostsService {
         await this.persistPublishState(
           post,
           {
-            error: this.createTargetError(
+            error: createChannelTargetError(
               'unsupported_platform',
               'Unsupported platform',
               false,
@@ -518,7 +470,7 @@ export class CronPostsService {
           'Unsupported platform',
         );
         this.emitPublishFailedWebhook(post, 'Unsupported platform', platform);
-        return this.createFailedResult(platform, 'Unsupported platform');
+        return createFailedPublishResult(platform, 'Unsupported platform');
       }
 
       // Settings are re-resolved against the catalog here rather than trusted
@@ -544,7 +496,7 @@ export class CronPostsService {
         await this.persistPublishState(
           post,
           {
-            error: this.createTargetError(
+            error: createChannelTargetError(
               'channel_target_invalid',
               validationError,
               false,
@@ -554,7 +506,7 @@ export class CronPostsService {
           validationError,
         );
         this.emitPublishFailedWebhook(post, validationError, platform);
-        return this.createFailedResult(platform, validationError);
+        return createFailedPublishResult(platform, validationError);
       }
 
       // Beehiiv schedules at the provider, so the approved schedule instant is
@@ -706,7 +658,7 @@ export class CronPostsService {
                 result.externalId,
               );
             } catch (error: unknown) {
-              const errorMessage = this.errorMessage(error);
+              const errorMessage = getPublishErrorMessage(error);
               this.logger.error(
                 `${url} failed to publish thread children after parent success`,
                 {
@@ -769,14 +721,18 @@ export class CronPostsService {
     post: PostEntity,
     canRetry: boolean,
     errorMessage: string,
-    errorCode = this.errorCode(errorMessage),
+    errorCode = getPublishErrorCode(errorMessage),
     workflowExecutionId?: string,
   ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
 
     if (canRetry) {
-      const targetError = this.createTargetError(errorCode, errorMessage, true);
+      const targetError = createChannelTargetError(
+        errorCode,
+        errorMessage,
+        true,
+      );
       const persisted = await this.persistPublishState(
         post,
         {
@@ -810,7 +766,7 @@ export class CronPostsService {
     const persisted = await this.persistPublishState(
       post,
       {
-        error: this.createTargetError(errorCode, errorMessage, false),
+        error: createChannelTargetError(errorCode, errorMessage, false),
         executionState: TargetExecutionState.FAILED,
         lastAttemptAt: new Date(),
         ...(workflowExecutionId ? { workflowExecutionId } : {}),
@@ -827,7 +783,9 @@ export class CronPostsService {
       return undefined;
     }
     await this.failChildren(post, 'Parent post failed');
-    await this.logFailedActivity(post, errorMessage);
+    await this.activitiesService.create(
+      createPublishFailedActivity(post, errorMessage),
+    );
 
     return false;
   }
@@ -845,7 +803,7 @@ export class CronPostsService {
     // characters" as an HTTP 500 and burn every retry attempt.
     const isRetryable = result.errorCode
       ? false
-      : this.isRetryableError(result.error);
+      : isRetryablePublishError(result.error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = result.error || 'Max retries reached';
 
@@ -853,7 +811,7 @@ export class CronPostsService {
       post,
       canRetry,
       errorMessage,
-      result.errorCode ?? this.errorCode(result.error),
+      result.errorCode ?? getPublishErrorCode(result.error),
       workflowExecutionId,
     );
 
@@ -882,9 +840,9 @@ export class CronPostsService {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
-    const isRetryable = this.isRetryableError(error);
+    const isRetryable = isRetryablePublishError(error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
-    const errorMessage = this.errorMessage(error);
+    const errorMessage = getPublishErrorMessage(error);
 
     this.logger.error(`${url} failed to publish post`, {
       canRetry,
@@ -898,7 +856,7 @@ export class CronPostsService {
       post,
       canRetry,
       errorMessage,
-      this.errorCode(error),
+      getPublishErrorCode(error),
       workflowExecutionId,
     );
 
@@ -913,11 +871,11 @@ export class CronPostsService {
     }
 
     if (scheduledForRetry === undefined) {
-      return this.createFailedResult('', errorMessage);
+      return createFailedPublishResult('', errorMessage);
     }
 
     this.emitPublishFailedWebhook(post, errorMessage);
-    return this.createFailedResult('', errorMessage);
+    return createFailedPublishResult('', errorMessage);
   }
 
   private emitPublishPublishedWebhook(
@@ -1012,66 +970,6 @@ export class CronPostsService {
     });
   }
 
-  private isRetryableError(error: unknown): boolean {
-    if (
-      error &&
-      typeof error === 'object' &&
-      'isRetryable' in error &&
-      typeof (error as { isRetryable?: unknown }).isRetryable === 'boolean'
-    ) {
-      return (error as { isRetryable: boolean }).isRetryable;
-    }
-
-    const retryableErrorPatterns = [
-      'rate limit',
-      'rate_limited',
-      'transient_failure',
-      'timeout',
-      'ETIMEDOUT',
-      'ECONNRESET',
-      'ECONNREFUSED',
-      'ENOTFOUND',
-      'socket hang up',
-      '429',
-      '500',
-      '502',
-      '503',
-      '504',
-    ];
-
-    const errorMessage = this.errorMessage(error).toLowerCase();
-    const errorCode =
-      error && typeof error === 'object' && 'code' in error
-        ? String((error as { code?: unknown }).code ?? '')
-        : '';
-    const normalizedErrorCode = errorCode.toLowerCase();
-
-    return retryableErrorPatterns.some(
-      (pattern) =>
-        errorMessage.includes(pattern.toLowerCase()) ||
-        normalizedErrorCode.includes(pattern.toLowerCase()),
-    );
-  }
-
-  private async logQuotaExceededActivity(
-    post: PostEntity,
-    quotaCheck: QuotaCheckResult,
-    platform: string,
-  ): Promise<void> {
-    await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: readPostString(post, ['brandId']) ?? undefined,
-        entityId: post.id,
-        entityModel: ActivityEntityModel.POST,
-        key: ActivityKey.POST_FAILED,
-        organizationId: readPostString(post, ['organizationId']) ?? undefined,
-        source: ActivitySource.POST,
-        userId: readPostString(post, ['userId']) ?? undefined,
-        value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
-      }),
-    );
-  }
-
   private async failChildren(post: PostEntity, reason: string): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const children = (post.children || []) as unknown as PostDocument[];
@@ -1097,34 +995,5 @@ export class CronPostsService {
         });
       }
     }
-  }
-
-  private async logFailedActivity(
-    post: PostEntity,
-    errorMessage: string,
-  ): Promise<void> {
-    await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: readPostString(post, ['brandId']) ?? undefined,
-        entityId: post.id,
-        entityModel: ActivityEntityModel.POST,
-        key: ActivityKey.POST_FAILED,
-        organizationId: readPostString(post, ['organizationId']) ?? undefined,
-        source: ActivitySource.POST,
-        userId: readPostString(post, ['userId']) ?? undefined,
-        value: errorMessage,
-      }),
-    );
-  }
-
-  private createFailedResult(platform: string, error?: string): PublishResult {
-    return {
-      error,
-      executionState: TargetExecutionState.FAILED,
-      externalId: null,
-      platform,
-      success: false,
-      url: '',
-    };
   }
 }

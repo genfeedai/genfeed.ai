@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
@@ -31,54 +31,19 @@ import {
   type ServerPrisma,
 } from '@server/server.dependencies';
 import { scopedWhere } from '@server/tenancy/scoped-where';
+import {
+  buildArtifactContentDigest,
+  buildArtifactVersionPinIdempotencyKey,
+  type CanonicalArtifactRecord,
+  normalizeArtifactForSerializer,
+  pickArtifactRecord,
+  projectPostArtifactMaterial,
+  readArtifactRecord,
+  readArtifactString,
+} from './agent-artifact-material.util';
 
-const CONTENT_DIGEST_PREFIX = 'sha256:v1:';
-const IDEMPOTENCY_KEY_PREFIX = 'content-version-pin:v1:';
 const MAX_LEGACY_REFERENCE_USES = 20;
 const MAX_LEGACY_REFERENCE_CANDIDATES = 20;
-const POST_MATERIAL_FIELDS = [
-  'brandId',
-  'category',
-  'credentialId',
-  'description',
-  'entityArticleId',
-  'entityIngredientId',
-  'entityModel',
-  'groupId',
-  'id',
-  'isRepeat',
-  'isShareToFeedSelected',
-  'label',
-  'maxRepeats',
-  'nextScheduledDate',
-  'order',
-  'originalPostId',
-  'parentId',
-  'platform',
-  'publishIntent',
-  'quoteTweetId',
-  'repeatDaysOfWeek',
-  'repeatEndDate',
-  'repeatFrequency',
-  'repeatInterval',
-  'scheduleSlot',
-  'scheduledDate',
-  'targetAttachments',
-  'targetSettings',
-  'timezone',
-  'variantId',
-] as const;
-const POST_INGREDIENT_MATERIAL_FIELDS = [
-  'category',
-  'cdnUrl',
-  'fileSize',
-  'id',
-  'mimeType',
-  's3Key',
-  'version',
-] as const;
-
-type CanonicalRecord = Record<string, unknown>;
 
 type LegacyReferenceSource = 'ui-action-content-id' | 'ui-action-ingredient-id';
 
@@ -108,8 +73,8 @@ export interface ResolveMessageArtifactReferencesParams {
 
 interface CanonicalRecordState {
   brandId?: string;
-  material: CanonicalRecord;
-  record: CanonicalRecord;
+  material: CanonicalArtifactRecord;
+  record: CanonicalArtifactRecord;
   recordVersion?: string;
 }
 
@@ -182,7 +147,7 @@ export class AgentArtifactReferenceService {
     return {
       reference,
       serialized: SERIALIZERS[reference.kind].serialize(
-        this.normalizeForSerializer(reference.kind, canonical.record),
+        normalizeArtifactForSerializer(reference.kind, canonical.record),
       ),
       source: 'canonical',
     };
@@ -220,8 +185,8 @@ export class AgentArtifactReferenceService {
       );
     }
 
-    const contentDigest = this.digestMaterial(canonical.material);
-    const idempotencyKey = this.buildIdempotencyKey(
+    const contentDigest = buildArtifactContentDigest(canonical.material);
+    const idempotencyKey = buildArtifactVersionPinIdempotencyKey(
       params.reference,
       contentDigest,
     );
@@ -317,7 +282,7 @@ export class AgentArtifactReferenceService {
       pin.recordId,
       pin.organizationId,
     );
-    const currentDigest = this.digestMaterial(canonical.material);
+    const currentDigest = buildArtifactContentDigest(canonical.material);
     if (currentDigest !== pin.contentDigest) {
       throw new ConflictException({
         code: 'content_version_pin_mismatch',
@@ -545,18 +510,18 @@ export class AgentArtifactReferenceService {
       throw artifactNotFound('Ingredient', recordId);
     }
 
-    const record = result as unknown as CanonicalRecord;
+    const record = readArtifactRecord(result);
     const sourceIds = Array.isArray(record.sources)
       ? record.sources
-          .map((source) => this.readString(this.readRecord(source).id))
+          .map((source) => readArtifactString(readArtifactRecord(source).id))
           .filter((id): id is string => Boolean(id))
           .sort()
       : [];
     const version = record.version;
     return {
-      brandId: this.readString(record.brandId),
+      brandId: readArtifactString(record.brandId),
       material: {
-        ...this.pick(record, [
+        ...pickArtifactRecord(record, [
           'brandId',
           'category',
           'cdnUrl',
@@ -627,53 +592,31 @@ export class AgentArtifactReferenceService {
       throw artifactNotFound('Post', recordId);
     }
 
-    const record = result as unknown as CanonicalRecord;
+    const record = readArtifactRecord(result);
     const children = Array.isArray(record.children)
       ? record.children
-          .map((child) => this.readRecord(child))
+          .map((child) => readArtifactRecord(child))
           .sort((left, right) => {
             const orderDelta =
               (typeof left.order === 'number' ? left.order : 0) -
               (typeof right.order === 'number' ? right.order : 0);
             return (
               orderDelta ||
-              (this.readString(left.id) ?? '').localeCompare(
-                this.readString(right.id) ?? '',
+              (readArtifactString(left.id) ?? '').localeCompare(
+                readArtifactString(right.id) ?? '',
               )
             );
           })
-          .map((child) => this.postMaterial(child))
+          .map((child) => projectPostArtifactMaterial(child))
       : [];
 
     return {
-      brandId: this.readString(record.brandId),
+      brandId: readArtifactString(record.brandId),
       material: {
-        ...this.postMaterial(record),
+        ...projectPostArtifactMaterial(record),
         children,
       },
       record,
-    };
-  }
-
-  private postMaterial(record: CanonicalRecord): CanonicalRecord {
-    const ingredients = Array.isArray(record.ingredients)
-      ? record.ingredients
-          .map((ingredient) =>
-            this.pick(
-              this.readRecord(ingredient),
-              POST_INGREDIENT_MATERIAL_FIELDS,
-            ),
-          )
-          .sort((left, right) =>
-            (this.readString(left.id) ?? '').localeCompare(
-              this.readString(right.id) ?? '',
-            ),
-          )
-      : [];
-
-    return {
-      ...this.pick(record, POST_MATERIAL_FIELDS),
-      ingredients,
     };
   }
 
@@ -689,10 +632,10 @@ export class AgentArtifactReferenceService {
       throw artifactNotFound('Asset', recordId);
     }
 
-    const record = asset as unknown as CanonicalRecord;
-    let actualOrganizationId = this.readString(record.parentOrgId);
-    let actualBrandId = this.readString(record.parentBrandId);
-    const parentType = this.readString(record.parentType);
+    const record = readArtifactRecord(asset);
+    let actualOrganizationId = readArtifactString(record.parentOrgId);
+    let actualBrandId = readArtifactString(record.parentBrandId);
+    const parentType = readArtifactString(record.parentType);
 
     if (parentType === 'BRAND') {
       if (!actualBrandId) {
@@ -704,7 +647,7 @@ export class AgentArtifactReferenceService {
       });
       actualOrganizationId = brand?.organizationId;
     } else if (parentType === 'INGREDIENT') {
-      const parentIngredientId = this.readString(record.parentIngredientId);
+      const parentIngredientId = readArtifactString(record.parentIngredientId);
       if (!parentIngredientId) {
         throw artifactNotFound('Asset', recordId);
       }
@@ -715,7 +658,7 @@ export class AgentArtifactReferenceService {
       actualOrganizationId = parent?.organizationId ?? undefined;
       actualBrandId = parent?.brandId ?? undefined;
     } else if (parentType === 'ARTICLE') {
-      const parentArticleId = this.readString(record.parentArticleId);
+      const parentArticleId = readArtifactString(record.parentArticleId);
       if (!parentArticleId) {
         throw artifactNotFound('Asset', recordId);
       }
@@ -737,7 +680,7 @@ export class AgentArtifactReferenceService {
 
     return {
       brandId: actualBrandId,
-      material: this.pick(record, [
+      material: pickArtifactRecord(record, [
         'category',
         'cloudObjectKey',
         'displayName',
@@ -762,7 +705,7 @@ export class AgentArtifactReferenceService {
         brandId: actualBrandId,
         organizationId: actualOrganizationId,
       },
-      recordVersion: this.readString(record.sha256),
+      recordVersion: readArtifactString(record.sha256),
     };
   }
 
@@ -780,10 +723,10 @@ export class AgentArtifactReferenceService {
       throw artifactNotFound(label, recordId);
     }
 
-    const record = result as CanonicalRecord;
+    const record = readArtifactRecord(result);
     return {
-      brandId: this.readString(record.brandId),
-      material: this.pick(record, materialFields),
+      brandId: readArtifactString(record.brandId),
+      material: pickArtifactRecord(record, materialFields),
       record,
     };
   }
@@ -892,7 +835,7 @@ export class AgentArtifactReferenceService {
       idempotencyKey: pin.idempotencyKey,
       kind: pin.recordKind,
       organizationId: pin.organizationId,
-      provenance: this.readRecord(pin.provenance),
+      provenance: readArtifactRecord(pin.provenance),
       recordId: pin.recordId,
       ...(pin.recordVersion ? { recordVersion: pin.recordVersion } : {}),
     };
@@ -906,78 +849,6 @@ export class AgentArtifactReferenceService {
     return prisma.contentVersionPin.findFirst({
       where: { idempotencyKey, organizationId },
     });
-  }
-
-  private digestMaterial(material: CanonicalRecord): string {
-    const canonicalJson = JSON.stringify(this.normalizeForDigest(material));
-    return `${CONTENT_DIGEST_PREFIX}${createHash('sha256')
-      .update(canonicalJson)
-      .digest('hex')}`;
-  }
-
-  private buildIdempotencyKey(
-    reference: AgentArtifactReference,
-    contentDigest: string,
-  ): string {
-    const identity = [
-      reference.organizationId,
-      reference.brandId ?? '~',
-      reference.kind,
-      reference.recordId,
-      contentDigest,
-    ].join('\u001f');
-    return `${IDEMPOTENCY_KEY_PREFIX}${createHash('sha256')
-      .update(identity)
-      .digest('hex')}`;
-  }
-
-  private normalizeForDigest(value: unknown): unknown {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    if (Array.isArray(value)) {
-      return value.map((item) => this.normalizeForDigest(item));
-    }
-    if (value && typeof value === 'object') {
-      return Object.fromEntries(
-        Object.entries(value as CanonicalRecord)
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([key, item]) => [key, this.normalizeForDigest(item)]),
-      );
-    }
-    return value;
-  }
-
-  private normalizeForSerializer(
-    kind: AgentArtifactRecordKind,
-    record: CanonicalRecord,
-  ): CanonicalRecord {
-    if (kind !== 'article') {
-      return record;
-    }
-    // `label`/`summary` are the persisted column names since #2767, so only
-    // the serializer-only `bannerUrl` alias still needs deriving.
-    return {
-      ...record,
-      bannerUrl: record.coverImageUrl,
-    };
-  }
-
-  private pick(
-    record: CanonicalRecord,
-    fields: readonly string[],
-  ): CanonicalRecord {
-    return Object.fromEntries(fields.map((field) => [field, record[field]]));
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readRecord(value: unknown): CanonicalRecord {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as CanonicalRecord)
-      : {};
   }
 
   private readTypedReferences(value: unknown): AgentArtifactReference[] {
@@ -1002,13 +873,13 @@ export class AgentArtifactReferenceService {
   private extractLegacyReferenceCandidates(
     metadata: unknown,
   ): LegacyReferenceCandidate[] {
-    const record = this.readRecord(metadata);
+    const record = readArtifactRecord(metadata);
     const actions = Array.isArray(record.uiActions) ? record.uiActions : [];
     const candidates: LegacyReferenceCandidate[] = [];
 
     for (const rawAction of actions) {
-      const action = this.readRecord(rawAction);
-      const contentId = this.readString(action.contentId);
+      const action = readArtifactRecord(rawAction);
+      const contentId = readArtifactString(action.contentId);
       if (contentId) {
         candidates.push({
           kind: 'ingredient',
@@ -1021,8 +892,8 @@ export class AgentArtifactReferenceService {
         ? action.ingredients
         : [];
       for (const rawIngredient of ingredients) {
-        const ingredient = this.readRecord(rawIngredient);
-        const ingredientId = this.readString(ingredient.id);
+        const ingredient = readArtifactRecord(rawIngredient);
+        const ingredientId = readArtifactString(ingredient.id);
         if (ingredientId) {
           candidates.push({
             kind: 'ingredient',

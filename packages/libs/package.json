@@ -4,7 +4,7 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/storage": "workspace:*",
-    "jose": "^6.2.8"
+    "jose": "^6.2.9"
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
   "exports": {

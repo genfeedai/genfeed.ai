@@ -170,35 +170,21 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MUSIC));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      // Music track items or empty state
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="music-item"],' +
-            ' [data-testid="ingredient-item"],' +
-            ' [data-testid="content-item"],' +
-            ' .music-card,' +
-            ' .track-item',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator(
-          '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
-        )
-        .or(
-          authenticatedPage.getByText(/no (music|tracks)|could not be loaded/i),
-        )
-        .or(authenticatedPage.getByText(/^Music$/))
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected music items or empty state to be visible',
-      ).toBe(true);
+      await expect(
+        authenticatedPage
+          .getByTestId('ingredient-sound-item')
+          .or(
+            authenticatedPage.getByText(
+              /no (music|tracks|results found)|could not be loaded/i,
+            ),
+          )
+          .or(
+            authenticatedPage.locator(
+              '[data-testid="empty-state"], [data-testid="table-empty"], .empty-state',
+            ),
+          )
+          .first(),
+      ).toBeVisible();
     });
   });
 

@@ -3297,30 +3297,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/services/integrations/openrouter/services/openrouter.service.spec.ts",
-      "fingerprint": "11e56acf039350b002da",
-      "message": "Argument of type 'Observable<{ data: {}; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: {}; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: {}; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: {}; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 7,
-      "file": "apps/server/api/src/services/integrations/openrouter/services/openrouter.service.spec.ts",
-      "fingerprint": "3f1b531b78f3fef20d45",
-      "message": "Argument of type 'Observable<{ data: OpenRouterChatCompletionResponse; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: OpenRouterChatCompletionResponse; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: OpenRouterChatCompletionResponse; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: OpenRouterChatCompletionResponse; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/services/integrations/openrouter/services/openrouter.service.spec.ts",
-      "fingerprint": "8bdc1e436e54cbc54313",
-      "message": "Argument of type 'Observable<{ data: Readable; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: Readable; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: Readable; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: Readable; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/pinterest/controllers/pinterest.controller.spec.ts",

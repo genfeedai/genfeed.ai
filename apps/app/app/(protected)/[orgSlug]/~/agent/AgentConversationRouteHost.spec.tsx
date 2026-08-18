@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentConversationRouteHost } from './AgentConversationRouteHost';
+import AgentConversationRouteHost from './AgentConversationRouteHost';
 
 const pathnameState = { current: '/test-org/~/agent' };
 const shellRenderSpy = vi.fn();
@@ -39,6 +39,11 @@ describe('AgentConversationRouteHost', () => {
     shellRenderSpy.mockClear();
     shellMountSpy.mockClear();
     shellUnmountSpy.mockClear();
+  });
+
+  it('exposes the documented default export', () => {
+    expect(typeof AgentConversationRouteHost).toBe('function');
+    expect(AgentConversationRouteHost.name).toBe('AgentConversationRouteHost');
   });
 
   it('renders the conversation shell ahead of the route page on /agent', () => {

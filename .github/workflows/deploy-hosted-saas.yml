@@ -10,6 +10,11 @@ on:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
         type: string
+      marketplace_source_sha:
+        description: "exact marketplace.genfeed.ai SHA (empty = no marketplace handoff)"
+        required: false
+        default: ""
+        type: string
       image_tag:
         description: "optional existing server image tag (defaults to source_sha)"
         required: false
@@ -31,6 +36,11 @@ on:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
         type: string
+      marketplace_source_sha:
+        description: "exact marketplace.genfeed.ai SHA (empty = no marketplace handoff)"
+        required: false
+        default: ""
+        type: string
       image_tag:
         description: "optional existing server image tag (defaults to source_sha)"
         required: false
@@ -46,6 +56,16 @@ on:
         required: false
         default: ""
         type: string
+    secrets:
+      CONSOLE_DEPLOY_TOKEN:
+        description: "read marketplace.genfeed.ai when marketplace_source_sha is provided"
+        required: false
+      VERCEL_TOKEN:
+        required: true
+      NEXT_PUBLIC_POSTHOG_KEY:
+        required: true
+      TURBO_TOKEN:
+        required: false
 
 concurrency:
   group: deploy-hosted-saas
@@ -74,7 +94,9 @@ jobs:
         id: resolve
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
+          MARKETPLACE_SOURCE_SHA: ${{ inputs.marketplace_source_sha }}
           CORRELATION_ID: ${{ inputs.correlation_id }}
+          GH_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -96,6 +118,29 @@ jobs:
             exit 1
           fi
 
+          marketplace_sha="${MARKETPLACE_SOURCE_SHA}"
+          if [ -n "${marketplace_sha}" ]; then
+            if ! printf '%s' "${marketplace_sha}" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::marketplace_source_sha must be an exact lowercase 40-character Git commit SHA."
+              exit 1
+            fi
+            if [ -z "${GH_TOKEN}" ]; then
+              echo "::error::CONSOLE_DEPLOY_TOKEN is required to verify marketplace_source_sha is reachable from genfeedai/marketplace.genfeed.ai master."
+              exit 1
+            fi
+            git init marketplace-source
+            git -C marketplace-source remote add origin \
+              "https://github.com/genfeedai/marketplace.genfeed.ai.git"
+            git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
+              -C marketplace-source fetch --no-tags --filter=blob:none origin master
+            git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
+              -C marketplace-source fetch --no-tags --filter=blob:none origin "${marketplace_sha}"
+            if ! git -C marketplace-source merge-base --is-ancestor "${marketplace_sha}" origin/master; then
+              echo "::error::marketplace_source_sha ${marketplace_sha} is not reachable from genfeedai/marketplace.genfeed.ai master."
+              exit 1
+            fi
+          fi
+
           echo "source_sha=${SOURCE_SHA}" >>"${GITHUB_OUTPUT}"
 
   deploy:
@@ -111,4 +156,7 @@ jobs:
       source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
       image_tag: ${{ inputs.image_tag }}
       allow_rollback: ${{ inputs.allow_rollback }}
-    secrets: inherit
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

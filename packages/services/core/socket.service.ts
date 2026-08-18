@@ -9,6 +9,112 @@ export interface SocketDisconnectDisposition {
   recovery: SocketDisconnectRecovery;
 }
 
+export interface SocketIdentityClaims {
+  organizationId?: string;
+  userId?: string;
+}
+
+/**
+ * Read `sub` / `organizationId` from a JWT payload without verifying it.
+ *
+ * Better Auth refresh re-issues a new signature for the same identity; logout
+ * then login in the same JS heap can swap the subject while the socket stays
+ * up. The client only uses these claims to decide whether rotation is same-user
+ * or cross-identity. Cross-identity replacement disconnects so the next
+ * handshake is verified as a new connection.
+ */
+export function readSocketIdentityFromToken(
+  token?: string,
+): SocketIdentityClaims {
+  if (!token) {
+    return {};
+  }
+
+  const segments = token.split('.');
+  if (segments.length < 2) {
+    return {};
+  }
+
+  const payload = decodeJwtPayloadSegment(segments[1]);
+  if (!payload) {
+    return {};
+  }
+
+  return {
+    organizationId: readNonEmptyString(payload.organizationId),
+    userId: readNonEmptyString(payload.sub),
+  };
+}
+
+export function isCrossIdentitySocketRotation(
+  previousToken?: string,
+  nextToken?: string,
+): boolean {
+  const previous = readSocketIdentityFromToken(previousToken);
+  const next = readSocketIdentityFromToken(nextToken);
+
+  if (!previous.userId || !next.userId) {
+    return false;
+  }
+
+  return (
+    previous.userId !== next.userId ||
+    previous.organizationId !== next.organizationId
+  );
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function decodeJwtPayloadSegment(
+  segment: string,
+): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(decodeBase64Url(segment));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+}
+
+function closeSocketEngine(socket: Socket): void {
+  const manager: unknown = socket.io;
+  if (!manager || typeof manager !== 'object' || !('engine' in manager)) {
+    return;
+  }
+
+  const engine = manager.engine;
+  if (!engine || typeof engine !== 'object' || !('close' in engine)) {
+    return;
+  }
+
+  if (typeof engine.close !== 'function') {
+    return;
+  }
+
+  engine.close();
+}
+
+function decodeBase64Url(segment: string): string {
+  const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+
+  if (typeof globalThis.atob === 'function') {
+    return globalThis.atob(padded);
+  }
+
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(padded, 'base64').toString('utf8');
+  }
+
+  throw new Error('No base64 decoder available');
+}
+
 export function classifySocketDisconnect(
   reason: string,
   isAutomaticallyReconnecting: boolean,
@@ -145,8 +251,18 @@ export class SocketService {
    * a "reconnecting" state several times a minute. Updating `auth` and the
    * manager's `extraHeaders` in place means the next (re)connect uses the fresh
    * token while a live connection stays untouched.
+   *
+   * Cross-identity replacement (logout → login in the same JS heap) is the
+   * exception: abort any live session or in-flight CONNECT, then handshake
+   * the latest token. A second swap while reconnecting must not keep the
+   * intermediate identity's handshake.
    */
   private updateToken(token: string): void {
+    const shouldRebindIdentity = isCrossIdentitySocketRotation(
+      this.currentToken,
+      token,
+    );
+
     this.currentToken = token;
     this.socket.auth = { token };
 
@@ -158,11 +274,42 @@ export class SocketService {
       };
     }
 
+    if (shouldRebindIdentity) {
+      this.restartIdentityHandshake();
+      return;
+    }
+
     // An idle socket (rejected handshake with a stale token, no automatic
     // retry pending) should pick the rotated token up right away.
     if (!this.socket.connected && !this.socket.active) {
       this.socket.connect();
     }
+  }
+
+  /**
+   * Abort a live session or in-flight CONNECT, then handshake the latest
+   * token. A second identity swap while `connected` is false and `active` is
+   * true would otherwise keep the intermediate handshake.
+   */
+  private restartIdentityHandshake(): void {
+    if (this.socket.connected || this.socket.active) {
+      this.abortSocketTransport();
+    }
+
+    this.socket.connect();
+  }
+
+  private abortSocketTransport(): void {
+    if (this.socket.connected) {
+      this.socket.disconnect();
+      return;
+    }
+
+    // Mid-handshake: `socket.disconnect()` does not close the engine when
+    // CONNECT has not completed. Close the transport so the intermediate
+    // token cannot finish the handshake.
+    this.socket.disconnect();
+    closeSocketEngine(this.socket);
   }
 
   public connect(): void {

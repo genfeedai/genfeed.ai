@@ -204,7 +204,10 @@ jobs:
     with:
       source_sha: ${{ needs.validate-release.outputs.release_sha }}
       correlation_id: release-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.validate-release.outputs.release_sha }}
-    secrets: inherit
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
   deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations

@@ -70,7 +70,7 @@ describe('WebSocketGateway', () => {
     } as Socket['handshake'],
     id: 'socket-123',
     join: vi.fn().mockResolvedValue(undefined),
-    leave: vi.fn(),
+    leave: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 
@@ -241,6 +241,36 @@ describe('WebSocketGateway', () => {
 
     expect(() => gateway.handleDisconnect(socket as Socket)).not.toThrow();
   });
+
+  it('stops authorizing events after the socket disconnects', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:3010');
+    verifyMock.mockResolvedValue({
+      organizationId: 'org-a',
+      sub: 'user-a',
+    });
+    const socket = createMockSocket({
+      handshake: {
+        auth: { token: 'token-a' },
+        headers: {},
+        query: {},
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+    gateway.handleDisconnect(socket as Socket);
+
+    await expect(
+      gateway.handleIngredientUpdate(
+        { ingredientId: 'ing-1' },
+        socket as Socket,
+      ),
+    ).resolves.toEqual({ error: 'Unauthorized' });
+    expect(gateway.getConnectionStatus()).toEqual({
+      totalClients: 0,
+      totalUsers: 0,
+      users: [],
+    });
+  });
 });
 
 describe('WebSocketGateway redis message dispatch', () => {
@@ -285,7 +315,7 @@ describe('WebSocketGateway redis message dispatch', () => {
     } as Socket['handshake'],
     id,
     join: vi.fn().mockResolvedValue(undefined),
-    leave: vi.fn(),
+    leave: vi.fn().mockResolvedValue(undefined),
   });
 
   beforeEach(() => {

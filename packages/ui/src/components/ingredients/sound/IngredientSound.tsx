@@ -49,7 +49,7 @@ export default function IngredientSound({
   return (
     <>
       {ingredients.map((sound: IIngredient) => (
-        <Card key={sound.id}>
+        <Card key={sound.id} data-testid="ingredient-sound-item">
           <div className="flex items-center justify-between">
             <div className="flex flex-col h-full">
               <h3 className="font-medium text-lg">{sound.metadataLabel}</h3>

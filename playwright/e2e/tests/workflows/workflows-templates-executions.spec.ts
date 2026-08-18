@@ -14,6 +14,7 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
+import { executionsHistoryLocator } from '../../pages/workflow.page';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -140,7 +141,7 @@ test.describe('Workflow templates & executions interactions', () => {
       /\/automate\/workflows\/executions$/,
     );
     await expect(
-      authenticatedPage.getByRole('heading', { name: /execution history/i }),
+      executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -155,7 +156,7 @@ test.describe('Workflow templates & executions interactions', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: /execution history/i }),
+      executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
     const detailsLink = authenticatedPage
@@ -175,7 +176,7 @@ test.describe('Workflow templates & executions interactions', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: /execution history/i }),
+      executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
     await tryClick(authenticatedPage, 'button:has-text("Next")');
@@ -195,7 +196,7 @@ test.describe('Workflow templates & executions interactions', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: /execution history/i }),
+      executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
 
     const detailsLink = authenticatedPage

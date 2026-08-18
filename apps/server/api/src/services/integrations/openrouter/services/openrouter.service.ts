@@ -1,9 +1,10 @@
-import type {
-  OpenRouterChatCompletionParams,
-  OpenRouterChatCompletionResponse,
-  OpenRouterStreamChunk,
-  OpenRouterStreamTokenHandler,
-  OpenRouterToolCallResponse,
+import {
+  OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+  type OpenRouterChatCompletionParams,
+  type OpenRouterChatCompletionResponse,
+  type OpenRouterStreamChunk,
+  type OpenRouterStreamTokenHandler,
+  type OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -31,6 +32,22 @@ export class OpenRouterService {
     }
 
     return apiKey;
+  }
+
+  /**
+   * First-party and BYOK requests both send OpenRouter's documented
+   * `provider.zdr` + `provider.data_collection` flags. ADR #3012 / #3029.
+   */
+  private withRetentionPolicy(
+    params: OpenRouterChatCompletionParams,
+  ): OpenRouterChatCompletionParams {
+    return {
+      ...params,
+      provider: {
+        ...params.provider,
+        ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+      },
+    };
   }
 
   private getSafeErrorDetails(error: unknown): Record<string, unknown> {
@@ -70,7 +87,7 @@ export class OpenRouterService {
       const response = await firstValueFrom(
         this.httpService.post<OpenRouterChatCompletionResponse>(
           this.apiUrl,
-          { ...params, stream: false },
+          { ...this.withRetentionPolicy(params), stream: false },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -102,7 +119,7 @@ export class OpenRouterService {
       const response = await firstValueFrom(
         this.httpService.post(
           this.apiUrl,
-          { ...params, stream: true },
+          { ...this.withRetentionPolicy(params), stream: true },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -275,7 +292,11 @@ export class OpenRouterService {
       const response = await firstValueFrom(
         this.httpService.post(
           this.apiUrl,
-          { ...params, stream: true, usage: { include: true } },
+          {
+            ...this.withRetentionPolicy(params),
+            stream: true,
+            usage: { include: true },
+          },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
