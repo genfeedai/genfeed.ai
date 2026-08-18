@@ -10,6 +10,11 @@ vi.mock('@genfeedai/client/models', () => ({
   },
 }));
 
+import {
+  BotLivestreamMessageType,
+  BotLivestreamTargetAudience,
+  BotPlatform,
+} from '@genfeedai/enums';
 import { Bot } from '@models/automation/bot.model';
 
 describe('Bot', () => {
@@ -102,6 +107,124 @@ describe('Bot', () => {
       expect(bot.settings?.triggers).toEqual(triggers);
       // Should be a copy, not a reference
       expect(bot.settings?.triggers).not.toBe(triggers);
+    });
+
+    it('should default a missing response trigger to an empty string', () => {
+      const bot = new Bot({
+        settings: {
+          responses: [{ response: 'Hi!' }],
+        },
+      } as never);
+      expect(bot.settings?.responses[0]).toEqual({
+        response: 'Hi!',
+        trigger: '',
+      });
+    });
+
+    it('should default isEnabled when a target omits it', () => {
+      const bot = new Bot({
+        targets: [
+          {
+            channelId: 'ch-3',
+            platform: BotPlatform.YOUTUBE,
+          },
+        ],
+      } as never);
+      expect(bot.targets?.[0].isEnabled).toBe(true);
+    });
+
+    it('should leave livestream settings undefined when omitted', () => {
+      const bot = new Bot();
+      expect(bot.livestreamSettings).toBeUndefined();
+    });
+
+    it('should normalize livestream settings with defaults', () => {
+      const bot = new Bot({
+        livestreamSettings: {},
+      } as never);
+      expect(bot.livestreamSettings).toEqual({
+        automaticPosting: true,
+        links: [],
+        manualOverrideTtlMinutes: 15,
+        maxAutoPostsPerHour: 6,
+        messageTemplates: [],
+        minimumMessageGapSeconds: 90,
+        prioritizeYoutube: true,
+        restreamCredentialId: undefined,
+        scheduledCadenceMinutes: 10,
+        targetAudience: [BotLivestreamTargetAudience.AUDIENCE],
+        transcriptEnabled: true,
+        transcriptLookbackMinutes: 3,
+        transcriptSource: undefined,
+      });
+    });
+
+    it('should preserve explicit livestream settings and copy nested arrays', () => {
+      const links = [
+        { id: 'link-1', label: 'Shop', url: 'https://example.com/shop' },
+      ];
+      const platforms = [BotPlatform.YOUTUBE];
+      const bot = new Bot({
+        livestreamSettings: {
+          automaticPosting: false,
+          links,
+          manualOverrideTtlMinutes: 30,
+          maxAutoPostsPerHour: 2,
+          messageTemplates: [
+            {
+              enabled: false,
+              id: 'tpl-1',
+              platforms,
+              text: 'Drop',
+              type: BotLivestreamMessageType.SCHEDULED_LINK_DROP,
+            },
+            {
+              id: 'tpl-2',
+              text: 'Prompt',
+              type: BotLivestreamMessageType.SCHEDULED_HOST_PROMPT,
+            },
+          ],
+          minimumMessageGapSeconds: 45,
+          prioritizeYoutube: false,
+          restreamCredentialId: 'cred-1',
+          scheduledCadenceMinutes: 20,
+          targetAudience: [BotLivestreamTargetAudience.HOSTS],
+          transcriptEnabled: false,
+          transcriptLookbackMinutes: 8,
+          transcriptSource: 'restream_chat',
+        },
+      } as never);
+
+      expect(bot.livestreamSettings?.automaticPosting).toBe(false);
+      expect(bot.livestreamSettings?.links).toEqual(links);
+      expect(bot.livestreamSettings?.links).not.toBe(links);
+      expect(bot.livestreamSettings?.manualOverrideTtlMinutes).toBe(30);
+      expect(bot.livestreamSettings?.maxAutoPostsPerHour).toBe(2);
+      expect(bot.livestreamSettings?.messageTemplates).toHaveLength(2);
+      expect(bot.livestreamSettings?.messageTemplates[0]).toEqual({
+        enabled: false,
+        id: 'tpl-1',
+        platforms,
+        text: 'Drop',
+        type: BotLivestreamMessageType.SCHEDULED_LINK_DROP,
+      });
+      expect(bot.livestreamSettings?.messageTemplates[1]).toEqual({
+        enabled: true,
+        id: 'tpl-2',
+        platforms: [],
+        text: 'Prompt',
+        type: BotLivestreamMessageType.SCHEDULED_HOST_PROMPT,
+      });
+      expect(bot.livestreamSettings?.minimumMessageGapSeconds).toBe(45);
+      expect(bot.livestreamSettings?.prioritizeYoutube).toBe(false);
+      expect(bot.livestreamSettings?.restreamCredentialId).toBe('cred-1');
+      expect(bot.livestreamSettings?.scheduledCadenceMinutes).toBe(20);
+      expect(bot.livestreamSettings?.targetAudience).toEqual([
+        BotLivestreamTargetAudience.HOSTS,
+      ]);
+      expect(bot.livestreamSettings?.transcriptEnabled).toBe(false);
+      expect(bot.livestreamSettings?.transcriptLookbackMinutes).toBe(8);
+      expect(bot.livestreamSettings?.transcriptSource).toBe('restream_chat');
     });
   });
 });
