@@ -6,17 +6,24 @@
 # contract. It runs on `pull_request_target` so fork PRs get the verdict without
 # waiting for the `run-ci` approval; it never checks out or executes PR code.
 #
-# Add "PR Title" to the required checks in the master ruleset (issue #2999).
+# "PR Title" is a required check in the master ruleset (issue #2999). Required
+# checks must also report on the merge queue's `merge_group` commit (#3143) or
+# the entry times out; the title was already validated on the PR that entered
+# the queue, so the queue run publishes a pass without re-validating.
 
 name: PR Title
 
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # `github.event.pull_request` is absent on merge_group; each queue entry has
+  # its own `gh-readonly-queue/...` ref, so `github.ref` is already unique.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
 
 permissions:
   pull-requests: read
@@ -27,7 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      - name: Pass on merge queue runs
+        if: github.event_name == 'merge_group'
+        run: echo "merge_group - title was validated on the pull request that entered the queue; passing."
+
       - name: Validate Conventional Commits title
+        if: github.event_name == 'pull_request_target'
         uses: amannn/action-semantic-pull-request@v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

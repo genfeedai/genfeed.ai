@@ -230,12 +230,12 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('tests-gate runs on master pushes as well as pull requests', () => {
+test('tests-gate runs on master pushes and merge-queue runs as well as pull requests', () => {
   const gate = ciJob('tests-gate');
   assert.match(
     gate,
-    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'push'\) \}\}/,
-    'tests-gate must produce a conclusive result on push events (#2510)',
+    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}/,
+    'tests-gate must produce a conclusive result on push (#2510) and merge_group (#3143) events',
   );
 });
 
