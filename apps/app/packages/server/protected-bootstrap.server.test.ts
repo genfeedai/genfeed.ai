@@ -49,6 +49,7 @@ describe('loadProtectedBootstrap', () => {
     process.env.BETTER_AUTH_SECRET = 'sk_test';
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
     delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
     cookiesMock.mockResolvedValue({
       get: vi.fn(() => undefined),
       getAll: vi.fn(() => []),
@@ -116,23 +117,8 @@ describe('loadProtectedBootstrap', () => {
     expect(getInstanceMock).toHaveBeenCalledWith('token_123');
   });
 
-  it('skips server auth bootstrap in Playwright mode', async () => {
+  it('skips server auth bootstrap when the trusted Playwright env and cookie are both present', async () => {
     process.env.PLAYWRIGHT_TEST = 'true';
-
-    const {
-      getServerAuthToken,
-      isProtectedBootstrapBypassed,
-      loadProtectedBootstrap,
-    } = await import('@app-server/protected-bootstrap.server');
-
-    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
-
-    await expect(getServerAuthToken()).resolves.toBe('');
-    await expect(loadProtectedBootstrap()).resolves.toBeNull();
-    expect(getInstanceMock).not.toHaveBeenCalled();
-  });
-
-  it('skips server auth bootstrap when the Playwright bypass cookie is present', async () => {
     cookiesMock.mockResolvedValue({
       get: vi.fn((name: string) =>
         name === '__playwright_test' ? { value: 'true' } : undefined,
@@ -150,6 +136,75 @@ describe('loadProtectedBootstrap', () => {
     await expect(getServerAuthToken()).resolves.toBe('');
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
     expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips server auth bootstrap when NEXT_PUBLIC_PLAYWRIGHT_TEST and the cookie are both present', async () => {
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST = 'true';
+    cookiesMock.mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === '__playwright_test' ? { value: 'true' } : undefined,
+      ),
+      getAll: vi.fn(() => []),
+    });
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@app-server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('does not treat the Playwright cookie alone as a bootstrap bypass', async () => {
+    cookiesMock.mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === '__playwright_test' ? { value: 'true' } : undefined,
+      ),
+      getAll: vi.fn(() => []),
+    });
+
+    const {
+      getServerAuthToken,
+      isProtectedBootstrapBypassed,
+      loadProtectedBootstrap,
+    } = await import('@app-server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(getServerAuthToken()).resolves.toBe('token_123');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('does not bypass bootstrap from PLAYWRIGHT_TEST env without the cookie', async () => {
+    process.env.PLAYWRIGHT_TEST = 'true';
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@app-server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({ brandId: 'brand_123' }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('cannot activate the Playwright bypass under production-like config', async () => {
+    delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@app-server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({ brandId: 'brand_123' }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
   });
 
   it('falls back to self-hosted bootstrap when server auth throws in hybrid mode', async () => {

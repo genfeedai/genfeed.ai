@@ -12,8 +12,10 @@ import { notFound } from 'next/navigation';
  * self-host / local Portless while the app switcher still offered Admin for
  * superadmins — shell chrome without content.
  *
- * Playwright's server bootstrap bypass returns null (no real session). Treat
- * that as an explicit test superadmin so mocked admin pages render.
+ * Isolated Playwright builds (`PLAYWRIGHT_TEST` /
+ * `NEXT_PUBLIC_PLAYWRIGHT_TEST` plus the `__playwright_test` cookie) skip
+ * server bootstrap. Treat that as an explicit test superadmin so mocked
+ * admin pages render. A client cookie alone does not bypass this gate.
  */
 export default async function AdminLayout({ children }: LayoutProps) {
   if (await isProtectedBootstrapBypassed()) {
