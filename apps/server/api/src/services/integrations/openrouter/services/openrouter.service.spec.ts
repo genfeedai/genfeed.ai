@@ -7,10 +7,17 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import { OpenRouterService } from './openrouter.service';
 
-const makeAxiosResponse = <T>(data: T) => ({ data });
+const makeAxiosResponse = <T>(data: T): AxiosResponse<T> => ({
+  config: {} as AxiosResponse<T>['config'],
+  data,
+  headers: {},
+  status: 200,
+  statusText: 'OK',
+});
 
 describe('OpenRouterService', () => {
   let service: OpenRouterService;
@@ -21,6 +28,7 @@ describe('OpenRouterService', () => {
   const defaultParams: OpenRouterChatCompletionParams = {
     messages: [{ content: 'Hello', role: 'user' }],
     model: 'anthropic/claude-sonnet-5',
+    provider: { data_collection: 'deny', zdr: true },
   };
 
   const mockResponse: OpenRouterChatCompletionResponse = {
