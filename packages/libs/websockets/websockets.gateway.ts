@@ -8,7 +8,6 @@ import type {
   ClientInfo,
   ConnectionStatus,
   FileProcessingData,
-  IdentityRotateMessage,
   IngredientStatusData,
   IngredientUpdateMessage,
   MediaFailedEvent,
@@ -185,16 +184,7 @@ export class WebSocketGateway
     userId?: string;
     organizationId?: string;
   }> {
-    return this.resolveIdentityFromToken(this.extractToken(client), client.id);
-  }
-
-  private async resolveIdentityFromToken(
-    token: string | undefined,
-    clientId: string,
-  ): Promise<{
-    userId?: string;
-    organizationId?: string;
-  }> {
+    const token = this.extractToken(client);
     if (!token) {
       return {};
     }
@@ -210,20 +200,10 @@ export class WebSocketGateway
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message ?? String(error);
       this.logger.warn(
-        `Failed to verify Better Auth token for client ${clientId}: ${errorMessage}`,
+        `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
         { ...this.context, error },
       );
       return {};
-    }
-  }
-
-  private async leaveIdentityRooms(
-    client: Socket,
-    clientInfo: ClientInfo,
-  ): Promise<void> {
-    await client.leave(getUserRoomName(clientInfo.userId));
-    if (clientInfo.organizationId) {
-      await client.leave(`org-${clientInfo.organizationId}`);
     }
   }
 
@@ -694,61 +674,6 @@ export class WebSocketGateway
       userId: clientInfo.userId,
     });
     return { message: 'Request sent', success: true };
-  }
-
-  @SubscribeMessage('identity:rotate')
-  async handleIdentityRotate(
-    @MessageBody() data: IdentityRotateMessage,
-    @ConnectedSocket() client: Socket,
-  ): Promise<
-    | { error: string }
-    | { organizationId?: string; success: true; userId: string }
-  > {
-    const token =
-      typeof data?.token === 'string' && data.token.length > 0
-        ? data.token
-        : undefined;
-
-    // Leave prior rooms before JWKS verify. The verify await would otherwise
-    // keep this socket in the old user/org rooms (and `this.clients` bound to
-    // the previous userId) while inbound Redis fan-out and SubscribeMessage
-    // handlers still authorize as the old identity.
-    const previous = this.clients.get(client.id);
-    if (previous) {
-      await this.leaveIdentityRooms(client, previous);
-      this.unbindClientMaps(client, previous);
-    }
-
-    const identity = await this.resolveIdentityFromToken(token, client.id);
-
-    if (!identity.userId) {
-      client.disconnect();
-      return { error: 'Unauthorized' };
-    }
-
-    await this.bindClientIdentity(
-      client,
-      identity.userId,
-      identity.organizationId,
-    );
-
-    this.logger.log(
-      `Client ${client.id} rotated identity to user ${identity.userId}`,
-      {
-        organizationId: identity.organizationId,
-        orgRoomJoined: identity.organizationId
-          ? `org-${identity.organizationId}`
-          : undefined,
-        roomJoined: getUserRoomName(identity.userId),
-        userId: identity.userId,
-      },
-    );
-
-    return {
-      organizationId: identity.organizationId,
-      success: true,
-      userId: identity.userId,
-    };
   }
 
   @SubscribeMessage('ingredient:update')

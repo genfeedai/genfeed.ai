@@ -20,7 +20,8 @@ export interface SocketIdentityClaims {
  * Better Auth refresh re-issues a new signature for the same identity; logout
  * then login in the same JS heap can swap the subject while the socket stays
  * up. The client only uses these claims to decide whether rotation is same-user
- * or cross-identity. The gateway still verifies the token before rebinding.
+ * or cross-identity. Cross-identity replacement disconnects so the next
+ * handshake is verified as a new connection.
  */
 export function readSocketIdentityFromToken(
   token?: string,

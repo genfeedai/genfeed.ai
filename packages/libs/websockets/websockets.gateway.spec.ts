@@ -242,9 +242,9 @@ describe('WebSocketGateway', () => {
     expect(() => gateway.handleDisconnect(socket as Socket)).not.toThrow();
   });
 
-  it('leaves prior rooms before verification so the old identity cannot receive events', async () => {
+  it('stops authorizing events after the socket disconnects', async () => {
     mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock.mockResolvedValueOnce({
+    verifyMock.mockResolvedValue({
       organizationId: 'org-a',
       sub: 'user-a',
     });
@@ -257,110 +257,14 @@ describe('WebSocketGateway', () => {
     });
 
     await gateway.handleConnection(socket as Socket);
+    gateway.handleDisconnect(socket as Socket);
 
-    let releaseVerify: (value: {
-      organizationId: string;
-      sub: string;
-    }) => void = () => undefined;
-    const verifyStarted = new Promise<void>((resolveStarted) => {
-      verifyMock.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveStarted();
-            releaseVerify = resolve;
-          }),
-      );
-    });
-
-    const rotatePromise = gateway.handleIdentityRotate(
-      { token: 'token-b' },
-      socket as Socket,
-    );
-
-    await verifyStarted;
-
-    expect(socket.leave).toHaveBeenCalledWith('user:user-a');
-    expect(socket.leave).toHaveBeenCalledWith('org-org-a');
-    expect(socket.join).not.toHaveBeenCalledWith('user:user-b');
     await expect(
       gateway.handleIngredientUpdate(
         { ingredientId: 'ing-1' },
         socket as Socket,
       ),
     ).resolves.toEqual({ error: 'Unauthorized' });
-
-    releaseVerify({ organizationId: 'org-b', sub: 'user-b' });
-
-    await expect(rotatePromise).resolves.toEqual({
-      organizationId: 'org-b',
-      success: true,
-      userId: 'user-b',
-    });
-    expect(socket.join).toHaveBeenCalledWith('user:user-b');
-    expect(socket.join).toHaveBeenCalledWith('org-org-b');
-  });
-
-  it('leaves prior user and org rooms before accepting a rotated identity', async () => {
-    mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock.mockResolvedValueOnce({
-      organizationId: 'org-a',
-      sub: 'user-a',
-    });
-    const socket = createMockSocket({
-      handshake: {
-        auth: { token: 'token-a' },
-        headers: {},
-        query: {},
-      } as Socket['handshake'],
-    });
-
-    await gateway.handleConnection(socket as Socket);
-
-    verifyMock.mockResolvedValueOnce({
-      organizationId: 'org-b',
-      sub: 'user-b',
-    });
-
-    await expect(
-      gateway.handleIdentityRotate({ token: 'token-b' }, socket as Socket),
-    ).resolves.toEqual({
-      organizationId: 'org-b',
-      success: true,
-      userId: 'user-b',
-    });
-
-    expect(socket.leave).toHaveBeenCalledWith('user:user-a');
-    expect(socket.leave).toHaveBeenCalledWith('org-org-a');
-    expect(socket.join).toHaveBeenCalledWith('user:user-b');
-    expect(socket.join).toHaveBeenCalledWith('org-org-b');
-    expect(socket.disconnect).not.toHaveBeenCalled();
-  });
-
-  it('revokes the prior identity when rotation verification fails', async () => {
-    mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock.mockResolvedValueOnce({
-      organizationId: 'org-a',
-      sub: 'user-a',
-    });
-    const socket = createMockSocket({
-      handshake: {
-        auth: { token: 'token-a' },
-        headers: {},
-        query: {},
-      } as Socket['handshake'],
-    });
-
-    await gateway.handleConnection(socket as Socket);
-
-    verifyMock.mockRejectedValueOnce(new Error('invalid signature'));
-
-    await expect(
-      gateway.handleIdentityRotate({ token: 'token-bad' }, socket as Socket),
-    ).resolves.toEqual({ error: 'Unauthorized' });
-
-    expect(socket.leave).toHaveBeenCalledWith('user:user-a');
-    expect(socket.leave).toHaveBeenCalledWith('org-org-a');
-    expect(socket.disconnect).toHaveBeenCalledOnce();
     expect(gateway.getConnectionStatus()).toEqual({
       totalClients: 0,
       totalUsers: 0,
@@ -864,63 +768,6 @@ describe('WebSocketGateway redis message dispatch', () => {
         userId: USER_ID,
       }),
     );
-  });
-
-  it('authorizes later client messages as the rotated identity', async () => {
-    const nextUserId = 'bbbbbbbb-0000-0000-0000-000000000002';
-    mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock
-      .mockResolvedValueOnce({ organizationId: 'org-1', sub: USER_ID })
-      .mockResolvedValueOnce({
-        organizationId: 'org-2',
-        sub: nextUserId,
-      });
-    mockRedisService.publish.mockResolvedValue(undefined);
-
-    const socket = createVerifiedSocket('socket-1');
-    await gateway.handleConnection(socket as Socket);
-
-    await gateway.handleIdentityRotate({ token: 'token-b' }, socket as Socket);
-
-    await expect(
-      gateway.handleIngredientUpdate(
-        { data: {}, ingredientId: 'ing-1' },
-        socket as Socket,
-      ),
-    ).resolves.toEqual({ message: 'Request sent', success: true });
-
-    expect(socket.leave).toHaveBeenCalledWith(USER_ROOM);
-    expect(socket.leave).toHaveBeenCalledWith('org-org-1');
-    expect(socket.join).toHaveBeenCalledWith(`user:${nextUserId}`);
-    expect(socket.join).toHaveBeenCalledWith('org-org-2');
-    expect(mockRedisService.publish).toHaveBeenCalledWith(
-      'api:ingredient:update',
-      expect.objectContaining({
-        socketId: 'socket-1',
-        userId: nextUserId,
-      }),
-    );
-    expect(mockRedisService.publish).not.toHaveBeenCalledWith(
-      'api:ingredient:update',
-      expect.objectContaining({ userId: USER_ID }),
-    );
-  });
-
-  it('rejects client messages after a failed identity rotation', async () => {
-    mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock
-      .mockResolvedValueOnce({ organizationId: 'org-1', sub: USER_ID })
-      .mockRejectedValueOnce(new Error('invalid signature'));
-
-    const socket = createVerifiedSocket('socket-1');
-    await gateway.handleConnection(socket as Socket);
-
-    await gateway.handleIdentityRotate({ token: 'bad' }, socket as Socket);
-
-    await expect(
-      gateway.handleIngredientUpdate({}, socket as Socket),
-    ).resolves.toEqual({ error: 'Unauthorized' });
-    expect(mockRedisService.publish).not.toHaveBeenCalled();
   });
 
   it('rejects client messages from unauthenticated sockets', async () => {
