@@ -12,6 +12,14 @@ on:
         description: "stable release tag (vX.Y.Z)"
         required: true
         type: string
+      saas_lane:
+        description: "Where hosted SaaS deploy compute runs. monorepo = free public Actions minutes. operations = existing private dispatch."
+        required: false
+        type: choice
+        options:
+          - monorepo
+          - operations
+        default: monorepo
 
 concurrency:
   group: release-production
@@ -184,7 +192,23 @@ jobs:
     secrets: inherit
 
   deploy-saas:
+    name: Deploy hosted SaaS
+    if: ${{ inputs.saas_lane != 'operations' }}
+    needs: [validate-release, verify-suite]
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+      issues: write
+    uses: ./.github/workflows/deploy-hosted-saas.yml
+    with:
+      source_sha: ${{ needs.validate-release.outputs.release_sha }}
+      correlation_id: release-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.validate-release.outputs.release_sha }}
+    secrets: inherit
+
+  deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations
+    if: ${{ inputs.saas_lane == 'operations' }}
     needs: [validate-release, verify-suite]
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -291,7 +315,17 @@ jobs:
 
   promote-community:
     name: Promote Community release channels
-    needs: [validate-release, publish-community, deploy-saas]
+    needs:
+      - validate-release
+      - publish-community
+      - deploy-saas
+      - deploy-saas-via-operations
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-release.result == 'success' &&
+      needs.publish-community.result == 'success' &&
+      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -326,7 +360,17 @@ jobs:
   # behind master between releases.
   publish-packages:
     name: Publish npm Packages
-    needs: [validate-release, publish-community, deploy-saas]
+    needs:
+      - validate-release
+      - publish-community
+      - deploy-saas
+      - deploy-saas-via-operations
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-release.result == 'success' &&
+      needs.publish-community.result == 'success' &&
+      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
     permissions:
       contents: read
       id-token: write
@@ -343,8 +387,17 @@ jobs:
       - validate-release
       - publish-community
       - deploy-saas
+      - deploy-saas-via-operations
       - promote-community
       - publish-packages
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-release.result == 'success' &&
+      needs.publish-community.result == 'success' &&
+      needs.promote-community.result == 'success' &&
+      needs.publish-packages.result == 'success' &&
+      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

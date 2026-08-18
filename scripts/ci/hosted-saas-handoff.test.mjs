@@ -9,6 +9,15 @@ const releaseWorkflow = readFileSync(
   ),
   'utf8',
 );
+const publicDeployWorkflow = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../.github/workflows/deploy-hosted-saas.yml',
+      import.meta.url,
+    ),
+  ),
+  'utf8',
+);
 
 function jobBlock(jobId) {
   const match = releaseWorkflow.match(
@@ -18,9 +27,26 @@ function jobBlock(jobId) {
   return match[1];
 }
 
-test('dispatches the exact stable-release SHA to private operations', () => {
-  const deploy = jobBlock('deploy-saas');
+test('defaults hosted SaaS compute to the public monorepo reusable workflow', () => {
+  assert.match(releaseWorkflow, /default: monorepo/);
+  assert.match(releaseWorkflow, /saas_lane:/);
 
+  const deploy = jobBlock('deploy-saas');
+  assert.match(deploy, /if: \$\{\{ inputs\.saas_lane != 'operations' \}\}/);
+  assert.match(deploy, /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/);
+  assert.match(
+    deploy,
+    /source_sha: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
+  );
+  assert.match(deploy, /secrets: inherit/);
+  assert.doesNotMatch(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
+  assert.doesNotMatch(deploy, /CONSOLE_DEPLOY_TOKEN/);
+});
+
+test('keeps the private operations dispatch as an explicit fallback lane', () => {
+  const deploy = jobBlock('deploy-saas-via-operations');
+
+  assert.match(deploy, /if: \$\{\{ inputs\.saas_lane == 'operations' \}\}/);
   assert.match(deploy, /CONSOLE_REPOSITORY: genfeedai\/console\.genfeed\.ai/);
   assert.match(deploy, /CONSOLE_WORKFLOW: deploy-hosted-saas\.yml/);
   assert.match(deploy, /GH_TOKEN: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
@@ -34,14 +60,11 @@ test('dispatches the exact stable-release SHA to private operations', () => {
   );
   assert.match(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
   assert.doesNotMatch(deploy, /inputs\[release_sha\]=/);
-  assert.doesNotMatch(
-    deploy,
-    /id-token: write|secrets: inherit|_deploy-ecs-core/,
-  );
+  assert.doesNotMatch(deploy, /_deploy-ecs-core/);
 });
 
 test('fails closed while correlating and waiting for private deployment', () => {
-  const deploy = jobBlock('deploy-saas');
+  const deploy = jobBlock('deploy-saas-via-operations');
 
   assert.match(deploy, /display_title == \$title/);
   assert.match(deploy, /event == "workflow_dispatch"/);
@@ -53,16 +76,42 @@ test('fails closed while correlating and waiting for private deployment', () => 
   assert.match(deploy, /deployment timed out after 170 minutes/);
 });
 
-test('blocks irreversible release promotion on private deployment success', () => {
+test('public deploy workflow calls the private engine and stays implementation-free', () => {
+  assert.match(
+    publicDeployWorkflow,
+    /uses: genfeedai\/console\.genfeed\.ai\/\.github\/workflows\/deploy-hosted-saas\.yml@master/,
+  );
+  assert.match(
+    publicDeployWorkflow,
+    /Hosted SaaS deploys must run from refs\/heads\/master/,
+  );
+  assert.match(publicDeployWorkflow, /marketplace\.genfeed\.ai\/commits\/master/);
+  assert.doesNotMatch(publicDeployWorkflow, /opentofu|tofu apply|RDS_INSTANCE|prj_/i);
+  assert.doesNotMatch(publicDeployWorkflow, /aws-actions\/configure-aws-credentials/);
+  assert.doesNotMatch(publicDeployWorkflow, /VERCEL_ORG_ID|vercel build/);
+});
+
+test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {
   for (const jobId of [
     'promote-community',
     'publish-packages',
     'publish-release',
   ]) {
+    const block = jobBlock(jobId);
     assert.match(
-      jobBlock(jobId),
+      block,
       /needs:[\s\S]*deploy-saas/,
       `${jobId} must wait for deploy-saas`,
+    );
+    assert.match(
+      block,
+      /deploy-saas-via-operations/,
+      `${jobId} must also depend on the operations lane job`,
+    );
+    assert.match(
+      block,
+      /needs\.deploy-saas\.result == 'success' \|\| needs\.deploy-saas-via-operations\.result == 'success'/,
+      `${jobId} must promote only when one SaaS lane succeeded`,
     );
   }
 });

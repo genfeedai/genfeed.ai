@@ -57,8 +57,10 @@ After that shared gate it ships both distribution lanes from the same commit:
 
 - community: self-hosted image, public install assets, and anonymous install
   smoke
-- SaaS: a constrained handoff asks the private operations repository to deploy
-  the exact pinned public commit and waits for its production checks
+- SaaS: the default `monorepo` lane deploys the exact pinned public commit as
+  jobs on this public repository (free standard GitHub-hosted minutes). The
+  optional `operations` lane still dispatches the private operations workflow
+  and waits for its production checks
 
 The workflow creates a draft release before the gates so a failed attempt can
 reuse the same version safely. It publishes the GitHub release and advances
@@ -103,22 +105,44 @@ follow-up dispatch is required.
 
 Hosted SaaS infrastructure, deployment implementation, recovery controls, and
 production runbooks live in the private `genfeedai/console.genfeed.ai`
-operations repository. This public repository retains only the release
-handshake. `release.yml` dispatches `deploy-hosted-saas.yml` at private ref
-`master` with the exact pinned release/source SHA, the exact marketplace
-`master` SHA resolved during preflight, and a unique correlation ID. The private
-workflow verifies both SHAs remain reachable from their respective trunks,
-deploys all Vercel frontends after the API rollout, and smokes the marketplace
-alongside the main web estate. A missing, ambiguous, timed-out, mismatched,
-cancelled, or failed private run leaves the public release as a draft and
-prevents `latest` and npm promotion.
+operations repository. This public repository owns the release handshake and a
+thin public deploy entry point. It does not contain OpenTofu, AWS, or Vercel
+implementation.
 
-Configure the public repository secret `CONSOLE_DEPLOY_TOKEN` with a dedicated
-fine-grained token whose repository access is limited to
-`genfeedai/console.genfeed.ai` and whose only repository permission is
-**Actions: read and write**. That permission is required to dispatch the private
-workflow and read its exact correlated run. Do not grant contents, secrets,
-administration, or organization-wide access, and never print the token.
+There are two hosted SaaS lanes:
+
+- **`monorepo` (default).** `Release` and the standalone `Deploy hosted SaaS`
+  workflow run on this public repository and call the private
+  `deploy-hosted-saas.yml` reusable workflow at private `master`. GitHub bills
+  the public caller, so the long ECS wait and Vercel builds do not consume
+  private Actions minutes. Dispatch `Deploy hosted SaaS` from `master` with an
+  exact 40-character SHA to ship without cutting a GitHub release. Monorepo-lane
+  logs are on the public Actions run.
+- **`operations`.** Choose `saas_lane=operations` on `Release` to keep the
+  previous handshake: `release.yml` dispatches `deploy-hosted-saas.yml` at
+  private ref `master` with the exact pinned release/source SHA, the exact
+  marketplace `master` SHA resolved during preflight, and a unique correlation
+  ID, then waits for that private run. Use this when deploy logs must stay
+  private.
+
+Both lanes require the pinned SHA to remain reachable from public `master`.
+The private engine still verifies both SHAs, deploys Vercel frontends after
+the API rollout, and smokes the marketplace alongside the main web estate. A
+missing, ambiguous, timed-out, mismatched, cancelled, or failed SaaS deploy
+leaves the public release as a draft and prevents `latest` and npm promotion.
+
+The default `monorepo` lane does not use `CONSOLE_DEPLOY_TOKEN`. GitHub resolves
+the private reusable workflow through this organization's Actions access
+setting on `genfeedai/console.genfeed.ai` (other repositories in `genfeedai`
+may reuse its workflows).
+
+`CONSOLE_DEPLOY_TOKEN` is still required for `saas_lane=operations`. Configure
+that public repository secret with a dedicated fine-grained token whose
+repository access is limited to `genfeedai/console.genfeed.ai` and whose only
+repository permission is **Actions: read and write**. That permission is
+required to dispatch the private workflow and read its exact correlated run.
+Do not grant contents, secrets, administration, or organization-wide access,
+and never print the token.
 
 The genfeedai org rejects fine-grained PATs whose lifetime is greater than
 366 days. Recreate `CONSOLE_DEPLOY_TOKEN` with expiration ≤ 366 days if a
