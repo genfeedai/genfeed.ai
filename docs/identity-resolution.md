@@ -96,9 +96,9 @@ Clerk-shaped `publicMetadata`.
   `/v1/organizations/mine` against `api.genfeed.ai` with a real session tell
   you what each resolution path believes. Disagreement between them localizes
   the bug (cache vs resolver vs endpoint query).
-- Hosted deployment jobs run from the public `genfeedai/genfeed.ai`
-  `Deploy hosted SaaS` / `Release` workflows. OpenTofu and recovery runbooks
-  stay in private `genfeedai/console.genfeed.ai` and are checked out at runtime.
+- Hosted deployment jobs, OpenTofu, and ECS scripts run from the public
+  `genfeedai/genfeed.ai` `Deploy hosted SaaS` / `Release` workflows. Fleet
+  and LoRA stay in private `genfeedai/console.genfeed.ai`.
 
 ## Related documents
 

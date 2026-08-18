@@ -1,8 +1,7 @@
 # Public-repo hosted-SaaS deployment engine (workflow_call only).
 #
-# Jobs run here so GitHub bills the public repository. OpenTofu and deploy
-# scripts stay in private genfeedai/console.genfeed.ai and are checked out at
-# runtime — do not copy infra into this tree.
+# Jobs, OpenTofu, and deploy scripts all live in this repository so GitHub
+# bills free public minutes. Do not check out console.genfeed.ai.
 #
 # Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> RDS pre-migration
 # snapshot -> Prisma migrate task -> workflow migration/backfill task ->
@@ -56,19 +55,15 @@ jobs:
       cancel-in-progress: false
     environment: production
     steps:
-      - name: Checkout private operations code
+      - name: Checkout public deploy engine
         uses: actions/checkout@v7.0.1
         with:
-          repository: genfeedai/console.genfeed.ai
-          ref: master
           path: ops
           persist-credentials: false
-          token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
 
       - name: Checkout exact public application source
         uses: actions/checkout@v7.0.1
         with:
-          repository: genfeedai/genfeed.ai
           ref: ${{ inputs.source_sha }}
           fetch-depth: 50
           path: source

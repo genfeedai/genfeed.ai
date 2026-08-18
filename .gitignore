@@ -90,6 +90,9 @@ coverage-shard/
 # Machine-local SEO watchdog crawler, snapshots, and run artifacts
 reports/seo/
 
+# OpenTofu working directories
+**/.terraform/
+
 # Generated OpenAPI artifact — emitted by `bun run --filter=@genfeedai/api openapi:emit`;
 # CI validates a fresh emission per PR (openapi-drift job) and the live API serves /v1/openapi.json dynamically.
 apps/server/api/openapi/openapi.json
