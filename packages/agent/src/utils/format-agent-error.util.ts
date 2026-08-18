@@ -142,8 +142,7 @@ const CONFIG_PATTERNS: Array<{
     match: /Failed to respond to UI action:\s*403\b/i,
     title: 'Action not allowed',
     summary: 'The API refused this generate request.',
-    recovery:
-      'Switch to Auto or a model enabled for this workspace, then retry.',
+    recovery: 'Pick a model enabled for this workspace, then retry.',
     includeRawDetail: true,
     isConfigurationError: false,
   },

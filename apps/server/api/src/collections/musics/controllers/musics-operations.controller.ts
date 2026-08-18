@@ -129,6 +129,7 @@ export class MusicsOperationsController {
     if (createMusicDto.autoSelectModel) {
       const recommendation = await this.routerService.selectModel({
         category: ModelCategory.MUSIC,
+        organizationId: user.organizationId,
         outputs: createMusicDto.outputs,
         prioritize: createMusicDto.prioritize || 'balanced',
         prompt: createMusicDto.text,

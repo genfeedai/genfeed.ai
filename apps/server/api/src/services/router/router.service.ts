@@ -1,5 +1,6 @@
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
@@ -101,6 +102,7 @@ export class RouterService {
   constructor(
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
+    private readonly orgSettingsService: OrganizationSettingsService,
   ) {}
 
   private readString(value: unknown): string | undefined {
@@ -135,9 +137,10 @@ export class RouterService {
    * `isActive` gate that keeps them out of the public catalog.
    *
    * Org-private rows (customer trainings, BYO models) are only eligible for
-   * their owner. Entitlement is still enforced downstream by
-   * `ModelRegistrationService.validateModelForOrg`; this is a visibility
-   * filter, not the authorization check.
+   * their owner. `selectModel` then further restricts to the org allowlist
+   * (after the empty-allowlist seed) so Auto never picks a model that
+   * `validateModelForOrg` will 403. Explicit keys still go through
+   * `resolveModelKey` and the downstream allowlist check.
    */
   private async getUsableModels(
     category: ModelCategory,
@@ -152,6 +155,42 @@ export class RouterService {
       (model) =>
         !model.organizationId || model.organizationId === organizationId,
     );
+  }
+
+  /**
+   * Auto scoring stays inside the org allowlist. #3083 seeds an empty list
+   * with latest-major-version IDs (quality-biased). Lowest Cost used to pick
+   * from the full catalog (e.g. flux-schnell) and then 403 because that id
+   * was not in the seed.
+   */
+  private async restrictToEnabledModels(
+    models: ModelDocument[],
+    organizationId?: string,
+  ): Promise<ModelDocument[]> {
+    if (!organizationId) {
+      return models;
+    }
+
+    const orgSettings = await this.orgSettingsService.findOne({
+      organizationId,
+    });
+    if (!orgSettings) {
+      return [];
+    }
+
+    const ensured =
+      await this.orgSettingsService.ensureEnabledModelIds(orgSettings);
+    const rawEnabledModelIds = ensured.enabledModelIds;
+    const enabledModelIds = Array.isArray(rawEnabledModelIds)
+      ? rawEnabledModelIds.filter((id): id is string => typeof id === 'string')
+      : [];
+
+    if (enabledModelIds.length === 0) {
+      return [];
+    }
+
+    const enabled = new Set(enabledModelIds);
+    return models.filter((model) => enabled.has(String(model.id)));
   }
 
   /**
@@ -665,8 +704,8 @@ export class RouterService {
       // Analyze prompt
       const analysis = this.analyzePrompt(options.prompt);
 
-      const models = await this.getUsableModels(
-        options.category,
+      const models = await this.restrictToEnabledModels(
+        await this.getUsableModels(options.category, options.organizationId),
         options.organizationId,
       );
 

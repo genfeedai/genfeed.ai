@@ -1,7 +1,8 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ExternalLink } from 'lucide-react';
@@ -28,15 +29,13 @@ export default function IllustrationActions({
   onClose,
   onGenerate,
 }: Props) {
+  const { href } = useOrgUrl();
+
   return (
     <ModalActions>
       {/* One-off generation is Agent-first — Studio has no image prompt bar. */}
       <Button variant={ButtonVariant.SECONDARY} asChild>
-        <Link
-          href={`${EnvironmentService.apps.app}/agent/new`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <Link href={href(APP_ROUTES.AGENT.NEW)}>
           <ExternalLink className="size-4" />
           Agent
         </Link>
