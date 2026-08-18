@@ -1,11 +1,11 @@
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AdsResearchController],
@@ -14,8 +14,8 @@ import { forwardRef, Module } from '@nestjs/common';
     AdPerformanceModule,
     CreativePatternsModule,
     CredentialsCoreModule,
-    forwardRef(() => AdsGatewayModule),
-    forwardRef(() => WorkflowsModule),
+    AdsGatewayModule,
+    WorkflowsCoreModule,
   ],
   providers: [AdsResearchService],
 })

@@ -14,13 +14,13 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
-import { VideosModule } from '@api/collections/videos/videos.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
@@ -70,7 +70,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes
@@ -105,38 +105,38 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     WorkflowsCoreModule,
-    forwardRef(() => AgentThreadsModule),
+    AgentThreadsModule,
     BrandsCoreModule,
     CaptionsModule,
-    forwardRef(() => ContentPerformanceModule),
+    ContentPerformanceModule,
     CredentialsCoreModule,
     CreditsModule,
     ElevenLabsModule,
     HeyGenModule,
     IngredientsModule,
-    forwardRef(() => InstagramModule),
+    InstagramModule,
     MarketplaceIntegrationModule,
     MetadataModule,
-    forwardRef(() => MusicsModule),
-    forwardRef(() => NewslettersModule),
+    MusicsModule,
+    NewslettersModule,
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
-    forwardRef(() => PostsModule),
-    forwardRef(() => ReplyBotConfigsModule),
-    forwardRef(() => ReplyBotModule),
-    forwardRef(() => SocialInboxModule),
+    PostsCoreModule,
+    ReplyBotConfigsModule,
+    ReplyBotModule,
+    SocialInboxModule,
     SourcePostsModule,
     SharedModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
     HttpModule,
-    forwardRef(() => TwitterModule),
-    forwardRef(() => YoutubeModule),
-    forwardRef(() => VideoGenerationModule),
-    forwardRef(() => VideosModule),
+    TwitterModule,
+    YoutubeModule,
+    VideoGenerationModule,
+    VideosCoreModule,
     WhisperModule,
     WorkflowExecutionsModule,
-    forwardRef(() => WorkflowExecutorModule),
+    WorkflowExecutorModule,
 
     BullModule.registerQueue({
       defaultJobOptions: {

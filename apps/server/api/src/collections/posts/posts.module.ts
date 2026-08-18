@@ -20,7 +20,6 @@ import { PostsController } from '@api/collections/posts/controllers/posts.contro
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
-import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
@@ -43,7 +42,7 @@ import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SERVER_TOKENS } from '@genfeedai/server';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 
 @Module({
@@ -59,7 +58,6 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostsController,
   ],
   exports: [
-    AnalyticsAggregationService,
     AnalyticsSyncWorkflowService,
     PostAnalyticsCollectionStateService,
     PostAnalyticsService,
@@ -74,7 +72,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostsCoreModule,
     BatchGenerationModule,
     ByokModule,
-    forwardRef(() => ContentIntelligenceModule),
+    ContentIntelligenceModule,
     CredentialsCoreModule,
     CreditsModule,
     IngredientsModule,
@@ -85,14 +83,13 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostLifecycleModule,
     PromptBuilderModule,
     PublishApprovalsModule,
-    forwardRef(() => QuotaModule),
+    QuotaModule,
     ReplicateModule,
     SeoModule,
     TemplatesModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
   ],
   providers: [
-    AnalyticsAggregationService,
     AnalyticsSyncWorkflowService,
     CreditsGuard,
     CreditsInterceptor,

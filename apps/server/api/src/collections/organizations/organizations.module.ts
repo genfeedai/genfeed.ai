@@ -15,20 +15,20 @@ import { OrganizationsMembersController } from '@api/collections/organizations/c
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
-import { VideosModule } from '@api/collections/videos/videos.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -52,14 +52,14 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelsModule,
     OrganizationSettingsModule,
     // PostsModule exports AnalyticsAggregationService for org analytics duals
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     RolesModule,
     SettingsModule,
     SubscriptionsModule,
     TagsModule,
     UsersCoreModule,
-    forwardRef(() => VideosModule),
-    forwardRef(() => WebhookClientModule),
+    VideosCoreModule,
+    WebhookClientModule,
   ],
   providers: [MemberCreditsGuard],
 })

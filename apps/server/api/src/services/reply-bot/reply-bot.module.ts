@@ -38,7 +38,7 @@ import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -79,10 +79,10 @@ import { forwardRef, Module } from '@nestjs/common';
     ApifyModule,
 
     // Official X API for Following / timelines when bearer is configured
-    forwardRef(() => TwitterModule),
+    TwitterModule,
 
     // Instagram for comment replies and DMs
-    forwardRef(() => InstagramModule),
+    InstagramModule,
   ],
   providers: [
     AuthorReplyLoopService,

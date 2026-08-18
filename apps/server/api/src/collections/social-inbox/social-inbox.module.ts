@@ -15,19 +15,19 @@ import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.mod
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [SocialInboxController, SocialReplyCampaignController],
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
-    forwardRef(() => InstagramModule),
+    InstagramModule,
     LinkedInModule,
     NotificationsPublisherModule,
     QueuesModule,
     TwitterModule,
     WorkflowsCoreModule,
-    forwardRef(() => YoutubeModule),
+    YoutubeModule,
   ],
   providers: [
     SocialInboxActionService,

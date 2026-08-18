@@ -8,11 +8,11 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
@@ -25,7 +25,7 @@ import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AnalyticsController],
@@ -40,22 +40,22 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsModule,
     IngredientsModule,
     ModelsModule,
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PostsModule),
+    OrganizationsCoreModule,
+    PostsCoreModule,
     SubscriptionsModule,
-    forwardRef(() => UsersModule),
-    forwardRef(() => WorkflowsModule),
+    UsersModule,
+    WorkflowsCoreModule,
 
     // Platform integration modules (needed for external API analytics)
-    forwardRef(() => InstagramModule),
-    forwardRef(() => PinterestModule),
+    InstagramModule,
+    PinterestModule,
     // Stripe is read-only here: BusinessAnalyticsService prefers real charge
     // data for revenue when a Stripe client is configured. Use the leaf
     // client module so analytics does not close a StripeModule ring.
     StripeCoreModule,
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => YoutubeModule),
+    TiktokModule,
+    TwitterModule,
+    YoutubeModule,
   ],
   providers: [
     AnalyticsService,

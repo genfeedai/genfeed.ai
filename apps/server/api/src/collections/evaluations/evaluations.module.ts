@@ -3,30 +3,30 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationsController } from '@api/collections/evaluations/controllers/evaluations.controller';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
-import { ImagesModule } from '@api/collections/images/images.module';
+import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { ModelsModule } from '@api/collections/models/models.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
-import { VideosModule } from '@api/collections/videos/videos.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [EvaluationsController],
   exports: [EvaluationsService, EvaluationsOperationsService],
   imports: [
-    forwardRef(() => ArticlesModule),
+    ArticlesModule,
     ConfigModule,
     CreditsModule,
-    forwardRef(() => ImagesModule),
+    ImagesCoreModule,
     ModelsModule,
     NotificationsPublisherModule,
-    forwardRef(() => PostsModule),
+    PostsCoreModule,
     PromptBuilderModule,
     ReplicateModule,
-    forwardRef(() => VideosModule),
+    VideosCoreModule,
   ],
   providers: [EvaluationsService, EvaluationsOperationsService],
 })

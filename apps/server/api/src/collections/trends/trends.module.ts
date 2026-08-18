@@ -31,7 +31,7 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -52,12 +52,12 @@ import { forwardRef, Module } from '@nestjs/common';
     ConfigModule,
     CreditsModule,
     CredentialsCoreModule,
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
+    InstagramModule,
+    LinkedInModule,
     ModelsModule,
     ReplicateModule,
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
+    TiktokModule,
+    TwitterModule,
     XaiModule,
   ],
   providers: [

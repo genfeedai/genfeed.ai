@@ -1,6 +1,6 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -11,7 +11,7 @@ import { PersonaPhotoProcessor } from '@api/services/workflow-executor/processor
 import { PersonaVideoProcessor } from '@api/services/workflow-executor/processors/persona-video.processor';
 import { SoundOverlayProcessor } from '@api/services/workflow-executor/processors/sound-overlay.processor';
 import { TrendInspirationProcessor } from '@api/services/workflow-executor/processors/trend-inspiration.processor';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -25,11 +25,11 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsModule,
     ModelsModule,
     NotificationsModule,
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PersonaContentModule),
+    OrganizationsCoreModule,
+    PersonaContentModule,
     ReplicateModule,
     SettingsModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
   ],
   providers: [
     PersonaPhotoProcessor,

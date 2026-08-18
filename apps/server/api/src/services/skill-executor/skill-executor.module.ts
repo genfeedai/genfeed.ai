@@ -15,22 +15,22 @@ import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/im
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [SkillExecutorService],
   imports: [
     AgentChatModelRegistryModule,
     ByokModule,
-    forwardRef(() => ContentIntelligenceModule),
-    forwardRef(() => ContentRunsModule),
+    ContentIntelligenceModule,
+    ContentRunsModule,
     ManagedInferenceModule,
-    forwardRef(() => SkillsModule),
+    SkillsModule,
     FalModule,
     LeonardoAIModule,
     LlmDispatcherModule,
     ReplicateModule,
-    forwardRef(() => TrendsModule),
+    TrendsModule,
   ],
   providers: [
     ContentGeoOptimizerHandler,

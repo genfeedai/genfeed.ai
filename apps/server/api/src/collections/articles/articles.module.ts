@@ -23,8 +23,8 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { PersonasModule } from '@api/collections/personas/personas.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
@@ -39,7 +39,7 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { RouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { ConfigModule } from '@libs/config/config.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   // `ArticlesOperationsController` and `ArticlesTransformationsController` must
@@ -62,16 +62,16 @@ import { forwardRef, Module } from '@nestjs/common';
     HarnessProfilesModule,
     NotificationsModule,
     OrganizationSettingsModule,
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PersonasModule),
+    OrganizationsCoreModule,
+    PersonasCoreModule,
     PromptBuilderModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
     ReplicateModule,
     RouterModule,
     SeoModule,
     TagsModule,
     TemplatesModule,
-    forwardRef(() => UsersModule),
+    UsersModule,
     ContentHarnessModule,
   ],
   providers: [

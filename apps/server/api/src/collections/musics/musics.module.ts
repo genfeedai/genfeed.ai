@@ -25,7 +25,7 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -46,7 +46,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelsModule,
     OrganizationSettingsModule,
     PromptBuilderModule,
-    forwardRef(() => PromptsModule),
+    PromptsModule,
     ReplicateModule,
     RouterModule,
     IngredientCompletionModule,

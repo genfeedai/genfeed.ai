@@ -24,7 +24,7 @@ import {
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [BatchGenerationController],
@@ -35,11 +35,11 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchGenerationStreamService,
   ],
   imports: [
-    forwardRef(() => AgentStreamPublisherModule),
+    AgentStreamPublisherModule,
     BrandsCoreModule,
     ConfigModule,
     ContentHarnessModule,
-    forwardRef(() => ContentIntelligenceModule),
+    ContentIntelligenceModule,
     CreditsModule,
     HarnessProfilesModule,
     LoggerModule,

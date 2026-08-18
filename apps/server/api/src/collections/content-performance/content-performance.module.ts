@@ -1,14 +1,14 @@
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
+import { ContentPerformanceCoreModule } from '@api/collections/content-performance/content-performance-core.module';
 import { AnalyticsSyncController } from '@api/collections/content-performance/controllers/analytics-sync.controller';
 import { ContentPerformanceController } from '@api/collections/content-performance/controllers/content-performance.controller';
 import { PerformanceSummaryController } from '@api/collections/content-performance/controllers/performance-summary.controller';
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
-import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { OptimizationCycleService } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { PostsModule } from '@api/collections/posts/posts.module';
+import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
@@ -19,7 +19,7 @@ import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
 import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
@@ -32,7 +32,7 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     AnalyticsSyncController,
   ],
   exports: [
-    ContentPerformanceService,
+    ContentPerformanceCoreModule,
     AttributionService,
     OptimizationCycleService,
     PerformanceSummaryService,
@@ -44,17 +44,17 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
   ],
   imports: [
     BrandMemoryModule,
-    forwardRef(() => PostsModule),
+    ContentPerformanceCoreModule,
+    PostsCoreModule,
     NotificationsModule,
     PrismaModule,
     LoggerModule,
     QueuesModule,
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => UsersModule),
+    OrganizationsCoreModule,
+    UsersModule,
     CacheModule,
   ],
   providers: [
-    ContentPerformanceService,
     AttributionService,
     PerformanceSummaryService,
     OptimizationCycleService,

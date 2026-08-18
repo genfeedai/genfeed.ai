@@ -13,7 +13,7 @@ import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discov
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -25,7 +25,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CampaignTargetsModule,
     OutreachCampaignsCoreModule,
     CredentialsCoreModule,
-    forwardRef(() => ReplyBotModule),
+    ReplyBotModule,
   ],
   providers: [
     CampaignDiscoveryService,
