@@ -26,3 +26,36 @@ export function fenceUntrustedContent(
   }
   return `${framing}\n${sanitized}`;
 }
+
+const UNTRUSTED_CONTENT_FRAMINGS = [
+  UNTRUSTED_USER_DATA_FRAMING,
+  UNTRUSTED_ORG_SKILL_FRAMING,
+] as const;
+
+/** Strip model-facing untrusted fences. Thread titles must use the raw prompt. */
+export function stripUntrustedContentFraming(text: string): string {
+  let remaining = text.trim();
+
+  for (const framing of UNTRUSTED_CONTENT_FRAMINGS) {
+    if (remaining.startsWith(framing)) {
+      remaining = remaining.slice(framing.length).trim();
+    }
+  }
+
+  return remaining;
+}
+
+export function isUntrustedFramingTitle(title: string): boolean {
+  const normalized = title.trim();
+  if (!normalized) {
+    return false;
+  }
+
+  if (
+    UNTRUSTED_CONTENT_FRAMINGS.some((framing) => normalized.startsWith(framing))
+  ) {
+    return true;
+  }
+
+  return /untrusted user[- ]generated/i.test(normalized);
+}

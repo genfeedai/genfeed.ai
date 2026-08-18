@@ -1,4 +1,8 @@
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import {
+  isUntrustedFramingTitle,
+  stripUntrustedContentFraming,
+} from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 
 /**
  * Pure thread-title helpers shared across orchestrator chat paths
@@ -16,13 +20,14 @@ export type AgentThreadTitlePersistence = {
 
 export function buildSeedThreadTitle(content: string): string {
   // Trim first so leading/trailing whitespace does not steal budget from the cap.
-  return content.trim().substring(0, 100);
+  // Never title from the model-facing untrusted-data fence.
+  return stripUntrustedContentFraming(content).substring(0, 100);
 }
 
 export function buildFallbackThreadTitle(prompt: string): string {
   const fillerPattern =
     /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
-  const cleaned = prompt
+  const cleaned = stripUntrustedContentFraming(prompt)
     .replace(/[`"'“”‘’]/g, ' ')
     .replace(/[^a-zA-Z0-9\s]/g, ' ')
     .replace(fillerPattern, ' ')
@@ -34,7 +39,7 @@ export function buildFallbackThreadTitle(prompt: string): string {
     .slice(0, 5);
 
   if (words.length === 0) {
-    return buildSeedThreadTitle(prompt);
+    return buildSeedThreadTitle(stripUntrustedContentFraming(prompt));
   }
 
   return words
@@ -46,6 +51,10 @@ export function sanitizeGeneratedThreadTitle(
   title: string,
   prompt: string,
 ): string {
+  if (isUntrustedFramingTitle(title)) {
+    return buildFallbackThreadTitle(prompt);
+  }
+
   const normalized = title
     .replace(/[`"'“”‘’]/g, ' ')
     .replace(/[^\w\s'-]/g, ' ')
