@@ -66,9 +66,13 @@ export interface WorkflowSchedulerSyncRow {
  * BullMQ Job Scheduler id for a workflow's cron schedule. One scheduler per
  * workflow: upserting the same id from any number of API replicas is
  * idempotent, so BullMQ guarantees exactly one delayed fire per tick.
+ *
+ * Keep the colon form shipped since #1109. Job Scheduler ids are not
+ * validated like Job.add custom ids, and renaming forks a second
+ * production scheduler for every enabled workflow.
  */
 export function workflowSchedulerId(workflowId: string): string {
-  return `workflow-schedule-${workflowId}`;
+  return `workflow-schedule:${workflowId}`;
 }
 
 function requireQueueJobId(

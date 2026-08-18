@@ -53,9 +53,8 @@ function createDelayResumeData(): DelayResumeJobData {
 }
 
 describe('workflowSchedulerId', () => {
-  it('mints a BullMQ-safe scheduler id without colons', () => {
-    expect(workflowSchedulerId('wf-1')).toBe('workflow-schedule-wf-1');
-    expect(workflowSchedulerId('wf-1')).not.toContain(':');
+  it('keeps the shipped colon scheduler id so production leases are not forked', () => {
+    expect(workflowSchedulerId('wf-1')).toBe('workflow-schedule:wf-1');
   });
 });
 
@@ -203,7 +202,7 @@ describe('WorkflowExecutionQueueService', () => {
       });
 
       expect(mockQueue.upsertJobScheduler).toHaveBeenCalledWith(
-        'workflow-schedule-wf-1',
+        'workflow-schedule:wf-1',
         { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
         {
           data: {
@@ -257,7 +256,7 @@ describe('WorkflowExecutionQueueService', () => {
       await service.removeWorkflowScheduler('wf-1');
 
       expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
-        'workflow-schedule-wf-1',
+        'workflow-schedule:wf-1',
       );
     });
   });
@@ -274,7 +273,7 @@ describe('WorkflowExecutionQueueService', () => {
       });
 
       expect(mockQueue.upsertJobScheduler).toHaveBeenCalledWith(
-        'workflow-schedule-wf-1',
+        'workflow-schedule:wf-1',
         { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
         expect.objectContaining({
           data: {
@@ -305,7 +304,7 @@ describe('WorkflowExecutionQueueService', () => {
 
       expect(mockQueue.upsertJobScheduler).not.toHaveBeenCalled();
       expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
-        'workflow-schedule-wf-system',
+        'workflow-schedule:wf-system',
       );
     });
 
@@ -321,7 +320,7 @@ describe('WorkflowExecutionQueueService', () => {
 
       expect(mockQueue.upsertJobScheduler).not.toHaveBeenCalled();
       expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
-        'workflow-schedule-wf-disabled',
+        'workflow-schedule:wf-disabled',
       );
     });
   });

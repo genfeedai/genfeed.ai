@@ -90,7 +90,9 @@ describe('BatchContentQueueService', () => {
         expect.objectContaining({
           attempts: 3,
           backoff: { delay: 1000, type: 'exponential' },
-          jobId: expect.stringMatching(/^[^-]+-0$/),
+          jobId: expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-0$/i,
+          ),
           removeOnComplete: 100,
           removeOnFail: 50,
         }),

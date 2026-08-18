@@ -289,16 +289,19 @@ export abstract class BaseService<
     );
     structuredError.originalError = error;
 
-    const flagged = error as {
-      isAuthError?: boolean;
-      isCancelled?: boolean;
-      isNetworkError?: boolean;
-      isTimeout?: boolean;
-    };
-    structuredError.isAuthError = flagged.isAuthError === true;
-    structuredError.isCancelled = flagged.isCancelled === true;
-    structuredError.isNetworkError = flagged.isNetworkError === true;
-    structuredError.isTimeout = flagged.isTimeout === true;
+    const flagged =
+      typeof error === 'object' && error !== null
+        ? (error as {
+            isAuthError?: boolean;
+            isCancelled?: boolean;
+            isNetworkError?: boolean;
+            isTimeout?: boolean;
+          })
+        : undefined;
+    structuredError.isAuthError = flagged?.isAuthError === true;
+    structuredError.isCancelled = flagged?.isCancelled === true;
+    structuredError.isNetworkError = flagged?.isNetworkError === true;
+    structuredError.isTimeout = flagged?.isTimeout === true;
 
     throw structuredError;
   }

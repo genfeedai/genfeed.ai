@@ -2,6 +2,10 @@ import { CreativePatternsController } from '@api/collections/creative-patterns/c
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
+const currentUser = {
+  organizationId: 'org-1',
+} as never;
+
 describe('CreativePatternsController', () => {
   let controller: CreativePatternsController;
 
@@ -39,14 +43,22 @@ describe('CreativePatternsController', () => {
   });
 
   describe('findAll', () => {
+    it('rejects a session without an organization', async () => {
+      await expect(
+        controller.findAll({ organizationId: '' } as never),
+      ).rejects.toThrow('organizationId is required');
+      expect(mockCreativePatternsService.findAll).not.toHaveBeenCalled();
+    });
+
     it('should return all patterns', async () => {
       mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(currentUser);
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
         brandId: undefined,
         limit: undefined,
+        organizationId: 'org-1',
         patternType: undefined,
         platform: undefined,
         scope: undefined,
@@ -58,11 +70,12 @@ describe('CreativePatternsController', () => {
     it('should filter by platform', async () => {
       mockCreativePatternsService.findAll.mockResolvedValue([mockPatterns[0]]);
 
-      const result = await controller.findAll('twitter');
+      const result = await controller.findAll(currentUser, 'twitter');
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
         brandId: undefined,
         limit: undefined,
+        organizationId: 'org-1',
         patternType: undefined,
         platform: 'twitter',
         scope: undefined,
@@ -74,11 +87,12 @@ describe('CreativePatternsController', () => {
     it('should filter by patternType', async () => {
       mockCreativePatternsService.findAll.mockResolvedValue([]);
 
-      await controller.findAll(undefined, 'hook' as any);
+      await controller.findAll(currentUser, undefined, 'hook' as never);
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
         brandId: undefined,
         limit: undefined,
+        organizationId: 'org-1',
         patternType: 'hook',
         platform: undefined,
         scope: undefined,
@@ -90,6 +104,7 @@ describe('CreativePatternsController', () => {
       mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
 
       const result = await controller.findAll(
+        currentUser,
         undefined,
         undefined,
         undefined,
@@ -100,6 +115,7 @@ describe('CreativePatternsController', () => {
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
         brandId: 'brand123',
         limit: undefined,
+        organizationId: 'org-1',
         patternType: undefined,
         platform: undefined,
         scope: undefined,
@@ -112,6 +128,7 @@ describe('CreativePatternsController', () => {
       mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
 
       await controller.findAll(
+        currentUser,
         undefined,
         undefined,
         undefined,
@@ -123,6 +140,7 @@ describe('CreativePatternsController', () => {
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
         brandId: 'brand123',
         limit: 5,
+        organizationId: 'org-1',
         patternType: undefined,
         platform: undefined,
         scope: undefined,

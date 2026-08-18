@@ -1,4 +1,7 @@
-import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import {
+  ContentPipelineQueueService,
+  toBullMqJobId,
+} from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
@@ -79,6 +82,27 @@ describe('ContentPipelineQueueService', () => {
         'generate-and-publish',
         expect.anything(),
         { jobId: 'dedup-123' },
+      );
+    });
+
+    it('strips colons from a client-supplied idempotencyKey before Job.add', async () => {
+      await service.queueGenerateAndPublish({
+        brandId: 'test-object-id',
+        idempotencyKey: 'autopilot:persona-1:2026-06-24T09',
+        organizationId: orgId,
+        personaId,
+        prompt: 'Test',
+        steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' as const }],
+        userId: 'test-object-id',
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'generate-and-publish',
+        expect.anything(),
+        { jobId: 'autopilot-persona-1-2026-06-24T09' },
+      );
+      expect(toBullMqJobId('autopilot:persona-1:2026-06-24T09')).not.toContain(
+        ':',
       );
     });
   });

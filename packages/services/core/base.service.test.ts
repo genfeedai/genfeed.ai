@@ -203,6 +203,16 @@ describe('BaseService', () => {
         }),
       );
     });
+
+    it('does not throw TypeError when the original error is missing', () => {
+      expect(() =>
+        service.testHandleOperationError('collectAllPages', undefined),
+      ).toThrow(
+        expect.objectContaining({
+          isTimeout: false,
+        }),
+      );
+    });
   });
 
   describe('getInstance', () => {

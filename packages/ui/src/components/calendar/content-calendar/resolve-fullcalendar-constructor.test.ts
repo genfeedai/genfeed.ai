@@ -30,6 +30,20 @@ describe('resolveFullCalendarConstructor', () => {
     ).toBe(MockCalendar);
   });
 
+  it('unwraps a double-default interop constructor', () => {
+    expect(
+      resolveFullCalendarConstructor({ default: { default: MockCalendar } }),
+    ).toBe(MockCalendar);
+  });
+
+  it('unwraps a double-default nested Calendar object', () => {
+    expect(
+      resolveFullCalendarConstructor({
+        default: { default: { Calendar: MockCalendar } },
+      }),
+    ).toBe(MockCalendar);
+  });
+
   it('throws when no constructor is present', () => {
     expect(() => resolveFullCalendarConstructor({})).toThrow(
       'Unable to load FullCalendar component',

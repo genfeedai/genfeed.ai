@@ -156,6 +156,7 @@ export class CreativePatternsService {
   }
 
   async findAll(filters: {
+    organizationId: string;
     brandId?: string;
     limit?: number;
     patternType?: PatternType;
@@ -165,9 +166,7 @@ export class CreativePatternsService {
   }): Promise<CreativePatternDocument[]> {
     const now = new Date();
     const patterns = await this.prisma.creativePattern.findMany({
-      where: {
-        isDeleted: false,
-      },
+      where: scopedWhere(filters.organizationId, {}),
     });
 
     const filtered = patterns
