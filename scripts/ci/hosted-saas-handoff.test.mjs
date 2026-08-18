@@ -56,7 +56,7 @@ function jobBlock(jobId) {
 
 function workflowCallSecrets(yaml) {
   const match = yaml.match(
-    /workflow_call:\n(?:[ \t].*\n)*?[ \t]secrets:\n((?:[ \t]+.+\n)+)/,
+    /(?:^|\n)[ \t]*workflow_call:\n(?:[ \t]+.*\n)*?[ \t]+secrets:\n((?:[ \t]+.+\n)+)/,
   );
   assert.ok(match, 'workflow_call must declare secrets');
   return [...match[1].matchAll(/^[ \t]+([A-Z][A-Z0-9_]+):/gm)].map(
