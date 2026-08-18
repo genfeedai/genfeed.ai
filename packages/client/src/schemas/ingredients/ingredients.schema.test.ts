@@ -14,6 +14,7 @@ import {
   canMergeStoryboard,
   createStoryboardFrame,
   getCompletedFrames,
+  getFailedFrames,
   getPendingFrames,
   initializeStoryboard,
   isGenerating,
@@ -374,6 +375,40 @@ describe('storyboard-frame schema', () => {
       const pending = getPendingFrames(sb);
       expect(pending).toHaveLength(1);
       expect(pending[0].id).toBe('f1');
+    });
+  });
+
+  describe('getFailedFrames', () => {
+    it('returns failed frames that still have a usable prompt and no video', () => {
+      const sb = initializeStoryboard(IngredientFormat.PORTRAIT);
+      sb.frames = [
+        {
+          duration: 5,
+          id: 'f1',
+          order: 0,
+          prompt: 'A long enough prompt',
+          status: 'failed',
+        },
+        { duration: 5, id: 'f2', order: 1, prompt: 'short', status: 'failed' },
+        {
+          duration: 5,
+          id: 'f3',
+          order: 2,
+          prompt: 'Also a long prompt text',
+          status: 'failed',
+          videoId: 'v',
+        },
+        {
+          duration: 5,
+          id: 'f4',
+          order: 3,
+          prompt: 'A long enough prompt',
+          status: 'pending',
+        },
+      ];
+      const failed = getFailedFrames(sb);
+      expect(failed).toHaveLength(1);
+      expect(failed[0].id).toBe('f1');
     });
   });
 
