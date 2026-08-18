@@ -66,8 +66,9 @@ _Avoid_: acceptance criteria (unqualified), AC, user story.
 _Avoid_: commit message (contributors do not control the squash commit body).
 
 **CLA**: The Contributor License Agreement — FSFE Fiduciary License Agreement 2.1, `ICLA.md` for
-individuals and `CCLA.md` for legal entities — signed once per GitHub account through the CLA
-Assistant bot on a contributor's first PR; enforced by the `license/cla` check. Replaces DCO
+individuals and `CCLA.md` for legal entities — signed once per GitHub account per CLA version
+through the CLA Assistant bot. A newer CLA version applies to future contributions; prior
+contributions keep prior rights. Enforced by the `license/cla` check. Replaces DCO
 sign-off (2026-08-18); no `Signed-off-by:` trailer is required.
 _Avoid_: DCO, sign-off, contributor agreement (unqualified).
 

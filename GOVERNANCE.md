@@ -90,11 +90,11 @@ no release cadence — releases ship from `master` when ready.
 - The whole repository is AGPL-3.0-or-later.
 - Contributions are accepted under a Contributor License Agreement based on the
   FSFE Fiduciary License Agreement 2.1 ([ICLA.md](ICLA.md) / [CCLA.md](CCLA.md)),
-  signed once per GitHub account and CLA version via CLA Assistant. A new
-  version binds only future contributions; prior contributions stay under the
-  version their author signed. Changing the beneficiary or the outbound-licence
-  obligation would still require every past contributor's consent, so that
-  decision is made once, here.
+  signed once per GitHub account per CLA version via CLA Assistant. A newer
+  CLA version applies to future contributions; prior contributions keep prior
+  rights. Changing the beneficiary or the outbound-licence obligation would
+  still require every past contributor's consent, so that decision is made
+  once, here.
 - The Genfeed name and logo are trademarks; see [TRADEMARK.md](TRADEMARK.md).
 
 ## Changing this document
