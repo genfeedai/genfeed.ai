@@ -64,9 +64,8 @@ export function buildAuthLinkCorrelationId(token: string): string {
 }
 
 /**
- * Delivers Better Auth transactional emails through the existing notifications
- * pipeline (Redis → notifications service → Resend), so first-party auth reuses
- * the established email path rather than introducing a second mailer.
+ * Delivers Better Auth transactional emails through the notifications service
+ * and waits for Resend acceptance before Better Auth reports success.
  */
 @Injectable()
 export class BetterAuthMailerService {
@@ -92,14 +91,20 @@ export class BetterAuthMailerService {
         : 'Your Genfeed.ai sign-in link';
     const html = this.buildMagicLinkHtml(actionUrl, purpose);
 
-    await this.notificationsService.sendEmail(email, subject, html);
+    const linkId = buildAuthLinkCorrelationId(token);
+    await this.notificationsService.deliverEmail({
+      html,
+      idempotencyKey: `auth/magic-link/${linkId}`,
+      subject,
+      to: email,
+    });
 
     // Log delivery without the recipient address (PII) — just the domain — and
     // without the action URL, which carries the bearer token.
-    this.logger.log('Magic-link email dispatched', {
+    this.logger.log('Magic-link email accepted', {
       ...this.context,
       emailDomain: email.split('@')[1] ?? 'unknown',
-      linkId: buildAuthLinkCorrelationId(token),
+      linkId,
     });
   }
 
@@ -111,12 +116,18 @@ export class BetterAuthMailerService {
     const subject = 'Verify your Genfeed.ai email';
     const html = this.buildVerificationEmailHtml(this.resolveActionUrl(url));
 
-    await this.notificationsService.sendEmail(user.email, subject, html);
+    const linkId = buildAuthLinkCorrelationId(token);
+    await this.notificationsService.deliverEmail({
+      html,
+      idempotencyKey: `auth/verification/${linkId}`,
+      subject,
+      to: user.email,
+    });
 
-    this.logger.log('Verification email dispatched', {
+    this.logger.log('Verification email accepted', {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
-      linkId: buildAuthLinkCorrelationId(token),
+      linkId,
     });
   }
 
@@ -129,12 +140,18 @@ export class BetterAuthMailerService {
     const actionUrl = this.resolveActionUrl(url);
     const html = this.buildResetPasswordHtml(actionUrl);
 
-    await this.notificationsService.sendEmail(user.email, subject, html);
+    const linkId = buildAuthLinkCorrelationId(token);
+    await this.notificationsService.deliverEmail({
+      html,
+      idempotencyKey: `auth/password-reset/${linkId}`,
+      subject,
+      to: user.email,
+    });
 
-    this.logger.log('Password reset email dispatched', {
+    this.logger.log('Password reset email accepted', {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
-      linkId: buildAuthLinkCorrelationId(token),
+      linkId,
     });
   }
 

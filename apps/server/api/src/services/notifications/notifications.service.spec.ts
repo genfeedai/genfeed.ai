@@ -9,6 +9,14 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import Redis from 'ioredis';
 
+const { mockSafeFetch } = vi.hoisted(() => ({
+  mockSafeFetch: vi.fn(),
+}));
+
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: mockSafeFetch,
+}));
+
 // Mock ioredis module
 vi.mock('ioredis', () => ({
   default: vi.fn(function mockRedisConstructor() {
@@ -24,6 +32,7 @@ vi.mock('ioredis', () => ({
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
+  let configService: { get: ReturnType<typeof vi.fn> };
   let loggerService: vi.Mocked<LoggerService>;
   let mockPublisher: vi.Mocked<Partial<Redis>>;
 
@@ -41,14 +50,24 @@ describe('NotificationsService', () => {
       return mockPublisher as unknown as Redis;
     });
 
+    configService = {
+      get: vi.fn().mockImplementation((key: string) => {
+        const config: Record<string, string> = {
+          GENFEEDAI_API_KEY: 'internal-api-key',
+          GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:
+            'http://notifications:3011',
+          REDIS_URL: 'redis://localhost:6379',
+        };
+        return config[key];
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
         {
           provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockReturnValue('redis://localhost:6379'),
-          },
+          useValue: configService,
         },
         {
           provide: LoggerService,
@@ -352,6 +371,99 @@ describe('NotificationsService', () => {
       const publishedData = JSON.parse(publishCall[1]);
 
       expect(publishedData.payload.from).toBeUndefined();
+    });
+  });
+
+  describe('deliverEmail', () => {
+    const payload = {
+      html: '<p>Test content</p>',
+      idempotencyKey: 'auth/magic-link/link_123',
+      subject: 'Test Subject',
+      to: 'test@example.com',
+    };
+
+    it('waits for the notifications service to accept the email', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(JSON.stringify({ emailId: 'email_123' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      );
+
+      await expect(service.deliverEmail(payload)).resolves.toBe('email_123');
+
+      expect(mockSafeFetch).toHaveBeenCalledWith(
+        new URL('http://notifications:3011/v1/internal/email-deliveries'),
+        expect.objectContaining({
+          body: JSON.stringify(payload),
+          headers: {
+            Authorization: 'Bearer internal-api-key',
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal: expect.any(AbortSignal),
+        }),
+        {
+          allowedOrigins: ['http://notifications:3011'],
+          allowPrivateNetwork: true,
+        },
+      );
+      expect(mockPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the notifications service rejects delivery', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: 'Provider rejected delivery' }),
+          { status: 502 },
+        ),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toThrow(
+        'Auth email delivery failed',
+      );
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'NotificationsService synchronous email delivery failed',
+        expect.objectContaining({ message: expect.any(String) }),
+        { statusCode: 502 },
+      );
+    });
+
+    it('rejects a malformed success response', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(JSON.stringify({ emailId: '' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toThrow(
+        'Auth email delivery failed',
+      );
+    });
+
+    it('fails closed when internal delivery configuration is missing', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://localhost:6379' : undefined,
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toThrow(
+        'Auth email delivery failed',
+      );
+      expect(mockSafeFetch).not.toHaveBeenCalled();
+    });
+
+    it('converts transport and timeout failures to a safe error', async () => {
+      mockSafeFetch.mockRejectedValue(new Error('socket exposed detail'));
+
+      await expect(service.deliverEmail(payload)).rejects.toThrow(
+        'Auth email delivery failed',
+      );
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'NotificationsService synchronous email delivery failed',
+        expect.objectContaining({ message: 'socket exposed detail' }),
+        undefined,
+      );
     });
   });
 

@@ -53,6 +53,16 @@ export interface IEmailPayload {
   from?: string;
 }
 
+export interface IEmailDeliveryRequest extends IEmailPayload {
+  idempotencyKey?: string;
+  replyTo?: string;
+  text?: string;
+}
+
+export interface IEmailDeliveryResponse {
+  emailId: string;
+}
+
 export interface ICrmLeadOutreachEmailPayload {
   to: string;
   leadId: string;
