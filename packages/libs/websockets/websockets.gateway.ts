@@ -8,6 +8,7 @@ import type {
   ClientInfo,
   ConnectionStatus,
   FileProcessingData,
+  IdentityRotateMessage,
   IngredientStatusData,
   IngredientUpdateMessage,
   MediaFailedEvent,
@@ -163,28 +164,7 @@ export class WebSocketGateway
       return;
     }
 
-    // Store client info
-    const clientInfo: ClientInfo = {
-      organizationId,
-      socketId: client.id,
-      userId,
-    };
-
-    this.clients.set(client.id, clientInfo);
-
-    // Track user's sockets (user can have multiple connections)
-    if (!this.userToSocket.has(userId)) {
-      this.userToSocket.set(userId, new Set());
-    }
-    this.userToSocket.get(userId)?.add(client.id);
-
-    // Join user-specific room
-    // Room name uses getUserRoomName for consistency across cloud and self-hosted
-    await client.join(getUserRoomName(userId));
-
-    if (organizationId) {
-      await client.join(`org-${organizationId}`);
-    }
+    await this.bindClientIdentity(client, userId, organizationId);
 
     this.logger.log(`Client ${client.id} connected for user ${userId}`, {
       organizationId,
@@ -205,7 +185,16 @@ export class WebSocketGateway
     userId?: string;
     organizationId?: string;
   }> {
-    const token = this.extractToken(client);
+    return this.resolveIdentityFromToken(this.extractToken(client), client.id);
+  }
+
+  private async resolveIdentityFromToken(
+    token: string | undefined,
+    clientId: string,
+  ): Promise<{
+    userId?: string;
+    organizationId?: string;
+  }> {
     if (!token) {
       return {};
     }
@@ -221,11 +210,90 @@ export class WebSocketGateway
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message ?? String(error);
       this.logger.warn(
-        `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
+        `Failed to verify Better Auth token for client ${clientId}: ${errorMessage}`,
         { ...this.context, error },
       );
       return {};
     }
+  }
+
+  private async leaveIdentityRooms(
+    client: Socket,
+    clientInfo: ClientInfo,
+  ): Promise<void> {
+    await client.leave(getUserRoomName(clientInfo.userId));
+    if (clientInfo.organizationId) {
+      await client.leave(`org-${clientInfo.organizationId}`);
+    }
+  }
+
+  private unbindClientMaps(client: Socket, clientInfo: ClientInfo): void {
+    const userSockets = this.userToSocket.get(clientInfo.userId);
+    if (userSockets) {
+      userSockets.delete(client.id);
+      if (userSockets.size === 0) {
+        this.userToSocket.delete(clientInfo.userId);
+      }
+    }
+
+    this.clients.delete(client.id);
+  }
+
+  private async bindClientIdentity(
+    client: Socket,
+    userId: string,
+    organizationId?: string,
+  ): Promise<void> {
+    const clientInfo: ClientInfo = {
+      organizationId,
+      socketId: client.id,
+      userId,
+    };
+
+    this.clients.set(client.id, clientInfo);
+
+    if (!this.userToSocket.has(userId)) {
+      this.userToSocket.set(userId, new Set());
+    }
+    this.userToSocket.get(userId)?.add(client.id);
+
+    await client.join(getUserRoomName(userId));
+
+    if (organizationId) {
+      await client.join(`org-${organizationId}`);
+    }
+  }
+
+  private async revokeClientAuthorization(client: Socket): Promise<void> {
+    const previous = this.clients.get(client.id);
+    if (!previous) {
+      return;
+    }
+
+    await this.leaveIdentityRooms(client, previous);
+    this.unbindClientMaps(client, previous);
+  }
+
+  private async replaceClientIdentity(
+    client: Socket,
+    userId: string,
+    organizationId?: string,
+  ): Promise<void> {
+    const previous = this.clients.get(client.id);
+    if (
+      previous &&
+      previous.userId === userId &&
+      previous.organizationId === organizationId
+    ) {
+      return;
+    }
+
+    if (previous) {
+      await this.leaveIdentityRooms(client, previous);
+      this.unbindClientMaps(client, previous);
+    }
+
+    await this.bindClientIdentity(client, userId, organizationId);
   }
 
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
@@ -258,21 +326,12 @@ export class WebSocketGateway
 
     return undefined;
   }
+
   handleDisconnect(client: Socket) {
     const clientInfo = this.clients.get(client.id);
 
     if (clientInfo) {
-      // Remove from user's socket set
-      const userSockets = this.userToSocket.get(clientInfo.userId);
-      if (userSockets) {
-        userSockets.delete(client.id);
-        if (userSockets.size === 0) {
-          this.userToSocket.delete(clientInfo.userId);
-        }
-      }
-
-      // Remove client info
-      this.clients.delete(client.id);
+      this.unbindClientMaps(client, clientInfo);
 
       this.logger.log(
         `Client ${client.id} disconnected for user ${clientInfo.userId}`,
@@ -667,6 +726,51 @@ export class WebSocketGateway
       userId: clientInfo.userId,
     });
     return { message: 'Request sent', success: true };
+  }
+
+  @SubscribeMessage('identity:rotate')
+  async handleIdentityRotate(
+    @MessageBody() data: IdentityRotateMessage,
+    @ConnectedSocket() client: Socket,
+  ): Promise<
+    | { error: string }
+    | { organizationId?: string; success: true; userId: string }
+  > {
+    const token =
+      typeof data?.token === 'string' && data.token.length > 0
+        ? data.token
+        : undefined;
+    const identity = await this.resolveIdentityFromToken(token, client.id);
+
+    if (!identity.userId) {
+      await this.revokeClientAuthorization(client);
+      client.disconnect();
+      return { error: 'Unauthorized' };
+    }
+
+    await this.replaceClientIdentity(
+      client,
+      identity.userId,
+      identity.organizationId,
+    );
+
+    this.logger.log(
+      `Client ${client.id} rotated identity to user ${identity.userId}`,
+      {
+        organizationId: identity.organizationId,
+        orgRoomJoined: identity.organizationId
+          ? `org-${identity.organizationId}`
+          : undefined,
+        roomJoined: getUserRoomName(identity.userId),
+        userId: identity.userId,
+      },
+    );
+
+    return {
+      organizationId: identity.organizationId,
+      success: true,
+      userId: identity.userId,
+    };
   }
 
   @SubscribeMessage('ingredient:update')

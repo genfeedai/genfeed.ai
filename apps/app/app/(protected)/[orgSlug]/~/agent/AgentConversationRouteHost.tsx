@@ -29,7 +29,7 @@ interface AgentConversationRouteHostProps {
  * `/agent` and `/agent/new`, malformed-id redirect on `/agent/[id]`) and render
  * nothing themselves; `/agent/journey` keeps its own content.
  */
-export function AgentConversationRouteHost({
+export default function AgentConversationRouteHost({
   children,
 }: AgentConversationRouteHostProps) {
   const rawPathname = usePathname();

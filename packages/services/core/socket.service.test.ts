@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockSocketOn = vi.fn();
 const mockSocketConnect = vi.fn();
 const mockSocketDisconnect = vi.fn();
+const mockSocketEmit = vi.fn();
 const mockSocketOff = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
 const socketEventHandlers = new Map<string, (...args: unknown[]) => void>();
@@ -31,6 +32,7 @@ vi.mock('socket.io-client', () => ({
           return socketState.connected;
         },
         disconnect: mockSocketDisconnect,
+        emit: mockSocketEmit,
         io: { opts: { extraHeaders: config.extraHeaders } },
         off: mockSocketOff,
         on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
@@ -55,7 +57,19 @@ vi.mock('@services/core/logger.service', () => ({
   logger: mockLogger,
 }));
 
-import { SocketService } from '@services/core/socket.service';
+import {
+  isCrossIdentitySocketRotation,
+  readSocketIdentityFromToken,
+  SocketService,
+} from '@services/core/socket.service';
+
+function encodeJwtSegment(value: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function makeJwt(claims: Record<string, unknown>): string {
+  return `${encodeJwtSegment({ alg: 'none', typ: 'JWT' })}.${encodeJwtSegment(claims)}.sig`;
+}
 
 describe('SocketService', () => {
   beforeEach(() => {
@@ -117,6 +131,75 @@ describe('SocketService', () => {
       expect(mockIo).toHaveBeenCalledTimes(1);
       expect(mockSocketDisconnect).not.toHaveBeenCalled();
       expect(mockSocketConnect).toHaveBeenCalledOnce();
+    });
+
+    it('keeps same-user Better Auth refresh in place without rebinding rooms', () => {
+      socketState.connected = true;
+      const previous = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      const next = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      SocketService.getInstance(previous);
+
+      SocketService.getInstance(next);
+
+      expect(mockSocketEmit).not.toHaveBeenCalled();
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+    });
+
+    it('asks the gateway to leave prior rooms on cross-identity replacement', () => {
+      socketState.connected = true;
+      const previous = makeJwt({
+        organizationId: 'org-a',
+        sub: 'user-a',
+      });
+      const next = makeJwt({
+        organizationId: 'org-b',
+        sub: 'user-b',
+      });
+      SocketService.getInstance(previous);
+
+      SocketService.getInstance(next);
+
+      expect(mockSocketEmit).toHaveBeenCalledWith('identity:rotate', {
+        token: next,
+      });
+      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(mockIo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('socket identity claims', () => {
+    it('reads user and org claims from a JWT payload', () => {
+      expect(
+        readSocketIdentityFromToken(
+          makeJwt({ organizationId: 'org-1', sub: 'user-1' }),
+        ),
+      ).toEqual({ organizationId: 'org-1', userId: 'user-1' });
+    });
+
+    it('does not treat opaque refresh tokens as a cross-identity swap', () => {
+      expect(isCrossIdentitySocketRotation('token-a', 'token-b')).toBe(false);
+    });
+
+    it('detects a user or org change as a cross-identity rotation', () => {
+      expect(
+        isCrossIdentitySocketRotation(
+          makeJwt({ organizationId: 'org-a', sub: 'user-a' }),
+          makeJwt({ organizationId: 'org-a', sub: 'user-b' }),
+        ),
+      ).toBe(true);
+      expect(
+        isCrossIdentitySocketRotation(
+          makeJwt({ organizationId: 'org-a', sub: 'user-a' }),
+          makeJwt({ organizationId: 'org-b', sub: 'user-a' }),
+        ),
+      ).toBe(true);
     });
   });
 

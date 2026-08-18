@@ -92,6 +92,14 @@ export interface WebSocketUpdateMessage {
 }
 
 /**
+ * In-place identity replacement after a live socket token rotation.
+ * The gateway verifies `token` and rebinds user/org rooms before authorizing.
+ */
+export interface IdentityRotateMessage {
+  token?: string;
+}
+
+/**
  * Ingredient update message from frontend
  */
 export interface IngredientUpdateMessage extends WebSocketUpdateMessage {

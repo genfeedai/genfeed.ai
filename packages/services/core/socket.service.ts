@@ -9,6 +9,93 @@ export interface SocketDisconnectDisposition {
   recovery: SocketDisconnectRecovery;
 }
 
+export interface SocketIdentityClaims {
+  organizationId?: string;
+  userId?: string;
+}
+
+/**
+ * Read `sub` / `organizationId` from a JWT payload without verifying it.
+ *
+ * Better Auth refresh re-issues a new signature for the same identity; logout
+ * then login in the same JS heap can swap the subject while the socket stays
+ * up. The client only uses these claims to decide whether rotation is same-user
+ * or cross-identity. The gateway still verifies the token before rebinding.
+ */
+export function readSocketIdentityFromToken(
+  token?: string,
+): SocketIdentityClaims {
+  if (!token) {
+    return {};
+  }
+
+  const segments = token.split('.');
+  if (segments.length < 2) {
+    return {};
+  }
+
+  const payload = decodeJwtPayloadSegment(segments[1]);
+  if (!payload) {
+    return {};
+  }
+
+  return {
+    organizationId: readNonEmptyString(payload.organizationId),
+    userId: readNonEmptyString(payload.sub),
+  };
+}
+
+export function isCrossIdentitySocketRotation(
+  previousToken?: string,
+  nextToken?: string,
+): boolean {
+  const previous = readSocketIdentityFromToken(previousToken);
+  const next = readSocketIdentityFromToken(nextToken);
+
+  if (!previous.userId || !next.userId) {
+    return false;
+  }
+
+  return (
+    previous.userId !== next.userId ||
+    previous.organizationId !== next.organizationId
+  );
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function decodeJwtPayloadSegment(
+  segment: string,
+): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(decodeBase64Url(segment));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+}
+
+function decodeBase64Url(segment: string): string {
+  const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+
+  if (typeof globalThis.atob === 'function') {
+    return globalThis.atob(padded);
+  }
+
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(padded, 'base64').toString('utf8');
+  }
+
+  throw new Error('No base64 decoder available');
+}
+
 export function classifySocketDisconnect(
   reason: string,
   isAutomaticallyReconnecting: boolean,
@@ -145,8 +232,17 @@ export class SocketService {
    * a "reconnecting" state several times a minute. Updating `auth` and the
    * manager's `extraHeaders` in place means the next (re)connect uses the fresh
    * token while a live connection stays untouched.
+   *
+   * Cross-identity replacement (logout → login in the same JS heap) is the
+   * exception: the gateway still has this socket in the previous user/org
+   * rooms. Ask it to leave those rooms before accepting the new identity.
    */
   private updateToken(token: string): void {
+    const shouldRebindIdentity = isCrossIdentitySocketRotation(
+      this.currentToken,
+      token,
+    );
+
     this.currentToken = token;
     this.socket.auth = { token };
 
@@ -156,6 +252,11 @@ export class SocketService {
         ...managerOptions.extraHeaders,
         Authorization: `Bearer ${token}`,
       };
+    }
+
+    if (shouldRebindIdentity && this.socket.connected) {
+      this.socket.emit('identity:rotate', { token });
+      return;
     }
 
     // An idle socket (rejected handshake with a stale token, no automatic
