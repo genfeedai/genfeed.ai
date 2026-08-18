@@ -404,4 +404,20 @@ test('the merge queue re-runs the gate on the queue merge commit', () => {
     workflow,
     /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/,
   );
+  // gitleaks-action hard-fails on merge_group ("The [merge_group] event is
+  // not yet supported") — the first queue entry (#3151) failed the required
+  // Gitleaks context on it. Queue runs scan the same commit range with the
+  // gitleaks CLI instead; the action stays on PR and push events.
+  const gitleaksJob = workflow.match(/^ {2}gitleaks:\n((?: {4}.*\n|\n)+)/m);
+  assert.ok(gitleaksJob, 'ci.yml must define the gitleaks job');
+  assert.match(
+    gitleaksJob[1],
+    /uses: gitleaks\/gitleaks-action@v\d+\n(?: {8}.*\n)*? {8}if: github\.event_name != 'merge_group'/,
+    'gitleaks-action must not run on merge_group',
+  );
+  assert.match(
+    gitleaksJob[1],
+    /if: github\.event_name == 'merge_group'\n(?: {8}.*\n)*? {8}run: \|\n(?: {10}.*\n)*? {10}.*ghcr\.io\/gitleaks\/gitleaks:v\d+\.\d+\.\d+ git \/repo \\\n {12}--log-opts="--no-merges \$\{CI_BASE_SHA\}\.\.HEAD"/,
+    'merge_group runs must scan CI_BASE_SHA..HEAD with the gitleaks CLI',
+  );
 });

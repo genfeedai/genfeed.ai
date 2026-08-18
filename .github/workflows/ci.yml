@@ -156,9 +156,26 @@ jobs:
           fetch-depth: 0
 
       - uses: gitleaks/gitleaks-action@v3
+        # gitleaks-action also hard-fails on `merge_group` ("The [merge_group]
+        # event is not yet supported"), and Gitleaks is a required context on
+        # the queue commit (#3143). Queue runs scan the same range below.
+        if: github.event_name != 'merge_group'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Scan the queue entry with the gitleaks CLI
+        if: github.event_name == 'merge_group'
+        # The queue commit is master + the PR's commits, so `CI_BASE_SHA..HEAD`
+        # is exactly what gitleaks-action scanned on the PR (minus the merge
+        # commit itself, which carries no new content). The image is root with
+        # `safe.directory '*'`; `.gitleaks.toml` and `.gitleaksignore` are read
+        # from the mounted repo root, same as the action.
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo \
+            --log-opts="--no-merges ${CI_BASE_SHA}..HEAD" \
+            --redact --verbose --exit-code=1
 
   secretlint:
     name: Secretlint (changed files)
