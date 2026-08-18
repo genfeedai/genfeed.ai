@@ -5,7 +5,7 @@ variable "region" {
 
 variable "project" {
   type        = string
-  description = "Short name used in resource prefixes and the ECR repository (${project}/server)."
+  description = "Short name used in resource prefixes and the ECR repository (PROJECT/server)."
 }
 
 variable "environment" {
