@@ -135,6 +135,14 @@ describe('buildSettingsMenuItems', () => {
       expect(models?.href).toBe('/settings/models');
       expect(models?.isExactMatch).toBeUndefined();
     });
+
+    it('points Agents at APP_ROUTES.SETTINGS.POLICY, not a /settings/agents slug', () => {
+      const items = buildSettingsMenuItems({ scope: 'organization' });
+      expect(items.find((i) => i.label === 'Agents')?.href).toBe(
+        APP_ROUTES.SETTINGS.POLICY,
+      );
+      expect(APP_ROUTES.SETTINGS.POLICY).toBe('/settings/policy');
+    });
   });
 
   describe('brand scope', () => {
