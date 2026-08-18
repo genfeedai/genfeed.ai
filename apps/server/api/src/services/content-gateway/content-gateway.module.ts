@@ -1,5 +1,5 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
-import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostsModule } from '@api/collections/posts/posts.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -9,12 +9,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [ContentGatewayController],
   exports: [ContentGatewayService],
-  imports: [
-    BrandsCoreModule,
-    PostsCoreModule,
-    SkillsModule,
-    SkillExecutorModule,
-  ],
+  imports: [BrandsCoreModule, PostsModule, SkillsModule, SkillExecutorModule],
   providers: [ContentGatewayService],
 })
 export class ContentGatewayModule {}

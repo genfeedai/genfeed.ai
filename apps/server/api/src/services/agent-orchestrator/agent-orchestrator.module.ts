@@ -22,7 +22,7 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
-import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
@@ -136,7 +136,7 @@ import { Module } from '@nestjs/common';
     OrganizationSettingsModule,
     OrganizationsCoreModule,
     PostGroupsModule,
-    PostsCoreModule,
+    PostsModule,
     QueuesModule,
     SettingsModule,
     SocialInboxModule,

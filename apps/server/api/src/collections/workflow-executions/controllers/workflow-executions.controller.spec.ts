@@ -12,6 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const organizationId = testId('org');
@@ -53,8 +54,14 @@ describe('WorkflowExecutionsController', () => {
           useValue: mockWorkflowExecutionAuthorizationService,
         },
         {
-          provide: WorkflowExecutorService,
-          useValue: mockWorkflowExecutorService,
+          provide: ModuleRef,
+          useValue: {
+            get: vi.fn((token: unknown) =>
+              token === WorkflowExecutorService
+                ? mockWorkflowExecutorService
+                : undefined,
+            ),
+          },
         },
       ],
     })

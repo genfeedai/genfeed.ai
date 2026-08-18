@@ -18,7 +18,12 @@ import { Module } from '@nestjs/common';
  * Credits/Models/Replicate and Links/Organizations, which are not leaves.
  */
 @Module({
-  exports: [BrandsService, DefaultRecurringContentService, BrandDataMapper],
+  exports: [
+    BrandScraperModule,
+    BrandsService,
+    DefaultRecurringContentService,
+    BrandDataMapper,
+  ],
   imports: [
     CommonModule,
     BrandScraperModule,

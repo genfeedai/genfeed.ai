@@ -22,6 +22,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
 
 @Controller('internal/orgs/:orgId/workflow-executions')
@@ -29,10 +30,20 @@ import type { Request } from 'express';
 @UseGuards(AdminApiKeyGuard)
 export class InternalWorkflowExecutionsController {
   constructor(
-    private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly moduleRef: ModuleRef,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowsService: WorkflowsService,
   ) {}
+
+  private get workflowExecutorService(): WorkflowExecutorService {
+    const service = this.moduleRef.get(WorkflowExecutorService, {
+      strict: false,
+    });
+    if (!service) {
+      throw new Error('WorkflowExecutorService is not available');
+    }
+    return service;
+  }
 
   @Post()
   async create(

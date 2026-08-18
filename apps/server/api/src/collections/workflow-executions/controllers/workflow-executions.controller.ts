@@ -33,6 +33,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -51,8 +52,18 @@ export class WorkflowExecutionsController {
   constructor(
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutionAuthorizationService: WorkflowExecutionAuthorizationService,
-    private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  private get workflowExecutorService(): WorkflowExecutorService {
+    const service = this.moduleRef.get(WorkflowExecutorService, {
+      strict: false,
+    });
+    if (!service) {
+      throw new Error('WorkflowExecutorService is not available');
+    }
+    return service;
+  }
 
   private buildFindAllQuery(
     organizationId: string,

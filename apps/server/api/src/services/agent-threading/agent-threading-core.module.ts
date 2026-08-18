@@ -18,6 +18,10 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [
+    AgentThreadsModule,
+    AgentMessagesModule,
+    AgentMemoriesModule,
+    UsersCoreModule,
     AgentExecutionLaneService,
     AgentProfileResolverService,
     AgentRuntimeSessionService,
