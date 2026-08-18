@@ -25,8 +25,10 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: billingControllers([SubscriptionsController]),
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
   imports: [
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CustomersModule),
+    // Credits and Customers never import this module back; only Organizations
+    // and Stripe form real cycles and need forwardRef.
+    CreditsModule,
+    CustomersModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => StripeModule),
   ],

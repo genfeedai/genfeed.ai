@@ -153,7 +153,10 @@ describe('Module dependency graph', () => {
     // iteration order and varied across otherwise identical checkouts.
     // Re-floored 2026-08-14 after the nine-PR product merge train added the
     // workflow scheduler and post-import module edges (+14). Decrease only.
-    const MAX_ALLOWED_CYCLES = 74;
+    // Re-floored 2026-08-18 (#3091): the organization billing modules moved
+    // from `ee/` into the api tree, so their Organizations/Stripe edges — which
+    // the SaaS image always had — are now inside this scan (+1). Decrease only.
+    const MAX_ALLOWED_CYCLES = 75;
     console.log(`Found ${cycles.length} cycles across ${graph.size} modules`);
     if (cycles.length > 0) {
       const uniquePairs = new Set<string>();
@@ -188,7 +191,10 @@ describe('Module dependency graph', () => {
     // Re-floored 2026-08-12 after the 21-PR merge train landed (+5).
     // Re-floored 2026-08-14 after the nine-PR product merge train added the
     // workflow scheduler and post-import module edges (+10). Decrease only.
-    const MAX_ALLOWED_FORWARD_REFS = 1107;
+    // 2026-08-18 (#3091): the billing modules moved into the api tree (+4) and
+    // the Subscriptions/Stripe imports that had no cycle behind them dropped
+    // their forwardRef wrappers (-4); pinned exact at 1106.
+    const MAX_ALLOWED_FORWARD_REFS = 1106;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });
