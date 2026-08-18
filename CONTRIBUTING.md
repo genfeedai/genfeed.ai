@@ -258,10 +258,12 @@ Material available under a Free Software / Open Source licence
   Have an authorized representative accept it and list the employees who
   contribute on the entity's behalf.
 
-You sign **once per GitHub account**. When you open your first PR the CLA
-Assistant bot comments with a link; accept it there and the `license/cla`
-check turns green for that PR and every later one. Commits do not need a
-`Signed-off-by:` trailer.
+You sign **once per GitHub account, per CLA version**. When you open your first
+PR the CLA Assistant bot comments with a link; accept it there and the
+`license/cla` check turns green for that PR and every later one. If the CLA text
+ever changes, the bot asks you to accept the new version before your next
+contribution; contributions already accepted stay under the version you signed.
+Commits do not need a `Signed-off-by:` trailer.
 
 ## Focused verification
 

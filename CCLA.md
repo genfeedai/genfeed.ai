@@ -1,8 +1,6 @@
-# Fiduciary License Agreement 2.1
+# Entity Contributor License Agreement (CCLA)
 
-Based on the
-
-## Entity Contributor License Agreement (CCLA)
+Based on the FSFE [Fiduciary License Agreement 2.1](https://fsfe.org/activities/fla/) (FLA-2.1).
 
 Thank you for your interest in contributing to Genfeed AI, Inc.'s Genfeed ("We" or "Us").
 

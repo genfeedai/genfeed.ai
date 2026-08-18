@@ -1,8 +1,6 @@
-# Fiduciary License Agreement 2.1
+# Individual Contributor License Agreement (ICLA)
 
-Based on the
-
-## Individual Contributor License Agreement (ICLA)
+Based on the FSFE [Fiduciary License Agreement 2.1](https://fsfe.org/activities/fla/) (FLA-2.1).
 
 Thank you for your interest in contributing to Genfeed AI, Inc.'s Genfeed ("We" or "Us").
 
