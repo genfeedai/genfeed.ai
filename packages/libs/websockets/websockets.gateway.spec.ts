@@ -242,6 +242,64 @@ describe('WebSocketGateway', () => {
     expect(() => gateway.handleDisconnect(socket as Socket)).not.toThrow();
   });
 
+  it('leaves prior rooms before verification so the old identity cannot receive events', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:3010');
+    verifyMock.mockResolvedValueOnce({
+      organizationId: 'org-a',
+      sub: 'user-a',
+    });
+    const socket = createMockSocket({
+      handshake: {
+        auth: { token: 'token-a' },
+        headers: {},
+        query: {},
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+
+    let releaseVerify: (value: {
+      organizationId: string;
+      sub: string;
+    }) => void = () => undefined;
+    const verifyStarted = new Promise<void>((resolveStarted) => {
+      verifyMock.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveStarted();
+            releaseVerify = resolve;
+          }),
+      );
+    });
+
+    const rotatePromise = gateway.handleIdentityRotate(
+      { token: 'token-b' },
+      socket as Socket,
+    );
+
+    await verifyStarted;
+
+    expect(socket.leave).toHaveBeenCalledWith('user:user-a');
+    expect(socket.leave).toHaveBeenCalledWith('org-org-a');
+    expect(socket.join).not.toHaveBeenCalledWith('user:user-b');
+    await expect(
+      gateway.handleIngredientUpdate(
+        { ingredientId: 'ing-1' },
+        socket as Socket,
+      ),
+    ).resolves.toEqual({ error: 'Unauthorized' });
+
+    releaseVerify({ organizationId: 'org-b', sub: 'user-b' });
+
+    await expect(rotatePromise).resolves.toEqual({
+      organizationId: 'org-b',
+      success: true,
+      userId: 'user-b',
+    });
+    expect(socket.join).toHaveBeenCalledWith('user:user-b');
+    expect(socket.join).toHaveBeenCalledWith('org-org-b');
+  });
+
   it('leaves prior user and org rooms before accepting a rotated identity', async () => {
     mockConfigService.get.mockReturnValue('http://localhost:3010');
     verifyMock.mockResolvedValueOnce({

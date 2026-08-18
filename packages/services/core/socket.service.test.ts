@@ -152,7 +152,7 @@ describe('SocketService', () => {
       expect(mockSocketConnect).not.toHaveBeenCalled();
     });
 
-    it('asks the gateway to leave prior rooms on cross-identity replacement', () => {
+    it('disconnects before reconnecting so prior rooms cannot deliver during identity swap', () => {
       socketState.connected = true;
       const previous = makeJwt({
         organizationId: 'org-a',
@@ -162,15 +162,37 @@ describe('SocketService', () => {
         organizationId: 'org-b',
         sub: 'user-b',
       });
-      SocketService.getInstance(previous);
+      const order: string[] = [];
+      const lateOldRoomDeliveries: string[] = [];
 
+      mockSocketDisconnect.mockImplementation(() => {
+        socketState.connected = false;
+        socketState.active = false;
+        order.push('disconnect');
+        // A Redis fan-out for the prior user room in this window must not
+        // find a connected socket.
+        if (socketState.connected) {
+          lateOldRoomDeliveries.push('user:user-a');
+        }
+      });
+      mockSocketConnect.mockImplementation(() => {
+        expect(socketState.connected).toBe(false);
+        order.push('connect');
+        socketState.connected = true;
+        socketState.active = true;
+      });
+
+      const service = SocketService.getInstance(previous);
       SocketService.getInstance(next);
 
-      expect(mockSocketEmit).toHaveBeenCalledWith('identity:rotate', {
-        token: next,
-      });
-      expect(mockSocketDisconnect).not.toHaveBeenCalled();
+      expect(order).toEqual(['disconnect', 'connect']);
+      expect(lateOldRoomDeliveries).toEqual([]);
+      expect(mockSocketEmit).not.toHaveBeenCalled();
       expect(mockIo).toHaveBeenCalledTimes(1);
+      expect(service.socket.auth).toEqual({ token: next });
+      expect(mockSocketDisconnect.mock.invocationCallOrder[0]).toBeLessThan(
+        mockSocketConnect.mock.invocationCallOrder[0],
+      );
     });
   });
 

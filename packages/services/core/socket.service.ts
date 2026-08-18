@@ -234,8 +234,10 @@ export class SocketService {
    * token while a live connection stays untouched.
    *
    * Cross-identity replacement (logout → login in the same JS heap) is the
-   * exception: the gateway still has this socket in the previous user/org
-   * rooms. Ask it to leave those rooms before accepting the new identity.
+   * exception: the live socket is still in the previous user/org rooms.
+   * Disconnect first so those rooms cannot deliver, then handshake the new
+   * token. A fire-and-forget rotate emit would leave a window where the UI
+   * is the new account and the socket still receives the old identity.
    */
   private updateToken(token: string): void {
     const shouldRebindIdentity = isCrossIdentitySocketRotation(
@@ -255,7 +257,8 @@ export class SocketService {
     }
 
     if (shouldRebindIdentity && this.socket.connected) {
-      this.socket.emit('identity:rotate', { token });
+      this.socket.disconnect();
+      this.socket.connect();
       return;
     }
 

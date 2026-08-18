@@ -264,38 +264,6 @@ export class WebSocketGateway
     }
   }
 
-  private async revokeClientAuthorization(client: Socket): Promise<void> {
-    const previous = this.clients.get(client.id);
-    if (!previous) {
-      return;
-    }
-
-    await this.leaveIdentityRooms(client, previous);
-    this.unbindClientMaps(client, previous);
-  }
-
-  private async replaceClientIdentity(
-    client: Socket,
-    userId: string,
-    organizationId?: string,
-  ): Promise<void> {
-    const previous = this.clients.get(client.id);
-    if (
-      previous &&
-      previous.userId === userId &&
-      previous.organizationId === organizationId
-    ) {
-      return;
-    }
-
-    if (previous) {
-      await this.leaveIdentityRooms(client, previous);
-      this.unbindClientMaps(client, previous);
-    }
-
-    await this.bindClientIdentity(client, userId, organizationId);
-  }
-
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
     if (!this.betterAuthVerifier) {
       const configuredUrl = this.configService.get('BETTER_AUTH_URL');
@@ -740,15 +708,25 @@ export class WebSocketGateway
       typeof data?.token === 'string' && data.token.length > 0
         ? data.token
         : undefined;
+
+    // Leave prior rooms before JWKS verify. The verify await would otherwise
+    // keep this socket in the old user/org rooms (and `this.clients` bound to
+    // the previous userId) while inbound Redis fan-out and SubscribeMessage
+    // handlers still authorize as the old identity.
+    const previous = this.clients.get(client.id);
+    if (previous) {
+      await this.leaveIdentityRooms(client, previous);
+      this.unbindClientMaps(client, previous);
+    }
+
     const identity = await this.resolveIdentityFromToken(token, client.id);
 
     if (!identity.userId) {
-      await this.revokeClientAuthorization(client);
       client.disconnect();
       return { error: 'Unauthorized' };
     }
 
-    await this.replaceClientIdentity(
+    await this.bindClientIdentity(
       client,
       identity.userId,
       identity.organizationId,
