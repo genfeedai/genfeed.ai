@@ -15,6 +15,24 @@ const publicDeployWorkflow = readFileSync(
   ),
   'utf8',
 );
+const publicDeployCore = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../.github/workflows/_deploy-hosted-saas-core.yml',
+      import.meta.url,
+    ),
+  ),
+  'utf8',
+);
+const publicDeployVercel = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../.github/workflows/_deploy-hosted-saas-vercel.yml',
+      import.meta.url,
+    ),
+  ),
+  'utf8',
+);
 
 function jobBlock(jobId) {
   const match = releaseWorkflow.match(
@@ -76,10 +94,14 @@ test('fails closed while correlating and waiting for private deployment', () => 
   assert.match(deploy, /deployment timed out after 170 minutes/);
 });
 
-test('public deploy workflow calls the private engine and stays implementation-free', () => {
+test('public deploy workflow runs the in-repo engine and never calls console', () => {
   assert.match(
     publicDeployWorkflow,
-    /uses: genfeedai\/console\.genfeed\.ai\/\.github\/workflows\/deploy-hosted-saas\.yml@master/,
+    /uses: \.\/\.github\/workflows\/_deploy-hosted-saas-core\.yml/,
+  );
+  assert.doesNotMatch(
+    publicDeployWorkflow,
+    /uses: genfeedai\/console\.genfeed\.ai\//,
   );
   assert.match(
     publicDeployWorkflow,
@@ -89,12 +111,40 @@ test('public deploy workflow calls the private engine and stays implementation-f
     publicDeployWorkflow,
     /marketplace\.genfeed\.ai\/commits\/master/,
   );
+  assert.match(
+    publicDeployWorkflow,
+    /marketplace\.genfeed\.ai\/compare\/\$\{marketplace_sha\}\.\.\.master/,
+  );
+  assert.match(publicDeployWorkflow, /secrets\.CONSOLE_DEPLOY_TOKEN/);
   assert.doesNotMatch(publicDeployWorkflow, /tofu apply|RDS_INSTANCE|\bprj_/);
   assert.doesNotMatch(
     publicDeployWorkflow,
     /aws-actions\/configure-aws-credentials/,
   );
   assert.doesNotMatch(publicDeployWorkflow, /VERCEL_ORG_ID|vercel build/);
+});
+
+test('in-repo engine checks out console operations and keeps OpenTofu off the entry workflow', () => {
+  assert.match(publicDeployCore, /repository: genfeedai\/console\.genfeed\.ai/);
+  assert.match(
+    publicDeployCore,
+    /token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+  );
+  assert.match(publicDeployCore, /environment: production/);
+  assert.match(publicDeployCore, /aws-actions\/configure-aws-credentials/);
+  assert.match(
+    publicDeployCore,
+    /uses: \.\/\.github\/workflows\/_deploy-hosted-saas-vercel\.yml/,
+  );
+  assert.doesNotMatch(
+    publicDeployCore,
+    /uses: genfeedai\/console\.genfeed\.ai\//,
+  );
+  assert.match(publicDeployVercel, /environment: production/);
+  assert.match(
+    publicDeployVercel,
+    /matrix\.repository == 'genfeedai\/marketplace\.genfeed\.ai' && secrets\.CONSOLE_DEPLOY_TOKEN/,
+  );
 });
 
 test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {
