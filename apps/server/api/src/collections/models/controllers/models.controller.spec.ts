@@ -5,6 +5,7 @@ import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dt
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -61,6 +62,7 @@ describe('ModelsController', () => {
   let controller: ModelsController;
   let modelsService: vi.Mocked<ModelsService>;
   let _loggerService: vi.Mocked<LoggerService>;
+  let moduleRefGet: ReturnType<typeof vi.fn>;
 
   const organizationId = testId('org');
   const brandId = testId('brand');
@@ -124,6 +126,8 @@ describe('ModelsController', () => {
   } as AggregatePaginateResult<ModelDocument>;
 
   beforeEach(async () => {
+    moduleRefGet = vi.fn();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ModelsController],
       providers: [
@@ -154,7 +158,7 @@ describe('ModelsController', () => {
         {
           provide: ModuleRef,
           useValue: {
-            get: vi.fn(),
+            get: moduleRefGet,
           },
         },
       ],
@@ -393,8 +397,7 @@ describe('ModelsController', () => {
         enabledModelIds: [enabledModelId],
         organizationId: foreignOrgId,
       };
-
-      const moduleRefMock = {
+      const settingsService = {
         ensureEnabledModelIds: vi
           .fn()
           .mockImplementation((settings: typeof organizationSettings) =>
@@ -403,12 +406,7 @@ describe('ModelsController', () => {
         findOne: vi.fn().mockResolvedValue(organizationSettings),
       };
 
-      // Temporarily override getOrganizationSettingsService
-      vi.spyOn(
-        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
-        controller as any,
-        'getOrganizationSettingsService',
-      ).mockReturnValue(moduleRefMock);
+      moduleRefGet.mockReturnValue(settingsService);
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
@@ -420,8 +418,9 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      expect(moduleRefMock.ensureEnabledModelIds).not.toHaveBeenCalled();
-      expect(moduleRefMock.findOne).not.toHaveBeenCalled();
+      expect(moduleRefGet).not.toHaveBeenCalled();
+      expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
+      expect(settingsService.findOne).not.toHaveBeenCalled();
       expect(queryArg).toMatchObject({
         where: {
           OR: [
@@ -450,11 +449,7 @@ describe('ModelsController', () => {
         findOne: vi.fn().mockResolvedValue(emptySettings),
       };
 
-      vi.spyOn(
-        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
-        controller as any,
-        'getOrganizationSettingsService',
-      ).mockReturnValue(settingsService);
+      moduleRefGet.mockReturnValue(settingsService);
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
@@ -465,6 +460,9 @@ describe('ModelsController', () => {
       expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
         emptySettings,
       );
+      expect(moduleRefGet).toHaveBeenCalledWith(OrganizationSettingsService, {
+        strict: false,
+      });
       expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
         where: {
           id: { in: [seededModelId] },
@@ -483,11 +481,7 @@ describe('ModelsController', () => {
         findOne: vi.fn().mockResolvedValue(emptySettings),
       };
 
-      vi.spyOn(
-        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
-        controller as any,
-        'getOrganizationSettingsService',
-      ).mockReturnValue(settingsService);
+      moduleRefGet.mockReturnValue(settingsService);
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
@@ -512,11 +506,7 @@ describe('ModelsController', () => {
         findOne: vi.fn(),
       };
 
-      vi.spyOn(
-        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
-        controller as any,
-        'getOrganizationSettingsService',
-      ).mockReturnValue(settingsService);
+      moduleRefGet.mockReturnValue(settingsService);
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
@@ -524,6 +514,7 @@ describe('ModelsController', () => {
         organizationId: foreignOrgId,
       } as ModelsQueryDto);
 
+      expect(moduleRefGet).not.toHaveBeenCalled();
       expect(settingsService.findOne).not.toHaveBeenCalled();
       expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
     });
