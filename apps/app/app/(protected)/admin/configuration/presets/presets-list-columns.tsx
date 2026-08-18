@@ -21,9 +21,9 @@ export function PresetDescriptionCell({ preset }: { preset: Preset }) {
 }
 
 export function PresetOrganizationCell({ preset }: { preset: Preset }) {
-  const organization = preset.organization as IOrganization;
-  const orgLabel = organization.label || 'Genfeed.ai';
-  const isOrgPreset = !!organization.label;
+  const organization = preset.organization as IOrganization | undefined;
+  const orgLabel = organization?.label || 'Genfeed.ai';
+  const isOrgPreset = Boolean(organization?.label);
 
   return (
     <Badge

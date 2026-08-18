@@ -9,13 +9,19 @@ import { ManagedStripeController } from '@api/services/integrations/stripe/contr
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
-import { createServiceModule } from '@api/shared/service-module.factory';
 import { forwardRef, Module } from '@nestjs/common';
 
-const BaseModule = createServiceModule(StripeService, {
-  additionalImports: [
+@Module({
+  controllers: [
+    StripeController,
+    UserStripeController,
+    ManagedStripeController,
+  ],
+  exports: [StripeCoreModule, ManagedStripeCheckoutService],
+  imports: [
+    StripeCoreModule,
     forwardRef(() => CreditsModule),
     forwardRef(() => CustomersModule),
     forwardRef(() => MembersModule),
@@ -25,16 +31,6 @@ const BaseModule = createServiceModule(StripeService, {
     forwardRef(() => UsersModule),
     forwardRef(() => LifecycleEmailsModule),
   ],
-});
-
-@Module({
-  controllers: [
-    StripeController,
-    UserStripeController,
-    ManagedStripeController,
-  ],
-  exports: [...(BaseModule.exports ?? []), ManagedStripeCheckoutService],
-  imports: BaseModule.imports ?? [],
-  providers: [...(BaseModule.providers ?? []), ManagedStripeCheckoutService],
+  providers: [ManagedStripeCheckoutService],
 })
 export class StripeModule {}

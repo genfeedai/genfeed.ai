@@ -14,11 +14,11 @@ export function knowledgeSourceIngestJobId(
   contextBaseId: string,
   sourceId: string,
 ): string {
-  return `kb-ingest:${contextBaseId}:${sourceId}`;
+  return `kb-ingest-${contextBaseId}-${sourceId}`;
 }
 
 export function knowledgeSourceBackfillJobId(organizationId?: string): string {
-  return organizationId ? `kb-backfill:${organizationId}` : 'kb-backfill:all';
+  return organizationId ? `kb-backfill-${organizationId}` : 'kb-backfill-all';
 }
 
 const IN_FLIGHT_STATES = new Set(['active', 'waiting', 'delayed', 'paused']);

@@ -1,21 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import ServiceWorkerRegistrar from './ServiceWorkerRegistrar';
-
-const mocks = vi.hoisted(() => ({
-  serwistProvider: vi.fn(() => null),
-}));
-
-vi.mock('@serwist/turbopack/react', () => ({
-  SerwistProvider: mocks.serwistProvider,
-}));
-
-function getProviderProps(): Record<string, unknown> {
-  const firstCall = mocks.serwistProvider.mock.calls[0];
-  expect(firstCall).toBeDefined();
-  return (firstCall as unknown as [Record<string, unknown>])[0];
-}
+import ServiceWorkerRegistrar, {
+  isIgnorableServiceWorkerError,
+} from './ServiceWorkerRegistrar';
 
 describe('ServiceWorkerRegistrar', () => {
   it('renders nothing', () => {
@@ -24,28 +12,30 @@ describe('ServiceWorkerRegistrar', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('points at the route-served worker', () => {
+  it('does not register outside production', () => {
+    const register = vi.fn();
+    Object.defineProperty(window.navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register },
+    });
+
     render(<ServiceWorkerRegistrar />);
 
-    expect(getProviderProps().swUrl).toBe('/serwist/sw.js');
+    expect(register).not.toHaveBeenCalled();
   });
+});
 
-  // Cache Storage is origin-scoped, not session-scoped: anything cached by
-  // navigation survives sign-out and is readable by the next account on the
-  // same browser. reloadOnOnline would discard in-progress studio edits.
-  it('leaves navigation caching and reload-on-online off', () => {
-    render(<ServiceWorkerRegistrar />);
-
-    const props = getProviderProps();
-    expect(props.cacheOnNavigation).toBe(false);
-    expect(props.reloadOnOnline).toBe(false);
-  });
-
-  // NODE_ENV is baked in at module load, so this asserts the non-production
-  // branch the test run itself is in: no worker registered outside production.
-  it('disables registration outside production', () => {
-    render(<ServiceWorkerRegistrar />);
-
-    expect(getProviderProps().disable).toBe(true);
+describe('isIgnorableServiceWorkerError', () => {
+  it('ignores abort and 403 registration failures', () => {
+    const abortError = new Error('Operation has been aborted');
+    abortError.name = 'AbortError';
+    expect(isIgnorableServiceWorkerError(abortError)).toBe(true);
+    expect(
+      isIgnorableServiceWorkerError(
+        new Error(
+          "Failed to register a ServiceWorker for scope ('https://app.genfeed.ai/') with script ('https://app.genfeed.ai/serwist/sw.js'): A bad HTTP response code (403)",
+        ),
+      ),
+    ).toBe(true);
   });
 });

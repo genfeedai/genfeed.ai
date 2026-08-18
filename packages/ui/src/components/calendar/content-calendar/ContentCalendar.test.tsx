@@ -85,6 +85,7 @@ vi.mock('fullcalendar', async () => {
   await calendarMocks.waitForImportGate();
   return {
     Calendar: calendarMocks.Calendar,
+    default: calendarMocks.Calendar,
   };
 });
 

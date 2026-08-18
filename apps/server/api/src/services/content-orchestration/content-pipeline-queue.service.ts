@@ -15,6 +15,11 @@ type ContentPipelineJobDataWithConfig = ContentPipelineJobData<
   PipelineConfig | BatchPipelineConfig
 >;
 
+/** BullMQ Job.add rejects custom ids that contain `:`. */
+export function toBullMqJobId(value: string): string {
+  return value.replaceAll(':', '-');
+}
+
 @Injectable()
 export class ContentqueryQueueService {
   constructor(
@@ -28,7 +33,7 @@ export class ContentqueryQueueService {
 
     // Use idempotencyKey as BullMQ jobId to prevent duplicates on retry
     if (config.idempotencyKey) {
-      jobOptions.jobId = config.idempotencyKey;
+      jobOptions.jobId = toBullMqJobId(config.idempotencyKey);
     }
 
     const job = await this.contentqueryQueue.add(

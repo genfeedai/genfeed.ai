@@ -320,7 +320,7 @@ describe('ContextsController', () => {
       };
       mockKnowledgeSourceService.addSource.mockResolvedValue({
         contextBase: mockContext,
-        jobId: 'kb-ingest:1',
+        jobId: 'kb-ingest-1',
         source: { id: 'src_1', ...dto },
       });
 
@@ -337,7 +337,7 @@ describe('ContextsController', () => {
         mockUser.organizationId,
       );
       expect(result).toMatchObject({
-        jobId: 'kb-ingest:1',
+        jobId: 'kb-ingest-1',
         source: expect.objectContaining({ id: 'src_1' }),
       });
     });
@@ -346,12 +346,12 @@ describe('ContextsController', () => {
   describe('backfillSources', () => {
     it('queues a tenant-scoped backfill', async () => {
       mockKnowledgeSourceService.backfill.mockResolvedValue({
-        jobId: 'kb-backfill:org',
+        jobId: 'kb-backfill-org',
         queued: 1,
       });
 
       await expect(controller.backfillSources(mockUser)).resolves.toEqual({
-        jobId: 'kb-backfill:org',
+        jobId: 'kb-backfill-org',
         queued: 1,
       });
       expect(mockKnowledgeSourceService.backfill).toHaveBeenCalledWith(

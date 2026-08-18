@@ -10,7 +10,8 @@ import { Injectable, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 export function insightGenerationJobId(organizationId: string): string {
-  return `insight-generate:${organizationId}`;
+  // BullMQ custom ids reject `:`. Keep the org lease in one hyphenated token.
+  return `insight-generate-${organizationId}`;
 }
 
 @Injectable()

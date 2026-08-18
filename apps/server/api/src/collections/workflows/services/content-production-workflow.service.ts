@@ -269,7 +269,7 @@ export class ContentProductionWorkflowService {
 
     await this.contentPipelineQueueService.queueGenerateAndPublish({
       brandId: persona.brandId ?? '',
-      idempotencyKey: `autopilot:${personaId}:${now.toISOString().slice(0, 13)}`,
+      idempotencyKey: `autopilot-${personaId}-${now.toISOString().slice(0, 13)}`,
       organizationId: persona.organizationId,
       personaId,
       platforms: config.contentStrategy?.platforms,

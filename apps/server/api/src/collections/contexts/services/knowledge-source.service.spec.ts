@@ -25,10 +25,10 @@ describe('KnowledgeSourceService', () => {
     });
     const enqueueIngest =
       options.queue?.enqueueIngest ??
-      vi.fn().mockResolvedValue('kb-ingest:ctx-1:src_1');
+      vi.fn().mockResolvedValue('kb-ingest-ctx-1-src_1');
     const enqueueBackfill =
       options.queue?.enqueueBackfill ??
-      vi.fn().mockResolvedValue('kb-backfill:org-1');
+      vi.fn().mockResolvedValue('kb-backfill-org-1');
     const ingest = vi.fn().mockResolvedValue({ status: 'completed' });
     const scanForBackfill = vi.fn().mockResolvedValue({ queued: [] });
 
@@ -72,7 +72,7 @@ describe('KnowledgeSourceService', () => {
 
     expect(result.source.status).toBe(KnowledgeBaseStatus.DRAFT);
     expect(result.source.referenceUrl).toBe('https://docs.example.com');
-    expect(result.jobId).toBe('kb-ingest:ctx-1:src_1');
+    expect(result.jobId).toBe('kb-ingest-ctx-1-src_1');
     expect(enqueueIngest).toHaveBeenCalledWith(
       expect.objectContaining({
         contextBaseId: 'ctx-1',
@@ -129,7 +129,7 @@ describe('KnowledgeSourceService', () => {
     const { enqueueBackfill, service } = buildService();
 
     await expect(service.backfill('org-1')).resolves.toEqual({
-      jobId: 'kb-backfill:org-1',
+      jobId: 'kb-backfill-org-1',
       queued: 1,
     });
     expect(enqueueBackfill).toHaveBeenCalledWith({ organizationId: 'org-1' });

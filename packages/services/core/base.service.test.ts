@@ -144,6 +144,10 @@ class TestService extends BaseService<TestModel> {
   public getInstanceForTest() {
     return (this as any).instance;
   }
+
+  public testHandleOperationError(operation: string, error: unknown) {
+    return this.handleOperationError(operation, error);
+  }
 }
 
 class OtherTestService extends BaseService<TestModel> {
@@ -181,6 +185,33 @@ describe('BaseService', () => {
 
     it('should store model reference', () => {
       expect(service.model).toBe(TestModel);
+    });
+  });
+
+  describe('handleOperationError', () => {
+    it('preserves timeout flags so Sentry can drop expected network failures', () => {
+      const timeout = Object.assign(new Error('Request timed out'), {
+        isTimeout: true,
+      });
+
+      expect(() =>
+        service.testHandleOperationError('collectAllPages', timeout),
+      ).toThrow(
+        expect.objectContaining({
+          isTimeout: true,
+          message: 'Request timed out',
+        }),
+      );
+    });
+
+    it('does not throw TypeError when the original error is missing', () => {
+      expect(() =>
+        service.testHandleOperationError('collectAllPages', undefined),
+      ).toThrow(
+        expect.objectContaining({
+          isTimeout: false,
+        }),
+      );
     });
   });
 

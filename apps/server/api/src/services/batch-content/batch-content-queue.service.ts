@@ -68,7 +68,7 @@ export class BatchContentQueueService {
           {
             attempts: 3,
             backoff: { delay: 1000, type: 'exponential' },
-            jobId: `${batchId}:${index}`,
+            jobId: `${batchId}-${index}`,
             removeOnComplete: 100,
             removeOnFail: 50,
           },
