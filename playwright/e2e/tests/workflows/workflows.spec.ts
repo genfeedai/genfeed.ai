@@ -14,6 +14,7 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
+import { executionsHistoryLocator } from '../../pages/workflow.page';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
@@ -99,7 +100,7 @@ test.describe('Workflows', () => {
       /\/automate\/workflows\/executions$/,
     );
     await expect(
-      authenticatedPage.getByRole('heading', { name: /execution history/i }),
+      executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
   });
 

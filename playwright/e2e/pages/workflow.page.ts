@@ -4,6 +4,18 @@ import { expect } from '@playwright/test';
 import { brandPath } from '../utils/app-chrome';
 
 /**
+ * Visible executions-list chrome. The page title is `sr-only`
+ * ("Execution History"); the live surface is the Runs table or empty state.
+ */
+export function executionsHistoryLocator(page: Page): Locator {
+  return page
+    .getByRole('link', { name: 'View Details' })
+    .or(page.getByRole('columnheader', { name: /^Workflow$/i }))
+    .or(page.getByRole('heading', { name: /no executions yet/i }))
+    .or(page.getByText('Go to Automations'));
+}
+
+/**
  * Page Object Model for the Workflow Editor
  *
  * Provides an abstraction layer for interacting with the workflow editor,
@@ -411,7 +423,7 @@ export class WorkflowPage {
   }
 
   async assertExecutionListVisible(): Promise<void> {
-    await expect(this.executionList.first()).toBeVisible();
+    await expect(executionsHistoryLocator(this.page).first()).toBeVisible();
   }
 
   async assertTemplateGridVisible(): Promise<void> {
