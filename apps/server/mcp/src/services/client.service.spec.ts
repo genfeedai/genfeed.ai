@@ -432,6 +432,71 @@ describe('ClientService (MCP)', () => {
         { action: 'pause' },
       );
     });
+
+    it('lists scheduler capabilities through the existing REST route', async () => {
+      const capabilities = [
+        { label: 'YouTube', platform: 'youtube', status: 'supported' },
+      ];
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: capabilities,
+      });
+
+      const result = await service.listSchedulerCapabilities({
+        includeHidden: true,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/schedules/channel-capabilities',
+        { params: { includeHidden: true } },
+      );
+      expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+      expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
+      expect(result).toEqual(capabilities);
+    });
+
+    it('gets one scheduler capability using an encoded platform', async () => {
+      const capability = {
+        label: 'TikTok',
+        platform: 'tiktok',
+        status: 'supported',
+      };
+      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: capability });
+
+      const result = await service.getSchedulerCapability('tiktok/live');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/schedules/channel-capabilities/tiktok%2Flive',
+      );
+      expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+      expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
+      expect(result).toEqual(capability);
+    });
+
+    it('validates a proposed target without mutating scheduler state', async () => {
+      const input = {
+        platform: 'youtube',
+        settings: { privacyStatus: 'public' },
+      };
+      const validation = {
+        errors: [],
+        platform: 'youtube',
+        valid: true,
+        validationState: 'valid',
+        warnings: [],
+      };
+      (mockAxiosInstance.post as Mock).mockResolvedValue({ data: validation });
+
+      const result = await service.validateSchedulerTarget(input);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/schedules/channel-capabilities/validate',
+        input,
+      );
+      expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
+      expect(mockAxiosInstance.put).not.toHaveBeenCalled();
+      expect(mockAxiosInstance.delete).not.toHaveBeenCalled();
+      expect(result).toEqual(validation);
+    });
   });
 
   // ==================== IMAGE TESTS ====================

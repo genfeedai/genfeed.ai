@@ -7,10 +7,26 @@ export type ScheduledReleaseControlAction =
   | 'publish-now'
   | 'resume';
 
+export interface SchedulerCapabilityListOptions {
+  includeHidden?: boolean;
+  includePlanned?: boolean;
+}
+
+export interface ValidateSchedulerTargetInput {
+  caption?: string;
+  credentialId?: string;
+  media?: Array<Record<string, unknown>>;
+  platform: string;
+  publishMode?: string;
+  settings?: Record<string, unknown>;
+  visibility?: string;
+}
+
 /**
- * Scheduler release lifecycle proxy. The MCP layer forwards the canonical
- * scheduler request bodies unchanged; validation, organization scope, state
- * transitions, idempotency, and publishing rules remain API-owned.
+ * Scheduler release lifecycle and channel-capability proxy. The MCP layer
+ * forwards the canonical scheduler request bodies unchanged; validation,
+ * organization scope, state transitions, idempotency, and publishing rules
+ * remain API-owned.
  */
 export class SchedulerClient {
   constructor(private readonly base: BaseApiClient) {}
@@ -96,4 +112,69 @@ export class SchedulerClient {
       this.base.failWithDetail('Failed to control scheduled release'),
     );
   }
+
+  listSchedulerCapabilities(
+    options: SchedulerCapabilityListOptions = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    this.base.logger.debug('Listing scheduler capabilities', { options });
+
+    return this.base.request(
+      'listing scheduler capabilities',
+      async (http) => {
+        const response = await http.get('/schedules/channel-capabilities', {
+          params: capabilityListParams(options),
+        });
+        return this.base.unwrapList<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to list scheduler capabilities'),
+    );
+  }
+
+  getSchedulerCapability(platform: string): Promise<Record<string, unknown>> {
+    this.base.logger.debug(`Getting scheduler capability: ${platform}`);
+
+    return this.base.request(
+      'getting scheduler capability',
+      async (http) => {
+        const response = await http.get(
+          `/schedules/channel-capabilities/${encodeURIComponent(platform)}`,
+        );
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to get scheduler capability'),
+    );
+  }
+
+  validateSchedulerTarget(
+    input: ValidateSchedulerTargetInput,
+  ): Promise<Record<string, unknown>> {
+    this.base.logger.debug('Validating scheduler target', {
+      platform: input.platform,
+    });
+
+    return this.base.request(
+      'validating scheduler target',
+      async (http) => {
+        const response = await http.post(
+          '/schedules/channel-capabilities/validate',
+          input,
+        );
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to validate scheduler target'),
+    );
+  }
+}
+
+function capabilityListParams(
+  options: SchedulerCapabilityListOptions,
+): Record<string, boolean> {
+  const params: Record<string, boolean> = {};
+  if (typeof options.includeHidden === 'boolean') {
+    params.includeHidden = options.includeHidden;
+  }
+  if (typeof options.includePlanned === 'boolean') {
+    params.includePlanned = options.includePlanned;
+  }
+  return params;
 }

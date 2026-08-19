@@ -28,7 +28,9 @@ import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
 import {
   type ScheduledReleaseControlAction,
+  type SchedulerCapabilityListOptions,
   SchedulerClient,
+  type ValidateSchedulerTargetInput,
 } from '@mcp/services/client/scheduler.client';
 import {
   type SocialActionParams,
@@ -342,6 +344,22 @@ export class ClientService {
     action: ScheduledReleaseControlAction,
   ): Promise<IReleaseGroup> {
     return this.scheduler.controlScheduledRelease(releaseId, action);
+  }
+
+  listSchedulerCapabilities(
+    options: SchedulerCapabilityListOptions = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.scheduler.listSchedulerCapabilities(options);
+  }
+
+  getSchedulerCapability(platform: string): Promise<Record<string, unknown>> {
+    return this.scheduler.getSchedulerCapability(platform);
+  }
+
+  validateSchedulerTarget(
+    input: ValidateSchedulerTargetInput,
+  ): Promise<Record<string, unknown>> {
+    return this.scheduler.validateSchedulerTarget(input);
   }
 
   // ── Workspace (credits / usage / brands / personas / batches / account / chat) ──

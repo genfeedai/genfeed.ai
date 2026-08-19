@@ -55,6 +55,7 @@ describe('tool registry', () => {
       ['get_analytics', 'analytics'],
       ['create_workflow', 'workflow'],
       ['create_post', 'content'],
+      ['list_scheduler_capabilities', 'content'],
       ['generate_image', 'generation'],
       ['initiate_oauth_connect', 'social'],
       ['get_meta_ad_insights', 'ads'],

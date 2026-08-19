@@ -76,7 +76,8 @@ function inferCategory(name: string): ToolCategory {
     name.includes('post') ||
     name.includes('article') ||
     name.includes('content') ||
-    name.includes('release')
+    name.includes('release') ||
+    name.includes('schedul')
   )
     return 'content';
   if (
