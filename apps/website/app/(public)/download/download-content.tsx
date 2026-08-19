@@ -180,8 +180,7 @@ export default function DownloadContent({
               }
               padding="lg"
               className={cn(
-                detectedOs === DesktopOs.MAC_OS &&
-                  'bg-[var(--gen-accent-bg)]',
+                detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
               )}
             >
               <p className="mt-2 text-sm text-surface/65">{MAC_REQUIREMENT}</p>

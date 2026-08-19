@@ -1,13 +1,14 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
 } from '@genfeedai/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import Card from '@ui/card/Card';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -68,7 +69,7 @@ export default function ChatJourneyPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <div className="rounded-2xl border border-border bg-background-secondary p-6">
+      <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="sr-only">Activation Journey</h1>
           <Button
@@ -117,7 +118,7 @@ export default function ChatJourneyPage() {
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid gap-4">
         {ONBOARDING_JOURNEY_MISSIONS.map((mission) => {

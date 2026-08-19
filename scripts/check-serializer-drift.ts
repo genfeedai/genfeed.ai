@@ -438,8 +438,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
     'attentionState',
+    'brandLabel',
     'lastActivityAt',
     'lastAssistantPreview',
+    'lastGeneratedAssetUrl',
     'pendingInputCount',
     'runStatus',
   ],

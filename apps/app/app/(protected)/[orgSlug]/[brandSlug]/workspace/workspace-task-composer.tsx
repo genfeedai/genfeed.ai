@@ -79,7 +79,7 @@ export function WorkspaceTaskComposer({
 
           <Textarea
             id="workspace-task-request"
-            className="min-h-48 w-full rounded-lg border border-border bg-background-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
+            className="min-h-48 w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
             placeholder="Create three thumbnail directions for our next launch, then draft a caption."
             value={taskRequest}
             onChange={(event) => setTaskRequest(event.target.value)}
