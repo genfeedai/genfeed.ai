@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Discover Pages
@@ -30,7 +31,7 @@ export class DiscoverPage {
     this.page = page;
 
     this.mainContent = page.locator('main, [data-testid="main-content"]');
-    this.sidebar = page.getByTestId('sidebar-shell').first();
+    this.sidebar = sidebarLocator(page);
 
     this.loadingSpinner = page.locator(
       '[data-testid="loading"], .loading, .spinner',

@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Studio Page
@@ -64,7 +65,7 @@ export class StudioPage {
     this.page = page;
 
     // Layout
-    this.sidebar = page.getByTestId('sidebar-shell').first();
+    this.sidebar = sidebarLocator(page);
     this.topbar = page.locator('[data-testid="topbar"], header');
     this.mainContent = page.locator('main, [data-testid="main-content"]');
 

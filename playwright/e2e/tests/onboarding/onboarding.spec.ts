@@ -1,5 +1,7 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
+import { brandPath } from '../../utils/app-chrome';
 
 /**
  * Onboarding Flow E2E Tests
@@ -24,7 +26,22 @@ test.describe('Onboarding Flow', () => {
       await onboardingPage.waitForLoadState('domcontentloaded');
 
       await page.waitForStep(2);
-      await expect(onboardingPage).toHaveURL(/\/onboarding\/providers/);
+      await expect(onboardingPage).toHaveURL(
+        /\/onboarding\/providers(?:[/?#]|$)/,
+      );
+
+      await page.continueWithServerDefaults();
+      await page.assertOnStep(3);
+
+      await page.continueWithSelfHosted();
+      await page.assertSuccess();
+
+      await page.enterWorkspace();
+      await expect(onboardingPage).toHaveURL(
+        new RegExp(
+          `(?:${brandPath(APP_ROUTES.WORKSPACE.ROOT)}|${APP_ROUTES.WORKSPACE.OVERVIEW})(?:[/?#]|$)`,
+        ),
+      );
     });
   });
 

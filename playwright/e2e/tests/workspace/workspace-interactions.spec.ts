@@ -17,8 +17,7 @@ import {
  *
  * Exercises inbox view switching, task inspector quick actions, snapshot
  * panels and the overview/activities runs surface. All tests rely on mocked
- * Better Auth + API responses (strict network guard fails on real outbound calls)
- * and fall back to best-effort `tryClick` so coverage paths stay non-brittle.
+ * Better Auth + API responses (strict network guard fails on real outbound calls).
  *
  * @module workspace-interactions.spec
  */
@@ -121,7 +120,18 @@ test.describe('Workspace — deep interactions', () => {
       authenticatedPage.getByTestId('workspace-new-task'),
     ).toHaveCount(0);
 
-    await tryClick(authenticatedPage, '[data-testid="sidebar-primary-action"]');
+    const primaryAction = authenticatedPage.getByTestId(
+      'sidebar-primary-action',
+    );
+    await expect(primaryAction).toBeVisible();
+    await primaryAction.click();
+    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'New Task' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Create Task' }),
+    ).toBeVisible();
 
     // Touch the snapshot + recent-output panels.
     await tryClick(

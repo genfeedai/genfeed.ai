@@ -52,7 +52,9 @@ test.describe('Agents — Content Team', () => {
       .fill('AI creator monetization');
     await authenticatedPage.getByRole('button', { name: 'Hire Agent' }).click();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate/);
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.OVERVIEW)}(?:[?#]|$)`),
+    );
   });
 
   test('orchestrator flow renders and submits a basic team launch', async ({
@@ -78,7 +80,9 @@ test.describe('Agents — Content Team', () => {
       .getByRole('button', { name: 'Launch Team' })
       .click();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate/);
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.OVERVIEW)}(?:[?#]|$)`),
+    );
   });
 
   test('unauthenticated user is redirected from content team routes', async ({

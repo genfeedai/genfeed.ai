@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Admin Dashboard
@@ -54,7 +55,7 @@ export class AdminPage {
     // Layout
     this.mainContent = page.locator('main, [data-testid="main-content"]');
     this.heading = page.getByRole('heading').first();
-    this.sidebar = page.getByTestId('sidebar-shell').first();
+    this.sidebar = sidebarLocator(page);
 
     // KPI / Overview
     this.kpiCards = page.locator(
