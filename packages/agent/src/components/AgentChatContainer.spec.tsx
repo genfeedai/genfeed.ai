@@ -529,6 +529,9 @@ describe('AgentChatContainer', () => {
     storeState.stream.streamingContent = '';
     storeState.threads = [];
     storeState.isGenerating = false;
+    storeState.error = null;
+    storeState.activeRunId = 'run-1';
+    storeState.activeRunStatus = 'running';
   });
 
   it('submits pending input through the response endpoint instead of chat send', async () => {
@@ -1139,6 +1142,284 @@ describe('AgentChatContainer', () => {
     expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
       'Original prompt',
     );
+  });
+
+  it('dispatches queued follow-ups in FIFO order after a successful response', async () => {
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'First follow-up' },
+          { id: 'two', label: 'Second', prompt: 'Second follow-up' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+    expect(sendNonStreaming).not.toHaveBeenCalled();
+
+    storeState.isGenerating = false;
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'First follow-up' },
+          { id: 'two', label: 'Second', prompt: 'Second follow-up' },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(sendNonStreaming).toHaveBeenCalledTimes(1);
+    });
+    expect(sendNonStreaming.mock.calls[0]?.[0]).toBe('First follow-up');
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Second follow-up',
+    );
+  });
+
+  it('holds the queue when the active run fails without an interrupt', async () => {
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+    storeState.isGenerating = false;
+    storeState.error = 'Generation failed';
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(sendNonStreaming).not.toHaveBeenCalled();
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Review the current branch',
+    );
+  });
+
+  it('cancels the active run before sending a queued prompt now', async () => {
+    const apiService = createApiService({
+      cancelRun: vi.fn().mockResolvedValue(undefined),
+    });
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+    storeState.activeRunId = 'run-1';
+    storeState.activeRunStatus = 'running';
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+    fireEvent.click(screen.getByLabelText('sendNow'));
+
+    await waitFor(() => {
+      expect(apiService.cancelRun).toHaveBeenCalled();
+    });
+    expect(sendNonStreaming).not.toHaveBeenCalled();
+
+    storeState.isGenerating = false;
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(sendNonStreaming).toHaveBeenCalledTimes(1);
+    });
+    expect(sendNonStreaming.mock.calls[0]?.[0]).toBe(
+      'Review the current branch',
+    );
+  });
+
+  it('keeps queued prompts isolated per conversation', () => {
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+    storeState.activeThreadId = 'thread-1';
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'One', prompt: 'Thread one follow-up' },
+          { id: 'two', label: 'Two', prompt: 'Thread two follow-up' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'One' }));
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Thread one follow-up',
+    );
+
+    storeState.activeThreadId = 'thread-2';
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'One', prompt: 'Thread one follow-up' },
+          { id: 'two', label: 'Two', prompt: 'Thread two follow-up' },
+        ]}
+      />,
+    );
+    expect(
+      screen.queryByTestId('composer-follow-up-queue'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Two' }));
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Thread two follow-up',
+    );
+
+    storeState.activeThreadId = 'thread-1';
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'One', prompt: 'Thread one follow-up' },
+          { id: 'two', label: 'Two', prompt: 'Thread two follow-up' },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Thread one follow-up',
+    );
+  });
+
+  it('keeps a failed queued dispatch visible and does not send later prompts', async () => {
+    sendNonStreaming.mockRejectedValueOnce(new Error('dispatch failed'));
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'First follow-up' },
+          { id: 'two', label: 'Second', prompt: 'Second follow-up' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+
+    storeState.isGenerating = false;
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'First follow-up' },
+          { id: 'two', label: 'Second', prompt: 'Second follow-up' },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(sendNonStreaming).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'First follow-up',
+    );
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Second follow-up',
+    );
+    expect(screen.getByLabelText('retry')).toBeInTheDocument();
+    expect(sendNonStreaming.mock.calls[0]?.[0]).toBe('First follow-up');
+  });
+
+  it('dispatches queued follow-ups in FIFO order for streaming sends', async () => {
+    isStreamingHookActive = true;
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = true;
+
+    const view = render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        isStreaming
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'Stream first' },
+          { id: 'two', label: 'Second', prompt: 'Stream second' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+    expect(sendStreaming).not.toHaveBeenCalled();
+
+    storeState.isGenerating = false;
+    isStreamingHookActive = false;
+    view.rerender(
+      <AgentChatContainer
+        apiService={apiService as never}
+        isStreaming
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'Stream first' },
+          { id: 'two', label: 'Second', prompt: 'Stream second' },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(sendStreaming).toHaveBeenCalledTimes(1);
+    });
+    expect(sendStreaming.mock.calls[0]?.[0]).toBe('Stream first');
   });
 
   it('scrolls to the latest turn when retrying from an older message', async () => {

@@ -226,10 +226,23 @@
   },
   "agent": {
     "composer": {
-      "dropPlaceholder": "drop it here?"
+      "dropPlaceholder": "drop it here?",
+      "queueFull": "Follow-up queue is full. Remove a prompt or wait until one sends.",
+      "uploadInProgress": "Wait for attachments to finish uploading, then send again."
     },
     "composerFollowUpQueue": {
-      "queued": "Queued"
+      "collapse": "Hide queued follow-ups",
+      "count": "{count} queued",
+      "expand": "Show queued follow-ups",
+      "failed": "Couldn't send",
+      "moveDown": "Move follow-up down",
+      "moveUp": "Move follow-up up",
+      "queued": "Queued",
+      "remove": "Remove follow-up",
+      "retry": "Retry follow-up",
+      "sendNow": "Send now (stops the current run)",
+      "sendNowHint": "Enter to send now",
+      "sending": "Sending"
     },
     "onboardingComposerCard": {
       "description": "Paste a site or handle in the prompt, or type what you make. The first reply should be an image.",

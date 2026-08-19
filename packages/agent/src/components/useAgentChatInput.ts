@@ -161,13 +161,16 @@ interface UseAgentChatInputParams {
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
     options?: ConversationComposerSendOptions,
-  ) => void;
+  ) => boolean | undefined | Promise<boolean | undefined>;
+  onPromoteQueuedFollowUp?: () => void;
+  hasQueuedFollowUps?: boolean;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
   apiService?: AgentApiService;
   showStop?: boolean;
   attachments?: AttachmentItem[];
+  isUploading?: boolean;
   dragState?: DragState;
   dragHandlers?: DragHandlers;
   addFiles?: (files: File[]) => void;
@@ -178,11 +181,14 @@ interface UseAgentChatInputParams {
 
 export function useAgentChatInput({
   onSend,
+  onPromoteQueuedFollowUp,
+  hasQueuedFollowUps = false,
   disabled,
   placeholder: placeholderOverride,
   apiService,
   showStop = false,
   attachments = [],
+  isUploading = false,
   dragState,
   addFiles,
   removeAttachment,
@@ -538,6 +544,19 @@ export function useAgentChatInput({
     const text = editor.getText().trim();
     const canSend = Boolean(text) || hasCompletedAttachments;
     if (!canSend) {
+      if (hasQueuedFollowUps) {
+        onPromoteQueuedFollowUp?.();
+      }
+      return;
+    }
+    const hasInFlightAttachment =
+      isUploading ||
+      attachments.some(
+        (attachment) =>
+          attachment.status === 'pending' || attachment.status === 'uploading',
+      );
+    if (hasInFlightAttachment) {
+      setActionFeedback(translate('uploadInProgress'));
       return;
     }
     const parsedCommand = parseConversationComposerCommand(text);
@@ -574,7 +593,7 @@ export function useAgentChatInput({
       ...contentReferences.map(contentReferenceToMention),
     ];
     const completed = getCompletedAttachments?.();
-    onSend(
+    const accepted = await onSend(
       text,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
@@ -590,23 +609,32 @@ export function useAgentChatInput({
         planModeEnabled: false,
       },
     );
+    if (accepted === false) {
+      setActionFeedback(translate('queueFull'));
+      return;
+    }
     editor.commands.clearContent();
     setContentReferences([]);
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
+    attachments,
     composerShell,
     contentReferences,
     draftScopeKey,
     editor,
     disabled,
+    hasQueuedFollowUps,
     isListening,
     isTranscribing,
+    isUploading,
+    onPromoteQueuedFollowUp,
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
     surfaceArtifactReferences,
+    translate,
   ]);
 
   // Keep the SendOnEnter keymap pointed at the latest handleSend so the Enter
