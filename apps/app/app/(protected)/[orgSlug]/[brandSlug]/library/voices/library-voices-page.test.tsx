@@ -39,6 +39,16 @@ const mockRouterReplace = vi.fn();
 const mockSearchParamsGet = vi.fn(() => null);
 const mockSearchParamsToString = vi.fn(() => '');
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
   useIngredientsContext: vi.fn(() => ({
     filters: mockFilters,

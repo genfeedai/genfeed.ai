@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 export interface VoiceCatalogListProps {
@@ -23,6 +24,8 @@ export default function VoiceCatalogList({
   onCloneVoice,
   voices,
 }: VoiceCatalogListProps) {
+  const translate = useTranslations('common.actions');
+
   if (voices.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02] p-8">
@@ -43,12 +46,12 @@ export default function VoiceCatalogList({
           <div className="flex flex-wrap items-center gap-3">
             {hasActiveFilters ? (
               <Button onClick={onClearFilters} withWrapper={false}>
-                Clear Filters
+                {translate('clearFilters')}
               </Button>
             ) : null}
             {generateHref ? (
               <Button asChild withWrapper={false}>
-                <Link href={generateHref}>Generate Voice</Link>
+                <Link href={generateHref}>{translate('generateVoice')}</Link>
               </Button>
             ) : null}
             <Button
@@ -56,7 +59,7 @@ export default function VoiceCatalogList({
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
-              Clone Voice
+              {translate('cloneVoice')}
             </Button>
           </div>
         </div>

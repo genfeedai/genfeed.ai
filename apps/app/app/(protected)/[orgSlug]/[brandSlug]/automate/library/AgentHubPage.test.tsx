@@ -60,6 +60,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
+  usePathname: () => '/org-one/brand-one/automate/library',
   useRouter: () => ({ push: vi.fn() }),
 }));
 

@@ -7,6 +7,21 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import VoiceCatalogList from './voice-catalog-list';
 
+const useTranslationsMock = vi.hoisted(() => vi.fn());
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return {
+    useTranslations: (namespace: string) => {
+      useTranslationsMock(namespace);
+      return translateFromCatalog(namespace);
+    },
+  };
+});
+
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({
     children,
@@ -47,6 +62,7 @@ describe('VoiceCatalogList', () => {
         'Clear the current filters or clone a new voice sample to populate this library.',
       ),
     ).toBeInTheDocument();
+    expect(useTranslationsMock).toHaveBeenCalledWith('common.actions');
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear Filters' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clone Voice' }));
@@ -70,7 +86,7 @@ describe('VoiceCatalogList', () => {
     expect(screen.getByText('No voices available yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Clone your first voice from an uploaded or recorded sample.',
+        'Generate a voice with Agent or clone one from an uploaded or recorded sample.',
       ),
     ).toBeInTheDocument();
     expect(

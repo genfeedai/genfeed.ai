@@ -1,7 +1,10 @@
 {
   "actions": {
     "cancel": "Cancel",
+    "clearFilters": "Clear Filters",
+    "cloneVoice": "Clone Voice",
     "delete": "Delete",
+    "generateVoice": "Generate Voice",
     "retry": "Retry",
     "rewriteWithAgent": "Rewrite with agent",
     "save": "Save"
