@@ -1,8 +1,10 @@
+import type { ThemePreference } from '@genfeedai/constants';
+import { ThemeDocumentBootstrapScript } from '@ui/theme/ThemeBootstrapScript';
 import type { ReactNode } from 'react';
 
 export interface AppHtmlDocumentProps {
   children: ReactNode;
-  initialTheme: string;
+  initialTheme: ThemePreference;
   fontVariables: string;
   bodyClassName?: string;
   head?: ReactNode;
@@ -17,18 +19,26 @@ export default function AppHtmlDocument({
   head,
   lang = 'en',
 }: AppHtmlDocumentProps) {
+  const isSystemPreference = initialTheme === 'system';
+
   return (
     <html
       lang={lang}
       className={fontVariables}
-      data-theme={initialTheme}
+      data-theme={isSystemPreference ? undefined : initialTheme}
       data-scroll-behavior="smooth"
-      style={{ colorScheme: initialTheme }}
+      style={{
+        colorScheme: isSystemPreference ? 'light dark' : initialTheme,
+      }}
       // next-themes rewrites data-theme/style on the client before React
       // hydrates, so the server-rendered attributes legitimately differ.
       suppressHydrationWarning
     >
-      {head ? <head>{head}</head> : null}
+      {/* biome-ignore lint/style/noHeadElement: blocking theme bootstrap must execute in document head before first paint */}
+      <head>
+        {head}
+        <ThemeDocumentBootstrapScript />
+      </head>
       <body className={bodyClassName}>{children}</body>
     </html>
   );

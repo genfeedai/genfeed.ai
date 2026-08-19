@@ -38,7 +38,7 @@ export function WorkspaceTaskBrandField({
       {editor ? (
         <EditorContent editor={editor} />
       ) : (
-        <div className="min-h-9 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-foreground/35">
+        <div className="min-h-9 rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm text-muted-foreground">
           Type @ to target a brand.
         </div>
       )}

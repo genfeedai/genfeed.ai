@@ -65,7 +65,7 @@ export function WorkspaceOverviewSidebar({
     isTasksLoading && inProgressTasks.length === 0 ? (
       <WorkspaceTaskRowsSkeleton />
     ) : inProgressTasks.length > 0 ? (
-      <div className="divide-y divide-white/[0.06]">
+      <div className="divide-y divide-border/60">
         {inProgressTasks.map((task) => (
           <WorkspaceTaskCard
             key={task.id}
@@ -99,7 +99,7 @@ export function WorkspaceOverviewSidebar({
     isTasksLoading && historyPreviewItems.length === 0 ? (
       <WorkspaceTaskRowsSkeleton rows={3} />
     ) : historyPreviewItems.length > 0 ? (
-      <div className="divide-y divide-white/[0.06]">
+      <div className="divide-y divide-border/60">
         {historyPreviewItems.map((task) => (
           <WorkspaceTaskRow
             key={task.id}
@@ -145,7 +145,7 @@ export function WorkspaceOverviewSidebar({
           bodyClassName="p-4"
         >
           {initialReviewInbox.recentItems.length > 0 ? (
-            <div className="divide-y divide-white/[0.06]">
+            <div className="divide-y divide-border/60">
               {initialReviewInbox.recentItems.map((item) => (
                 <div
                   key={item.id}
@@ -212,7 +212,7 @@ export function WorkspaceOverviewSidebar({
           description="Keep the ingredient library one click away from the dashboard."
           bodyClassName="p-4"
         >
-          <div className="divide-y divide-white/[0.06]">
+          <div className="divide-y divide-border/60">
             {LIBRARY_SNAPSHOT_LINKS.map((item) => (
               <Link
                 key={item.href}
@@ -237,7 +237,7 @@ export function WorkspaceOverviewSidebar({
           description="Manual and expert surfaces stay available without owning the main navigation."
           bodyClassName="p-4"
         >
-          <div className="divide-y divide-white/[0.06]">
+          <div className="divide-y divide-border/60">
             {availableAdvancedTools.map((tool) => (
               <Link
                 key={tool.href}

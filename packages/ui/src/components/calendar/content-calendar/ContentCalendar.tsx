@@ -41,8 +41,8 @@ interface CalendarDateRange {
 }
 
 const calendarThemeStyle = {
-  '--fc-classic-border': 'rgba(255, 255, 255, 0.06)',
-  '--fc-classic-strong-border': 'rgba(255, 255, 255, 0.06)',
+  '--fc-classic-border': 'hsl(var(--border))',
+  '--fc-classic-strong-border': 'hsl(var(--border-strong))',
 } as CSSProperties;
 
 /**
@@ -462,7 +462,7 @@ export default function ContentCalendar<T extends CalendarItem>({
         <div className="flex justify-end mb-4">{filterControls}</div>
       )}
 
-      <Card className="w-full border border-white/[0.06]" bodyClassName="p-0">
+      <Card className="w-full border border-border" bodyClassName="p-0">
         {isLoading ? (
           <div
             className="fullcalendar-container p-6"

@@ -72,7 +72,11 @@ export default {
       [
         'expo-splash-screen',
         {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#FAFAF9',
+          dark: {
+            backgroundColor: '#030303',
+            image: './assets/images/splash-icon.png',
+          },
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
@@ -99,7 +103,11 @@ export default {
     slug: 'genfeed-mobile',
 
     splash: {
-      backgroundColor: '#ffffff',
+      backgroundColor: '#FAFAF9',
+      dark: {
+        backgroundColor: '#030303',
+        image: './assets/images/splash-icon.png',
+      },
       image: './assets/images/splash-icon.png',
       imageWidth: 200,
       resizeMode: 'contain',

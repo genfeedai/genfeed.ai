@@ -194,11 +194,11 @@ export default function IngredientTabsInfo({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+      <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Core Metadata
         </p>
-        <p className="mt-1 text-sm text-white/65">
+        <p className="mt-1 text-sm text-muted-foreground">
           Update the label and description shown across your workspace.
         </p>
       </div>
@@ -231,12 +231,14 @@ export default function IngredientTabsInfo({
       </div>
 
       {isImageLike && onUpdate ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+        <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Avatar Actions
           </p>
           {actionDescription ? (
-            <p className="mt-1 text-sm text-white/65">{actionDescription}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {actionDescription}
+            </p>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">

@@ -24,11 +24,11 @@ export default function Loading({
       <div className="flex max-w-md flex-col items-center gap-4 px-6">
         <Spinner
           ariaLabel={label}
-          className="text-white/80"
+          className="text-foreground/80"
           size={ComponentSize.LG}
         />
         {message ? (
-          <span className="text-sm text-white/40">{message}</span>
+          <span className="text-sm text-muted-foreground">{message}</span>
         ) : null}
       </div>
     </div>

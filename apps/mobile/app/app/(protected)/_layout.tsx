@@ -1,9 +1,12 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
-import { borderRadius, colors } from '@/constants';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
+import { borderRadius } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
+import { useMobileTheme } from '@/contexts/theme-context';
 import { usePendingApprovalCount } from '@/hooks/use-approvals';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 function SignOutButton() {
   const { signOut } = useMobileAuth();
@@ -12,40 +15,22 @@ function SignOutButton() {
 
 function ApprovalBadge() {
   const { count, isLoading } = usePendingApprovalCount();
+  const styles = useThemedStyles(createStyles);
 
   if (isLoading || count === 0) {
     return null;
   }
 
   return (
-    <View style={badgeStyles.container}>
-      <Text style={badgeStyles.text}>{count > 99 ? '99+' : count}</Text>
+    <View style={styles.badgeContainer}>
+      <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
     </View>
   );
 }
 
-const badgeStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.xl,
-    height: 20,
-    justifyContent: 'center',
-    minWidth: 20,
-    paddingHorizontal: 6,
-    position: 'absolute',
-    right: -8,
-    top: -4,
-  },
-  text: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-});
-
 export default function ProtectedLayout() {
   const { isLoaded, isSignedIn } = useMobileAuth();
+  const { colors } = useMobileTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -66,7 +51,7 @@ export default function ProtectedLayout() {
           backgroundColor: colors.bgSecondary,
         },
         headerTintColor: colors.textPrimary,
-        tabBarActiveTintColor: colors.indigo,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
           backgroundColor: colors.bgSecondary,
@@ -84,6 +69,7 @@ export default function ProtectedLayout() {
         }}
       />
       <Tabs.Screen name="ideas" options={{ title: 'Ideas' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       <Tabs.Screen
         name="approval"
         options={{
@@ -93,3 +79,24 @@ export default function ProtectedLayout() {
     </Tabs>
   );
 }
+
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
+    badgeContainer: {
+      alignItems: 'center',
+      backgroundColor: colors.error,
+      borderRadius: borderRadius.xl,
+      height: 20,
+      justifyContent: 'center',
+      minWidth: 20,
+      paddingHorizontal: 6,
+      position: 'absolute',
+      right: -8,
+      top: -4,
+    },
+    badgeText: {
+      color: colors.errorForeground,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+  });

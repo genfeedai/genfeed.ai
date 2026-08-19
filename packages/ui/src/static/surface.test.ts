@@ -28,4 +28,15 @@ describe('static surface primitives', () => {
     expect(staticSurfaceCss).not.toContain('linear-gradient(160deg');
     expect(staticSurfaceCss).toContain('.gf-feature-card {');
   });
+
+  it('supports system, light, and dark color schemes from shared tokens', () => {
+    expect(staticSurfaceCss).toContain('color-scheme: light dark');
+    expect(staticSurfaceCss).toContain('@media (prefers-color-scheme: dark)');
+    expect(staticSurfaceCss).toContain('.gf-ui[data-theme="light"]');
+    expect(staticSurfaceCss).toContain('.gf-ui[data-theme="dark"]');
+    expect(staticSurfaceCss).toContain('--gf-bg-primary: #FAFAF9');
+    expect(staticSurfaceCss).toContain('--gf-bg-primary: #030303');
+    expect(staticSurfaceCss).toContain('--gf-grid-line:');
+    expect(staticSurfaceCss).toContain('--gf-divider-subtle:');
+  });
 });

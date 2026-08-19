@@ -15,6 +15,7 @@ import {
   createButtonContainer,
   createGenFeedDropdown,
   injectGlobalStyles,
+  watchContentTheme,
 } from '~platforms/ui-helpers';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 
@@ -397,6 +398,7 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 });
 
 // Initial setup
+watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();
 

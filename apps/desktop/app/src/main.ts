@@ -29,6 +29,7 @@ import {
   type IpcMainInvokeEvent,
   ipcMain,
   Notification,
+  nativeTheme,
   shell,
 } from 'electron';
 import electronUpdater from 'electron-updater';
@@ -776,7 +777,9 @@ const attachMainWindowLifecycle = (window: BrowserWindow): void => {
 
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
-    backgroundColor: getDesktopBootBackground(),
+    backgroundColor: getDesktopBootBackground(
+      nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    ),
     height: 980,
     minHeight: 780,
     minWidth: 1280,
@@ -955,7 +958,9 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
   try {
     if (!mainWindow) {
       mainWindow = new BrowserWindow({
-        backgroundColor: getDesktopBootBackground(),
+        backgroundColor: getDesktopBootBackground(
+          nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+        ),
         height: 720,
         minHeight: 560,
         minWidth: 860,
@@ -1805,6 +1810,14 @@ process.on(DESKTOP_PROCESS_EXCEPTION_SOURCE.UNHANDLED_REJECTION, (reason) => {
 void app
   .whenReady()
   .then(async () => {
+    nativeTheme.themeSource = 'system';
+    nativeTheme.on('updated', () => {
+      mainWindow?.setBackgroundColor(
+        getDesktopBootBackground(
+          nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+        ),
+      );
+    });
     logService = new DesktopLogService(
       path.join(app.getPath('userData'), 'logs', 'main.log'),
     );

@@ -185,7 +185,7 @@ function MessageBubble({
 }
 
 export default function MessagesPage() {
-  const { brandSlug, href, orgSlug } = useOrgUrl();
+  const { brandSlug, href } = useOrgUrl();
   const { brands, organizationId: scopedOrganizationId } = useBrand();
   const pathname = usePathname();
   const searchParams = useSearchParams();

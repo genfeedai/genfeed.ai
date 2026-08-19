@@ -29,7 +29,7 @@ export default function SettingsProgressHeatmapCard({
                 ? 'bg-orange-300/45 border-orange-300/40'
                 : count >= 1
                   ? 'bg-orange-300/25 border-orange-300/25'
-                  : 'bg-card border-white/8';
+                  : 'bg-card border-border';
 
           return (
             <div

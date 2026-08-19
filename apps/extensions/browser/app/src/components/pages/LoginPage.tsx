@@ -1,6 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
+import { ThemeSelector } from '~components/settings/ThemeSelector';
 import { useThemeLogo } from '~hooks/ui/use-theme-logo/use-theme-logo';
 import { EnvironmentService } from '~services/environment.service';
 
@@ -55,6 +56,10 @@ export default function LoginPage() {
         >
           Create a free account
         </a>
+      </div>
+
+      <div className="mt-8 w-full max-w-xs border-t border-border pt-4 text-left">
+        <ThemeSelector />
       </div>
     </div>
   );

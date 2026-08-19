@@ -78,4 +78,12 @@ describe('WebsiteTopbar', () => {
       ).toBeInTheDocument();
     }
   });
+
+  it('does not expose a marketing-site appearance control', () => {
+    render(<WebsiteTopbar />);
+
+    expect(
+      screen.queryByRole('button', { name: /Appearance/i }),
+    ).not.toBeInTheDocument();
+  });
 });

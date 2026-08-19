@@ -844,7 +844,7 @@ export function WorkflowCanvas({
           variant={BackgroundVariant.Dots}
           gap={16}
           size={1}
-          color="rgba(255, 255, 255, 0.08)"
+          color="hsl(var(--foreground) / 0.08)"
         />
         <Controls />
         {showMinimap && (
@@ -853,8 +853,8 @@ export function WorkflowCanvas({
             nodeColor={() => DEFAULT_NODE_COLOR}
             zoomable
             pannable
-            maskColor="rgba(0, 0, 0, 0.8)"
-            className={`!bg-transparent !border-[var(--border)] transition-opacity duration-300 ${
+            maskColor="hsl(var(--background) / 0.8)"
+            className={`!border-border !bg-transparent transition-opacity duration-300 ${
               isMinimapVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           />

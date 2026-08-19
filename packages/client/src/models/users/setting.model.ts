@@ -1,9 +1,10 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
+import type { ThemePreference } from '@genfeedai/constants';
 import type { TrendNotificationFrequency } from '@genfeedai/enums';
 import type { DashboardPreferences, ISetting } from '@genfeedai/interfaces';
 
 export class Setting extends BaseEntity implements ISetting {
-  public declare theme: string;
+  public declare theme: ThemePreference;
   public declare isVerified: boolean;
   public declare isFirstLogin: boolean;
   public declare isMenuCollapsed: boolean;

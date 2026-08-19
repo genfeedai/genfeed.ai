@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Text, View } from 'react-native';
-import { screenStatesStyles as styles } from '@/components/ScreenStates.styles';
+import { createScreenStatesStyles } from '@/components/ScreenStates.styles';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 interface EmptyStateProps {
   title: string;
@@ -13,6 +14,8 @@ export function EmptyState({
   message,
   emoji,
 }: EmptyStateProps): ReactElement {
+  const styles = useThemedStyles(createScreenStatesStyles);
+
   return (
     <View style={styles.emptyState}>
       {emoji && <Text style={styles.emptyStateEmoji}>{emoji}</Text>}

@@ -49,6 +49,10 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
     protectedAuthGateMock(props),
 }));
 
+vi.mock('@providers/theme-sync/theme-preference-sync', () => ({
+  default: () => <div data-testid="theme-preference-sync" />,
+}));
+
 vi.mock('@ui/error', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="error-boundary">{children}</div>
@@ -99,6 +103,7 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('protected-auth-gate')).toBeInTheDocument();
     expect(screen.getByTestId('api-status-provider')).toBeInTheDocument();
     expect(screen.getByTestId('user-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('theme-preference-sync')).toBeInTheDocument();
     expect(screen.getByTestId('brand-provider')).toBeInTheDocument();
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
     expect(

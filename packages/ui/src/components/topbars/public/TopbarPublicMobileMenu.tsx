@@ -69,13 +69,13 @@ export default function TopbarPublicMobileMenu({
       />
 
       {/* Menu Panel */}
-      <div className="relative z-10 w-full max-h-[80vh] overflow-y-auto mt-20 border-b border-white/10 bg-background">
+      <div className="relative z-10 mt-20 max-h-[80vh] w-full overflow-y-auto border-b border-border bg-background">
         <nav className="container mx-auto p-6">
           <ul className="space-y-6">
             {/* Mobile Dropdowns */}
             {dropdowns.map((dropdown) => (
               <li key={dropdown.label}>
-                <span className="block text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-3">
+                <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">
                   {dropdown.label}
                 </span>
                 <ul className="space-y-1">
@@ -90,12 +90,14 @@ export default function TopbarPublicMobileMenu({
                           className={cn(
                             'flex items-center gap-3 px-4 py-3 transition-colors',
                             isActive
-                              ? 'bg-white/10 text-white'
-                              : 'text-white/70 hover:bg-white/5 hover:text-white',
+                              ? 'bg-foreground/10 text-foreground'
+                              : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
                           )}
                           onClick={onClose}
                         >
-                          {Icon && <Icon className="size-5 text-white/50" />}
+                          {Icon && (
+                            <Icon className="size-5 text-foreground/50" />
+                          )}
                           <span className="font-medium">{item.label}</span>
                         </Link>
                       </li>
@@ -108,7 +110,7 @@ export default function TopbarPublicMobileMenu({
             {/* Mobile Flat Links */}
             {navLinks.length > 0 && (
               <li>
-                <span className="block text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-3">
+                <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">
                   More
                 </span>
                 <ul className="space-y-1">
@@ -122,8 +124,8 @@ export default function TopbarPublicMobileMenu({
                           className={cn(
                             'block px-4 py-3 font-medium transition-colors',
                             isActive
-                              ? 'bg-white/10 text-white'
-                              : 'text-white/70 hover:bg-white/5 hover:text-white',
+                              ? 'bg-foreground/10 text-foreground'
+                              : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
                           )}
                           onClick={onClose}
                         >

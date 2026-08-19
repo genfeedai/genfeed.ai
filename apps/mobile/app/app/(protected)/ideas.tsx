@@ -1,3 +1,4 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -11,12 +12,16 @@ import {
   View,
 } from 'react-native';
 import { EmptyState, ErrorScreen } from '@/components/ScreenStates';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
+import { useMobileTheme } from '@/contexts/theme-context';
 import { useIdeaActions, useIdeas } from '@/hooks/use-ideas';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import type { Idea } from '@/services/api/ideas.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
 
 export default function Ideas() {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const { ideas, isLoading, isRefreshing, error, refresh } = useIdeas();
   const { create, update, remove, isSubmitting } = useIdeaActions();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -88,7 +93,7 @@ export default function Ideas() {
         tintColor={colors.agent}
       />
     ),
-    [isRefreshing, refresh],
+    [colors.agent, isRefreshing, refresh],
   );
 
   return (
@@ -214,7 +219,8 @@ export default function Ideas() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   actionButton: {
     backgroundColor: colors.bgTertiary,
     borderRadius: borderRadius.lg,
@@ -233,7 +239,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   addButtonLabel: {
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -298,7 +304,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgTertiary,
     borderRadius: 14,
     borderWidth: 1,
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 15,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -341,7 +347,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 20,
     fontWeight: '600',
   },
@@ -352,7 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.agent,
   },
   saveButtonText: {
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -362,8 +368,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 26,
     fontWeight: '600',
   },
-});
+  });

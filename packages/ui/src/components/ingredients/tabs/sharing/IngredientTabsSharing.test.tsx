@@ -41,6 +41,9 @@ describe('IngredientTabsSharing', () => {
     const groupedList = container.querySelector('[role="radiogroup"]');
 
     expect(groupedList).toHaveClass('rounded-2xl');
-    expect(groupedList).toHaveClass('border-white/10');
+    expect(groupedList).toHaveClass('border-border');
+    expect(screen.getByText('Access Control')).toHaveClass(
+      'text-muted-foreground',
+    );
   });
 });

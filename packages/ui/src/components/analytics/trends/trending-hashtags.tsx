@@ -177,7 +177,7 @@ export function TrendingHashtags({
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-white/[0.08]">
+              <div className="mt-3 pt-2 border-t border-border">
                 <Badge
                   value={`Score: ${Math.round(hashtag.viralityScore)}`}
                   className={`text-xs w-full justify-center ${

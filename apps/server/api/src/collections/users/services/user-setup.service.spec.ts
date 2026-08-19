@@ -236,6 +236,9 @@ describe('UserSetupService', () => {
       await service.initializeUserResources(userId);
 
       expect(mockSettingsService.create).toHaveBeenCalledTimes(1);
+      expect(mockSettingsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ theme: 'system' }),
+      );
     });
 
     it('should call organizationSettingsService.create once for org settings', async () => {

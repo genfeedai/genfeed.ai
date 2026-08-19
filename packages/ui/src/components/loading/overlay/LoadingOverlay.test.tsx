@@ -10,7 +10,8 @@ describe('LoadingOverlay', () => {
     const spinner = screen.getByRole('status', { name: 'Rendering' });
 
     expect(overlay).toHaveAttribute('aria-busy', 'true');
-    expect(spinner).toHaveClass('animate-spin');
+    expect(spinner).toHaveClass('animate-spin', 'text-foreground/80');
+    expect(spinner).not.toHaveClass('text-white/80');
     expect(screen.getByText('Rendering')).toBeInTheDocument();
   });
 });

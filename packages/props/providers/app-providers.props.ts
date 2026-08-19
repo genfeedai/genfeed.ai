@@ -1,11 +1,13 @@
+import type { ThemePreference } from '@genfeedai/constants';
 import type { ReactNode } from 'react';
 
 export interface AppProvidersProps {
   children: ReactNode;
-  initialTheme: string;
+  initialTheme: ThemePreference;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
   includeLazyModalErrorDebug?: boolean;
   includeToaster?: boolean;
+  nonce?: string;
   storageKey?: string;
 }

@@ -62,7 +62,7 @@ export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
     case WorkflowExecutionStatus.CANCELLED:
       return 'border-border bg-secondary';
     default:
-      return 'border-white/[0.08] bg-card';
+      return 'border-border bg-card';
   }
 }
 
@@ -78,7 +78,7 @@ export function getLifecycleBadgeClass(
     case WorkflowLifecycle.PUBLISHED:
       return 'border border-success/20 bg-success/10 text-success';
     case WorkflowLifecycle.ARCHIVED:
-      return 'border border-white/10 bg-white/[0.04] text-white/55';
+      return 'border border-border bg-foreground/[0.04] text-foreground/55';
     default:
       return 'border border-warning/20 bg-warning/10 text-warning';
   }

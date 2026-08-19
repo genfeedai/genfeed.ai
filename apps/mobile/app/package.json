@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@expo/vector-icons": "15.1.1",
+    "@genfeedai/constants": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-community/netinfo": "12.0.1",

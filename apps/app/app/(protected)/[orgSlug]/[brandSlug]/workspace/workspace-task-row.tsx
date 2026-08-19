@@ -26,7 +26,7 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       ariaLabel={`Open details for ${task.title}`}
-      className="w-full border-b border-white/[0.06] p-4 text-left transition-colors duration-150 last:border-b-0 hover:bg-white/[0.03]"
+      className="w-full border-b border-border p-4 text-left transition-colors duration-150 last:border-b-0 hover:bg-hover"
       data-testid="workspace-task-row"
       onClick={() => onOpen(task)}
     >
@@ -44,11 +44,11 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
             <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
               {task.title}
             </p>
-            <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/65">
+            <span className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/65">
               {formatTaskStatus(task)}
             </span>
             {needsAttention ? (
-              <span className="rounded-full bg-white/[0.06] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
+              <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
                 Needs attention
               </span>
             ) : null}

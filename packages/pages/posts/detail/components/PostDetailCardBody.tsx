@@ -142,7 +142,7 @@ export default function PostDetailCardBody({
 
             {/* Per-tweet KPIs - shown for all scopes when analytics exist */}
             {hasAnalytics && (
-              <div className="flex flex-wrap items-center gap-4 border-t border-white/[0.08] pt-3">
+              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
                 <div className="flex items-center gap-1.5 text-xs text-foreground/60">
                   <Eye className="size-3.5" />
                   <span>{formatCompactNumber(post.totalViews ?? 0)}</span>
@@ -168,7 +168,7 @@ export default function PostDetailCardBody({
               post.status === PostStatus.PUBLIC &&
               post.totalViews !== undefined &&
               !hasAnalytics && (
-                <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-3">
+                <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
                   <div className="text-xs text-foreground/60">
                     {post.totalViews?.toLocaleString() || 0} views
                   </div>

@@ -101,8 +101,8 @@ export function BrandPerformanceChart({
               variant={ButtonVariant.UNSTYLED}
               className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
                 activeMetric === metricKey
-                  ? 'border-white/20 bg-white/10 text-white'
-                  : 'border-white/[0.08] bg-transparent text-white/50 hover:border-white/20 hover:text-white/80'
+                  ? 'border-border-strong bg-muted text-foreground'
+                  : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
               } ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
             >
               <span

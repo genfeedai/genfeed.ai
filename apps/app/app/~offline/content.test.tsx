@@ -17,10 +17,16 @@ describe('OfflineContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses the same full-viewport deep-black shell as the not-found page', () => {
+  it('uses the themed full-viewport application shell', () => {
     const { container } = render(<OfflineContent />);
     const rootElement = container.firstChild as HTMLElement;
 
-    expect(rootElement).toHaveClass('min-h-dvh', 'w-full', 'bg-black');
+    expect(rootElement).toHaveClass(
+      'min-h-dvh',
+      'w-full',
+      'bg-background',
+      'text-foreground',
+    );
+    expect(rootElement).not.toHaveClass('bg-black');
   });
 });

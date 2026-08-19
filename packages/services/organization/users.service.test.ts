@@ -116,6 +116,19 @@ describe('UsersService', () => {
     expect(result).toMatchObject({ theme: 'dark' });
   });
 
+  it('patchMeSettings PATCHes settings through the canonical current-user route', async () => {
+    http.patch.mockResolvedValue(
+      axiosResponse(resourceDocument({ theme: 'system' }, { id: 'setting_1' })),
+    );
+
+    const result = await service.patchMeSettings({ theme: 'system' });
+
+    expect(http.patch).toHaveBeenCalledWith('me/settings', {
+      theme: 'system',
+    });
+    expect(result).toMatchObject({ theme: 'system' });
+  });
+
   it('findMe GETs the current user', async () => {
     http.get.mockResolvedValue(
       axiosResponse(resourceDocument({ email: 'a@b.c' }, { id: 'user_1' })),

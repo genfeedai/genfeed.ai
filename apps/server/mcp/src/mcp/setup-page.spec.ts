@@ -141,6 +141,17 @@ describe('MCP setup page', () => {
     expect(html).not.toContain('class="meta-card"');
   });
 
+  it('follows the operating system color scheme without dark-only overrides', () => {
+    const html = renderSetupPage();
+
+    expect(html).toContain('color-scheme: light dark');
+    expect(html).toContain('@media (prefers-color-scheme: dark)');
+    expect(html).toContain('background: var(--gf-bg-primary)');
+    expect(html).not.toContain(':root {\n  color-scheme: dark;');
+    expect(html).not.toContain('background: #050607');
+    expect(html).not.toContain('rgba(255,255,255,0.06)');
+  });
+
   it('escapes an overridden endpoint before rendering it into HTML', () => {
     vi.stubEnv(
       'GENFEED_MCP_RESOURCE_URL',

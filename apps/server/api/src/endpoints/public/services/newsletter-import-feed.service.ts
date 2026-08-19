@@ -136,6 +136,50 @@ export class NewsletterImportFeedService {
   <meta name="description" content="${summary}">
   <link rel="canonical" href="${escapeHtmlText(canonicalUrl)}">
   <title>${title}</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page-background: #fafaf9;
+      --page-surface: #f6f6f4;
+      --page-foreground: #0d0d0d;
+      --page-muted: #707070;
+      --page-border: #dad9d6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page-background: #030303;
+        --page-surface: #080808;
+        --page-foreground: #fafafa;
+        --page-muted: #949494;
+        --page-border: #262626;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: var(--page-background);
+      color: var(--page-foreground);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+    }
+    main { width: min(720px, calc(100% - 32px)); margin: 0 auto; padding: 64px 0; }
+    article { overflow-wrap: anywhere; }
+    article > header { margin-bottom: 40px; border-bottom: 1px solid var(--page-border); padding-bottom: 24px; }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -0.025em; }
+    h1 { font-size: clamp(2rem, 7vw, 3.5rem); }
+    h2 { margin-top: 2.25rem; }
+    time { color: var(--page-muted); font-size: 0.875rem; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    img { max-width: 100%; height: auto; }
+    blockquote, pre {
+      margin-inline: 0;
+      border: 1px solid var(--page-border);
+      background: var(--page-surface);
+      padding: 16px;
+    }
+    pre { max-width: 100%; overflow-x: auto; }
+  </style>
 </head>
 <body>
   <main>

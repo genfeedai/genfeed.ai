@@ -21,7 +21,7 @@ export function WorkspaceTaskThreadCard({
       bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
     >
       <div
-        className="divide-y divide-white/10"
+        className="divide-y divide-border"
         data-testid="workspace-task-events"
       >
         {[...eventStream]

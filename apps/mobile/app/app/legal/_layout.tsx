@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
-import { colors } from '@/constants';
+import { useMobileTheme } from '@/contexts/theme-context';
 
 export default function LegalLayout() {
+  const { colors } = useMobileTheme();
+
   return (
     <Stack
       screenOptions={{

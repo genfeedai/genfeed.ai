@@ -31,11 +31,11 @@ export default function PageLoadingState({
       <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
         <Spinner
           ariaLabel={message ?? 'Loading'}
-          className="text-white/80"
+          className="text-foreground/80"
           size={ComponentSize.LG}
         />
         {message ? (
-          <output className="text-sm text-white/40">{message}</output>
+          <output className="text-sm text-muted-foreground">{message}</output>
         ) : null}
         {children}
       </div>

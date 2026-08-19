@@ -4,6 +4,31 @@ import { describe, expect, it } from 'vitest';
 import { Calendar } from './calendar';
 
 describe('Calendar', () => {
+  it('uses semantic colors for every calendar interaction state', () => {
+    const { container } = render(
+      <Calendar
+        mode="single"
+        defaultMonth={new Date(2026, 7, 9)}
+        selected={new Date(2026, 7, 9)}
+      />,
+    );
+
+    const renderedClasses = Array.from(container.querySelectorAll('*'))
+      .map((element) => element.className)
+      .filter((className): className is string => typeof className === 'string')
+      .join(' ');
+
+    expect(renderedClasses).toContain('border-border');
+    expect(renderedClasses).toContain('hover:bg-accent');
+    expect(renderedClasses).toContain('text-muted-foreground');
+    expect(renderedClasses).toContain('bg-primary');
+    expect(renderedClasses).toContain('text-primary-foreground');
+    expect(renderedClasses).toContain('focus:ring-ring');
+    expect(renderedClasses).not.toMatch(
+      /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
+  });
+
   it('hides native dropdown selects so month/year labels are not doubled', () => {
     const { container } = render(
       <Calendar

@@ -136,7 +136,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
     <div className="group relative flex flex-col gap-3 rounded-lg bg-card p-4 shadow-border transition-colors hover:shadow-border-strong">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
+          <div className="flex size-8 items-center justify-center rounded-full border border-border bg-foreground/[0.06]">
             <Cpu className="size-4 text-foreground/60" />
           </div>
           <div>
@@ -190,7 +190,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
         </span>
       </div>
 
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-foreground/60 transition-all"
           style={{ width: `${creditsPercent}%` }}
@@ -251,7 +251,7 @@ function ProgressBar({ allocated, used }: { allocated: number; used: number }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-foreground/60 transition-all"
           style={{ width: `${percent}%` }}
@@ -383,7 +383,7 @@ export default function AgentCampaignsPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
-          <div className="flex size-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
+          <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/[0.02]">
             <LayoutDashboard className="size-6 text-foreground/30" />
           </div>
           <div className="text-center">

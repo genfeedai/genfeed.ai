@@ -2,11 +2,9 @@
 
 import { BetterAuthProvider } from '@genfeedai/auth-client/react';
 import { dark } from '@genfeedai/auth-client/themes';
-import { THEME_STORAGE_KEY } from '@genfeedai/constants';
-import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
-import { ThemeProvider, useTheme } from 'next-themes';
+import { ThemeProvider } from 'next-themes';
 import type { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 
@@ -25,65 +23,44 @@ interface BetterAuthProviderProps {
 
 export interface AppProvidersProps {
   children: ReactNode;
-  initialTheme: string;
   authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
-  enableSystem?: boolean;
   includeLazyModalErrorDebug?: boolean;
   includeToaster?: boolean;
-  storageKey?: string;
-}
-
-function ThemedBetterAuthProvider({
-  children,
-  authProps,
-}: {
-  children: ReactNode;
-  authProps?: BetterAuthProviderProps;
-}) {
-  const { resolvedTheme } = useTheme();
-  const appearance = authProps?.appearance;
-
-  return (
-    <BetterAuthProvider
-      {...authProps}
-      appearance={{
-        ...(appearance ?? {}),
-        theme: resolvedTheme === 'dark' ? dark : appearance?.theme,
-      }}
-    >
-      {children}
-    </BetterAuthProvider>
-  );
 }
 
 export default function AppProviders({
   children,
-  initialTheme,
   authProps,
   disableTransitionOnChange = true,
-  enableSystem = false,
   includeLazyModalErrorDebug = true,
   includeToaster = true,
-  storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
+  const appearance = authProps?.appearance;
+
   return (
     <ThemeProvider
       attribute="data-theme"
-      enableSystem={enableSystem}
-      defaultTheme={initialTheme}
-      storageKey={storageKey}
+      defaultTheme="dark"
       disableTransitionOnChange={disableTransitionOnChange}
+      enableSystem={false}
+      forcedTheme="dark"
+      storageKey="genfeed-website-theme"
     >
-      <ThemedBetterAuthProvider authProps={authProps}>
-        <ThemeCookieSync />
+      <BetterAuthProvider
+        {...authProps}
+        appearance={{
+          ...(appearance ?? {}),
+          theme: dark,
+        }}
+      >
         <WebMcpProvider />
         {children}
         {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" />
+          <Toaster richColors closeButton position="top-right" theme="dark" />
         ) : null}
         {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-      </ThemedBetterAuthProvider>
+      </BetterAuthProvider>
     </ThemeProvider>
   );
 }

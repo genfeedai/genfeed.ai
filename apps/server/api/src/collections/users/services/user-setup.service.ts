@@ -24,6 +24,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { DEFAULT_THEME } from '@genfeedai/constants';
 import { MemberRole, OrganizationCategory } from '@genfeedai/enums';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
@@ -370,7 +371,7 @@ export class UserSetupService {
       isMenuCollapsed: false,
       isSidebarProgressCollapsed: false,
       isVerified: false,
-      theme: 'dark',
+      theme: DEFAULT_THEME,
       userId,
     } as unknown as Parameters<typeof this.settingsService.create>[0]);
 

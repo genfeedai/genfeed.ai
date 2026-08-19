@@ -1,14 +1,18 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
 import { useIngredients } from '@/hooks/use-ingredients';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import type { Ingredient } from '@/services/api/ingredients.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
 
 function SectionHeader({ label }: { label: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionLabel}>{label}</Text>
@@ -28,6 +32,7 @@ function MediaCard({
   defaultTitle,
 }: MediaCardProps): ReactNode {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
   const thumbnail =
     item.attributes.ingredientUrl || item.attributes.metadata?.thumbnailUrl;
   const title = item.attributes.metadata?.title || defaultTitle;
@@ -66,6 +71,7 @@ function MediaCard({
 
 function ArticleCard({ item }: { item: Ingredient }) {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
   const title = item.attributes.metadata?.title || 'Untitled Article';
   const description = item.attributes.metadata?.description || '';
   const createdAt = formatRelativeDateVerbose(item.attributes.createdAt);
@@ -96,6 +102,7 @@ function ArticleCard({ item }: { item: Ingredient }) {
 }
 
 export default function Content() {
+  const styles = useThemedStyles(createStyles);
   const { ingredients: videos, isLoading: isLoadingVideos } = useIngredients({
     category: 'video',
     pageSize: 10,
@@ -175,7 +182,8 @@ export default function Content() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   articleBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.agent,
@@ -184,7 +192,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   articleBadgeText: {
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -222,7 +230,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cardTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -253,7 +261,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   heroTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: '600',
   },
@@ -271,7 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionLabel: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -285,4 +293,4 @@ const styles = StyleSheet.create({
     height: 72,
     width: 128,
   },
-});
+  });

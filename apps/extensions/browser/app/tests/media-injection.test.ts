@@ -50,6 +50,7 @@ import {
   createSaveButton,
   icons,
   injectGlobalStyles,
+  watchContentTheme,
 } from '~platforms/ui-helpers';
 
 describe('UI Helpers', () => {
@@ -122,7 +123,154 @@ describe('UI Helpers', () => {
       injectGlobalStyles();
 
       const styleEl = document.getElementById('genfeed-extension-styles');
-      expect(styleEl?.textContent).toContain('prefers-color-scheme: dark');
+      expect(styleEl?.textContent).toContain(
+        '.genfeed-dropdown[data-genfeed-theme="dark"]',
+      );
+    });
+  });
+
+  describe('content-script theme', () => {
+    it('scopes the persisted preference to Genfeed dropdowns only', async () => {
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        'genfeed-settings': { theme: 'dark' },
+      });
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      document.body.appendChild(dropdown);
+
+      const stopWatching = watchContentTheme();
+
+      await vi.waitFor(() => {
+        expect(dropdown.dataset.genfeedTheme).toBe('dark');
+      });
+      expect(document.documentElement).not.toHaveAttribute('data-theme');
+      stopWatching();
+    });
+
+    it('keeps System live and responds to extension storage changes', async () => {
+      let mediaListener: (() => void) | undefined;
+      let storageListener:
+        | ((
+            changes: Record<string, chrome.storage.StorageChange>,
+            areaName: string,
+          ) => void)
+        | undefined;
+      const mediaQuery = {
+        addEventListener: vi.fn((_event: string, listener: () => void) => {
+          mediaListener = listener;
+        }),
+        matches: false,
+        removeEventListener: vi.fn(),
+      };
+      vi.mocked(window.matchMedia).mockReturnValue(
+        mediaQuery as unknown as MediaQueryList,
+      );
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        'genfeed-settings': { theme: 'system' },
+      });
+      vi.mocked(chrome.storage.onChanged.addListener).mockImplementation(
+        (listener) => {
+          storageListener = listener as typeof storageListener;
+        },
+      );
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      document.body.appendChild(dropdown);
+
+      const stopWatching = watchContentTheme();
+
+      await vi.waitFor(() => {
+        expect(dropdown.dataset.genfeedTheme).toBe('light');
+      });
+      mediaQuery.matches = true;
+      mediaListener?.();
+      expect(dropdown.dataset.genfeedTheme).toBe('dark');
+
+      storageListener?.(
+        {
+          'genfeed-settings': {
+            newValue: { theme: 'light' },
+          },
+        },
+        'local',
+      );
+      expect(dropdown.dataset.genfeedTheme).toBe('light');
+      stopWatching();
+    });
+
+    it('returns to System when extension settings are removed', async () => {
+      vi.mocked(window.matchMedia).mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: false,
+        removeEventListener: vi.fn(),
+      } as unknown as MediaQueryList);
+      let storageListener:
+        | ((
+            changes: Record<string, chrome.storage.StorageChange>,
+            areaName: string,
+          ) => void)
+        | undefined;
+      vi.mocked(chrome.storage.local.get).mockResolvedValue({
+        'genfeed-settings': { theme: 'dark' },
+      });
+      vi.mocked(chrome.storage.onChanged.addListener).mockImplementation(
+        (listener) => {
+          storageListener = listener as typeof storageListener;
+        },
+      );
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      document.body.appendChild(dropdown);
+
+      const stopWatching = watchContentTheme();
+      await vi.waitFor(() => {
+        expect(dropdown.dataset.genfeedTheme).toBe('dark');
+      });
+
+      storageListener?.(
+        { 'genfeed-settings': { oldValue: { theme: 'dark' } } },
+        'local',
+      );
+      expect(dropdown.dataset.genfeedTheme).toBe('light');
+      stopWatching();
+    });
+
+    it('does not let a stale initial read overwrite a newer storage event', async () => {
+      vi.mocked(window.matchMedia).mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: false,
+        removeEventListener: vi.fn(),
+      } as unknown as MediaQueryList);
+      let resolveRead:
+        | ((settings: Record<string, unknown>) => void)
+        | undefined;
+      let storageListener:
+        | ((
+            changes: Record<string, chrome.storage.StorageChange>,
+            areaName: string,
+          ) => void)
+        | undefined;
+      vi.mocked(chrome.storage.local.get).mockReturnValue(
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        }),
+      );
+      vi.mocked(chrome.storage.onChanged.addListener).mockImplementation(
+        (listener) => {
+          storageListener = listener as typeof storageListener;
+        },
+      );
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      document.body.appendChild(dropdown);
+
+      const stopWatching = watchContentTheme();
+      storageListener?.(
+        { 'genfeed-settings': { newValue: { theme: 'light' } } },
+        'local',
+      );
+      expect(dropdown.dataset.genfeedTheme).toBe('light');
+
+      resolveRead?.({ 'genfeed-settings': { theme: 'dark' } });
+      await Promise.resolve();
+      expect(dropdown.dataset.genfeedTheme).toBe('light');
+      stopWatching();
     });
   });
 

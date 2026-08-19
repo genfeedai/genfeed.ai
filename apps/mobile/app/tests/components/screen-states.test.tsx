@@ -5,11 +5,10 @@ import {
   ErrorScreen,
   LoadingScreen,
 } from '@/components/ScreenStates';
-import { colors } from '@/constants';
 
 describe('ScreenStates', () => {
   it('renders the loading message', () => {
-    render(<LoadingScreen message="Loading content" color={colors.white} />);
+    render(<LoadingScreen message="Loading content" />);
 
     expect(screen.getByText('Loading content')).toBeTruthy();
   });

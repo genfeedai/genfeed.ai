@@ -109,7 +109,7 @@ export default function CloudContent() {
             </div>
             {/* Dashboard content */}
             <div className="relative aspect-[16/9]">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-white/[0.02]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.03] via-transparent to-foreground/[0.02]" />
               <div className="absolute inset-0 p-6">
                 <div className="grid grid-cols-3 gap-1.5 h-full">
                   {[

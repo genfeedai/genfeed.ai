@@ -64,7 +64,7 @@ export default function TrendDetailAnalysisCard({
         </div>
       </div>
       {analysis.peakDate && (
-        <div className="mt-4 pt-4 border-t border-white/[0.08]">
+        <div className="mt-4 pt-4 border-t border-border">
           <span className="text-sm text-foreground/60">
             Peak: {formatCompactNumber(analysis.peakMentions || 0)} mentions on{' '}
             {new Date(analysis.peakDate).toLocaleDateString()}

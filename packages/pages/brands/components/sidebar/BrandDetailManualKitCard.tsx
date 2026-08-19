@@ -153,7 +153,7 @@ function ColorField({
       <div className="flex min-w-0 items-center gap-2">
         <ColorInput
           aria-label={`${ariaLabel} picker`}
-          className="size-10 shrink-0 rounded-md border-white/[0.08] p-1"
+          className="size-10 shrink-0 rounded-md border-border p-1"
           value={toColorPickerValue(value)}
           onChange={(event) =>
             onHexChange(name, event.target.value.toUpperCase())

@@ -105,8 +105,8 @@ export function PlatformComparisonChart({
               variant={ButtonVariant.UNSTYLED}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize border ${
                 activeMetrics.includes(metric)
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : 'bg-transparent border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/80'
+                  ? 'border-border-strong bg-muted text-foreground'
+                  : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
               } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span

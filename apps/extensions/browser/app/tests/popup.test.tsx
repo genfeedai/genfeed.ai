@@ -48,6 +48,7 @@ describe('IndexPopup', () => {
 
     mockAuthService.getToken.mockResolvedValue(null);
     mockGetJWTToken.mockResolvedValue(null);
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({});
   });
 
   it('renders without throwing', () => {
@@ -129,11 +130,16 @@ describe('IndexPopup', () => {
     });
   });
 
-  it('sets dark mode attributes on mount', () => {
+  it('follows the system color scheme on mount', async () => {
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({});
     render(React.createElement(IndexPopup));
 
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    expect(document.body.classList.contains('dark')).toBe(true);
+    await waitFor(() => {
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+      expect(document.documentElement.getAttribute('data-theme')).toBe(
+        'light',
+      );
+      expect(document.body.classList.contains('dark')).toBe(false);
+    });
   });
 });

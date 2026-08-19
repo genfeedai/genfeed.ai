@@ -59,9 +59,9 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
     <Card
       className={cn(
         'group',
-        'bg-white/[0.03]',
+        'bg-foreground/[0.03]',
         'transition-all duration-300 ease-out',
-        'hover:bg-white/[0.05]',
+        'hover:bg-foreground/[0.05]',
         prompt.isRejected && 'opacity-40 pointer-events-none',
       )}
       bodyClassName="gap-0 p-0"
@@ -74,8 +74,8 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         className={cn(
           'absolute top-3 right-3 z-10',
           'rounded-md p-1',
-          'text-white/30 hover:text-white/70',
-          'bg-white/[0.04] hover:bg-white/[0.1]',
+          'text-foreground/30 hover:text-foreground/70',
+          'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
           'transition-all duration-200',
           'opacity-0 group-hover:opacity-100',
         )}
@@ -126,7 +126,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2 border-t border-border pt-2">
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
@@ -155,7 +155,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <MediaIcon className="size-3" />
           <span className="capitalize">{targetMedia}</span>
-          <span className="text-white/20">|</span>
+          <span className="text-foreground/20">|</span>
           <span className="capitalize">{prompt.format}</span>
         </div>
       </div>
@@ -168,7 +168,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
  */
 function MetadataTag({ icon, label }: PromptMetadataTagProps) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-muted-foreground bg-white/[0.04] border border-white/[0.06] rounded-full">
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-[11px] text-muted-foreground">
       {icon}
       {label}
     </span>

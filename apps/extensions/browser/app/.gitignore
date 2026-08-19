@@ -29,6 +29,9 @@ dist/
 # plasmo
 .plasmo
 
+# Tailwind v4 compiler output (Plasmo's Parcel 2.9 PostCSS loader is incompatible)
+/src/style.generated.css
+
 # typescript
 .tsbuildinfo
 

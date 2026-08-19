@@ -61,7 +61,7 @@ export function WorkspaceTaskComposer({
 
   return (
     <Modal.Root open={open} onOpenChange={handleModalOpenChange}>
-      <Modal.Content size="lg" className="border-white/10 bg-secondary">
+      <Modal.Content size="lg" className="border-border bg-secondary">
         <Modal.Header>
           <Modal.Title>New Task</Modal.Title>
           <Modal.Description>
@@ -79,7 +79,7 @@ export function WorkspaceTaskComposer({
 
           <Textarea
             id="workspace-task-request"
-            className="min-h-48 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground/35 focus:border-white/20"
+            className="min-h-48 w-full rounded-lg border border-border bg-background-secondary px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
             placeholder="Create three thumbnail directions for our next launch, then draft a caption."
             value={taskRequest}
             onChange={(event) => setTaskRequest(event.target.value)}

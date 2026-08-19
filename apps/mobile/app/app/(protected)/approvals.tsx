@@ -2,6 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { memo, type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,12 +15,14 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
-import { borderRadius, CONTENT_TYPE_LABELS, colors } from '@/constants';
+import { borderRadius, CONTENT_TYPE_LABELS } from '@/constants';
+import { useMobileTheme } from '@/contexts/theme-context';
 import {
   useApprovalActions,
   useApprovals,
   usePendingApprovalCount,
 } from '@/hooks/use-approvals';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import type { Approval, ContentType } from '@/services/api/approvals.service';
 import { formatRelativeDate } from '@/utils/format-date';
 
@@ -30,6 +33,8 @@ interface FilterChipProps {
 }
 
 function FilterChip({ label, isActive, onPress }: FilterChipProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -67,6 +72,7 @@ function ApprovalCard({
   onToggleSelect,
   selectionMode,
 }: ApprovalCardProps) {
+  const styles = useThemedStyles(createStyles);
   const { attributes } = approval;
 
   const renderLeftActions = () => (
@@ -81,7 +87,9 @@ function ApprovalCard({
         onApprove(approval.id);
       }}
     >
-      <Text style={styles.swipeActionText}>Approve</Text>
+      <Text style={[styles.swipeActionText, styles.approveActionText]}>
+        Approve
+      </Text>
     </Pressable>
   );
 
@@ -97,7 +105,9 @@ function ApprovalCard({
         onReject(approval.id);
       }}
     >
-      <Text style={styles.swipeActionText}>Reject</Text>
+      <Text style={[styles.swipeActionText, styles.rejectActionText]}>
+        Reject
+      </Text>
     </Pressable>
   );
 
@@ -192,6 +202,8 @@ const ApprovalList = memo(function ApprovalList({
   refresh: () => void;
   renderItem: ({ item }: { item: Approval }) => ReactElement;
 }) {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const refreshControl = useMemo(
     () => (
       <RefreshControl
@@ -200,7 +212,7 @@ const ApprovalList = memo(function ApprovalList({
         tintColor={colors.agent}
       />
     ),
-    [isRefreshing, refresh],
+    [colors.agent, isRefreshing, refresh],
   );
 
   return (
@@ -215,6 +227,8 @@ const ApprovalList = memo(function ApprovalList({
 });
 
 export default function Approvals() {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [filter, setFilter] = useState<ContentType | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -398,7 +412,10 @@ export default function Approvals() {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color={colors.bgSecondary} />
+                <ActivityIndicator
+                  size="small"
+                  color={colors.successForeground}
+                />
               ) : (
                 <Text style={styles.approveButtonText}>Approve All</Text>
               )}
@@ -426,9 +443,13 @@ export default function Approvals() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   approveAction: {
     backgroundColor: colors.success,
+  },
+  approveActionText: {
+    color: colors.successForeground,
   },
   approveButton: {
     backgroundColor: colors.success,
@@ -437,7 +458,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   approveButtonText: {
-    color: colors.bgSecondary,
+    color: colors.successForeground,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -488,7 +509,7 @@ const styles = StyleSheet.create({
     borderColor: colors.agent,
   },
   cardTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -506,7 +527,7 @@ const styles = StyleSheet.create({
     borderColor: colors.agent,
   },
   checkmark: {
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -532,7 +553,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filterChipTextActive: {
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
   },
   filters: {
     flexDirection: 'row',
@@ -557,6 +578,9 @@ const styles = StyleSheet.create({
   },
   rejectAction: {
     backgroundColor: colors.error,
+  },
+  rejectActionText: {
+    color: colors.errorForeground,
   },
   requestedBy: {
     color: colors.textSubtle,
@@ -589,7 +613,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   selectionText: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -608,7 +632,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   swipeActionText: {
-    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -628,8 +651,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 26,
     fontWeight: '600',
   },
-});
+  });

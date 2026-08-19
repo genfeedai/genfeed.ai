@@ -23,7 +23,7 @@ export default function RelatedMetricCard({
   title,
 }: RelatedMetricCardProps) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-background/80 p-4">
+    <div className="rounded-xl border border-border bg-background/80 p-4">
       <div className="space-y-2">
         <div className="truncate text-sm font-medium text-foreground">
           {title}

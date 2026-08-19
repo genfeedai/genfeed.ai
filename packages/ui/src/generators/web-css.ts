@@ -50,14 +50,23 @@ function cssVariablesForTheme(theme: 'light' | 'dark'): string {
 }
 
 export function generateWebTokenCss(): string {
+  const lightVariables = cssVariablesForTheme('light');
+  const darkVariables = cssVariablesForTheme('dark');
+
   return `@layer base {
   :root,
   [data-theme='light'] {
-${cssVariablesForTheme('light')}
+${lightVariables}
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+${darkVariables}
+    }
   }
 
   [data-theme='dark'] {
-${cssVariablesForTheme('dark')}
+${darkVariables}
   }
 }`;
 }

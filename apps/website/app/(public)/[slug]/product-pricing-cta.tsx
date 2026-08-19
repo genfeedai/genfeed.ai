@@ -25,7 +25,7 @@ export default function ProductPricingCTA({
   return (
     <section className="max-w-4xl mx-auto pb-20">
       <Card
-        className="border border-[var(--gen-accent-border)] bg-white/[0.04]"
+        className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]"
         bodyClassName="text-center"
       >
         <Heading size="2xl" className="mb-2">
@@ -48,7 +48,7 @@ export default function ProductPricingCTA({
               <Button
                 variant={ButtonVariant.SECONDARY}
                 asChild
-                className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
+                className="h-12 border-[var(--gen-accent-border)] px-6 text-lg uppercase hover:border-[var(--gen-accent-hover)] hover:bg-[var(--gen-accent-bg)]"
               >
                 <Link
                   href={githubUrl}
@@ -64,7 +64,7 @@ export default function ProductPricingCTA({
             <Button
               variant={ButtonVariant.SECONDARY}
               asChild
-              className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
+              className="h-12 border-[var(--gen-accent-border)] px-6 text-lg uppercase hover:border-[var(--gen-accent-hover)] hover:bg-[var(--gen-accent-bg)]"
             >
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
                 <GithubIcon className="size-5" />
@@ -81,7 +81,7 @@ export default function ProductPricingCTA({
               <Button
                 variant={ButtonVariant.SECONDARY}
                 asChild
-                className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg"
+                className="h-12 border-[var(--gen-accent-border)] px-6 text-lg hover:border-[var(--gen-accent-hover)] hover:bg-[var(--gen-accent-bg)]"
               >
                 <Link href="/pricing">View All Pricing</Link>
               </Button>

@@ -180,7 +180,8 @@ export default function DownloadContent({
               }
               padding="lg"
               className={cn(
-                detectedOs === DesktopOs.MAC_OS && 'bg-white/[0.03]',
+                detectedOs === DesktopOs.MAC_OS &&
+                  'bg-[var(--gen-accent-bg)]',
               )}
             >
               <p className="mt-2 text-sm text-surface/65">{MAC_REQUIREMENT}</p>
@@ -219,7 +220,7 @@ export default function DownloadContent({
               title="Windows"
               tierLabel="Coming soon"
               padding="lg"
-              className={cn(isWindows && 'bg-white/[0.03]')}
+              className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
             >
               <p className="mt-2 text-sm text-surface/65">
                 Not built yet. Use Genfeed in the browser in the meantime, or
@@ -315,7 +316,7 @@ export default function DownloadContent({
               title="Web app"
               tierLabel="Every platform"
               padding="lg"
-              className="bg-white/[0.03]"
+              className="bg-[var(--gen-accent-bg)]"
             >
               <ul className="space-y-3">
                 {[

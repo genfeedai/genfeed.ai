@@ -41,7 +41,9 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
-  UserProvider: ({ children }: { children: React.ReactNode }) => children,
+  UserProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="user-provider">{children}</div>
+  ),
   useCurrentUser: () => ({ currentUser: null }),
 }));
 
@@ -74,6 +76,10 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 
 vi.mock('@providers/promptbar/promptbar.provider', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock('@providers/theme-sync/theme-preference-sync', () => ({
+  default: () => <span data-testid="theme-preference-sync" />,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -115,6 +121,9 @@ describe('ProtectedProviders', () => {
     await waitFor(() => {
       expect(screen.getByTestId('child')).toHaveTextContent('hello');
     });
+    expect(screen.getByTestId('user-provider')).toContainElement(
+      screen.getByTestId('theme-preference-sync'),
+    );
   });
 
   it('always renders ElementsProvider and PromptBarProvider regardless of enabled flags', async () => {

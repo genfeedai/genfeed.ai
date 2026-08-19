@@ -188,8 +188,8 @@ export default function TopbarPublic({
                         className={cn(
                           'text-xs font-bold tracking-[0.1em] uppercase transition-colors inline-flex items-center gap-2 py-2',
                           isAnyActive
-                            ? 'text-white'
-                            : 'text-white/60 hover:text-white',
+                            ? 'text-foreground'
+                            : 'text-foreground/60 hover:text-foreground',
                         )}
                         onClick={() =>
                           isOpen
@@ -220,8 +220,8 @@ export default function TopbarPublic({
                         className={cn(
                           'text-xs font-bold tracking-[0.1em] uppercase transition-colors py-2',
                           isActive
-                            ? 'text-white'
-                            : 'text-white/60 hover:text-white',
+                            ? 'text-foreground'
+                            : 'text-foreground/60 hover:text-foreground',
                         )}
                       >
                         {link.label}
@@ -243,7 +243,7 @@ export default function TopbarPublic({
                 type="button"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant={ButtonVariant.UNSTYLED}
-                className="inline-flex size-10 items-center justify-center transition-colors hover:bg-white/5"
+                className="inline-flex size-10 items-center justify-center transition-colors hover:bg-foreground/5"
                 ariaLabel={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? (

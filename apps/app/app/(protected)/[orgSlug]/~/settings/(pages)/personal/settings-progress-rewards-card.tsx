@@ -50,7 +50,7 @@ export default function SettingsProgressRewardsCard({
         )}
       </div>
 
-      <div className="divide-y divide-white/10">
+      <div className="divide-y divide-border">
         {milestoneStates.map((milestone) => (
           <div
             key={milestone.days}

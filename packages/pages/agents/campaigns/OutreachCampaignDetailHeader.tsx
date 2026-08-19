@@ -16,7 +16,7 @@ import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
 
 const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
-  [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-slate-300" />,
+  [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-foreground/70" />,
   [CampaignPlatform.REDDIT]: <RedditIcon className="text-orange-500" />,
   [CampaignPlatform.INSTAGRAM]: <InstagramIcon className="text-pink-500" />,
 };

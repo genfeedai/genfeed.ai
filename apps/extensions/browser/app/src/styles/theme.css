@@ -1,32 +1,26 @@
-/* Light theme */
 :root {
-  --color-primary: #000000;
-  --color-primary-content: #ffffff;
-  --color-base-100: #fafafa;
-  --color-base-200: #ffffff;
-  --color-base-300: #e5e7eb;
-  --color-base-content: #111111;
-  --color-muted: #9ca3af;
-  --color-muted-content: #f9fafb;
+  color-scheme: light;
 }
 
-/* Dark theme */
+:root:not([data-theme]) {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+  }
+}
+
 [data-theme="dark"] {
-  --color-primary: #ffffff;
-  --color-primary-content: #000000;
-  --color-base-100: #0f0f0f;
-  --color-base-200: #020202;
-  --color-base-300: #1a1a1a;
-  --color-base-content: #e5e7eb;
-  --color-muted: #6b7280;
-  --color-muted-content: #f3f4f6;
+  color-scheme: dark;
 }
 
 /* App shell */
 .gf-app {
   min-height: 100vh;
-  background: var(--color-base-200);
-  color: var(--color-base-content);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   transition:
     background-color 300ms,
     color 300ms;
@@ -34,8 +28,8 @@
 
 /* Cards */
 .gf-card {
-  background: var(--color-base-100);
-  border: 1px solid var(--color-base-300);
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   /* Sharp card radius — matches the canonical --radius-card (0px). */
   border-radius: 0px;
@@ -48,12 +42,12 @@
 
 /* Buttons */
 .btn-secondary {
-  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
-  color: var(--color-primary);
+  background: color-mix(in srgb, hsl(var(--primary)) 5%, transparent);
+  color: hsl(var(--primary));
   border: none;
 
   &:hover {
-    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 20%, transparent);
   }
 
   &:disabled {
@@ -63,6 +57,6 @@
   &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px
-      color-mix(in srgb, var(--color-primary) 20%, transparent);
+      color-mix(in srgb, hsl(var(--primary)) 20%, transparent);
   }
 }

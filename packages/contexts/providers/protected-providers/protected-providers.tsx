@@ -20,6 +20,7 @@ import ElementsProvider from '@providers/elements/elements.provider';
 import { GlobalModalsProvider } from '@providers/global-modals/global-modals.provider';
 import LocaleCookieSync from '@providers/locale-sync/locale-cookie-sync';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
+import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -143,6 +144,7 @@ export default function ProtectedProviders({
   content = (
     <GlobalModalsProvider>
       <LocaleCookieSync />
+      <ThemePreferenceSync />
       {content}
     </GlobalModalsProvider>
   );

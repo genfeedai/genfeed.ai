@@ -78,7 +78,7 @@ const HeroSection = memo(function HeroSection({
                 })}
                 className={cn(
                   'px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider',
-                  'bg-white text-black dark:bg-white dark:text-black',
+                  'bg-foreground text-background',
                   'hover:scale-105 transition-all duration-300',
                 )}
               >
@@ -94,8 +94,8 @@ const HeroSection = memo(function HeroSection({
                 })}
                 className={cn(
                   'px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider',
-                  'border border-white/20 dark:border-white/20 text-foreground',
-                  'hover:bg-white/5 dark:hover:bg-white/5 hover:border-white/30 dark:hover:border-white/30',
+                  'border border-border text-foreground',
+                  'hover:border-border-strong hover:bg-foreground/5',
                   'transition-all duration-300',
                 )}
               >

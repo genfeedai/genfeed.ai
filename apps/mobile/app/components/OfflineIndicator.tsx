@@ -1,3 +1,4 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -5,11 +6,13 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useOfflineQueue } from '@/hooks/use-offline-queue';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 export function OfflineIndicator(): React.ReactElement | null {
+  const styles = useThemedStyles(createStyles);
   const { isOnline } = useNetworkStatus();
   const { queueLength } = useOfflineQueue();
   const opacity = useSharedValue(0);
@@ -47,6 +50,7 @@ interface OfflineBannerProps {
 export function OfflineBanner({
   message,
 }: OfflineBannerProps): React.ReactElement | null {
+  const bannerStyles = useThemedStyles(createBannerStyles);
   const { isOnline } = useNetworkStatus();
 
   if (isOnline) {
@@ -63,7 +67,8 @@ export function OfflineBanner({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   container: {
     left: 16,
     position: 'absolute',
@@ -87,24 +92,25 @@ const styles = StyleSheet.create({
     width: 8,
   },
   text: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
-});
+  });
 
-const bannerStyles = StyleSheet.create({
+const createBannerStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   container: {
     backgroundColor: colors.warning,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   text: {
-    color: colors.warningDark,
+    color: colors.warningForeground,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',
   },
-});
+  });
 
 export default OfflineIndicator;

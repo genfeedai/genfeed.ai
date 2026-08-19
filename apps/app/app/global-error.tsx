@@ -3,6 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import * as Sentry from '@sentry/nextjs';
 import { Button } from '@ui/primitives/button';
+import { ThemeDocumentBootstrapScript } from '@ui/theme/ThemeBootstrapScript';
+import ThemeDocumentSync from '@ui/theme/ThemeDocumentSync';
 import { useEffect } from 'react';
 
 export default function GlobalError({
@@ -17,9 +19,13 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="en">
-      <body>
-        <div className="fixed inset-0 flex items-center justify-center bg-card z-40">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeDocumentBootstrapScript />
+      </head>
+      <body className="gf-app gf-studio-app bg-background text-foreground">
+        <ThemeDocumentSync />
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background">
           <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
             <h1 className="text-2xl font-semibold mb-4 text-center">
               Something went wrong

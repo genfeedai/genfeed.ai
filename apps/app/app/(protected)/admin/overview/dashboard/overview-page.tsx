@@ -257,7 +257,7 @@ function QuickActionsGrid() {
             href={card.href || '#'}
             key={card.label}
             className={cn(
-              'group relative block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'group relative block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
           >
             <Card
@@ -271,7 +271,7 @@ function QuickActionsGrid() {
             >
               <div className="mt-6 flex items-center justify-between border-t border-white/[0.08] pt-4 text-sm text-white/55">
                 <span>{card.cta}</span>
-                <span className="text-white transition-colors group-hover:text-primary">
+                <span className="text-foreground transition-colors group-hover:text-primary">
                   Open
                 </span>
               </div>

@@ -21,7 +21,7 @@ export default function LoadingOverlay({
       <span className="relative flex items-center gap-3 rounded-md bg-background/90 px-3 py-2 text-sm text-foreground shadow-dropdown">
         <Spinner
           ariaLabel={message}
-          className="text-white/80"
+          className="text-foreground/80"
           size={ComponentSize.SM}
         />
         {message}

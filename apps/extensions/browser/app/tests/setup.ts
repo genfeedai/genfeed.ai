@@ -32,6 +32,10 @@ Object.defineProperty(global, 'chrome', {
         remove: vi.fn(),
         set: vi.fn(),
       },
+      onChanged: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
       sync: {
         clear: vi.fn(),
         get: vi.fn(),

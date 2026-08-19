@@ -30,7 +30,7 @@ function EditorTextTrackList({
   }
 
   return (
-    <div className="divide-y divide-white/[0.08]">
+    <div className="divide-y divide-border/80">
       {textTracks.map((track) =>
         track.clips.map((clip) => (
           <div key={clip.id} className="group relative">

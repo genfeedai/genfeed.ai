@@ -8,9 +8,15 @@ import {
 } from './boot-screen';
 
 describe('desktop boot screen', () => {
-  it('uses a black first-paint background', () => {
-    expect(getDesktopBootBackground()).toBe('#000000');
-    expect(buildDesktopLoadingScreenHtml()).toContain('background: #000000');
+  it('uses a native-theme-aware first-paint background', () => {
+    expect(getDesktopBootBackground('light')).toBe('#fafaf9');
+    expect(getDesktopBootBackground('dark')).toBe('#030303');
+
+    const html = buildDesktopLoadingScreenHtml();
+    expect(html).toContain('color-scheme: light dark');
+    expect(html).toContain('@media (prefers-color-scheme: dark)');
+    expect(html).toContain('--desktop-boot-background: #fafaf9');
+    expect(html).toContain('--desktop-boot-background: #030303');
   });
 
   it('renders an animated Genfeed loading mark', () => {
@@ -22,12 +28,13 @@ describe('desktop boot screen', () => {
     expect(html).toContain('@keyframes boot-spin');
   });
 
-  it('keeps the failure screen on the same black shell surface', () => {
+  it('keeps the failure screen on the same adaptive shell surface', () => {
     const html = buildDesktopFailureScreenHtml();
 
     expect(html).toContain('Genfeed could not start');
     expect(html).toContain('Your local data is still safe');
-    expect(html).toContain('background: #000000');
+    expect(html).toContain('background: var(--desktop-boot-background)');
+    expect(html).toContain('color: var(--desktop-boot-muted)');
   });
 
   it('encodes boot screens as loadable data urls', () => {

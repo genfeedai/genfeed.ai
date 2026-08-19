@@ -90,6 +90,16 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
   }
 
+  public async patchMeSettings(
+    settings: Partial<ISetting>,
+  ): Promise<ISetting> {
+    const data = SettingSerializer.serialize(settings);
+    return await this.instance
+      .patch<JsonApiResponseDocument>('me/settings', data)
+      .then((res) => res.data)
+      .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
+  }
+
   public async findMe(): Promise<IUser> {
     return await this.instance
       .get<JsonApiResponseDocument>('me')

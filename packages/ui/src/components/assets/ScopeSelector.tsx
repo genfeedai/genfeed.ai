@@ -45,7 +45,7 @@ export function ScopeSelector({
         className={cn(
           'overflow-hidden rounded-2xl border',
           variant === 'panel'
-            ? 'border-white/10 bg-white/[0.02] divide-y divide-white/8'
+            ? 'divide-y divide-border border-border bg-background-tertiary'
             : 'border-border bg-background divide-y divide-border',
         )}
       >
@@ -57,10 +57,10 @@ export function ScopeSelector({
               isDisabled && 'cursor-not-allowed opacity-50',
               value === option.value
                 ? variant === 'panel'
-                  ? 'bg-white/[0.05] text-white'
+                  ? 'bg-accent text-accent-foreground'
                   : 'bg-primary/10 text-foreground'
                 : variant === 'panel'
-                  ? 'bg-transparent text-white/80 hover:bg-white/[0.025]'
+                  ? 'bg-transparent text-foreground/80 hover:bg-accent/60'
                   : 'bg-transparent text-foreground hover:bg-muted/60',
             )}
           >
@@ -77,8 +77,8 @@ export function ScopeSelector({
                     'text-sm font-medium',
                     variant === 'panel'
                       ? value === option.value
-                        ? 'text-white'
-                        : 'text-white/85'
+                        ? 'text-accent-foreground'
+                        : 'text-foreground/85'
                       : 'text-foreground',
                   )}
                 >
@@ -91,8 +91,8 @@ export function ScopeSelector({
                   'text-xs',
                   variant === 'panel'
                     ? value === option.value
-                      ? 'text-white/75'
-                      : 'text-white/55'
+                      ? 'text-accent-foreground/75'
+                      : 'text-muted-foreground'
                     : 'text-foreground/70',
                 )}
               >

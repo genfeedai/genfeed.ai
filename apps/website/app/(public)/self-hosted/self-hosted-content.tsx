@@ -232,7 +232,7 @@ export default function SelfHostedContent() {
               title="Managed cloud"
               tierLabel="Free to start"
               padding="lg"
-              className="bg-white/[0.03]"
+              className="bg-[var(--gen-accent-bg)]"
             >
               <ul className="space-y-3">
                 {[

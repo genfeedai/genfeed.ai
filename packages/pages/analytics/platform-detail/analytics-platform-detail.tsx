@@ -152,42 +152,42 @@ export default function AnalyticsPlatformDetail({
           {
             description: 'Published content',
             icon: Video,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Total Posts',
             value: posts.length,
           },
           {
             description: 'All posts combined',
             icon: Eye,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Total Views',
             value: formatCompactNumberIntl(totalViews),
           },
           {
             description: 'Per content piece',
             icon: ChartColumn,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Avg Views/Post',
             value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
             description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: Heart,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Total Engagement',
             value: formatCompactNumberIntl(totalEngagement),
           },
           {
             description: 'Average across posts',
             icon: Flame,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Engagement Rate',
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
             description: bestPost ? 'views on top post' : 'No posts yet',
             icon: Trophy,
-            iconClassName: 'bg-white/10 text-foreground',
+            iconClassName: 'bg-foreground/10 text-foreground',
             label: 'Best Performing',
             value: bestPost
               ? formatCompactNumberIntl(bestPost.totalViews || 0)

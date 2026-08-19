@@ -159,7 +159,7 @@ function SectionSummaryCard({
         </div>
       </div>
 
-      <div className="border-t border-white/[0.06] pt-4">
+      <div className="border-t border-border pt-4">
         <Button
           asChild
           variant={ButtonVariant.SECONDARY}

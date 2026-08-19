@@ -66,7 +66,7 @@ describe('MoodBoardCanvas', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses a dark minimap and drops the default white controls', () => {
+  it('uses a semantic minimap and drops the default controls', () => {
     renderCanvas();
 
     expect(screen.getByTestId('moodboard-minimap').className).toContain(

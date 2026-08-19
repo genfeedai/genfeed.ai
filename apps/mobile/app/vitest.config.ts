@@ -3,15 +3,33 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 const mobileAppDir = path.dirname(fileURLToPath(import.meta.url));
+const constantsDir = path.resolve(mobileAppDir, '../../../packages/constants/src');
+const uiDir = path.resolve(mobileAppDir, '../../../packages/ui/src');
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': path.resolve(mobileAppDir, '.'),
-      '@app': path.resolve(mobileAppDir, './app'),
-      '@hooks': path.resolve(mobileAppDir, './hooks'),
-      '@services': path.resolve(mobileAppDir, './services'),
-    },
+    alias: [
+      {
+        find: /^@genfeedai\/constants$/,
+        replacement: path.resolve(constantsDir, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.resolve(constantsDir, '$1'),
+      },
+      {
+        find: /^@genfeedai\/ui\/(.*)$/,
+        replacement: path.resolve(uiDir, '$1'),
+      },
+      { find: /^@ui\/(.*)$/, replacement: path.resolve(uiDir, '$1') },
+      { find: /^@\//, replacement: `${path.resolve(mobileAppDir, '.')}/` },
+      { find: '@app', replacement: path.resolve(mobileAppDir, './app') },
+      { find: '@hooks', replacement: path.resolve(mobileAppDir, './hooks') },
+      {
+        find: '@services',
+        replacement: path.resolve(mobileAppDir, './services'),
+      },
+    ],
   },
   test: {
     coverage: {

@@ -28,4 +28,13 @@ describe('LoginPage', () => {
       'https://app.genfeed.ai/sign-up?source=browser-extension',
     );
   });
+
+  it('exposes Appearance before authentication', () => {
+    render(React.createElement(LoginPage));
+
+    expect(
+      screen.getByRole('combobox', { name: 'Appearance' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('System')).toBeInTheDocument();
+  });
 });

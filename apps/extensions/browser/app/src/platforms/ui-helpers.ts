@@ -1,7 +1,10 @@
 // UI helper functions for creating buttons and icons
 
 import { findElement } from '~platforms/twitter-selectors';
+import { applyContentThemeToElement } from '~theme/content-theme';
 import { logger } from '~utils/logger.util';
+
+export { watchContentTheme } from '~theme/content-theme';
 
 // SVG Icons
 export const icons = {
@@ -666,8 +669,21 @@ export function injectGlobalStyles() {
 
     /* Dropdown */
     .genfeed-dropdown {
+      --genfeed-menu-background: rgb(255, 255, 255);
+      --genfeed-menu-border: rgb(207, 217, 222);
+      --genfeed-menu-foreground: rgb(15, 20, 25);
+      --genfeed-menu-hover: rgb(247, 249, 249);
+      --genfeed-menu-icon: rgb(83, 100, 113);
       position: relative;
       display: inline-block;
+    }
+
+    .genfeed-dropdown[data-genfeed-theme="dark"] {
+      --genfeed-menu-background: rgb(21, 32, 43);
+      --genfeed-menu-border: rgb(47, 51, 54);
+      --genfeed-menu-foreground: rgb(231, 233, 234);
+      --genfeed-menu-hover: rgb(32, 35, 39);
+      --genfeed-menu-icon: rgb(113, 118, 123);
     }
 
     .genfeed-dropdown-btn {
@@ -694,8 +710,8 @@ export function injectGlobalStyles() {
       position: absolute;
       top: 100%;
       right: 0;
-      background: white;
-      border: 1px solid rgb(207, 217, 222);
+      background: var(--genfeed-menu-background);
+      border: 1px solid var(--genfeed-menu-border);
       border-radius: 12px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
       z-index: 1000;
@@ -716,7 +732,7 @@ export function injectGlobalStyles() {
       transition: background-color 0.2s ease;
       font-size: 14px;
       font-weight: 400;
-      color: rgb(15, 20, 25);
+      color: var(--genfeed-menu-foreground);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       border: none;
       background: transparent;
@@ -725,41 +741,12 @@ export function injectGlobalStyles() {
     }
 
     .genfeed-menu-item:hover {
-      background: rgb(247, 249, 249);
+      background: var(--genfeed-menu-hover);
     }
 
     .genfeed-menu-item svg {
       margin-right: 12px;
-      color: rgb(83, 100, 113);
-    }
-
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-      .genfeed-btn {
-        color: rgb(113, 118, 123);
-      }
-
-      .genfeed-btn:hover {
-        color: rgb(29, 155, 240);
-        background: rgba(29, 155, 240, 0.1);
-      }
-
-      .genfeed-dropdown-menu {
-        background: rgb(21, 32, 43);
-        border-color: rgb(47, 51, 54);
-      }
-
-      .genfeed-menu-item {
-        color: rgb(231, 233, 234);
-      }
-
-      .genfeed-menu-item:hover {
-        background: rgb(32, 35, 39);
-      }
-
-      .genfeed-menu-item svg {
-        color: rgb(113, 118, 123);
-      }
+      color: var(--genfeed-menu-icon);
     }
 
     /* Reference image hover actions */
@@ -991,6 +978,7 @@ export function createGenFeedDropdown(
 ): HTMLDivElement {
   const dropdown = document.createElement('div');
   dropdown.className = 'genfeed-dropdown';
+  applyContentThemeToElement(dropdown);
 
   // Create the main button (using createElement to avoid XSS)
   const button = document.createElement('button');

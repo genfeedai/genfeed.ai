@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/constants';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 export default function TermsOfService() {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <>
       <Stack.Screen options={{ title: 'Terms of Service' }} />
@@ -127,7 +130,8 @@ export default function TermsOfService() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   container: {
     backgroundColor: colors.bgPrimary,
     flex: 1,
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
     paddingBottom: 64,
   },
   heading: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
@@ -155,4 +159,4 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
-});
+  });

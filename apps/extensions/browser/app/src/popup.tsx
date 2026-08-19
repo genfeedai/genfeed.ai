@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { useEffect, useReducer } from 'react';
 import LoginPage from '~components/pages/LoginPage';
 import { LoadingSpinner } from '~components/ui';
+import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
+import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { authService, getJWTToken } from '~services/auth.service';
 import { EnvironmentService } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
@@ -32,6 +34,7 @@ function PopupContent() {
     ) => nextState,
     'syncing',
   );
+  useAccountThemeSync(authState === 'authenticated');
 
   useEffect(() => {
     async function syncAuth() {
@@ -152,12 +155,9 @@ function PopupContent() {
 }
 
 export default function IndexPopup() {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.body.classList.add('dark');
-    document.body.setAttribute('data-theme', 'dark');
+  const isThemeReady = useExtensionTheme();
 
+  useEffect(() => {
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();
       e.returnValue = '';
@@ -167,5 +167,5 @@ export default function IndexPopup() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  return <PopupContent />;
+  return isThemeReady ? <PopupContent /> : null;
 }

@@ -1,9 +1,12 @@
 import { isCloudDeployment } from '@genfeedai/config/deployment';
 import {
+  DEFAULT_THEME,
+  isThemePreference,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
   shouldUseLowestCostModelDefaults,
+  type ThemePreference,
 } from '@genfeedai/constants';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
@@ -178,11 +181,11 @@ export const EnvironmentService = {
 
   /**
    * Get the current theme preference from the theme cookie
-   * @returns 'light' or 'dark', defaults to 'dark' if cookie not found
+   * @returns the raw preference, defaulting to System when absent or invalid
    */
-  get currentTheme(): 'light' | 'dark' {
+  get currentTheme(): ThemePreference {
     if (typeof document === 'undefined') {
-      return 'dark';
+      return DEFAULT_THEME;
     }
 
     const themeCookie = document.cookie
@@ -191,7 +194,7 @@ export const EnvironmentService = {
 
     const theme = themeCookie?.split('=')[1];
 
-    return theme === 'light' ? 'light' : 'dark';
+    return isThemePreference(theme) ? theme : DEFAULT_THEME;
   },
 
   // Feature flags

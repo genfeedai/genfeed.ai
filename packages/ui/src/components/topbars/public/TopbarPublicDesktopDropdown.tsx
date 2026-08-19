@@ -89,18 +89,18 @@ export default function TopbarPublicDesktopDropdown({
           className={cn(
             'flex items-start gap-3 px-4 py-3 transition-colors',
             isActive
-              ? 'bg-white/10 text-white'
-              : 'text-white/80 hover:bg-white/5 hover:text-white',
+              ? 'bg-foreground/10 text-foreground'
+              : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
           )}
           onClick={onItemClick}
         >
           {Icon && (
-            <Icon className="size-5 flex-shrink-0 mt-0.5 text-white/70" />
+            <Icon className="size-5 flex-shrink-0 mt-0.5 text-foreground/70" />
           )}
           <div className="flex flex-col">
             <span className="font-medium text-sm">{item.label}</span>
             {item.description && (
-              <span className="text-xs text-white/55 mt-0.5">
+              <span className="text-xs text-foreground/55 mt-0.5">
                 {item.description}
               </span>
             )}
@@ -128,7 +128,7 @@ export default function TopbarPublicDesktopDropdown({
           {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
             <div key={groupLabel}>
               {groupLabel && (
-                <div className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                <div className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
                   {groupLabel}
                 </div>
               )}

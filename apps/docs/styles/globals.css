@@ -22,6 +22,49 @@
   --docs-destructive: #dc2626;
 }
 
+.docs-global-error {
+  align-items: center;
+  background: var(--docs-background-light);
+  color: #171717;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.dark .docs-global-error {
+  background: var(--docs-background-dark);
+  color: var(--docs-foreground-dark);
+}
+
+.docs-global-error__content {
+  max-width: 32rem;
+  text-align: center;
+}
+
+.docs-global-error__content h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.docs-global-error__content p {
+  color: var(--docs-muted-light);
+  margin: 0 0 24px;
+}
+
+.dark .docs-global-error__content p {
+  color: var(--docs-muted-dark);
+}
+
+.docs-global-error__action {
+  border: 1px solid currentColor;
+  display: inline-flex;
+  font-weight: 600;
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
 * {
   transition:
     background-color 0.3s ease,

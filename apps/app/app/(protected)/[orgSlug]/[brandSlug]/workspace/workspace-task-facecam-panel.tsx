@@ -42,7 +42,7 @@ export function WorkspaceTaskFacecamPanel({
   voices,
 }: WorkspaceTaskFacecamPanelProps) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
+    <div className="rounded-lg border border-border bg-background-secondary p-3 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/55">
           Facecam settings

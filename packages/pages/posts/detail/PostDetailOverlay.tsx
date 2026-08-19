@@ -47,14 +47,14 @@ export default function PostDetailOverlay({
           'flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-dialog sm:max-w-[min(104rem,97vw)]',
         )}
       >
-        <div className="sticky top-0 z-10 border-b border-white/8 bg-background/92 px-6 pb-5 pt-6 backdrop-blur">
+        <div className="sticky top-0 z-10 border-b border-border bg-background/92 px-6 pb-5 pt-6 backdrop-blur">
           <div className="flex items-start justify-between gap-4 pr-8">
             <SheetHeader className="space-y-3 text-left">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55">
+                <span className="rounded-full border border-border bg-foreground/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55">
                   Post Review
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
+                <span className="rounded-full border border-border bg-foreground/[0.03] px-3 py-1 text-xs text-foreground/70">
                   In-context sheet
                 </span>
               </div>

@@ -16,7 +16,7 @@ export default function OfflineContent() {
   const logoUrl = useThemeLogo();
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-black text-center">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-background text-foreground text-center">
       <div className="grid grid-cols-1">
         {logoUrl && (
           <Image

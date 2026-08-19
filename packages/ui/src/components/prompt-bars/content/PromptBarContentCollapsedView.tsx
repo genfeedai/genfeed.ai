@@ -63,12 +63,12 @@ export default function PromptBarContentCollapsedView({
         onKeyDown={onKeyDown}
         placeholder={promptPlaceholder}
         isDisabled={isEnhancing}
-        className="h-9 flex-1 border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 focus:border-white/20 focus:outline-none"
+        className="h-9 flex-1 border border-border bg-background-tertiary px-3 text-sm text-foreground focus:border-border-strong focus:outline-none"
       />
 
       {(showCountDropdown || showThreadToggle) && (
         <>
-          <PromptBarDivider className="h-5 bg-white/10" />
+          <PromptBarDivider className="h-5 bg-border" />
           <div className="flex items-center gap-2">
             {showCountDropdown && (
               <Button
@@ -101,7 +101,7 @@ export default function PromptBarContentCollapsedView({
         </>
       )}
 
-      <PromptBarDivider className="h-5 bg-white/10" />
+      <PromptBarDivider className="h-5 bg-border" />
 
       <div className="flex items-center gap-2">
         <Button

@@ -23,7 +23,11 @@ export default function SkillsBundleCta({
   return (
     <WebSection bg="subtle" className="gsap-section">
       <NeuralGrid columns={1}>
-        <NeuralGridItem padding="lg" align="center" className="bg-white/[0.04]">
+        <NeuralGridItem
+          padding="lg"
+          align="center"
+          className="bg-[var(--gen-accent-bg)]"
+        >
           <div className="max-w-2xl mx-auto py-8">
             <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
               All Pro Skills Included

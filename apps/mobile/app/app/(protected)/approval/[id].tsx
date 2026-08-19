@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,11 +15,15 @@ import {
   View,
 } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
-import { borderRadius, CONTENT_TYPE_LABELS, colors } from '@/constants';
+import { borderRadius, CONTENT_TYPE_LABELS } from '@/constants';
+import { useMobileTheme } from '@/contexts/theme-context';
 import { useApproval, useApprovalActions } from '@/hooks/use-approvals';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { formatShortDate } from '@/utils/format-date';
 
 export default function ApprovalDetail() {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { approval, isLoading, error } = useApproval(id || null);
@@ -179,7 +184,10 @@ export default function ApprovalDetail() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color={colors.bgSecondary} />
+            <ActivityIndicator
+              size="small"
+              color={colors.successForeground}
+            />
           ) : (
             <Text style={styles.approveButtonText}>Approve</Text>
           )}
@@ -232,7 +240,10 @@ export default function ApprovalDetail() {
                 disabled={isSubmitting || !rejectionReason.trim()}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" color={colors.white} />
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.errorForeground}
+                  />
                 ) : (
                   <Text style={styles.confirmRejectButtonText}>Reject</Text>
                 )}
@@ -245,7 +256,8 @@ export default function ApprovalDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   actionButton: {
     alignItems: 'center',
     borderRadius: borderRadius.xxl,
@@ -275,7 +287,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   approveButtonText: {
-    color: colors.bgSecondary,
+    color: colors.successForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -307,7 +319,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   confirmRejectButtonText: {
-    color: colors.white,
+    color: colors.errorForeground,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -332,7 +344,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgTertiary,
     borderRadius: 14,
     borderWidth: 1,
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 15,
     minHeight: 100,
     paddingHorizontal: 16,
@@ -356,7 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaValue: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -396,7 +408,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   modalTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 20,
     fontWeight: '600',
   },
@@ -416,9 +428,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: '600',
     lineHeight: 32,
   },
-});
+  });

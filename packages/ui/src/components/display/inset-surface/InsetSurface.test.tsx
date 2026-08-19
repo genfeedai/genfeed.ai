@@ -10,7 +10,8 @@ describe('InsetSurface', () => {
 
     expect(surface).toHaveClass('rounded-2xl');
     expect(surface).toHaveClass('shadow-border');
-    expect(surface).toHaveClass('bg-white/[0.03]');
+    expect(surface).toHaveClass('bg-foreground/[0.03]');
+    expect(surface).not.toHaveClass('bg-white/[0.03]');
     expect(surface).toHaveTextContent('Body');
   });
 
@@ -23,6 +24,7 @@ describe('InsetSurface', () => {
     const surface = container.firstElementChild;
 
     expect(surface).toHaveClass('p-3');
-    expect(surface).toHaveClass('bg-black/20');
+    expect(surface).toHaveClass('bg-background-secondary');
+    expect(surface).not.toHaveClass('bg-black/20');
   });
 });

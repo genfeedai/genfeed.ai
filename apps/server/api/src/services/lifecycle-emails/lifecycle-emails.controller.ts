@@ -29,11 +29,38 @@ export class LifecycleEmailsController {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>${title}</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page-background:#fafaf9;
+        --page-foreground:#0d0d0d;
+        --page-muted:#707070;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page-background:#030303;
+          --page-foreground:#fafafa;
+          --page-muted:#949494;
+        }
+      }
+      * { box-sizing:border-box; }
+      body {
+        min-height:100vh;
+        margin:0;
+        background:var(--page-background);
+        color:var(--page-foreground);
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+        padding:clamp(24px,6vw,64px);
+      }
+      main { max-width:560px; }
+      h1 { margin:0 0 12px;font-size:clamp(28px,6vw,40px);line-height:1.2; }
+      p { margin:0;color:var(--page-muted);font-size:16px;line-height:1.5; }
+    </style>
   </head>
-  <body style="background:#050607;color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:40px;">
-    <main style="max-width:560px;">
-      <h1 style="font-size:28px;line-height:34px;margin:0 0 12px;">${title}</h1>
-      <p style="color:#b4b4bc;font-size:16px;line-height:24px;margin:0;">${body}</p>
+  <body>
+    <main>
+      <h1>${title}</h1>
+      <p>${body}</p>
     </main>
   </body>
 </html>`;

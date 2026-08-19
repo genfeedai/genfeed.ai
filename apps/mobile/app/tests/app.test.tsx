@@ -19,6 +19,13 @@ describe('App Routes Export Components', () => {
     expectDefaultComponentExport('app/_layout.tsx');
   });
 
+  it('keeps the native splash visible until the stored theme is ready', () => {
+    const source = getSource('app/_layout.tsx');
+
+    expect(source).toContain('SplashScreen.preventAutoHideAsync()');
+    expect(source).toContain('SplashScreen.hideAsync()');
+  });
+
   it('exports default Index component', () => {
     expectDefaultComponentExport('app/index.tsx');
   });
@@ -45,5 +52,9 @@ describe('App Routes Export Components', () => {
 
   it('exports default analytics component', () => {
     expectDefaultComponentExport('app/(protected)/analytics.tsx');
+  });
+
+  it('exports default settings component', () => {
+    expectDefaultComponentExport('app/(protected)/settings.tsx');
   });
 });

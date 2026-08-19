@@ -27,7 +27,7 @@ export default function ArtifactEditorShell({
 
   return (
     <div className="flex flex-col">
-      <div className="border-white/[0.08] border-b bg-card">
+      <div className="border-border border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-start justify-between gap-4 px-6 py-3">
           <div className="min-w-0 flex-1 space-y-1.5">
             {hasBackLink ? (
@@ -38,7 +38,7 @@ export default function ArtifactEditorShell({
             ) : null}
 
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-foreground/55">
+              <span className="gen-label rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-[11px] text-foreground/55">
                 {artifactLabel}
               </span>
               {badges}

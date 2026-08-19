@@ -237,7 +237,7 @@ export default function QuickActionsMenu({
         size={SIZE_CLASSES[size]}
         className={cn(
           QUICK_ACTION_TRIGGER_CLASS,
-          'text-white/65 hover:bg-white/8 hover:text-white',
+          'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         ariaLabel="More"
       >
@@ -269,10 +269,10 @@ export default function QuickActionsMenu({
                   {(action.dividerBefore || action.sectionLabel) && (
                     <div className="my-0.5">
                       {action.dividerBefore && index > 0 && (
-                        <div className="mb-0.5 border-t border-white/12" />
+                        <div className="mb-0.5 border-t border-border" />
                       )}
                       {action.sectionLabel && (
-                        <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                        <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           {action.sectionLabel}
                         </div>
                       )}
@@ -287,10 +287,10 @@ export default function QuickActionsMenu({
                     className={cn(
                       'flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors duration-150',
                       action.isDisabled || action.isLoading
-                        ? 'opacity-50 cursor-not-allowed text-white/50'
+                        ? 'cursor-not-allowed text-muted-foreground opacity-50'
                         : action.variant === 'error'
-                          ? 'text-error hover:bg-error/90 hover:text-white focus:bg-error/90 focus:text-white'
-                          : 'text-white/85 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white',
+                          ? 'text-error hover:bg-error hover:text-destructive-foreground focus:bg-error focus:text-destructive-foreground'
+                          : 'text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
                     )}
                   >
                     {action.isLoading && (
@@ -301,7 +301,7 @@ export default function QuickActionsMenu({
                     )}
                     {action.icon && (
                       <span
-                        className={`flex-shrink-0 ${action.variant === 'error' ? 'text-error/70' : 'text-white/70'}`}
+                        className={`flex-shrink-0 ${action.variant === 'error' ? 'text-error/70' : 'text-muted-foreground'}`}
                       >
                         {action.icon}
                       </span>

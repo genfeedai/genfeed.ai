@@ -1,11 +1,16 @@
-import { nativeTokenMap } from '@genfeedai/ui';
+import {
+  nativeThemeColors,
+  nativeTokenMap,
+  type NativeThemeColors,
+} from '@genfeedai/ui/semantic/mobile';
 
-export const colors = nativeTokenMap.colors;
+export { nativeThemeColors };
 export const spacing = nativeTokenMap.spacing;
 export const borderRadius = nativeTokenMap.borderRadius;
 export const fontSize = nativeTokenMap.typography;
 
-export type Colors = typeof colors;
+export type Colors = NativeThemeColors;
+export type { NativeThemeColors };
 export type Spacing = typeof spacing;
 export type BorderRadius = typeof borderRadius;
 export type FontSize = typeof fontSize;

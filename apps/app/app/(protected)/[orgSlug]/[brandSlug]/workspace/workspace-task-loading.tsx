@@ -21,7 +21,7 @@ export function WorkspaceTaskRowsSkeleton({
   return (
     <div
       aria-hidden="true"
-      className="divide-y divide-white/[0.06]"
+      className="divide-y divide-border/60"
       data-testid="workspace-task-rows-skeleton"
     >
       {TASK_ROW_SKELETON_KEYS.slice(0, rows).map((key) => (

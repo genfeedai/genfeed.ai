@@ -294,7 +294,7 @@ export function useWorkspaceTaskComposer({
       attributes: {
         'aria-label': 'Target brand',
         class:
-          'prose prose-sm prose-invert max-w-none min-h-11 rounded-lg border border-white/10 bg-black/30 px-4 py-2 text-sm text-foreground focus:outline-none',
+          'prose prose-sm dark:prose-invert max-w-none min-h-11 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm text-foreground focus:outline-none',
       },
     },
     extensions: [

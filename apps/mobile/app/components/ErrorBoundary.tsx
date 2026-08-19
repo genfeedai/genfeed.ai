@@ -1,6 +1,8 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -15,11 +17,15 @@ interface ErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
+type ErrorBoundaryImplProps = ErrorBoundaryProps & {
+  styles: ReturnType<typeof createStyles>;
+};
+
+class ErrorBoundaryImpl extends Component<
+  ErrorBoundaryImplProps,
   ErrorBoundaryState
 > {
-  constructor(props: ErrorBoundaryProps) {
+  constructor(props: ErrorBoundaryImplProps) {
     super(props);
     this.state = {
       error: null,
@@ -49,6 +55,8 @@ export class ErrorBoundary extends Component<
   };
 
   render(): ReactNode {
+    const { styles } = this.props;
+
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -94,7 +102,14 @@ export class ErrorBoundary extends Component<
   }
 }
 
-const styles = StyleSheet.create({
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  const styles = useThemedStyles(createStyles);
+
+  return <ErrorBoundaryImpl {...props} styles={styles} />;
+}
+
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   container: {
     alignItems: 'center',
     backgroundColor: colors.bgPrimary,
@@ -127,7 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   retryButton: {
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.xxl,
     paddingHorizontal: 32,
     paddingVertical: 14,
@@ -136,7 +151,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   retryButtonText: {
-    color: colors.white,
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -153,12 +168,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: '600',
     marginBottom: 12,
     textAlign: 'center',
   },
-});
+  });
 
 export default ErrorBoundary;

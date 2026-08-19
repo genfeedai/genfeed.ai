@@ -1,12 +1,15 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { formatFullDate } from '@/utils/format-date';
 
 export default function IngredientDetail() {
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { ingredient, isLoading, error } = useIngredient(id || null);
 
@@ -90,12 +93,13 @@ export default function IngredientDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   categoryBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.agent,
     borderRadius: borderRadius.full,
-    color: colors.bgSecondary,
+    color: colors.agentForeground,
     fontSize: 12,
     fontWeight: '600',
     paddingHorizontal: 10,
@@ -146,13 +150,13 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   metaValue: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: '600',
   },
-});
+  });
