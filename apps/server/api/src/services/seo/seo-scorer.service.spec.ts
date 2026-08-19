@@ -14,14 +14,13 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 import { SeoScorerService } from './seo-scorer.service';
 import type { SeoScorableContent } from './seo-scorer.types';
+import { assembleScorecard, buildSeoChecks } from './seo-scorer.util';
 import {
-  assembleScorecard,
-  buildSeoChecks,
   computeKeywordDensity,
   countWords,
   fleschReadingEase,
   splitSentences,
-} from './seo-scorer.util';
+} from './seo-text.util';
 
 function check(checks: ReturnType<typeof buildSeoChecks>, id: string) {
   const found = checks.find((c) => c.id === id);

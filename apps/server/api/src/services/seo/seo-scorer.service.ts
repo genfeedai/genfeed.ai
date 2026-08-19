@@ -20,14 +20,13 @@ import {
   type SeoScorableType,
   type SeoScorecard,
 } from './seo-scorer.types';
+import { assembleScorecard, buildSeoChecks } from './seo-scorer.util';
 import {
-  assembleScorecard,
-  buildSeoChecks,
   computeKeywordDensity,
   countWords,
   fleschReadingEase,
   stripHtmlToText,
-} from './seo-scorer.util';
+} from './seo-text.util';
 
 /** Qualitative checks the LLM layer is allowed to refine, keyed by check id. */
 const QUALITATIVE_LLM_FIELDS: Record<string, keyof SeoQualitativeLlmResult> = {
