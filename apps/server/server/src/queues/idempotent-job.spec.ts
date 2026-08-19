@@ -18,8 +18,7 @@ function fakeQueue(job: FakeJob | undefined) {
         },
       };
     },
-    // biome-ignore lint/suspicious/noExplicitAny: minimal structural stub for the Queue surface used by the helper
-  } as any;
+  };
   return { queue, removed };
 }
 

@@ -1,4 +1,11 @@
-import type { Queue } from 'bullmq';
+interface IdempotentJobHandle {
+  getState(): Promise<string>;
+  remove(): Promise<void>;
+}
+
+interface IdempotentJobQueue {
+  getJob(jobId: string): Promise<IdempotentJobHandle | undefined>;
+}
 
 /**
  * Job states that represent an in-flight job which must NOT be superseded by a
@@ -25,12 +32,8 @@ export type IdempotentJobReservation =
  * deterministic-id queue service. Callers keep their own `queue.add(...)`
  * options, log messages, and return values — this owns only the precheck.
  */
-export async function reserveIdempotentJob<
-  DataType = unknown,
-  ResultType = unknown,
-  NameType extends string = string,
->(
-  queue: Queue<DataType, ResultType, NameType>,
+export async function reserveIdempotentJob(
+  queue: IdempotentJobQueue,
   jobId: string,
 ): Promise<IdempotentJobReservation> {
   const existingJob = await queue.getJob(jobId);
