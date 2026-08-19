@@ -1,11 +1,4 @@
-interface IdempotentJobHandle {
-  getState(): Promise<string>;
-  remove(): Promise<void>;
-}
-
-interface IdempotentJobQueue {
-  getJob(jobId: string): Promise<IdempotentJobHandle | undefined>;
-}
+import type { Job } from 'bullmq';
 
 /**
  * Job states that represent an in-flight job which must NOT be superseded by a
@@ -33,7 +26,11 @@ export type IdempotentJobReservation =
  * options, log messages, and return values — this owns only the precheck.
  */
 export async function reserveIdempotentJob(
-  queue: IdempotentJobQueue,
+  queue: {
+    getJob(
+      jobId: string,
+    ): Promise<Pick<Job, 'getState' | 'remove'> | undefined>;
+  },
   jobId: string,
 ): Promise<IdempotentJobReservation> {
   const existingJob = await queue.getJob(jobId);
