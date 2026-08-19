@@ -69,6 +69,15 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.SUGGEST_NEXT_STEPS,
 ];
 
+/**
+ * Image/video card plus the voice generate/clone card. Content specialists
+ * need both so an empty org voice library still docks a catalog-backed card.
+ */
+const PREPARE_MEDIA_TOOLS: AgentToolName[] = [
+  AgentToolName.PREPARE_GENERATION,
+  AgentToolName.PREPARE_VOICE_CLONE,
+];
+
 const WORKFLOW_FIRST_PROMPT = `
 ## Workflow-first content creation
 Prefer deterministic workflows over one-off generation when the user wants production content:
@@ -119,7 +128,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       AgentToolName.DRAFT_X_QUOTE,
       AgentToolName.DRAFT_X_REPOST,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
     ],
     systemPromptSuffix: `
@@ -303,7 +312,7 @@ Writing guidelines:
       AgentToolName.REPURPOSE_POST,
       AgentToolName.BATCH_APPROVE_REJECT,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
     ],
     systemPromptSuffix: `
@@ -336,7 +345,7 @@ LinkedIn-specific guidelines:
       AgentToolName.GENERATE_CONTENT,
       AgentToolName.GENERATE_CONTENT_BATCH,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
       AgentToolName.LIST_ADS_RESEARCH,
       AgentToolName.GET_AD_RESEARCH_DETAIL,
@@ -378,7 +387,7 @@ Ad script guidelines:
       AgentToolName.REPURPOSE_POST,
       AgentToolName.BATCH_APPROVE_REJECT,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
     ],
     systemPromptSuffix: `
@@ -412,7 +421,7 @@ Short-form guidelines:
       AgentToolName.GENERATE_CONTENT,
       AgentToolName.GENERATE_CONTENT_BATCH,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
     ],
     systemPromptSuffix: `
@@ -448,7 +457,7 @@ CTA guidelines:
       AgentToolName.SCHEDULE_POST,
       AgentToolName.REPURPOSE_POST,
       AgentToolName.AI_ACTION,
-      AgentToolName.PREPARE_GENERATION,
+      ...PREPARE_MEDIA_TOOLS,
       AgentToolName.CREATE_WORKFLOW,
     ],
     systemPromptSuffix: `

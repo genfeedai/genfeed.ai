@@ -2815,6 +2815,222 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('should recover default_api.generate_image to prepare_generation for x_content in chat()', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"a political podcast host"}',
+                    name: 'default_api.generate_image',
+                  },
+                  id: 'call-vendor-image-chat',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Recovered response' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { generationType: 'image' },
+      success: true,
+    });
+
+    const response = await service.chat(
+      {
+        agentType: AgentType.X_CONTENT,
+        content: 'Generate an avatar image',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      'prepare_generation',
+      expect.objectContaining({
+        generationType: 'image',
+        prompt: 'a political podcast host',
+      }),
+      expect.any(Object),
+    );
+    expect(response.toolCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'completed',
+          toolName: 'prepare_generation',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(response.toolCalls)).not.toContain(
+      'Unknown tool requested by model: default_api.generate_image',
+    );
+  });
+
+  it('should recover default_api.generate_video to prepare_generation for x_content in chat()', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"studio walkthrough"}',
+                    name: 'default_api.generate_video',
+                  },
+                  id: 'call-vendor-video-chat',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Recovered response' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { generationType: 'video' },
+      success: true,
+    });
+
+    const response = await service.chat(
+      {
+        agentType: AgentType.X_CONTENT,
+        content: 'Generate a video',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      'prepare_generation',
+      expect.objectContaining({
+        generationType: 'video',
+        prompt: 'studio walkthrough',
+      }),
+      expect.any(Object),
+    );
+    expect(JSON.stringify(response.toolCalls)).not.toContain(
+      'Unknown tool requested by model: default_api.generate_video',
+    );
+  });
+
+  it('should recover default_api.generate_voice to prepare_voice_clone for x_content in chat()', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"text":"Welcome to FUD News"}',
+                    name: 'default_api.generate_voice',
+                  },
+                  id: 'call-vendor-voice-chat',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Recovered response' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      nextActions: [
+        {
+          id: 'voice-clone-1',
+          title: 'Generate Voice',
+          type: 'voice_clone_card',
+        },
+      ],
+      success: true,
+    });
+
+    const response = await service.chat(
+      {
+        agentType: AgentType.X_CONTENT,
+        content: 'Generate a voiceover',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      'prepare_voice_clone',
+      expect.objectContaining({
+        text: 'Welcome to FUD News',
+      }),
+      expect.any(Object),
+    );
+    expect(response.toolCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'completed',
+          toolName: 'prepare_voice_clone',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(response.toolCalls)).not.toContain(
+      'Unknown tool requested by model: default_api.generate_voice',
+    );
+  });
+
   it('should synthesize fallback content for tool-only prepare_voice_clone chat()', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,

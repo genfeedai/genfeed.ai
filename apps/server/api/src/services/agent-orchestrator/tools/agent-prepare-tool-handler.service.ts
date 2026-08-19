@@ -134,7 +134,10 @@ export class AgentPrepareToolHandler {
     };
   }
 
-  async prepareVoiceClone(ctx: ToolExecutionContext): Promise<AgentToolResult> {
+  async prepareVoiceClone(
+    ctx: ToolExecutionContext,
+    params: Record<string, unknown> = {},
+  ): Promise<AgentToolResult> {
     const currentBrand = await this.brandsService.findOne(
       {
         isSelected: true,
@@ -210,24 +213,32 @@ export class AgentPrepareToolHandler {
       effectiveBrandAgentConfig.identityDefaults.effective.defaultVoiceId?.toString();
 
     const recommendedVoiceId = effectiveDefaultVoiceId || readyVoices[0]?.id;
+    const voiceoverText =
+      readOptionalString(params.text) ??
+      readOptionalString(params.prompt) ??
+      '';
+    const hasCatalogBackedVoices = existingVoices.length > 0;
+    const description = hasCatalogBackedVoices
+      ? voiceoverText
+        ? `Generate a voiceover with a catalog or cloned voice: "${voiceoverText}"`
+        : 'Use an existing voice or upload a new audio sample.'
+      : 'The voice catalog is empty. Upload an audio sample to clone a voice, or add catalog voices.';
 
     return {
       creditsUsed: 0,
+      data: voiceoverText ? { text: voiceoverText } : undefined,
       nextActions: [
         {
           brandId: currentBrand
             ? String((currentBrand as { id: unknown }).id)
             : undefined,
           canUpload: true,
-          canUseExisting: existingVoices.length > 0,
-          description:
-            existingVoices.length > 0
-              ? 'Use an existing voice or upload a new audio sample.'
-              : 'No voices found. Upload an audio sample to start cloning.',
+          canUseExisting: hasCatalogBackedVoices,
+          description,
           existingVoices,
           id: `voice-clone-${Date.now()}`,
           recommendedVoiceId,
-          title: 'Set Up Voice Clone',
+          title: voiceoverText ? 'Generate Voice' : 'Set Up Voice Clone',
           type: 'voice_clone_card' as const,
         },
       ],
