@@ -54,7 +54,7 @@ export class TemplateMetadataService {
     );
 
     const result = await this.prisma.templateMetadata.update({
-      data: updates as never,
+      data: updates as Prisma.TemplateMetadataUpdateInput,
       where: { id: existing.id },
     });
 

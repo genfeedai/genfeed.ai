@@ -154,7 +154,7 @@ export class OptimizersService {
       scoreId: score.id,
     });
 
-    return score as never;
+    return score as unknown as Record<string, unknown>;
   }
 
   /**
@@ -482,7 +482,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
       orderBy: { createdAt: 'desc' },
       take: limit,
       where: scopedWhere(organizationId, { ...(userId ? { userId } : {}) }),
-    })) as never[];
+    })) as unknown as Record<string, unknown>[];
   }
 
   /**

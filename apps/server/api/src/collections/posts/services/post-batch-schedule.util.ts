@@ -126,7 +126,7 @@ function planBatchWrites(
           // `ingredients` is a many-to-many relation: a bare string[] is not
           // a valid Prisma payload, it needs the nested-write envelope.
           ingredients: { set: ingredientIds.map((id) => ({ id })) },
-        } as never,
+        } as Prisma.PostUpdateInput,
         include: { credential: true, ingredients: true },
         where: scopedWhere(organizationId, { id: postId }),
       }),

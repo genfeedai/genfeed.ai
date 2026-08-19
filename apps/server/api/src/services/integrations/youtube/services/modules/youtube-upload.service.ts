@@ -15,7 +15,7 @@ import { PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { google } from 'googleapis';
+import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()
 export class YoutubeUploadService {
@@ -151,7 +151,7 @@ export class YoutubeUploadService {
       const res = (await this.youtubeAPI.videos.insert({
         ...body,
         auth,
-      } as never)) as {
+      } as youtube_v3.Params$Resource$Videos$Insert)) as {
         data?: {
           id?: string | null;
         };
@@ -199,7 +199,7 @@ export class YoutubeUploadService {
             resourceId: { kind: 'youtube#video', videoId },
           },
         },
-      } as never);
+      } as youtube_v3.Params$Resource$Playlistitems$Insert);
     } catch (error: unknown) {
       this.loggerService.error(`${logPrefix} failed to add video to playlist`, {
         error: (error as Error)?.message,

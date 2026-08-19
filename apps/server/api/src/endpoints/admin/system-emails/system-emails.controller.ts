@@ -26,7 +26,7 @@ export class SystemEmailsController {
         error,
         this.loggerService,
         'listSystemEmails',
-      ) as never;
+      );
     }
   }
 }

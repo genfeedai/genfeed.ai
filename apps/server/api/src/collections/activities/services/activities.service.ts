@@ -196,7 +196,9 @@ export class ActivitiesService extends BaseService<
     createDto: CreateActivityDto | ActivityEntity | ActivityMutationInput,
   ): Promise<ActivityDocument> {
     const activity = await super.create(
-      this.buildActivityMutation(createDto as ActivityMutationInput) as never,
+      this.buildActivityMutation(
+        createDto as ActivityMutationInput,
+      ) as unknown as CreateActivityDto,
     );
 
     const activityUser = activity.userId ? String(activity.userId) : null;

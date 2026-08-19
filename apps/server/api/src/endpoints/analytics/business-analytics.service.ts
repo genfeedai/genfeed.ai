@@ -40,14 +40,9 @@ interface StripeChargeSummary {
   refunded: boolean;
 }
 
-interface StripeChargeListParams {
-  created: {
-    gte: number;
-    lte: number;
-  };
-  limit: number;
-  starting_after?: string;
-}
+type StripeChargeListParams = Parameters<
+  StripeService['stripe']['charges']['list']
+>[0];
 
 interface DailyAmountRow {
   amount: bigint | number | string | null;
@@ -57,21 +52,6 @@ interface DailyAmountRow {
 interface DailyCountRow {
   count: bigint | number | string;
   date: string;
-}
-
-interface CreditLeaderRow {
-  _sum?: { amount?: unknown };
-  organizationId?: string;
-}
-
-interface IngredientCategoryRow {
-  _count?: { _all?: unknown };
-  category?: unknown;
-}
-
-interface IngredientLeaderRow {
-  _count?: { _all?: unknown };
-  organizationId?: string | null;
 }
 
 interface BusinessAnalyticsResponse {
@@ -268,9 +248,7 @@ export class BusinessAnalyticsService {
         params.starting_after = startingAfter;
       }
 
-      const response = await this.stripeService.stripe.charges.list(
-        params as never,
-      );
+      const response = await this.stripeService.stripe.charges.list(params);
 
       charges.push(
         ...response.data.filter((charge) => charge.paid && !charge.refunded),
@@ -522,7 +500,7 @@ export class BusinessAnalyticsService {
     to: Date,
   ): Promise<CategoryBreakdownEntry[]> {
     const rows = await this.prisma.ingredient.groupBy({
-      _count: { _all: true },
+      _count: { category: true },
       by: ['category'],
       orderBy: { _count: { category: 'desc' } },
       take: 20,
@@ -530,12 +508,12 @@ export class BusinessAnalyticsService {
         createdAt: { gte: from, lte: to },
         isDeleted: false,
       },
-    } as never);
+    });
 
-    return (rows as IngredientCategoryRow[])
+    return rows
       .map((row) => ({
         category: String(row.category ?? 'UNKNOWN'),
-        count: this.readNumber(row._count?._all),
+        count: this.readNumber(row._count.category),
       }))
       .sort((a, b) => b.count - a.count);
   }
@@ -555,10 +533,10 @@ export class BusinessAnalyticsService {
         isDeleted: false,
         source,
       },
-    } as never);
+    });
 
-    const leaders = (rows as CreditLeaderRow[]).map((row) => ({
-      amount: this.readNumber(row._sum?.amount),
+    const leaders = rows.map((row) => ({
+      amount: this.readNumber(row._sum.amount),
       organizationId: String(row.organizationId),
     }));
     if (leaders.length === 0) return [];
@@ -584,7 +562,7 @@ export class BusinessAnalyticsService {
     to: Date,
   ): Promise<LeaderCountEntry[]> {
     const rows = await this.prisma.ingredient.groupBy({
-      _count: { _all: true },
+      _count: { organizationId: true },
       by: ['organizationId'],
       orderBy: { _count: { organizationId: 'desc' } },
       take: 10,
@@ -593,12 +571,12 @@ export class BusinessAnalyticsService {
         isDeleted: false,
         organizationId: { not: null },
       },
-    } as never);
+    });
 
-    const leaders = (rows as IngredientLeaderRow[])
+    const leaders = rows
       .filter((row) => row.organizationId)
       .map((row) => ({
-        count: this.readNumber(row._count?._all),
+        count: this.readNumber(row._count.organizationId),
         organizationId: String(row.organizationId),
       }));
     if (leaders.length === 0) return [];

@@ -8,6 +8,7 @@ import '@notifications/instrument';
 bootstrap({ app: 'notifications' });
 
 import process from 'node:process';
+import type { IEnvConfig } from '@genfeedai/config';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
 import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -32,7 +33,7 @@ async function main() {
   // including any REDIS_SOCKET_URL / REDIS_SOCKET_DB override.
   const redisIoAdapter = new RedisIoAdapter(
     app,
-    { get: (key: string) => configService.get(key as never) },
+    { get: (key: string) => configService.get(key as keyof IEnvConfig) },
     logger,
   );
 

@@ -139,10 +139,12 @@ export class OrganizationSettingsService extends BaseService<
     id: string,
     newLimit: number,
   ): Promise<OrganizationSettingDocument | null> {
-    return (await this.prisma.organizationSetting.update({
-      data: { brandsLimit: newLimit },
-      where: { id },
-    })) as never;
+    return this.normalizeDocument(
+      await this.prisma.organizationSetting.update({
+        data: { brandsLimit: newLimit },
+        where: { id },
+      }),
+    );
   }
 
   /**
@@ -152,10 +154,12 @@ export class OrganizationSettingsService extends BaseService<
     id: string,
     newLimit: number,
   ): Promise<OrganizationSettingDocument | null> {
-    return (await this.prisma.organizationSetting.update({
-      data: { seatsLimit: newLimit },
-      where: { id },
-    })) as never;
+    return this.normalizeDocument(
+      await this.prisma.organizationSetting.update({
+        data: { seatsLimit: newLimit },
+        where: { id },
+      }),
+    );
   }
 
   async recordWebhookDeliveryStatus(

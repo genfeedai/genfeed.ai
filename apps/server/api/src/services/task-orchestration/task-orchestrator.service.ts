@@ -353,9 +353,9 @@ export class TaskOrchestratorService {
         workspaceTaskId: params.taskId,
       },
       objective: subtask.brief,
-      organizationId: params.organizationId as never,
+      organizationId: params.organizationId,
       trigger: AgentExecutionTrigger.EVENT,
-      userId: params.userId as never,
+      userId: params.userId,
     });
 
     const runId = run.id.toString();

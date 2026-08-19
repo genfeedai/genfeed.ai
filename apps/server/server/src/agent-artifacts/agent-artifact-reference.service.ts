@@ -709,16 +709,18 @@ export class AgentArtifactReferenceService {
     };
   }
 
-  private async loadScopedRecord(
+  private async loadScopedRecord<TArgs extends { where: object }>(
     label: string,
-    delegate: { findFirst(args: never): Promise<unknown> },
+    delegate: {
+      findFirst(args: TArgs): Promise<unknown>;
+    },
     recordId: string,
     organizationId: string,
     materialFields: readonly string[],
   ): Promise<CanonicalRecordState> {
     const result = await delegate.findFirst({
       where: scopedWhere(organizationId, { id: recordId }),
-    } as never);
+    } as TArgs);
     if (!result) {
       throw artifactNotFound(label, recordId);
     }

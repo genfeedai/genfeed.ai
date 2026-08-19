@@ -367,7 +367,7 @@ export class AgentBrandContentToolHandler {
           textContent: this.formatBrandVoiceProfile(profile),
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',
-        } as never,
+        },
       ],
       success: true,
     };

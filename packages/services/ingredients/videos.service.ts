@@ -47,7 +47,10 @@ export class VideosService extends IngredientsService<Video> {
    * storyboard scene loop) can cancel the request in flight, not just stop
    * reading its result.
    */
-  public async post(body: Partial<IVideo>, signal?: AbortSignal) {
+  public async post(
+    body: Partial<IVideo> & { useTemplate?: boolean },
+    signal?: AbortSignal,
+  ) {
     const data = VideoSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data, { signal }) // Empty string for root path, data as second argument

@@ -1,3 +1,4 @@
+import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -32,6 +33,7 @@ import {
 import {
   ActivitySource,
   ContentFormat,
+  ContentIntelligencePlatform,
   formatPlatformLabel,
   RouterPriority,
   Status,
@@ -266,11 +268,13 @@ export class AgentMediaGenerationToolHandler {
     return this.streamPublisher.publishTokenEffect(data);
   }
 
-  private publishWorkEventEffect(data: Record<string, unknown>) {
+  private publishWorkEventEffect(
+    data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
+  ) {
     if (!this.streamPublisher) {
       return Effect.void;
     }
-    return this.streamPublisher.publishWorkEventEffect(data as never);
+    return this.streamPublisher.publishWorkEventEffect(data);
   }
 
   private publishToolProgressEffect(data: {
@@ -549,7 +553,9 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
-    const platform = readOptionalString(params.platform) ?? 'twitter';
+    const platform =
+      (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
+      ContentIntelligencePlatform.TWITTER;
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
@@ -558,7 +564,7 @@ export class AgentMediaGenerationToolHandler {
         platform,
         topic: params.topic as string,
         variationsCount: 1,
-      } as never,
+      } satisfies GenerateContentDto,
     );
 
     const generated = results[0];
@@ -1081,7 +1087,7 @@ export class AgentMediaGenerationToolHandler {
         isSelected: true,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
-      } as never);
+      });
 
       if (selectedBrand?.id) {
         brandId = String(selectedBrand.id);

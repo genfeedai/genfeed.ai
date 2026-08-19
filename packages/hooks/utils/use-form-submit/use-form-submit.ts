@@ -1,5 +1,5 @@
 import { usePathname } from 'next/navigation';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useFormSubmitWithState(handler: () => void | Promise<void>) {
   const pathname = usePathname();
@@ -29,7 +29,7 @@ export function useFormSubmitWithState(handler: () => void | Promise<void>) {
     return () => cancelAnimationFrame(frame);
   }, [pathname, setSubmittingState]);
 
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setSubmittingState(true);
 
