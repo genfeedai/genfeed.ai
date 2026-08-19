@@ -281,6 +281,7 @@ describe('ContentGeneratorService', () => {
       brandId: 'brand-123',
       organizationId: ORG_ID,
       platform: 'instagram',
+      query: BASE_DTO.topic,
     });
     expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
