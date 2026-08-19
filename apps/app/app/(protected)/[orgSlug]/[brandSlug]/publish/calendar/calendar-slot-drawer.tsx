@@ -15,20 +15,27 @@ import { useState } from 'react';
 
 type CalendarSlotDrawerProps = {
   isPending: boolean;
+  onCancel: () => void;
   onClose: () => void;
+  onEditCadence?: () => void;
   onGenerate: (brief?: string) => void;
+  onSkip: () => void;
   onWrite: () => void;
   slot: ICalendarSlot | null;
 };
 
 export default function CalendarSlotDrawer({
   isPending,
+  onCancel,
   onClose,
+  onEditCadence,
   onGenerate,
+  onSkip,
   onWrite,
   slot,
 }: CalendarSlotDrawerProps): React.JSX.Element {
   const [brief, setBrief] = useState('');
+  const isGenerating = slot?.state === CalendarSlotState.GENERATING;
 
   return (
     <Sheet
@@ -66,24 +73,50 @@ export default function CalendarSlotDrawer({
             />
             <div className="flex flex-wrap gap-2">
               <Button
-                isDisabled={
-                  isPending || slot.state === CalendarSlotState.GENERATING
-                }
+                isDisabled={isPending || isGenerating}
                 onClick={() => onGenerate(brief || undefined)}
                 size={ButtonSize.SM}
               >
                 Generate
               </Button>
               <Button
-                isDisabled={
-                  isPending || slot.state === CalendarSlotState.GENERATING
-                }
+                isDisabled={isPending || isGenerating}
                 onClick={onWrite}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
                 Write
               </Button>
+              {isGenerating ? (
+                <Button
+                  isDisabled={isPending}
+                  onClick={onCancel}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                >
+                  Cancel
+                </Button>
+              ) : (
+                <Button
+                  isDisabled={isPending}
+                  onClick={onSkip}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  Skip
+                </Button>
+              )}
+              {slot.cadenceId && onEditCadence ? (
+                <Button
+                  isDisabled={isPending}
+                  onClick={onEditCadence}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                >
+                  Edit cadence
+                </Button>
+              ) : null}
             </div>
           </div>
         ) : null}

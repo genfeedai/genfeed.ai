@@ -24,6 +24,8 @@ export type CreatePostingCadenceInput = {
   windowStartMinute: number;
 };
 
+export type UpdatePostingCadenceInput = Partial<CreatePostingCadenceInput>;
+
 export class PostingCadencesService extends HTTPBaseService {
   constructor(token: string) {
     super(
@@ -100,5 +102,39 @@ export class PostingCadencesService extends HTTPBaseService {
       { identityKey },
     );
     return extractResource<ICalendarSlot>(response.data);
+  }
+
+  async skip(identityKey: string): Promise<ICalendarSlot> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/slots/skip',
+      { identityKey },
+    );
+    return extractResource<ICalendarSlot>(response.data);
+  }
+
+  async cancel(identityKey: string): Promise<ICalendarSlot> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/slots/cancel',
+      { identityKey },
+    );
+    return extractResource<ICalendarSlot>(response.data);
+  }
+
+  async update(
+    id: string,
+    input: UpdatePostingCadenceInput,
+  ): Promise<IPostingCadence> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}`,
+      input,
+    );
+    return extractResource<IPostingCadence>(response.data);
+  }
+
+  async delete(id: string): Promise<IPostingCadence> {
+    const response = await this.instance.delete<JsonApiResponseDocument>(
+      `/${id}`,
+    );
+    return extractResource<IPostingCadence>(response.data);
   }
 }

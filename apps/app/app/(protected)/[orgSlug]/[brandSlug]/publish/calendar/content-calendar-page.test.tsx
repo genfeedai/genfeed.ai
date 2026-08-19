@@ -1,11 +1,17 @@
 import {
+  CalendarSlotState,
   CredentialPlatform,
+  PostCategory,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  ICalendarSlot,
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import type {
   CalendarEventBadge,
   CalendarEventChannel,
@@ -25,7 +31,7 @@ import '@testing-library/jest-dom/vitest';
 
 interface CalendarItemShape {
   id: string;
-  itemType: 'article' | 'release';
+  itemType: 'article' | 'release' | 'slot';
   status: string;
 }
 
@@ -55,12 +61,21 @@ const getReleaseGroupsServiceMock = vi.fn(async () => ({
   updateTarget: updateTargetMock,
 }));
 const listSlotsMock = vi.fn(async () => []);
+const listCadencesMock = vi.fn(async () => []);
+const skipSlotMock = vi.fn();
+const cancelSlotMock = vi.fn();
+const writeSlotMock = vi.fn();
 const getPostingCadencesServiceMock = vi.fn(async () => ({
   book: vi.fn(),
+  cancel: cancelSlotMock,
   create: vi.fn(),
+  delete: vi.fn(),
   generate: vi.fn(),
+  list: listCadencesMock,
   listSlots: listSlotsMock,
-  write: vi.fn(),
+  skip: skipSlotMock,
+  update: vi.fn(),
+  write: writeSlotMock,
 }));
 
 const calendarRenderProps: Array<{
@@ -326,6 +341,8 @@ describe('ContentCalendarPage', () => {
     });
     findArticlesMock.mockResolvedValue([]);
     findReleasesMock.mockResolvedValue([release()]);
+    listSlotsMock.mockResolvedValue([]);
+    listCadencesMock.mockResolvedValue([]);
   });
 
   it('queries the scheduler read model for the visible window only', async () => {
@@ -619,4 +636,103 @@ describe('ContentCalendarPage', () => {
     });
     expect(screen.getByTestId('drawer-pending')).toHaveTextContent('idle');
   });
+
+  it('badges missing slots and leaves skipped or filled holes off the calendar', async () => {
+    listSlotsMock.mockResolvedValue([
+      calendarSlot({
+        identityKey: 'missing-slot',
+        state: CalendarSlotState.MISSING,
+      }),
+    ]);
+
+    await renderLoaded();
+
+    const { getEventBadge, items } = latestCalendarProps();
+    const missingItem = items.find((item) => item.id === 'missing-slot');
+
+    expect(missingItem).toBeDefined();
+    expect(getEventBadge(missingItem as CalendarItemShape)).toEqual({
+      label: 'missing',
+      tone: 'muted',
+    });
+    expect(
+      items.some(
+        (item) =>
+          item.status === CalendarSlotState.SKIPPED ||
+          item.status === CalendarSlotState.FILLED,
+      ),
+    ).toBe(false);
+  });
+
+  it('skips a missing slot and drops it from the calendar', async () => {
+    listSlotsMock.mockResolvedValue([calendarSlot({ identityKey: 'skip-me' })]);
+    skipSlotMock.mockResolvedValue(
+      calendarSlot({
+        identityKey: 'skip-me',
+        state: CalendarSlotState.SKIPPED,
+      }),
+    );
+
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: 'open:skip-me' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+
+    await waitFor(() => {
+      expect(skipSlotMock).toHaveBeenCalledWith('skip-me');
+    });
+    await waitFor(() => {
+      expect(
+        latestCalendarProps().items.some((item) => item.id === 'skip-me'),
+      ).toBe(false);
+    });
+  });
+
+  it('writes an article slot into the article editor', async () => {
+    listSlotsMock.mockResolvedValue([
+      calendarSlot({
+        format: PostCategory.ARTICLE,
+        identityKey: 'article-slot',
+      }),
+    ]);
+    writeSlotMock.mockResolvedValue(
+      calendarSlot({
+        format: PostCategory.ARTICLE,
+        generatedItemId: 'article-slot-1',
+        identityKey: 'article-slot',
+        state: CalendarSlotState.FILLED,
+      }),
+    );
+
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: 'open:article-slot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Write' }));
+
+    await waitFor(() => {
+      expect(writeSlotMock).toHaveBeenCalledWith('article-slot');
+    });
+    expect(pushMock).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/publish/posts/article-slot-1?returnTo=%2Facme-org%2Facme-creator%2Fpublish%2Fcalendar',
+    );
+  });
 });
+
+function calendarSlot(overrides: Partial<ICalendarSlot> = {}): ICalendarSlot {
+  return {
+    brandId: 'brand-123',
+    cadenceId: 'cadence-1',
+    credentialId: 'credential-1',
+    format: PostCategory.REEL,
+    generatedItemId: null,
+    generatedItemType: null,
+    id: overrides.identityKey ?? 'slot-1',
+    identityKey: 'slot-1',
+    instant: '2026-03-12T10:00:00.000Z',
+    lastFailureReason: null,
+    resolvedBrief: 'Ship in public',
+    state: CalendarSlotState.MISSING,
+    timezone: 'UTC',
+    ...overrides,
+  };
+}
