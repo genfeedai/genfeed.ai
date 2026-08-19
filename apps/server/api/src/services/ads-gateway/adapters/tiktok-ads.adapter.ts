@@ -1,3 +1,8 @@
+import {
+  type AdsInsightsDateRange,
+  emptyUnifiedInsights,
+  resolveAdsInsightsDateRange,
+} from '@api/services/ads-gateway/ads-insights-range.util';
 import type { TikTokInsightsData } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import type {
@@ -63,7 +68,9 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     campaignId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params, {
+      defaultPreset: 'last_30d',
+    });
 
     const insights = await this.tiktokAdsService.getCampaignInsights(
       ctx.accessToken,
@@ -83,7 +90,9 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     adSetId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params, {
+      defaultPreset: 'last_30d',
+    });
 
     const insights = await this.tiktokAdsService.getAdGroupInsights(
       ctx.accessToken,
@@ -103,7 +112,9 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     adId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params, {
+      defaultPreset: 'last_30d',
+    });
 
     const insights = await this.tiktokAdsService.getAdInsights(
       ctx.accessToken,
@@ -304,9 +315,10 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       insights: UnifiedInsights;
     }>
   > {
-    const dateRange = this.resolveDateRange({
-      datePreset: params?.datePreset,
-    });
+    const dateRange = resolveAdsInsightsDateRange(
+      { datePreset: params?.datePreset },
+      { defaultPreset: 'last_30d' },
+    );
     const metric = params?.metric || 'ctr';
 
     const reportData = await this.tiktokAdsService.getReporting(
@@ -360,10 +372,10 @@ export class TikTokAdsAdapter implements IAdsAdapter {
    */
   private aggregateInsights(
     rows: TikTokInsightsData[],
-    dateRange: { startDate: string; endDate: string },
+    dateRange: AdsInsightsDateRange,
   ): UnifiedInsights {
     if (rows.length === 0) {
-      return this.emptyInsights();
+      return emptyUnifiedInsights(this.platform);
     }
 
     let totalSpend = 0;
@@ -390,58 +402,6 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       impressions: totalImpressions,
       platform: this.platform,
       spend: totalSpend,
-    };
-  }
-
-  private resolveDateRange(params?: {
-    datePreset?: string;
-    timeRange?: { since: string; until: string };
-  }): { startDate: string; endDate: string } {
-    if (params?.timeRange) {
-      return {
-        endDate: params.timeRange.until,
-        startDate: params.timeRange.since,
-      };
-    }
-
-    const now = new Date();
-    const end = new Date(now);
-    end.setDate(end.getDate() - 1);
-
-    const presetDays: Record<string, number> = {
-      last_7d: 7,
-      last_14d: 14,
-      last_30d: 30,
-      last_90d: 90,
-      today: 0,
-      yesterday: 1,
-    };
-
-    const days = presetDays[params?.datePreset || 'last_30d'] ?? 30;
-    const start = new Date(now);
-    start.setDate(start.getDate() - days);
-
-    return {
-      endDate: this.formatDate(end),
-      startDate: this.formatDate(start),
-    };
-  }
-
-  private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  private emptyInsights(): UnifiedInsights {
-    return {
-      clicks: 0,
-      cpc: 0,
-      cpm: 0,
-      ctr: 0,
-      dateStart: '',
-      dateStop: '',
-      impressions: 0,
-      platform: this.platform,
-      spend: 0,
     };
   }
 }

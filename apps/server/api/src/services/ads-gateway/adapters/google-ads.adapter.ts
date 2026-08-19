@@ -1,3 +1,8 @@
+import {
+  type AdsInsightsDateRange,
+  emptyUnifiedInsights,
+  resolveAdsInsightsDateRange,
+} from '@api/services/ads-gateway/ads-insights-range.util';
 import type {
   GoogleAdsAdGroupInsights,
   GoogleAdsAdInsights,
@@ -73,7 +78,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     campaignId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params);
 
     const metrics = await this.googleAdsService.getCampaignMetrics(
       ctx.accessToken,
@@ -85,7 +90,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
 
     const row = metrics[0];
     if (!row) {
-      return this.emptyInsights();
+      return emptyUnifiedInsights(this.platform);
     }
 
     const spend = row.costMicros / MICROS_DIVISOR;
@@ -114,7 +119,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     adSetId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params);
 
     const rows = await this.googleAdsService.getAdGroupInsights(
       ctx.accessToken,
@@ -132,7 +137,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     adId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = this.resolveDateRange(params);
+    const dateRange = resolveAdsInsightsDateRange(params);
 
     const rows = await this.googleAdsService.getAdInsights(
       ctx.accessToken,
@@ -328,7 +333,9 @@ export class GoogleAdsAdapter implements IAdsAdapter {
       ctx.loginCustomerId,
     );
 
-    const dateRange = this.resolveDateRange({ datePreset: params?.datePreset });
+    const dateRange = resolveAdsInsightsDateRange({
+      datePreset: params?.datePreset,
+    });
     const metric = params?.metric || 'ctr';
 
     const performers = await Promise.all(
@@ -361,7 +368,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
                   : undefined,
               spend,
             }
-          : this.emptyInsights();
+          : emptyUnifiedInsights(this.platform);
 
         const value = this.resolveMetricValue(metric, insights);
 
@@ -388,10 +395,10 @@ export class GoogleAdsAdapter implements IAdsAdapter {
    */
   private toUnifiedInsights(
     row: GoogleAdsAdGroupInsights | GoogleAdsAdInsights | undefined,
-    dateRange?: { startDate: string; endDate: string },
+    dateRange?: AdsInsightsDateRange,
   ): UnifiedInsights {
     if (!row) {
-      return this.emptyInsights();
+      return emptyUnifiedInsights(this.platform);
     }
 
     const spend = row.costMicros / MICROS_DIVISOR;
@@ -428,61 +435,5 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     };
 
     return metricMap[metric] || 0;
-  }
-
-  private resolveDateRange(params?: {
-    datePreset?: string;
-    timeRange?: { since: string; until: string };
-  }): { startDate: string; endDate: string } | undefined {
-    if (params?.timeRange) {
-      return {
-        endDate: params.timeRange.until,
-        startDate: params.timeRange.since,
-      };
-    }
-
-    if (params?.datePreset) {
-      const now = new Date();
-      const end = new Date(now);
-      end.setDate(end.getDate() - 1);
-
-      const presetDays: Record<string, number> = {
-        last_7d: 7,
-        last_14d: 14,
-        last_30d: 30,
-        last_90d: 90,
-        today: 0,
-        yesterday: 1,
-      };
-
-      const days = presetDays[params.datePreset] ?? 30;
-      const start = new Date(now);
-      start.setDate(start.getDate() - days);
-
-      return {
-        endDate: this.formatDate(end),
-        startDate: this.formatDate(start),
-      };
-    }
-
-    return undefined;
-  }
-
-  private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  private emptyInsights(): UnifiedInsights {
-    return {
-      clicks: 0,
-      cpc: 0,
-      cpm: 0,
-      ctr: 0,
-      dateStart: '',
-      dateStop: '',
-      impressions: 0,
-      platform: this.platform,
-      spend: 0,
-    };
   }
 }
