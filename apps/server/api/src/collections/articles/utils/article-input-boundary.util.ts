@@ -9,6 +9,8 @@ export function assertArticleOwnershipIds(
   organizationId: string,
   brandId: string,
 ): void {
+  // Precedence when more than one id is invalid: userId, then organizationId,
+  // then brandId. Combined-invalid cases must keep this order (#3218).
   if (!userId || userId.trim() === '') {
     throw new BadRequestException('Invalid userId');
   }
