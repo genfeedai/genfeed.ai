@@ -185,7 +185,7 @@ describe('BrandPerformanceChart', () => {
     it('defaults to engagement metric', () => {
       render(<BrandPerformanceChart data={mockData} />);
       const engagementButton = screen.getByText('Engagement').closest('button');
-      expect(engagementButton).toHaveClass('bg-white/10');
+      expect(engagementButton).toHaveClass('bg-muted');
     });
 
     it('accepts custom initial metric', () => {
@@ -196,7 +196,7 @@ describe('BrandPerformanceChart', () => {
         />,
       );
       const viewsButton = screen.getByText('Views').closest('button');
-      expect(viewsButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
     });
 
     it('changes active metric on button click', () => {
@@ -207,7 +207,7 @@ describe('BrandPerformanceChart', () => {
         fireEvent.click(viewsButton);
       }
 
-      expect(viewsButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
     });
 
     it('renders color indicator for each metric', () => {

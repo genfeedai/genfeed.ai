@@ -204,7 +204,7 @@ describe('TimeSeriesChart', () => {
       fireEvent.click(viewsButton!);
 
       // Views should still be active
-      expect(viewsButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
     });
 
     it('toggles metric on when clicked while inactive', () => {
@@ -223,7 +223,7 @@ describe('TimeSeriesChart', () => {
       fireEvent.click(likesButton!);
 
       // Likes should be active again
-      expect(likesButton).toHaveClass('bg-white/10');
+      expect(likesButton).toHaveClass('bg-muted');
     });
 
     it('renders colored indicators for each metric', () => {
@@ -297,7 +297,7 @@ describe('TimeSeriesChart', () => {
         <TimeSeriesChart data={mockData} metrics={[AnalyticsMetric.VIEWS]} />,
       );
       const button = screen.getByText('Views').closest('button');
-      expect(button).toHaveClass('bg-white/10');
+      expect(button).toHaveClass('bg-muted');
     });
 
     it('inactive metrics have transparent background', () => {

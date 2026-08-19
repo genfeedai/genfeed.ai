@@ -41,23 +41,19 @@ const rechartsMocks = vi.hoisted(() => ({
     <div data-testid="cartesian-grid" data-stroke={stroke} />
   ),
   Tooltip: () => <div data-testid="tooltip" />,
-  XAxis: ({
-    stroke,
-    tick,
-  }: {
-    stroke?: string;
-    tick?: { fill?: string };
-  }) => (
-    <div data-testid="x-axis" data-stroke={stroke} data-tick-fill={tick?.fill} />
+  XAxis: ({ stroke, tick }: { stroke?: string; tick?: { fill?: string } }) => (
+    <div
+      data-testid="x-axis"
+      data-stroke={stroke}
+      data-tick-fill={tick?.fill}
+    />
   ),
-  YAxis: ({
-    stroke,
-    tick,
-  }: {
-    stroke?: string;
-    tick?: { fill?: string };
-  }) => (
-    <div data-testid="y-axis" data-stroke={stroke} data-tick-fill={tick?.fill} />
+  YAxis: ({ stroke, tick }: { stroke?: string; tick?: { fill?: string } }) => (
+    <div
+      data-testid="y-axis"
+      data-stroke={stroke}
+      data-tick-fill={tick?.fill}
+    />
   ),
 }));
 
@@ -218,10 +214,10 @@ describe('PlatformTimeSeriesChart', () => {
       const youtubeButton = screen.getByText('YouTube').closest('button');
       const twitterButton = screen.getByText('Twitter').closest('button');
 
-      expect(instagramButton).toHaveClass('bg-white/10');
-      expect(tiktokButton).toHaveClass('bg-white/10');
-      expect(youtubeButton).toHaveClass('bg-white/10');
-      expect(twitterButton).toHaveClass('bg-white/10');
+      expect(instagramButton).toHaveClass('bg-muted');
+      expect(tiktokButton).toHaveClass('bg-muted');
+      expect(youtubeButton).toHaveClass('bg-muted');
+      expect(twitterButton).toHaveClass('bg-muted');
     });
 
     it('accepts custom platforms prop', () => {
@@ -271,7 +267,7 @@ describe('PlatformTimeSeriesChart', () => {
       const tiktokButton = getPlatformButton('TikTok');
       fireEvent.click(tiktokButton);
 
-      expect(tiktokButton).toHaveClass('bg-white/10');
+      expect(tiktokButton).toHaveClass('bg-muted');
     });
 
     it('can toggle a platform back on', () => {
@@ -285,7 +281,7 @@ describe('PlatformTimeSeriesChart', () => {
 
       // Toggle back on
       fireEvent.click(instagramButton);
-      expect(instagramButton).toHaveClass('bg-white/10');
+      expect(instagramButton).toHaveClass('bg-muted');
     });
 
     it('reconciles active platforms when available platforms change', () => {
@@ -303,7 +299,7 @@ describe('PlatformTimeSeriesChart', () => {
 
       expect(screen.getByTestId('area-facebook')).toBeInTheDocument();
       expect(screen.queryByTestId('area-tiktok')).not.toBeInTheDocument();
-      expect(getPlatformButton('Facebook')).toHaveClass('bg-white/10');
+      expect(getPlatformButton('Facebook')).toHaveClass('bg-muted');
     });
   });
 
@@ -442,7 +438,7 @@ describe('PlatformTimeSeriesChart', () => {
     it('applies active styling to selected platforms', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
       const activeButton = screen.getByText('Instagram').closest('button');
-      expect(activeButton).toHaveClass('text-white');
+      expect(activeButton).toHaveClass('text-foreground');
     });
 
     it('applies inactive styling to deselected platforms', () => {
@@ -451,7 +447,7 @@ describe('PlatformTimeSeriesChart', () => {
       fireEvent.click(getPlatformButton('Instagram'));
 
       const inactiveButton = screen.getByText('Instagram').closest('button');
-      expect(inactiveButton).toHaveClass('text-white/50');
+      expect(inactiveButton).toHaveClass('text-muted-foreground');
     });
 
     it('applies disabled styling when loading', () => {
