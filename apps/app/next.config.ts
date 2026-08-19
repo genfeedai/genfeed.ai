@@ -584,6 +584,11 @@ const config = createAppNextConfig({
       LEGACY_APP_ROUTES.LAB_CRON_JOBS,
       APP_ROUTES.AUTOMATE.WORKFLOWS,
     ),
+    // `/[org]/[brand]/workflows` is not a standalone app — land on Automate.
+    ...legacyPathRedirects(
+      LEGACY_APP_ROUTES.WORKFLOWS,
+      APP_ROUTES.AUTOMATE.WORKFLOWS,
+    ),
   ],
   sentryProject: 'app-genfeed-ai',
 });

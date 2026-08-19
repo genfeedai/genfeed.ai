@@ -15,10 +15,20 @@ const TEMPLATE_NODE_TYPES = [
 ] as const;
 
 const SOCIAL_REPORT_NODE_TYPES = ['socialRead', 'reportDelivery'] as const;
+const CONTENT_LOOP_NODE_TYPES = [
+  'analyticsGenericSync',
+  'harnessWinnerPromotionSweep',
+] as const;
 
 describe('cloudNodeTypes', () => {
   it('registers all node types used by workflow templates', () => {
     for (const nodeType of TEMPLATE_NODE_TYPES) {
+      expect(cloudNodeTypes[nodeType]).toBeDefined();
+    }
+  });
+
+  it('registers analyticsGenericSync and harnessWinnerPromotionSweep as supported types', () => {
+    for (const nodeType of CONTENT_LOOP_NODE_TYPES) {
       expect(cloudNodeTypes[nodeType]).toBeDefined();
     }
   });

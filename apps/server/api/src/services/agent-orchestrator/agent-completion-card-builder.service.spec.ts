@@ -92,6 +92,44 @@ describe('AgentCompletionCardBuilderService', () => {
     ]);
   });
 
+  it('does not mint Done or relabel Confirm install as Use in Workflow', () => {
+    const confirmationAction: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_install_official_workflow',
+          label: 'Confirm install',
+          payload: { sourceId: 'weekly-brand-content' },
+        },
+      ],
+      id: 'workflow-bootstrap-preview-1',
+      title: 'Install official workflow?',
+      type: 'workflow_created_card',
+      workflowName: 'Weekly Brand AI Content Loop',
+    };
+
+    const result = service.buildAssistantUiActions({
+      reviewRequired: true,
+      toolCalls: [
+        {
+          status: 'completed',
+          toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+        },
+      ],
+      uiActions: [confirmationAction],
+    });
+
+    expect(result.uiActions).toEqual([confirmationAction]);
+    expect(
+      result.uiActions.some(
+        (action) => action.type === 'completion_summary_card',
+      ),
+    ).toBe(false);
+    expect(result.uiActions[0]?.ctas?.[0]).toMatchObject({
+      action: 'confirm_install_official_workflow',
+      label: 'Confirm install',
+    });
+  });
+
   it('preserves content counts, output order, the four-variant cap, and the review CTA label', () => {
     const contentAction: AgentUiAction = {
       audio: ['https://cdn.example.com/audio.mp3'],

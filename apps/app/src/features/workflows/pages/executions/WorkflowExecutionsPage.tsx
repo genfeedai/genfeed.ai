@@ -2,7 +2,11 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  AuthenticationTokenUnavailableError,
+  useAuthedService,
+} from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
@@ -86,6 +90,7 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
+  const { orgId } = useAuthIdentity();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
   const { executions, workflowLabels, isLoading, error, offset, hasMore } =
     state;
@@ -128,6 +133,9 @@ export default function WorkflowExecutionsPage() {
         if (signal.aborted) {
           return;
         }
+        if (err instanceof AuthenticationTokenUnavailableError) {
+          return;
+        }
         const message =
           err instanceof Error ? err.message : 'Failed to load executions';
         logger.error('Failed to load executions', { error: err });
@@ -138,10 +146,14 @@ export default function WorkflowExecutionsPage() {
   );
 
   useEffect(() => {
+    if (!orgId) {
+      return;
+    }
+
     const controller = new AbortController();
     loadExecutions(controller.signal, offset);
     return () => controller.abort();
-  }, [loadExecutions, offset]);
+  }, [loadExecutions, offset, orgId]);
 
   if (isLoading && executions.length === 0) {
     return (

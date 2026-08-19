@@ -55,6 +55,27 @@ export class WorkflowNodeDataDto {
     required: false,
   })
   readonly inputVariableKeys?: string[];
+
+  /**
+   * Editor nodes store runnable fields at the top level. Keep the common
+   * prompt fields through whitelist stripping so a 1-node prompt workflow
+   * can still execute if the client has not folded them into `config`.
+   */
+  @Allow()
+  @IsOptional()
+  readonly prompt?: unknown;
+
+  @Allow()
+  @IsOptional()
+  readonly template?: unknown;
+
+  @Allow()
+  @IsOptional()
+  readonly variables?: unknown;
+
+  @Allow()
+  @IsOptional()
+  readonly outputText?: unknown;
 }
 
 export class WorkflowVisualNodeDto {

@@ -10,6 +10,12 @@ describe('cron-schedule.util', () => {
     expect(nextRun).toBeInstanceOf(Date);
   });
 
+  it('computes 0 9 * * * in UTC as 09:00 UTC, not a viewer-local 2:00 AM', () => {
+    const nextRun = computeNextRunAtOrThrow('0 9 * * *', 'UTC');
+    expect(nextRun.getUTCHours()).toBe(9);
+    expect(nextRun.getUTCMinutes()).toBe(0);
+  });
+
   it('throws for an invalid cron expression', () => {
     expect(() => computeNextRunAtOrThrow('invalid-cron', 'UTC')).toThrow();
   });

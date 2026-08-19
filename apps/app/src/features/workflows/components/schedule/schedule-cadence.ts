@@ -35,9 +35,42 @@ export function resolveCadencePresetValue(cronExpression: string): string {
 }
 
 /**
- * Human-readable cadence for display surfaces: the preset label when the
- * stored cron matches a preset, otherwise the raw cron expression.
+ * Format a stored next-run instant in the workflow's own timezone.
+ * `Date#toLocaleString()` uses the viewer's zone, which turns a 9:00 AM UTC
+ * schedule into "2:00 AM" in PDT and hides the mismatch from the cadence label.
  */
+export function formatNextRunAt(
+  nextRunAt?: string | null,
+  timezone?: string | null,
+): string | null {
+  if (!nextRunAt) {
+    return null;
+  }
+
+  const date = new Date(nextRunAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const timeZone = timezone?.trim() || 'UTC';
+
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone,
+      timeZoneName: 'short',
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'UTC',
+      timeZoneName: 'short',
+    }).format(date);
+  }
+}
+
 export function describeCadence(cronExpression?: string | null): string | null {
   const trimmed = cronExpression?.trim();
   if (!trimmed) {

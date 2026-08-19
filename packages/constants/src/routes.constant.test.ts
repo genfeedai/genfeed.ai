@@ -64,6 +64,14 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');
   });
 
+  it('aliases /workflows onto Automate workflows instead of a new app', () => {
+    expect(LEGACY_APP_ROUTES.WORKFLOWS).toBe('/workflows');
+    expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');
+    expect(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES).toBe(
+      '/automate/workflows/templates',
+    );
+  });
+
   it('builds canonical Publish editor paths without a kind query param', () => {
     // Kind lives on the entity (which table the id hits), not the URL.
     expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');

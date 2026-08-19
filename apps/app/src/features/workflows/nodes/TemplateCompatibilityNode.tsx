@@ -97,6 +97,20 @@ const TEMPLATE_COMPATIBILITY_DEFINITIONS: Record<
       { id: 'replyUrl', label: 'Reply URL' },
     ],
   },
+  analyticsGenericSync: {
+    description:
+      'Refresh connected-platform analytics for the organization so later nodes can score winners.',
+    inputs: [],
+    label: 'Sync Analytics',
+    outputs: [{ id: 'synced', label: 'Synced' }],
+  },
+  harnessWinnerPromotionSweep: {
+    description:
+      "Promote each connected brand's top performers into its harness performance-winners context.",
+    inputs: [{ id: 'synced', label: 'Synced' }],
+    label: 'Promote Top Performers',
+    outputs: [{ id: 'promoted', label: 'Promoted' }],
+  },
   sendDm: {
     description: 'Send a direct message on a connected social account.',
     inputs: [

@@ -176,6 +176,26 @@ export class AgentCompletionCardBuilderService {
     }));
   }
 
+  private isWorkflowInstallConfirmation(action: AgentUiAction): boolean {
+    if (action.ctas?.some((cta) => this.isConfirmInstallCta(cta))) {
+      return true;
+    }
+
+    return !action.workflowId && action.title === 'Install official workflow?';
+  }
+
+  private isConfirmInstallCta(cta: AgentUiActionCta): boolean {
+    return cta.action === 'confirm_install_official_workflow';
+  }
+
+  private selectInstalledWorkflowHrefCta(
+    action: AgentUiAction,
+  ): AgentUiActionCta | undefined {
+    return action.ctas?.find(
+      (cta) => typeof cta.href === 'string' && cta.href.trim().length > 0,
+    );
+  }
+
   private buildCompletionPrimaryCta(
     label: string,
     cta?: AgentUiActionCta,
@@ -361,6 +381,10 @@ export class AgentCompletionCardBuilderService {
       (action) => action.type === 'workflow_created_card',
     );
 
+    if (workflowAction && this.isWorkflowInstallConfirmation(workflowAction)) {
+      return null;
+    }
+
     if (workflowAction) {
       return {
         id: `completion-summary-${workflowAction.id}`,
@@ -373,7 +397,7 @@ export class AgentCompletionCardBuilderService {
         ].filter((bullet): bullet is string => Boolean(bullet)),
         primaryCta: this.buildCompletionPrimaryCta(
           'Use in Workflow',
-          workflowAction.ctas?.[0],
+          this.selectInstalledWorkflowHrefCta(workflowAction),
         ) ?? {
           href: workflowAction.workflowId
             ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowAction.workflowId}`

@@ -35,6 +35,7 @@ import {
   DEFAULT_CUSTOM_CRON,
   describeCadence,
   extractScheduleErrorMessage,
+  formatNextRunAt,
   resolveCadencePresetValue,
   WORKFLOW_SCHEDULE_PRESETS,
 } from './schedule-cadence';
@@ -45,14 +46,6 @@ interface WorkflowScheduleDialogProps {
   /** Called with the updated workflow after a successful save or removal. */
   readonly onSaved?: (workflow: CloudWorkflowData) => void;
   readonly workflowId: string;
-}
-
-function formatNextRun(nextRunAt?: string | null): string | null {
-  if (!nextRunAt) {
-    return null;
-  }
-  const date = new Date(nextRunAt);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
 }
 
 /**
@@ -202,7 +195,7 @@ export function WorkflowScheduleDialog({
   }, [getService, onOpenChange, onSaved, translate, workflowId]);
 
   const cadenceSummary = describeCadence(cronExpression);
-  const nextRunLabel = formatNextRun(nextRunAt);
+  const nextRunLabel = formatNextRunAt(nextRunAt, timezone);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

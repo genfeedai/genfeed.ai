@@ -7,6 +7,26 @@ import {
 export const FALLBACK_WORKFLOW_NODE_TYPE = 'unknown' as const;
 const ORIGINAL_NODE_TYPE_KEY = 'originalType' as const;
 
+/**
+ * Editor-only chrome that must not be treated as executable node config.
+ * Mirrors `WorkflowFormatConverterService.extractConfig` so save/load and
+ * the engine agree on which keys are metadata vs runnable config.
+ */
+const EDITOR_NODE_DATA_META_KEYS = new Set([
+  'cachedOutput',
+  'color',
+  'comment',
+  'config',
+  'error',
+  'inputVariableKeys',
+  'isLocked',
+  'label',
+  'lockTimestamp',
+  ORIGINAL_NODE_TYPE_KEY,
+  'progress',
+  'status',
+]);
+
 const cloudNodeDefinitions: Readonly<Record<string, { label?: string }>> = {
   ...saasNodeDefinitions,
   ...extendedNodeDefinitions,
@@ -38,6 +58,73 @@ export interface NormalizedWorkflowNodesResult {
 
 function isNodeDataRecord(data: unknown): data is Record<string, unknown> {
   return typeof data === 'object' && data !== null;
+}
+
+function readInputVariableKeys(
+  data: Record<string, unknown>,
+): string[] | undefined {
+  if (!Array.isArray(data.inputVariableKeys)) {
+    return undefined;
+  }
+
+  const keys = data.inputVariableKeys.filter(
+    (key): key is string => typeof key === 'string',
+  );
+  return keys.length > 0 ? keys : undefined;
+}
+
+function extractEditorConfigFields(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const config: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (!EDITOR_NODE_DATA_META_KEYS.has(key) && value !== undefined) {
+      config[key] = value;
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Persist editor node data in the API contract (`label` + `config`).
+ * Prompt/template live on the editor node as top-level fields; the DTO
+ * whitelist keeps only `label`/`config`/`inputVariableKeys`, so those
+ * fields must be folded into `config` before save.
+ */
+export function toPersistedWorkflowNodeData(
+  data: unknown,
+): Record<string, unknown> {
+  const record = isNodeDataRecord(data) ? data : {};
+  const existingConfig = isNodeDataRecord(record.config) ? record.config : {};
+  const extracted = extractEditorConfigFields(record);
+  const inputVariableKeys = readInputVariableKeys(record);
+
+  return {
+    ...(inputVariableKeys ? { inputVariableKeys } : {}),
+    config: {
+      ...existingConfig,
+      ...extracted,
+    },
+    label: typeof record.label === 'string' ? record.label : '',
+  };
+}
+
+/**
+ * Hydrate persisted `data.config` back onto the editor node so Prompt and
+ * Prompt Constructor can read `data.prompt` / `data.template`.
+ */
+export function toEditorWorkflowNodeData(
+  data: unknown,
+): Record<string, unknown> {
+  const record = isNodeDataRecord(data) ? data : {};
+  const config = isNodeDataRecord(record.config) ? record.config : {};
+
+  return {
+    ...config,
+    ...record,
+  };
 }
 
 function resolveNodeLabel(
@@ -163,9 +250,10 @@ export function normalizeWorkflowNodeCollection(
     }
 
     const nodeType = resolvedType ?? FALLBACK_WORKFLOW_NODE_TYPE;
+    const editorData = toEditorWorkflowNodeData(data);
     const normalizedData = {
-      ...data,
-      label: resolveNodeLabel(nodeType, data),
+      ...editorData,
+      label: resolveNodeLabel(nodeType, editorData),
     };
     const originalId = resolveNodeId(node.id);
     const { nextId, repairKind, repaired } = buildUniqueNodeId(
@@ -225,6 +313,7 @@ export function restoreWorkflowNodeTypes(
     if (node.type !== FALLBACK_WORKFLOW_NODE_TYPE) {
       return {
         ...node,
+        data: toPersistedWorkflowNodeData(node.data),
         type:
           typeof node.type === 'string'
             ? normalizeNodeTypeForApi(node.type)
@@ -236,14 +325,17 @@ export function restoreWorkflowNodeTypes(
     const originalType = data[ORIGINAL_NODE_TYPE_KEY];
 
     if (typeof originalType !== 'string' || originalType.length === 0) {
-      return node;
+      return {
+        ...node,
+        data: toPersistedWorkflowNodeData(data),
+      };
     }
 
     const { [ORIGINAL_NODE_TYPE_KEY]: _ignored, ...restData } = data;
 
     return {
       ...node,
-      data: restData,
+      data: toPersistedWorkflowNodeData(restData),
       type: normalizeNodeTypeForApi(originalType),
     };
   });

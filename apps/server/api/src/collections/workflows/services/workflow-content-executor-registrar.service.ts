@@ -30,6 +30,7 @@ export class WorkflowContentExecutorRegistrarService {
   ) {}
 
   register(engine: WorkflowEngine): void {
+    this.registerPromptExecutor(engine);
     this.registerPromptConstructorExecutor(engine);
     this.registerHookGeneratorExecutor(engine);
     this.registerLlmExecutor(engine);
@@ -37,6 +38,23 @@ export class WorkflowContentExecutorRegistrarService {
     this.registerPostExecutor(engine);
     this.registerNewsletterExecutor(engine);
     this.registerAttachPostIngredientExecutor(engine);
+  }
+
+  private registerPromptExecutor(engine: WorkflowEngine): void {
+    const executePrompt = async (node: { config: Record<string, unknown> }) => {
+      const prompt =
+        this.helper.readConfigString(node.config, 'prompt') ??
+        this.helper.readConfigString(node.config, 'template');
+
+      if (!prompt || prompt.trim().length === 0) {
+        throw new Error('Prompt text is required');
+      }
+
+      return prompt;
+    };
+
+    engine.registerExecutor('prompt', executePrompt);
+    engine.registerExecutor('input-prompt', executePrompt);
   }
 
   private registerPromptConstructorExecutor(engine: WorkflowEngine): void {
