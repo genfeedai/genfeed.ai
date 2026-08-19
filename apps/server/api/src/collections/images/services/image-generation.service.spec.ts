@@ -272,6 +272,7 @@ const createService = () => {
     replicateService,
     routerService,
     service,
+    sharedService,
   };
 };
 
@@ -581,6 +582,99 @@ describe('ImageGenerationService', () => {
       // primary (ing-0) is not.
       expect(markedIds).toContain('ing-1');
       expect(markedIds).not.toContain('ing-0');
+    });
+  });
+
+  describe('generation brief compilation', () => {
+    const fluxSchnell = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
+
+    it('compiles FLUX Schnell from the versioned brief and persists redacted evidence', async () => {
+      const { service, promptBuilderService, replicateService, sharedService } =
+        createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          height: 1080,
+          model: fluxSchnell,
+          text: 'a sunset over the ocean',
+          width: 1920,
+        }),
+        buildRequest(),
+      );
+
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+        fluxSchnell,
+        {
+          aspect_ratio: '16:9',
+          disable_safety_checker: false,
+          go_fast: true,
+          num_inference_steps: 4,
+          num_outputs: 1,
+          output_format: 'jpg',
+          output_quality: 80,
+          prompt: 'a sunset over the ocean',
+        },
+      );
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          generationSource:
+            'generation-brief:v1:flux-schnell-capability@1:flux-schnell-image-compiler@1',
+          providerData: expect.objectContaining({
+            compilerId: 'flux-schnell-image-compiler',
+            modelKey: fluxSchnell,
+            profileId: 'flux-schnell-capability',
+            status: 'compiled',
+          }),
+        }),
+      );
+      const providerData =
+        sharedService.createMediaDocuments.mock.calls[0]?.[1]?.providerData;
+      expect(providerData).not.toHaveProperty('prompt');
+      expect(JSON.stringify(providerData)).not.toContain(
+        'a sunset over the ocean',
+      );
+    });
+
+    it('keeps non-batch FLUX Schnell credit fan-out unchanged', async () => {
+      const { service, creditsUtilsService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: fluxSchnell, outputs: 2 }),
+        buildRequest({ creditsConfig: { deferred: true } }),
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(ORG, 20);
+    });
+
+    it('exempts other image models and keeps the legacy prompt-builder path', async () => {
+      const { service, promptBuilderService, sharedService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: NON_BATCH_REPLICATE_MODEL }),
+        buildRequest(),
+      );
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+          providerData: expect.objectContaining({
+            compilerId: null,
+            modelKey: NON_BATCH_REPLICATE_MODEL,
+            reason: 'legacy_prompt_builder',
+            status: 'exempted',
+          }),
+        }),
+      );
     });
   });
 });
