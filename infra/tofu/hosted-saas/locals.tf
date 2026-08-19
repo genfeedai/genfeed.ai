@@ -52,11 +52,83 @@ locals {
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
     } if !contains(local.excluded_ssm_secret_names, element(reverse(split("/", name)), 0))
   ]
-  # AUTH deferred (see elasticache.tf): the app connects over TLS without a
-  # password while Redis AUTH is off. Re-add the REDIS_PASSWORD secret here when
-  # auth_token is enabled in the follow-up migration.
-  redis_task_secrets   = []
+  # AUTH is required: inject the Terraform-managed SecureString so every Redis
+  # client presents a password. REDIS_PASSWORD stays in reserved_env_names so
+  # a stale/manual SSM param cannot create a duplicate ECS secret name.
+  redis_task_secrets = [{
+    name      = "REDIS_PASSWORD"
+    valueFrom = aws_ssm_parameter.redis_password.arn
+  }]
   service_task_secrets = concat(local.task_secrets, local.redis_task_secrets)
+
+  # Internet-facing ALB services must not receive the recursive production SSM
+  # set (DATABASE_URL, TOKEN_ENCRYPTION_KEY, Stripe, AWS keys, …). Allowlists
+  # follow each service's config schema; REDIS_PASSWORD is appended separately.
+  public_backend_forbidden_secret_names = toset([
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "TOKEN_ENCRYPTION_KEY",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_API_KEY",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SIGNING_SECRET",
+    "STRIPE_PUBLISHABLE_KEY",
+  ])
+  public_backend_secret_allowlist = {
+    mcp = toset([
+      "CHROMATIC_WEBHOOK_SECRET",
+      "CHROME_EXTENSION_ID",
+      "GENFEEDAI_API_KEY",
+      "POSTHOG_HOST",
+      "POSTHOG_PROJECT_API_KEY",
+      "SENTRY_AUTH_TOKEN",
+      "SENTRY_DSN",
+      "SENTRY_ENABLED",
+      "SENTRY_ENVIRONMENT",
+      "VERCEL_WEBHOOK_SECRET",
+    ])
+    notifications = toset([
+      "API_SECRET_KEY",
+      "CHROMATIC_WEBHOOK_SECRET",
+      "CHROME_EXTENSION_ID",
+      "DISCORD_BOT_AVATAR_URL",
+      "DISCORD_BOT_TOKEN",
+      "DISCORD_CHANNEL_ID_DEPLOYMENTS",
+      "DISCORD_CHANNEL_ID_MODELS",
+      "DISCORD_CHANNEL_ID_POSTS",
+      "DISCORD_CHANNEL_ID_STUDIO",
+      "DISCORD_CHANNEL_ID_USERS",
+      "DISCORD_CLIENT_ID",
+      "DISCORD_GUILD_ID",
+      "DISCORD_WEBHOOK_NAME_PREFIX",
+      "DISCORD_WEBHOOK_REASON",
+      "GENFEEDAI_API_KEY",
+      "RESEND_API_KEY",
+      "RESEND_FROM_EMAIL",
+      "RESEND_REPLY_TO_EMAIL",
+      "SENTRY_AUTH_TOKEN",
+      "SENTRY_DSN",
+      "SENTRY_ENABLED",
+      "SENTRY_ENVIRONMENT",
+      "SLACK_NOTIFICATION_BOT_TOKEN",
+      "TELEGRAM_ADMIN_IDS",
+      "TELEGRAM_BOT_TOKEN",
+      "TELEGRAM_BOT_USERNAME",
+      "TWITCH_CLIENT_ID",
+      "VERCEL_WEBHOOK_SECRET",
+    ])
+  }
+  public_backend_task_secrets = {
+    for name in local.public_backend_service_names : name => concat(
+      [
+        for secret in local.task_secrets : secret
+        if contains(local.public_backend_secret_allowlist[name], secret.name)
+      ],
+      local.redis_task_secrets,
+    )
+  }
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
@@ -78,5 +150,19 @@ locals {
     discord       = { filter = "@genfeedai/discord", port = 3016, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     slack         = { filter = "@genfeedai/slack", port = 3018, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     telegram      = { filter = "@genfeedai/telegram", port = 3019, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
+  }
+}
+
+check "public_backend_secret_allowlists" {
+  assert {
+    condition = alltrue([
+      for name in local.public_backend_service_names :
+      contains(keys(local.public_backend_secret_allowlist), name) &&
+      length(setintersection(
+        local.public_backend_forbidden_secret_names,
+        local.public_backend_secret_allowlist[name],
+      )) == 0
+    ])
+    error_message = "Public backend secret allowlists must exist for every public ALB service and must not include DATABASE_URL-class secrets."
   }
 }

@@ -307,6 +307,208 @@ test('hosted SaaS site identity comes from GitHub environment variables', () => 
   assert.doesNotMatch(tofuProviders, /bucket\s*=\s*"genfeed-tfstate"/);
 });
 
+test('scopes public ECS tasks to service-required secrets and IAM', () => {
+  const localsTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/locals.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const iamTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/iam.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const servicesTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/services.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  assert.match(localsTf, /public_backend_secret_allowlist/);
+  assert.match(localsTf, /public_backend_task_secrets/);
+  assert.match(localsTf, /public_backend_forbidden_secret_names/);
+  assert.match(servicesTf, /aws_iam_role\.public_task\.arn/);
+  assert.match(
+    servicesTf,
+    /local\.public_backend_task_secrets\[each\.key\]/,
+  );
+  assert.match(iamTf, /resource "aws_iam_role" "public_task"/);
+
+  const allowlist = localsTf.slice(
+    localsTf.indexOf('public_backend_secret_allowlist'),
+    localsTf.indexOf('public_backend_task_secrets'),
+  );
+  for (const forbidden of [
+    'DATABASE_URL',
+    'DIRECT_URL',
+    'TOKEN_ENCRYPTION_KEY',
+    'BETTER_AUTH_SECRET',
+    'AWS_SECRET_ACCESS_KEY',
+    'STRIPE_SECRET_KEY',
+  ]) {
+    assert.doesNotMatch(
+      allowlist,
+      new RegExp(`"${forbidden}"`),
+      `public backend allowlist must not include ${forbidden}`,
+    );
+  }
+
+  const publicTask = iamTf.slice(
+    iamTf.indexOf('resource "aws_iam_role" "public_task"'),
+  );
+  assert.doesNotMatch(publicTask, /s3:PutObject|s3:DeleteObject|CdnBucket/);
+});
+
+test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
+  const localsTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/locals.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const elasticacheTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/elasticache.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const servicesTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/services.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  assert.match(elasticacheTf, /transit_encryption_enabled\s+=\s+true/);
+  assert.match(elasticacheTf, /transit_encryption_mode\s+=\s+"required"/);
+  assert.match(
+    elasticacheTf,
+    /auth_token\s+=\s+random_password\.redis_auth_token\.result/,
+  );
+  assert.match(elasticacheTf, /auth_token_update_strategy\s+=\s+"SET"/);
+  assert.doesNotMatch(elasticacheTf, /transit_encryption_mode\s+=\s+"preferred"/);
+  assert.doesNotMatch(elasticacheTf, /ignore_changes\s+=\s+\[auth_token/);
+  assert.match(
+    localsTf,
+    /valueFrom\s+=\s+aws_ssm_parameter\.redis_password\.arn/,
+  );
+  assert.doesNotMatch(localsTf, /redis_task_secrets\s+=\s+\[\]/);
+  assert.match(servicesTf, /REDIS_TLS", value = "true"/);
+  assert.match(servicesTf, /rediss:\/\//);
+  assert.match(
+    publicDeployCore,
+    /-exclude=aws_elasticache_replication_group\.redis/,
+  );
+  assert.match(
+    publicDeployCore,
+    /Require Redis TLS and AUTH/,
+  );
+  const rollApply = publicDeployCore.slice(
+    publicDeployCore.indexOf('Tofu apply (roll services to new image)'),
+    publicDeployCore.indexOf('Wait for services stable'),
+  );
+  const authApply = publicDeployCore.slice(
+    publicDeployCore.indexOf('Require Redis TLS and AUTH'),
+    publicDeployCore.indexOf('Print active service logs on rollout failure'),
+  );
+  assert.match(rollApply, /-exclude=aws_elasticache_replication_group\.redis/);
+  assert.match(
+    authApply,
+    /-target=aws_elasticache_replication_group\.redis/,
+  );
+});
+
+test('passes deploy values through env instead of interpolating into shell or JS', () => {
+  assert.match(
+    publicDeployCore,
+    /SOURCE_SHA: \$\{\{ inputs\.source_sha \}\}/,
+  );
+  assert.match(
+    publicDeployCore,
+    /TF_VAR_image_tag: \$\{\{ steps\.image\.outputs\.sha \}\}/,
+  );
+  assert.match(publicDeployCore, /IMAGE_SHA: \$\{\{ steps\.image\.outputs\.sha \}\}/);
+  assert.match(publicDeployCore, /const sourceSha = process\.env\.SOURCE_SHA/);
+  assert.match(publicDeployCore, /echo "Public source SHA: \\`\$\{SOURCE_SHA\}\\`"/);
+  assert.doesNotMatch(
+    publicDeployCore,
+    /Public source SHA: \\`\$\{\{ inputs\.source_sha \}\}/,
+  );
+  assert.doesNotMatch(publicDeployCore, /-var="image_tag=\$\{\{/);
+  assert.doesNotMatch(publicDeployCore, /SHA="\$\{\{ steps\.image\.outputs\.sha \}\}"/);
+});
+
+test('authenticates to the private GHCR server package before inspect or copy', () => {
+  const releasing = readFileSync(
+    fileURLToPath(new URL('../../RELEASING.md', import.meta.url)),
+    'utf8',
+  );
+
+  assert.match(publicDeployCore, /uses: docker\/login-action@v4/);
+  assert.match(publicDeployCore, /registry: ghcr\.io/);
+  assert.match(publicDeployCore, /password: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
+  assert.match(
+    publicDeployCore,
+    /private GHCR package/,
+  );
+  assert.match(
+    publicDeployCore,
+    /imagetools inspect "\$\{REPO\}:\$1" >\/dev\/null\n/,
+  );
+  assert.doesNotMatch(
+    publicDeployCore,
+    /imagetools inspect "\$\{REPO\}:\$1" >\/dev\/null 2>&1/,
+  );
+  assert.match(
+    releasing,
+    /Do not change the visibility of the internal `genfeed\.ai\/server` package/,
+  );
+  assert.match(releasing, /authenticates to GHCR with `GITHUB_TOKEN`/);
+});
+
+test('keeps smoke retry budget consistent with the configured URL set', () => {
+  const smokeJob = publicDeployCore.slice(
+    publicDeployCore.indexOf('post-deploy-smoke:'),
+    publicDeployCore.indexOf('report-post-deploy-smoke-failure:'),
+  );
+  const timeoutMinutes = Number(
+    smokeJob.match(/timeout-minutes:\s+(\d+)/)?.[1],
+  );
+  const retry = Number(smokeJob.match(/SMOKE_RETRY:\s+"(\d+)"/)?.[1]);
+  const retryDelay = Number(
+    smokeJob.match(/SMOKE_RETRY_DELAY:\s+"(\d+)"/)?.[1],
+  );
+  const maxTime = Number(smokeJob.match(/SMOKE_MAX_TIME:\s+"(\d+)"/)?.[1]);
+
+  assert.equal(Number.isFinite(timeoutMinutes), true);
+  assert.equal(retry, 6);
+  assert.equal(retryDelay, 10);
+  assert.equal(maxTime, 20);
+  assert.match(smokeJob, /smoke_specs=\(/);
+  assert.match(smokeJob, /url_count="\$\{#smoke_specs\[@\]\}"/);
+  assert.match(smokeJob, /budget_seconds=/);
+  assert.match(smokeJob, /api-ready\|https:\/\/api\.\$\{DOMAIN\}/);
+  assert.match(smokeJob, /mcp-health\|https:\/\/mcp\.\$\{DOMAIN\}/);
+  assert.match(
+    smokeJob,
+    /notifications-health\|https:\/\/notifications\.\$\{DOMAIN\}/,
+  );
+  assert.match(smokeJob, /if \[ -n "\$\{DOCS_HOST\}" \]/);
+
+  const requiredUrls = 5;
+  const optionalDocs = 1;
+  const perUrlSeconds = (retry + 1) * maxTime + retry * retryDelay;
+  const maxBudgetSeconds = (requiredUrls + optionalDocs) * perUrlSeconds;
+  assert.equal(perUrlSeconds, 200);
+  assert.ok(
+    timeoutMinutes * 60 >= maxBudgetSeconds,
+    `timeout-minutes ${timeoutMinutes} must cover ${requiredUrls + optionalDocs} URLs at ${perUrlSeconds}s each`,
+  );
+});
+
 test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {
   for (const jobId of [
     'promote-community',

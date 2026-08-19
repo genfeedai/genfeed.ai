@@ -191,6 +191,10 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # The hosted SaaS server image (`ghcr.io/genfeedai/genfeed.ai/server`) is
+      # a private GHCR package. Authenticate before inspect/create. The public
+      # Community image is `ghcr.io/genfeedai/genfeed.ai` — do not treat it as
+      # this package, and do not change the server package to public.
       - name: Login to GHCR
         uses: docker/login-action@v4
         with:
@@ -215,7 +219,9 @@ jobs:
           REPO="${SERVER_IMAGE_REPOSITORY}"
 
           image_exists() {
-            docker buildx imagetools inspect "${REPO}:$1" >/dev/null 2>&1
+            # Quiet the manifest dump on stdout. Leave stderr open so a GHCR
+            # authentication failure is visible instead of looking like a miss.
+            docker buildx imagetools inspect "${REPO}:$1" >/dev/null
           }
 
           wait_for_image() {
@@ -306,11 +312,17 @@ jobs:
           exit 1
 
       - name: Copy server:<sha> GHCR -> ECR (no rebuild)
+        env:
+          IMAGE_SHA: ${{ steps.image.outputs.sha }}
         run: |
-          SHA="${{ steps.image.outputs.sha }}"
+          set -euo pipefail
+          if ! printf '%s' "${IMAGE_SHA}" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error::Invalid image tag '${IMAGE_SHA}' (allowed chars: A-Za-z0-9 . _ -)"
+            exit 1
+          fi
           ECR="$(aws ecr describe-repositories --repository-names "${ECR_REPOSITORY_NAME}" \
                  --query 'repositories[0].repositoryUri' --output text)"
-          docker buildx imagetools create -t "${ECR}:${SHA}" "${SERVER_IMAGE_REPOSITORY}:${SHA}"
+          docker buildx imagetools create -t "${ECR}:${IMAGE_SHA}" "${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}"
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
@@ -329,8 +341,14 @@ jobs:
 
       - name: Register migration, backfill, and boot-smoke task definitions
         working-directory: ops/${{ env.TF_DIR }}
+        env:
+          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
+          TF_VAR_enable_dns_cutover: "true"
         run: |
+          # Exclude Redis until every task definition injects REDIS_PASSWORD.
+          # AUTH + required TLS would otherwise reject the still-running tasks.
           tofu apply -input=false -auto-approve \
+            -exclude=aws_elasticache_replication_group.redis \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
             -target=aws_cloudwatch_log_group.workflow_backfill \
@@ -342,9 +360,7 @@ jobs:
             -target=aws_cloudwatch_log_group.credential_backfill \
             -target=aws_ecs_task_definition.credential_backfill \
             -target=aws_cloudwatch_log_group.articles_seed \
-            -target=aws_ecs_task_definition.articles_seed \
-            -var="image_tag=${{ steps.image.outputs.sha }}" \
-            -var="enable_dns_cutover=true"
+            -target=aws_ecs_task_definition.articles_seed
 
       - name: Snapshot RDS before migrations (fail-closed)
         env:
@@ -457,7 +473,14 @@ jobs:
 
       - name: Tofu apply (roll services to new image)
         working-directory: ops/${{ env.TF_DIR }}
-        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.image.outputs.sha }}" -var="enable_dns_cutover=true"
+        env:
+          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
+          TF_VAR_enable_dns_cutover: "true"
+        run: |
+          # Roll services with REDIS_PASSWORD first. Redis AUTH is applied after
+          # this wait-services-stable step so old tasks are not locked out.
+          tofu apply -input=false -auto-approve \
+            -exclude=aws_elasticache_replication_group.redis
 
       - name: Wait for services stable
         id: wait-services
@@ -471,6 +494,17 @@ jobs:
             --services "$SERVICES" \
             --timeout-seconds 1200 \
             --poll-seconds 15
+
+      - name: Require Redis TLS and AUTH
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
+          TF_VAR_enable_dns_cutover: "true"
+        run: |
+          # Tasks now present REDIS_PASSWORD. Tighten transport to required TLS
+          # and set the AUTH token so unauthenticated clients are rejected.
+          tofu apply -input=false -auto-approve \
+            -target=aws_elasticache_replication_group.redis
 
       - name: Print active service logs on rollout failure
         if: ${{ failure() && steps.wait-services.outcome == 'failure' }}
@@ -537,9 +571,9 @@ jobs:
     if: ${{ always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
     environment: production
-    # Worst-case sequential retry budget across the 6 URLs is ~20m
-    # (7 attempts x 20s max-time + 6 x 10s retry-delay per URL); keep the timeout
-    # above it so an unresponsive endpoint surfaces as a failure, not a silent cancel.
+    # Ceiling for the configured URL set. Per URL: (SMOKE_RETRY+1) attempts *
+    # SMOKE_MAX_TIME plus SMOKE_RETRY * SMOKE_RETRY_DELAY. Five required URLs
+    # worst-case ~17m; six with docs ~20m. Keep this above the printed budget.
     timeout-minutes: 25
     permissions:
       contents: read
@@ -550,9 +584,19 @@ jobs:
           APP_HOST: ${{ vars.APP_HOST }}
           WEB_HOST: ${{ vars.WEB_HOST }}
           DOCS_HOST: ${{ vars.DOCS_HOST }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SMOKE_RETRY: "6"
+          SMOKE_RETRY_DELAY: "10"
+          SMOKE_MAX_TIME: "20"
+          SMOKE_CONNECT_TIMEOUT: "10"
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/post-deploy-smoke"
+
+          if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Invalid source SHA (expected exact lowercase 40-character commit)"
+            exit 1
+          fi
 
           smoke_url() {
             local name="$1"
@@ -562,8 +606,8 @@ jobs:
 
             echo "Checking ${name}: ${url}"
             curl --fail --show-error --silent --location \
-              --retry 6 --retry-delay 10 --retry-all-errors \
-              --connect-timeout 10 --max-time 20 \
+              --retry "${SMOKE_RETRY}" --retry-delay "${SMOKE_RETRY_DELAY}" --retry-all-errors \
+              --connect-timeout "${SMOKE_CONNECT_TIMEOUT}" --max-time "${SMOKE_MAX_TIME}" \
               --output "${body}" \
               "${url}"
 
@@ -579,21 +623,34 @@ jobs:
             } >> "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
           }
 
-          smoke_url api-ready "https://api.${DOMAIN}/v1/health/ready" '"status":"ready"'
-          smoke_url mcp-health "https://mcp.${DOMAIN}/v1/health" '"status":"ok"'
-          smoke_url notifications-health "https://notifications.${DOMAIN}/v1/health" '"status":"ok"'
-          smoke_url app-login "https://${APP_HOST}/login"
-          smoke_url website-home "https://${WEB_HOST}"
+          smoke_specs=(
+            "api-ready|https://api.${DOMAIN}/v1/health/ready|\"status\":\"ready\""
+            "mcp-health|https://mcp.${DOMAIN}/v1/health|\"status\":\"ok\""
+            "notifications-health|https://notifications.${DOMAIN}/v1/health|\"status\":\"ok\""
+            "app-login|https://${APP_HOST}/login|"
+            "website-home|https://${WEB_HOST}|"
+          )
           if [ -n "${DOCS_HOST}" ]; then
-            smoke_url docs-home "https://${DOCS_HOST}"
+            smoke_specs+=("docs-home|https://${DOCS_HOST}|")
           fi
+
+          url_count="${#smoke_specs[@]}"
+          attempts=$((SMOKE_RETRY + 1))
+          per_url_seconds=$((attempts * SMOKE_MAX_TIME + SMOKE_RETRY * SMOKE_RETRY_DELAY))
+          budget_seconds=$((url_count * per_url_seconds))
+          echo "Smoke retry budget covers ${url_count} URL(s) at ${per_url_seconds}s each (${budget_seconds}s sequential worst case)."
+
+          for spec in "${smoke_specs[@]}"; do
+            IFS='|' read -r name url expected <<< "${spec}"
+            smoke_url "${name}" "${url}" "${expected}"
+          done
 
           {
             echo "## Post-deploy smoke"
             echo ""
             cat "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
             echo ""
-            echo "Public source SHA: \`${{ inputs.source_sha }}\`"
+            echo "Public source SHA: \`${SOURCE_SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   report-post-deploy-smoke-failure:
@@ -608,8 +665,14 @@ jobs:
     steps:
       - name: Open or update tracking issue
         uses: actions/github-script@v9
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
         with:
           script: |
+            const sourceSha = process.env.SOURCE_SHA || '';
+            if (!/^[0-9a-f]{40}$/.test(sourceSha)) {
+              throw new Error('Invalid source SHA (expected exact lowercase 40-character commit)');
+            }
             const label = 'post-deploy-smoke';
             const date = new Date().toISOString().slice(0, 10);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
@@ -618,7 +681,7 @@ jobs:
               `**Post-deploy production smoke failed** on \`${date}\`.`,
               ``,
               `- Failed run: ${runUrl}`,
-              `- Public source SHA: \`${{ inputs.source_sha }}\``,
+              `- Public source SHA: \`${sourceSha}\``,
               ``,
               `See the smoke job log on the failed run for the checked hosts.`,
               ``,
