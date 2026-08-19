@@ -74,7 +74,9 @@ test.describe('Workflows', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/automate\/workflows\/new(?:[/?#]|$)/,
+    );
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();

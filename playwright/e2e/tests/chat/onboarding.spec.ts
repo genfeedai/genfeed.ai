@@ -168,7 +168,7 @@ test.describe('Agent Onboarding', () => {
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding/);
+    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:[/?#]|$)/);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
@@ -345,7 +345,7 @@ test.describe('Agent Onboarding', () => {
 
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
-    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding/);
+    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:[/?#]|$)/);
     const hasOnboardingCrash = await authenticatedPage
       .getByText('Something went wrong')
       .first()
