@@ -35,7 +35,6 @@ const publicDeployVercel = readFileSync(
 );
 
 const ENTRY_SECRETS = [
-  'CONSOLE_DEPLOY_TOKEN',
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
   'TURBO_TOKEN',
@@ -168,7 +167,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
   );
 });
 
-test('validates public and marketplace source reachability before handoff', () => {
+test('validates public source reachability and does not clone marketplace', () => {
   const dispatchScript = readFileSync(
     fileURLToPath(new URL('./dispatch-hosted-saas.mjs', import.meta.url)),
     'utf8',
@@ -178,10 +177,6 @@ test('validates public and marketplace source reachability before handoff', () =
     publicDeployWorkflow,
     /source_sha must be an exact lowercase 40-character Git commit SHA/,
   );
-  assert.match(
-    publicDeployWorkflow,
-    /marketplace_source_sha must be an exact lowercase 40-character Git commit SHA/,
-  );
   assert.match(publicDeployWorkflow, /\^\[0-9a-f\]\{40\}\$/);
   assert.match(
     publicDeployWorkflow,
@@ -189,13 +184,10 @@ test('validates public and marketplace source reachability before handoff', () =
   );
   assert.match(
     publicDeployWorkflow,
-    /git -C marketplace-source merge-base --is-ancestor "\$\{marketplace_sha\}" origin\/master/,
+    /Marketplace is an independent repo and is not cloned or deployed from here/,
   );
-  assert.match(
-    publicDeployWorkflow,
-    /marketplace_source_sha \$\{marketplace_sha\} is not reachable from genfeedai\/marketplace\.genfeed\.ai master/,
-  );
-  assert.match(
+  assert.doesNotMatch(publicDeployWorkflow, /git -C marketplace-source/);
+  assert.doesNotMatch(
     publicDeployWorkflow,
     /https:\/\/github\.com\/genfeedai\/marketplace\.genfeed\.ai\.git/,
   );
@@ -250,6 +242,8 @@ test('in-repo engine never clones console and keeps OpenTofu off the entry workf
   assert.match(publicDeployCore, /Checkout public deploy engine/);
   assert.match(publicDeployCore, /environment: production/);
   assert.match(publicDeployCore, /aws-actions\/configure-aws-credentials/);
+  assert.match(publicDeployCore, /Login to GHCR/);
+  assert.match(publicDeployCore, /registry: ghcr.io/);
   assert.match(
     publicDeployCore,
     /uses: \.\/\.github\/workflows\/_deploy-hosted-saas-vercel\.yml/,

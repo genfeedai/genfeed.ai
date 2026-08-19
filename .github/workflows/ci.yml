@@ -416,13 +416,14 @@ jobs:
       - name: Setup Bun environment
         if: >-
           inputs.run_heavy_tests != true
+          && github.event_name != 'merge_group'
           && !contains(github.event.pull_request.labels.*.name, 'full-suite')
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
       - name: Compute affected test plan
         id: plan
-        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || github.event_name == 'merge_group' || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
       - name: Upload pull-request test plan
         if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
         uses: actions/upload-artifact@v7

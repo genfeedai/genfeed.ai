@@ -963,8 +963,8 @@ export const testRoutes = {
   activities: '/activities',
   billing: '/billing',
   calendar: {
-    articles: '/calendar/articles',
-    posts: '/calendar/posts',
+    articles: '/publish/calendar',
+    posts: '/publish/calendar',
   },
   editor: '/studio/edit',
   generation: {

@@ -158,24 +158,14 @@ export async function preflightAndDispatch({
   );
   requireOk(workflow);
 
-  let resolvedMarketplaceSourceSha = marketplaceSourceSha ?? '';
-  if (!resolvedMarketplaceSourceSha) {
-    const marketplaceCommit = await ghApi(
-      'GET',
-      `repos/${marketplaceRepository}/commits/master`,
-    );
-    if (marketplaceCommit.status < 200 || marketplaceCommit.status >= 300) {
-      throw new Error(
-        `Could not resolve ${marketplaceRepository} master for the hosted-SaaS handoff (HTTP ${marketplaceCommit.status || 'unknown'}).`,
-      );
-    }
-    resolvedMarketplaceSourceSha = marketplaceCommit.json?.sha ?? '';
+  const resolvedMarketplaceSourceSha = marketplaceSourceSha ?? '';
+  if (resolvedMarketplaceSourceSha) {
+    await assertMarketplaceSourceReachable({
+      ghApi,
+      marketplaceRepository,
+      marketplaceSourceSha: resolvedMarketplaceSourceSha,
+    });
   }
-  await assertMarketplaceSourceReachable({
-    ghApi,
-    marketplaceRepository,
-    marketplaceSourceSha: resolvedMarketplaceSourceSha,
-  });
 
   const dispatch = await ghApi(
     'POST',

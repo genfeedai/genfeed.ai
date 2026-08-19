@@ -80,7 +80,12 @@ export const AGENT_WORKFLOW_TOOLS: SourceTool[] = [
         },
         sourceType: {
           description: 'Resolved source type from a prior confirmation step.',
-          enum: ['seeded-template', 'marketplace-listing', 'generated'],
+          enum: [
+            'seeded-template',
+            'marketplace-listing',
+            'generated',
+            'system-catalog',
+          ],
           type: 'string',
         },
         timezone: {

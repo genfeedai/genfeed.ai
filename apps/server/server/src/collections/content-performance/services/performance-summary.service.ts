@@ -284,7 +284,10 @@ export class PerformanceSummaryService {
               publicationDate: true,
             },
             take: postIds.length,
-            where: { id: { in: postIds } },
+            where: scopedWhere(organizationId, {
+              id: { in: postIds },
+              isDeleted: false,
+            }),
           })
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
@@ -453,7 +456,9 @@ export class PerformanceSummaryService {
           AVG(pa."engagementRate") AS avg_engagement_rate,
           COUNT(DISTINCT pa."postId") AS total_posts
         FROM "post_analytics" pa
+        INNER JOIN "posts" p ON p."id" = pa."postId"
         WHERE ${this.buildAnalyticsSqlWhere(matchFilter)}
+          AND p."isDeleted" = false
         GROUP BY pa."platform"
         ORDER BY avg_engagement_rate DESC
         LIMIT 20
@@ -556,7 +561,10 @@ export class PerformanceSummaryService {
           totalLikes: true,
           totalShares: true,
         },
-        where: filter,
+        where: {
+          ...filter,
+          post: { isDeleted: false },
+        },
       });
       const sums = (aggregate as { _sum?: Record<string, unknown> })._sum ?? {};
       return (

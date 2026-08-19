@@ -41,9 +41,12 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
     const patch = vi
       .spyOn(service, 'patch')
       .mockResolvedValue({ id: 'set_1' } as never);
-    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
       'model_1',
       'model_2',
+    ]);
+    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+      'model_cloud_1',
     ]);
 
     await service.ensureEnabledModelIds({

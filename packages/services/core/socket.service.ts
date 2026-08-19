@@ -53,6 +53,10 @@ export function isCrossIdentitySocketRotation(
   const previous = readSocketIdentityFromToken(previousToken);
   const next = readSocketIdentityFromToken(nextToken);
 
+  if (previous.userId && !next.userId) {
+    return true;
+  }
+
   if (!previous.userId || !next.userId) {
     return false;
   }

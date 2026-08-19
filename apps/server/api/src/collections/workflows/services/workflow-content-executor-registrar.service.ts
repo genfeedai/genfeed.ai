@@ -44,7 +44,8 @@ export class WorkflowContentExecutorRegistrarService {
     const executePrompt = async (node: { config: Record<string, unknown> }) => {
       const prompt =
         this.helper.readConfigString(node.config, 'prompt') ??
-        this.helper.readConfigString(node.config, 'template');
+        this.helper.readConfigString(node.config, 'template') ??
+        this.helper.readConfigString(node.config, 'text');
 
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Prompt text is required');

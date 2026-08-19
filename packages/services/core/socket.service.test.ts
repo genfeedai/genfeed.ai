@@ -281,6 +281,15 @@ describe('SocketService', () => {
       expect(isCrossIdentitySocketRotation('token-a', 'token-b')).toBe(false);
     });
 
+    it('treats an unreadable next token after a known JWT as a cross-identity swap', () => {
+      expect(
+        isCrossIdentitySocketRotation(
+          makeJwt({ organizationId: 'org-a', sub: 'user-a' }),
+          'opaque-refresh',
+        ),
+      ).toBe(true);
+    });
+
     it('detects a user or org change as a cross-identity rotation', () => {
       expect(
         isCrossIdentitySocketRotation(

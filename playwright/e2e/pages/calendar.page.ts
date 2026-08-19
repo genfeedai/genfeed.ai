@@ -53,8 +53,8 @@ export class CalendarPage {
     );
 
     // Calendar layout tabs
-    this.postsTab = page.locator('a[href="/calendar/posts"]');
-    this.articlesTab = page.locator('a[href="/calendar/articles"]');
+    this.postsTab = page.locator(`a[href="${APP_ROUTES.PUBLISH.CALENDAR}"]`);
+    this.articlesTab = page.locator(`a[href="${APP_ROUTES.PUBLISH.CALENDAR}"]`);
 
     // Calendar grid elements
     this.calendarGrid = page.locator(
@@ -226,10 +226,10 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/calendar\/posts/);
+    await expect(this.page).toHaveURL(/\/publish\/calendar/);
   }
 
   async assertArticlesTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/calendar\/articles/);
+    await expect(this.page).toHaveURL(/\/publish\/calendar/);
   }
 }

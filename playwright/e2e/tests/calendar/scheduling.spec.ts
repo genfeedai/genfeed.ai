@@ -27,7 +27,7 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(/calendar\/posts/);
+    await expect(authenticatedPage).toHaveURL(/\/publish\/calendar/);
     await calendarPage.assertPostsTabActive();
   });
 
