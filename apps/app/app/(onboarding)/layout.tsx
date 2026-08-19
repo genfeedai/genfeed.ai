@@ -7,6 +7,7 @@ import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
 import { ErrorBoundary } from '@ui/error';
 import { Suspense } from 'react';
+import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
@@ -19,6 +20,7 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
             description="Something went wrong during setup. Please try again."
           >
             <Suspense fallback={null}>
+              <AnalyticsOrganizationSync />
               <OnboardingFunnelAnalytics />
             </Suspense>
             {children}

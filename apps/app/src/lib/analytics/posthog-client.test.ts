@@ -7,12 +7,15 @@ const mocks = vi.hoisted(() => ({
   posthogCapture: vi.fn(),
   posthogFeatureFlagUnsubscribe: vi.fn(),
   posthogGetFeatureFlagResult: vi.fn(),
+  posthogGetGroups: vi.fn(),
+  posthogGetProperty: vi.fn(),
   posthogGroup: vi.fn(),
   posthogIdentify: vi.fn(),
   posthogImport: vi.fn(),
   posthogInit: vi.fn(),
   posthogOnFeatureFlags: vi.fn(),
   posthogReset: vi.fn(),
+  posthogResetGroups: vi.fn(),
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
@@ -25,11 +28,14 @@ vi.mock('posthog-js', () => {
     default: {
       capture: mocks.posthogCapture,
       getFeatureFlagResult: mocks.posthogGetFeatureFlagResult,
+      getGroups: mocks.posthogGetGroups,
+      get_property: mocks.posthogGetProperty,
       group: mocks.posthogGroup,
       identify: mocks.posthogIdentify,
       init: mocks.posthogInit,
       onFeatureFlags: mocks.posthogOnFeatureFlags,
       reset: mocks.posthogReset,
+      resetGroups: mocks.posthogResetGroups,
     },
   };
 });
@@ -52,10 +58,13 @@ async function flushInit(): Promise<void> {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.posthogCapture.mockReset();
   mocks.isSaaS.mockReturnValue(true);
   mocks.posthogOnFeatureFlags.mockReturnValue(
     mocks.posthogFeatureFlagUnsubscribe,
   );
+  mocks.posthogGetGroups.mockReturnValue({});
+  mocks.posthogGetProperty.mockReturnValue(undefined);
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
 });
 
@@ -115,17 +124,21 @@ describe('initAnalytics', () => {
     );
   });
 
-  it('captures pageviews on every SPA navigation with a before_send scrub', async () => {
+  it('disables SDK pageview capture until app scope is synchronized', async () => {
     const client = await loadClient();
     client.initAnalytics();
     await flushInit();
     const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      capture_pageleave: unknown;
       capture_pageview: unknown;
       before_send: unknown;
       disable_session_recording: unknown;
+      loaded: unknown;
     };
-    expect(config.capture_pageview).toBe('history_change');
+    expect(config.capture_pageview).toBe(false);
+    expect(config.capture_pageleave).toBe(true);
     expect(typeof config.before_send).toBe('function');
+    expect(typeof config.loaded).toBe('function');
     // Replay must stay off — $snapshot bypasses before_send scrubbing.
     expect(config.disable_session_recording).toBe(true);
   });
@@ -381,6 +394,236 @@ describe('authenticated feature flags', () => {
     featureFlagsReady([], {}, { errorsLoading: true });
 
     expect(listener).toHaveBeenCalledWith({});
+  });
+});
+
+describe('analytics identity lifecycle', () => {
+  it('applies an organization identified before the SDK finishes loading', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsOrganization('org-123');
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-123');
+  });
+
+  it('clears an active organization without resetting the user identity', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    client.identifyAnalyticsOrganization('org-123');
+    client.clearAnalyticsOrganization();
+
+    expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
+    expect(mocks.posthogReset).not.toHaveBeenCalled();
+  });
+
+  it('applies a queued logout from the SDK loaded callback', async () => {
+    mocks.posthogInit.mockImplementationOnce(
+      (
+        _token: string,
+        config: {
+          loaded?: (sdk: { reset: typeof mocks.posthogReset }) => void;
+        },
+      ) => {
+        config.loaded?.({
+          reset: mocks.posthogReset,
+        });
+      },
+    );
+    const client = await loadClient();
+
+    client.resetAnalytics();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+  });
+
+  it('still applies organization and pageview when identify throws', async () => {
+    mocks.posthogIdentify.mockImplementationOnce(() => {
+      throw new Error('identify failed');
+    });
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.captureAnalyticsPageview();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-123');
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('$pageview', {
+      $current_url: window.location.href,
+    });
+  });
+
+  it('clears persisted and pending identity after logout during SDK loading', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.initAnalytics();
+    client.resetAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+    expect(mocks.posthogIdentify).not.toHaveBeenCalled();
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+  });
+
+  it('defers an organization-only reset until the SDK finishes loading', async () => {
+    const client = await loadClient();
+
+    client.clearAnalyticsOrganization();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
+    expect(mocks.posthogReset).not.toHaveBeenCalled();
+  });
+
+  it('resets persisted state before applying a newer queued identity', async () => {
+    const client = await loadClient();
+
+    client.resetAnalytics();
+    client.identifyAnalyticsUser({ id: 'user-456', isInternal: false });
+    client.identifyAnalyticsOrganization('org-456');
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogInit.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogReset.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogReset.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogIdentify.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogReset.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogGroup.mock.invocationCallOrder[0] as number,
+    );
+  });
+
+  it('uses the latest organization instruction queued during SDK loading', async () => {
+    const client = await loadClient();
+
+    client.clearAnalyticsOrganization();
+    client.identifyAnalyticsOrganization('org-789');
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogResetGroups).not.toHaveBeenCalled();
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-789');
+  });
+
+  it('honors an organization clear queued after identification', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsOrganization('org-789');
+    client.clearAnalyticsOrganization();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+    expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
+  });
+
+  it('clears persisted identified state on a resolved anonymous boot', async () => {
+    mocks.posthogGetProperty.mockReturnValue('persisted-user');
+    const client = await loadClient();
+
+    client.ensureAnalyticsAnonymous();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+  });
+
+  it('preserves an existing anonymous identity when no group is persisted', async () => {
+    const client = await loadClient();
+
+    client.ensureAnalyticsAnonymous();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).not.toHaveBeenCalled();
+    expect(mocks.posthogResetGroups).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale group without rotating an anonymous identity', async () => {
+    mocks.posthogGetGroups.mockReturnValue({ organization: 'org-old' });
+    const client = await loadClient();
+
+    client.ensureAnalyticsAnonymous();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).not.toHaveBeenCalled();
+    expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
+  });
+
+  it('does not restore queued account scope after auth resolves anonymous', async () => {
+    mocks.posthogGetProperty.mockReturnValue('persisted-user');
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'persisted-user', isInternal: false });
+    client.identifyAnalyticsOrganization('org-old');
+    client.captureAnalyticsPageview();
+    client.ensureAnalyticsAnonymous();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+    expect(mocks.posthogIdentify).not.toHaveBeenCalled();
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+    expect(mocks.posthogCapture).not.toHaveBeenCalled();
+  });
+
+  it('captures a queued pageview only after identity and organization sync', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.captureAnalyticsPageview();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogCapture.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('$pageview', {
+      $current_url: window.location.href,
+    });
+  });
+
+  it('drops a protected pageview queued before logout', async () => {
+    const client = await loadClient();
+
+    client.captureAnalyticsPageview();
+    client.resetAnalytics();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+    expect(mocks.posthogCapture).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates repeated renders of the same scoped route', async () => {
+    const client = await loadClient();
+    expect(mocks.posthogCapture).not.toHaveBeenCalled();
+
+    client.captureAnalyticsPageview('user-1:org-1:/library');
+    client.initAnalytics();
+    await flushInit();
+    expect(mocks.posthogCapture).toHaveBeenCalledTimes(1);
+    client.captureAnalyticsPageview('user-1:org-1:/library');
+    expect(mocks.posthogCapture).toHaveBeenCalledTimes(1);
+    client.captureAnalyticsPageview('user-1:org-1:/publish');
+
+    expect(mocks.posthogCapture).toHaveBeenCalledTimes(2);
   });
 });
 

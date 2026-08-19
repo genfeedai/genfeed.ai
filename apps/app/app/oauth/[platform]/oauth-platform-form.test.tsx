@@ -27,6 +27,10 @@ vi.mock('@services/external/services.service', () => ({
   ServicesService: vi.fn(),
 }));
 
+vi.mock('@/components/analytics/AnalyticsPublicRouteSync', () => ({
+  default: () => <div data-testid="analytics-public-route-sync" />,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({
@@ -70,6 +74,7 @@ describe('OAuthPlatformForm', () => {
     expect(
       screen.getByText('Connecting your Instagram account…'),
     ).toBeVisible();
+    expect(screen.getByTestId('analytics-public-route-sync')).toBeVisible();
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
