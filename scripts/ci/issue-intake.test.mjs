@@ -87,7 +87,9 @@ test('issue chooser points questions and vulnerabilities off the tracker', () =>
 });
 
 test('Community Profile has a valid Markdown issue-intake fallback', () => {
-  const fallback = readRepoFile('.github/ISSUE_TEMPLATE/ISSUE_TEMPLATE.md');
+  // GitHub's community/profile API only detects ISSUE_TEMPLATE.md at
+  // .github/, repo root, or docs/ — not inside .github/ISSUE_TEMPLATE/.
+  const fallback = readRepoFile('.github/ISSUE_TEMPLATE.md');
   const template = fallback.match(
     /^---\n(?<metadata>[\s\S]*?)\n---\n(?<body>[\s\S]+)$/,
   );
