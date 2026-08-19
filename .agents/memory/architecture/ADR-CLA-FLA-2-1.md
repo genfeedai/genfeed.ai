@@ -26,6 +26,33 @@ removed. `git commit -s` remains a harmless habit but is not required.
 - **No per-commit ceremony.** One click on the first PR replaces a `Signed-off-by:` trailer on
   every commit and the rebase-and-force-push loop when one is missing.
 
+## Agent-account exemption
+
+Commits authored by the maintainer's coding agents are exempt from `license/cla` via CLA
+Assistant's per-repository allowlist ("Specify usernames and source organizations to be exempt
+from signing the CLA"), not by signing on their behalf. The exempt logins are:
+
+```
+claude,cursoragent,chatgpt-codex-connector[bot]
+```
+
+They are agents acting under the maintainer's direction, so the Recorded fact below still holds —
+the copyright is the maintainer's, and there is no third party whose consent the FLA needs.
+
+Two traps when editing that field:
+
+- **No spaces after the commas.** CLA Assistant splits the value on `,` without trimming, so
+  ` claude` never matches and the check stays `pending — Contributor License Agreement is not
+  signed yet.`
+- **`codex` is not the Codex agent.** It is an unrelated personal GitHub account that happens to
+  be named "Codex"; allowlisting it would exempt a third party. Codex CLI commits under the
+  maintainer's own git identity and needs no entry — only Codex Cloud pushes as
+  `chatgpt-codex-connector[bot]`.
+
+The allowlist is evaluated when a `pull_request` `opened` / `synchronize` / `reopened` webhook
+arrives. Existing PRs keep their stale status until one is redelivered or "Recheck PRs" is run
+from the CLA Assistant dashboard.
+
 ## Recorded fact
 
 At decision time the repository had **zero external contributors**; every commit on `master`
