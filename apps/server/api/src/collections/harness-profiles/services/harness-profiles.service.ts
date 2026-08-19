@@ -9,6 +9,7 @@ import {
 } from '@api/services/harness/harness-profile-seed.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
 import type {
   HarnessProfileScope,
@@ -25,12 +26,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;

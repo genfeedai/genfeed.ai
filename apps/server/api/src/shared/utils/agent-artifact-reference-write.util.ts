@@ -1,3 +1,4 @@
+import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty.util';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
@@ -37,12 +38,6 @@ export interface AuthorizeAgentArtifactWriteParams {
   readContext: AgentArtifactReferenceReadContext;
 }
 
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 // `Object.hasOwn` reports true for a key that is explicitly set to `undefined`,
 // which every server-side DTO built by object spread produces for an omitted
 // optional field (`artifactReferences: request.artifactReferences`). Treating
@@ -76,8 +71,8 @@ function collectField(
   key: 'artifactReferences' | 'artifactVersionPinIds',
 ): unknown[] {
   return inputs.flatMap((input) => {
-    const topLevel = readArrayField(readRecord(input), key);
-    const metadata = readArrayField(readRecord(input.metadata), key);
+    const topLevel = readArrayField(readRecordOrEmpty(input), key);
+    const metadata = readArrayField(readRecordOrEmpty(input.metadata), key);
     return [...topLevel, ...metadata];
   });
 }
@@ -95,7 +90,7 @@ function readReferenceIdentity(value: unknown): {
   kind: AgentArtifactRecordKind;
   recordId: string;
 } {
-  const candidate = readRecord(value);
+  const candidate = readRecordOrEmpty(value);
   const kind = candidate.kind;
   const recordId = candidate.recordId;
   const brandId = candidate.brandId;
